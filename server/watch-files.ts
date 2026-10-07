@@ -5,7 +5,8 @@
  * A watch is any file directly in `watches/` whose name is letters, digits, `.`, `_` and `-`, does not
  * start with a dot and does not end in `.md` (the folder's README). It declares its schedule in a
  * comment in its first lines — `# schedule: 0,30 9-17 * * 1-5`, or `//` or `--` for languages that comment
- * that way — and it has to be executable, since it is run as it is, by its `#!` line. A file that
+ * that way — and on Unix it has to be executable, since it is run by its `#!` line. Windows accepts
+ * Node shebangs and does not require Unix executable bits. A file that
  * fails any of that is still listed, as invalid with the reason, and never run.
  *
  * **The plugin's own watches** (`BUILT_IN_WATCHES`) start as their namesakes in `templates/watches/`,
@@ -25,6 +26,7 @@ import { join } from "node:path";
 import { WATCHES_DIR } from "../shared/fleet";
 import { parseSchedule, type Schedule } from "./watch-schedule";
 import { TEMPLATES, fill, readTemplate, type TemplatePath } from "./templates";
+import { windowsWatchProblem } from "./process-launch";
 
 export { WATCHES_DIR };
 
@@ -104,8 +106,12 @@ async function readWatch(directory: string, name: string): Promise<WatchFile> {
   } catch (error) {
     return invalid(`its schedule cannot be read: ${describe(error)}`, scheduleText);
   }
-  if ((mode & 0o111) === 0) return invalid("it is not executable (chmod +x)", scheduleText);
+  if (process.platform !== "win32" && (mode & 0o111) === 0) return invalid("it is not executable (chmod +x)", scheduleText);
   if (!head.startsWith("#!")) return invalid("it has no #! line saying what runs it", scheduleText);
+  if (process.platform === "win32") {
+    const problem = windowsWatchProblem(head);
+    if (problem !== null) return invalid(problem, scheduleText);
+  }
   return { name, path, scheduleText, schedule, invalid: null };
 }
 

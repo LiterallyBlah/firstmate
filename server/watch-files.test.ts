@@ -45,10 +45,10 @@ describe("scheduleLine", () => {
 describe("listWatches", () => {
   it("lists every script by name, with why any of them cannot run", async () => {
     const home = await tempHome();
-    await script(home, "good", "#!/bin/sh\n# schedule: */5 * * * *\n");
+    await script(home, "good", "#!/usr/bin/env node\n// schedule: */5 * * * *\n");
     await script(home, "no-schedule", "#!/bin/sh\necho hi\n");
     await script(home, "bad-schedule", "#!/bin/sh\n# schedule: every five minutes\n");
-    await script(home, "not-executable", "#!/bin/sh\n# schedule: * * * * *\n", 0o644);
+    await script(home, "not-executable", "#!/usr/bin/env node\n// schedule: * * * * *\n", 0o644);
     await script(home, "no-shebang", "# schedule: * * * * *\necho hi\n");
     await script(home, "bad name", "#!/bin/sh\n# schedule: * * * * *\n");
     await script(home, "README.md", "# notes");
@@ -68,7 +68,8 @@ describe("listWatches", () => {
     expect(invalid.good).toBeNull();
     expect(invalid["no-schedule"]).toMatch(/no "schedule:" comment/);
     expect(invalid["bad-schedule"]).toMatch(/its schedule cannot be read: .*fields/);
-    expect(invalid["not-executable"]).toMatch(/not executable/);
+    if (process.platform === "win32") expect(invalid["not-executable"]).toBeNull();
+    else expect(invalid["not-executable"]).toMatch(/not executable/);
     expect(invalid["no-shebang"]).toMatch(/no #! line/);
     expect(invalid["bad name"]).toMatch(/only letters, digits/);
     expect(watches.find((watch) => watch.name === "bad-schedule")?.scheduleText).toBe("every five minutes");
@@ -108,7 +109,7 @@ describe("built-in watches", () => {
     const seeded = await readFile(path, "utf8");
     expect(seeded).toMatch(/firstmate-watch [0-9a-f]{16}/);
     expect(seeded).not.toContain("{{fingerprint}}");
-    expect((await stat(path)).mode & 0o111).not.toBe(0);
+    if (process.platform !== "win32") expect((await stat(path)).mode & 0o111).not.toBe(0);
     const readme = await readFile(join(home, "watches", "README.md"), "utf8");
     expect(readme).toBe(await readTemplate(TEMPLATES.watchesReadme));
     // It is there to be read: the Files view's preview hides an HTML comment, so none of it is in one.

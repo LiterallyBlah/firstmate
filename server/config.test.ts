@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { defaultHome, migrateLegacyFiles, readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./config";
@@ -146,7 +146,7 @@ describe("the first mate's home", () => {
 
     migrateLegacyFiles();
 
-    expect(resolveHome(await readFirstmateConfig())).toBe("/Users/captain/firstmate");
+    expect(resolveHome(await readFirstmateConfig())).toBe(resolve("/Users/captain/firstmate"));
     expect(await readFile(join(pluginDir(), "home", "AGENTS.md"), "utf8")).toBe("charter");
   });
 

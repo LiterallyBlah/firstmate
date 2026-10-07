@@ -15,6 +15,7 @@ import { homedir } from "node:os";
 import { delimiter, join } from "node:path";
 
 import { paseoHome } from "./data-dir";
+import { paseoLaunch } from "./process-launch";
 
 /** Where an install puts the binary, for a daemon started with a bare PATH. */
 const EXTRA_CLI_DIRS = ["/usr/local/bin", "/opt/homebrew/bin"];
@@ -37,9 +38,13 @@ let cliLookup: Promise<string | null> | null = null;
 async function findCli(): Promise<string | null> {
   const onPath = (process.env.PATH ?? "").split(delimiter).filter((dir) => dir !== "");
   const shipped = process.env.PASEO_CLI?.trim();
+  const names = process.platform === "win32" ? ["paseo.exe", "paseo.cmd"] : ["paseo"];
+  const extraDirs = process.platform === "win32"
+    ? [join(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"), "npm")]
+    : EXTRA_CLI_DIRS;
   const candidates = [
     ...(shipped === undefined || shipped === "" ? [] : [shipped]),
-    ...[...onPath, join(homedir(), ".local", "bin"), ...EXTRA_CLI_DIRS].map((dir) => join(dir, "paseo")),
+    ...[...onPath, join(homedir(), ".local", "bin"), ...extraDirs].flatMap((dir) => names.map((name) => join(dir, name))),
   ];
   for (const candidate of candidates) {
     try {
@@ -58,9 +63,10 @@ function paseoCli(): Promise<string | null> {
   return cliLookup;
 }
 
-function spawnCli(cli: string, args: string[], timeoutMs: number): Promise<CliResult> {
+async function spawnCli(cli: string, args: string[], timeoutMs: number): Promise<CliResult> {
+  const launch = await paseoLaunch(cli, args);
   return new Promise((resolve, reject) => {
-    const child = spawn(cli, args, { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(launch.command, launch.args, { env: launch.env, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
     const timer = setTimeout(() => {

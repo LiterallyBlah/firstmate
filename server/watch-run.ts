@@ -3,11 +3,16 @@
  * children (`gh`, `curl`) with it. Once a run is stopped — timed out, or the plugin shutting down — the
  * group gets SIGTERM and, after the grace period, SIGKILL whatever has happened in between: the script
  * exiting on SIGTERM does not mean a child that ignores it, and has let go of the pipes, is gone too.
+ * Windows runs Node watches through the plugin's runtime and stops their tree with taskkill /T /F.
  *
  * What it prints is kept up to a cap and read to the end regardless, so a chatty script never blocks on
  * a full pipe; stderr is kept as its last lines, which is where an error usually is.
  */
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcessByStdio } from "node:child_process";
+import { join } from "node:path";
+import type { Readable } from "node:stream";
+
+import { watchLaunch } from "./process-launch";
 
 export interface RunOptions {
   cwd: string;
@@ -44,7 +49,17 @@ function killGroup(pid: number | undefined, signal: NodeJS.Signals): void {
   }
 }
 
-export function runWatchScript(path: string, options: RunOptions): Promise<RunResult> {
+export async function runWatchScript(path: string, options: RunOptions): Promise<RunResult> {
+  const failed = (message: string): RunResult => ({
+    code: null, timedOut: false, stdout: "", truncated: false, stderr: "", spawnError: message,
+  });
+  if (options.signal?.aborted === true) return failed("the plugin stopped");
+  let launch;
+  try {
+    launch = await watchLaunch(path, options.env);
+  } catch (error) {
+    return failed(error instanceof Error ? error.message : String(error));
+  }
   return new Promise((resolve) => {
     // An abort that has already happened is never replayed to a listener added now, so check it here.
     if (options.signal?.aborted === true) {
@@ -59,16 +74,35 @@ export function runWatchScript(path: string, options: RunOptions): Promise<RunRe
     let spawnError: string | null = null;
     let settled = false;
 
-    const child = spawn(path, [], {
-      cwd: options.cwd,
-      env: options.env,
-      stdio: ["ignore", "pipe", "pipe"],
-      detached: true,
-    });
+    let child: ChildProcessByStdio<null, Readable, Readable>;
+    try {
+      child = spawn(launch.command, launch.args, {
+        cwd: options.cwd,
+        env: launch.env,
+        stdio: ["ignore", "pipe", "pipe"],
+        detached: true,
+        windowsHide: true,
+      });
+    } catch (error) {
+      resolve(failed(error instanceof Error ? error.message : String(error)));
+      return;
+    }
 
     let killTimer: NodeJS.Timeout | undefined;
+    let stopping = false;
     function stop(): void {
-      if (killTimer !== undefined) return;
+      if (stopping) return;
+      stopping = true;
+      if (process.platform === "win32") {
+        // Kill the tree while the root still exists; killing it first loses its
+        // descendants. Windows does not have Unix process groups or SIGTERM.
+        if (child.pid === undefined) return;
+        const killer = spawn(join(process.env.SystemRoot ?? "C:\\Windows", "System32", "taskkill.exe"),
+          ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+        killer.on("error", () => child.kill("SIGKILL"));
+        killer.on("exit", (code) => { if (code !== 0) child.kill("SIGKILL"); });
+        return;
+      }
       killGroup(child.pid, "SIGTERM");
       killTimer = setTimeout(() => killGroup(child.pid, "SIGKILL"), options.killGraceMs ?? 2000);
     }

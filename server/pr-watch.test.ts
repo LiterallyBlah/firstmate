@@ -79,8 +79,17 @@ async function setup() {
   await seedWatches(home);
   await writeFile(join(bin, "gh"), FAKE_GH, "utf8");
   await chmod(join(bin, "gh"), 0o755);
-  await symlink(process.execPath, join(bin, "node"));
-  await symlink(process.execPath, join(noGh, "node"));
+  if (process.platform === "win32") {
+    // The stand-in is JavaScript, not a native gh.exe. Only in this temporary
+    // copy, run it with Node; the production watch still execFiles native gh.
+    const watchPath = join(home, "watches", "pr-watch");
+    const watch = await readFile(watchPath, "utf8");
+    await writeFile(watchPath, watch.replace('execFile("gh", args,',
+      'execFile(process.env.FAKE_GH_COMMAND, process.env.FAKE_GH_SCRIPT ? [process.env.FAKE_GH_SCRIPT, ...args] : args,'));
+  } else {
+    await symlink(process.execPath, join(bin, "node"));
+    await symlink(process.execPath, join(noGh, "node"));
+  }
   await writeFile(
     join(home, "data", "backlog.md"),
     [
@@ -115,6 +124,10 @@ async function setup() {
         FIRSTMATE_WATCH_STATE: state,
         FAKE_GH: fixture,
         FAKE_GH_LOG: log,
+        ...(process.platform === "win32" ? {
+          FAKE_GH_COMMAND: path === noGh ? join(noGh, "missing-gh.exe") : process.execPath,
+          FAKE_GH_SCRIPT: path === noGh ? "" : join(bin, "gh"),
+        } : {}),
         ...extra,
       },
       timeoutMs: 20_000,
