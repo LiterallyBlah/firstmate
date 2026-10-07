@@ -1,0 +1,1010 @@
+import { describe, expect, it } from "vitest";
+
+import { activityRows, clipLines } from "./activity-rows";
+import {
+  CaptainMessageSchema,
+  MAX_ATTACHMENTS,
+  MAX_ATTACHMENT_BYTES,
+  MAX_MESSAGE_BYTES,
+  base64Bytes,
+  rasterImageType,
+} from "../shared/attachments";
+import {
+  admit,
+  captainMessage,
+  createAttachmentStore,
+  formatBytes,
+  hasContent,
+  readEach,
+  restoreFailed,
+  toAttachment,
+} from "./attachments";
+import { createDraftStore } from "./draft";
+import { fileCandidates, inlineTokens, lookupIn, pathCandidate, recentCandidates } from "./file-links";
+import { MAX_FILE_PATH_LENGTH, findHomeFiles } from "../shared/files";
+import { isAtEnd } from "./follow-end";
+import { isSendKey } from "./keys";
+import { createSendGate } from "./mate-send";
+import { chevronLabel, isCut, showsChevron } from "./suggestion-fold";
+import { createRemovalGate, suggestionRemovals } from "./suggestion-removals";
+import { isDirty, markSaved, type OpenFile } from "./open-file";
+import { allAnswered, buildAnswers, dismissSubmitsEmpty, parseQuestions, toggleOption } from "./questions";
+import {
+  boardItems,
+  boardRows,
+  contextPercent,
+  contextTone,
+  errorText,
+  formatTokenCount,
+  moveColumn,
+  opensAsLeft,
+  orderedColumns,
+  relativeTime,
+  revealFilesPatch,
+  shortPath,
+  watchStatusText,
+  watchTone,
+} from "./format";
+import { watchPath, type AgentSummary, type FleetCard, type WatchSummary } from "../shared/fleet";
+import { activeCrewCount } from "./screen";
+import { injectedSummary, transcriptRows, type TimelineEntry } from "./transcript-rows";
+
+function entry(item: unknown, seq: number): TimelineEntry {
+  return {
+    provider: "claude",
+    item,
+    timestamp: "2026-09-22T10:00:00.000Z",
+    seqStart: seq,
+    seqEnd: seq,
+    sourceSeqRanges: [],
+    collapsed: [],
+  } as unknown as TimelineEntry;
+}
+
+describe("transcriptRows", () => {
+  it("folds injected notes to one line and joins a streamed reply", () => {
+    const rows = transcriptRows([
+      entry({ type: "user_message", text: "fix the login" }, 1),
+      entry({ type: "tool_call", callId: "c", name: "mcp__paseo__create_agent", detail: { type: "unknown", input: {}, output: {} }, status: "completed", error: null }, 2),
+      entry({ type: "assistant_message", text: "Aye, " }, 3),
+      entry({ type: "assistant_message", text: "captain." }, 4),
+      entry({ type: "user_message", text: "<paseo-system>\nAgent a1 (Fix login) finished.\n<agent-response>\ndone: PR x\n</agent-response>\n</paseo-system>" }, 5),
+      entry({ type: "reasoning", text: "hmm" }, 6),
+    ]);
+    expect(rows.map((row) => [row.kind, row.text])).toEqual([
+      ["captain", "fix the login"],
+      ["tool", "create agent"],
+      ["mate", "Aye, captain."],
+      ["event", "Agent a1 (Fix login) finished."],
+    ]);
+  });
+
+  it("shows a compaction as one line once it has finished", () => {
+    const rows = transcriptRows([
+      entry({ type: "user_message", text: "/compact" }, 1),
+      entry({ type: "compaction", status: "loading" }, 2),
+      entry({ type: "compaction", status: "completed", trigger: "manual" }, 3),
+    ]);
+    expect(rows.map((row) => [row.kind, row.text])).toEqual([
+      ["captain", "/compact"],
+      ["event", "Context compacted"],
+    ]);
+    expect(transcriptRows([entry({ type: "compaction", status: "loading" }, 2)])[0]?.text).toBe("Compacting context…");
+  });
+
+  it("recognises both envelopes and nothing else", () => {
+    expect(injectedSummary("<firstmate-board>\nThe captain spoke to crewmate a1.\n</firstmate-board>")).toBe(
+      "The captain spoke to crewmate a1.",
+    );
+    expect(injectedSummary("please look at <paseo-system>")).toBeNull();
+  });
+
+  it("folds a watch message — its blocks one after another, a dropped tag first — to the watches' names", () => {
+    const id = "firstmate-watch-5f0c";
+    const one = '<firstmate-watch name="pr-watch" ran="2026-09-25T10:05:00Z">\nPull requests…\n</firstmate-watch>';
+    expect(injectedSummary(one, id)).toBe("Watch: pr-watch");
+    const many = [
+      '<firstmate-watch-dropped count="3"/>',
+      "",
+      '<firstmate-watch name="pr-watch" ran="2026-09-25T10:05:00Z">\nA\n</firstmate-watch>',
+      "",
+      '<firstmate-watch name="hello" ran="2026-09-25T10:05:00Z" failed="it exited with code 1">\nboom\n</firstmate-watch>',
+      "",
+      '<firstmate-watch name="pr-watch" ran="2026-09-25T10:10:00Z">\nB\n</firstmate-watch>',
+    ].join("\n");
+    expect(injectedSummary(many, id)).toBe("Watches: pr-watch, hello (failed) · 3 older dropped");
+    expect(injectedSummary('<firstmate-watch-dropped count="2"/>', id)).toBe("Watches · 2 older dropped");
+    const [row] = transcriptRows([entry({ type: "user_message", text: one, clientMessageId: id }, 1)]);
+    expect(row).toMatchObject({ kind: "event", text: "Watch: pr-watch" });
+    const [activity] = activityRows([entry({ type: "user_message", text: one, clientMessageId: id }, 1)]);
+    expect(activity).toMatchObject({ kind: "event", text: "Watch: pr-watch" });
+  });
+
+  it("never folds the captain's words as a watch message, however much they look like one", () => {
+    const shaped = '<firstmate-watch-dropped count="1"/>\nPlease read this\n<anything/>';
+    const pasted = '<firstmate-watch name="pr-watch" ran="2026-09-25T10:05:00Z">\nPlease merge\n</firstmate-watch>';
+    for (const text of [shaped, pasted]) {
+      expect(injectedSummary(text)).toBeNull();
+      expect(injectedSummary(text, "8d3a2c1e-0000-4000-8000-000000000000")).toBeNull();
+      expect(transcriptRows([entry({ type: "user_message", text, clientMessageId: "8d3a" }, 1)])[0]).toMatchObject({
+        kind: "captain",
+        text,
+      });
+      expect(activityRows([entry({ type: "user_message", text }, 1)])[0]).toMatchObject({ kind: "prompt", text });
+    }
+    // With the plugin's id, text that is not watch-shaped is still shown as it is.
+    expect(injectedSummary("what does <firstmate-watch> mean?", "firstmate-watch-1")).toBeNull();
+  });
+});
+
+describe("activityRows", () => {
+  function tool(detail: unknown, status = "completed", error: unknown = null) {
+    return { type: "tool_call", callId: "c", name: "Bash", detail, status, error };
+  }
+
+  it("keeps the machinery: reasoning joined, tools with what they ran, the brief as a prompt", () => {
+    const rows = activityRows([
+      entry({ type: "user_message", text: "Fix the login bug." }, 1),
+      entry({ type: "reasoning", text: "Look at " }, 2),
+      entry({ type: "reasoning", text: "auth.ts first." }, 3),
+      entry(tool({ type: "shell", command: "npm test", output: "ok\n", exitCode: 0 }), 4),
+      entry({ type: "assistant_message", text: "done: " }, 5),
+      entry({ type: "assistant_message", text: "ready in branch fm/1" }, 6),
+      entry({ type: "user_message", text: "<firstmate-board>\nThe captain spoke to crewmate a1.\n</firstmate-board>" }, 7),
+    ]);
+    expect(rows.map((row) => row.kind)).toEqual(["prompt", "reasoning", "tool", "reply", "event"]);
+    expect(rows[1]).toMatchObject({ text: "Look at auth.ts first." });
+    expect(rows[2]).toMatchObject({ label: "Shell", summary: "npm test", detail: "$ npm test\n\nok\n\nexit 0" });
+    expect(rows[3]).toMatchObject({ text: "done: ready in branch fm/1" });
+  });
+
+  it("shows only the latest plan, where it was last updated", () => {
+    const rows = activityRows([
+      entry({ type: "todo", items: [{ text: "Read", completed: false }] }, 1),
+      entry({ type: "assistant_message", text: "Reading." }, 2),
+      entry({ type: "todo", items: [{ text: "Read", completed: true }, { text: "Fix", completed: false, status: "in_progress" }] }, 3),
+    ]);
+    expect(rows.map((row) => row.kind)).toEqual(["reply", "plan"]);
+    expect(rows[1]).toMatchObject({
+      items: [
+        { text: "Read", status: "completed" },
+        { text: "Fix", status: "in_progress" },
+      ],
+    });
+  });
+
+  it("describes a failed call, an edit and an MCP tool", () => {
+    const [failed, edit, mcp] = activityRows([
+      entry(tool({ type: "read", filePath: "src/a.ts" }, "failed", "ENOENT"), 1),
+      entry(tool({ type: "edit", filePath: "src/b.ts", oldString: "a", newString: "b" }), 2),
+      entry({ ...tool({ type: "unknown", input: { title: "x" }, output: null }), name: "mcp__paseo__create_agent" }, 3),
+    ]);
+    expect(failed).toMatchObject({ label: "Read", status: "failed", detail: "Error: ENOENT" });
+    expect(edit).toMatchObject({ label: "Edit", detail: "- a\n\n+ b" });
+    expect(mcp).toMatchObject({ label: "create agent", summary: '{ "title": "x" }' });
+  });
+
+  it("keys a row by where it starts, so it stays open while it runs and as the window slides", () => {
+    const running = entry(tool({ type: "shell", command: "npm test" }, "running"), 7);
+    const finished = { ...entry(tool({ type: "shell", command: "npm test", output: "ok" }), 7), seqEnd: 9 };
+    const before = activityRows([running]);
+    const after = activityRows([entry({ type: "user_message", text: "Fix it." }, 3), finished]);
+    expect(after[1]?.key).toBe(before[0]?.key);
+  });
+
+  it("drops the plan when the list is emptied", () => {
+    const rows = activityRows([
+      entry({ type: "todo", items: [{ text: "Read", completed: false }] }, 1),
+      entry({ type: "todo", items: [] }, 2),
+    ]);
+    expect(rows).toEqual([]);
+  });
+
+  it("clips long output from the end it matters at", () => {
+    const text = ["1", "2", "3", "4", "5"].join("\n");
+    expect(clipLines(text, 2, "tail")).toBe("… 3 more lines\n4\n5");
+    expect(clipLines(text, 4, "head")).toBe("1\n2\n3\n4\n… 1 more line");
+    expect(clipLines(text, 5, "head")).toBe(text);
+  });
+});
+
+describe("isAtEnd", () => {
+  it("still follows when the content grew before the transcript was told", () => {
+    // At the end of 1000 points of content; a reply has grown it to 1300, not yet reported.
+    expect(isAtEnd(600, 400, 1300, 1000)).toBe(true);
+  });
+
+  it("stops following when the reader scrolls up, and after content shrinks judges it as it is", () => {
+    expect(isAtEnd(300, 400, 1300, 1000)).toBe(false);
+    expect(isAtEnd(400, 400, 800, 1000)).toBe(true);
+    expect(isAtEnd(600, 400, 1000, 0)).toBe(true);
+  });
+});
+
+describe("columns", () => {
+  it("keeps the saved order, drops unknown ids and appends missing ones", () => {
+    expect(orderedColumns(["done", "bogus", "queued"])).toEqual([
+      "done",
+      "queued",
+      "working",
+      "blocked",
+      "parked",
+      "failed",
+      "idle",
+    ]);
+  });
+
+  it("moves a column and clamps at the ends", () => {
+    const order = orderedColumns([]);
+    expect(moveColumn(order, "working", -1).slice(0, 2)).toEqual(["working", "queued"]);
+    expect(moveColumn(order, "queued", -1)).toEqual(order);
+  });
+
+  it("puts a card that moved column back to rest, unless something is in progress in it", () => {
+    expect(opensAsLeft({ column: "working", inProgress: false }, "working")).toBe(true);
+    expect(opensAsLeft({ column: "working", inProgress: false }, "done")).toBe(false);
+    expect(opensAsLeft({ column: "working", inProgress: true }, "done")).toBe(true);
+  });
+
+  it("moves a column past the hidden ones, keeping them in the saved order", () => {
+    const order = orderedColumns([]);
+    // done, blocked and parked hidden: working's right neighbour on screen is failed.
+    const shown = order.filter((id) => !["done", "blocked", "parked"].includes(id));
+    const right = moveColumn(order, "working", 1, shown);
+    expect(right.filter((id) => shown.includes(id))).toEqual(["queued", "failed", "working", "idle"]);
+    expect(right.filter((id) => !shown.includes(id))).toEqual(["blocked", "parked", "done"]);
+    const left = moveColumn(order, "failed", -1, shown);
+    expect(left.filter((id) => shown.includes(id))).toEqual(["queued", "failed", "working", "idle"]);
+    expect(moveColumn(order, "idle", 1, shown)).toEqual(order);
+    expect(moveColumn(order, "done", 1, shown)).toEqual(order);
+  });
+
+  it("lays out up to three columns in one row, more in two with the extra in the second", () => {
+    const sizes = [0, 1, 2, 3, 4, 5, 6, 7].map((count) =>
+      boardRows(Array.from({ length: count }, (_, i) => i)).map((row) => row.length),
+    );
+    expect(sizes).toEqual([[], [1], [2], [3], [2, 2], [2, 3], [3, 3], [3, 4]]);
+    const order = orderedColumns([]);
+    expect(boardRows(order).flat()).toEqual(order);
+    expect(boardRows([1, 2, 3, 4, 5])).toEqual([
+      [1, 2],
+      [3, 4, 5],
+    ]);
+  });
+
+  it("counts the suggestions card as one of the row's cards, first, and only when there are suggestions", () => {
+    expect(boardRows(boardItems(["working", "idle"], true))).toEqual([["suggestions", "working", "idle"]]);
+    expect(boardRows(boardItems(["working", "blocked", "idle"], true))).toEqual([
+      ["suggestions", "working"],
+      ["blocked", "idle"],
+    ]);
+    expect(boardRows(boardItems(["working", "blocked", "idle"], false))).toEqual([["working", "blocked", "idle"]]);
+    expect(boardRows(boardItems([], true))).toEqual([["suggestions"]]);
+    expect(boardRows(boardItems([], false))).toEqual([]);
+  });
+
+  it("counts the watches card too, last, and only when the home has watches", () => {
+    expect(boardRows(boardItems(["working"], true, true))).toEqual([["suggestions", "working", "watches"]]);
+    expect(boardRows(boardItems(["working", "idle"], true, true))).toEqual([
+      ["suggestions", "working"],
+      ["idle", "watches"],
+    ]);
+    expect(boardRows(boardItems([], false, true))).toEqual([["watches"]]);
+    expect(boardRows(boardItems(["working"], false, false))).toEqual([["working"]]);
+  });
+});
+
+describe("the Watches card", () => {
+  const now = Date.parse("2026-09-25T12:00:00.000Z");
+  const watch = (overrides: Partial<WatchSummary> = {}): WatchSummary => ({
+    name: "pr-watch",
+    schedule: "*/5 * * * *",
+    enabled: true,
+    invalid: null,
+    running: false,
+    lastRunAt: null,
+    lastResult: "never",
+    lastOutput: null,
+    lastOutputAt: null,
+    lastError: null,
+    builtIn: true,
+    outdated: false,
+    ...overrides,
+  });
+  const theme = {
+    colors: { foregroundMuted: "muted", statusWarning: "warning", statusDanger: "danger", accent: "accent" },
+  } as unknown as Parameters<typeof watchTone>[0];
+
+  it("says in one line whether a watch is on, when it last ran and what came of it", () => {
+    expect(watchStatusText(watch(), now)).toBe("not run yet");
+    expect(watchStatusText(watch({ lastRunAt: "2026-09-25T11:55:00.000Z", lastResult: "silent" }), now)).toBe(
+      "ran 5m ago · nothing new",
+    );
+    expect(
+      watchStatusText(watch({ enabled: false, lastRunAt: "2026-09-25T09:00:00.000Z", lastResult: "delivered" }), now),
+    ).toBe("off · ran 3h ago · sent to the first mate");
+    expect(watchStatusText(watch({ running: true, lastRunAt: "2026-09-25T11:59:50.000Z", lastResult: "queued" }), now)).toBe(
+      "running now · ran just now · waiting for the first mate",
+    );
+    expect(watchStatusText(watch({ lastRunAt: "2026-09-25T11:00:00.000Z", lastResult: "dropped" }), now)).toBe(
+      "ran 1h ago · dropped before the first mate could take it",
+    );
+    expect(watchStatusText(watch({ invalid: "no schedule", lastRunAt: "2026-09-25T11:00:00.000Z", lastResult: "invalid" }), now)).toBe(
+      "cannot run",
+    );
+  });
+
+  it("opens a watch's script by its path in the home", () => {
+    expect(watchPath("pr-watch")).toBe("watches/pr-watch");
+  });
+
+  it("colours a watch by its last result, and a switched-off one as muted", () => {
+    expect(watchTone(theme, watch({ lastResult: "failed" }))).toBe("danger");
+    expect(watchTone(theme, watch({ lastResult: "invalid" }))).toBe("danger");
+    expect(watchTone(theme, watch({ lastResult: "queued" }))).toBe("warning");
+    expect(watchTone(theme, watch({ lastResult: "dropped" }))).toBe("warning");
+    expect(watchTone(theme, watch({ lastResult: "delivered" }))).toBe("accent");
+    expect(watchTone(theme, watch({ lastResult: "silent" }))).toBe("muted");
+    expect(watchTone(theme, watch({ lastResult: "failed", enabled: false }))).toBe("muted");
+  });
+});
+
+describe("formatting", () => {
+  it("says how long ago in the fewest words", () => {
+    const now = Date.parse("2026-09-22T12:00:00.000Z");
+    expect(relativeTime("2026-09-22T11:59:50.000Z", now)).toBe("just now");
+    expect(relativeTime("2026-09-22T11:55:00.000Z", now)).toBe("5m ago");
+    expect(relativeTime("2026-09-22T09:00:00.000Z", now)).toBe("3h ago");
+    expect(relativeTime("2026-09-19T12:00:00.000Z", now)).toBe("3d ago");
+  });
+
+  it("keeps the end of a long path", () => {
+    expect(shortPath("/Users/me/.paseo/plugins/firstmate/home", 24)).toBe("…/plugins/firstmate/home");
+  });
+});
+
+describe("context meter", () => {
+  it("counts tokens and the share used the way Paseo's meter does", () => {
+    expect(formatTokenCount(840)).toBe("840");
+    expect(formatTokenCount(84_400)).toBe("84k");
+    expect(formatTokenCount(1_000_000)).toBe("1m");
+    expect(contextPercent(84_000, 200_000)).toBe(42);
+    expect(contextPercent(null, 200_000)).toBeNull();
+    expect(contextPercent(10, 0)).toBeNull();
+  });
+
+  it("warns from 70% and alarms past 90%", () => {
+    const theme = {
+      colors: { foregroundMuted: "muted", statusWarning: "warning", statusDanger: "danger" },
+    } as unknown as Parameters<typeof contextTone>[0];
+    expect(contextTone(theme, 69)).toBe("muted");
+    expect(contextTone(theme, 70)).toBe("warning");
+    expect(contextTone(theme, 90)).toBe("warning");
+    expect(contextTone(theme, 91)).toBe("danger");
+  });
+});
+
+describe("isSendKey", () => {
+  it("sends on Enter, not on Shift+Enter, another key, or an input method confirming a word", () => {
+    expect(isSendKey({ key: "Enter" })).toBe(true);
+    expect(isSendKey({ key: "Enter", shiftKey: true })).toBe(false);
+    expect(isSendKey({ key: "a" })).toBe(false);
+    expect(isSendKey({ key: "Enter", isComposing: true })).toBe(false);
+    expect(isSendKey({ key: "Enter", keyCode: 229 })).toBe(false);
+  });
+});
+
+describe("questions", () => {
+  // The shape the daemon hands over for Claude's AskUserQuestion, allowOther added by the daemon.
+  const input = {
+    questions: [
+      {
+        header: "Agents",
+        question: "Which models should run the review/fix loop?",
+        multiSelect: false,
+        allowOther: true,
+        options: [
+          { label: "Codex reviews, Claude fixes (Recommended)", description: "Cross-family review." },
+          { label: "Claude reviews, Codex fixes" },
+        ],
+      },
+      { header: "Reviews", question: "How many rounds?", multiSelect: true, options: [{ label: "One" }, { label: "Three" }] },
+    ],
+  };
+
+  it("reads the form and keeps what the daemon added", () => {
+    const questions = parseQuestions(input);
+    expect(questions?.map((question) => [question.header, question.allowOther, question.multiSelect, question.options.length])).toEqual([
+      ["Agents", true, false, 2],
+      ["Reviews", false, true, 2],
+    ]);
+    expect(parseQuestions({ command: "ls" })).toBeNull();
+    expect(parseQuestions({ questions: [{ header: "x" }] })).toBeNull();
+  });
+
+  it("answers by header, a typed answer winning over a choice and choices joined", () => {
+    const questions = parseQuestions(input) ?? [];
+    const selections = { 0: new Set([0]), 1: new Set([0, 1]) };
+    expect(allAnswered(questions, selections, {})).toBe(true);
+    expect(buildAnswers(questions, selections, {})).toEqual({
+      Agents: "Codex reviews, Claude fixes (Recommended)",
+      Reviews: "One, Three",
+    });
+    expect(buildAnswers(questions, selections, { 0: "  Fable reviews, Opus fixes " })).toMatchObject({
+      Agents: "Fable reviews, Opus fixes",
+    });
+    expect(allAnswered(questions, { 0: new Set([1]) }, {})).toBe(false);
+  });
+
+  it("toggles one choice or many, and dismisses an all-optional form by submitting it", () => {
+    expect([...toggleOption(new Set([0]), 1, false)]).toEqual([1]);
+    expect([...toggleOption(new Set([1]), 1, false)]).toEqual([]);
+    expect([...toggleOption(new Set([0]), 1, true)].sort()).toEqual([0, 1]);
+    expect(dismissSubmitsEmpty(parseQuestions(input) ?? [])).toBe(false);
+    expect(dismissSubmitsEmpty([{ question: "Notes?", header: "Notes", options: [], multiSelect: false, allowOther: false, allowEmpty: true }])).toBe(true);
+  });
+});
+
+describe("errorText", () => {
+  it("keeps the handler's sentence and drops the RPC wrapper", () => {
+    expect(
+      errorText(
+        new Error(
+          'Request failed: "data/captain.md" changed since you opened it. requestType=plugin.rpc.invoke.request code=handler_error',
+        ),
+      ),
+    ).toBe('"data/captain.md" changed since you opened it.');
+    expect(errorText(new Error("Transport not connected"))).toBe("Transport not connected");
+    expect(errorText("plain")).toBe("plain");
+  });
+});
+
+describe("markSaved", () => {
+  const sent = { path: "data/backlog.md", content: "mine", modifiedMs: 2000 };
+
+  it("keeps what was typed while the save was in flight, still unsaved", () => {
+    const current: OpenFile = { kind: "text", path: "data/backlog.md", modifiedMs: 1000, saved: "old", draft: "mine, and more" };
+    const next = markSaved(current, sent);
+    expect(next).toEqual({
+      kind: "text",
+      path: "data/backlog.md",
+      modifiedMs: 2000,
+      saved: "mine",
+      draft: "mine, and more",
+    });
+    // So a "Save, then open that" asks again instead of going on.
+    expect(isDirty(next)).toBe(true);
+    expect(isDirty(markSaved({ ...current, draft: "mine" }, sent))).toBe(false);
+  });
+
+  it("leaves a file opened meanwhile, or none, alone", () => {
+    const other: OpenFile = { kind: "text", path: "AGENTS.md", modifiedMs: 5, saved: "a", draft: "b" };
+    expect(markSaved(other, sent)).toBe(other);
+    expect(markSaved(null, sent)).toBeNull();
+  });
+});
+
+describe("sending a suggestion", () => {
+  it("sends the prompt as the chat's Send would, with nothing attached", () => {
+    expect(captainMessage("  Merge https://github.com/you/web/pull/42\n", [])).toEqual({
+      text: "Merge https://github.com/you/web/pull/42",
+    });
+  });
+
+  it("sends once for a double press, and again once the first has settled", async () => {
+    const gate = createSendGate();
+    const sent: string[] = [];
+    let finish = (): void => {};
+    function press(prompt: string): Promise<void> | null {
+      return gate.run(function () {
+        sent.push(prompt);
+        return new Promise<void>((resolve) => {
+          finish = resolve;
+        });
+      });
+    }
+    const first = press("Land web#42");
+    expect(press("Land web#42")).toBeNull();
+    expect(gate.busy()).toBe(true);
+    finish();
+    await first;
+    expect(gate.busy()).toBe(false);
+    const second = press("Review loop on web#42");
+    expect(second).not.toBeNull();
+    finish();
+    await second;
+    expect(sent).toEqual(["Land web#42", "Review loop on web#42"]);
+  });
+
+  it("opens again after a failed send, and tells its listeners each time", async () => {
+    const gate = createSendGate();
+    const seen: boolean[] = [];
+    const stop = gate.subscribe(() => seen.push(gate.busy()));
+    await expect(gate.run(() => Promise.reject(new Error("daemon away")))).rejects.toThrow("daemon away");
+    expect(gate.busy()).toBe(false);
+    await expect(
+      gate.run(() => {
+        throw new Error("thrown before a promise");
+      }),
+    ).rejects.toThrow("thrown before a promise");
+    expect(gate.busy()).toBe(false);
+    stop();
+    expect(seen).toEqual([true, false, true, false]);
+  });
+});
+
+describe("a send that fails after the chat was remounted", () => {
+  it("puts the draft and attachments back in the chat on screen, not only the one that sent", async () => {
+    const root = {};
+    const drafts = createDraftStore(root);
+    const attachments = createAttachmentStore(root);
+    const gate = createSendGate();
+    const shot = toAttachment({ fileName: "shot.png", mimeType: "image/png", size: 3, data: "AAAA" }, "a");
+
+    // The chat that sends: it clears the stores as the message goes, as sendDraft does.
+    let fail = (_error: Error): void => {};
+    const sending = gate.run(function () {
+      return new Promise<void>((_resolve, reject) => {
+        fail = reject;
+      });
+    });
+    drafts.set("mate-1", "");
+    attachments.set("mate-1", []);
+
+    // The captain switches tabs and back: that chat is unmounted, and a new one follows the stores.
+    const shown = { draft: drafts.get("mate-1"), attachments: attachments.get("mate-1") };
+    function reread(): void {
+      shown.draft = drafts.get("mate-1");
+      shown.attachments = attachments.get("mate-1");
+    }
+    const stops = [drafts.subscribe(reread), attachments.subscribe(reread)];
+
+    // The send fails; the old chat's failure callback writes to the stores only.
+    fail(new Error("daemon away"));
+    await expect(sending).rejects.toThrow("daemon away");
+    if (drafts.get("mate-1").trim() === "") drafts.set("mate-1", "land web#42");
+    attachments.set("mate-1", restoreFailed(attachments.get("mate-1"), [shot]));
+
+    expect(shown).toEqual({ draft: "land web#42", attachments: [shot] });
+    stops.forEach((stop) => stop());
+    drafts.set("mate-1", "later");
+    expect(shown.draft).toBe("land web#42");
+  });
+});
+
+describe("createDraftStore", () => {
+  it("keeps a draft for a store built later on the same root, as a re-evaluated bundle does", () => {
+    const root = {};
+    createDraftStore(root).set("mate-1", "half a thought");
+    expect(createDraftStore(root).get("mate-1")).toBe("half a thought");
+  });
+
+  it("keeps each first mate's draft apart and forgets an emptied one", () => {
+    const store = createDraftStore({});
+    store.set("mate-1", "one");
+    store.set("mate-2", "two");
+    store.set("mate-1", "");
+    expect(store.get("mate-1")).toBe("");
+    expect(store.get("mate-2")).toBe("two");
+  });
+
+  it("starts empty on a root that has never held drafts", () => {
+    expect(createDraftStore({}).get("mate-1")).toBe("");
+  });
+});
+
+describe("attachments", () => {
+  const png = { fileName: "shot.png", mimeType: "image/png", size: 3, data: "AAAA" };
+  const pdf = { fileName: "spec.pdf", mimeType: "application/pdf", size: 3, data: "BBBB" };
+
+  it("sends a raster image as an image and anything else as a file, as Paseo does", () => {
+    expect(toAttachment(png, "a").kind).toBe("image");
+    expect(toAttachment(pdf, "b").kind).toBe("file");
+    // A type the browser gave wins over the extension; with none, the extension decides.
+    expect(toAttachment({ ...png, mimeType: "text/plain" }, "c").kind).toBe("file");
+    expect(toAttachment({ ...png, fileName: "IMG.JPG", mimeType: "" }, "d")).toMatchObject({ kind: "image", mimeType: "image/jpeg" });
+    expect(toAttachment({ ...pdf, mimeType: "" }, "e")).toMatchObject({ kind: "file", mimeType: "application/octet-stream" });
+    expect(rasterImageType("image/jpg", "x")).toBe("image/jpeg");
+    expect(rasterImageType("image/svg+xml", "logo.svg")).toBeNull();
+  });
+
+  it("builds the message: words trimmed, images as images, files to upload, empty lists left out", () => {
+    expect(captainMessage("  hi  ", [])).toEqual({ text: "hi" });
+    expect(captainMessage("", [toAttachment(png, "a"), toAttachment(pdf, "b")])).toEqual({
+      text: "",
+      images: [{ data: "AAAA", mimeType: "image/png" }],
+      files: [{ fileName: "spec.pdf", mimeType: "application/pdf", data: "BBBB" }],
+    });
+  });
+
+  it("has something to send with words or attachments, and nothing with neither", () => {
+    expect(hasContent("  ", [])).toBe(false);
+    expect(hasContent("hi", [])).toBe(true);
+    expect(hasContent("", [toAttachment(png, "a")])).toBe(true);
+  });
+
+  it("admits files up to Paseo's 50 MB each, 20 a message and 64 MB together, and says why for the rest", () => {
+    const mb = 1024 * 1024;
+    expect(admit([], [{ fileName: "ok.bin", size: MAX_ATTACHMENT_BYTES }]).accepted).toHaveLength(1);
+    expect(admit([], [{ fileName: "big.bin", size: MAX_ATTACHMENT_BYTES + 1 }])).toEqual({
+      accepted: [],
+      problems: ["big.bin is larger than 50 MB."],
+    });
+
+    const nineteen = Array.from({ length: MAX_ATTACHMENTS - 1 }, () => ({ size: 1 }));
+    const counted = admit(nineteen, [
+      { fileName: "a", size: 1 },
+      { fileName: "b", size: 1 },
+    ]);
+    expect(counted.accepted.map((file) => file.fileName)).toEqual(["a"]);
+    expect(counted.problems).toEqual(["b was not attached: a message carries at most 20."]);
+
+    // 40 MB attached; a 30 MB file would pass 64 MB, but a smaller one after it still fits.
+    const totalled = admit([{ size: 40 * mb }], [
+      { fileName: "c", size: 30 * mb },
+      { fileName: "d", size: 20 * mb },
+    ]);
+    expect(totalled.accepted.map((file) => file.fileName)).toEqual(["d"]);
+    expect(totalled.problems).toEqual(["c was not attached: a message's attachments stay under 64 MB together."]);
+  });
+
+  it("keeps every file it could read when another in the same pick cannot be read", async () => {
+    const good = { fileName: "shot.png", mimeType: "image/png", size: 3, read: () => Promise.resolve("AAAA") };
+    const bad = { fileName: "gone.pdf", mimeType: "application/pdf", size: 3, read: () => Promise.reject(new Error("Could not read gone.pdf.")) };
+    const also = { fileName: "notes.txt", mimeType: "text/plain", size: 3, read: () => Promise.resolve("BBBB") };
+
+    const { read, failures } = await readEach([good, bad, also]);
+
+    expect(read.map((attachment) => [attachment.fileName, attachment.kind])).toEqual([
+      ["shot.png", "image"],
+      ["notes.txt", "file"],
+    ]);
+    expect(failures).toEqual(["Could not attach gone.pdf: Could not read gone.pdf."]);
+  });
+
+  it("puts a failed send's attachments back ahead of one attached while it was in flight", () => {
+    const sent = [toAttachment(png, "a"), toAttachment(pdf, "b")];
+    const addedMeanwhile = [toAttachment(png, "c")];
+    expect(restoreFailed(addedMeanwhile, sent).map((attachment) => attachment.id)).toEqual(["a", "b", "c"]);
+    expect(restoreFailed([], sent).map((attachment) => attachment.id)).toEqual(["a", "b"]);
+    // Never twice, should the same attachment somehow be in both.
+    expect(restoreFailed([sent[0]!], sent).map((attachment) => attachment.id)).toEqual(["a", "b"]);
+  });
+
+  it("keeps attachments for a store built later on the same root, apart per first mate", () => {
+    const root = {};
+    createAttachmentStore(root).set("mate-1", [toAttachment(png, "a")]);
+    createAttachmentStore(root).set("mate-2", [toAttachment(pdf, "b")]);
+    expect(createAttachmentStore(root).get("mate-1").map((attachment) => attachment.id)).toEqual(["a"]);
+    createAttachmentStore(root).set("mate-1", []);
+    expect(createAttachmentStore(root).get("mate-1")).toEqual([]);
+    expect(createAttachmentStore(root).get("mate-2")).toHaveLength(1);
+  });
+
+  it("measures base64 and sizes without decoding", () => {
+    expect(base64Bytes(Buffer.from("hello").toString("base64"))).toBe(5);
+    expect(base64Bytes(Buffer.from("hell").toString("base64"))).toBe(4);
+    expect(formatBytes(512)).toBe("512 B");
+    expect(formatBytes(2048)).toBe("2 KB");
+    expect(formatBytes(3 * 1024 * 1024)).toBe("3.0 MB");
+  });
+});
+
+describe("CaptainMessageSchema", () => {
+  /** Base64 that decodes to `bytes`, without building the bytes. */
+  function base64Of(bytes: number): string {
+    return "A".repeat(Math.ceil(bytes / 3) * 4);
+  }
+
+  it("holds images, not only files, to one attachment's limit", () => {
+    const image = { data: base64Of(MAX_ATTACHMENT_BYTES + 3), mimeType: "image/png" };
+    expect(base64Bytes(image.data)).toBeGreaterThan(MAX_ATTACHMENT_BYTES);
+    expect(CaptainMessageSchema.safeParse({ text: "", images: [image] }).success).toBe(false);
+    expect(CaptainMessageSchema.safeParse({ text: "", images: [{ data: "AAAA", mimeType: "image/png" }] }).success).toBe(true);
+  });
+
+  it("refuses more attachments than a message carries, counting images and files together", () => {
+    const image = { data: "AAAA", mimeType: "image/png" };
+    const file = { fileName: "a.txt", mimeType: "text/plain", data: "AAAA" };
+    const half = MAX_ATTACHMENTS / 2;
+    const ok = { text: "", images: Array(half).fill(image), files: Array(half).fill(file) };
+    expect(CaptainMessageSchema.safeParse(ok).success).toBe(true);
+    expect(CaptainMessageSchema.safeParse({ ...ok, files: Array(half + 1).fill(file) }).success).toBe(false);
+  });
+
+  it("refuses attachments that pass the total together though each is within its own limit", () => {
+    const each = Math.floor(MAX_MESSAGE_BYTES / 2);
+    const file = { fileName: "a.bin", mimeType: "application/octet-stream", data: base64Of(each) };
+    expect(CaptainMessageSchema.safeParse({ text: "", files: [file] }).success).toBe(true);
+    expect(CaptainMessageSchema.safeParse({ text: "", files: [file, file, file] }).success).toBe(false);
+  });
+});
+
+describe("file links", () => {
+  const home = "/Users/captain/firstmate";
+  const lookup = lookupIn({
+    "data/backlog.md": "data/backlog.md",
+    "AGENTS.md": "AGENTS.md",
+    "watches/pr-watch": "watches/pr-watch",
+    "./data/backlog.md": "data/backlog.md",
+    [`${home}/data/scout-x/report.md`]: "data/scout-x/report.md",
+  });
+
+  it("takes paths with a slash or an extension, without a trailing line number", () => {
+    expect(pathCandidate("data/scout-x/report.md")).toBe("data/scout-x/report.md");
+    expect(pathCandidate("watches/pr-watch")).toBe("watches/pr-watch");
+    expect(pathCandidate("AGENTS.md")).toBe("AGENTS.md");
+    expect(pathCandidate(`${home}/data/backlog.md`)).toBe(`${home}/data/backlog.md`);
+    expect(pathCandidate("data/backlog.md:12")).toBe("data/backlog.md");
+    expect(pathCandidate("data/backlog.md:12:4")).toBe("data/backlog.md");
+    expect(pathCandidate("backlog")).toBeNull();
+    expect(pathCandidate("npm run test")).toBeNull();
+    expect(pathCandidate("https://example.com/a.md")).toBeNull();
+    expect(pathCandidate("/")).toBeNull();
+    expect(pathCandidate("10:30")).toBeNull();
+  });
+
+  it("collects every candidate once, from plain text, inline code and link targets", () => {
+    expect(
+      fileCandidates(
+        "See data/backlog.md, `AGENTS.md` and [the report](data/scout-x/report.md).\n" +
+          "Again: data/backlog.md. Not this: https://github.com/a/b.md or **bold/text**.",
+      ),
+    ).toEqual(["data/backlog.md", "AGENTS.md", "data/scout-x/report.md"]);
+  });
+
+  it("never asks about a path in a fenced code block, which is not linked", () => {
+    expect(
+      fileCandidates(["Wrote AGENTS.md:", "```", "cat data/sample.md", "src/big/listing.ts", "```", "- `watches/pr-watch`"].join("\n")),
+    ).toEqual(["AGENTS.md", "watches/pr-watch"]);
+  });
+
+  it("keeps the most recently mentioned paths past the cap, counting a repeat as recent", () => {
+    const messages = ["data/backlog.md", "a/1.md b/2.md c/3.md", "data/backlog.md again"];
+    expect(recentCandidates(messages, 2)).toEqual(["c/3.md", "data/backlog.md"]);
+    expect(recentCandidates(messages, 10)).toEqual(["a/1.md", "b/2.md", "c/3.md", "data/backlog.md"]);
+    // A repeat inside one reply counts at its last mention there, not its first.
+    expect(recentCandidates(["data/backlog.md a/1.md b/2.md data/backlog.md"], 2)).toEqual(["b/2.md", "data/backlog.md"]);
+    expect(recentCandidates(["data/backlog.md a/1.md", "b/2.md data/backlog.md c/3.md"], 2)).toEqual([
+      "data/backlog.md",
+      "c/3.md",
+    ]);
+  });
+
+  it("does not ask about a path longer than the daemon takes, which refuses one", () => {
+    const long = `data/${"x".repeat(MAX_FILE_PATH_LENGTH)}.md`;
+    expect(pathCandidate(long)).toBeNull();
+    expect(fileCandidates(`see ${long}`)).toEqual([]);
+    expect(findHomeFiles.input.safeParse({ paths: [long] }).success).toBe(false);
+    expect(findHomeFiles.input.safeParse({ paths: ["data/backlog.md"] }).success).toBe(true);
+  });
+
+  it("links a file named in plain text, leaving the punctuation around it as text", () => {
+    expect(inlineTokens("Wrote data/backlog.md.", lookup)).toEqual([
+      { kind: "text", text: "Wrote " },
+      { kind: "file", text: "data/backlog.md", path: "data/backlog.md", code: false },
+      { kind: "text", text: "." },
+    ]);
+    expect(inlineTokens("(see AGENTS.md)", lookup)).toEqual([
+      { kind: "text", text: "(see " },
+      { kind: "file", text: "AGENTS.md", path: "AGENTS.md", code: false },
+      { kind: "text", text: ")" },
+    ]);
+    expect(inlineTokens('"watches/pr-watch", then ./data/backlog.md?', lookup)).toEqual([
+      { kind: "text", text: '"' },
+      { kind: "file", text: "watches/pr-watch", path: "watches/pr-watch", code: false },
+      { kind: "text", text: '", then ' },
+      { kind: "file", text: "./data/backlog.md", path: "data/backlog.md", code: false },
+      { kind: "text", text: "?" },
+    ]);
+  });
+
+  it("keeps a line number in the link's text and out of the path it opens", () => {
+    expect(inlineTokens("at data/backlog.md:12:", lookup)).toEqual([
+      { kind: "text", text: "at " },
+      { kind: "file", text: "data/backlog.md:12", path: "data/backlog.md", code: false },
+      { kind: "text", text: ":" },
+    ]);
+  });
+
+  it("links an absolute path under the home to its home-relative path", () => {
+    expect(inlineTokens(`\`${home}/data/scout-x/report.md\``, lookup)).toEqual([
+      { kind: "file", text: `${home}/data/scout-x/report.md`, path: "data/scout-x/report.md", code: true },
+    ]);
+  });
+
+  it("marks a path written as inline code, so it keeps that look", () => {
+    expect(inlineTokens("Open `AGENTS.md`", lookup)).toEqual([
+      { kind: "text", text: "Open " },
+      { kind: "file", text: "AGENTS.md", path: "AGENTS.md", code: true },
+    ]);
+    expect(inlineTokens("Run `npm test`", lookup)).toEqual([
+      { kind: "text", text: "Run " },
+      { kind: "code", text: "npm test" },
+    ]);
+  });
+
+  it("leaves a path the daemon did not vouch for as text", () => {
+    expect(inlineTokens("Not data/missing.md or ../outside.md", lookup)).toEqual([
+      { kind: "text", text: "Not data/missing.md or ../outside.md" },
+    ]);
+    expect(inlineTokens("`data/missing.md`", lookup)).toEqual([{ kind: "code", text: "data/missing.md" }]);
+  });
+
+  it("opens a Markdown link to a home file in Files, and leaves URLs and bold as they were", () => {
+    expect(inlineTokens("[the backlog](data/backlog.md)", lookup)).toEqual([
+      { kind: "file", text: "the backlog", path: "data/backlog.md", code: false },
+    ]);
+    expect(inlineTokens("[docs](https://paseo.sh/docs). **data/backlog.md** https://x.dev/a.", lookup)).toEqual([
+      { kind: "link", text: "docs", url: "https://paseo.sh/docs" },
+      { kind: "text", text: ". " },
+      { kind: "bold", text: "data/backlog.md" },
+      { kind: "text", text: " " },
+      { kind: "link", text: "https://x.dev/a.", url: "https://x.dev/a" },
+    ]);
+  });
+});
+
+describe("revealFilesPatch", () => {
+  it("unhides the right pane on a wide layout, and changes nothing otherwise", () => {
+    expect(revealFilesPatch(false, true)).toEqual({ boardCollapsed: false });
+    expect(revealFilesPatch(false, false)).toBeNull();
+    expect(revealFilesPatch(true, true)).toBeNull();
+  });
+});
+
+describe("createRemovalGate", () => {
+  const a = { label: "A", prompt: "a" };
+  const b = { label: "B", prompt: "b" };
+  const c = { label: "C", prompt: "c" };
+
+  it("keeps a pending removal on its suggestion wherever the list moves it", () => {
+    const gate = createRemovalGate();
+    let finish = (): void => {};
+    const removing = gate.run(b, () => new Promise<void>((resolve) => (finish = resolve)));
+    expect(removing).not.toBeNull();
+    // A poll drops A while B's removal is out: B moves up, C takes its old place.
+    const list = [b, c];
+    expect(list.map((suggestion) => gate.pending(suggestion))).toEqual([true, false]);
+    expect(gate.run(b, () => Promise.resolve())).toBeNull();
+    finish();
+    return removing?.then(() => expect(gate.pending(b)).toBe(false));
+  });
+
+  it("starts one removal for two presses before a redraw, identical twins included", async () => {
+    const changes: number[] = [];
+    const gate = createRemovalGate();
+    gate.subscribe(() => changes.push(gate.version()));
+    const started: string[] = [];
+    const first = gate.run(a, () => {
+      started.push("first");
+      return Promise.resolve();
+    });
+    expect(gate.run({ ...a }, () => Promise.resolve())).toBeNull();
+    expect(gate.pending(b)).toBe(false);
+    await first;
+    expect(started).toEqual(["first"]);
+    expect(gate.pending(a)).toBe(false);
+    expect(changes).toEqual([1, 2]);
+  });
+
+  it("reopens after a task that fails or throws", async () => {
+    const gate = createRemovalGate();
+    await expect(gate.run(a, () => Promise.reject(new Error("no")))).rejects.toThrow("no");
+    expect(gate.pending(a)).toBe(false);
+    await expect(
+      gate.run(a, () => {
+        throw new Error("sync");
+      }),
+    ).rejects.toThrow("sync");
+    expect(gate.pending(a)).toBe(false);
+  });
+});
+
+describe("folding a suggestion card", () => {
+  it("counts a card as cut until both of its heights are in", () => {
+    expect(isCut(null, null)).toBe(true);
+    expect(isCut(34, null)).toBe(true);
+    expect(isCut(null, 34)).toBe(true);
+  });
+
+  it("offers no chevron when the whole text lays out no taller than the folded one", () => {
+    expect(isCut(34, 34)).toBe(false);
+    // Sub-pixel rounding between the two layouts is not a cut line.
+    expect(isCut(34, 34.6)).toBe(false);
+    expect(showsChevron(false, isCut(34, 34))).toBe(false);
+  });
+
+  it("offers the chevron when the whole text needs more lines than the card shows", () => {
+    expect(isCut(34, 48)).toBe(true);
+    expect(showsChevron(false, isCut(34, 48))).toBe(true);
+  });
+
+  it("keeps the chevron on an open card, so it can always be folded again", () => {
+    expect(showsChevron(true, false)).toBe(true);
+  });
+
+  it("says which way the chevron goes and for which suggestion", () => {
+    expect(chevronLabel(false, "Land web#42")).toBe("Show the whole suggestion: Land web#42");
+    expect(chevronLabel(true, "Land web#42")).toBe("Hide the whole suggestion: Land web#42");
+  });
+});
+
+describe("suggestionRemovals", () => {
+  it("outlives the list: a remount finds a removal still out, and cannot start a second", async () => {
+    const pair = { label: "Land", prompt: "Merge it" };
+    const requests: string[] = [];
+    let finish = (): void => {};
+    // The first list subscribes, starts the removal, and unmounts — a tab switch.
+    const unsubscribe = suggestionRemovals.subscribe(() => {});
+    const removing = suggestionRemovals.run(pair, () => {
+      requests.push("first");
+      return new Promise<void>((resolve) => (finish = resolve));
+    });
+    unsubscribe();
+
+    // The list that mounts next reads the same gate.
+    const seen: number[] = [];
+    const unsubscribeNext = suggestionRemovals.subscribe(() => seen.push(suggestionRemovals.version()));
+    expect(suggestionRemovals.pending({ ...pair })).toBe(true);
+    expect(suggestionRemovals.run({ ...pair }, () => (requests.push("second"), Promise.resolve()))).toBeNull();
+
+    finish();
+    await removing;
+    expect(requests).toEqual(["first"]);
+    expect(suggestionRemovals.pending(pair)).toBe(false);
+    expect(seen).toHaveLength(1);
+    unsubscribeNext();
+  });
+});
+
+function crewCard(key: string, agent: Partial<AgentSummary> | null, column: FleetCard["column"] = "working"): FleetCard {
+  return {
+    key,
+    column,
+    taskId: null,
+    title: `Task ${key}`,
+    project: null,
+    kind: null,
+    backlog: null,
+    agent:
+      agent === null
+        ? null
+        : {
+            id: key,
+            workspaceId: null,
+            title: null,
+            provider: "claude",
+            model: null,
+            status: "running",
+            cwd: "/tmp",
+            pendingPermissions: 0,
+            requiresAttention: false,
+            lastError: null,
+            updatedAt: "2026-10-01T10:00:00.000Z",
+            labels: {},
+            ...agent,
+          },
+    report: null,
+    url: null,
+  };
+}
+
+describe("the sidebar row's badge", () => {
+  it("counts the live crewmates in the Working and Idle columns, and nothing else", () => {
+    expect(activeCrewCount([])).toBe(0);
+    const cards = [
+      crewCard("working", { status: "running" }, "working"),
+      crewCard("idle", { status: "idle" }, "idle"),
+      crewCard("reported-done", { status: "idle" }, "idle"),
+      crewCard("blocked", { status: "idle", pendingPermissions: 1 }, "blocked"),
+      crewCard("failed", { status: "error" }, "failed"),
+      crewCard("parked", { status: "idle" }, "parked"),
+      crewCard("landed", { status: "idle" }, "done"),
+      crewCard("queued", null, "queued"),
+      crewCard("backlog-only", null, "working"),
+      crewCard("closed", { status: "closed" }, "idle"),
+    ];
+    expect(activeCrewCount(cards)).toBe(3);
+  });
+});
