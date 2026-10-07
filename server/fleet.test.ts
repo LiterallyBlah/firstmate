@@ -71,6 +71,14 @@ describe("backlogColumn", () => {
 });
 
 describe("buildCards", () => {
+  it("does not join a remote backlog entry to a local agent with the same task id", () => {
+    const remote = parseBacklog("## In flight\n- [ ] fix-login - Remote login task (host: srv_remote)");
+    expect(buildCards(remote, [{ agent: agent(), report: null }])).toMatchObject([
+      { key: "agent:a1", title: "Fix login", backlog: null },
+    ]);
+    expect(buildCards(remote, [])).toEqual([]);
+  });
+
   const backlog = parseBacklog(`## In flight
 - [ ] fix-login - Fix the login (project: web) (kind: ship)
 - [ ] by-id - Found by agent id (agent: a2)

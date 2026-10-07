@@ -3,8 +3,29 @@
 Notable changes to this private FirstMate copy. Upstream history is retained below.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the version numbers
-follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Install this copy from its local
-directory; it is marked private to prevent accidental npm publication.
+follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Install this copy from its private
+Git repository or local directory; it is marked private to prevent accidental npm publication.
+
+## [0.4.0] — 2026-10-07
+
+### Added
+
+- Every saved Paseo desktop host is synchronized to a private daemon-side connection registry,
+  including relay, TCP and SSH connections. Removing a saved host removes its bridge access.
+- A terminal helper lets the first mate discover remote projects, workspaces and providers and
+  explicitly dispatch and supervise remote workers, independently of the app's connections.
+- Remote workers carry a stable owner label. Their completions and permission requests reach the
+  first mate through `remote-watch`, and a Remote hosts card shows host and worker status.
+- This private copy enables Paseo desktop's Keep running after quit setting once on first successful
+  sync, matching its independent-operation configuration. A later manual change is respected.
+
+### Changed
+
+- Requires stable Paseo 0.11.0; SDK pins match that release. The saved-host and desktop IPC adapters
+  use private 0.11 app formats, validate their inputs, and retain the last valid configuration when
+  the saved-host format is unsupported. Credentials stay outside the mate's home and repository.
+- Remote targets are identity-checked before use. Only read-only connection probes retry alternative
+  connections; a command that may change remote state runs once, including after a timeout.
 
 ## [0.3.2] — 2026-10-07
 

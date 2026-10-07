@@ -44,6 +44,7 @@ import { agentStatusLabel, agentStatusTone, groupCards, orderedColumns, revealFi
 import { LaunchPanel } from "./launch";
 import { useMateSender } from "./mate-send";
 import { ResizeHandle, clampShare } from "./resize-handle";
+import { RemoteHosts } from "./remotes";
 import { SuggestionList } from "./suggestions";
 import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
 
@@ -522,29 +523,32 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   }
 
   const board = (
-    <Board
-      cards={data.cards}
-      order={order}
-      collapsed={values.collapsedColumns}
-      theme={theme}
-      compact={compact}
-      suggestions={data.suggestions}
-      suggesting={mateSender.sending}
-      onSuggest={suggest}
-      onRemoveSuggestion={dismissSuggestion}
-      watches={data.watches}
-      onOpenFile={openFile}
-      onWatch={setWatching}
-      onChanged={refresh}
-      onToggleColumn={(id: ColumnId) =>
-        save({
-          collapsedColumns: values.collapsedColumns.includes(id)
-            ? values.collapsedColumns.filter((column) => column !== id)
-            : [...values.collapsedColumns, id],
-        })
-      }
-      onReorder={(next: ColumnId[]) => save({ columnOrder: next })}
-    />
+    <View style={{ flex: 1, minHeight: 0 }}>
+      <Board
+        cards={data.cards}
+        order={order}
+        collapsed={values.collapsedColumns}
+        theme={theme}
+        compact={compact}
+        suggestions={data.suggestions}
+        suggesting={mateSender.sending}
+        onSuggest={suggest}
+        onRemoveSuggestion={dismissSuggestion}
+        watches={data.watches}
+        onOpenFile={openFile}
+        onWatch={setWatching}
+        onChanged={refresh}
+        onToggleColumn={(id: ColumnId) =>
+          save({
+            collapsedColumns: values.collapsedColumns.includes(id)
+              ? values.collapsedColumns.filter((column) => column !== id)
+              : [...values.collapsedColumns, id],
+          })
+        }
+        onReorder={(next: ColumnId[]) => save({ columnOrder: next })}
+      />
+      <RemoteHosts theme={theme} />
+    </View>
   );
   const chat = (
     <MateChat

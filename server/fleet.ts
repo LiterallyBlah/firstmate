@@ -202,6 +202,8 @@ export interface CrewMember {
  * left over on either side is a card of its own.
  */
 export function buildCards(backlog: readonly BacklogItem[], crew: readonly CrewMember[]): FleetCard[] {
+  // Remote agents have a separate host card; their task ids can overlap local ones.
+  backlog = backlog.filter((item) => item.host === undefined);
   const cards: FleetCard[] = [];
   const claimed = new Set<number>();
 

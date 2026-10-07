@@ -78,6 +78,8 @@ export const BacklogItemSchema = z.object({
   kind: z.string().nullable(),
   mode: z.string().nullable(),
   agentId: z.string().nullable(),
+  /** Remote backlog entries are drawn with their host, outside the local crew columns. */
+  host: z.string().optional(),
   hold: z.string().nullable(),
   blockedBy: z.string().nullable(),
   since: z.string().nullable(),

@@ -195,6 +195,32 @@ settings, and your choice is kept.
 Because all of it is on disk, a restart is a non-event: the first mate reads its records, checks them
 against the live crew, and carries on.
 
+## Remote hosts in this private copy
+
+This copy follows all hosts saved in Paseo desktop. The app synchronizes connection profiles every
+ten seconds while open, and the plugin retains them in the local daemon to work independently of
+the app. On the first successful desktop sync, it enables Paseo's **Keep running after quit** setting
+once. You can change that setting later; FirstMate will respect the change. Atlas must stay awake,
+and each remote daemon must be running and reachable from Atlas. SSH authentication uses Atlas's
+own keys/configuration.
+
+The first mate uses `node tools/remote.mjs hosts` to discover remote hosts, projects, workspaces,
+providers and workers, then routes CLI orchestration commands through that helper. Remote workers
+use their remote repositories and models and get a stable owner label. `remote-watch` reports their
+completions and pending permissions to the local first mate. The screen includes a **Remote hosts**
+card; the existing crew columns contain local workers. `data/remote-access.md` contains the full
+agent instructions and command examples.
+
+Passwords and relay pairing data remain in `plugin-data/firstmate/remotes.json`, outside the mate's
+home and this repository. Only public status is copied into `data/remote-hosts.json`. Removing a
+host in Paseo removes its bridge access on the next sync, but leaves its workers running.
+
+Automatic discovery and the one-time background setting use private Paseo 0.11 desktop storage/IPC
+formats because the public plugin API doesn't export connection credentials. Unsupported saved
+formats are reported and the last valid configuration is retained. Mobile clients do not export
+their saved hosts. Remote commands that may change state are never automatically retried after
+an uncertain failure: inspect before retrying.
+
 ## Watches
 
 A **watch** is a small script in the home's `watches/` folder that FirstMate runs on a schedule, while
@@ -206,11 +232,13 @@ first mate takes as your instruction. A watch that passes on text from someone e
 comment, a web page — has to mark it as quoted, and the first mate treats what is marked that way as
 news, not orders. `pr-watch` does, and says so.
 
-FirstMate comes with one, **`pr-watch`**, which checks every five minutes on the pull requests in the
+FirstMate comes with **`pr-watch`**, which checks every five minutes on the pull requests in the
 backlog — yours and those to other people's projects — and tells the first mate when one is merged or
 closed, gets a review or a comment from someone else, or its checks go red or green. So a pull request
 you merge on GitHub is cleaned up within minutes, and a maintainer's review reaches the worker without
 you passing it on. It needs the `gh` command, logged in, and Node, on the machine Paseo runs on.
+This private copy also includes **`remote-watch`**, which reports remote host and worker changes
+every minute without an app connection.
 
 A **Watches** card after the board's columns — at the bottom of the Crew tab on a phone — lists each
 watch with its schedule, when it last ran and what came of it, and what it last said (press it to read
