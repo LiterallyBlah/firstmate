@@ -33,6 +33,7 @@ export { WATCHES_DIR };
 /** The plugin's own watches: the file name each has in `watches/`, and its template. */
 export const BUILT_IN_WATCHES: ReadonlyArray<{ name: string; template: TemplatePath }> = [
   { name: "pr-watch", template: TEMPLATES.watchPr },
+  { name: "remote-watch", template: TEMPLATES.watchRemote },
 ];
 
 /** How far into a file the schedule comment is looked for. */

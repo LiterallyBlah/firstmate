@@ -63,27 +63,54 @@ function paseoCli(): Promise<string | null> {
   return cliLookup;
 }
 
-async function spawnCli(cli: string, args: string[], timeoutMs: number): Promise<CliResult> {
-  const launch = await paseoLaunch(cli, args);
+async function spawnCli(cli: string, args: string[], timeoutMs: number, env = process.env, signal?: AbortSignal): Promise<CliResult> {
+  const launch = await paseoLaunch(cli, args, env);
   return new Promise((resolve, reject) => {
-    const child = spawn(launch.command, launch.args, { env: launch.env, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(launch.command, launch.args, { env: launch.env, windowsHide: true, detached: process.platform !== "win32", stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
+    let stopping = false;
+    function stop() {
+      if (stopping || child.pid === undefined) return;
+      stopping = true;
+      if (process.platform === "win32") {
+        const killer = spawn(join(process.env.SystemRoot ?? "C:\\Windows", "System32", "taskkill.exe"), ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+        killer.on("error", () => child.kill("SIGKILL"));
+        killer.on("exit", (code) => { if (code !== 0) child.kill("SIGKILL"); });
+      } else {
+        try { process.kill(-child.pid, "SIGKILL"); } catch { child.kill("SIGKILL"); }
+      }
+    }
+    const abort = () => { stop(); reject(new Error("Paseo command cancelled")); };
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
     const timer = setTimeout(() => {
-      child.kill("SIGKILL");
+      stop();
       reject(new Error(`paseo ${args[0] ?? ""} did not finish within ${timeoutMs / 1000} seconds`));
     }, timeoutMs);
-    child.stdout.setEncoding("utf8").on("data", (chunk: string) => (stdout += chunk));
-    child.stderr.setEncoding("utf8").on("data", (chunk: string) => (stderr += chunk));
+    child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
+      stdout += chunk;
+      if (stdout.length > 8 * 1024 * 1024) { stop(); reject(new Error("Paseo output exceeded the size limit")); }
+    });
+    child.stderr.setEncoding("utf8").on("data", (chunk: string) => { stderr = (stderr + chunk).slice(-65536); });
     child.on("error", (error) => {
       clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
       reject(error);
     });
     child.on("close", (code) => {
       clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
       resolve({ code, stdout, stderr });
     });
   });
+}
+
+/** Remote transport: callers supply an isolated environment, never a shell. */
+export async function runPaseo(args: string[], env: NodeJS.ProcessEnv, signal?: AbortSignal): Promise<CliResult> {
+  const cli = await paseoCli();
+  if (cli === null) throw new Error("Paseo CLI unavailable");
+  return spawnCli(cli, args, CLI_TIMEOUT_MS, env, signal);
 }
 
 /** The CLI's complaint: the message out of its JSON error, or its first line. */

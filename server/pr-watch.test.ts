@@ -219,8 +219,11 @@ describe("pr-watch", () => {
     const { answer, run, state, home } = await setup();
     const urls = [1, 2, 3, 4, 5, 6].map((n) => `https://github.com/someone/lib/pull/${n}`);
     await writeFile(join(home, "data", "backlog.md"), `## In flight\n${urls.map((url) => `- [ ] x ${url}`).join("\n")}\n`, "utf8");
-    await answer(Object.fromEntries(urls.map((url) => [url, pull({ delayMs: 800 })])));
-    const budget = { FIRSTMATE_PR_WATCH_BUDGET_MS: "400" };
+    // Allow native Node startup on Windows while keeping each batch slower
+    // than the budget; the scheduling assertion stays the same.
+    const budgetMs = process.platform === "win32" ? 1000 : 400;
+    await answer(Object.fromEntries(urls.map((url) => [url, pull({ delayMs: budgetMs * 2 })])));
+    const budget = { FIRSTMATE_PR_WATCH_BUDGET_MS: String(budgetMs) };
     const saved = async () => JSON.parse(await readFile(join(state, "prs.json"), "utf8")).prs as Record<string, { seen?: boolean }>;
 
     const first = await run(undefined, budget);
@@ -232,7 +235,7 @@ describe("pr-watch", () => {
     const after = await saved();
     expect(Object.keys(after).sort()).toEqual(urls);
     expect(Object.values(after).every((entry) => entry.seen === true)).toBe(true);
-  });
+  }, process.platform === "win32" ? 15000 : 5000);
 
   it("mentions a pull request gh keeps failing on once, and fails the run when gh can read none", async () => {
     const { answer, run } = await setup();
@@ -262,7 +265,7 @@ describe("pr-watch", () => {
     expect(none.code).toBe(1);
     expect(none.stderr).toContain("gh could not read any of the backlog's pull requests");
     expect(none.stderr).toContain("HTTP 401");
-  });
+  }, process.platform === "win32" ? 15000 : 5000);
 
   it("fails with a sentence when gh is not there, and is silent with no pull requests", async () => {
     const { run, home, noGh } = await setup();

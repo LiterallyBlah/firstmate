@@ -13,6 +13,40 @@ import { Platform } from "react-native";
 
 import { rasterImageType } from "../shared/attachments";
 
+/** Private Paseo 0.11 storage adapter, deliberately kept out of components.
+ * Undefined means native; null means inaccessible/missing browser storage. */
+export function savedDaemonRegistry(): string | null | undefined {
+  if (Platform.OS !== "web") return undefined;
+  try {
+    const web = globalThis as { localStorage?: { getItem(key: string): string | null } };
+    return web.localStorage?.getItem("@paseo:daemon-registry") ?? null;
+  } catch { return null; }
+}
+
+/** This private copy was configured for independent operation. Enable Paseo's
+ * own background setting once through its desktop IPC, without restarting.
+ * The marker means a later deliberate change by the captain is respected. */
+export async function configureIndependentDaemon(serverId: string): Promise<void> {
+  if (Platform.OS !== "web") return;
+  const web = globalThis as {
+    localStorage?: { getItem(key: string): string | null; setItem(key: string, value: string): void };
+    paseoDesktop?: { invoke(command: string, args?: Record<string, unknown>): Promise<unknown> };
+  };
+  const invoke = web.paseoDesktop?.invoke;
+  if (!invoke || !web.localStorage) return;
+  const marker = `firstmate:independent-daemon-configured:v1:${serverId}`;
+  if (web.localStorage.getItem(marker) === "1") return;
+  const status = await invoke("desktop_daemon_status");
+  // A desktop connected to a remote installation must not alter its own
+  // unrelated built-in daemon settings.
+  if (typeof status !== "object" || status === null || Reflect.get(status, "serverId") !== serverId) return;
+  const settings = await invoke("patch_desktop_settings", { daemon: { keepRunningAfterQuit: true } });
+  if (typeof settings !== "object" || settings === null) throw new Error("Desktop settings unavailable");
+  const daemon: unknown = Reflect.get(settings, "daemon");
+  if (typeof daemon !== "object" || daemon === null || Reflect.get(daemon, "keepRunningAfterQuit") !== true) throw new Error("Background daemon setting unavailable");
+  web.localStorage.setItem(marker, "1");
+}
+
 /** Only what this module reads off the web globals; the DOM library stays off. */
 interface WebGlobals {
   document?: {

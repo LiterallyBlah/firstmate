@@ -20,6 +20,11 @@ Some prose the first mate wrote, which is not an item.
 `;
 
 describe("parseBacklog", () => {
+  it("keeps a remote host separately from the task title", () => {
+    expect(parseBacklog("## In flight\n- [ ] remote-task - Remote task (host: srv_remote) (agent: remote-agent)"))
+      .toMatchObject([{ id: "remote-task", title: "Remote task", host: "srv_remote", agentId: "remote-agent" }]);
+  });
+
   it("reads every item under the three headings, in file order", () => {
     expect(parseBacklog(SAMPLE).map((item) => `${item.section}:${item.id}`)).toEqual([
       "in-flight:fix-flaky-login",

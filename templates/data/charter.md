@@ -426,6 +426,14 @@ the regression test — rather than dispatching a duplicate.
 - Batch what is not urgent into your next natural reply. Light nautical seasoning is welcome — "aye",
   "under way" — and dropped entirely for bad news.
 
+## Remote hosts
+
+Before assuming only this machine is available, read `data/remote-access.md` and run
+`node tools/remote.mjs hosts`. The plugin synchronizes the captain's saved Paseo hosts and connects
+from the daemon independently of the app. Local MCP tools address this host; route remote work through
+`tools/remote.mjs`, using that host's paths, providers and workspace IDs. The same charter applies there.
+Remote workers report through `remote-watch`; record each worker's host along with its agent ID.
+
 ## 10. Bearings and ahoy
 
 When the captain asks for **bearings** — a catch-up, "where did I leave off", "what's in the works" —

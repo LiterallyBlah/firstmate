@@ -52,6 +52,8 @@ import {
 import { findHomeFiles, listHomeFiles, readHomeFile, writeHomeFile } from "./shared/files";
 import { startWatches } from "./server/watch-service";
 import { displaySettings } from "./shared/settings";
+import { RemoteService } from "./server/remotes";
+import { readRemotes, syncRemotes, reportRemoteSyncError } from "./shared/remotes";
 
 export default function contribute(server: PluginServerContext) {
   migrateLegacyFiles();
@@ -59,6 +61,11 @@ export default function contribute(server: PluginServerContext) {
   const steers = new CaptainSteers();
   // The scripts in the home's watches/ folder, run on their schedules; see server/watches.ts.
   const watches = startWatches(server, readFirstmateConfig);
+  const remotes = new RemoteService();
+  remotes.start();
+  server.handle(readRemotes, () => remotes.read());
+  server.handle(syncRemotes, ({ hosts }) => remotes.sync(hosts));
+  server.handle(reportRemoteSyncError, async ({ unavailable }) => { await remotes.syncError(unavailable); return {}; });
 
   server.handle(readConfig, async () => {
     const config = await readFirstmateConfig();
@@ -167,6 +174,7 @@ export default function contribute(server: PluginServerContext) {
     unregisterRelay();
     unregisterCrewSeen();
     watches.stop();
+    remotes.stop();
   };
 }
 

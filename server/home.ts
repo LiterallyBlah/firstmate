@@ -17,9 +17,9 @@
  *     <home>/icon.svg            the icon Paseo's sidebar shows for the home
  *
  * Every file starts as its namesake in the plugin's `templates/` folder, which
- * is laid out the same way (`templates.ts`). Everything but the charter is
- * written only when missing, so a relaunch never loses a record the first
- * mate has been keeping.
+ * is laid out the same way (`templates.ts`). The charter, remote helper and
+ * remote access guide follow the plugin. Other records are written only when
+ * missing, so a relaunch never loses a record the first mate has been keeping.
  *
  * The icon is Lucide's ship — the plugin's own sidebar icon, ISC-licensed — in
  * white on a blue rounded square. It is a file, not something the plugin sets:
@@ -42,8 +42,9 @@ import { renderCharter } from "./charter";
 import { syncCharter } from "./charter-file";
 import { FileChangedError, readTextFile, replaceTextIfUnchanged, type WriteHooks } from "./files";
 import { parseSuggestions, withoutSuggestion } from "./suggestions";
-import { TEMPLATES, readTemplate, withoutNotes, type TemplatePath } from "./templates";
+import { TEMPLATES, fill, readTemplate, withoutNotes, type TemplatePath } from "./templates";
 import { seedWatches } from "./watch-files";
+import { remoteQueue } from "./remotes";
 
 /** The home's records: written from their templates when missing, and the captain's or the first mate's after. */
 const RECORDS: readonly TemplatePath[] = [
@@ -54,6 +55,7 @@ const RECORDS: readonly TemplatePath[] = [
   TEMPLATES.suggestions,
   TEMPLATES.opening,
   TEMPLATES.icon,
+  TEMPLATES.remoteHosts,
 ];
 
 async function exists(path: string): Promise<boolean> {
@@ -82,6 +84,7 @@ async function writeIfMissing(path: string, content: string): Promise<void> {
 export async function prepareHome(home: string, config: FirstmateConfig): Promise<void> {
   await mkdir(join(home, "data"), { recursive: true });
   await mkdir(join(home, "projects"), { recursive: true });
+  await mkdir(join(home, "tools"), { recursive: true });
   const charter = await syncCharter(home);
   await writeFile(
     join(home, TEMPLATES.agents),
@@ -89,6 +92,9 @@ export async function prepareHome(home: string, config: FirstmateConfig): Promis
     "utf8",
   );
   for (const record of RECORDS) await writeIfMissing(join(home, record), await readTemplate(record));
+  // The helper is plugin-owned transport code, rather than a captain's record.
+  await writeFile(join(home, TEMPLATES.remoteHelper), fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(remoteQueue()) }), "utf8");
+  await writeFile(join(home, TEMPLATES.remoteAccess), await readTemplate(TEMPLATES.remoteAccess), "utf8");
   await seedWatches(home);
 }
 

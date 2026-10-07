@@ -57,7 +57,7 @@ function runner(
   const sent: string[] = [];
   const runs: Array<{ name: string; env: NodeJS.ProcessEnv }> = [];
   const mate = { state: "idle" as "idle" | "busy" | "absent" };
-  const disabled = ["pr-watch"];
+  const disabled = ["pr-watch", "remote-watch"];
   const instance = new WatchRunner({
     home: async () => paths.home,
     disabled: async () => disabled,
@@ -159,7 +159,7 @@ describe("WatchRunner", () => {
 
     const first = instance.tick(MINUTE);
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect((await instance.summaries())[1]).toMatchObject({ name: "slow", running: true });
+    expect((await instance.summaries()).find((watch) => watch.name === "slow")).toMatchObject({ name: "slow", running: true });
     await instance.tick(new Date(2026, 8, 25, 10, 6));
     expect(runs).toHaveLength(1);
     release(ok(""));
