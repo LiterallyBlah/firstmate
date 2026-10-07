@@ -35,6 +35,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/watch-files.ts`       | `watches/`: which files are watches, their `schedule:` line, seeding the built-ins.        |
 | `server/watch-schedule.ts`    | A crontab line → `Schedule`, and whether a local minute matches it. Pure.                  |
 | `server/watch-run.ts`         | One script run: its own process group, a timeout, stdout capped, stderr's tail.           |
+| `server/process-launch.ts`    | Windows desktop/npm CLI entry points and native Node watch launches, without a shell.   |
 | `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`).   |
 | `shared/attachments.ts`       | What the captain can attach: the message's shape, image-or-file by Paseo's rules, the size cap. |
 | `server/uploads.ts`           | An attached file written to `$PASEO_HOME/uploads/`, described as Paseo's `uploaded_file`.     |
@@ -356,7 +357,12 @@ nor reports a failure twice. A failure — non-zero exit, timeout, a script that
 once, with stderr's tail, and marks the watch `failing` until a run succeeds; its stdout is not sent. A
 run is its own process group (`detached`), so a timeout's SIGTERM, and SIGKILL two seconds later, reach its
 `gh` — the SIGKILL fires even when the script itself has exited, since a child that ignores SIGTERM and has
-closed its pipes outlives it. A plugin stop aborts running scripts the same way, and starts nothing after,
+closed its pipes outlives it. On Windows, Node shebang watches run through the plugin's own runtime
+without executable permission bits; unsupported interpreters are marked invalid. A timeout or abort
+uses `taskkill /PID <watch-pid> /T /F` while the root process still exists, to stop its descendants too.
+The desktop Paseo `.cmd` launcher is resolved to Paseo.exe and its runner; npm shims use their JavaScript
+entry point. Keep all arguments as an array and do not introduce shell interpolation.
+A plugin stop aborts running scripts the same way, and starts nothing after,
 even from a tick already under way (`runWatchScript` checks an already-aborted signal before spawning). A watch still running when it is due again is
 skipped, not queued.
 

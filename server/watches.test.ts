@@ -1,7 +1,7 @@
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { basename, join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runWatchScript, type RunOptions, type RunResult } from "./watch-run";
 import {
@@ -37,7 +37,8 @@ async function setup() {
 
 async function script(home: string, name: string, body: string, schedule = "* * * * *"): Promise<void> {
   const path = join(home, "watches", name);
-  await writeFile(path, `#!/bin/sh\n# schedule: ${schedule}\n${body}\n`, "utf8");
+  const header = process.platform === "win32" ? "#!/usr/bin/env node\n//" : "#!/bin/sh\n#";
+  await writeFile(path, `${header} schedule: ${schedule}\n${body}\n`, "utf8");
   await chmod(path, 0o755);
 }
 
@@ -68,7 +69,7 @@ function runner(
     stateFile: paths.stateFile,
     scriptStateRoot: paths.scriptStateRoot,
     run: async (path: string, options: RunOptions) => {
-      const name = path.split("/").pop() ?? "";
+      const name = basename(path);
       runs.push({ name, env: options.env });
       const answer = outputs[name];
       if (answer === undefined) throw new Error(`no stand-in for ${name}`);
@@ -467,39 +468,43 @@ describe("clip", () => {
 describe("runWatchScript", () => {
   async function real(body: string): Promise<string> {
     const dir = await tempDir();
-    const path = join(dir, "script");
-    await writeFile(path, `#!/bin/sh\n${body}\n`, "utf8");
+    const path = join(dir, "script with spaces");
+    await writeFile(path, `#!/usr/bin/env node\n${body}\n`, "utf8");
     await chmod(path, 0o755);
     return path;
   }
   const options = { cwd: tmpdir(), env: { PATH: process.env.PATH }, timeoutMs: 5000, maxOutputBytes: 1000, maxErrorBytes: 20 };
 
   it("returns what the script printed, its exit code and the end of its stderr", async () => {
-    const result = await runWatchScript(await real('echo "out"; echo "0123456789012345678901234567890 end" >&2; exit 3'), options);
+    const result = await runWatchScript(await real('process.stdout.write("out\\n"); process.stderr.write("0123456789012345678901234567890 end\\n"); process.exitCode = 3;'), options);
     expect(result).toMatchObject({ code: 3, timedOut: false, stdout: "out\n", truncated: false, spawnError: null });
     expect(result.stderr).toBe("0123456789012345678901234567890 end\n".slice(-20));
   });
 
   it("cuts stdout at the cap, still reading the rest", async () => {
-    const result = await runWatchScript(await real("yes x | head -c 50000"), { ...options, maxOutputBytes: 100 });
+    const result = await runWatchScript(await real('process.stdout.write("x".repeat(50000));'), { ...options, maxOutputBytes: 100 });
     expect(result).toMatchObject({ code: 0, truncated: true });
     expect(result.stdout).toHaveLength(100);
   });
 
   it("stops a script that runs past its time, children and all", async () => {
     const started = Date.now();
-    const result = await runWatchScript(await real("sleep 30 & sleep 30; wait"), { ...options, timeoutMs: 200, killGraceMs: 200 });
+    const result = await runWatchScript(await real('setInterval(() => {}, 1000);'), { ...options, timeoutMs: 200, killGraceMs: 200 });
     expect(result.timedOut).toBe(true);
-    expect(result.code).toBeNull();
+    if (process.platform !== "win32") expect(result.code).toBeNull();
     expect(Date.now() - started).toBeLessThan(5000);
   });
 
-  it("kills the whole group after the grace period, even a child that ignores SIGTERM and let go of the pipes", async () => {
+  it.skipIf(process.platform === "win32")("kills the whole group after the grace period, even a child that ignores SIGTERM and let go of the pipes", async () => {
     const dir = await tempDir();
     const pidFile = join(dir, "child.pid");
-    const path = await real(
-      `sh -c 'trap "" TERM; echo $$ > "${pidFile}"; while :; do sleep 1; done' >/dev/null 2>&1 </dev/null &\nsleep 30`,
-    );
+    const path = await real(`
+      const { spawn } = require("node:child_process");
+      const fs = require("node:fs");
+      const child = spawn(process.execPath, ["-e", 'process.on("SIGTERM", () => {}); setInterval(() => {}, 1000);'], { stdio: "ignore" });
+      fs.writeFileSync(${JSON.stringify(pidFile)}, String(child.pid));
+      setInterval(() => {}, 1000);
+    `);
     const result = await runWatchScript(path, { ...options, timeoutMs: 300, killGraceMs: 300 });
     expect(result.timedOut).toBe(true);
     const child = Number((await readFile(pidFile, "utf8")).trim());
@@ -522,9 +527,36 @@ describe("runWatchScript", () => {
     const marker = join(dir, "ran");
     const aborted = new AbortController();
     aborted.abort();
-    const result = await runWatchScript(await real(`touch "${marker}"`), { ...options, signal: aborted.signal });
+    const result = await runWatchScript(await real(`require("node:fs").writeFileSync(${JSON.stringify(marker)}, "ran");`), { ...options, signal: aborted.signal });
     expect(result.spawnError).toBe("the plugin stopped");
     await expect(readFile(marker, "utf8")).rejects.toThrow(/ENOENT/);
+  });
+
+  it.runIf(process.platform === "win32")("kills the Windows watch tree on timeout, including a child with closed pipes", async () => {
+    const dir = await tempDir();
+    const pidFile = join(dir, "child.pid");
+    const childProgram = `require("node:fs").writeFileSync(${JSON.stringify(pidFile)}, String(process.pid)); setInterval(() => {}, 1000);`;
+    const path = await real(`
+      const { spawn } = require("node:child_process");
+      spawn(process.execPath, ["-e", ${JSON.stringify(childProgram)}], { stdio: "ignore", windowsHide: true });
+      setInterval(() => {}, 1000);
+    `);
+    const result = await runWatchScript(path, { ...options, timeoutMs: 1200 });
+    expect(result.timedOut).toBe(true);
+    expect(result.spawnError).toBeNull();
+    const pid = Number(await readFile(pidFile, "utf8"));
+    await vi.waitFor(() => expect(() => process.kill(pid, 0)).toThrow(), { timeout: 2000 });
+  });
+
+  it("stops a running Node watch when the plugin shuts down", async () => {
+    const controller = new AbortController();
+    const dir = await tempDir();
+    const marker = join(dir, "started");
+    const path = await real(`require("node:fs").writeFileSync(${JSON.stringify(marker)}, "ready"); setInterval(() => {}, 1000);`);
+    const running = runWatchScript(path, { ...options, signal: controller.signal, killGraceMs: 100 });
+    await vi.waitFor(async () => expect(await readFile(marker, "utf8")).toBe("ready"), { timeout: 2000 });
+    controller.abort();
+    expect(await running).toMatchObject({ timedOut: false, spawnError: null });
   });
 
   it("says why a script did not start", async () => {

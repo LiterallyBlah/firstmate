@@ -1,11 +1,22 @@
 # Changelog
 
-Notable changes to `firstmate`. The other plugins in this repository version separately.
+Notable changes to this private FirstMate copy. Upstream history is retained below.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the version numbers
-follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Every version is published to npm
-as `@gpambrozio/paseo-firstmate` and tagged here, so a version is something to install and a line to
-read before you move.
+follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Install this copy from its local
+directory; it is marked private to prevent accidental npm publication.
+
+## [0.3.2] — 2026-10-07
+
+### Fixed
+
+- Windows startup no longer reports `The charter could not be read: spawn EINVAL`. Paseo's desktop
+  and npm batch launchers resolve to their native runtime and JavaScript entry point, preserving
+  argument boundaries without a shell. CLI fallback discovery includes Windows executable names.
+- Node watches, including `pr-watch`, run on Windows without Unix executable bits. Timeouts and
+  plugin shutdown stop the watch's Windows process tree.
+- Tests use portable paths, Node watch fixtures and Windows directory junctions. Unix process-group
+  behavior is retained; custom Unix shell watches remain Unix-only.
 
 ## [0.3.1] — 2026-10-04
 

@@ -57,7 +57,7 @@ describe("listDirectory", () => {
     const outside = await mkdtemp(join(tmpdir(), "firstmate-outside-"));
     tempDirs.push(outside);
     await writeFile(join(outside, "secret.txt"), "no");
-    await symlink(outside, join(dir, "escape"));
+    await symlink(outside, join(dir, "escape"), process.platform === "win32" ? "junction" : "dir");
     await expect(listDirectory(dir, "escape")).rejects.toThrow(/outside the home/);
     await expect(readTextFile(dir, "escape/secret.txt")).rejects.toThrow(/outside the home/);
   });
@@ -153,24 +153,26 @@ describe("writeTextFile", () => {
     const dir = await home();
     await mkdir(join(dir, "watches"));
     const script = join(dir, "watches", "demo");
-    await writeFile(script, "#!/bin/sh\n# schedule: * * * * *\necho one\n");
+    await writeFile(script, "#!/usr/bin/env node\n// schedule: * * * * *\n// echo one\n");
     await chmod(script, 0o755);
     await chmod(join(dir, "data", "backlog.md"), 0o640);
+    const scriptMode = (await stat(script)).mode & 0o777;
+    const backlogMode = (await stat(join(dir, "data", "backlog.md"))).mode & 0o777;
 
     const opened = await readTextFile(dir, "watches/demo");
     await writeTextFile(dir, {
       path: "watches/demo",
-      content: "#!/bin/sh\n# schedule: * * * * *\necho two\n",
+      content: "#!/usr/bin/env node\n// schedule: * * * * *\n// echo two\n",
       expectedModifiedMs: opened.modifiedMs,
       force: false,
     });
     expect(await readFile(script, "utf8")).toContain("echo two");
-    expect((await stat(script)).mode & 0o777).toBe(0o755);
+    expect((await stat(script)).mode & 0o777).toBe(scriptMode);
     expect((await listWatches(dir))[0]).toMatchObject({ name: "demo", invalid: null });
 
     const backlog = await readTextFile(dir, "data/backlog.md");
     await writeTextFile(dir, { path: "data/backlog.md", content: "x", expectedModifiedMs: backlog.modifiedMs, force: false });
-    expect((await stat(join(dir, "data", "backlog.md"))).mode & 0o777).toBe(0o640);
+    expect((await stat(join(dir, "data", "backlog.md"))).mode & 0o777).toBe(backlogMode);
 
     // A new file gets the default, which is never executable.
     await writeTextFile(dir, { path: "watches/new", content: "#!/bin/sh\n", expectedModifiedMs: null, force: false });
@@ -212,8 +214,10 @@ describe("findFiles", () => {
     const outside = await mkdtemp(join(tmpdir(), "firstmate-outside-"));
     tempDirs.push(outside);
     await writeFile(join(outside, "secret.md"), "secret");
-    await symlink(join(outside, "secret.md"), join(dir, "data", "link.md"));
-    await symlink(outside, join(dir, "elsewhere"));
+    // Windows junctions exercise the same containment check without requiring
+    // administrator privileges or Developer Mode for a file symlink.
+    if (process.platform !== "win32") await symlink(join(outside, "secret.md"), join(dir, "data", "link.md"));
+    await symlink(outside, join(dir, "elsewhere"), process.platform === "win32" ? "junction" : "dir");
     const found = await findFiles(dir, [
       "../secret.md",
       "data/../../secret.md",

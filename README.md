@@ -40,6 +40,14 @@ There is nothing else to install.
 
 ## Install
 
+This private copy includes Windows fixes. Install it from your local checkout with
+`paseo plugin install "C:/path/to/firstmate"`; the npm command below installs the upstream release.
+After editing the checkout, use `paseo plugin reload firstmate`.
+
+On Windows, FirstMate uses the desktop Paseo launcher or an npm CLI entry point without a command
+shell. Scheduled watches use Node (`#!/usr/bin/env node` or `#!node`); the built-in PR watch is
+supported. Custom Unix shell watches need to be rewritten or wrapped in a Node watch on Windows.
+
 ```bash
 paseo plugin install npm:@gpambrozio/paseo-firstmate
 ```
