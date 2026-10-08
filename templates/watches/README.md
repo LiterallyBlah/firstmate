@@ -90,4 +90,16 @@ the plugin replaces it; once you have, yours is kept, and the card says when the
 delete the file to take the new one. A deleted built-in comes back, so switch it off on the card
 instead.
 
+## remote-watch
+
+`remote-watch` is FirstMate's too, and follows the plugin the same way. Every minute it reads the
+remote catalog, `data/remote-hosts.json`, and tells the first mate when a saved host comes or goes,
+when a remote worker — or a session of yours that the first mate follows through
+`data/remote-follow.json` — finishes a turn, and when one asks for a permission. Each finished turn is
+reported once, with its status, status line and final message cut to a readable length; a turn that
+ends with the same words as the one before is not reported again, and nothing is reported while a
+worker is still running except a new permission request, with its tool and what it asks. When many
+workers report at once, their messages are cut shorter and whatever does not fit comes a minute later.
+Everything it quotes from the hosts is marked as remote data. `data/remote-access.md` has the details.
+
 The first mate does not add or change watches without your say-so.

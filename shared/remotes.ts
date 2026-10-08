@@ -23,7 +23,20 @@ export const SavedHosts = z.array(SavedHost).max(100).refine(
 );
 export type RemoteProfile = z.infer<typeof SavedHost>;
 export type RemoteConnection = z.infer<typeof SavedConnection>;
-export const RemoteWorker = z.object({ id: z.string(), name: z.string(), status: z.string(), updatedAt: z.string(), permissions: z.number(), output: z.string() });
+/** One pending permission: its request id, the tool, and what it asks where the host says. */
+export const RemotePermission = z.object({ id: z.string(), tool: z.string(), description: z.string().optional() });
+export const RemoteWorker = z.object({
+  id: z.string(), name: z.string(), status: z.string(), updatedAt: z.string(), permissions: z.number(), output: z.string(),
+  /** The worker's last assistant message alone, without the tail's thoughts and earlier replies. */
+  lastMessage: z.string().optional(),
+  pendingPermissions: z.array(RemotePermission).optional(),
+  /** While a permission is pending: the latest tool calls, as the helper's `permit ls` adds them. */
+  recentTools: z.array(z.string()).optional(),
+  /** Not crew: an agent `data/remote-follow.json` asked to follow. Never labelled or changed. */
+  followed: z.boolean().optional(),
+});
+/** `data/remote-follow.json`: remote agents the catalog follows besides the crew. */
+export const RemoteFollow = z.object({ host: z.string().min(1).max(2048), agent: z.string().min(1).max(200) });
 export const RemoteHost = z.object({
   serverId: z.string(), label: z.string(), online: z.boolean(), checkedAt: z.string().nullable(), error: z.string().nullable(),
   projects: z.array(z.record(z.string(), z.unknown())), workspaces: z.array(z.record(z.string(), z.unknown())),
@@ -34,6 +47,7 @@ export const RemoteHost = z.object({
 export const RemoteSnapshot = z.object({ version: z.literal(1), localServerId: z.string(), syncedAt: z.string().nullable(), syncError: z.string().nullable(), hosts: z.array(RemoteHost) });
 export type RemoteSnapshot = z.infer<typeof RemoteSnapshot>;
 export type RemoteHost = z.infer<typeof RemoteHost>;
+export type RemoteWorker = z.infer<typeof RemoteWorker>;
 export const syncRemotes = defineRpc({
   name: "firstmate.remotes.sync",
   input: z.object({ hosts: SavedHosts }), output: RemoteSnapshot,

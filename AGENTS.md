@@ -388,6 +388,22 @@ It has to finish inside the runner's two minutes, so it looks up four pull reque
 after a 70-second budget, and takes the least recently checked first, saving what it checked: a long or
 slow backlog is covered over a few runs instead of timing out on every one.
 
+`remote-watch`, the other built-in, reads only `data/remote-hosts.json`, the public catalog
+`server/remotes.ts` writes about once a minute. That catalog lists the first mate's remote crew (by
+`firstmate.role=crew` and its `firstmate.owner` label) and any agents `data/remote-follow.json` names
+(`"followed": true`). It reaches those agents only through read-only `inspect`, `logs` and `permit ls`,
+never labelling or sending to them, since they are the captain's own sessions. For each worker it adds
+`lastMessage`, from `logs --tail 1 --filter assistant_message` (Paseo's `logs` matches an unknown filter
+against the timeline item's type), and `pendingPermissions`, each request's tool and the description
+`permit ls` gives. A waiting worker also gets `recentTools`, from the same `logs --filter tools --tail 3`
+the helper's `permit ls` adds, because a pending Bash command is in the tool call and not the request. The watch reports a finished turn once, keyed by a hash of status and final
+message, so a new `updatedAt` with the same words is not news. Running workers report only new
+permission request ids. Reports share a 12,000-character budget, and a worker that does not fit
+keeps its old state, so the next run reports it. A previous version's state (one signature string per
+worker) is read as already reported, so an upgrade repeats nothing. Its test
+(`server/remote-watch.test.ts`) runs the seeded copy against catalogs written by hand, and checks that
+an untouched copy of the 0.4.0 version is replaced.
+
 The card sits after the columns in `boardItems`, and on a phone at the foot of the Crew tab rather than in
 a tab of its own: it is looked at now and then, and a fifth tab does not fit a phone's width. A watch's
 name opens its script (`watchPath`, the same `watches/` the server reads) through the surface's `openFile`,

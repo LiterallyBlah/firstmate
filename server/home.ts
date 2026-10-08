@@ -56,6 +56,7 @@ const RECORDS: readonly TemplatePath[] = [
   TEMPLATES.opening,
   TEMPLATES.icon,
   TEMPLATES.remoteHosts,
+  TEMPLATES.remoteFollow,
 ];
 
 async function exists(path: string): Promise<boolean> {

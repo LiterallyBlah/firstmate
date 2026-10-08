@@ -207,6 +207,45 @@ describe("independent remote access", () => {
     expect(fixed.stderr).toBe("");
     expect((await service.read()).hosts[0]!.clockSkew!.seconds).toBe(0);
   }, 60000);
+  it("follows listed agents read-only, with their last message and what their permissions ask", async () => {
+    const calls: string[][] = [];
+    const { home, service } = await fixture(async (args) => {
+      calls.push(args);
+      if (args[0] === "status") return success({ serverId: remote.serverId, connectedDaemon: "reachable" });
+      if (args[0] === "project" || args[0] === "workspace" || args[0] === "provider") return success([]);
+      if (args[0] === "ls") return success([{ id: "crew-1", name: "Crew", status: "idle" }]);
+      if (args[0] === "inspect") {
+        if (args[1] === "missing") return { code: 1, stdout: "", stderr: "No agent found" };
+        if (args[1] === "mine") return success({ Id: "mine-full-id", Name: "Captain's session", Status: "running", UpdatedAt: "t", PendingPermissions: [{ id: "req", tool: "Bash" }] });
+        return success({ Id: args[1], Status: "idle", UpdatedAt: "t", PendingPermissions: [] });
+      }
+      if (args[0] === "permit") return success([{ id: "req", agentId: "mine-full-id", name: "Bash", description: "npm run build" }, { id: "other", agentId: "someone-else", name: "Edit", description: "-" }]);
+      if (args.includes("assistant_message")) return { code: 0, stdout: "Final words.\n\ndone: shipped\n", stderr: "" };
+      if (args.includes("tools")) return { code: 0, stdout: "[Read] a.ts\n[Edit] a.ts\n[Bash] npm run build\n", stderr: "" };
+      return { code: 0, stdout: "[Thought] tail\nEarlier reply\n", stderr: "" };
+    });
+    await writeFile(join(home, "data", "remote-follow.json"), JSON.stringify({ follow: [
+      { host: "Remote", agent: "mine" },
+      { host: remote.serverId, agent: "crew" },
+      { host: remote.serverId, agent: "missing" },
+      { host: "Elsewhere", agent: "not-this-host" },
+      { host: "Remote" },
+    ] }));
+    await service.poll();
+    const workers = (await service.read()).hosts[0]!.workers;
+    expect(workers.map((worker) => worker.id)).toEqual(["crew-1", "mine-full-id", "missing"]);
+    expect(workers[0]).toMatchObject({ lastMessage: "Final words.\n\ndone: shipped", output: "[Thought] tail\nEarlier reply\n" });
+    expect(workers[0]).not.toHaveProperty("followed");
+    expect(workers[1]).toMatchObject({ followed: true, name: "Captain's session", status: "running", permissions: 1, pendingPermissions: [{ id: "req", tool: "Bash", description: "npm run build" }], recentTools: ["[Read] a.ts", "[Edit] a.ts", "[Bash] npm run build"] });
+    expect(workers[0]).not.toHaveProperty("recentTools");
+    expect(workers[2]).toMatchObject({ followed: true, status: "unavailable" });
+    expect(calls.some((args) => args.includes("not-this-host"))).toBe(false);
+    // Reading only: nothing that sends, stops, archives or labels a followed agent.
+    const followedCalls = calls.filter((args) => args.includes("mine") || args.includes("mine-full-id"));
+    expect(followedCalls.every((args) => ["inspect", "logs"].includes(args[0]!))).toBe(true);
+    expect(calls.map((args) => args[0]).filter((command) => !["status", "project", "workspace", "provider", "ls", "inspect", "logs", "permit"].includes(command!))).toEqual([]);
+    expect(calls.filter((args) => args[0] === "permit")).toEqual([["permit", "ls", "--json"]]);
+  });
   it("executes a native terminal helper through the daemon queue", async () => {
     const { directory, home, service } = await fixture(async (args) => args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success([{ projectId: "remote-project" }]));
     const helper = join(home, "tools", "remote.mjs");
