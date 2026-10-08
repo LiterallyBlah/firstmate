@@ -218,7 +218,11 @@ export function CrewCard({
     >
       <View style={styles.titleRow}>
         <Text style={styles.title}>{card.title}</Text>
-        {status === null ? null : <Chip theme={theme} text={agentStatusLabel(status)} color={agentStatusTone(theme, status)} />}
+        {card.note !== undefined ? (
+          <Chip theme={theme} text={card.note} color={tone} />
+        ) : status === null ? null : (
+          <Chip theme={theme} text={agentStatusLabel(status)} color={agentStatusTone(theme, status)} />
+        )}
       </View>
       {facts.length === 0 ? null : <Text style={styles.meta}>{facts.join(" · ")}</Text>}
 

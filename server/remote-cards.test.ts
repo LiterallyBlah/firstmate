@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { CREW_LABELS, type AgentSummary } from "../shared/fleet";
 import type { RemoteHost, RemoteSnapshot, RemoteWorker } from "../shared/remotes";
 import { parseBacklog } from "./backlog";
-import { buildCards } from "./fleet";
-import { buildRemoteCards, remoteColumn, remoteReport, remoteTaskQueries, resolveHost, workerReport } from "./remote-cards";
+import { buildCards, crewPlacement } from "./fleet";
+import { buildRemoteCards, remoteColumn, remotePlacement, remoteReport, remoteTaskQueries, resolveHost, workerReport } from "./remote-cards";
 
 function worker(overrides: Partial<RemoteWorker> = {}): RemoteWorker {
   return { id: "w-light-1", name: "Fix login", status: "idle", updatedAt: "2026-10-08T10:00:00.000Z", permissions: 0, output: "", ...overrides };
@@ -102,13 +102,40 @@ describe("remoteColumn", () => {
     expect(remoteColumn(worker(), { state: "needs-decision", text: "" })).toBe("blocked");
     expect(remoteColumn(worker(), { state: "paused", text: "" })).toBe("parked");
     expect(remoteColumn(worker(), { state: "failed", text: "" })).toBe("failed");
-    expect(remoteColumn(worker(), { state: "done", text: "" })).toBe("idle");
-    expect(remoteColumn(worker(), { state: "resolved", text: "" })).toBe("idle");
+    expect(remoteColumn(worker(), { state: "done", text: "" })).toBe("ready");
+    expect(remoteColumn(worker(), { state: "resolved", text: "" })).toBe("ready");
     expect(remoteColumn(worker(), { state: "working", text: "" })).toBe("idle");
     expect(remoteColumn(worker(), null)).toBe("idle");
     expect(remoteColumn(worker({ status: "closed" }), null)).toBe("idle");
     // The detailed list counts even where an older poll's count did not.
     expect(remoteColumn(worker({ pendingPermissions: [{ id: "p1", tool: "Bash" }] }), null)).toBe("blocked");
+  });
+
+  it("puts a worker that stopped while a gate or a run goes on in Working, noted, like a local one", () => {
+    expect(remotePlacement(worker(), { state: "working", text: "waiting for the Browser gate" })).toEqual({
+      column: "working",
+      note: "waiting",
+    });
+    expect(remotePlacement(worker(), { state: "paused", text: "waiting for another worker's gate" })).toEqual({
+      column: "working",
+      note: "waiting",
+    });
+    expect(remotePlacement(worker(), { state: "working", text: "writing tests" })).toEqual({ column: "idle", note: "stalled" });
+  });
+
+  it("places every status line under every live status exactly as a local crewmate's", () => {
+    const states = ["working", "needs-decision", "blocked", "paused", "done", "failed", "resolved"] as const;
+    const texts = ["", "writing tests", "waiting for the Browser gate", "until 14:00", "awaiting the captain's go-ahead", "waiting on the first mate"];
+    const reports = [null, ...states.flatMap((state) => texts.map((text) => ({ state, text })))];
+    for (const status of ["running", "initializing", "idle", "error", "closed", "unavailable"]) {
+      for (const permissions of [0, 1]) {
+        for (const report of reports) {
+          expect(remotePlacement(worker({ status, permissions }), report)).toEqual(
+            crewPlacement({ status, pendingPermissions: permissions }, report),
+          );
+        }
+      }
+    }
   });
 });
 
@@ -146,7 +173,8 @@ describe("buildRemoteCards", () => {
       remote: { worker: { pendingPermissions: 2 } },
     });
     expect(byKey.get("remote:srv_light:agent:w-light-3")).toMatchObject({
-      column: "parked",
+      column: "working",
+      note: "waiting",
       title: "Found by task",
       report: { state: "paused", text: "waiting on CI" },
     });
@@ -164,11 +192,11 @@ describe("buildRemoteCards", () => {
       backlog,
       snapshot([host({ online: false, workers: [worker({ name: "Stray", output: "[User] go\n\nfailed: tests red" })] })]),
     );
-    expect(cards.map((card) => [card.key, card.column, card.title])).toEqual([
-      ["remote:srv_light:agent:w-light-1", "failed", "Stray"],
-      ["remote:srv_light:backlog:in-flight:lost:0", "idle", "Nobody found"],
-      ["remote:srv_light:backlog:queued:later:1", "queued", "Not started"],
-      ["remote:srv_light:backlog:done:shipped:2", "done", "Landed"],
+    expect(cards.map((card) => [card.key, card.column, card.title, card.note])).toEqual([
+      ["remote:srv_light:agent:w-light-1", "failed", "Stray", undefined],
+      ["remote:srv_light:backlog:in-flight:lost:0", "working", "Nobody found", "no worker seen"],
+      ["remote:srv_light:backlog:queued:later:1", "queued", "Not started", undefined],
+      ["remote:srv_light:backlog:done:shipped:2", "done", "Landed", undefined],
     ]);
     expect(cards[0]?.remote).toMatchObject({ online: false, worker: { id: "w-light-1" } });
   });
@@ -220,8 +248,9 @@ describe("followed sessions and permission detail", () => {
     expect(cards.map((card) => [card.key, card.title, card.column])).toEqual([
       ["remote:srv_light:agent:own-session", "My own session", "blocked"],
       ["remote:srv_light:agent:other", "Followed, no line", "idle"],
-      ["remote:srv_light:backlog:in-flight:by-task:1", "Not for a followed session", "idle"],
+      ["remote:srv_light:backlog:in-flight:by-task:1", "Not for a followed session", "working"],
     ]);
+    expect(cards[2]?.note).toBe("no worker seen");
     expect(cards[0]?.remote?.worker).toEqual({
       id: "own-session",
       name: "Captain's session",
@@ -233,6 +262,35 @@ describe("followed sessions and permission detail", () => {
       followed: true,
     });
     expect(cards[2]?.remote?.worker).toBeNull();
+  });
+
+  it("files a followed session joined to an in-flight line by its own live state, marked as followed", () => {
+    const backlog = parseBacklog(`## In flight
+- [ ] busy - Running (host: Light) (agent: f-busy)
+- [ ] gated - Waiting on a gate (host: Light) (agent: f-gated)
+- [ ] finished - Finished (host: Light) (agent: f-done)
+- [ ] quiet - Stopped without a word (host: Light) (agent: f-quiet)
+`);
+    const followed = (id: string, overrides: Partial<RemoteWorker>) => worker({ id, name: id, followed: true, ...overrides });
+    const cards = buildRemoteCards(
+      backlog,
+      snapshot([
+        host({
+          workers: [
+            followed("f-busy", { status: "running", updatedAt: "2026-10-08T10:04:00.000Z" }),
+            followed("f-gated", { lastMessage: "working: waiting for the Browser gate", updatedAt: "2026-10-08T10:03:00.000Z" }),
+            followed("f-done", { lastMessage: "done: PR https://github.com/o/r/pull/9", updatedAt: "2026-10-08T10:02:00.000Z" }),
+            followed("f-quiet", { lastMessage: "All set for now.", updatedAt: "2026-10-08T10:01:00.000Z" }),
+          ],
+        }),
+      ]),
+    );
+    expect(cards.map((card) => [card.title, card.column, card.note, card.remote?.worker?.followed])).toEqual([
+      ["Running", "working", undefined, true],
+      ["Waiting on a gate", "working", "waiting", true],
+      ["Finished", "ready", undefined, true],
+      ["Stopped without a word", "idle", undefined, true],
+    ]);
   });
 });
 

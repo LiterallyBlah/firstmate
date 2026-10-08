@@ -15,7 +15,7 @@
 import type { BacklogItem, ColumnId, CrewReportSummary, FleetCard, RemoteCard } from "../shared/fleet";
 import type { RemoteHost, RemoteSnapshot, RemoteWorker } from "../shared/remotes";
 import { parseCrewReport, reportUrl } from "./crew-report";
-import { backlogColumn, crewColumn } from "./fleet";
+import { backlogPlacement, crewPlacement, type Placement } from "./fleet";
 
 export type HostMatch = { kind: "local" } | { kind: "remote"; host: RemoteHost } | { kind: "unknown" };
 
@@ -88,9 +88,13 @@ function pendingCount(worker: RemoteWorker): number {
   return Math.max(worker.permissions, worker.pendingPermissions?.length ?? 0);
 }
 
-/** Where a remote worker belongs: the same rules as a local crewmate (`crewColumn`). */
+/** Where a remote worker belongs: the same rules as a local crewmate (`crewPlacement`). */
+export function remotePlacement(worker: RemoteWorker, report: CrewReportSummary | null): Placement {
+  return crewPlacement({ pendingPermissions: pendingCount(worker), status: worker.status }, report);
+}
+
 export function remoteColumn(worker: RemoteWorker, report: CrewReportSummary | null): ColumnId {
-  return crewColumn({ pendingPermissions: pendingCount(worker), status: worker.status }, report);
+  return remotePlacement(worker, report).column;
 }
 
 /** Whether a backlog line's recorded agent id names this worker: the whole id, or a prefix of 7 or more, as `paseo` accepts. */
@@ -125,7 +129,7 @@ function remoteOf(host: RemoteHost, worker: RemoteWorker | null): RemoteCard {
 function itemCard(key: string, item: BacklogItem, remote: RemoteCard): FleetCard {
   return {
     key,
-    column: backlogColumn(item),
+    ...backlogPlacement(item),
     taskId: item.id,
     title: item.title,
     project: item.project,
@@ -180,7 +184,7 @@ export function buildRemoteCards(items: readonly BacklogItem[], snapshot: Remote
       const report = workerReport(worker);
       cards.push({
         key: `remote:${host.serverId}:agent:${worker.id}`,
-        column: remoteColumn(worker, report),
+        ...remotePlacement(worker, report),
         taskId: worker.task ?? item?.id ?? null,
         title: item?.title ?? (worker.name === "-" ? null : worker.name) ?? worker.task ?? "Untitled worker",
         project: item?.project ?? null,

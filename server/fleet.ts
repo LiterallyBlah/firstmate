@@ -22,7 +22,7 @@ import {
   type WatchSummary,
 } from "../shared/fleet";
 import { resolveHome } from "./config";
-import { parseCrewReport, reportUrl } from "./crew-report";
+import { parseCrewReport, reportUrl, waitTarget } from "./crew-report";
 import { readCharterState } from "./charter-file";
 import type { RemoteSnapshot } from "../shared/remotes";
 import { isHomeReady, readBacklog, readProjects, readSuggestions } from "./home";
@@ -159,42 +159,83 @@ export class ReportCache {
   }
 }
 
+/** A card's column, and the note on its chip when its live status alone would not explain it. */
+export interface Placement {
+  column: ColumnId;
+  note?: string;
+}
+
 /**
  * Where a crewmate belongs. What Paseo knows wins while the agent is busy or
  * stuck — a pending permission, an error, a turn in flight — and the status
- * line decides once its turn has ended. A live crewmate is never Done, even
- * after `done:` or `resolved:`: the task has landed only once the backlog says
- * so, and until then the first mate still has work to do with it. A remote
- * worker is filed by the same rules (`server/remote-cards.ts`).
+ * line decides once its turn has ended:
+ *
+ * - `done:` or `resolved:` is **Ready**: finished, and waiting on the first
+ *   mate. A live crewmate is never Done; the task has landed only once the
+ *   backlog says so.
+ * - `working:` or `paused:` waiting on something outside the worker — a gate,
+ *   a run, a watcher, another worker, "until …" — is **Working**: a worker
+ *   commonly ends its turn while a job it started runs on. Waiting on the
+ *   captain is Blocked, on the first mate Ready.
+ * - `working:` with nothing to wait on has stalled, and is **Idle**, as is a
+ *   turn that ended with no status line; any other `paused:` is Parked.
+ *
+ * A remote worker is filed by the same rules (`server/remote-cards.ts`).
  */
+export function crewPlacement(
+  agent: Pick<AgentSummary, "pendingPermissions"> & { status: string },
+  report: CrewReportSummary | null,
+): Placement {
+  if (agent.pendingPermissions > 0) return { column: "blocked" };
+  if (agent.status === "error") return { column: "failed" };
+  if (agent.status === "running" || agent.status === "initializing") return { column: "working" };
+  switch (report?.state) {
+    case "failed":
+      return { column: "failed" };
+    case "blocked":
+    case "needs-decision":
+      return { column: "blocked" };
+    case "done":
+    case "resolved":
+      return { column: "ready" };
+    case "working":
+    case "paused":
+      switch (waitTarget(report.text)) {
+        case "outside":
+          return { column: "working", note: "waiting" };
+        case "captain":
+          return { column: "blocked" };
+        case "first-mate":
+          return { column: "ready" };
+        default:
+          return report.state === "paused" ? { column: "parked" } : { column: "idle", note: "stalled" };
+      }
+    default:
+      return { column: "idle" };
+  }
+}
+
 export function crewColumn(
   agent: Pick<AgentSummary, "pendingPermissions"> & { status: string },
   report: CrewReportSummary | null,
 ): ColumnId {
-  if (agent.pendingPermissions > 0) return "blocked";
-  if (agent.status === "error") return "failed";
-  if (agent.status === "running" || agent.status === "initializing") return "working";
-  switch (report?.state) {
-    case "failed":
-      return "failed";
-    case "blocked":
-    case "needs-decision":
-      return "blocked";
-    case "paused":
-      return "parked";
-    default:
-      // Finished and waiting on the first mate, stopped without saying why,
-      // or said "working" and then stopped.
-      return "idle";
-  }
+  return crewPlacement(agent, report).column;
 }
 
-/** Where a backlog item with no crewmate on it belongs. */
+/**
+ * Where a backlog item with no crewmate on it belongs. In-flight work the
+ * board cannot match to a worker — a session it does not list, a host it
+ * cannot read — is Working, noted as such: nothing says it has stopped.
+ */
+export function backlogPlacement(item: BacklogItem): Placement {
+  if (item.section === "done") return { column: "done" };
+  if (item.kind === "captain" || item.hold !== null) return { column: "blocked" };
+  if (item.section === "in-flight") return { column: "working", note: "no worker seen" };
+  return { column: "queued" };
+}
+
 export function backlogColumn(item: BacklogItem): ColumnId {
-  if (item.section === "done") return "done";
-  if (item.section === "in-flight") return "idle";
-  if (item.kind === "captain" || item.hold !== null) return "blocked";
-  return "queued";
+  return backlogPlacement(item).column;
 }
 
 export interface CrewMember {
@@ -237,7 +278,7 @@ export function buildCards(
     if (index !== -1) claimed.add(index);
     cards.push({
       key: `agent:${member.agent.id}`,
-      column: crewColumn(member.agent, member.report),
+      ...crewPlacement(member.agent, member.report),
       taskId: taskId ?? item?.id ?? null,
       title: item?.title ?? member.agent.title ?? taskId ?? "Untitled crewmate",
       project: member.agent.labels[CREW_LABELS.project] ?? item?.project ?? null,
@@ -253,7 +294,7 @@ export function buildCards(
     if (claimed.has(index)) return;
     cards.push({
       key: `backlog:${item.section}:${item.id}:${index}`,
-      column: backlogColumn(item),
+      ...backlogPlacement(item),
       taskId: item.id,
       title: item.title,
       project: item.project,

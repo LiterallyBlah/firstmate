@@ -24,6 +24,7 @@ export const COLUMNS: Readonly<Record<ColumnId, ColumnMeta>> = {
   done: { id: "done", title: "Done", icon: "Check" },
   failed: { id: "failed", title: "Failed", icon: "AlertTriangle" },
   idle: { id: "idle", title: "Idle", icon: "CircleDot" },
+  ready: { id: "ready", title: "Ready", icon: "UserCheck" },
 };
 
 /** The saved order, known ids only, followed by any column it does not mention. */

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { CREW_LABELS, type AgentSummary, type BacklogItem } from "../shared/fleet";
+import { CREW_LABELS, type AgentSummary, type BacklogItem, type ColumnId, type CrewReportSummary } from "../shared/fleet";
 import { parseBacklog } from "./backlog";
-import { backlogColumn, buildCards, closingText, crewColumn } from "./fleet";
+import { waitTarget } from "./crew-report";
+import { backlogColumn, backlogPlacement, buildCards, closingText, crewColumn, crewPlacement } from "./fleet";
 import type { TimelineItem } from "./host-types";
 
 function agent(overrides: Partial<AgentSummary> = {}): AgentSummary {
@@ -23,23 +24,60 @@ function agent(overrides: Partial<AgentSummary> = {}): AgentSummary {
   };
 }
 
-describe("crewColumn", () => {
-  it("lets what Paseo knows win while the agent is busy or stuck", () => {
-    const done = { state: "done" as const, text: "PR" };
-    expect(crewColumn(agent({ pendingPermissions: 1, status: "running" }), done)).toBe("blocked");
-    expect(crewColumn(agent({ status: "error" }), done)).toBe("failed");
-    expect(crewColumn(agent({ status: "running" }), done)).toBe("working");
+/** Every status line a stopped worker can end on, with where it goes and the note its chip says. */
+const STOPPED: ReadonlyArray<[CrewReportSummary | null, ColumnId, string | undefined]> = [
+  [null, "idle", undefined],
+  [{ state: "done", text: "PR https://github.com/o/r/pull/1" }, "ready", undefined],
+  [{ state: "resolved", text: "nothing to change" }, "ready", undefined],
+  [{ state: "failed", text: "tests red" }, "failed", undefined],
+  [{ state: "blocked", text: "no access to the repo" }, "blocked", undefined],
+  [{ state: "needs-decision", text: "A or B?" }, "blocked", undefined],
+  [{ state: "working", text: "" }, "idle", "stalled"],
+  [{ state: "working", text: "implementing the parser" }, "idle", "stalled"],
+  [{ state: "working", text: "waiting for the Browser gate" }, "working", "waiting"],
+  [{ state: "working", text: "tests running in the background" }, "working", "waiting"],
+  [{ state: "working", text: "the watcher wakes me when CI finishes" }, "working", "waiting"],
+  [{ state: "working", text: "waiting for the captain's go-ahead" }, "blocked", undefined],
+  [{ state: "working", text: "waiting for the first mate to merge" }, "ready", undefined],
+  [{ state: "paused", text: "waiting for another worker's gate" }, "working", "waiting"],
+  [{ state: "paused", text: "until 14:00, when the quota resets" }, "working", "waiting"],
+  [{ state: "paused", text: "on hold" }, "parked", undefined],
+  [{ state: "paused", text: "" }, "parked", undefined],
+  [{ state: "paused", text: "waiting on the captain's decision" }, "blocked", undefined],
+  [{ state: "paused", text: "waiting on the first mate" }, "ready", undefined],
+];
+
+describe("crewPlacement", () => {
+  it("lets what Paseo knows win while the agent is busy or stuck, whatever the status line", () => {
+    for (const [report] of STOPPED) {
+      expect(crewPlacement(agent({ pendingPermissions: 1, status: "running" }), report)).toEqual({ column: "blocked" });
+      expect(crewPlacement(agent({ pendingPermissions: 1 }), report)).toEqual({ column: "blocked" });
+      expect(crewPlacement(agent({ status: "error" }), report)).toEqual({ column: "failed" });
+      expect(crewPlacement(agent({ status: "running" }), report)).toEqual({ column: "working" });
+      expect(crewPlacement(agent({ status: "initializing" }), report)).toEqual({ column: "working" });
+    }
   });
 
-  it("files a stopped crewmate by its status line", () => {
-    expect(crewColumn(agent(), { state: "done", text: "" })).toBe("idle");
-    expect(crewColumn(agent(), { state: "resolved", text: "" })).toBe("idle");
-    expect(crewColumn(agent(), { state: "blocked", text: "" })).toBe("blocked");
-    expect(crewColumn(agent(), { state: "needs-decision", text: "" })).toBe("blocked");
-    expect(crewColumn(agent(), { state: "paused", text: "" })).toBe("parked");
-    expect(crewColumn(agent(), { state: "failed", text: "" })).toBe("failed");
-    expect(crewColumn(agent(), { state: "working", text: "" })).toBe("idle");
-    expect(crewColumn(agent(), null)).toBe("idle");
+  it("files a stopped crewmate by its status line: Working while it waits on something outside it, Ready once done, Idle when stalled", () => {
+    for (const [report, column, note] of STOPPED) {
+      const expected = note === undefined ? { column } : { column, note };
+      expect([report, crewPlacement(agent(), report)]).toEqual([report, expected]);
+      expect([report, crewPlacement(agent({ status: "closed" }), report)]).toEqual([report, expected]);
+      expect(crewColumn(agent(), report)).toBe(column);
+    }
+  });
+});
+
+describe("waitTarget", () => {
+  it("tells a wait on something outside from one on the captain or the first mate, and from no wait at all", () => {
+    expect(waitTarget("waiting for the Browser gate")).toBe("outside");
+    expect(waitTarget("pending review on #12")).toBe("outside");
+    expect(waitTarget("blocked on the API worker's PR")).toBe("outside");
+    expect(waitTarget("awaiting your answer")).toBe("captain");
+    expect(waitTarget("awaiting approval to land")).toBe("captain");
+    expect(waitTarget("waiting for the first-mate to land it")).toBe("first-mate");
+    expect(waitTarget("writing the tests")).toBeNull();
+    expect(waitTarget("")).toBeNull();
   });
 });
 
@@ -66,7 +104,16 @@ describe("backlogColumn", () => {
     expect(backlogColumn(item({ hold: "which?" }))).toBe("blocked");
     expect(backlogColumn(item({}))).toBe("queued");
     expect(backlogColumn(item({ section: "done" }))).toBe("done");
-    expect(backlogColumn(item({ section: "in-flight" }))).toBe("idle");
+  });
+
+  it("puts in-flight work with no worker in Working, noted, unless the captain holds it", () => {
+    expect(backlogPlacement(item({ section: "in-flight" }))).toEqual({ column: "working", note: "no worker seen" });
+    expect(backlogPlacement(item({ section: "in-flight", agentId: "someone-else" }))).toEqual({
+      column: "working",
+      note: "no worker seen",
+    });
+    expect(backlogPlacement(item({ section: "in-flight", hold: "merge it?" }))).toEqual({ column: "blocked" });
+    expect(backlogPlacement(item({ section: "done", hold: "merge it?" }))).toEqual({ column: "done" });
   });
 });
 
@@ -106,18 +153,31 @@ describe("buildCards", () => {
     const byKey = new Map(cards.map((card) => [card.key, card]));
 
     expect(byKey.get("agent:a1")).toMatchObject({
-      column: "idle",
+      column: "ready",
       title: "Fix the login",
       project: "web",
       url: "https://github.com/o/r/pull/42",
     });
     expect(byKey.get("agent:a2")).toMatchObject({ taskId: "by-id", title: "Found by agent id" });
     expect(byKey.get("agent:a3")).toMatchObject({ taskId: null, title: "Stray", backlog: null });
-    expect(cards.filter((card) => card.agent === null).map((card) => [card.taskId, card.column])).toEqual([
-      ["orphan", "idle"],
-      ["next", "queued"],
-      ["fix-login", "done"],
+    expect(cards.filter((card) => card.agent === null).map((card) => [card.taskId, card.column, card.note])).toEqual([
+      ["orphan", "working", "no worker seen"],
+      ["next", "queued", undefined],
+      ["fix-login", "done", undefined],
     ]);
+  });
+
+  it("carries the placement's note onto a crewmate's card, and none where its status says enough", () => {
+    const cards = buildCards(backlog, [
+      { agent: agent(), report: { state: "working", text: "waiting for the Browser gate" } },
+      { agent: agent({ id: "a2", labels: { [CREW_LABELS.role]: CREW_LABELS.crewRole } }), report: { state: "working", text: "writing tests" } },
+      { agent: agent({ id: "a3", status: "running", labels: { [CREW_LABELS.role]: CREW_LABELS.crewRole } }), report: null },
+    ]);
+    const byKey = new Map(cards.map((card) => [card.key, card]));
+    expect(byKey.get("agent:a1")).toMatchObject({ column: "working", note: "waiting" });
+    expect(byKey.get("agent:a2")).toMatchObject({ column: "idle", note: "stalled" });
+    expect(byKey.get("agent:a3")).toMatchObject({ column: "working" });
+    expect(byKey.get("agent:a3")).not.toHaveProperty("note");
   });
 });
 
