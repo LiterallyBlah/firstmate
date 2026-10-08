@@ -32,6 +32,7 @@ import {
   SUGGESTIONS_CARD,
   WATCHES_CARD,
 } from "./format";
+import { watchKey } from "./host-tabs";
 import { SUGGESTIONS_ICON, SUGGESTIONS_TITLE, SuggestionList } from "./suggestions";
 import { WATCHES_ICON, WATCHES_TITLE, WatchList } from "./watches";
 
@@ -55,8 +56,8 @@ interface BoardProps {
   watches: readonly WatchSummary[];
   /** Opens a home file in the Files view: the tab on a phone, the right-hand pane on a wide layout. */
   onOpenFile: (path: string) => void;
-  /** Shows one crewmate's card and transcript in place of the board. */
-  onWatch: (agentId: string) => void;
+  /** Shows one crewmate's card and transcript — or a remote worker's card and log — in place of the board, by `watchKey`. */
+  onWatch: (key: string) => void;
   onToggleColumn: (id: ColumnId) => void;
   /** Saves a new whole column order, hidden columns included. */
   onReorder: (order: ColumnId[]) => void;
@@ -173,14 +174,14 @@ export function Board(props: BoardProps) {
 
   function renderCards(entries: readonly FleetCard[]) {
     return entries.map((card) => {
-      const agentId = card.agent?.id ?? null;
+      const key = watchKey(card);
       return (
         <CrewCard
           key={card.key}
           card={card}
           theme={theme}
           compact={compact}
-          opener={agentId === null ? null : { icon: "Eye", label: "Watch", onPress: () => props.onWatch(agentId) }}
+          opener={key === null ? null : { icon: "Eye", label: "Watch", onPress: () => props.onWatch(key) }}
           onChanged={props.onChanged}
         />
       );

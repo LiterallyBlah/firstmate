@@ -19,7 +19,7 @@ afterEach(async () => {
   if (root) await rm(root, { recursive: true, force: true });
   root = ""; vi.unstubAllEnvs();
 });
-async function fixture(execute: ConstructorParameters<typeof RemoteService>[0]) {
+async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], tasks?: ConstructorParameters<typeof RemoteService>[1]) {
   root = await mkdtemp(join(tmpdir(), "firstmate-remotes-"));
   vi.stubEnv("PASEO_HOME", root);
   await writeFile(join(root, "server-id"), local.serverId);
@@ -29,7 +29,7 @@ async function fixture(execute: ConstructorParameters<typeof RemoteService>[0]) 
   await mkdir(join(home, "tools"));
   await writeFile(join(home, "AGENTS.md"), "# Isolated fixture\n");
   await writeFile(join(directory, "config.json"), JSON.stringify({ home }));
-  service = new RemoteService(execute);
+  service = new RemoteService(execute, tasks);
   await service.sync([local, remote]);
   return { directory, home, service };
 }
@@ -245,6 +245,31 @@ describe("independent remote access", () => {
     expect(followedCalls.every((args) => ["inspect", "logs"].includes(args[0]!))).toBe(true);
     expect(calls.map((args) => args[0]).filter((command) => !["status", "project", "workspace", "provider", "ls", "inspect", "logs", "permit"].includes(command!))).toEqual([]);
     expect(calls.filter((args) => args[0] === "permit")).toEqual([["permit", "ls", "--json"]]);
+  });
+  it("learns a worker's task by a label-filtered ls, only for tasks it was asked about, and keeps it", async () => {
+    const lookups: string[][] = [];
+    let asked = 0;
+    const { service } = await fixture(async (args) => {
+      if (args[0] === "status") return success({ serverId: remote.serverId, connectedDaemon: "reachable" });
+      if (args[0] === "ls" && args.some((arg) => arg.startsWith("firstmate.task="))) {
+        lookups.push(args);
+        return success(args.includes("firstmate.task=fix-login") ? [{ id: "worker" }] : []);
+      }
+      if (args[0] === "ls") return success([{ id: "worker", name: "Fix", status: "running" }]);
+      if (args[0] === "inspect") return success({ Id: "worker", Status: "running", UpdatedAt: "now", PendingPermissions: [] });
+      return success([]);
+    }, async (host) => {
+      asked += 1;
+      return host.workers.some((worker) => worker.task === "fix-login") ? [] : ["fix-login", "other", "bad id; rm"];
+    });
+    await service.poll();
+    expect((await service.read()).hosts[0]?.workers[0]).toMatchObject({ id: "worker", task: "fix-login" });
+    expect(lookups.map((args) => args.find((arg) => arg.startsWith("firstmate.task=")))).toEqual(["firstmate.task=fix-login", "firstmate.task=other"]);
+    expect(lookups[0]).toContain("firstmate.owner=local-test:firstmate");
+    await service.poll();
+    expect(asked).toBe(2);
+    expect(lookups).toHaveLength(2);
+    expect((await service.read()).hosts[0]?.workers[0]?.task).toBe("fix-login");
   });
   it("executes a native terminal helper through the daemon queue", async () => {
     const { directory, home, service } = await fixture(async (args) => args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success([{ projectId: "remote-project" }]));

@@ -7,6 +7,13 @@
  * crewmate directly; relaunching goes through the first mate, because it
  * owns the brief the new crewmate starts from. Ending archives the agent and
  * leaves its workspace and worktree exactly as they are.
+ *
+ * A worker on a remote host has the same card, with its host named. Steer,
+ * Interrupt and End go to it through the plugin's remote request path
+ * (`shared/remote-crew.ts`); Relaunch is shown but off, since a new worker
+ * there needs a brief only the first mate can write. While its host is
+ * unreachable, only Watch is on. A session the first mate only follows — the
+ * captain's own, not crew — is marked so and is never offered End.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
@@ -15,8 +22,15 @@ import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { exitCrew, interruptCrew, relaunchCrew, steerCrew, type ColumnId, type FleetCard } from "../shared/fleet";
+import { exitRemoteCrew, interruptRemoteCrew, steerRemoteCrew } from "../shared/remote-crew";
 import { agentStatusLabel, agentStatusTone, columnTone, modelLabel, opensAsLeft, relativeTime } from "./format";
 import { Chip, IconButton, errorText } from "./ui";
+
+/** A time a remote host reported, moved onto this machine's clock by the host's measured skew. */
+function hostTime(iso: string, skewSeconds: number | null): string {
+  const at = Date.parse(iso);
+  return skewSeconds === null || Number.isNaN(at) ? iso : new Date(at - skewSeconds * 1000).toISOString();
+}
 
 /** The card's first action, which opens the crewmate somewhere. */
 export interface CardOpener {
@@ -95,12 +109,22 @@ export function CrewCard({
   const interrupt = useRpc(interruptCrew);
   const exit = useRpc(exitCrew);
   const relaunch = useRpc(relaunchCrew);
+  const steerRemote = useRpc(steerRemoteCrew);
+  const interruptRemote = useRpc(interruptRemoteCrew);
+  const exitRemote = useRpc(exitRemoteCrew);
   const toast = useToast();
 
   const { expanded, setExpanded, draft, setDraft } = useCardMemory(card.key, startExpanded, card.column);
   const [busy, setBusy] = useState(false);
 
   const agent = card.agent;
+  const remote = card.remote ?? null;
+  const worker = remote?.worker ?? null;
+  /** The remote worker the actions go to: on a saved host, by serverId. */
+  const target = remote !== null && remote.serverId !== null && worker !== null ? { serverId: remote.serverId, agentId: worker.id } : null;
+  const status = agent ?? (worker === null ? null : { pendingPermissions: worker.pendingPermissions, status: worker.status });
+  const followed = worker?.followed === true;
+  const running = status !== null && (status.status === "running" || status.status === "initializing");
   const tone = columnTone(theme, card.column);
   const styles = useMemo(() => {
     const { colors } = theme;
@@ -151,7 +175,17 @@ export function CrewCard({
   }
 
   function submitDraft(): void {
-    if (agent === null || draft === null) return;
+    if (draft === null) return;
+    if (target !== null) {
+      if (draft.kind === "end") {
+        run(`The worker on ${remote?.host ?? "its host"} was ended; its workspace there is untouched.`, () => exitRemote(target));
+        return;
+      }
+      const text = draft.text.trim();
+      if (text !== "" && draft.kind === "steer") run("Sent to the worker.", () => steerRemote({ ...target, text }));
+      return;
+    }
+    if (agent === null) return;
     if (draft.kind === "end") {
       run("The worker was ended; its local copy is untouched.", () => exit({ agentId: agent.id }));
       return;
@@ -164,6 +198,10 @@ export function CrewCard({
 
   const backlog = card.backlog;
   const facts = [
+    remote === null
+      ? null
+      : `on ${remote.host}${remote.serverId === null ? " (not a saved host)" : remote.online ? "" : " (unreachable)"}`,
+    followed ? "followed, not crew" : null,
     card.project,
     card.kind,
     card.taskId,
@@ -180,7 +218,7 @@ export function CrewCard({
     >
       <View style={styles.titleRow}>
         <Text style={styles.title}>{card.title}</Text>
-        {agent === null ? null : <Chip theme={theme} text={agentStatusLabel(agent)} color={agentStatusTone(theme, agent)} />}
+        {status === null ? null : <Chip theme={theme} text={agentStatusLabel(status)} color={agentStatusTone(theme, status)} />}
       </View>
       {facts.length === 0 ? null : <Text style={styles.meta}>{facts.join(" · ")}</Text>}
 
@@ -201,8 +239,25 @@ export function CrewCard({
           {agent.lastError}
         </Text>
       )}
-      {agent === null && backlog?.section === "in-flight" ? (
-        <Text style={styles.meta}>No worker is running for this item.</Text>
+      {worker === null
+        ? null
+        : worker.permissionDetails.map((permission) => (
+            <Text key={permission.id} style={styles.report} numberOfLines={expanded ? undefined : 2}>
+              <Text style={styles.reportState}>Waiting on {permission.tool}: </Text>
+              {permission.description ?? `answer it on ${remote?.host ?? "its host"}`}
+            </Text>
+          ))}
+      {worker === null || worker.recentTools.length === 0 || !expanded ? null : (
+        <Text style={styles.meta}>Latest tool calls: {worker.recentTools.join(" · ")}</Text>
+      )}
+      {agent === null && worker === null && backlog?.section === "in-flight" ? (
+        <Text style={styles.meta}>
+          {remote === null
+            ? "No worker is running for this item."
+            : remote.serverId === null
+              ? "Paseo has no saved host by this name."
+              : `No worker of this first mate's was found on ${remote.host}.`}
+        </Text>
       ) : null}
 
       {card.url === null ? null : (
@@ -224,11 +279,58 @@ export function CrewCard({
       <Text style={styles.meta}>
         {[
           agent === null ? null : modelLabel(agent),
-          agent === null ? backlog?.outcome ?? backlog?.since ?? null : relativeTime(agent.updatedAt),
+          agent !== null
+            ? relativeTime(agent.updatedAt)
+            : worker !== null && worker.updatedAt !== ""
+              ? relativeTime(hostTime(worker.updatedAt, remote?.clockSkewSeconds ?? null))
+              : backlog?.outcome ?? backlog?.since ?? null,
         ]
           .filter((part): part is string => part !== null && part !== "")
           .join(" · ")}
       </Text>
+
+      {expanded && target !== null && remote !== null ? (
+        <View style={{ gap: 4 }}>
+          <View style={styles.actions}>
+            {opener === null ? null : (
+              <IconButton icon={opener.icon} label={opener.label} showLabel theme={theme} onPress={opener.onPress} />
+            )}
+            <IconButton
+              icon="MessageSquare"
+              label="Steer"
+              showLabel
+              theme={theme}
+              disabled={busy || !remote.online}
+              onPress={() => setDraft({ kind: "steer", text: "" })}
+            />
+            <IconButton
+              icon="Square"
+              label="Interrupt"
+              showLabel
+              theme={theme}
+              disabled={busy || !remote.online || !running}
+              onPress={() => run("Interrupted.", () => interruptRemote(target))}
+            />
+            <IconButton icon="RotateCcw" label="Relaunch" showLabel theme={theme} disabled onPress={() => undefined} />
+            <IconButton
+              icon="Power"
+              label="End"
+              showLabel
+              tone="danger"
+              theme={theme}
+              disabled={busy || !remote.online || followed}
+              onPress={() => setDraft({ kind: "end" })}
+            />
+          </View>
+          {followed ? (
+            <Text style={styles.meta}>End is off: this is one of the captain's own sessions the first mate follows, not crew.</Text>
+          ) : null}
+          {remote.online ? null : (
+            <Text style={styles.meta}>{remote.host} is unreachable; Steer, Interrupt and End wait until it answers.</Text>
+          )}
+          <Text style={styles.meta}>Relaunch is the first mate's on a remote host: it writes the new brief there.</Text>
+        </View>
+      ) : null}
 
       {expanded && agent !== null ? (
         <View style={styles.actions}>
@@ -275,7 +377,9 @@ export function CrewCard({
         <View style={{ gap: 6 }}>
           {draft.kind === "end" ? (
             <Text style={styles.prompt}>
-              End this worker? The agent is archived; its workspace and local copy stay exactly as they are.
+              {remote === null
+                ? "End this worker? The agent is archived; its workspace and local copy stay exactly as they are."
+                : `End this worker on ${remote.host}? The agent there is archived; its workspace stays exactly as it is.`}
             </Text>
           ) : (
             <TextInput
@@ -283,7 +387,9 @@ export function CrewCard({
               onChangeText={(text) => setDraft({ kind: draft.kind, text })}
               placeholder={
                 draft.kind === "steer"
-                  ? "Tell the worker… (the first mate hears about it)"
+                  ? remote === null
+                    ? "Tell the worker… (the first mate hears about it)"
+                    : `Tell the worker on ${remote.host}… (the first mate hears about it)`
                   : "What the new worker should know — progress so far, what to avoid"
               }
               placeholderTextColor={theme.colors.foregroundMuted}
@@ -307,7 +413,7 @@ export function CrewCard({
         </View>
       ) : null}
 
-      {expanded && agent === null ? (
+      {expanded && agent === null && target === null ? (
         <View style={styles.actions}>
           <Icon name="Info" size={12} color={theme.colors.foregroundMuted} />
           <Text style={styles.meta}>Ask the first mate to act on backlog items.</Text>

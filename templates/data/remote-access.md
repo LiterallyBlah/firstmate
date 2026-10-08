@@ -148,7 +148,12 @@ this machine's clock. Times in the same worker's logs share its host's clock.
 Local MCP tools still target Atlas. For a remote task, choose the remote host's
 repository, provider/model, paths and workspace IDs; keep the same charter's
 intake, isolated worktree, review, approval and cleanup rules. Record the host
-serverId and remote agent ID together in the backlog and in the local brief.
+serverId and remote agent ID together in the backlog and in the local brief,
+as `(host: <serverId>) (agent: <agent-id>)` on the item's line. The board
+matches the line to its worker by those two, or by the worker's
+`firstmate.task` label, and files the card by the worker's live status and
+last status line. The captain can watch, steer, interrupt and end it from
+there; a steer from the board reaches you as a `<firstmate-board>` note.
 Tell a remote worker to return its report, status line and complete PR URL in
 its final reply.
 

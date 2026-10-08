@@ -210,14 +210,32 @@ use their remote repositories and models and get a stable owner label. `remote-w
 finished turn once, briefly (status, status line and final message), and each pending permission with
 what it asks, to the local first mate. When you ask the first mate to steer one of your own sessions
 on a remote host, it lists that session in `data/remote-follow.json` and the watch reports it too.
-Following only reads the session and never labels or changes it. The screen includes a **Remote hosts**
-card; the existing crew columns contain local workers. `data/remote-access.md` contains the full
+Following only reads the session and never labels or changes it. `data/remote-access.md` contains the full
 agent instructions and command examples. The helper reports the remote CLI's own error messages
 (with credentials and connection links removed), takes multi-line briefs from a file in the home
 with `--prompt-file`, and adds each pending permission's latest tool calls. Remote times are shown as
 the host reports them. Each remote run measures the host's clock against Atlas's, and the helper warns
 while it is off by three minutes or more. Paseo 0.11's CLI cannot read files on a remote host, so remote
 workers return reports in their final reply or push them.
+
+Remote work is on the board with the local crew. A backlog item that names its host —
+`(host: …)`, or `(on-host: …)`, by serverId, label or both — is matched to its worker on that host
+by the agent id it records or the worker's `firstmate.task` label, and filed by the worker's live
+status and last status line, refreshed about once a minute; a worker with no item gets a card of its
+own. Each card names its host. **Watch** shows the worker's recent activity, read from the host every
+ten seconds; **Steer**, **Interrupt** and **End** go to the worker through the same bridge, and are off
+while its host is unreachable. **Relaunch** is off for remote workers: ask the first mate, which writes
+the new brief there. A session the first mate only follows — one of your own, listed in
+`data/remote-follow.json` — is marked as followed and never offered End. A card spells out each
+permission its worker is waiting on, where the host says, with its latest tool calls. Times on a remote
+card are corrected for the host's measured clock skew, and a host whose clock is three minutes or more
+off says so in its health. The sidebar badge counts remote workers too,
+followed sessions aside.
+
+With remote hosts saved, tabs above the columns filter the board: **All**, **This machine**, then one
+per host with an online or unreachable mark and its working and needs-attention counts. A host's tab
+shows that host's health at the top; **All** keeps the **Remote hosts** card below the columns. The
+board remembers the tab.
 
 Passwords and relay pairing data remain in `plugin-data/firstmate/remotes.json`, outside the mate's
 home and this repository. Only public status is copied into `data/remote-hosts.json`. Removing a

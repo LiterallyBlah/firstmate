@@ -154,7 +154,11 @@ export class RemoteService {
   private pumping = false;
   private pollAt = 0;
   private ready: Promise<void>;
-  constructor(private readonly execute = runPaseo) { this.ready = this.load(); }
+  /** `taskQueries` names the backlog tasks on a host whose worker is not known yet; see `learnTasks`. */
+  constructor(
+    private readonly execute = runPaseo,
+    private readonly taskQueries: (host: RemoteHost) => Promise<string[]> = async () => [],
+  ) { this.ready = this.load(); }
   private async load() {
     await mkdir(pluginDir(), { recursive: true });
     await mkdir(remoteQueue(), { recursive: true, mode: 0o700 });
@@ -363,6 +367,7 @@ export class RemoteService {
           });
           for (const entry of followed) if (!next.workers.some((other) => other.id === entry.id)) next.workers.push(entry);
           if (next.workers.some((entry) => entry.permissions > 0)) await this.describePermissions(host, connection, next.workers);
+          await this.learnTasks(host, connection, next, previous);
           next.online = true; next.error = null;
         } catch { next.online = false; next.error = "Cannot read this host. Reconnect it in Paseo; check its daemon and provider configuration."; }
         const index = this.snapshot.hosts.findIndex((entry) => entry.serverId === host.serverId);
@@ -372,6 +377,28 @@ export class RemoteService {
       });
       await this.publish();
     } finally { this.polling = false; }
+  }
+  /**
+   * `ls` and `inspect` print no labels, so a worker's `firstmate.task` is found the other way round:
+   * one label-filtered `ls` per backlog task on this host that no worker is known to carry, at most
+   * ten a poll. A task once found stays on the worker. Best effort: a failure here never marks the
+   * host unreachable, and cards still join by agent id.
+   */
+  private async learnTasks(host: RemoteProfile, connection: RemoteConnection, next: RemoteHost, previous: RemoteHost) {
+    for (const worker of next.workers) {
+      const task = previous.workers.find((entry) => entry.id === worker.id)?.task;
+      if (task !== undefined && worker.task === undefined && worker.followed !== true) worker.task = task;
+    }
+    try {
+      const tasks = (await this.taskQueries(next)).filter((task) => /^[\w.-]{1,64}$/.test(task)).slice(0, 10);
+      await concurrentMap(tasks, 2, async (task) => {
+        const rows = publicRows(await this.call(host, connection, ["ls", "-g", "--label", "firstmate.role=crew", "--label", `firstmate.owner=${this.owner}`, "--label", `firstmate.task=${task}`, "--json"]), ["id"]);
+        for (const row of rows) {
+          const worker = next.workers.find((entry) => entry.id === String(row.id) && entry.followed !== true);
+          if (worker !== undefined) worker.task = task;
+        }
+      });
+    } catch { /* Best effort; see above. */ }
   }
   private async pump() {
     await this.ready;

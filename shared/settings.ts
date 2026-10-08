@@ -28,6 +28,8 @@ export const displaySettings = defineSettings({
     chatCollapsed: z.boolean().default(false),
     boardCollapsed: z.boolean().default(false),
     pollSeconds: z.number().int().min(1).max(120).default(5),
+    /** The board's host tab: `all`, `local` (this machine), or a saved remote host's serverId. */
+    hostTab: z.string().default("all"),
   }),
 });
 
