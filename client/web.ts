@@ -10,17 +10,34 @@
  * and the chat's file picker, paste and drop.
  */
 import { Platform } from "react-native";
-
 import { rasterImageType } from "../shared/attachments";
+
+/** Native reads the full accessibility label; browsers also offer a title tooltip. */
+export function webTitle(title: string): { ref?: (node: unknown) => void } {
+  if (Platform.OS !== "web") return {};
+  // React Native Web filters `title` out of its props; its forwarded ref is
+  // the DOM element. Keep this browser-only attribute behind the web boundary.
+  return {
+    ref: (node: unknown) => {
+      if (typeof node !== "object" || node === null) return;
+      const setAttribute: unknown = Reflect.get(node, "setAttribute");
+      if (typeof setAttribute === "function") setAttribute.call(node, "title", title);
+    },
+  };
+}
 
 /** Private Paseo 0.11 storage adapter, deliberately kept out of components.
  * Undefined means native; null means inaccessible/missing browser storage. */
 export function savedDaemonRegistry(): string | null | undefined {
   if (Platform.OS !== "web") return undefined;
   try {
-    const web = globalThis as { localStorage?: { getItem(key: string): string | null } };
+    const web = globalThis as {
+      localStorage?: { getItem(key: string): string | null };
+    };
     return web.localStorage?.getItem("@paseo:daemon-registry") ?? null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 /** This private copy was configured for independent operation. Enable Paseo's
@@ -29,8 +46,13 @@ export function savedDaemonRegistry(): string | null | undefined {
 export async function configureIndependentDaemon(serverId: string): Promise<void> {
   if (Platform.OS !== "web") return;
   const web = globalThis as {
-    localStorage?: { getItem(key: string): string | null; setItem(key: string, value: string): void };
-    paseoDesktop?: { invoke(command: string, args?: Record<string, unknown>): Promise<unknown> };
+    localStorage?: {
+      getItem(key: string): string | null;
+      setItem(key: string, value: string): void;
+    };
+    paseoDesktop?: {
+      invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;
+    };
   };
   const invoke = web.paseoDesktop?.invoke;
   if (!invoke || !web.localStorage) return;
@@ -40,10 +62,13 @@ export async function configureIndependentDaemon(serverId: string): Promise<void
   // A desktop connected to a remote installation must not alter its own
   // unrelated built-in daemon settings.
   if (typeof status !== "object" || status === null || Reflect.get(status, "serverId") !== serverId) return;
-  const settings = await invoke("patch_desktop_settings", { daemon: { keepRunningAfterQuit: true } });
+  const settings = await invoke("patch_desktop_settings", {
+    daemon: { keepRunningAfterQuit: true },
+  });
   if (typeof settings !== "object" || settings === null) throw new Error("Desktop settings unavailable");
   const daemon: unknown = Reflect.get(settings, "daemon");
-  if (typeof daemon !== "object" || daemon === null || Reflect.get(daemon, "keepRunningAfterQuit") !== true) throw new Error("Background daemon setting unavailable");
+  if (typeof daemon !== "object" || daemon === null || Reflect.get(daemon, "keepRunningAfterQuit") !== true)
+    throw new Error("Background daemon setting unavailable");
   web.localStorage.setItem(marker, "1");
 }
 
@@ -71,10 +96,7 @@ interface WebGlobals {
  * responder system alone is enough there, because there are no columns
  * competing for a finger that is already down on the handle.
  */
-export function trackPointerOnDocument(
-  onMove: (clientX: number) => void,
-  onEnd: () => void,
-): () => void {
+export function trackPointerOnDocument(onMove: (clientX: number) => void, onEnd: () => void): () => void {
   if (Platform.OS !== "web") return () => {};
 
   const web = globalThis as WebGlobals;
@@ -285,7 +307,9 @@ export function receiveFiles(
   let depth = 0;
   // Images only, as Paseo's composer pastes: a copied file or a rich clipboard is left to the text box.
   const paste = (event: WebTransferEvent) => {
-    const files = listFiles(event.clipboardData?.files).filter((file) => rasterImageType(file.mimeType, file.fileName) !== null);
+    const files = listFiles(event.clipboardData?.files).filter(
+      (file) => rasterImageType(file.mimeType, file.fileName) !== null,
+    );
     if (files.length === 0) return;
     event.preventDefault();
     onFiles(files);

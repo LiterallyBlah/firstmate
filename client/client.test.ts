@@ -31,8 +31,9 @@ import { isDirty, markSaved, type OpenFile } from "./open-file";
 import { allAnswered, buildAnswers, dismissSubmitsEmpty, parseQuestions, toggleOption } from "./questions";
 import {
   DONE_SHOWN,
-  boardItems,
-  boardRows,
+  listGroup,
+  listGroups,
+  watchAttention,
   cardHeadline,
   contextPercent,
   doneCards,
@@ -50,6 +51,7 @@ import {
 } from "./format";
 import { watchPath, type AgentSummary, type BacklogItem, type FleetCard, type WatchSummary } from "../shared/fleet";
 import { activeCrewCount } from "./screen";
+import { displaySettings } from "../shared/settings";
 import { injectedSummary, transcriptRows, type TimelineEntry } from "./transcript-rows";
 
 function entry(item: unknown, seq: number): TimelineEntry {
@@ -268,39 +270,6 @@ describe("columns", () => {
     expect(moveColumn(order, "done", 1, shown)).toEqual(order);
   });
 
-  it("lays out up to three columns in one row, more in two with the extra in the second", () => {
-    const sizes = [0, 1, 2, 3, 4, 5, 6, 7].map((count) =>
-      boardRows(Array.from({ length: count }, (_, i) => i)).map((row) => row.length),
-    );
-    expect(sizes).toEqual([[], [1], [2], [3], [2, 2], [2, 3], [3, 3], [3, 4]]);
-    const order = orderedColumns([]);
-    expect(boardRows(order).flat()).toEqual(order);
-    expect(boardRows([1, 2, 3, 4, 5])).toEqual([
-      [1, 2],
-      [3, 4, 5],
-    ]);
-  });
-
-  it("counts the suggestions card as one of the row's cards, first, and only when there are suggestions", () => {
-    expect(boardRows(boardItems(["working", "idle"], true))).toEqual([["suggestions", "working", "idle"]]);
-    expect(boardRows(boardItems(["working", "blocked", "idle"], true))).toEqual([
-      ["suggestions", "working"],
-      ["blocked", "idle"],
-    ]);
-    expect(boardRows(boardItems(["working", "blocked", "idle"], false))).toEqual([["working", "blocked", "idle"]]);
-    expect(boardRows(boardItems([], true))).toEqual([["suggestions"]]);
-    expect(boardRows(boardItems([], false))).toEqual([]);
-  });
-
-  it("counts the watches card too, last, and only when the home has watches", () => {
-    expect(boardRows(boardItems(["working"], true, true))).toEqual([["suggestions", "working", "watches"]]);
-    expect(boardRows(boardItems(["working", "idle"], true, true))).toEqual([
-      ["suggestions", "working"],
-      ["idle", "watches"],
-    ]);
-    expect(boardRows(boardItems([], false, true))).toEqual([["watches"]]);
-    expect(boardRows(boardItems(["working"], false, false))).toEqual([["working"]]);
-  });
 });
 
 describe("the Watches card", () => {
@@ -1049,6 +1018,9 @@ describe("a card at rest", () => {
 
     const failing = { ...held, agent: { ...card.agent!, lastError: "provider crashed" } };
     expect(cardHeadline(failing)).toEqual({ lead: null, text: "provider crashed", tone: "danger" });
+    expect(cardHeadline({ ...failing, agent: { ...failing.agent, pendingPermissions: 1 } })).toEqual({
+      lead: "Waiting on a permission", text: "Open Watch to see the request", tone: "column",
+    });
 
     const worker = {
       id: "w",
@@ -1093,5 +1065,46 @@ describe("the Done column", () => {
 
   it("hides nothing when there are only a few", () => {
     expect(doneCards([done("a", null)], false).hidden).toBe(0);
+  });
+});
+
+describe("the grouped task list", () => {
+  it("keeps every column visible in urgency order, without relying on saved board order", () => {
+    const columns = ["done", "idle", "parked", "queued", "working", "ready", "failed", "blocked"] as const;
+    const cards = columns.map((column) => crewCard(column, null, column));
+    const groups = listGroups(cards);
+    expect([...groups.keys()]).toEqual(["needs-you", "working", "queued", "idle", "done"]);
+    expect(groups.get("needs-you")?.map((card) => card.key)).toEqual(["ready", "failed", "blocked"]);
+    expect(groups.get("idle")?.map((card) => card.key)).toEqual(["idle", "parked"]);
+    expect([...groups.values()].flat()).toHaveLength(cards.length);
+    expect(listGroup({ ...crewCard("w", null), note: "waiting" })).toBe("working");
+  });
+
+  it("marks only failing, invalid and switched-off watches in the header", () => {
+    const watch = (extra: Partial<WatchSummary> = {}) => ({ enabled: true, invalid: null, lastResult: "silent", ...extra }) as WatchSummary;
+    expect(watchAttention([watch({ lastResult: "delivered" }), watch({ lastResult: "silent" })])).toEqual({ count: 0, failing: false });
+    expect(watchAttention([watch({ enabled: false }), watch({ lastResult: "failed" }), watch({ invalid: "no schedule" })])).toEqual({ count: 3, failing: true });
+    expect(watchAttention([watch({ enabled: false })])).toEqual({ count: 1, failing: false });
+    expect(watchAttention([watch({ enabled: false, lastResult: "failed" })]).count).toBe(1);
+  });
+
+  it("surfaces captain holds, errors and permissions even on a Done card", () => {
+    const card = crewCard("held", null, "done");
+    expect(listGroup({ ...card, backlog: backlogItem("done", { hold: "land it?" }) })).toBe("needs-you");
+    expect(listGroup({ ...card, agent: crewCard("p", { pendingPermissions: 1 }).agent })).toBe("needs-you");
+    expect(listGroup({ ...card, agent: crewCard("e", { status: "error" }).agent })).toBe("needs-you");
+    expect(listGroup({ ...card, report: { state: "needs-decision", text: "pick a path" } })).toBe("needs-you");
+    const worker = { id: "w", name: "Worker", status: "idle", updatedAt: "", pendingPermissions: 1, permissionDetails: [], recentTools: [], followed: false };
+    expect(listGroup({ ...card, remote: { serverId: "host", host: "Host", online: true, clockSkewSeconds: null, worker } })).toBe("needs-you");
+    expect(listGroups([]).get("needs-you")).toEqual([]);
+  });
+
+  it("defaults existing layouts to List while retaining their other settings", () => {
+    const settings = displaySettings.schema.parse({ columnOrder: ["done", "working"], chatWidthFraction: 0.45, hostTab: "host" });
+    expect(settings.crewView).toBe("list");
+    expect(settings.columnOrder).toEqual(["done", "working"]);
+    expect(settings.chatWidthFraction).toBe(0.45);
+    expect(settings.hostTab).toBe("host");
+    expect(displaySettings.schema.parse({ ...settings, crewView: "board" }).crewView).toBe("board");
   });
 });

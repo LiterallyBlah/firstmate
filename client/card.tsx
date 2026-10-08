@@ -26,6 +26,7 @@ import { exitRemoteCrew, interruptRemoteCrew, steerRemoteCrew } from "../shared/
 import type { BoardDensity } from "../shared/settings";
 import {
   REPORT_STATES,
+  COLUMNS,
   agentStatusLabel,
   agentStatusTone,
   cardHeadline,
@@ -36,6 +37,7 @@ import {
   relativeTime,
 } from "./format";
 import { Chip, IconButton, Tag, errorText } from "./ui";
+import { webTitle } from "./web";
 
 /** A time a remote host reported, moved onto this machine's clock by the host's measured skew. */
 function hostTime(iso: string, skewSeconds: number | null): string {
@@ -68,7 +70,8 @@ const cardMemory = new Map<string, { expanded: boolean; draft: Draft; column: Co
 function useCardMemory(key: string, startExpanded: boolean, column: ColumnId) {
   const remembered = cardMemory.get(key);
   const kept =
-    remembered !== undefined && opensAsLeft({ column: remembered.column, inProgress: remembered.draft !== null }, column)
+    remembered !== undefined &&
+    opensAsLeft({ column: remembered.column, inProgress: remembered.draft !== null }, column)
       ? remembered
       : undefined;
   const [expanded, setExpandedState] = useState(kept?.expanded ?? startExpanded);
@@ -97,6 +100,7 @@ export function CrewCard({
   opener,
   onChanged,
   startExpanded = false,
+  presentation = "card",
 }: {
   card: FleetCard;
   theme: PluginTheme;
@@ -108,6 +112,8 @@ export function CrewCard({
   /** Called after an action lands, so the board refreshes without waiting for its poll. */
   onChanged: () => void;
   startExpanded?: boolean;
+  /** The list shares this card's memory, details and actions. */
+  presentation?: "card" | "row";
 }) {
   const steer = useRpc(steerCrew);
   const interrupt = useRpc(interruptCrew);
@@ -125,12 +131,23 @@ export function CrewCard({
   const remote = card.remote ?? null;
   const worker = remote?.worker ?? null;
   /** The remote worker the actions go to: on a saved host, by serverId. */
-  const target = remote !== null && remote.serverId !== null && worker !== null ? { serverId: remote.serverId, agentId: worker.id } : null;
-  const status = agent ?? (worker === null ? null : { pendingPermissions: worker.pendingPermissions, status: worker.status });
+  const target =
+    remote !== null && remote.serverId !== null && worker !== null
+      ? { serverId: remote.serverId, agentId: worker.id }
+      : null;
+  const status =
+    agent ??
+    (worker === null
+      ? null
+      : {
+          pendingPermissions: worker.pendingPermissions,
+          status: worker.status,
+        });
   const followed = worker?.followed === true;
   const running = status !== null && (status.status === "running" || status.status === "initializing");
   const tone = columnTone(theme, card.column);
   const dense = density === "compact";
+  const row = presentation === "row";
   const styles = useMemo(() => {
     const { colors } = theme;
     return {
@@ -142,7 +159,38 @@ export function CrewCard({
         padding: dense ? 10 : compact ? 12 : 14,
         gap: dense ? 6 : 8,
       },
-      titleRow: { flexDirection: "row" as const, alignItems: "flex-start" as const, gap: 8 },
+      row: {
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+        paddingVertical: dense ? 8 : 10,
+        paddingHorizontal: 4,
+        gap: 8,
+      },
+      rowHead: {
+        flexDirection: "row" as const,
+        alignItems: "center" as const,
+        gap: 10,
+        minWidth: 0,
+      },
+      rowText: { flex: 1, minWidth: 0, gap: 3 },
+      rowTitle: {
+        color: colors.foreground,
+        fontSize: 13,
+        fontWeight: "600" as const,
+        lineHeight: 19,
+      },
+      rowTags: {
+        flexDirection: "row" as const,
+        alignItems: "center" as const,
+        gap: 6,
+        maxWidth: compact ? ("100%" as const) : ("35%" as const),
+        minWidth: 0,
+      },
+      titleRow: {
+        flexDirection: "row" as const,
+        alignItems: "flex-start" as const,
+        gap: 8,
+      },
       title: {
         flex: 1,
         color: colors.foreground,
@@ -151,15 +199,33 @@ export function CrewCard({
         fontWeight: "600" as const,
       },
       chevron: { paddingTop: dense ? 2 : 3 },
-      chips: { flexDirection: "row" as const, flexWrap: "wrap" as const, alignItems: "center" as const, gap: 6 },
-      time: { marginLeft: "auto" as const, color: colors.foregroundMuted, fontSize: 11 },
+      chips: {
+        flexDirection: "row" as const,
+        flexWrap: "wrap" as const,
+        alignItems: "center" as const,
+        gap: 6,
+      },
+      time: {
+        marginLeft: "auto" as const,
+        color: colors.foregroundMuted,
+        fontSize: 11,
+      },
       headline: { color: colors.foregroundMuted, fontSize: 12, lineHeight: 17 },
       details: { gap: 6 },
       meta: { color: colors.foregroundMuted, fontSize: 11 },
       report: { color: colors.foreground, fontSize: 12, lineHeight: 17 },
       reportState: { color: tone, fontWeight: "600" as const },
-      link: { color: colors.accent, fontSize: 12, textDecorationLine: "underline" as const },
-      actions: { flexDirection: "row" as const, flexWrap: "wrap" as const, gap: 6, marginTop: 2 },
+      link: {
+        color: colors.accent,
+        fontSize: 12,
+        textDecorationLine: "underline" as const,
+      },
+      actions: {
+        flexDirection: "row" as const,
+        flexWrap: "wrap" as const,
+        gap: 6,
+        marginTop: 2,
+      },
       input: {
         color: colors.foreground,
         fontSize: 13,
@@ -192,7 +258,9 @@ export function CrewCard({
     if (draft === null) return;
     if (target !== null) {
       if (draft.kind === "end") {
-        run(`The worker on ${remote?.host ?? "its host"} was ended; its workspace there is untouched.`, () => exitRemote(target));
+        run(`The worker on ${remote?.host ?? "its host"} was ended; its workspace there is untouched.`, () =>
+          exitRemote(target),
+        );
         return;
       }
       const text = draft.text.trim();
@@ -218,7 +286,9 @@ export function CrewCard({
       ? relativeTime(agent.updatedAt)
       : worker !== null && worker.updatedAt !== ""
         ? relativeTime(hostTime(worker.updatedAt, remote?.clockSkewSeconds ?? null))
-        : (backlog?.outcome ?? null);
+        : row
+          ? relativeTime(/\d{4}-\d{2}-\d{2}/.exec(backlog?.outcome ?? backlog?.since ?? "")?.[0] ?? "")
+          : (backlog?.outcome ?? null);
   /** What only the open card shows: the plumbing behind the work, for the captain who goes looking. */
   const facts = [
     card.kind,
@@ -242,58 +312,102 @@ export function CrewCard({
       ? { text: card.note, color: tone }
       : status === null
         ? null
-        : { text: agentStatusLabel(status), color: agentStatusTone(theme, status) };
+        : {
+            text: agentStatusLabel(status),
+            color: agentStatusTone(theme, status),
+          };
+
+  const tags = (
+    <>
+      {card.project === null || card.project === "" ? null : <Tag theme={theme} text={card.project} />}
+      {hostText === null ? (
+        row ? (
+          <Tag theme={theme} text="This machine" />
+        ) : null
+      ) : (
+        <Tag
+          theme={theme}
+          icon="Server"
+          text={hostText}
+          color={remote?.online === true ? undefined : theme.colors.statusWarning}
+        />
+      )}
+      {followed ? <Tag theme={theme} text="followed, not crew" /> : null}
+    </>
+  );
+  const statusLine =
+    headline === null ? null : (
+      <Text
+        style={[styles.headline, headline.tone === "danger" ? { color: theme.colors.statusDanger } : null]}
+        numberOfLines={1}
+      >
+        {headline.lead === null ? null : <Text style={styles.reportState}>{headline.lead}: </Text>}
+        {headline.text}
+      </Text>
+    );
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={[
-        card.title,
-        stateChip?.text ?? null,
-        card.project,
-        hostText === null ? null : `on ${hostText}`,
-        headline === null ? null : headline.lead === null ? headline.text : `${headline.lead}: ${headline.text}`,
-        `${expanded ? "Hide" : "Show"} details and actions`,
-      ]
-        .filter((part): part is string => part !== null && part !== "")
-        .join(". ")}
-      accessibilityState={{ expanded }}
-      onPress={() => setExpanded(!expanded)}
-      style={styles.card}
-    >
-      <View style={styles.titleRow}>
-        <Text style={styles.title} numberOfLines={expanded ? undefined : 2}>
-          {card.title}
-        </Text>
-        <View style={styles.chevron}>
-          <Icon name={expanded ? "ChevronUp" : "ChevronDown"} size={14} color={theme.colors.foregroundMuted} />
-        </View>
-      </View>
+    <View style={row ? styles.row : styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={[
+          card.title,
+          row ? COLUMNS[card.column].title : null,
+          stateChip?.text ?? COLUMNS[card.column].title,
+          card.project,
+          hostText === null ? (row ? "on this machine" : null) : `on ${hostText}`,
+          headline === null ? null : headline.lead === null ? headline.text : `${headline.lead}: ${headline.text}`,
+          `${expanded ? "Hide" : "Show"} details and actions`,
+        ]
+          .filter((part): part is string => part !== null && part !== "")
+          .join(". ")}
+        accessibilityState={{ expanded }}
+        aria-expanded={expanded}
+        onPress={() => setExpanded(!expanded)}
+        {...webTitle(card.title)}
+        style={{ gap: 8 }}
+      >
+        {row ? (
+          <>
+            <View style={styles.rowHead}>
+              <Icon name={COLUMNS[card.column].icon} size={15} color={tone} />
+              <View style={styles.rowText}>
+                <Text style={styles.rowTitle} numberOfLines={expanded ? undefined : 1}>
+                  {card.title}
+                </Text>
+                {statusLine}
+              </View>
+              {compact ? null : <View style={styles.rowTags}>{tags}</View>}
+              {when === null || when === "" ? null : (
+                <Text style={[styles.time, { marginLeft: 0, flexShrink: 0 }]} numberOfLines={1}>
+                  {when}
+                </Text>
+              )}
+              <Icon name={expanded ? "ChevronUp" : "ChevronDown"} size={14} color={theme.colors.foregroundMuted} />
+            </View>
+            {compact ? <View style={styles.rowTags}>{tags}</View> : null}
+          </>
+        ) : (
+          <>
+            <View style={styles.titleRow}>
+              <Text style={styles.title} numberOfLines={expanded ? undefined : 2}>
+                {card.title}
+              </Text>
+              <View style={styles.chevron}>
+                <Icon name={expanded ? "ChevronUp" : "ChevronDown"} size={14} color={theme.colors.foregroundMuted} />
+              </View>
+            </View>
 
-      <View style={styles.chips}>
-        {stateChip === null ? null : <Chip theme={theme} text={stateChip.text} color={stateChip.color} />}
-        {card.project === null || card.project === "" ? null : <Tag theme={theme} text={card.project} />}
-        {hostText === null ? null : (
-          <Tag
-            theme={theme}
-            icon="Server"
-            text={hostText}
-            color={remote?.online === true ? undefined : theme.colors.statusWarning}
-          />
+            <View style={styles.chips}>
+              {stateChip === null ? null : <Chip theme={theme} text={stateChip.text} color={stateChip.color} />}
+              {tags}
+              {when === null || when === "" ? null : <Text style={styles.time}>{when}</Text>}
+            </View>
+
+            {expanded ? null : statusLine}
+          </>
         )}
-        {followed ? <Tag theme={theme} text="followed, not crew" /> : null}
-        {when === null || when === "" ? null : <Text style={styles.time}>{when}</Text>}
-      </View>
-
-      {expanded || headline === null ? null : (
-        <Text
-          style={[styles.headline, headline.tone === "danger" ? { color: theme.colors.statusDanger } : null]}
-          numberOfLines={1}
-        >
-          {headline.lead === null ? null : <Text style={styles.reportState}>{headline.lead}: </Text>}
-          {headline.text}
-        </Text>
-      )}
+      </Pressable>
 
       {expanded ? (
         <View style={styles.details}>
@@ -379,10 +493,14 @@ export function CrewCard({
             />
           </View>
           {followed ? (
-            <Text style={styles.meta}>End is off: this is one of the captain's own sessions the first mate follows, not crew.</Text>
+            <Text style={styles.meta}>
+              End is off: this is one of the captain's own sessions the first mate follows, not crew.
+            </Text>
           ) : null}
           {remote.online ? null : (
-            <Text style={styles.meta}>{remote.host} is unreachable; Steer, Interrupt and End wait until it answers.</Text>
+            <Text style={styles.meta}>
+              {remote.host} is unreachable; Steer, Interrupt and End wait until it answers.
+            </Text>
           )}
           <Text style={styles.meta}>Relaunch is the first mate's on a remote host: it writes the new brief there.</Text>
         </View>
@@ -475,6 +593,6 @@ export function CrewCard({
           <Text style={styles.meta}>Ask the first mate to act on backlog items.</Text>
         </View>
       ) : null}
-    </Pressable>
+    </View>
   );
 }
