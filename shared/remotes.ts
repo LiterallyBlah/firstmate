@@ -34,6 +34,8 @@ export const RemoteWorker = z.object({
   recentTools: z.array(z.string()).optional(),
   /** Not crew: an agent `data/remote-follow.json` asked to follow. Never labelled or changed. */
   followed: z.boolean().optional(),
+  /** Its `firstmate.task` label, found by a label-filtered `ls` (the CLI prints no labels). */
+  task: z.string().optional(),
 });
 /** `data/remote-follow.json`: remote agents the catalog follows besides the crew. */
 export const RemoteFollow = z.object({ host: z.string().min(1).max(2048), agent: z.string().min(1).max(200) });

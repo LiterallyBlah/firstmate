@@ -25,6 +25,11 @@ describe("parseBacklog", () => {
       .toMatchObject([{ id: "remote-task", title: "Remote task", host: "srv_remote", agentId: "remote-agent" }]);
   });
 
+  it("reads the host from (on-host: …) too, as first mates write it", () => {
+    expect(parseBacklog("## In flight\n- [ ] remote-task - Remote task (on-host: Light srv_light) (agent: remote-agent)"))
+      .toMatchObject([{ id: "remote-task", title: "Remote task", host: "Light srv_light", agentId: "remote-agent" }]);
+  });
+
   it("reads every item under the three headings, in file order", () => {
     expect(parseBacklog(SAMPLE).map((item) => `${item.section}:${item.id}`)).toEqual([
       "in-flight:fix-flaky-login",

@@ -54,6 +54,15 @@ import { startWatches } from "./server/watch-service";
 import { displaySettings } from "./shared/settings";
 import { RemoteService } from "./server/remotes";
 import { readRemotes, syncRemotes, reportRemoteSyncError } from "./shared/remotes";
+import { readBacklog } from "./server/home";
+import { remoteTaskQueries } from "./server/remote-cards";
+import { exitRemoteCrew, interruptRemoteCrew, remoteCrewLogs, remoteSteerText, steerRemoteCrew } from "./server/remote-crew";
+import {
+  exitRemoteCrew as exitRemoteCrewRpc,
+  interruptRemoteCrew as interruptRemoteCrewRpc,
+  remoteCrewLogs as remoteCrewLogsRpc,
+  steerRemoteCrew as steerRemoteCrewRpc,
+} from "./shared/remote-crew";
 
 export default function contribute(server: PluginServerContext) {
   migrateLegacyFiles();
@@ -61,7 +70,10 @@ export default function contribute(server: PluginServerContext) {
   const steers = new CaptainSteers();
   // The scripts in the home's watches/ folder, run on their schedules; see server/watches.ts.
   const watches = startWatches(server, readFirstmateConfig);
-  const remotes = new RemoteService();
+  // The backlog names the tasks whose remote worker the poll should look up by label; see server/remote-cards.ts.
+  const remotes = new RemoteService(undefined, async (host) =>
+    remoteTaskQueries(await readBacklog(resolveHome(await readFirstmateConfig())), host, (await remotes.read()).localServerId),
+  );
   remotes.start();
   server.handle(readRemotes, () => remotes.read());
   server.handle(syncRemotes, ({ hosts }) => remotes.sync(hosts));
@@ -82,7 +94,13 @@ export default function contribute(server: PluginServerContext) {
 
   server.handle(loadFleetRpc, async (_input, { paseo }) => {
     watches.remember(paseo);
-    const fleet = await loadFleet(paseo, await readFirstmateConfig(), reports, () => watches.runner.summaries());
+    const fleet = await loadFleet(
+      paseo,
+      await readFirstmateConfig(),
+      reports,
+      () => watches.runner.summaries(),
+      () => remotes.read(),
+    );
     // A first mate launched before the plugin named its home gets its name the first time the board looks.
     const workspaceId = fleet.mate?.workspaceId ?? null;
     if (workspaceId !== null && fleet.mateInHome) nameHomeOnce(paseo, workspaceId, fleet.home);
@@ -122,6 +140,26 @@ export default function contribute(server: PluginServerContext) {
     await exitCrew(paseo, agentId);
     return {};
   });
+  // A remote worker's card, through the remote request path; see server/remote-crew.ts.
+  server.handle(steerRemoteCrewRpc, async ({ serverId, agentId, text }, { paseo }) => {
+    const sent = await steerRemoteCrew(remotes, serverId, agentId, text);
+    // The plugin cannot see that worker's turn end, so the first mate hears of it now; the words are already sent.
+    try {
+      await askMate(paseo, { text: await remoteSteerText(sent.host, sent.worker, sent.text) });
+    } catch (error) {
+      console.error(`[firstmate] could not tell the first mate about the captain's words to ${agentId}:`, error);
+    }
+    return {};
+  });
+  server.handle(interruptRemoteCrewRpc, async ({ serverId, agentId }) => {
+    await interruptRemoteCrew(remotes, serverId, agentId);
+    return {};
+  });
+  server.handle(exitRemoteCrewRpc, async ({ serverId, agentId }) => {
+    await exitRemoteCrew(remotes, serverId, agentId);
+    return {};
+  });
+  server.handle(remoteCrewLogsRpc, ({ serverId, agentId }) => remoteCrewLogs(remotes, serverId, agentId));
   server.handle(relaunchCrewRpc, async ({ agentId, note }, { paseo }) => ({
     agentId: await relaunchCrew(paseo, agentId, note),
   }));

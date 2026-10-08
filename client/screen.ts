@@ -11,11 +11,12 @@ export const FLEET_SCREEN_ID = "fleet";
 
 /**
  * The sidebar row's badge: how many crewmates Paseo still runs have their card in the Working or the
- * Idle column — busy, or waiting for their next word — counted the way the board places them.
+ * Idle column — busy, or waiting for their next word — counted the way the board places them. A
+ * worker on a remote host counts the same as one here.
  */
 export function activeCrewCount(cards: readonly FleetCard[]): number {
-  return cards.filter(
-    (card) =>
-      card.agent !== null && card.agent.status !== "closed" && (card.column === "working" || card.column === "idle"),
-  ).length;
+  return cards.filter((card) => {
+    const status = card.agent?.status ?? card.remote?.worker?.status ?? null;
+    return status !== null && status !== "closed" && (card.column === "working" || card.column === "idle");
+  }).length;
 }
