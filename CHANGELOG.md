@@ -8,6 +8,24 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ## [Unreleased]
 
+### Added
+
+- `tools/remote.mjs` takes `--prompt-file <file in the home>` on `run` and `send`, also inside a
+  request file, and sends the file's text unchanged, Windows backslashes included.
+- `permit ls` through the helper adds each agent's latest tool calls, which show a pending Bash
+  command. The remote guide explains answering a question with `permit allow --input`.
+
+### Changed
+
+- A failed remote command reports the remote CLI's own error, redacted, instead of a generic
+  message. An unreachable host names its last connection attempt's reason.
+- Each remote `run` measures the host's clock against this machine's, from the new worker's
+  `CreatedAt`. The measurement is kept as the host's `clockSkew`, and every helper answer from a
+  host that is three minutes or more off warns on stderr. Remote times are shown as reported.
+- The helper refuses a `--cwd` that has lost its backslashes.
+- `data/remote-access.md` documents prompt files, errors, permissions and questions, times, and why
+  remote files cannot be read yet.
+
 ### Fixed
 
 - Windows: watches no longer start detached, which left them without a console, so each `gh` the

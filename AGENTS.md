@@ -740,6 +740,42 @@ Paste takes images only, as Paseo's does, so pasting text or a copied file still
 The pending attachments live beside the draft on `globalThis` (`client/attachments.ts`), bytes and
 all, so a lost connection keeps them; a failed send puts them back unless something new was attached.
 
+## The remote helper
+
+`tools/remote.mjs` (from `templates/tools/remote.mjs`) is how the first mate drives saved remote hosts:
+it queues a request, and `RemoteService` (`server/remotes.ts`) runs it as one remote `paseo` CLI call.
+The first mate's guide is `templates/data/remote-access.md`; keep it in step with the helper.
+
+- **Errors are the CLI's own.** `remoteError` takes the JSON error's message and details, else the
+  text, from stderr and then stdout, capped, through `redact`: the host's password and relay details,
+  pairing links, relay URLs and bearer credentials never come back. Text that mentions a password or
+  authentication still becomes "Remote authentication failed", and the queue's own guard still drops a
+  message with a pairing link or `relay://` in it.
+- **A prompt from a file goes after `--`.** The helper's `--prompt-file` reads a file inside the home
+  and passes its text as the last argument after `--`, so a brief starting with a dash stays text;
+  `commandArguments` checks options only before `--` and puts its own flags there. The CLI's own
+  `--prompt-file` is refused, because it would read any file the daemon can. 28,000 characters at most,
+  for a Windows command line.
+- **Nothing here reads remote files.** The remote daemon has a read-only, cwd-confined file read
+  (`file_explorer_request`, `workspace.read`), but the 0.11 CLI does not expose it, and the plugin
+  cannot import Paseo's client or its transports (relay, SSH). A `paseo` command for it, or a plugin API
+  that reaches a saved host, is what it would take; until then the guide has workers put reports in their
+  final reply or push them.
+- **Permission requests lose their input in the CLI.** `permit ls` and `inspect` keep only the tool name
+  and description: a Claude question's text and a Bash command stay on the daemon. The helper adds each
+  agent's last three tool calls (`logs --filter tools`), whose summary carries a Bash command.
+  `permit allow --input '{"answers":{…}}'` answers a Claude question: the daemon merges the original
+  questions back in and matches answers by question text or header. For any other tool, `--input`
+  replaces the tool's input, so the guide offers it for questions only.
+- **Remote times are the host's clock, and it can be wrong.** A first mate saw a host run about an hour
+  behind. Times are passed on as reported, never converted. After a successful `run`, `measureClock`
+  inspects the new agent (read-only). Its `CreatedAt` should fall between sending the run and the answer
+  on our clock, and whatever lies outside that window is the host's skew. It is stored as the host's
+  optional `clockSkew` (`shared/remotes.ts`), kept across polls, and published in `remote-hosts.json`.
+  While it is 180 seconds or more, every queue answer for that host carries a `warning`, which the helper
+  prints on stderr; so does `hosts`. `paseo status` reports no server time for a remote endpoint, and
+  `run --json` returns no creation time, which is why it takes the extra `inspect`.
+
 ## What was left out
 
 From FirstMate the distro: the session backends (tmux, Herdr, cmux, Zellij, Orca), treehouse, the
