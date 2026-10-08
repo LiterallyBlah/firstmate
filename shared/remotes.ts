@@ -28,6 +28,8 @@ export const RemoteHost = z.object({
   serverId: z.string(), label: z.string(), online: z.boolean(), checkedAt: z.string().nullable(), error: z.string().nullable(),
   projects: z.array(z.record(z.string(), z.unknown())), workspaces: z.array(z.record(z.string(), z.unknown())),
   providers: z.array(z.record(z.string(), z.unknown())), workers: z.array(RemoteWorker),
+  // How far the host's clock is from this machine's, from the latest remote run: negative is behind.
+  clockSkew: z.object({ seconds: z.number(), measuredAt: z.string(), agentId: z.string() }).nullable().optional(),
 });
 export const RemoteSnapshot = z.object({ version: z.literal(1), localServerId: z.string(), syncedAt: z.string().nullable(), syncError: z.string().nullable(), hosts: z.array(RemoteHost) });
 export type RemoteSnapshot = z.infer<typeof RemoteSnapshot>;

@@ -124,11 +124,23 @@ Copy what you need into your local task record.
 
 ## Times
 
-Paseo reports times in UTC (`…Z`). The helper prints every such time as the
-same instant in this machine's local time, with its offset
-(`2026-10-08T10:09:42.199+01:00`); `data/remote-hosts.json` keeps Paseo's UTC
-form. Compare times only with their offset or zone: a UTC time read as local
-time is an hour or more off, and is not a stalled worker.
+Paseo reports times in UTC (`…Z`), and a remote host reports them from its
+own clock. The helper prints them exactly as the host reports them. A host's
+clock can be wrong: one host has run about an hour behind.
+
+So every remote `run` measures it. The new worker's `CreatedAt` must fall
+between sending the `run` and the answer on this machine's clock; anything
+outside that window is the host's clock. The result is the host's
+`clockSkew` in `data/remote-hosts.json` (seconds, negative when the host is
+behind, with when and from which agent it was measured). While it is three
+minutes or more, every helper answer from that host, and `hosts`, prints a
+warning on stderr, such as `host "Light"'s clock appears to be about 59
+minutes behind this machine's`. Correct for it yourself before you compare a
+remote time with this machine's clock, and before you call a worker stalled.
+The next `run` measures again, so a clock that is fixed stops warning.
+
+Without a measurement, compare remote times only with each other, never with
+this machine's clock. Times in the same worker's logs share its host's clock.
 
 ## Working remotely
 

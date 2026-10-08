@@ -67,6 +67,8 @@ export function commandArguments(args: string[], owner: string): string[] {
   return end < 0 ? options : [...options, ...args.slice(end)];
 }
 const MAX_ERROR_CHARS = 1500;
+/** More than a few minutes: the delay of a remote run can never account for it. */
+const CLOCK_WARNING_SECONDS = 180;
 /** Remove what must never leave the daemon: the host's password and relay
  * details, pairing links, relay URLs and bearer credentials. */
 export function redact(text: string, host?: RemoteProfile): string {
@@ -229,8 +231,38 @@ export class RemoteService {
     const connection = await this.connect(host);
     // Exactly one attempt once a command may change remote state. A timeout
     // is uncertain; never retry creation automatically.
-    try { return await this.call(host, connection, command); }
-    finally { this.pollAt = 0; }
+    const sentAt = Date.now();
+    try {
+      const result = await this.call(host, connection, command);
+      if (command[0] === "run") await this.measureClock(host, connection, result, sentAt, Date.now());
+      return result;
+    } finally { this.pollAt = 0; }
+  }
+  /** A new agent's CreatedAt, on the host's clock, falls between sending its
+   * `run` and the answer on ours; anything outside that window is the host's
+   * clock. Read-only; a failure keeps the last measurement. */
+  private async measureClock(host: RemoteProfile, connection: RemoteConnection, result: unknown, sentAt: number, receivedAt: number) {
+    const agentId = record(result).agentId;
+    if (typeof agentId !== "string") return;
+    try {
+      const createdAt = Date.parse(String(record(await this.call(host, connection, ["inspect", agentId, "--json"])).CreatedAt ?? ""));
+      if (Number.isNaN(createdAt)) return;
+      const skew = createdAt < sentAt ? createdAt - sentAt : createdAt > receivedAt ? createdAt - receivedAt : 0;
+      const entry = this.snapshot.hosts.find((candidate) => candidate.serverId === host.serverId);
+      if (!entry) return;
+      entry.clockSkew = { seconds: Math.round(skew / 1000), measuredAt: new Date(receivedAt).toISOString(), agentId };
+      await this.publish();
+    } catch { /* The run itself succeeded. */ }
+  }
+  /** A warning for every helper answer while the host's clock looks more than a few minutes off. */
+  clockWarning(selector: string): string | undefined {
+    const entry = this.snapshot.hosts.filter((host) => host.serverId === selector || host.label === selector);
+    const skew = entry.length === 1 ? entry[0]!.clockSkew : null;
+    if (!skew || Math.abs(skew.seconds) < CLOCK_WARNING_SECONDS) return undefined;
+    const minutes = Math.round(Math.abs(skew.seconds) / 60);
+    return `Warning: host ${JSON.stringify(entry[0]!.label)}'s clock appears to be about ${minutes} minute${minutes === 1 ? "" : "s"} ${skew.seconds < 0 ? "behind" : "ahead of"} this machine's `
+      + `(agent ${skew.agentId}'s CreatedAt, measured ${skew.measuredAt}). Its times are shown as the host reports them; `
+      + `${skew.seconds < 0 ? "add" : "subtract"} about ${minutes} minute${minutes === 1 ? "" : "s"} before comparing them with this machine's clock.`;
   }
   async poll(): Promise<void> {
     await this.ready;
@@ -269,7 +301,8 @@ export class RemoteService {
         } catch { next.online = false; next.error = "Cannot read this host. Reconnect it in Paseo; check its daemon and provider configuration."; }
         const index = this.snapshot.hosts.findIndex((entry) => entry.serverId === host.serverId);
         // A concurrent sync may have removed or replaced the profile.
-        if (index >= 0 && this.hosts.includes(host)) this.snapshot.hosts[index] = next;
+        // A run measured during this poll keeps its clock measurement.
+        if (index >= 0 && this.hosts.includes(host)) this.snapshot.hosts[index] = { ...next, clockSkew: this.snapshot.hosts[index]!.clockSkew ?? null };
       });
       await this.publish();
     } finally { this.polling = false; }
@@ -295,7 +328,8 @@ export class RemoteService {
           if (Date.now() - request.createdAt > 180000) throw new Error("Request expired before execution");
           response = { id: request.id, ok: true, result: await this.request(request.host, request.args) };
         } catch (error) { response = { id: request.id, ok: false, error: error instanceof Error && !/password|#offer=|relay:\/\//i.test(error.message) ? error.message : "Remote command failed" }; }
-        await atomic(join(remoteQueue(), `${request.id}.response.json`), response);
+        const warning = this.clockWarning(request.host);
+        await atomic(join(remoteQueue(), `${request.id}.response.json`), warning ? { ...response, warning } : response);
         await rm(claimed, { force: true });
       }
       // Bounded retention for abandoned helper calls; never replay claimed work.

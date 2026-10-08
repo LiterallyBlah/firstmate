@@ -767,8 +767,14 @@ The first mate's guide is `templates/data/remote-access.md`; keep it in step wit
   `permit allow --input '{"answers":{…}}'` answers a Claude question: the daemon merges the original
   questions back in and matches answers by question text or header. For any other tool, `--input`
   replaces the tool's input, so the guide offers it for questions only.
-- **Times are UTC.** Paseo reports `…Z`; the helper prints each such string as the same instant in local
-  time with its offset. The "hour behind" a first mate once saw was UTC read as BST.
+- **Remote times are the host's clock, and it can be wrong.** A first mate saw a host run about an hour
+  behind. Times are passed on as reported, never converted. After a successful `run`, `measureClock`
+  inspects the new agent (read-only). Its `CreatedAt` should fall between sending the run and the answer
+  on our clock, and whatever lies outside that window is the host's skew. It is stored as the host's
+  optional `clockSkew` (`shared/remotes.ts`), kept across polls, and published in `remote-hosts.json`.
+  While it is 180 seconds or more, every queue answer for that host carries a `warning`, which the helper
+  prints on stderr; so does `hosts`. `paseo status` reports no server time for a remote endpoint, and
+  `run --json` returns no creation time, which is why it takes the extra `inspect`.
 
 ## What was left out
 

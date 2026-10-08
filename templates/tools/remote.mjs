@@ -10,6 +10,8 @@ const home = dirname(dirname(fileURLToPath(import.meta.url)));
 const MAX_PROMPT_CHARS = 28000;
 // Options of `paseo run` and `paseo send` that take no value; any other option takes the next argument.
 const FLAGS = new Set(["-d", "--background", "--json", "-q", "--quiet", "--no-headers", "--no-color", "--no-wait", "-h", "--help", "-v", "--version"]);
+// Clock warnings the plugin attached to its answers, printed once each to stderr.
+const warnings = new Set();
 const usage = "Usage: node tools/remote.mjs hosts | <host-id-or-name> <paseo command...> [--prompt-file <file in the home>] | --request-file <JSON file with host and args>";
 
 /** One Paseo command on the remote host, through the plugin's queue. */
@@ -32,6 +34,7 @@ async function remote(host, args) {
     throw new Error("Remote request timed out. Its outcome is uncertain: inspect the host before retrying a change.");
   }
   await rm(response, { force: true });
+  if (typeof result.warning === "string") warnings.add(result.warning);
   if (result.id !== id || !result.ok) throw new Error(result.error || "Invalid remote response");
   return result.result;
 }
@@ -81,22 +84,6 @@ function checkCwd(args) {
   }
 }
 
-/** Paseo reports UTC (`…Z`); show the same instant in this machine's time, with its offset. */
-function localTime(text) {
-  const date = new Date(text);
-  if (Number.isNaN(date.getTime())) return text;
-  const offset = -date.getTimezoneOffset();
-  const abs = Math.abs(offset);
-  const zone = `${offset < 0 ? "-" : "+"}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
-  return `${new Date(date.getTime() + offset * 60000).toISOString().slice(0, -1)}${zone}`;
-}
-function localTimes(value) {
-  if (typeof value === "string") return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(value) ? localTime(value) : value;
-  if (Array.isArray(value)) return value.map(localTimes);
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, localTimes(entry)]));
-  return value;
-}
-
 /** `permit ls` names only the tool. An agent's latest tool calls carry what it
  * is asking: a pending Bash call is usually the last, with its command. */
 async function withRecentTools(host, rows) {
@@ -122,15 +109,20 @@ try {
   }
   if (host === "hosts") {
     const text = await readFile(join(home, "data", "remote-hosts.json"), "utf8");
-    let hosts;
-    try { hosts = JSON.parse(text); } catch { console.log(text); }
-    if (hosts !== undefined) console.log(JSON.stringify(localTimes(hosts), null, 2));
+    console.log(text);
+    let catalog = {};
+    try { catalog = JSON.parse(text); } catch { /* Printed as it is. */ }
+    for (const entry of Array.isArray(catalog?.hosts) ? catalog.hosts : []) {
+      const seconds = entry?.clockSkew?.seconds;
+      if (typeof seconds === "number" && Math.abs(seconds) >= 180) warnings.add(`Warning: host ${JSON.stringify(entry.label)}'s clock appears to be about ${Math.round(Math.abs(seconds) / 60)} minutes ${seconds < 0 ? "behind" : "ahead of"} this machine's (clockSkew). Its times are shown as the host reports them.`);
+    }
   } else {
     if (!host || !args.length) throw new Error(usage);
     checkCwd(args);
     args = await withPromptFile(args);
     let result = await remote(host, args);
     if (args[0] === "permit" && args[1] === "ls") result = await withRecentTools(host, result);
-    console.log(typeof result === "string" ? result : JSON.stringify(localTimes(result), null, 2));
+    console.log(typeof result === "string" ? result : JSON.stringify(result, null, 2));
   }
 } catch (error) { console.error(error.message); process.exitCode = 1; }
+for (const warning of warnings) console.error(warning);
