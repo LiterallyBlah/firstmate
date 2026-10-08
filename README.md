@@ -117,7 +117,11 @@ Watch, Steer, Interrupt, Relaunch and End, and "Fix knots-to-km/h conversion and
 reading "Done: ready in branch fm/fix-knots-kmh" and "Captain's call: land branch
 fm/fix-knots-kmh".](docs/board.png)
 
-Each card is a worker, a backlog item, or both. Press one for its actions:
+Each card is a worker, a backlog item, or both. At rest it shows only what you need at a glance: the
+title, the worker's state, its project and host as small tags, when it last moved, and one line of
+its latest status — a permission it waits on, an error, your call it waits for, or its own status line,
+whichever matters most. Press it for the rest — task id, kind, mode, model, the full status line, the
+pull request — and its actions:
 
 - **Watch** — the worker's card beside everything it is doing, live, in place of the board: the brief
   it was given, its reasoning, each command and file it touched (press one for what it ran and what
@@ -140,7 +144,7 @@ A column with nobody in it is hidden, so the board shows only what has workers i
 screen up to three columns sit side by side; past three they take two rows, with the extra one in the
 second row. Columns fold to a strip and move with the arrows in their headers, and the split between
 chat and board drags. The layout is remembered, including where a hidden column goes when it fills
-again.
+again. Done shows its three most recent cards, with **Show all** for the rest.
 
 Opening the panel counts as looking at the first mate: when it has finished a turn, its workspace in
 Paseo's sidebar turns to done, as it would if you had opened the first mate itself. One waiting on
@@ -298,6 +302,8 @@ FirstMate's has changed. The first mate adds or changes a watch only when you sa
   task. "Let the first mate choose" gives workers its own model.
 - **Agent tools** — Paseo's switch, described above.
 - **Refresh every** — how often the board polls.
+- **Card spacing** — Comfortable, the default, or Compact to fit more cards on the screen. A card
+  shows the same few things either way.
 
 ## Limitations
 

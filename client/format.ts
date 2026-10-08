@@ -254,6 +254,86 @@ export function modelLabel(agent: Pick<AgentSummary, "provider" | "model">): str
   return agent.model === null ? agent.provider : `${agent.provider}/${agent.model}`;
 }
 
+/** How a crewmate's status line names its state. */
+export const REPORT_STATES: Readonly<Record<string, string>> = {
+  working: "Working",
+  "needs-decision": "Needs a decision",
+  blocked: "Blocked",
+  paused: "Paused",
+  done: "Done",
+  failed: "Failed",
+  resolved: "Resolved",
+};
+
+/**
+ * The one line a card shows at rest: the most pressing thing about it. A
+ * remote permission waiting, then an error, then the captain's call, then the
+ * crewmate's own status line; an in-flight item with no worker says so, and a
+ * queued one names what it waits for. The open card shows every one of them, in full. `lead` is drawn in the column's
+ * colour; `danger` draws the whole line in the danger colour.
+ */
+export interface CardHeadline {
+  lead: string | null;
+  text: string;
+  tone: "column" | "danger" | "muted";
+}
+
+export function cardHeadline(card: FleetCard): CardHeadline | null {
+  const remote = card.remote ?? null;
+  const worker = remote?.worker ?? null;
+  const permission = worker?.permissionDetails[0];
+  if (permission !== undefined) {
+    return {
+      lead: `Waiting on ${permission.tool}`,
+      text: permission.description ?? `answer it on ${remote?.host ?? "its host"}`,
+      tone: "column",
+    };
+  }
+  const error = card.agent?.lastError ?? null;
+  if (error !== null && error !== "") return { lead: null, text: error, tone: "danger" };
+  const hold = card.backlog?.hold ?? null;
+  if (hold !== null && hold !== "") return { lead: "Captain's call", text: hold, tone: "column" };
+  if (card.report !== null) {
+    return { lead: REPORT_STATES[card.report.state] ?? card.report.state, text: card.report.text, tone: "column" };
+  }
+  if (card.agent === null && worker === null && card.backlog?.section === "in-flight") {
+    return { lead: null, text: orphanText(remote), tone: "muted" };
+  }
+  const after = card.backlog?.blockedBy ?? null;
+  if (after !== null && after !== "") return { lead: null, text: `After ${after}`, tone: "muted" };
+  return null;
+}
+
+/** What an in-flight item with no worker found for it says. */
+export function orphanText(remote: FleetCard["remote"] | null): string {
+  if (remote === null || remote === undefined) return "No worker is running for this item.";
+  if (remote.serverId === null) return "Paseo has no saved host by this name.";
+  return `No worker of this first mate's was found on ${remote.host}.`;
+}
+
+/** How many Done cards the board shows until the captain asks for all of them. */
+export const DONE_SHOWN = 3;
+
+/** The date a card's work finished or last moved, `YYYY-MM-DD…`, for ordering Done; "" when nothing says. */
+function finishedOn(card: FleetCard): string {
+  const written = /\d{4}-\d{2}-\d{2}/.exec(card.backlog?.outcome ?? card.backlog?.since ?? "")?.[0];
+  return written ?? card.agent?.updatedAt ?? card.remote?.worker?.updatedAt ?? "";
+}
+
+/**
+ * Done, most recent first — by the date the backlog line records (`merged 2026-10-08`), else the
+ * agent's last update — and cut to `DONE_SHOWN` unless `all`. Undated cards keep their order, after
+ * the dated ones. `hidden` is how many were cut.
+ */
+export function doneCards(cards: readonly FleetCard[], all: boolean): { shown: FleetCard[]; hidden: number } {
+  const sorted = cards
+    .map((card, index) => ({ card, index, on: finishedOn(card) }))
+    .sort((a, b) => (a.on === b.on ? a.index - b.index : a.on === "" ? 1 : b.on === "" ? -1 : b.on.localeCompare(a.on)))
+    .map((entry) => entry.card);
+  const shown = all ? sorted : sorted.slice(0, DONE_SHOWN);
+  return { shown, hidden: sorted.length - shown.length };
+}
+
 /** Cards grouped by column, each column in the order the daemon sent them. */
 export function groupCards(cards: readonly FleetCard[]): Map<ColumnId, FleetCard[]> {
   const groups = new Map<ColumnId, FleetCard[]>(COLUMN_IDS.map((id) => [id, []]));

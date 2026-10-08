@@ -17,7 +17,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `index.server.ts`             | Wiring — the RPCs, the display settings document, the steer relay hook.                    |
 | `index.client.tsx`            | Wiring — the screen, sidebar item, two panels, settings screen, ⌘K items, `/fm` `/bearings` `/ahoy`. |
 | `shared/fleet.ts`             | Every RPC contract, the card/fleet shapes, the daemon config shape, and `CREW_LABELS`.     |
-| `shared/settings.ts`          | The host settings document: column order and folds, the chat's width, the poll interval.   |
+| `shared/settings.ts`          | The host settings document: column order and folds, the chat's width, the poll interval, card spacing. |
 | `templates/`                  | **Every file the plugin writes into the home**, as Markdown laid out as it lands there, and the parts that go inside them. The first mate's behaviour is `templates/data/charter.md`. |
 | `server/templates.ts`         | Finds `templates/` — through `paseo plugin ls`, since the compiled plugin cannot say where it lives — and reads it. |
 | `server/charter.ts`           | Renders `AGENTS.md`: the charter's placeholders filled, under its heading note.            |
@@ -62,7 +62,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/keyboard.ts`          | How far the on-screen keyboard covers a view, measured in window coordinates.              |
 | `client/keys.ts`              | Enter sends, Shift+Enter is a new line — web and wide layouts only, as in Paseo. Pure.     |
 | `client/transcript-rows.ts`   | Timeline entries → chat rows. Pure.                                                        |
-| `client/board.tsx`, `card.tsx`| The columns, and one card with its actions.                                                |
+| `client/board.tsx`, `card.tsx`| The columns (Done cut to its latest few), and one card: a glance at rest, the rest and its actions open. |
 | `client/suggestions.tsx`      | The first mate's suggestions as buttons: a card on the wide board, a tab on a phone.       |
 | `client/suggestion-removals.ts` | Which suggestions have a removal on its way, by label and prompt. Pure.                  |
 | `client/suggestion-fold.ts`   | Whether a folded suggestion card cuts its text, measured against an invisible twin. Pure. |
@@ -244,6 +244,26 @@ or moves. The saved
 `shown`): the moved column hops past any hidden neighbour to land beside the next shown one, and the
 hidden ones keep their place relative to each other, so a press always moves something on screen and
 no column's slot is lost while it is empty.
+
+**A card at rest is a glance.** The captain found the board too dense, so a card shows its title (two
+lines at most), its state chip — the card's `note` ("waiting", "stalled", "no worker seen") in
+the column's colour where there is one, else the agent's status — its project and host as quiet tags
+(`Tag` in `ui.tsx`), when it last moved, and **one** line from `cardHeadline` (`client/format.ts`): a remote permission waiting, else
+an error, else the captain's call (`hold`), else the status line, else what an in-flight item without a
+worker or a queued one waiting on another says. So a crewmate held for the captain reads "Captain's
+call: …" at rest and its "Done: PR …" only when open. Everything else — kind, task id, blocked-by,
+mode, since, model, the agent id, every one of those lines in full, the pull request, the report path —
+is in the open card, above its actions; the Watch view and the workspace panels open it already.
+Pressing the card is still the only way in, and its accessibility label carries the title, status,
+project, host and that one line, since the clipped text is not read out.
+
+Columns are told apart by their fill, not a border; only cards keep one, which a light theme needs
+(`surface0` on `surface1` is nearly white on white). **Done** shows `DONE_SHOWN` cards, newest first by
+the date in the backlog line's outcome or since (`doneCards`), then the agent's `updatedAt`, with
+undated ones last in file order — the backlog's own order says nothing about recency — and a **Show
+all** that is kept in module scope like the rest of the surface. **Card spacing** (`density` in the
+display settings, Settings › Plugins › FirstMate) is Comfortable or Compact and changes padding, gaps
+and the title's size only, never what a card shows.
 
 ## The first mate is told it lives in Paseo
 
@@ -898,4 +918,6 @@ the user's):
    crewmate appear on the board in its own worktree, report `done: ready in branch fm/<id>`, and the
    first mate relay it.
 4. Then look at the screen and the sidebar row's badge, wide and compact, in two themes — there is no
-   harness for plugin UI.
+   harness for plugin UI. For layout alone, a throwaway bundle outside the repo can render `Board` or
+   `CrewCard` with sample cards through react-native-web, the `@getpaseo/plugin` imports stubbed, and
+   headless Edge or Chrome can screenshot it; that is how the density change was shown.
