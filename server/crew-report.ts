@@ -67,3 +67,23 @@ export function parseCrewReport(message: string | null | undefined, window = 4):
 export function reportUrl(text: string): string | null {
   return /https?:\/\/[^\s()<>]+/.exec(text)?.[0]?.replace(/[.,;]+$/, "") ?? null;
 }
+
+/**
+ * What a status line says its worker is waiting on, once its turn has ended: `outside` — a gate, a
+ * run, a watcher, a background job, another worker, "until …" — that will move on its own; the
+ * `captain`, whose word it needs; the `first-mate`, who has to act; or null when it waits on nothing,
+ * and a worker that stopped saying `working` has stalled.
+ */
+export type WaitTarget = "outside" | "captain" | "first-mate";
+
+const WAITING =
+  /\b(?:wait(?:s|ing)?|await(?:s|ing)?|until|pending|watch(?:er|ers|es|ing)?|gates?|background|running|polling|sleep(?:s|ing)?|queued|wakes?|check(?:ing)? back|in progress|blocked (?:on|by)|behind)\b/i;
+const CAPTAIN = /\b(?:captain|approval|go-ahead|sign-?off|decision|your (?:answer|reply|call|word))\b/i;
+const FIRST_MATE = /\bfirst[- ]?mate\b/i;
+
+export function waitTarget(text: string): WaitTarget | null {
+  if (!WAITING.test(text)) return null;
+  if (CAPTAIN.test(text)) return "captain";
+  if (FIRST_MATE.test(text)) return "first-mate";
+  return "outside";
+}
