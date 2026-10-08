@@ -37,7 +37,11 @@ export const CrewStateSchema = z.enum([
 ]);
 export type CrewState = z.infer<typeof CrewStateSchema>;
 
-export const COLUMN_IDS = ["queued", "working", "blocked", "parked", "done", "failed", "idle"] as const;
+/**
+ * The board's columns. Ready came last, so a saved order from before it keeps its place and gains Ready
+ * at its end (`orderedColumns` appends what a saved order does not mention).
+ */
+export const COLUMN_IDS = ["queued", "working", "blocked", "parked", "done", "failed", "idle", "ready"] as const;
 export const ColumnIdSchema = z.enum(COLUMN_IDS);
 export type ColumnId = z.infer<typeof ColumnIdSchema>;
 
@@ -144,6 +148,12 @@ export const FleetCardSchema = z.object({
   report: CrewReportSchema.nullable(),
   /** A pull request, from the report or the backlog line. */
   url: z.string().nullable(),
+  /**
+   * Why the card sits where its live status alone would not put it, for its chip: `waiting` — the
+   * turn ended on a wait for something outside the worker; `stalled` — it said `working` with nothing
+   * to wait on; `no worker seen` — in flight, with no worker the board can match. Absent otherwise.
+   */
+  note: z.string().optional(),
   /** Present only for work on a remote host. */
   remote: RemoteCardSchema.optional(),
 });

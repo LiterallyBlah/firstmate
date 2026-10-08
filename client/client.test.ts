@@ -231,7 +231,13 @@ describe("columns", () => {
       "parked",
       "failed",
       "idle",
+      "ready",
     ]);
+  });
+
+  it("keeps a layout saved before the Ready column, with Ready added at its end", () => {
+    const before = ["idle", "working", "queued", "blocked", "parked", "done", "failed"];
+    expect(orderedColumns(before)).toEqual([...before, "ready"]);
   });
 
   it("moves a column and clamps at the ends", () => {
@@ -251,11 +257,11 @@ describe("columns", () => {
     // done, blocked and parked hidden: working's right neighbour on screen is failed.
     const shown = order.filter((id) => !["done", "blocked", "parked"].includes(id));
     const right = moveColumn(order, "working", 1, shown);
-    expect(right.filter((id) => shown.includes(id))).toEqual(["queued", "failed", "working", "idle"]);
+    expect(right.filter((id) => shown.includes(id))).toEqual(["queued", "failed", "working", "idle", "ready"]);
     expect(right.filter((id) => !shown.includes(id))).toEqual(["blocked", "parked", "done"]);
     const left = moveColumn(order, "failed", -1, shown);
-    expect(left.filter((id) => shown.includes(id))).toEqual(["queued", "failed", "working", "idle"]);
-    expect(moveColumn(order, "idle", 1, shown)).toEqual(order);
+    expect(left.filter((id) => shown.includes(id))).toEqual(["queued", "failed", "working", "idle", "ready"]);
+    expect(moveColumn(order, "ready", 1, shown)).toEqual(order);
     expect(moveColumn(order, "done", 1, shown)).toEqual(order);
   });
 
@@ -991,12 +997,13 @@ function crewCard(key: string, agent: Partial<AgentSummary> | null, column: Flee
 }
 
 describe("the sidebar row's badge", () => {
-  it("counts the live crewmates in the Working and Idle columns, and nothing else", () => {
+  it("counts the live crewmates in the Working, Ready and Idle columns, and nothing else", () => {
     expect(activeCrewCount([])).toBe(0);
     const cards = [
       crewCard("working", { status: "running" }, "working"),
       crewCard("idle", { status: "idle" }, "idle"),
-      crewCard("reported-done", { status: "idle" }, "idle"),
+      crewCard("reported-done", { status: "idle" }, "ready"),
+      crewCard("waiting-on-a-gate", { status: "idle" }, "working"),
       crewCard("blocked", { status: "idle", pendingPermissions: 1 }, "blocked"),
       crewCard("failed", { status: "error" }, "failed"),
       crewCard("parked", { status: "idle" }, "parked"),
@@ -1005,6 +1012,6 @@ describe("the sidebar row's badge", () => {
       crewCard("backlog-only", null, "working"),
       crewCard("closed", { status: "closed" }, "idle"),
     ];
-    expect(activeCrewCount(cards)).toBe(3);
+    expect(activeCrewCount(cards)).toBe(4);
   });
 });

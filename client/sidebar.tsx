@@ -1,6 +1,6 @@
 /**
  * The sidebar item: the FirstMate row, with a badge counting the crewmates
- * that are working or idle, and none while that is zero.
+ * that are working, ready or idle, and none while that is zero.
  *
  * It reads the board's own fleet query, so with the screen or a panel open the
  * three poll once between them; with neither open, it is what keeps the poll
@@ -44,7 +44,7 @@ export function FleetSidebarItem({ theme, currentScreen, openScreen }: PluginSid
         count === 0 ? undefined : (
           <View
             style={styles.badge}
-            accessibilityLabel={`${count} ${count === 1 ? "crewmate" : "crewmates"} working or idle`}
+            accessibilityLabel={`${count} ${count === 1 ? "crewmate" : "crewmates"} working, ready or idle`}
           >
             <Text style={styles.badgeText}>{count}</Text>
           </View>
