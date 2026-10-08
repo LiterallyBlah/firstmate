@@ -39,7 +39,7 @@ const onLight = (status = "running"): RemoteCard => ({
   serverId: "srv_light",
   host: "Light",
   online: true,
-  worker: { id: "w1", name: "w", status, updatedAt: "", pendingPermissions: 0 },
+  worker: { id: "w1", name: "w", status, updatedAt: "", pendingPermissions: 0, permissionDetails: [], followed: false },
 });
 const hosts = [
   { serverId: "srv_light", label: "Light", online: true },
@@ -99,12 +99,13 @@ describe("watchKey", () => {
 });
 
 describe("activeCrewCount", () => {
-  it("counts remote workers in Working or Idle beside local ones", () => {
+  it("counts remote workers in Working or Idle beside local ones, but not followed sessions", () => {
     expect(
       activeCrewCount([
         ...cards,
         card("light-idle", "idle", onLight("idle")),
         card("light-closed", "idle", onLight("closed")),
+        card("light-followed", "working", { ...onLight(), worker: { ...onLight().worker!, followed: true } }),
       ]),
     ).toBe(3);
   });

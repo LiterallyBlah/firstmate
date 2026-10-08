@@ -6,7 +6,8 @@
  * kept out of the environment it hands on, and exactly one attempt once a command may change
  * anything. Before that, the worker has to be one the last poll found this first mate owning on
  * that host — the board cannot be pointed at an arbitrary agent there, as `requireCrew` keeps it
- * from one here.
+ * from one here. A session the first mate only follows (`followed`, the captain's own) can be
+ * watched, steered and interrupted like a worker, but never ended.
  */
 import type { RemoteHost, RemoteSnapshot, RemoteWorker } from "../shared/remotes";
 import { TEMPLATES, message } from "./templates";
@@ -66,6 +67,8 @@ export async function interruptRemoteCrew(remotes: RemoteGateway, serverId: stri
 
 export async function exitRemoteCrew(remotes: RemoteGateway, serverId: string, agentId: string): Promise<void> {
   const { host, worker } = await requireWorker(remotes, serverId, agentId);
+  // A followed session is the captain's own, not crew; the board never ends it.
+  if (worker.followed === true) throw new Error(`${worker.name} is a session the first mate follows, not crew; end it on ${host.label}.`);
   await send(remotes, host, ["archive", worker.id]);
 }
 

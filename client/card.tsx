@@ -12,7 +12,8 @@
  * Interrupt and End go to it through the plugin's remote request path
  * (`shared/remote-crew.ts`); Relaunch is shown but off, since a new worker
  * there needs a brief only the first mate can write. While its host is
- * unreachable, only Watch is on.
+ * unreachable, only Watch is on. A session the first mate only follows — the
+ * captain's own, not crew — is marked so and is never offered End.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
@@ -116,6 +117,7 @@ export function CrewCard({
   /** The remote worker the actions go to: on a saved host, by serverId. */
   const target = remote !== null && remote.serverId !== null && worker !== null ? { serverId: remote.serverId, agentId: worker.id } : null;
   const status = agent ?? (worker === null ? null : { pendingPermissions: worker.pendingPermissions, status: worker.status });
+  const followed = worker?.followed === true;
   const running = status !== null && (status.status === "running" || status.status === "initializing");
   const tone = columnTone(theme, card.column);
   const styles = useMemo(() => {
@@ -193,6 +195,7 @@ export function CrewCard({
     remote === null
       ? null
       : `on ${remote.host}${remote.serverId === null ? " (not a saved host)" : remote.online ? "" : " (unreachable)"}`,
+    followed ? "followed, not crew" : null,
     card.project,
     card.kind,
     card.taskId,
@@ -230,6 +233,14 @@ export function CrewCard({
           {agent.lastError}
         </Text>
       )}
+      {worker === null
+        ? null
+        : worker.permissionDetails.map((permission) => (
+            <Text key={permission.id} style={styles.report} numberOfLines={expanded ? undefined : 2}>
+              <Text style={styles.reportState}>Waiting on {permission.tool}: </Text>
+              {permission.description ?? `answer it on ${remote?.host ?? "its host"}`}
+            </Text>
+          ))}
       {agent === null && worker === null && backlog?.section === "in-flight" ? (
         <Text style={styles.meta}>
           {remote === null
@@ -298,10 +309,13 @@ export function CrewCard({
               showLabel
               tone="danger"
               theme={theme}
-              disabled={busy || !remote.online}
+              disabled={busy || !remote.online || followed}
               onPress={() => setDraft({ kind: "end" })}
             />
           </View>
+          {followed ? (
+            <Text style={styles.meta}>End is off: this is one of the captain's own sessions the first mate follows, not crew.</Text>
+          ) : null}
           {remote.online ? null : (
             <Text style={styles.meta}>{remote.host} is unreachable; Steer, Interrupt and End wait until it answers.</Text>
           )}
