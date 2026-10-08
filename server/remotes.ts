@@ -50,23 +50,59 @@ export function remoteEnvironment(host: RemoteProfile, target: string, source: N
 }
 
 /** Limit this bridge to orchestration. Target/authentication selectors are
- * forbidden, including nested global flags and Commander aliases. */
+ * forbidden, including nested global flags and Commander aliases. Everything
+ * after `--` is a prompt (the helper's `--prompt-file`), never an option. */
 export function commandArguments(args: string[], owner: string): string[] {
   const command = args[0] ?? "";
   if (!["ls", "run", "logs", "inspect", "stop", "send", "wait", "archive", "permit", "provider", "project", "workspace"].includes(command)) throw new Error("Unsupported remote command");
-  if (args.some((arg) => /^--(?:host|home|password)(?:=|$)/.test(arg))) throw new Error("Remote target cannot be overridden");
-  if (args.some((arg, i) => (arg === "--label" && /^firstmate\.(?:owner|role)=/.test(args[i + 1] ?? "")) || /^--label=firstmate\.(?:owner|role)=/.test(arg))) throw new Error("Reserved ownership label");
-  const result = [...args];
-  if (command === "run") result.push("--background", "--label", "firstmate.role=crew", "--label", `firstmate.owner=${owner}`);
-  if (command === "send") result.push("--no-wait");
-  if (!result.includes("--json")) result.push("--json");
-  return result;
+  const end = args.indexOf("--");
+  const options = end < 0 ? [...args] : args.slice(0, end);
+  if (options.some((arg) => /^--(?:host|home|password)(?:=|$)/.test(arg))) throw new Error("Remote target cannot be overridden");
+  if (options.some((arg, i) => (arg === "--label" && /^firstmate\.(?:owner|role)=/.test(options[i + 1] ?? "")) || /^--label=firstmate\.(?:owner|role)=/.test(arg))) throw new Error("Reserved ownership label");
+  // The CLI's own --prompt-file would read any file the daemon can; the helper's reads only the home.
+  if (options.some((arg) => /^--prompt-file(?:=|$)/.test(arg))) throw new Error("Use the helper's --prompt-file, which reads the file from the home");
+  if (command === "run") options.push("--background", "--label", "firstmate.role=crew", "--label", `firstmate.owner=${owner}`);
+  if (command === "send") options.push("--no-wait");
+  if (!options.includes("--json")) options.push("--json");
+  return end < 0 ? options : [...options, ...args.slice(end)];
 }
-function parsed(result: CliResult, allowText = false): unknown {
+const MAX_ERROR_CHARS = 1500;
+/** More than a few minutes: the delay of a remote run can never account for it. */
+const CLOCK_WARNING_SECONDS = 180;
+/** Remove what must never leave the daemon: the host's password and relay
+ * details, pairing links, relay URLs and bearer credentials. */
+export function redact(text: string, host?: RemoteProfile): string {
+  const secrets = host ? [host.password, ...host.connections.flatMap((c) => c.type === "relay" ? [c.relayEndpoint, c.daemonPublicKeyB64] : [])] : [];
+  let out = text
+    .replace(/\S*#offer=[^\s"',;)]*/gi, "[pairing link]")
+    .replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s"',;)]*relay[^\s"',;)]*/gi, "[relay URL]")
+    .replace(/paseo\.bearer\.[^\s"',;)]+/gi, "[credential]");
+  for (const secret of secrets) if (secret) out = out.split(secret).join("[redacted]");
+  return out;
+}
+/** The CLI's own complaint — its JSON error's message and details, else its
+ * text — from stderr, else stdout; redacted and capped. */
+export function remoteError(result: CliResult, host?: RemoteProfile): string {
+  for (const stream of [result.stderr, result.stdout]) {
+    const text = stream.replace(/\u001b\[[0-9;]*m/g, "").trim();
+    if (!text) continue;
+    let message = text;
+    try {
+      const error = record(record(JSON.parse(text)).error);
+      if (typeof error.message === "string" && error.message.trim()) {
+        message = [error.message.trim(), typeof error.details === "string" ? error.details.trim() : ""].filter(Boolean).join("\n");
+      }
+    } catch { /* Not JSON; the text itself is the complaint. */ }
+    const clean = redact(message, host);
+    return clean.length > MAX_ERROR_CHARS ? `${clean.slice(0, MAX_ERROR_CHARS)}…` : clean;
+  }
+  return `the Paseo CLI exited with code ${result.code}`;
+}
+function parsed(result: CliResult, allowText = false, host?: RemoteProfile): unknown {
   if (result.code !== 0) {
-    const text = `${result.stderr}\n${result.stdout}`;
-    if (/password|unauthorized|authentication/i.test(text)) throw new Error("Remote authentication failed; reconnect this host in Paseo");
-    throw new Error("Remote command failed; inspect the host in Paseo for details");
+    const message = remoteError(result, host);
+    if (/password|unauthori[sz]ed|authentication/i.test(message)) throw new Error("Remote authentication failed; reconnect this host in Paseo");
+    throw new Error(`Remote command failed: ${message}`);
   }
   try { return JSON.parse(result.stdout); }
   catch { if (allowText) return result.stdout; throw new Error("Remote CLI returned an unsupported response"); }
@@ -164,21 +200,27 @@ export class RemoteService {
   }
   private async call(host: RemoteProfile, connection: RemoteConnection, args: string[]) {
     // Paseo 0.11's filtered logs and help print plain text even with --json.
-    return parsed(await this.execute(args, remoteEnvironment(host, connectionTarget(host, connection)), this.controller.signal), args[0] === "logs" || args.includes("--help") || args.includes("-h"));
+    return parsed(await this.execute(args, remoteEnvironment(host, connectionTarget(host, connection)), this.controller.signal), args[0] === "logs" || args.includes("--help") || args.includes("-h"), host);
   }
   private async connect(host: RemoteProfile): Promise<RemoteConnection> {
     const preferred = this.preferred.get(host.serverId) ?? host.preferredConnectionId;
     const connections = [...host.connections].sort((a, b) => Number(b.id === preferred) - Number(a.id === preferred));
+    let reason = "";
     for (const connection of connections) {
       if (this.stopped) throw new Error("Remote service stopped");
       try {
-        const status = connectionStatus(await this.execute(["status", "--json"], remoteEnvironment(host, connectionTarget(host, connection)), this.controller.signal));
-        if (status.serverId !== host.serverId || status.connectedDaemon !== "reachable") continue;
+        const result = await this.execute(["status", "--json"], remoteEnvironment(host, connectionTarget(host, connection)), this.controller.signal);
+        const status = connectionStatus(result);
+        if (status.serverId !== host.serverId || status.connectedDaemon !== "reachable") {
+          reason = status.serverId && status.serverId !== host.serverId ? "a saved connection reaches a different server" : result.code === 0 ? "the daemon is not reachable" : remoteError(result, host);
+          continue;
+        }
         this.preferred.set(host.serverId, connection.id);
         return connection;
-      } catch { /* Only read-only probes retry another saved connection. */ }
+      } catch (error) { reason = redact(error instanceof Error ? error.message : String(error), host); /* Only read-only probes retry another saved connection. */ }
     }
-    throw new Error("Host unreachable or authentication failed; reconnect it in Paseo");
+    if (/password|unauthori[sz]ed|authentication/i.test(reason)) reason = "authentication failed";
+    throw new Error(`Host unreachable or authentication failed; reconnect it in Paseo${reason ? ` (last attempt: ${reason.slice(0, 500)})` : ""}`);
   }
   async request(selector: string, args: string[]): Promise<unknown> {
     await this.ready;
@@ -189,8 +231,38 @@ export class RemoteService {
     const connection = await this.connect(host);
     // Exactly one attempt once a command may change remote state. A timeout
     // is uncertain; never retry creation automatically.
-    try { return await this.call(host, connection, command); }
-    finally { this.pollAt = 0; }
+    const sentAt = Date.now();
+    try {
+      const result = await this.call(host, connection, command);
+      if (command[0] === "run") await this.measureClock(host, connection, result, sentAt, Date.now());
+      return result;
+    } finally { this.pollAt = 0; }
+  }
+  /** A new agent's CreatedAt, on the host's clock, falls between sending its
+   * `run` and the answer on ours; anything outside that window is the host's
+   * clock. Read-only; a failure keeps the last measurement. */
+  private async measureClock(host: RemoteProfile, connection: RemoteConnection, result: unknown, sentAt: number, receivedAt: number) {
+    const agentId = record(result).agentId;
+    if (typeof agentId !== "string") return;
+    try {
+      const createdAt = Date.parse(String(record(await this.call(host, connection, ["inspect", agentId, "--json"])).CreatedAt ?? ""));
+      if (Number.isNaN(createdAt)) return;
+      const skew = createdAt < sentAt ? createdAt - sentAt : createdAt > receivedAt ? createdAt - receivedAt : 0;
+      const entry = this.snapshot.hosts.find((candidate) => candidate.serverId === host.serverId);
+      if (!entry) return;
+      entry.clockSkew = { seconds: Math.round(skew / 1000), measuredAt: new Date(receivedAt).toISOString(), agentId };
+      await this.publish();
+    } catch { /* The run itself succeeded. */ }
+  }
+  /** A warning for every helper answer while the host's clock looks more than a few minutes off. */
+  clockWarning(selector: string): string | undefined {
+    const entry = this.snapshot.hosts.filter((host) => host.serverId === selector || host.label === selector);
+    const skew = entry.length === 1 ? entry[0]!.clockSkew : null;
+    if (!skew || Math.abs(skew.seconds) < CLOCK_WARNING_SECONDS) return undefined;
+    const minutes = Math.round(Math.abs(skew.seconds) / 60);
+    return `Warning: host ${JSON.stringify(entry[0]!.label)}'s clock appears to be about ${minutes} minute${minutes === 1 ? "" : "s"} ${skew.seconds < 0 ? "behind" : "ahead of"} this machine's `
+      + `(agent ${skew.agentId}'s CreatedAt, measured ${skew.measuredAt}). Its times are shown as the host reports them; `
+      + `${skew.seconds < 0 ? "add" : "subtract"} about ${minutes} minute${minutes === 1 ? "" : "s"} before comparing them with this machine's clock.`;
   }
   async poll(): Promise<void> {
     await this.ready;
@@ -229,7 +301,8 @@ export class RemoteService {
         } catch { next.online = false; next.error = "Cannot read this host. Reconnect it in Paseo; check its daemon and provider configuration."; }
         const index = this.snapshot.hosts.findIndex((entry) => entry.serverId === host.serverId);
         // A concurrent sync may have removed or replaced the profile.
-        if (index >= 0 && this.hosts.includes(host)) this.snapshot.hosts[index] = next;
+        // A run measured during this poll keeps its clock measurement.
+        if (index >= 0 && this.hosts.includes(host)) this.snapshot.hosts[index] = { ...next, clockSkew: this.snapshot.hosts[index]!.clockSkew ?? null };
       });
       await this.publish();
     } finally { this.polling = false; }
@@ -255,7 +328,8 @@ export class RemoteService {
           if (Date.now() - request.createdAt > 180000) throw new Error("Request expired before execution");
           response = { id: request.id, ok: true, result: await this.request(request.host, request.args) };
         } catch (error) { response = { id: request.id, ok: false, error: error instanceof Error && !/password|#offer=|relay:\/\//i.test(error.message) ? error.message : "Remote command failed" }; }
-        await atomic(join(remoteQueue(), `${request.id}.response.json`), response);
+        const warning = this.clockWarning(request.host);
+        await atomic(join(remoteQueue(), `${request.id}.response.json`), warning ? { ...response, warning } : response);
         await rm(claimed, { force: true });
       }
       // Bounded retention for abandoned helper calls; never replay claimed work.
