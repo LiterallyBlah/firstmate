@@ -124,7 +124,7 @@ describe("independent remote access", () => {
     const { service } = await fixture(async () => ({ code: 1, stdout: "", stderr: JSON.stringify({ error: { message: "connect ECONNREFUSED 10.0.0.2:6767" } }) }));
     await expect(service.request("Remote", ["ls"])).rejects.toThrow("(last attempt: connect ECONNREFUSED 10.0.0.2:6767)");
   });
-  it("sends a brief from a home file, shows pending tool calls and local times", async () => {
+  it("sends a brief from a home file, shows pending tool calls, and prints times as reported", async () => {
     const calls: string[][] = [];
     const { directory, home, service } = await fixture(async (args) => {
       if (args[0] === "status") return success({ serverId: remote.serverId, connectedDaemon: "reachable" });
@@ -164,10 +164,48 @@ describe("independent remote access", () => {
     expect(permits).toEqual([{ id: "req-1", agentId: "agent-1", agentShortId: "agent-1", name: "Bash", description: "-", recentTools: ["[Read] notes.md", "[Shell] npm test -- --run"] }]);
     expect(calls.at(-1)).toEqual(["logs", "agent-1", "--filter", "tools", "--tail", "3", "--json"]);
 
-    const inspected = JSON.parse((await run(process.execPath, [helper, "Remote", "inspect", "agent-1"], { timeout: 10000 })).stdout);
-    expect(inspected.UpdatedAt).toMatch(/^2026-10-08T\d{2}:\d{2}:42\.199[+-]\d{2}:\d{2}$/);
-    expect(new Date(inspected.UpdatedAt).getTime()).toBe(Date.parse("2026-10-08T09:09:42.199Z"));
-    expect(inspected.Name).toBe("2026-10-08T09:09:42.199Z is a title");
+    const inspected = await run(process.execPath, [helper, "Remote", "inspect", "agent-1"], { timeout: 10000 });
+    expect(JSON.parse(inspected.stdout)).toMatchObject({ UpdatedAt: "2026-10-08T09:09:42.199Z", Name: "2026-10-08T09:09:42.199Z is a title" });
+    expect(inspected.stderr).toBe("");
+  }, 60000);
+  it("measures a host's clock from a new worker's CreatedAt and warns while it is off", async () => {
+    let behindMs = 59 * 60000;
+    let inspectFails = false;
+    const { directory, home, service } = await fixture(async (args) => {
+      if (args[0] === "status") return success({ serverId: remote.serverId, connectedDaemon: "reachable" });
+      if (args[0] === "run") return success({ agentId: "new-agent", status: "running" });
+      if (args[0] === "inspect" && inspectFails) return { code: 1, stdout: "", stderr: "busy" };
+      if (args[0] === "inspect") return success({ Id: args[1], CreatedAt: new Date(Date.now() - behindMs).toISOString(), UpdatedAt: "2026-10-08T09:02:30.413Z" });
+      return success([]);
+    });
+    const helper = join(home, "tools", "remote.mjs");
+    await writeFile(helper, fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(join(directory, "remote-requests")) }));
+    service.start();
+    const dispatched = await run(process.execPath, [helper, "Remote", "run", "brief"], { cwd: home, timeout: 10000 });
+    expect(JSON.parse(dispatched.stdout)).toEqual({ agentId: "new-agent", status: "running" });
+    expect(dispatched.stderr).toContain(`host "Remote"'s clock appears to be about 59 minutes behind this machine's (agent new-agent's CreatedAt`);
+    const skew = (await service.read()).hosts[0]!.clockSkew!;
+    expect(skew.agentId).toBe("new-agent");
+    expect(skew.seconds).toBeLessThanOrEqual(-59 * 60 + 1);
+    expect(skew.seconds).toBeGreaterThan(-60 * 60);
+
+    // Later answers keep warning, and show the host's times untouched.
+    const inspected = await run(process.execPath, [helper, "Remote", "inspect", "new-agent"], { cwd: home, timeout: 10000 });
+    expect(JSON.parse(inspected.stdout).UpdatedAt).toBe("2026-10-08T09:02:30.413Z");
+    expect(inspected.stderr).toContain("59 minutes behind");
+    expect(JSON.parse(await readFile(join(home, "data", "remote-hosts.json"), "utf8")).hosts[0].clockSkew.seconds).toBe(skew.seconds);
+    expect((await run(process.execPath, [helper, "hosts"], { cwd: home, timeout: 10000 })).stderr).toContain("59 minutes behind");
+
+    // A failed measurement keeps the last one and never fails the run.
+    inspectFails = true;
+    await expect(service.request("Remote", ["run", "brief"])).resolves.toEqual({ agentId: "new-agent", status: "running" });
+    expect((await service.read()).hosts[0]!.clockSkew!.seconds).toBe(skew.seconds);
+
+    // A host whose clock agrees reads as no skew, and no warning.
+    inspectFails = false; behindMs = 0;
+    const fixed = await run(process.execPath, [helper, "Remote", "run", "brief"], { cwd: home, timeout: 10000 });
+    expect(fixed.stderr).toBe("");
+    expect((await service.read()).hosts[0]!.clockSkew!.seconds).toBe(0);
   }, 60000);
   it("executes a native terminal helper through the daemon queue", async () => {
     const { directory, home, service } = await fixture(async (args) => args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success([{ projectId: "remote-project" }]));

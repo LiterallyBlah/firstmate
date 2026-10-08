@@ -19,8 +19,10 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 - A failed remote command reports the remote CLI's own error, redacted, instead of a generic
   message. An unreachable host names its last connection attempt's reason.
-- The helper prints Paseo's UTC times in local time with their offset, and refuses a `--cwd` that
-  has lost its backslashes.
+- Each remote `run` measures the host's clock against this machine's, from the new worker's
+  `CreatedAt`. The measurement is kept as the host's `clockSkew`, and every helper answer from a
+  host that is three minutes or more off warns on stderr. Remote times are shown as reported.
+- The helper refuses a `--cwd` that has lost its backslashes.
 - `data/remote-access.md` documents prompt files, errors, permissions and questions, times, and why
   remote files cannot be read yet.
 

@@ -211,8 +211,9 @@ completions and pending permissions to the local first mate. The screen includes
 card; the existing crew columns contain local workers. `data/remote-access.md` contains the full
 agent instructions and command examples. The helper reports the remote CLI's own error messages
 (with credentials and connection links removed), takes multi-line briefs from a file in the home
-with `--prompt-file`, adds each pending permission's latest tool calls, and prints Paseo's UTC times
-in local time with their offset. Paseo 0.11's CLI cannot read files on a remote host, so remote
+with `--prompt-file`, and adds each pending permission's latest tool calls. Remote times are shown as
+the host reports them. Each remote run measures the host's clock against Atlas's, and the helper warns
+while it is off by three minutes or more. Paseo 0.11's CLI cannot read files on a remote host, so remote
 workers return reports in their final reply or push them.
 
 Passwords and relay pairing data remain in `plugin-data/firstmate/remotes.json`, outside the mate's
