@@ -36,6 +36,14 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- **Idle no longer stands in for Working.** A worker that ended its turn with `working:` or `paused:`
+  waiting on something outside itself — a gate, a run, a watcher, another worker, "until …" — is filed
+  in Working with a "waiting" chip. A finished worker (`done:`, `resolved:`) waits in a new **Ready**
+  column for the first mate. Idle is left for a worker that stopped with no status line or stalled
+  (`working:` with nothing to wait on, chip "stalled"). In-flight backlog items with no worker the board
+  can see are in Working, marked "no worker seen", or Blocked when held for the captain. Local and remote
+  workers, followed sessions included, follow the same rules. Saved column layouts gain Ready at their
+  end, and the sidebar badge counts Ready too.
 - A failed remote command reports the remote CLI's own error, redacted, instead of a generic
   message. An unreachable host names its last connection attempt's reason.
 - Each remote `run` measures the host's clock against this machine's, from the new worker's

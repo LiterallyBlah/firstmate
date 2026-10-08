@@ -9,8 +9,11 @@ finished pull requests, investigation findings, and only the decisions that are 
 the captain.
 
 A **FirstMate** panel in the sidebar puts the conversation with the first mate beside a board of its
-crew — Queued, Working, Blocked, Parked, Done, Failed and Idle — with each worker's last word on what
-it is doing and a link to its pull request. The sidebar row shows how many workers are working or idle.
+crew — Queued, Working, Blocked, Parked, Done, Failed, Idle and Ready — with each worker's last word on
+what it is doing and a link to its pull request. A worker that ended its turn waiting on a gate, a run or
+another worker stays in Working, marked "waiting"; one that has finished waits in Ready for the first
+mate; Idle is for a worker that stopped without saying why, or stalled. The sidebar row shows how many
+workers are working, ready or idle.
 
 ![A 30-second loop of FirstMate at work, zooming in on each step: one message to the first mate asks
 for a dark mode toggle and a speed-conversion fix in a small web app; two cards appear in Queued and

@@ -50,7 +50,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/serialize.ts`         | Runs the config update and each home file's save one at a time, per file.                  |
 | `server/host-types.ts`        | Paseo types projected out of `@getpaseo/plugin`; see the root AGENTS.md.                    |
 | `client/fleet.tsx`            | The screen: header, banners, chat/board split, compact tabs, the shared fleet query.       |
-| `client/screen.ts`            | The screen's id, and the count of working and idle crewmates on its sidebar row. Pure.     |
+| `client/screen.ts`            | The screen's id, and the count of working, ready and idle crewmates on its sidebar row. Pure. |
 | `client/sidebar.tsx`          | The sidebar item: the FirstMate row and its badge.                                         |
 | `client/chat.tsx`             | The first mate's conversation, folded to the words, and the composer.                      |
 | `client/draft.ts`, `attachments.ts` | The unsent message and what is attached to it, kept on `globalThis` across reloads.  |
@@ -162,12 +162,12 @@ first mates have written too; both parse into `BacklogItem.host`. The value is w
 wrote: a serverId, a label, or "Label serverId". `resolveHost` (`server/remote-cards.ts`) tries an exact
 serverId, an exact label, a serverId among its words, then a label among its words, each only when one
 host matches, so an ambiguous value is never guessed; this machine's own serverId is local work. A line
-whose host is not a saved one still gets a card, with `serverId: null`, in its section's column.
+whose host is not a saved one still gets a card, with `serverId: null`, in its section's column (`backlogPlacement`).
 
 `buildCards` never joins a remote line to a local crewmate, since task ids repeat across hosts.
 `buildRemoteCards` joins it to a worker in the remote snapshot (`RemoteService.read()`, in memory, polled
 about once a minute) by the agent id the line records (a prefix of seven or more counts, as `paseo`
-accepts) or the worker's `firstmate.task`. The column is `crewColumn`'s, fed the worker's status and
+accepts) or the worker's `firstmate.task`. The column is `crewPlacement`'s, fed the worker's status and
 pending permissions and the status line `remoteReport` finds in the log tail the poll keeps — only after
 the last `[User]` or `[Thought]` paragraph, so a prompt saying "done:" is not a report. Cards are keyed
 `remote:<serverId>:…`, and a remote card has `remote` and never `agent`, so no local action can be
@@ -215,17 +215,32 @@ quiet. `closingText` joins the assistant messages at the very end — a streamed
 that split anywhere, even mid-word — and `parseCrewReport` looks for the status line only in the last
 few lines, so "the build is done: …" earlier in a message is not a report.
 
-Columns: a pending permission, an error or a running turn win (blocked, failed, working); once the
-turn has ended the status line decides; an ended turn with no status line is **Idle**. So is a
-`done:` or `resolved:` one: **Done** is for work the backlog records as Done, and a crewmate that has
-reported done is still alive and In flight until the first mate lands it and moves the item. Its card
-keeps the status line and the item's hold, so "Done: PR …" still reads on it from the Idle column.
+Columns (`crewPlacement`): a pending permission, an error or a running turn win (blocked, failed,
+working); once the turn has ended the status line decides:
+
+- `done:` or `resolved:` is **Ready** — finished, waiting on the first mate. **Done** is for work the
+  backlog records as Done, and a crewmate that has reported done is still alive and In flight until the
+  first mate lands it and moves the item. Its card keeps the status line and the item's hold, so
+  "Done: PR …" still reads on it from Ready.
+- `working:` or `paused:` that names a wait on something outside the worker — a gate, a run, a watcher,
+  a background job, another worker, "until …" (`waitTarget` in `server/crew-report.ts`) — is
+  **Working**, chip "waiting": workers often end their turn while a job they started runs on, and these
+  read as Idle before. A wait on the captain is Blocked, on the first mate Ready.
+- `working:` with nothing to wait on is a stall: **Idle**, chip "stalled". An ended turn with no status
+  line is Idle too, and any other `paused:` is **Parked**.
+
+An in-flight backlog item the board cannot match to a worker (`backlogPlacement`) — a session it does
+not list, a host it cannot read — is Working with the chip "no worker seen", since nothing says it has
+stopped; with a `(hold: …)` it is Blocked. The chip's word is the card's `note`, set only where the
+live status alone would not explain the column. Ready came after the other seven, so a saved
+`columnOrder` without it gets it at its end (`orderedColumns`). Remote workers, followed sessions
+included, are placed by the same function; a followed session is marked as followed on its card.
 
 The board draws only columns with a card in them, folded or not (`board.tsx`); the wide layout puts
 the shown ones in `boardRows` — one row up to three, two past that, the extra in the second — after
 the suggestions card when there is one (`boardItems`), which counts as a column there but never folds
 or moves. The saved
-`columnOrder` still holds all seven. A header's arrows reorder the *shown* columns (`moveColumn` with
+`columnOrder` still holds all eight. A header's arrows reorder the *shown* columns (`moveColumn` with
 `shown`): the moved column hops past any hidden neighbour to land beside the next shown one, and the
 hidden ones keep their place relative to each other, so a press always moves something on screen and
 no column's slot is lost while it is empty.
@@ -585,7 +600,7 @@ non-legacy item, and nothing here can change: the screen header has no ship, and
 shows a generic plugin icon.
 
 The item (`client/sidebar.tsx`) is the one FirstMate row, with a badge in `trailing`: how many crewmates
-Paseo still runs have their card in the Working or the Idle column (`activeCrewCount`), and no badge at
+Paseo still runs have their card in the Working, Ready or Idle column (`activeCrewCount`), and no badge at
 zero. It reads **the board's own fleet query** (`useFleet`) rather than an agent observation of its own:
 the screen, the panels and the item share one cache and one poll, and the count agrees with the
 board's columns. The cost is that the poll now runs whenever the app shows this host — before, only
