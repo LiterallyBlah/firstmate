@@ -102,6 +102,8 @@ export const RemoteWorkerSummarySchema = z.object({
   pendingPermissions: z.number().int(),
   /** What each pending permission asks, where the poll could say: its tool, and its description. */
   permissionDetails: z.array(z.object({ id: z.string(), tool: z.string(), description: z.string().optional() })),
+  /** While a permission is pending: its latest tool calls, as the poll read them; empty otherwise. */
+  recentTools: z.array(z.string()),
   /**
    * Not crew: one of the captain's own sessions the first mate follows (`data/remote-follow.json`).
    * Drawn as followed, never offered End, and not counted on the sidebar.
@@ -117,6 +119,8 @@ export const RemoteCardSchema = z.object({
   /** The host's label, or the backlog's own spelling when it is not a saved host. */
   host: z.string(),
   online: z.boolean(),
+  /** How far the host's clock is ahead of this machine's (negative: behind), as last measured; null when unknown. */
+  clockSkewSeconds: z.number().nullable(),
   worker: RemoteWorkerSummarySchema.nullable(),
 });
 export type RemoteCard = z.infer<typeof RemoteCardSchema>;

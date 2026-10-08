@@ -178,7 +178,11 @@ message alone — is read for the status line before the log tail (`workerReport
 `pendingPermissions` (id, tool, description) counts toward Blocked and is spelled out on the card. A
 `followed` entry is one of the captain's own sessions the first mate follows (`data/remote-follow.json`),
 not crew: its card says so, it joins a backlog line only by agent id, the sidebar does not count it, and
-End is off on the card and refused by the server.
+End is off on the card and refused by the server. While a permission is pending, the worker's
+`recentTools` — its latest tool calls, which show a waiting Bash command — are listed on the open card.
+A host's `clockSkew` (host time minus this machine's, measured on each remote `run`) moves
+the card's "updated" time onto this machine's clock, and a skew of three minutes or more, the helper's
+own warning threshold, gets a line in the host's health.
 
 **The task label takes a lookup.** `paseo ls` and `inspect` print no labels, so the poll asks the
 other way round: for each unfinished line on a host whose worker is not known by agent id or an already
@@ -188,13 +192,14 @@ records its agent id costs nothing.
 
 **Actions** go through `RemoteService.request` with the worker's serverId — its allowed commands, its
 target and credential handling, one attempt — and only to a worker the last poll found this first mate
-owning on that host (`server/remote-crew.ts`). Steer is `send` (refused if it starts with `-`, which the
-CLI would read as an option), Interrupt `stop`, End `archive`, Watch `logs --filter text`, re-read every
+owning on that host (`server/remote-crew.ts`). Steer is `send <id> -- <words>`: after `--`, as the helper sends a prompt,
+the request path keeps the words out of its option checks and puts its own flags before them, and the CLI
+reads them as text even when they start with a dash. Interrupt `stop`, End `archive`, Watch `logs --filter text`, re-read every
 ten seconds while open. The plugin cannot see a remote turn end, so a steer is relayed to the first mate
 at once (`templates/messages/remote-steer.md`) rather than with the answer. Relaunch is drawn disabled
 with its reason: a new worker there needs a brief only the first mate can write. Steer, Interrupt and
-End are off while the host is unreachable, and End always on a followed session. Errors are worded as the helper queue's are, never carrying a
-pairing link.
+End are off while the host is unreachable, and End always on a followed session. Errors are the request path's own — the remote CLI's
+message, redacted — and anything still shaped like a password or pairing link becomes "Remote command failed".
 
 **Host tabs.** With remote hosts saved, a row above the columns — All, This machine, then each host by
 label, with an online or unreachable mark and its working and blocked-or-failed counts — filters the board

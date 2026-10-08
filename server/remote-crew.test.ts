@@ -39,14 +39,14 @@ describe("remote crew actions", () => {
     await exitRemoteCrew(remotes, "srv_light", "w1");
     expect(await remoteCrewLogs(remotes, "srv_light", "w1")).toMatchObject({ text: "[User] go\n\ndone: PR" });
     expect(calls).toEqual([
-      { selector: "srv_light", args: ["send", "w1", "Rebase first."] },
+      { selector: "srv_light", args: ["send", "w1", "--", "Rebase first."] },
       { selector: "srv_light", args: ["stop", "w1"] },
       { selector: "srv_light", args: ["archive", "w1"] },
       { selector: "srv_light", args: ["logs", "w1", "--tail", "40", "--filter", "text"] },
     ]);
     // Each passes the request path's own guard; a send never waits there.
     for (const call of calls) expect(() => commandArguments(call.args, "owner")).not.toThrow();
-    expect(commandArguments(calls[0]!.args, "owner")).toContain("--no-wait");
+    expect(commandArguments(calls[0]!.args, "owner")).toEqual(["send", "w1", "--no-wait", "--json", "--", "Rebase first."]);
   });
 
   it("refuses a host or worker the last poll did not find, before sending anything", async () => {
@@ -61,14 +61,19 @@ describe("remote crew actions", () => {
     const { remotes, calls } = gateway();
     await expect(exitRemoteCrew(remotes, "srv_light", "mine")).rejects.toThrow("not crew");
     await steerRemoteCrew(remotes, "srv_light", "mine", "Check the logs.");
-    expect(calls).toEqual([{ selector: "srv_light", args: ["send", "mine", "Check the logs."] }]);
+    expect(calls).toEqual([{ selector: "srv_light", args: ["send", "mine", "--", "Check the logs."] }]);
   });
 
-  it("refuses words the remote CLI would read as an option", async () => {
+  it("sends words that start with a dash as text, after --, past the request path's option checks", async () => {
     const { remotes, calls } = gateway();
-    await expect(steerRemoteCrew(remotes, "srv_light", "w1", "--host=elsewhere")).rejects.toThrow('cannot start with "-"');
+    await steerRemoteCrew(remotes, "srv_light", "w1", "- first, rebase");
+    await steerRemoteCrew(remotes, "srv_light", "w1", "--host=elsewhere is just words here");
+    expect(calls.map((call) => call.args)).toEqual([
+      ["send", "w1", "--", "- first, rebase"],
+      ["send", "w1", "--", "--host=elsewhere is just words here"],
+    ]);
+    expect(commandArguments(calls[1]!.args, "owner")).toEqual(["send", "w1", "--no-wait", "--json", "--", "--host=elsewhere is just words here"]);
     await expect(steerRemoteCrew(remotes, "srv_light", "w1", "   ")).rejects.toThrow("Nothing to send");
-    expect(calls).toEqual([]);
   });
 
   it("never passes on an error that could carry a credential or a pairing link", async () => {

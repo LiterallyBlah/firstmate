@@ -229,9 +229,33 @@ describe("followed sessions and permission detail", () => {
       updatedAt: "2026-10-08T10:00:00.000Z",
       pendingPermissions: 1,
       permissionDetails: [{ id: "p1", tool: "Bash", description: "rm -rf build" }],
+      recentTools: [],
       followed: true,
     });
     expect(cards[2]?.remote?.worker).toBeNull();
+  });
+});
+
+describe("recent tools and clock skew", () => {
+  it("carries a waiting worker's latest tool calls and the host's measured clock skew", () => {
+    const cards = buildRemoteCards(
+      [],
+      snapshot([
+        host({
+          clockSkew: { seconds: -240, measuredAt: "2026-10-08T10:00:00.000Z", agentId: "w-light-1" },
+          workers: [
+            worker({ permissions: 1, recentTools: ["Bash: npm publish"] }),
+            // Tools left over from a permission already answered are not shown.
+            worker({ id: "w-2", recentTools: ["Bash: ls"] }),
+          ],
+        }),
+      ]),
+    );
+    expect(cards.map((card) => [card.remote?.clockSkewSeconds, card.remote?.worker?.recentTools])).toEqual([
+      [-240, ["Bash: npm publish"]],
+      [-240, []],
+    ]);
+    expect(buildRemoteCards([], snapshot([host({ workers: [worker()] })]))[0]?.remote?.clockSkewSeconds).toBeNull();
   });
 });
 

@@ -227,7 +227,9 @@ ten seconds; **Steer**, **Interrupt** and **End** go to the worker through the s
 while its host is unreachable. **Relaunch** is off for remote workers: ask the first mate, which writes
 the new brief there. A session the first mate only follows — one of your own, listed in
 `data/remote-follow.json` — is marked as followed and never offered End. A card spells out each
-permission its worker is waiting on, where the host says. The sidebar badge counts remote workers too,
+permission its worker is waiting on, where the host says, with its latest tool calls. Times on a remote
+card are corrected for the host's measured clock skew, and a host whose clock is three minutes or more
+off says so in its health. The sidebar badge counts remote workers too,
 followed sessions aside.
 
 With remote hosts saved, tabs above the columns filter the board: **All**, **This machine**, then one

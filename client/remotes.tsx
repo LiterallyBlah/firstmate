@@ -4,6 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollView, Text, View } from "react-native";
 import { readRemotes, type RemoteHost } from "../shared/remotes";
 
+/** A host clock this far off gets a line, as the helper warns from the same distance. */
+const SKEW_WARNING_SECONDS = 180;
+
 /** The remote snapshot, one query for the Remote hosts card and the board's host tabs. */
 export function useRemotes() {
   const read = useRpc(readRemotes);
@@ -17,6 +20,11 @@ export function HostHealth({ host, theme }: { host: RemoteHost; theme: PluginThe
       <Text style={{ color: theme.colors.foreground }}>{host.label} · {host.online ? "online" : host.checkedAt ? "unreachable" : "connecting"}</Text>
       <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{host.projects.length} projects · {host.workspaces.length} workspaces · {host.providers.length} providers · {host.workers.length} workers</Text>
       {host.error ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{host.error}</Text> : null}
+      {Math.abs(host.clockSkew?.seconds ?? 0) >= SKEW_WARNING_SECONDS ? (
+        <Text style={{ color: theme.colors.statusWarning, fontSize: 12 }}>
+          Clock about {Math.round(Math.abs(host.clockSkew!.seconds) / 60)} minutes {host.clockSkew!.seconds < 0 ? "behind" : "ahead of"} this machine; card times are corrected.
+        </Text>
+      ) : null}
       {host.workers.map((worker) => <Text key={worker.id} style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{worker.name} · {worker.status}{worker.permissions ? ` · ${worker.permissions} awaiting permission` : ""}</Text>)}
     </View>
   );
