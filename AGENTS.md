@@ -17,7 +17,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `index.server.ts`             | Wiring — the RPCs, the display settings document, the steer relay hook.                    |
 | `index.client.tsx`            | Wiring — the screen, sidebar item, two panels, settings screen, ⌘K items, `/fm` `/bearings` `/ahoy`. |
 | `shared/fleet.ts`             | Every RPC contract, the card/fleet shapes, the daemon config shape, and `CREW_LABELS`.     |
-| `shared/settings.ts`          | The host settings document: column order and folds, the chat's width, the poll interval, card spacing. |
+| `shared/settings.ts`          | The host settings document: List/Board, column order and folds, the chat's width, the poll interval, card spacing. |
 | `templates/`                  | **Every file the plugin writes into the home**, as Markdown laid out as it lands there, and the parts that go inside them. The first mate's behaviour is `templates/data/charter.md`. |
 | `server/templates.ts`         | Finds `templates/` — through `paseo plugin ls`, since the compiled plugin cannot say where it lives — and reads it. |
 | `server/charter.ts`           | Renders `AGENTS.md`: the charter's placeholders filled, under its heading note.            |
@@ -62,16 +62,17 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/keyboard.ts`          | How far the on-screen keyboard covers a view, measured in window coordinates.              |
 | `client/keys.ts`              | Enter sends, Shift+Enter is a new line — web and wide layouts only, as in Paseo. Pure.     |
 | `client/transcript-rows.ts`   | Timeline entries → chat rows. Pure.                                                        |
-| `client/board.tsx`, `card.tsx`| The columns (Done cut to its latest few), and one card: a glance at rest, the rest and its actions open. |
-| `client/suggestions.tsx`      | The first mate's suggestions as buttons: a card on the wide board, a tab on a phone.       |
+| `client/board.tsx`, `card.tsx`| Full-height board columns, and the shared card/row details and actions. |
+| `client/task-list.tsx`        | The default grouped List: one scroll container, Done collapsed to a count. |
+| `client/suggestions.tsx`      | The slim suggestion strip, overflow menu and full-prompt dialogs; send, expand and delete. |
 | `client/suggestion-removals.ts` | Which suggestions have a removal on its way, by label and prompt. Pure.                  |
 | `client/suggestion-fold.ts`   | Whether a folded suggestion card cuts its text, measured against an invisible twin. Pure. |
-| `client/watches.tsx`          | The Watches card: each watch's schedule, last run and output, and its on/off switch.       |
+| `client/watches.tsx`          | The Watches header button and dialog: schedule, last run and output, and on/off switches. |
 | `client/mate-send.ts`         | Sending to the first mate — Send, Bearings, Ahoy, a suggestion — one message at a time.    |
 | `client/crewmate.tsx`         | Watch: one crewmate's card beside its live transcript, in the board's place.               |
 | `client/remote-worker.tsx`    | Watch for a remote worker: its card beside its recent log, re-read every ten seconds.      |
 | `client/host-tabs.ts`, `host-tab-row.tsx` | The board's host tabs: All, this machine, each saved host; what each shows. The rules are pure. |
-| `client/remotes.tsx`          | The Remote hosts card, one host's health, and the shared remote snapshot query.            |
+| `client/remotes.tsx`          | A selected host's compact, expandable health line and the shared remote snapshot query. |
 | `client/activity-rows.ts`     | Timeline entries → Watch rows, machinery kept: reasoning, tool detail, the latest plan. Pure. |
 | `client/mate-controls.tsx`    | The context meter, Compact and Restart (with its confirmation), at the end of the chat's buttons. |
 | `client/context-meter.tsx`    | How full the first mate's context is: Paseo's ring, built from views; the numbers in a tooltip. |
@@ -204,7 +205,9 @@ message, redacted — and anything still shaped like a password or pairing link 
 **Host tabs.** With remote hosts saved, a row above the columns — All, This machine, then each host by
 label, with an online or unreachable mark and its working and blocked-or-failed counts — filters the board
 (`client/host-tabs.ts`). The choice is `hostTab` in the display settings; a saved host that is gone shows
-All. A host's tab puts its health at the top; All keeps the Remote hosts card below. No hosts, no row.
+All. A host's tab shows a one-line expandable health summary (reachability, worker count, clock warning),
+with connection details on expansion and no duplicate worker list. All uses the tabs alone for health.
+No hosts, no row.
 The sidebar badge (`activeCrewCount`) counts remote workers like local ones.
 
 ## Status lines are read on the daemon, cached by `updatedAt`
@@ -236,10 +239,23 @@ live status alone would not explain the column. Ready came after the other seven
 `columnOrder` without it gets it at its end (`orderedColumns`). Remote workers, followed sessions
 included, are placed by the same function; a followed session is marked as followed on its card.
 
-The board draws only columns with a card in them, folded or not (`board.tsx`); the wide layout puts
-the shown ones in `boardRows` — one row up to three, two past that, the extra in the second — after
-the suggestions card when there is one (`boardItems`), which counts as a column there but never folds
-or moves. The saved
+**List is the default** (`crewView` in the display settings, defaulted even for an existing document).
+`client/task-list.tsx` groups tasks by `listGroup`/`listGroups` in `client/format.ts`: Needs you (Blocked,
+Ready, Failed, a captain hold, a permission or an error), Working (including waiting), Queued,
+Idle / stalled (Parked too), then Done. Empty groups are hidden. Each row is `CrewCard` with
+`presentation="row"`: a state icon, a one-line title at rest, project/host tags, relative time and
+the same `cardHeadline`. A full-title web tooltip goes through `webTitle`; React Native Web drops
+the `title` prop, so the web boundary sets the attribute on the forwarded DOM ref. Its accessibility
+label carries the full title and status. Pressing expands the same details and actions; they are
+siblings of the toggle button, so actions never also fold it. Card memory and drafts survive
+switching views. One `ScrollView` owns the entire list, including expanded details and Done.
+Done starts as a single count with Show, expands all tasks in place, and uses `doneCards`' date order.
+
+The header's List/Board switch saves `crewView`. Board draws only columns with a card in them,
+folded or not (`board.tsx`), in one full-height horizontal row on wide screens, with a 300-point
+minimum width per open column and horizontal overflow. Headers and counts cannot shrink or wrap.
+There is no enclosing column box around the cards. A folded column is a 44-point strip; on phones,
+columns stack in one scrolling view. Suggestions and watches are outside both task layouts. The saved
 `columnOrder` still holds all eight. A header's arrows reorder the *shown* columns (`moveColumn` with
 `shown`): the moved column hops past any hidden neighbour to land beside the next shown one, and the
 hidden ones keep their place relative to each other, so a press always moves something on screen and
@@ -257,8 +273,8 @@ is in the open card, above its actions; the Watch view and the workspace panels 
 Pressing the card is still the only way in, and its accessibility label carries the title, status,
 project, host and that one line, since the clipped text is not read out.
 
-Columns are told apart by their fill, not a border; only cards keep one, which a light theme needs
-(`surface0` on `surface1` is nearly white on white). **Done** shows `DONE_SHOWN` cards, newest first by
+Board cards keep their border, including in a light theme; open columns have no enclosing box.
+Board's **Done** shows `DONE_SHOWN` cards, newest first by
 the date in the backlog line's outcome or since (`doneCards`), then the agent's `updatedAt`, with
 undated ones last in file order — the backlog's own order says nothing about recency — and a **Show
 all** that is kept in module scope like the rest of the surface. **Card spacing** (`density` in the
@@ -498,8 +514,9 @@ worker) is read as already reported, so an upgrade repeats nothing. Its test
 (`server/remote-watch.test.ts`) runs the seeded copy against catalogs written by hand, and checks that
 an untouched copy of the 0.4.0 version is replaced.
 
-The card sits after the columns in `boardItems`, and on a phone at the foot of the Crew tab rather than in
-a tab of its own: it is looked at now and then, and a fifth tab does not fit a phone's width. A watch's
+Watches open from `WatchButton` in the panel header, on every layout. `watchAttention` adds a count
+and colour only for failing, invalid or off watches; quiet watches have only the muted icon. The host
+Modal contains the existing `WatchList`, including schedules, switches and output. A watch's
 name opens its script (`watchPath`, the same `watches/` the server reads) through the surface's `openFile`,
 the charter Compare's way into the Files view: the Files tab on a phone, the right-hand pane otherwise.
 
@@ -509,7 +526,7 @@ the charter Compare's way into the Files view: the Files tab on a phone, the rig
 the first mate rewrites it whenever that changes (charter §2 and §9). The board reads it with the fleet
 on every poll (`parseSuggestions`): notes are left out, a line without a label and a prompt either side
 of the first `::` is skipped, and at most `MAX_SUGGESTIONS` are kept. Nothing in code writes a
-suggestion; an empty or missing file draws no card and no tab.
+suggestion; an empty or missing file hides the slim suggestion strip.
 
 The one thing code does to the file is take a suggestion out, for a card's trash button
 (`firstmate.suggestion.remove`, `removeSuggestion` in `server/home.ts`). It is found by the label and
@@ -543,15 +560,15 @@ like a typed message, and a first mate mid-turn gets it the way `server/send.ts`
 The sender's gate — one message on its way at a time — is per first mate in module scope, not in the
 chat's state, because the surface's buttons and the chat both read it, and a phone switching tabs
 unmounts the chat mid-send; the buttons are disabled while it is shut, and a double press that gets in
-before the re-render is refused by it. A phone left on the Suggestions tab when the list empties shows,
-and then switches to, First mate.
+before the re-render is refused by it. Phones keep First mate, Crew and Files tabs; suggestions sit
+above the Crew tab's List or Board, with the same send path back to First mate.
 
-Only a card's main button sends. The chevron that opens the whole suggestion and the trash are its
-siblings, not its children, so neither can press it. The chevron shows only when the folded card cuts
-its label or prompt, and React Native cannot say that portably — `onTextLayout` is absent on the web
-renderer and reports the whole text on iOS — so the card lays the same text out unclamped, invisible
-and at the same width, and compares the two `onLayout` heights (`client/suggestion-fold.ts`). Until both
-are in, the chevron shows.
+`SuggestionStrip` measures its width, keeps a single line of compact buttons, and puts overflow
+behind More in a host Modal. Each visible button has separate send, expand and delete controls;
+expanding opens the full prompt in a Modal with Send and Remove. More uses `SuggestionList`, whose
+cards show the start of each prompt and compare their folded and full heights
+(`client/suggestion-fold.ts`) to decide whether to offer expansion. Only the main button sends;
+expand and delete are always siblings, so neither sends accidentally.
 
 ## The home is called FirstMate in the sidebar, with a ship for its icon
 
@@ -917,7 +934,9 @@ the user's):
    a scratch `local-only` repository in `data/projects.md`, ask for a one-line change, and watch a
    crewmate appear on the board in its own worktree, report `done: ready in branch fm/<id>`, and the
    first mate relay it.
-4. Then look at the screen and the sidebar row's badge, wide and compact, in two themes — there is no
-   harness for plugin UI. For layout alone, a throwaway bundle outside the repo can render `Board` or
-   `CrewCard` with sample cards through react-native-web, the `@getpaseo/plugin` imports stubbed, and
-   headless Edge or Chrome can screenshot it; that is how the density change was shown.
+4. Then look at the screen and the sidebar row's badge, wide and compact, in two themes. The local
+   render harness in `docs/board-list/` mounts the real `FleetSurface`, chat, cards and task layouts
+   through react-native-web with only host APIs stubbed. It captures the before revision and both new
+   views at 2866×1694 (45% chat) and 390×844, using 45 tasks, and checks scrolling, keyboard expansion,
+   local/remote steer routing, Done, suggestion dialogs, Watches and host filtering. See its README.
+   Native phone behavior still needs a device check; the harness covers the phone browser layout.

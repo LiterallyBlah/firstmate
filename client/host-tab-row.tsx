@@ -57,6 +57,7 @@ export function HostTabRow({
             key={tab.id}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
+            aria-selected={active}
             accessibilityLabel={[
               tab.label,
               reach,

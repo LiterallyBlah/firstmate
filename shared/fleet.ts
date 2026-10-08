@@ -208,7 +208,7 @@ export const WatchResultSchema = z.enum(["never", "silent", "queued", "delivered
 export type WatchResult = z.infer<typeof WatchResultSchema>;
 
 /**
- * One script in the home's `watches/` folder, as the board's Watches card shows it. The runner
+ * One script in the home's `watches/` folder, as the header's Watches dialog shows it. The runner
  * (`server/watches.ts`) runs it on its schedule and sends the first mate whatever it prints.
  */
 export const WatchSummarySchema = z.object({
@@ -216,7 +216,7 @@ export const WatchSummarySchema = z.object({
   name: z.string(),
   /** The schedule as its header writes it, or null when it has none. */
   schedule: z.string().nullable(),
-  /** False once the captain has switched it off on the card. */
+  /** False once the captain has switched it off in Watches. */
   enabled: z.boolean(),
   /** Why it cannot run — no schedule, a bad one, not executable — or null when it can. */
   invalid: z.string().nullable(),
@@ -250,9 +250,9 @@ export const FleetSchema = z.object({
   mateInHome: z.boolean(),
   cards: z.array(FleetCardSchema),
   projects: z.array(ProjectSchema),
-  /** What the captain might do next, most likely first; empty hides the card and the tab. */
+  /** What the captain might do next, most likely first; empty hides the suggestion strip. */
   suggestions: z.array(SuggestionSchema),
-  /** The home's watch scripts, by name; empty hides the card. */
+  /** The home's watch scripts, by name, opened from the panel header. */
   watches: z.array(WatchSummarySchema),
   /**
    * Whether the daemon gives agents Paseo's own tools (`mcp.injectIntoAgents`),

@@ -6,11 +6,9 @@
  * interval in the display settings and refetched right after any action. The
  * chat reads the first mate's timeline directly and streams.
  *
- * The first mate's suggestions are buttons that send their words to it, as
- * the chat's Send would: a card beside the crew's columns on a wide layout, a
- * tab of their own on a phone, and nowhere at all while it has none. The home's
- * watch scripts are a card after the columns, and on a phone the foot of the
- * Crew tab: they are looked at now and then, not acted on, so they get no tab.
+ * Suggestions occupy one line above the crew; watches open from the header.
+ * The default List groups tasks by urgency in one scroll container. The Board
+ * option keeps full-height columns in one horizontal row on wide screens.
  *
  * With remote hosts saved, a row of host tabs sits above the columns — All,
  * this machine, then each host — and filters them to that host's cards; a
@@ -48,17 +46,19 @@ import { agentStatusLabel, agentStatusTone, groupCards, orderedColumns, revealFi
 import { LaunchPanel } from "./launch";
 import { useMateSender } from "./mate-send";
 import { ResizeHandle, clampShare } from "./resize-handle";
-import { ALL_HOSTS, hostTabs, onTab, shownHostTab, watchKey } from "./host-tabs";
+import { hostTabs, onTab, shownHostTab, watchKey } from "./host-tabs";
 import { HostTabRow } from "./host-tab-row";
 import { RemoteWorkerView } from "./remote-worker";
-import { HostHealthCard, RemoteHosts, useRemotes } from "./remotes";
-import { SuggestionList } from "./suggestions";
+import { HostHealthCard, useRemotes } from "./remotes";
+import { SuggestionStrip } from "./suggestions";
+import { TaskList } from "./task-list";
+import { WatchButton } from "./watches";
 import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
 
 export const FLEET_QUERY_KEY = ["firstmate", "fleet"] as const;
 
 let cachedFleet: Fleet | null = null;
-type Tab = "chat" | "suggestions" | "board" | "files";
+type Tab = "chat" | "board" | "files";
 let cachedTab: Tab = "chat";
 /** What the right-hand pane shows on a wide layout: the crew, or the home's files. */
 let cachedRightPane: "board" | "files" = "board";
@@ -130,16 +130,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     void queryClient.invalidateQueries({ queryKey: FLEET_QUERY_KEY });
   }, [queryClient]);
 
-  const suggestionCount = data?.suggestions.length ?? 0;
-  /**
-   * The Suggestions tab goes when the first mate clears its list, and the chat
-   * — where a suggestion would have led anyway — shows in its place, now and
-   * the next time the surface mounts.
-   */
-  const shownTab: Tab = tab === "suggestions" && suggestionCount === 0 ? "chat" : tab;
-  useEffect(() => {
-    if (data !== null && suggestionCount === 0 && tab === "suggestions") setTab("chat");
-  }, [data, suggestionCount, tab]);
+  const shownTab = tab;
 
   /**
    * Layout changes are drawn at once and saved behind, batched: a save is
@@ -231,8 +222,17 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
       },
-      headerRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, flexWrap: "wrap" as const },
-      title: { color: colors.foreground, fontSize: compact ? 17 : 20, fontWeight: "600" as const },
+      headerRow: {
+        flexDirection: "row" as const,
+        alignItems: "center" as const,
+        gap: 8,
+        flexWrap: "wrap" as const,
+      },
+      title: {
+        color: colors.foreground,
+        fontSize: compact ? 17 : 20,
+        fontWeight: "600" as const,
+      },
       spacer: { flex: 1 },
       meta: { color: colors.foregroundMuted, fontSize: 12 },
       banners: { paddingHorizontal: compact ? 12 : 16, paddingTop: 8, gap: 6 },
@@ -255,8 +255,10 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
       tab: { flex: 1, paddingVertical: 7, alignItems: "center" as const },
       tabActive: { backgroundColor: colors.accent },
       tabText: { color: colors.foreground, fontSize: 13 },
-      tabTextActive: { color: colors.accentForeground, fontWeight: "600" as const },
-      suggestions: { padding: 10, paddingBottom: 24 },
+      tabTextActive: {
+        color: colors.accentForeground,
+        fontWeight: "600" as const,
+      },
       loading: { color: colors.foregroundMuted, fontSize: 13, padding: 20 },
     };
   }, [theme, compact]);
@@ -287,8 +289,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
       });
   }, [unseen, markSeen, refresh]);
 
-  const openMate =
-    mate === null || navigation === undefined ? null : () => navigation.openAgent({ agentId: mate.id });
+  const openMate = mate === null || navigation === undefined ? null : () => navigation.openAgent({ agentId: mate.id });
 
   /**
    * A suggestion is sent to the first mate at once, through the chat's own
@@ -367,7 +368,9 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     setCharterBusy(true);
     acknowledgeCharters({})
       .then(() => {
-        toast.show("Your charter is now taken as up to date.", { variant: "success" });
+        toast.show("Your charter is now taken as up to date.", {
+          variant: "success",
+        });
         refresh();
       })
       .catch((caught: unknown) => toast.error(errorText(caught)))
@@ -385,7 +388,12 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         theme={theme}
         tone="warning"
         text="The first mate starts its crew and hears back from it through Paseo's agent tools, and this daemon does not give agents those tools."
-        action={{ label: enabling ? "Turning on…" : "Turn them on", icon: "Wrench", onPress: turnOnTools, disabled: enabling }}
+        action={{
+          label: enabling ? "Turning on…" : "Turn them on",
+          icon: "Wrench",
+          onPress: turnOnTools,
+          disabled: enabling,
+        }}
       />,
     );
   }
@@ -435,8 +443,18 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         tone="info"
         text="FirstMate's own charter has changed since you edited yours in data/charter.md. Compare them, bring over what you want, then press Done."
         actions={[
-          { label: "Compare", icon: "FileDiff", onPress: compareCharterFiles, disabled: charterBusy },
-          { label: "Done", icon: "Check", onPress: acknowledgeCharterChange, disabled: charterBusy },
+          {
+            label: "Compare",
+            icon: "FileDiff",
+            onPress: compareCharterFiles,
+            disabled: charterBusy,
+          },
+          {
+            label: "Done",
+            icon: "Check",
+            onPress: acknowledgeCharterChange,
+            disabled: charterBusy,
+          },
         ]}
       />,
     );
@@ -454,6 +472,22 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           <Chip theme={theme} text={`First mate · ${agentStatusLabel(mate)}`} color={agentStatusTone(theme, mate)} />
         )}
         <View style={styles.spacer} />
+        {mate !== null &&
+        (compact ? shownTab === "board" : rightPane === "board" && !values.boardCollapsed) &&
+        watching === null ? (
+          <Segmented
+            theme={theme}
+            value={values.crewView}
+            options={[
+              { value: "list", label: "List" },
+              { value: "board", label: "Board" },
+            ]}
+            onChange={(crewView) => save({ crewView })}
+          />
+        ) : null}
+        {data === null ? null : (
+          <WatchButton watches={data.watches} theme={theme} onChanged={refresh} onOpenFile={openFile} />
+        )}
         {!compact && mate !== null && data !== null && !values.boardCollapsed ? (
           <Segmented
             theme={theme}
@@ -471,13 +505,23 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
               icon={values.chatCollapsed ? "PanelLeftOpen" : "PanelLeftClose"}
               label={values.chatCollapsed ? "Show the chat" : "Hide the chat"}
               theme={theme}
-              onPress={() => save({ chatCollapsed: !values.chatCollapsed, boardCollapsed: false })}
+              onPress={() =>
+                save({
+                  chatCollapsed: !values.chatCollapsed,
+                  boardCollapsed: false,
+                })
+              }
             />
             <IconButton
               icon={values.boardCollapsed ? "PanelRightOpen" : "PanelRightClose"}
               label={values.boardCollapsed ? "Show the board" : "Hide the board"}
               theme={theme}
-              onPress={() => save({ boardCollapsed: !values.boardCollapsed, chatCollapsed: false })}
+              onPress={() =>
+                save({
+                  boardCollapsed: !values.boardCollapsed,
+                  chatCollapsed: false,
+                })
+              }
             />
           </>
         ) : null}
@@ -492,7 +536,12 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           onPress={refresh}
         />
         {openSettings === null ? null : (
-          <IconButton icon="Settings" label="FirstMate settings" theme={theme} onPress={() => openSettings?.("firstmate")} />
+          <IconButton
+            icon="Settings"
+            label="FirstMate settings"
+            theme={theme}
+            onPress={() => openSettings?.("firstmate")}
+          />
         )}
       </View>
       {data === null ? null : (
@@ -536,45 +585,55 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   const board = (
     <View style={{ flex: 1, minHeight: 0 }}>
       {tabs.length === 0 ? null : (
-        <HostTabRow tabs={tabs} selected={hostTab} theme={theme} compact={compact} onSelect={(id) => save({ hostTab: id })} />
+        <HostTabRow
+          tabs={tabs}
+          selected={hostTab}
+          theme={theme}
+          compact={compact}
+          onSelect={(id) => save({ hostTab: id })}
+        />
       )}
-      {tabHost === null ? null : <HostHealthCard host={tabHost} theme={theme} />}
-      <Board
-        cards={data.cards.filter((card) => onTab(card, hostTab))}
-        order={order}
-        collapsed={values.collapsedColumns}
-        theme={theme}
-        compact={compact}
-        density={values.density}
+      {tabHost === null ? null : <HostHealthCard key={tabHost.serverId} host={tabHost} theme={theme} />}
+      <SuggestionStrip
         suggestions={data.suggestions}
-        suggesting={mateSender.sending}
-        onSuggest={suggest}
-        onRemoveSuggestion={dismissSuggestion}
-        watches={data.watches}
-        onOpenFile={openFile}
-        onWatch={setWatching}
-        onChanged={refresh}
-        onToggleColumn={(id: ColumnId) =>
-          save({
-            collapsedColumns: values.collapsedColumns.includes(id)
-              ? values.collapsedColumns.filter((column) => column !== id)
-              : [...values.collapsedColumns, id],
-          })
-        }
-        onReorder={(next: ColumnId[]) => save({ columnOrder: next })}
+        theme={theme}
+        disabled={mateSender.sending}
+        onPick={suggest}
+        onRemove={dismissSuggestion}
       />
-      {hostTab === ALL_HOSTS ? <RemoteHosts theme={theme} /> : null}
+      {values.crewView === "list" ? (
+        <TaskList
+          cards={data.cards.filter((card) => onTab(card, hostTab))}
+          theme={theme}
+          compact={compact}
+          density={values.density}
+          onWatch={setWatching}
+          onChanged={refresh}
+        />
+      ) : (
+        <Board
+          cards={data.cards.filter((card) => onTab(card, hostTab))}
+          order={order}
+          collapsed={values.collapsedColumns}
+          theme={theme}
+          compact={compact}
+          density={values.density}
+          onWatch={setWatching}
+          onChanged={refresh}
+          onToggleColumn={(id: ColumnId) =>
+            save({
+              collapsedColumns: values.collapsedColumns.includes(id)
+                ? values.collapsedColumns.filter((column) => column !== id)
+                : [...values.collapsedColumns, id],
+            })
+          }
+          onReorder={(next: ColumnId[]) => save({ columnOrder: next })}
+        />
+      )}
     </View>
   );
   const chat = (
-    <MateChat
-      key={mate.id}
-      mate={mate}
-      theme={theme}
-      compact={compact}
-      onChanged={refresh}
-      onOpenFile={openFile}
-    />
+    <MateChat key={mate.id} mate={mate} theme={theme} compact={compact} onChanged={refresh} onOpenFile={openFile} />
   );
   const watchedCard = watching === null ? null : (data.cards.find((card) => watchKey(card) === watching) ?? null);
   const watchedRemote = watching === null ? null : /^remote:(.+):([^:]+)$/.exec(watching);
@@ -606,8 +665,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     );
 
   if (compact) {
-    const tabs: readonly Tab[] =
-      suggestionCount > 0 ? ["chat", "suggestions", "board", "files"] : ["chat", "board", "files"];
+    const tabs: readonly Tab[] = ["chat", "board", "files"];
     return (
       <View style={styles.screen}>
         {header}
@@ -618,17 +676,12 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
               key={id}
               accessibilityRole="tab"
               accessibilityState={{ selected: shownTab === id }}
+              aria-selected={shownTab === id}
               style={[styles.tab, shownTab === id ? styles.tabActive : null]}
               onPress={() => setTab(id)}
             >
               <Text style={[styles.tabText, shownTab === id ? styles.tabTextActive : null]} numberOfLines={1}>
-                {id === "chat"
-                  ? "First mate"
-                  : id === "suggestions"
-                    ? "Suggestions"
-                    : id === "board"
-                      ? `Crew (${data.cards.length})`
-                      : "Files"}
+                {id === "chat" ? "First mate" : id === "board" ? `Crew (${data.cards.length})` : "Files"}
               </Text>
             </Pressable>
           ))}
@@ -636,16 +689,6 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         <View style={{ flex: 1, minHeight: 0 }}>
           {shownTab === "chat" ? (
             chat
-          ) : shownTab === "suggestions" ? (
-            <ScrollView contentContainerStyle={styles.suggestions}>
-              <SuggestionList
-                suggestions={data.suggestions}
-                theme={theme}
-                disabled={mateSender.sending}
-                onPick={suggest}
-                onRemove={dismissSuggestion}
-              />
-            </ScrollView>
           ) : shownTab === "board" ? (
             crew
           ) : (

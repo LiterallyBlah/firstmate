@@ -111,6 +111,7 @@ export function Segmented<Value extends string>({
             key={option.value}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
+            aria-selected={selected}
             style={[styles.segment, selected ? styles.selected : null]}
             onPress={() => onChange(option.value)}
           >
