@@ -131,7 +131,10 @@ export function columnTone(theme: PluginTheme, column: ColumnId): string {
   }
 }
 
-export function agentStatusLabel(agent: AgentSummary): string {
+/** What a crewmate's status chip says. A remote worker's status is Paseo's too, as a plain string. */
+type StatusOf = Pick<AgentSummary, "pendingPermissions"> & { status: string; requiresAttention?: boolean };
+
+export function agentStatusLabel(agent: StatusOf): string {
   if (agent.pendingPermissions > 0) {
     return agent.pendingPermissions === 1 ? "waiting on a permission" : `waiting on ${agent.pendingPermissions} permissions`;
   }
@@ -144,13 +147,15 @@ export function agentStatusLabel(agent: AgentSummary): string {
       return "errored";
     case "closed":
       return "closed";
-    default:
+    case "idle":
       return "idle";
+    default:
+      return agent.status;
   }
 }
 
-export function agentStatusTone(theme: PluginTheme, agent: AgentSummary): string {
-  if (agent.pendingPermissions > 0 || agent.requiresAttention) return theme.colors.statusWarning;
+export function agentStatusTone(theme: PluginTheme, agent: StatusOf): string {
+  if (agent.pendingPermissions > 0 || agent.requiresAttention === true) return theme.colors.statusWarning;
   if (agent.status === "error") return theme.colors.statusDanger;
   if (agent.status === "running" || agent.status === "initializing") return theme.colors.accent;
   return theme.colors.foregroundMuted;

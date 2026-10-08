@@ -432,7 +432,9 @@ Before assuming only this machine is available, read `data/remote-access.md` and
 `node tools/remote.mjs hosts`. The plugin synchronizes the captain's saved Paseo hosts and connects
 from the daemon independently of the app. Local MCP tools address this host; route remote work through
 `tools/remote.mjs`, using that host's paths, providers and workspace IDs. The same charter applies there.
-Remote workers report through `remote-watch`; record each worker's host along with its agent ID.
+Remote workers report through `remote-watch`. Give each one `--label firstmate.task=<id>`, and record its
+host and agent ID on its backlog line as `(host: <serverId>) (agent: <agent-id>)`: that is how the board
+files it in its columns, with its live status, beside the local crew.
 
 ## 10. Bearings and ahoy
 

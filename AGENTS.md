@@ -27,6 +27,9 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/suggestions.ts`       | `data/suggestions.md` → `Suggestion[]`, the board's next-step buttons, and taking one out. Lenient, likewise. |
 | `server/crew-report.ts`       | A crewmate's closing status line (`done: PR …`) → state and text.                          |
 | `server/fleet.ts`             | The board: first mate, crew by label, backlog, status lines → cards in columns.            |
+| `server/remote-cards.ts`      | Remote work as cards: a backlog line's host resolved, joined to its worker, filed by the same rules. Pure. |
+| `server/remote-crew.ts`, `shared/remote-crew.ts` | A remote card's Steer, Interrupt, End and Watch, through `RemoteService.request`. |
+| `server/remotes.ts`, `shared/remotes.ts` | Saved remote hosts: the daemon-side connections, the minute poll, the helper's request queue. |
 | `server/mate.ts`              | Launching, adopting and releasing the first mate; carrying the captain's words to it.      |
 | `server/crew.ts`              | Steer, interrupt, end, relaunch one crewmate; the relay that tells the first mate about a steer. |
 | `server/crew-seen.ts`         | Clears a crewmate's "finished" flag once a later first-mate turn has completed.            |
@@ -66,6 +69,9 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/watches.tsx`          | The Watches card: each watch's schedule, last run and output, and its on/off switch.       |
 | `client/mate-send.ts`         | Sending to the first mate — Send, Bearings, Ahoy, a suggestion — one message at a time.    |
 | `client/crewmate.tsx`         | Watch: one crewmate's card beside its live transcript, in the board's place.               |
+| `client/remote-worker.tsx`    | Watch for a remote worker: its card beside its recent log, re-read every ten seconds.      |
+| `client/host-tabs.ts`, `host-tab-row.tsx` | The board's host tabs: All, this machine, each saved host; what each shows. The rules are pure. |
+| `client/remotes.tsx`          | The Remote hosts card, one host's health, and the shared remote snapshot query.            |
 | `client/activity-rows.ts`     | Timeline entries → Watch rows, machinery kept: reasoning, tool detail, the latest plan. Pure. |
 | `client/mate-controls.tsx`    | The context meter, Compact and Restart (with its confirmation), at the end of the chat's buttons. |
 | `client/context-meter.tsx`    | How full the first mate's context is: Paseo's ring, built from views; the numbers in a tooltip. |
@@ -148,6 +154,59 @@ whatever is left on either side is a card of its own.
 `firstmate.role=first-mate` at launch, for `paseo ls --label`, but the label is not consulted: the SDK
 cannot take a label off, so falling back to it would bring a released first mate straight back.
 
+## Remote work is on the board
+
+Work on a saved remote host (see README's *Remote hosts*) is filed in the same columns as the local
+crew. A backlog line names its host with `(host: …)` — the charter's spelling — or `(on-host: …)`, which
+first mates have written too; both parse into `BacklogItem.host`. The value is whatever the first mate
+wrote: a serverId, a label, or "Label serverId". `resolveHost` (`server/remote-cards.ts`) tries an exact
+serverId, an exact label, a serverId among its words, then a label among its words, each only when one
+host matches, so an ambiguous value is never guessed; this machine's own serverId is local work. A line
+whose host is not a saved one still gets a card, with `serverId: null`, in its section's column.
+
+`buildCards` never joins a remote line to a local crewmate, since task ids repeat across hosts.
+`buildRemoteCards` joins it to a worker in the remote snapshot (`RemoteService.read()`, in memory, polled
+about once a minute) by the agent id the line records (a prefix of seven or more counts, as `paseo`
+accepts) or the worker's `firstmate.task`. The column is `crewColumn`'s, fed the worker's status and
+pending permissions and the status line `remoteReport` finds in the log tail the poll keeps — only after
+the last `[User]` or `[Thought]` paragraph, so a prompt saying "done:" is not a report. Cards are keyed
+`remote:<serverId>:…`, and a remote card has `remote` and never `agent`, so no local action can be
+pointed at another daemon's id.
+
+The snapshot's optional fields are used where the poll has them: `lastMessage` — the worker's last
+message alone — is read for the status line before the log tail (`workerReport`), and
+`pendingPermissions` (id, tool, description) counts toward Blocked and is spelled out on the card. A
+`followed` entry is one of the captain's own sessions the first mate follows (`data/remote-follow.json`),
+not crew: its card says so, it joins a backlog line only by agent id, the sidebar does not count it, and
+End is off on the card and refused by the server. While a permission is pending, the worker's
+`recentTools` — its latest tool calls, which show a waiting Bash command — are listed on the open card.
+A host's `clockSkew` (host time minus this machine's, measured on each remote `run`) moves
+the card's "updated" time onto this machine's clock, and a skew of three minutes or more, the helper's
+own warning threshold, gets a line in the host's health.
+
+**The task label takes a lookup.** `paseo ls` and `inspect` print no labels, so the poll asks the
+other way round: for each unfinished line on a host whose worker is not known by agent id or an already
+learned task (`remoteTaskQueries`, given to `RemoteService` by `index.server.ts`), one
+`ls --label firstmate.task=<id>`, ten a poll at most, and the task stays on the worker after. A line that
+records its agent id costs nothing.
+
+**Actions** go through `RemoteService.request` with the worker's serverId — its allowed commands, its
+target and credential handling, one attempt — and only to a worker the last poll found this first mate
+owning on that host (`server/remote-crew.ts`). Steer is `send <id> -- <words>`: after `--`, as the helper sends a prompt,
+the request path keeps the words out of its option checks and puts its own flags before them, and the CLI
+reads them as text even when they start with a dash. Interrupt `stop`, End `archive`, Watch `logs --filter text`, re-read every
+ten seconds while open. The plugin cannot see a remote turn end, so a steer is relayed to the first mate
+at once (`templates/messages/remote-steer.md`) rather than with the answer. Relaunch is drawn disabled
+with its reason: a new worker there needs a brief only the first mate can write. Steer, Interrupt and
+End are off while the host is unreachable, and End always on a followed session. Errors are the request path's own — the remote CLI's
+message, redacted — and anything still shaped like a password or pairing link becomes "Remote command failed".
+
+**Host tabs.** With remote hosts saved, a row above the columns — All, This machine, then each host by
+label, with an online or unreachable mark and its working and blocked-or-failed counts — filters the board
+(`client/host-tabs.ts`). The choice is `hostTab` in the display settings; a saved host that is gone shows
+All. A host's tab puts its health at the top; All keeps the Remote hosts card below. No hosts, no row.
+The sidebar badge (`activeCrewCount`) counts remote workers like local ones.
+
 ## Status lines are read on the daemon, cached by `updatedAt`
 
 `ReportCache` fetches a crewmate's timeline tail only when its `updatedAt` has moved and it is not
@@ -197,7 +256,7 @@ holds, in three places:
   for a setting left open and one for a setting chosen.
 - **`messages/`** — everything the plugin sends the first mate: the note a restart adds after the opening,
   the Relaunch request, the note relaying a Steer (with the words for an answer that was too long or
-  never came), and Bearings and Ahoy, each with a second form for words typed after `/bearings` or
+  never came), the note for a Steer to a remote worker, and Bearings and Ahoy, each with a second form for words typed after `/bearings` or
   `/ahoy`. A template cannot branch, so a message that reads differently when something is missing is
   two files. Bearings and Ahoy are worded on the daemon — the app cannot read the plugin's files — so
   the buttons, ⌘K and the slash commands send `firstmate.mate.command` with the command's name and what

@@ -12,6 +12,10 @@
  * watch scripts are a card after the columns, and on a phone the foot of the
  * Crew tab: they are looked at now and then, not acted on, so they get no tab.
  *
+ * With remote hosts saved, a row of host tabs sits above the columns — All,
+ * this machine, then each host — and filters them to that host's cards; a
+ * host's tab shows that host's health first. The choice is a display setting.
+ *
  * A surface is unmounted whenever the captain opens a workspace, so the last
  * fleet, the compact tab and the crewmate being watched live in module scope
  * and the board comes back drawn rather than empty.
@@ -44,7 +48,10 @@ import { agentStatusLabel, agentStatusTone, groupCards, orderedColumns, revealFi
 import { LaunchPanel } from "./launch";
 import { useMateSender } from "./mate-send";
 import { ResizeHandle, clampShare } from "./resize-handle";
-import { RemoteHosts } from "./remotes";
+import { ALL_HOSTS, hostTabs, onTab, shownHostTab, watchKey } from "./host-tabs";
+import { HostTabRow } from "./host-tab-row";
+import { RemoteWorkerView } from "./remote-worker";
+import { HostHealthCard, RemoteHosts, useRemotes } from "./remotes";
 import { SuggestionList } from "./suggestions";
 import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
 
@@ -55,7 +62,7 @@ type Tab = "chat" | "suggestions" | "board" | "files";
 let cachedTab: Tab = "chat";
 /** What the right-hand pane shows on a wide layout: the crew, or the home's files. */
 let cachedRightPane: "board" | "files" = "board";
-/** The crewmate shown in the board's place — card and transcript — by agent id. */
+/** The crewmate shown in the board's place — card and transcript — by `watchKey`: its agent id, or `remote:<serverId>:<id>`. */
 let cachedWatching: string | null = null;
 
 /**
@@ -116,6 +123,8 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
 
   const fleet = useFleet(values.pollSeconds);
   const data = fleet.data ?? null;
+  const remoteHosts = useRemotes().data?.hosts ?? [];
+  const hostTab = shownHostTab(values.hostTab, remoteHosts);
 
   const refresh = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: FLEET_QUERY_KEY });
@@ -522,10 +531,16 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     );
   }
 
+  const tabs = hostTabs(data.cards, remoteHosts);
+  const tabHost = remoteHosts.find((host) => host.serverId === hostTab) ?? null;
   const board = (
     <View style={{ flex: 1, minHeight: 0 }}>
+      {tabs.length === 0 ? null : (
+        <HostTabRow tabs={tabs} selected={hostTab} theme={theme} compact={compact} onSelect={(id) => save({ hostTab: id })} />
+      )}
+      {tabHost === null ? null : <HostHealthCard host={tabHost} theme={theme} />}
       <Board
-        cards={data.cards}
+        cards={data.cards.filter((card) => onTab(card, hostTab))}
         order={order}
         collapsed={values.collapsedColumns}
         theme={theme}
@@ -547,7 +562,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         }
         onReorder={(next: ColumnId[]) => save({ columnOrder: next })}
       />
-      <RemoteHosts theme={theme} />
+      {hostTab === ALL_HOSTS ? <RemoteHosts theme={theme} /> : null}
     </View>
   );
   const chat = (
@@ -560,14 +575,27 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
       onOpenFile={openFile}
     />
   );
+  const watchedCard = watching === null ? null : (data.cards.find((card) => watchKey(card) === watching) ?? null);
+  const watchedRemote = watching === null ? null : /^remote:(.+):([^:]+)$/.exec(watching);
   const crew =
     watching === null ? (
       board
+    ) : watchedRemote !== null ? (
+      <RemoteWorkerView
+        key={watching}
+        serverId={watchedRemote[1] ?? ""}
+        agentId={watchedRemote[2] ?? ""}
+        card={watchedCard}
+        theme={theme}
+        compact={compact}
+        onBack={() => setWatching(null)}
+        onChanged={refresh}
+      />
     ) : (
       <CrewmateView
         key={watching}
         agentId={watching}
-        card={data.cards.find((card) => card.agent?.id === watching) ?? null}
+        card={watchedCard}
         theme={theme}
         compact={compact}
         onBack={() => setWatching(null)}
