@@ -100,6 +100,13 @@ export const RemoteWorkerSummarySchema = z.object({
   status: z.string(),
   updatedAt: z.string(),
   pendingPermissions: z.number().int(),
+  /** What each pending permission asks, where the poll could say: its tool, and its description. */
+  permissionDetails: z.array(z.object({ id: z.string(), tool: z.string(), description: z.string().optional() })),
+  /**
+   * Not crew: one of the captain's own sessions the first mate follows (`data/remote-follow.json`).
+   * Drawn as followed, never offered End, and not counted on the sidebar.
+   */
+  followed: z.boolean(),
 });
 export type RemoteWorkerSummary = z.infer<typeof RemoteWorkerSummarySchema>;
 

@@ -4,7 +4,7 @@ import { CREW_LABELS, type AgentSummary } from "../shared/fleet";
 import type { RemoteHost, RemoteSnapshot, RemoteWorker } from "../shared/remotes";
 import { parseBacklog } from "./backlog";
 import { buildCards } from "./fleet";
-import { buildRemoteCards, remoteColumn, remoteReport, remoteTaskQueries, resolveHost } from "./remote-cards";
+import { buildRemoteCards, remoteColumn, remoteReport, remoteTaskQueries, resolveHost, workerReport } from "./remote-cards";
 
 function worker(overrides: Partial<RemoteWorker> = {}): RemoteWorker {
   return { id: "w-light-1", name: "Fix login", status: "idle", updatedAt: "2026-10-08T10:00:00.000Z", permissions: 0, output: "", ...overrides };
@@ -82,6 +82,16 @@ describe("remoteReport", () => {
   });
 });
 
+describe("workerReport", () => {
+  it("prefers the worker's last message alone where the poll keeps one", () => {
+    expect(workerReport(worker({ output: "done: from the tail", lastMessage: "All set.\nblocked: needs a key" }))).toEqual({
+      state: "blocked",
+      text: "needs a key",
+    });
+    expect(workerReport(worker({ output: "done: from the tail" }))).toEqual({ state: "done", text: "from the tail" });
+  });
+});
+
 describe("remoteColumn", () => {
   it("files every status the way a local crewmate's is filed", () => {
     expect(remoteColumn(worker({ status: "running" }), { state: "done", text: "" })).toBe("working");
@@ -97,6 +107,8 @@ describe("remoteColumn", () => {
     expect(remoteColumn(worker(), { state: "working", text: "" })).toBe("idle");
     expect(remoteColumn(worker(), null)).toBe("idle");
     expect(remoteColumn(worker({ status: "closed" }), null)).toBe("idle");
+    // The detailed list counts even where an older poll's count did not.
+    expect(remoteColumn(worker({ pendingPermissions: [{ id: "p1", tool: "Bash" }] }), null)).toBe("blocked");
   });
 });
 
@@ -179,6 +191,47 @@ describe("buildRemoteCards", () => {
       ["remote:srv_dark:agent:same-id", "On Dark", "failed"],
     ]);
     expect(new Set(cards.map((card) => card.key)).size).toBe(cards.length);
+  });
+});
+
+describe("followed sessions and permission detail", () => {
+  it("marks a followed session, joins it only by agent id, and carries what each permission asks", () => {
+    const backlog = parseBacklog(`## In flight
+- [ ] mine - My own session (host: Light) (agent: own-session)
+- [ ] by-task - Not for a followed session (host: Light)
+`);
+    const cards = buildRemoteCards(
+      backlog,
+      snapshot([
+        host({
+          workers: [
+            worker({
+              id: "own-session",
+              name: "Captain's session",
+              followed: true,
+              task: "by-task",
+              pendingPermissions: [{ id: "p1", tool: "Bash", description: "rm -rf build" }],
+            }),
+            worker({ id: "other", name: "Followed, no line", followed: true, updatedAt: "2026-10-08T09:00:00.000Z" }),
+          ],
+        }),
+      ]),
+    );
+    expect(cards.map((card) => [card.key, card.title, card.column])).toEqual([
+      ["remote:srv_light:agent:own-session", "My own session", "blocked"],
+      ["remote:srv_light:agent:other", "Followed, no line", "idle"],
+      ["remote:srv_light:backlog:in-flight:by-task:1", "Not for a followed session", "idle"],
+    ]);
+    expect(cards[0]?.remote?.worker).toEqual({
+      id: "own-session",
+      name: "Captain's session",
+      status: "idle",
+      updatedAt: "2026-10-08T10:00:00.000Z",
+      pendingPermissions: 1,
+      permissionDetails: [{ id: "p1", tool: "Bash", description: "rm -rf build" }],
+      followed: true,
+    });
+    expect(cards[2]?.remote?.worker).toBeNull();
   });
 });
 

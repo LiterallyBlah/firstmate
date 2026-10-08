@@ -13,7 +13,10 @@ const light: RemoteHost = {
   projects: [],
   workspaces: [],
   providers: [],
-  workers: [{ id: "w1", name: "Fix login", status: "running", updatedAt: "", permissions: 0, output: "" }],
+  workers: [
+    { id: "w1", name: "Fix login", status: "running", updatedAt: "", permissions: 0, output: "" },
+    { id: "mine", name: "Captain's session", status: "idle", updatedAt: "", permissions: 0, output: "", followed: true },
+  ],
 };
 
 function gateway(answer: (args: string[]) => unknown = () => ({})) {
@@ -52,6 +55,13 @@ describe("remote crew actions", () => {
     await expect(interruptRemoteCrew(remotes, "srv_light", "someone-else")).rejects.toThrow("no worker someone-else");
     await expect(exitRemoteCrew(remotes, "srv_dark", "w1")).rejects.toThrow("not one of the remote hosts");
     expect(calls).toEqual([]);
+  });
+
+  it("never ends a followed session, which is the captain's own, but can still steer it", async () => {
+    const { remotes, calls } = gateway();
+    await expect(exitRemoteCrew(remotes, "srv_light", "mine")).rejects.toThrow("not crew");
+    await steerRemoteCrew(remotes, "srv_light", "mine", "Check the logs.");
+    expect(calls).toEqual([{ selector: "srv_light", args: ["send", "mine", "Check the logs."] }]);
   });
 
   it("refuses words the remote CLI would read as an option", async () => {

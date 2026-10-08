@@ -173,6 +173,13 @@ the last `[User]` or `[Thought]` paragraph, so a prompt saying "done:" is not a 
 `remote:<serverId>:…`, and a remote card has `remote` and never `agent`, so no local action can be
 pointed at another daemon's id.
 
+The snapshot's optional fields are used where the poll has them: `lastMessage` — the worker's last
+message alone — is read for the status line before the log tail (`workerReport`), and
+`pendingPermissions` (id, tool, description) counts toward Blocked and is spelled out on the card. A
+`followed` entry is one of the captain's own sessions the first mate follows (`data/remote-follow.json`),
+not crew: its card says so, it joins a backlog line only by agent id, the sidebar does not count it, and
+End is off on the card and refused by the server.
+
 **The task label takes a lookup.** `paseo ls` and `inspect` print no labels, so the poll asks the
 other way round: for each unfinished line on a host whose worker is not known by agent id or an already
 learned task (`remoteTaskQueries`, given to `RemoteService` by `index.server.ts`), one
@@ -186,7 +193,7 @@ CLI would read as an option), Interrupt `stop`, End `archive`, Watch `logs --fil
 ten seconds while open. The plugin cannot see a remote turn end, so a steer is relayed to the first mate
 at once (`templates/messages/remote-steer.md`) rather than with the answer. Relaunch is drawn disabled
 with its reason: a new worker there needs a brief only the first mate can write. Steer, Interrupt and
-End are off while the host is unreachable. Errors are worded as the helper queue's are, never carrying a
+End are off while the host is unreachable, and End always on a followed session. Errors are worded as the helper queue's are, never carrying a
 pairing link.
 
 **Host tabs.** With remote hosts saved, a row above the columns — All, This machine, then each host by

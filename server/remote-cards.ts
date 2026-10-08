@@ -8,6 +8,9 @@
  * joined to its worker on that host by the agent id it records or by the worker's `firstmate.task`;
  * whatever is left on either side is a card of its own, as with the local crew. Cards are keyed by
  * host, so the same task id on two hosts, or here and on a host, never collides.
+ *
+ * The snapshot can also hold the captain's own sessions the first mate follows (`followed`); they
+ * are drawn like workers, marked as followed, and join a backlog line only by its agent id.
  */
 import type { BacklogItem, ColumnId, CrewReportSummary, FleetCard, RemoteCard } from "../shared/fleet";
 import type { RemoteHost, RemoteSnapshot, RemoteWorker } from "../shared/remotes";
@@ -72,9 +75,22 @@ export function remoteReport(output: string): CrewReportSummary | null {
   return parseCrewReport(closing.join("\n\n"));
 }
 
+/**
+ * The worker's status line: from its last message alone where the poll keeps one (`lastMessage`),
+ * otherwise from the log tail.
+ */
+export function workerReport(worker: RemoteWorker): CrewReportSummary | null {
+  return worker.lastMessage === undefined ? remoteReport(worker.output) : parseCrewReport(worker.lastMessage);
+}
+
+/** How many permissions the worker waits on: the count, or the detailed list where it is longer. */
+function pendingCount(worker: RemoteWorker): number {
+  return Math.max(worker.permissions, worker.pendingPermissions?.length ?? 0);
+}
+
 /** Where a remote worker belongs: the same rules as a local crewmate (`crewColumn`). */
 export function remoteColumn(worker: RemoteWorker, report: CrewReportSummary | null): ColumnId {
-  return crewColumn({ pendingPermissions: worker.permissions, status: worker.status }, report);
+  return crewColumn({ pendingPermissions: pendingCount(worker), status: worker.status }, report);
 }
 
 /** Whether a backlog line's recorded agent id names this worker: the whole id, or a prefix of 7 or more, as `paseo` accepts. */
@@ -97,7 +113,9 @@ function remoteOf(host: RemoteHost, worker: RemoteWorker | null): RemoteCard {
             name: worker.name,
             status: worker.status,
             updatedAt: worker.updatedAt,
-            pendingPermissions: worker.permissions,
+            pendingPermissions: pendingCount(worker),
+            permissionDetails: (worker.pendingPermissions ?? []).map((permission) => ({ ...permission })),
+            followed: worker.followed === true,
           },
   };
 }
@@ -152,11 +170,11 @@ export function buildRemoteCards(items: readonly BacklogItem[], snapshot: Remote
         ({ item }, position) =>
           !claimed.has(position) &&
           item.section !== "done" &&
-          (namesWorker(item.agentId, worker) || (worker.task !== undefined && item.id === worker.task)),
+          (namesWorker(item.agentId, worker) || (worker.followed !== true && worker.task !== undefined && item.id === worker.task)),
       );
       const item = found?.item ?? null;
       if (found !== undefined) claimed.add(lines.indexOf(found));
-      const report = remoteReport(worker.output);
+      const report = workerReport(worker);
       cards.push({
         key: `remote:${host.serverId}:agent:${worker.id}`,
         column: remoteColumn(worker, report),
