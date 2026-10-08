@@ -3,7 +3,8 @@
  * children (`gh`, `curl`) with it. Once a run is stopped — timed out, or the plugin shutting down — the
  * group gets SIGTERM and, after the grace period, SIGKILL whatever has happened in between: the script
  * exiting on SIGTERM does not mean a child that ignores it, and has let go of the pipes, is gone too.
- * Windows runs Node watches through the plugin's runtime and stops their tree with taskkill /T /F.
+ * Windows runs Node watches through the plugin's runtime, not detached, and stops their tree with
+ * taskkill /T /F.
  *
  * What it prints is kept up to a cap and read to the end regardless, so a chatty script never blocks on
  * a full pipe; stderr is kept as its last lines, which is where an error usually is.
@@ -80,7 +81,9 @@ export async function runWatchScript(path: string, options: RunOptions): Promise
         cwd: options.cwd,
         env: launch.env,
         stdio: ["ignore", "pipe", "pipe"],
-        detached: true,
+        // A process group on Unix. Not on Windows, where detached means no console at all: every console
+        // program the watch starts (`gh`, `git`) would then open one of its own, seconds each.
+        detached: process.platform !== "win32",
         windowsHide: true,
       });
     } catch (error) {

@@ -355,10 +355,16 @@ What the card shows and the queue itself are in `$PASEO_HOME/plugin-data/firstma
 reload neither loses an output the script has already moved past (the PR watch's baseline has advanced)
 nor reports a failure twice. A failure — non-zero exit, timeout, a script that will not start — is queued
 once, with stderr's tail, and marks the watch `failing` until a run succeeds; its stdout is not sent. A
-run is its own process group (`detached`), so a timeout's SIGTERM, and SIGKILL two seconds later, reach its
+run on Unix is its own process group (`detached`), so a timeout's SIGTERM, and SIGKILL two seconds later, reach its
 `gh` — the SIGKILL fires even when the script itself has exited, since a child that ignores SIGTERM and has
 closed its pipes outlives it. On Windows, Node shebang watches run through the plugin's own runtime
-without executable permission bits; unsupported interpreters are marked invalid. A timeout or abort
+without executable permission bits; unsupported interpreters are marked invalid. They are **not**
+`detached` there: a detached Windows process has no console, so every console program it starts — `gh`,
+`git` — opens one of its own, about three seconds each, which ran `pr-watch` past its budget and its tests
+past their timeouts (`watches.test.ts` times four child launches to keep it out). `pr-watch` also passes
+`windowsHide` to `gh`, for a runner that has no console to share. A watch gets the daemon's whole
+environment; a test that narrows it must keep `SystemRoot` on Windows, or Node's crypto can fail at
+startup (`ncrypto::CSPRNG`). A timeout or abort
 uses `taskkill /PID <watch-pid> /T /F` while the root process still exists, to stop its descendants too.
 The desktop Paseo `.cmd` launcher is resolved to Paseo.exe and its runner; npm shims use their JavaScript
 entry point. Keep all arguments as an array and do not introduce shell interpolation.
