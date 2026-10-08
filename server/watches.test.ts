@@ -473,7 +473,11 @@ describe("runWatchScript", () => {
     await chmod(path, 0o755);
     return path;
   }
-  const options = { cwd: tmpdir(), env: { PATH: process.env.PATH }, timeoutMs: 5000, maxOutputBytes: 1000, maxErrorBytes: 20 };
+  // On Windows, the system variables the runner always passes: Node's crypto can fail without SystemRoot.
+  const system = process.platform === "win32"
+    ? { SystemRoot: process.env.SystemRoot, windir: process.env.windir, TEMP: process.env.TEMP, TMP: process.env.TMP }
+    : {};
+  const options = { cwd: tmpdir(), env: { ...system, PATH: process.env.PATH }, timeoutMs: 5000, maxOutputBytes: 1000, maxErrorBytes: 20 };
 
   it("returns what the script printed, its exit code and the end of its stderr", async () => {
     const result = await runWatchScript(await real('process.stdout.write("out\\n"); process.stderr.write("0123456789012345678901234567890 end\\n"); process.exitCode = 3;'), options);
@@ -547,6 +551,20 @@ describe("runWatchScript", () => {
     const pid = Number(await readFile(pidFile, "utf8"));
     await vi.waitFor(() => expect(() => process.kill(pid, 0)).toThrow(), { timeout: 2000 });
   });
+
+  it("gives a watch a console its children share, so each command it runs starts promptly", async () => {
+    // Started detached on Windows, a watch has no console, and every console program it ran without
+    // windowsHide — as pr-watch ran gh — waited seconds for a console of its own.
+    const path = await real(`
+      const { execFileSync } = require("node:child_process");
+      const started = Date.now();
+      for (let i = 0; i < 4; i += 1) execFileSync(process.execPath, ["-e", ""]);
+      process.stdout.write(String(Date.now() - started));
+    `);
+    const result = await runWatchScript(path, { ...options, timeoutMs: 30_000 });
+    expect(result).toMatchObject({ code: 0, timedOut: false });
+    expect(Number(result.stdout)).toBeLessThan(4000);
+  }, 40_000);
 
   it("stops a running Node watch when the plugin shuts down", async () => {
     const controller = new AbortController();

@@ -57,7 +57,7 @@ async function main() {
 
   function gh(args) {
     return new Promise((resolve, reject) => {
-      execFile("gh", args, { timeout: GH_TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024 }, (error, stdout, stderr) => {
+      execFile("gh", args, { timeout: GH_TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024, windowsHide: true }, (error, stdout, stderr) => {
         if (error) {
           const detail = String(stderr || "").trim().split("\n").pop() || error.message;
           reject(Object.assign(new Error(detail), { code: error.code }));
