@@ -78,7 +78,10 @@ export const BacklogItemSchema = z.object({
   kind: z.string().nullable(),
   mode: z.string().nullable(),
   agentId: z.string().nullable(),
-  /** Remote backlog entries are drawn with their host, outside the local crew columns. */
+  /**
+   * The remote host the work runs on, as the first mate wrote it — a serverId, a label, or both —
+   * from `(host: …)` or `(on-host: …)`. Absent for work on this machine.
+   */
   host: z.string().optional(),
   hold: z.string().nullable(),
   blockedBy: z.string().nullable(),
@@ -89,9 +92,33 @@ export const BacklogItemSchema = z.object({
 });
 export type BacklogItem = z.infer<typeof BacklogItemSchema>;
 
+/** A worker on a remote host, as the plugin's last poll of that host saw it (`server/remotes.ts`). */
+export const RemoteWorkerSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** Paseo's agent status there: `running`, `idle`, `error`, … */
+  status: z.string(),
+  updatedAt: z.string(),
+  pendingPermissions: z.number().int(),
+});
+export type RemoteWorkerSummary = z.infer<typeof RemoteWorkerSummarySchema>;
+
+/** Where a remote card's work runs, and its worker there when one was found. */
+export const RemoteCardSchema = z.object({
+  /** The saved host's serverId; null when the backlog names a host Paseo has no saved connection for. */
+  serverId: z.string().nullable(),
+  /** The host's label, or the backlog's own spelling when it is not a saved host. */
+  host: z.string(),
+  online: z.boolean(),
+  worker: RemoteWorkerSummarySchema.nullable(),
+});
+export type RemoteCard = z.infer<typeof RemoteCardSchema>;
+
 /**
  * One card on the board: a backlog item, a crewmate, or — the usual case once
- * work is under way — both, joined by task id.
+ * work is under way — both, joined by task id. A card for work on a remote
+ * host has `remote` and never `agent`, so the local agent actions can never be
+ * pointed at an id from another daemon.
  */
 export const FleetCardSchema = z.object({
   key: z.string(),
@@ -106,6 +133,8 @@ export const FleetCardSchema = z.object({
   report: CrewReportSchema.nullable(),
   /** A pull request, from the report or the backlog line. */
   url: z.string().nullable(),
+  /** Present only for work on a remote host. */
+  remote: RemoteCardSchema.optional(),
 });
 export type FleetCard = z.infer<typeof FleetCardSchema>;
 

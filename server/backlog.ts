@@ -84,7 +84,8 @@ function parseItem(section: BacklogSection, body: string): BacklogItem | null {
     kind: field(groups, "kind")?.toLowerCase() ?? null,
     mode: field(groups, "mode"),
     agentId: field(groups, "agent", "crewmate"),
-    ...(field(groups, "host") === null ? {} : { host: field(groups, "host")! }),
+    // `(host: …)` is the charter's spelling; first mates have written `(on-host: …)` too.
+    ...(field(groups, "host", "on-host") === null ? {} : { host: field(groups, "host", "on-host")! }),
     hold: field(groups, "hold"),
     blockedBy: field(groups, "blocked-by") ?? bareBlocker?.[1] ?? null,
     since: field(groups, "since") ?? SINCE.exec(body)?.[1]?.trim() ?? null,

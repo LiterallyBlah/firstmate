@@ -24,8 +24,10 @@ import {
 import { resolveHome } from "./config";
 import { parseCrewReport, reportUrl } from "./crew-report";
 import { readCharterState } from "./charter-file";
+import type { RemoteSnapshot } from "../shared/remotes";
 import { isHomeReady, readBacklog, readProjects, readSuggestions } from "./home";
 import type { AgentListOptions, PaseoAgent, PaseoApi, TimelineItem } from "./host-types";
+import { buildRemoteCards, resolveHost } from "./remote-cards";
 
 const PAGE_SIZE = 200;
 /** Enough of a timeline to reach back past a turn's last tool calls to its closing message. */
@@ -162,9 +164,13 @@ export class ReportCache {
  * stuck — a pending permission, an error, a turn in flight — and the status
  * line decides once its turn has ended. A live crewmate is never Done, even
  * after `done:` or `resolved:`: the task has landed only once the backlog says
- * so, and until then the first mate still has work to do with it.
+ * so, and until then the first mate still has work to do with it. A remote
+ * worker is filed by the same rules (`server/remote-cards.ts`).
  */
-export function crewColumn(agent: AgentSummary, report: CrewReportSummary | null): ColumnId {
+export function crewColumn(
+  agent: Pick<AgentSummary, "pendingPermissions"> & { status: string },
+  report: CrewReportSummary | null,
+): ColumnId {
   if (agent.pendingPermissions > 0) return "blocked";
   if (agent.status === "error") return "failed";
   if (agent.status === "running" || agent.status === "initializing") return "working";
@@ -200,10 +206,21 @@ export interface CrewMember {
  * Crewmates and backlog items joined into cards. A crewmate is matched to its
  * item by the task label, or by the agent id the item recorded; whatever is
  * left over on either side is a card of its own.
+ *
+ * A line naming a remote host is never joined to a local crewmate — task ids
+ * can repeat across hosts — and goes to `buildRemoteCards` with the remote
+ * snapshot, which also brings each remote worker the line does not name. A
+ * line naming this machine's own serverId is local work.
  */
-export function buildCards(backlog: readonly BacklogItem[], crew: readonly CrewMember[]): FleetCard[] {
-  // Remote agents have a separate host card; their task ids can overlap local ones.
-  backlog = backlog.filter((item) => item.host === undefined);
+export function buildCards(
+  backlog: readonly BacklogItem[],
+  crew: readonly CrewMember[],
+  remotes: RemoteSnapshot | null = null,
+): FleetCard[] {
+  const isRemote = (item: BacklogItem) =>
+    item.host !== undefined && resolveHost(item.host, remotes).kind !== "local";
+  const remoteCards = buildRemoteCards(backlog.filter(isRemote), remotes);
+  backlog = backlog.filter((item) => !isRemote(item));
   const cards: FleetCard[] = [];
   const claimed = new Set<number>();
 
@@ -247,7 +264,7 @@ export function buildCards(backlog: readonly BacklogItem[], crew: readonly CrewM
       url: item.url,
     });
   });
-  return cards;
+  return [...cards, ...remoteCards];
 }
 
 /** Whether two paths name one directory, through symlinks; a path that does not resolve is compared as written. */
@@ -279,11 +296,13 @@ export async function loadFleet(
   config: FirstmateConfig,
   reports: ReportCache,
   watchSummaries: () => Promise<WatchSummary[]> = async () => [],
+  /** The remote snapshot `server/remotes.ts` keeps in memory; null when there is none. */
+  remoteSnapshot: () => Promise<RemoteSnapshot | null> = async () => null,
 ): Promise<Fleet> {
   const home = resolveHome(config);
   const warnings: string[] = [];
 
-  const [homeReady, backlog, projects, suggestions, mate, crewAgents, agentTools, charter, watches] = await Promise.all([
+  const [homeReady, backlog, projects, suggestions, mate, crewAgents, agentTools, charter, watches, remotes] = await Promise.all([
     isHomeReady(home),
     readBacklog(home).catch((error: unknown) => {
       warnings.push(`The backlog could not be read: ${describe(error)}`);
@@ -311,6 +330,10 @@ export async function loadFleet(
       warnings.push(`The watches could not be read: ${describe(error)}`);
       return [];
     }),
+    remoteSnapshot().catch((error: unknown) => {
+      warnings.push(`The remote hosts could not be read: ${describe(error)}`);
+      return null;
+    }),
   ]);
 
   reports.retain(new Set(crewAgents.map((agent) => agent.id)));
@@ -330,7 +353,7 @@ export async function loadFleet(
     mate: mate.agent === null ? null : summarizeAgent(mate.agent),
     mateMissing: mate.missing,
     mateInHome: mate.agent === null ? true : await sameDirectory(mate.agent.cwd, home),
-    cards: buildCards(backlog, crew),
+    cards: buildCards(backlog, crew, remotes),
     projects,
     suggestions,
     watches,

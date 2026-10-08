@@ -20,6 +20,16 @@ Git repository or local directory; it is marked private to prevent accidental np
 - The remote catalog carries each worker's final message (`lastMessage`) and what each pending
   permission asks (`pendingPermissions`: request ID, tool and description). A waiting worker carries
   `recentTools`, the same latest tool calls the helper's `permit ls` adds, and `remote-watch` quotes them.
+- Remote work is on the board's columns. Backlog items with `(host: …)` or `(on-host: …)` are matched
+  to their remote worker by host plus agent id or `firstmate.task` label, and filed by its live status
+  and status line; remote workers without an item get their own cards. Cards show their host.
+- Remote cards have Watch (the worker's recent log, read-only), Steer, Interrupt and End, routed through
+  the plugin's remote request path. Relaunch is shown disabled with its reason. Followed sessions (the
+  captain's own) are marked and never offered End. A worker's last message, where the poll keeps it,
+  gives the status line, and pending permissions are spelled out on the card.
+- Host tabs above the board — All, This machine, and each saved host — with counts, the host's health on
+  its tab, and the choice remembered. No tabs without saved remote hosts.
+- The sidebar badge counts remote workers that are working or idle.
 
 ### Changed
 

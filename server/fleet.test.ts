@@ -75,8 +75,16 @@ describe("buildCards", () => {
     const remote = parseBacklog("## In flight\n- [ ] fix-login - Remote login task (host: srv_remote)");
     expect(buildCards(remote, [{ agent: agent(), report: null }])).toMatchObject([
       { key: "agent:a1", title: "Fix login", backlog: null },
+      { key: "remote:?srv_remote:backlog:in-flight:fix-login:0", agent: null, remote: { serverId: null, host: "srv_remote" } },
     ]);
-    expect(buildCards(remote, [])).toEqual([]);
+  });
+
+  it("treats a line naming this machine's own serverId as local work", () => {
+    const local = parseBacklog("## In flight\n- [ ] fix-login - Fix the login (host: srv_here)");
+    const snapshot = { version: 1 as const, localServerId: "srv_here", syncedAt: null, syncError: null, hosts: [] };
+    const cards = buildCards(local, [{ agent: agent(), report: null }], snapshot);
+    expect(cards).toMatchObject([{ key: "agent:a1", title: "Fix the login" }]);
+    expect(cards[0]).not.toHaveProperty("remote");
   });
 
   const backlog = parseBacklog(`## In flight
