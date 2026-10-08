@@ -11,6 +11,10 @@ import { COLUMN_IDS } from "./fleet";
 
 export const POLL_SECONDS = [3, 5, 10, 30] as const;
 
+/** How much room the board gives its cards: Comfortable, the default, or Compact for more of them at once. */
+export const BOARD_DENSITIES = ["comfortable", "compact"] as const;
+export type BoardDensity = (typeof BOARD_DENSITIES)[number];
+
 export const displaySettings = defineSettings({
   id: "display",
   scope: "host",
@@ -30,6 +34,8 @@ export const displaySettings = defineSettings({
     pollSeconds: z.number().int().min(1).max(120).default(5),
     /** The board's host tab: `all`, `local` (this machine), or a saved remote host's serverId. */
     hostTab: z.string().default("all"),
+    /** The board's spacing. A card at rest shows the same few things either way. */
+    density: z.enum(BOARD_DENSITIES).default("comfortable"),
   }),
 });
 
