@@ -44,6 +44,16 @@ Git repository or local directory; it is marked private to prevent accidental np
   can see are in Working, marked "no worker seen", or Blocked when held for the captain. Local and remote
   workers, followed sessions included, follow the same rules. Saved column layouts gain Ready at their
   end, and the sidebar badge counts Ready too.
+- The board is calmer. A card at rest shows its title (two lines at most), its state, its project and
+  host as small tags, when it last moved, and one line of its latest status — the most pressing of a
+  waiting permission, an error, the captain's call and the status line. Pressing it opens the rest
+  (kind, task id, mode, since, model, agent id, the full status line, the pull request, the report)
+  with its actions, as before. Columns lose their borders and get more room between them and their
+  cards, and headers show their count in a small pill.
+- Done shows its three most recent cards, newest first by the date the backlog records, with **Show
+  all** for the rest.
+- **Card spacing** in Settings › Plugins › FirstMate: Comfortable (the default) or Compact, kept with
+  the board's other layout settings.
 - A failed remote command reports the remote CLI's own error, redacted, instead of a generic
   message. An unreachable host names its last connection attempt's reason.
 - Each remote `run` measures the host's clock against this machine's, from the new worker's

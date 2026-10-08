@@ -11,22 +11,29 @@
  * The home's watches are a card after the columns, the same way, and on a
  * phone the last section of the list.
  *
+ * Done shows its latest few cards, newest first, until the captain asks for
+ * all of them: finished work is looked back on, not watched, and a full Done
+ * column outgrew everything else on the board.
+ *
  * Columns move with their header's arrows rather than by dragging: a drag
  * needs document-level pointer tracking on the web and fights every scroll
  * view it crosses, and two arrows work the same everywhere.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { Icon } from "@getpaseo/plugin/client/react-native";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type { ColumnId, FleetCard, Suggestion, WatchSummary } from "../shared/fleet";
+import type { BoardDensity } from "../shared/settings";
 import { CrewCard } from "./card";
 import {
   boardItems,
   boardRows,
   COLUMNS,
   columnTone,
+  DONE_SHOWN,
+  doneCards,
   groupCards,
   moveColumn,
   SUGGESTIONS_CARD,
@@ -38,12 +45,17 @@ import { WATCHES_ICON, WATCHES_TITLE, WatchList } from "./watches";
 
 const COLLAPSED_WIDTH = 40;
 
+/** Whether Done shows every card, kept across a remount like the rest of the surface's state. */
+let allDoneShown = false;
+
 interface BoardProps {
   cards: readonly FleetCard[];
   order: readonly ColumnId[];
   collapsed: readonly string[];
   theme: PluginTheme;
   compact: boolean;
+  /** The board's spacing, from the display settings. */
+  density: BoardDensity;
   /** Drawn as the first card of a wide board; empty draws no card. */
   suggestions: readonly Suggestion[];
   /** A message to the first mate is on its way, so the suggestions wait. */
@@ -65,43 +77,59 @@ interface BoardProps {
 }
 
 export function Board(props: BoardProps) {
-  const { cards, order, collapsed, theme, compact, suggestions, watches } = props;
+  const { cards, order, collapsed, theme, compact, density, suggestions, watches } = props;
+  const [allDone, setAllDoneState] = useState(allDoneShown);
+  function setAllDone(next: boolean): void {
+    allDoneShown = next;
+    setAllDoneState(next);
+  }
+  const dense = density === "compact";
   const groups = useMemo(() => groupCards(cards), [cards]);
   const shown = useMemo(() => order.filter((id) => (groups.get(id)?.length ?? 0) > 0), [order, groups]);
+  const space = dense ? 10 : 14;
   const styles = useMemo(() => {
     const { colors } = theme;
     return {
-      board: { flex: 1, padding: compact ? 10 : 12, gap: 10 },
-      stack: { gap: 10, padding: 10, paddingBottom: 24 },
+      board: { flex: 1, padding: 12, gap: space },
+      stack: { gap: space, padding: compact ? 10 : 12, paddingBottom: 24 },
       nobody: { padding: compact ? 10 : 12, color: colors.foregroundMuted, fontSize: 12 },
-      row: { flex: 1, minHeight: 0, flexDirection: "row" as const, gap: 10 },
+      row: { flex: 1, minHeight: 0, flexDirection: "row" as const, gap: space },
+      // A column is told apart by its fill alone; the cards in it carry the only borders.
       column: {
         flexGrow: 1,
         flexShrink: 1,
         flexBasis: 0,
         minWidth: 0,
-        borderWidth: 1,
-        borderColor: colors.border,
         borderRadius: 12,
         backgroundColor: colors.surface1,
-        padding: 8,
-        gap: 8,
+        padding: dense ? 8 : 10,
+        gap: dense ? 8 : 10,
       },
       columnStacked: {
-        borderWidth: 1,
-        borderColor: colors.border,
         borderRadius: 12,
         backgroundColor: colors.surface1,
-        padding: 8,
-        gap: 8,
+        padding: dense ? 8 : 10,
+        gap: dense ? 8 : 10,
       },
       columnFolded: { flexGrow: 0, flexBasis: COLLAPSED_WIDTH, width: COLLAPSED_WIDTH, alignItems: "center" as const },
-      header: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
+      header: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6, minHeight: 24 },
       headerFolded: { alignItems: "center" as const, gap: 8 },
-      title: { flex: 1, color: colors.foreground, fontSize: 12, fontWeight: "600" as const },
-      count: { color: colors.foregroundMuted, fontSize: 11 },
-      arrow: { padding: 3 },
-      body: { gap: 8, paddingBottom: 4 },
+      title: { flexShrink: 1, color: colors.foreground, fontSize: 13, fontWeight: "600" as const },
+      count: {
+        color: colors.foregroundMuted,
+        fontSize: 11,
+        fontWeight: "600" as const,
+        backgroundColor: colors.surface2,
+        borderRadius: 999,
+        paddingHorizontal: 7,
+        paddingVertical: 1,
+        overflow: "hidden" as const,
+      },
+      spacer: { flex: 1 },
+      arrow: { padding: 3, opacity: 0.7 },
+      body: { gap: space - 4, paddingBottom: 4 },
+      more: { alignSelf: "flex-start" as const, paddingHorizontal: 6, paddingVertical: 4 },
+      moreText: { color: colors.foregroundMuted, fontSize: 12, fontWeight: "500" as const },
       foldedTitle: {
         color: colors.foregroundMuted,
         fontSize: 11,
@@ -111,7 +139,7 @@ export function Board(props: BoardProps) {
         marginTop: 56,
       },
     };
-  }, [theme, compact]);
+  }, [theme, compact, dense]);
 
   function renderHeader(id: ColumnId, folded: boolean, count: number) {
     const meta = COLUMNS[id];
@@ -144,6 +172,7 @@ export function Board(props: BoardProps) {
           {meta.title}
         </Text>
         <Text style={styles.count}>{count}</Text>
+        <View style={styles.spacer} />
         {folded ? null : (
           <>
             <Pressable
@@ -172,20 +201,39 @@ export function Board(props: BoardProps) {
     );
   }
 
-  function renderCards(entries: readonly FleetCard[]) {
-    return entries.map((card) => {
-      const key = watchKey(card);
-      return (
-        <CrewCard
-          key={card.key}
-          card={card}
-          theme={theme}
-          compact={compact}
-          opener={key === null ? null : { icon: "Eye", label: "Watch", onPress: () => props.onWatch(key) }}
-          onChanged={props.onChanged}
-        />
-      );
-    });
+  function renderCards(id: ColumnId, entries: readonly FleetCard[]) {
+    if (id !== "done") return entries.map(renderCard);
+    const { shown } = doneCards(entries, allDone);
+    return (
+      <>
+        {shown.map(renderCard)}
+        {entries.length > DONE_SHOWN ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={allDone ? "Show only the latest Done cards" : `Show all ${entries.length} Done cards`}
+            style={styles.more}
+            onPress={() => setAllDone(!allDone)}
+          >
+            <Text style={styles.moreText}>{allDone ? `Show the latest ${DONE_SHOWN}` : `Show all ${entries.length}`}</Text>
+          </Pressable>
+        ) : null}
+      </>
+    );
+  }
+
+  function renderCard(card: FleetCard) {
+    const key = watchKey(card);
+    return (
+      <CrewCard
+        key={card.key}
+        card={card}
+        theme={theme}
+        compact={compact}
+        density={density}
+        opener={key === null ? null : { icon: "Eye", label: "Watch", onPress: () => props.onWatch(key) }}
+        onChanged={props.onChanged}
+      />
+    );
   }
 
   function renderWatchesHeader() {
@@ -217,7 +265,7 @@ export function Board(props: BoardProps) {
           return (
             <View key={id} style={styles.columnStacked}>
               {renderHeader(id, folded, entries.length)}
-              {folded ? null : <View style={styles.body}>{renderCards(entries)}</View>}
+              {folded ? null : <View style={styles.body}>{renderCards(id, entries)}</View>}
             </View>
           );
         })}
@@ -278,7 +326,7 @@ export function Board(props: BoardProps) {
                     {COLUMNS[id].title}
                   </Text>
                 ) : (
-                  <ScrollView contentContainerStyle={styles.body}>{renderCards(entries)}</ScrollView>
+                  <ScrollView contentContainerStyle={styles.body}>{renderCards(id, entries)}</ScrollView>
                 )}
               </View>
             );

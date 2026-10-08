@@ -266,4 +266,48 @@ export function Chip({ theme, text, color }: { theme: PluginTheme; text: string;
   );
 }
 
+/**
+ * A quieter label than `Chip`, for facts rather than states — a card's project
+ * and host: muted text on a faint fill, no border, an optional icon.
+ */
+export function Tag({
+  theme,
+  text,
+  icon,
+  color,
+}: {
+  theme: PluginTheme;
+  text: string;
+  icon?: string;
+  /** The text and icon colour; muted when absent. */
+  color?: string | undefined;
+}) {
+  const tint = color ?? theme.colors.foregroundMuted;
+  const styles = useMemo(
+    () => ({
+      tag: {
+        flexDirection: "row" as const,
+        alignItems: "center" as const,
+        gap: 4,
+        flexShrink: 1,
+        minWidth: 0,
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 6,
+        backgroundColor: theme.colors.surface2,
+      },
+      text: { flexShrink: 1, color: tint, fontSize: 11 },
+    }),
+    [theme, tint],
+  );
+  return (
+    <View style={styles.tag}>
+      {icon === undefined ? null : <Icon name={icon} size={11} color={tint} />}
+      <Text style={styles.text} numberOfLines={1}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
 export { errorText } from "./format";

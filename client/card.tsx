@@ -23,8 +23,19 @@ import { Pressable, Text, View } from "react-native";
 
 import { exitCrew, interruptCrew, relaunchCrew, steerCrew, type ColumnId, type FleetCard } from "../shared/fleet";
 import { exitRemoteCrew, interruptRemoteCrew, steerRemoteCrew } from "../shared/remote-crew";
-import { agentStatusLabel, agentStatusTone, columnTone, modelLabel, opensAsLeft, relativeTime } from "./format";
-import { Chip, IconButton, errorText } from "./ui";
+import type { BoardDensity } from "../shared/settings";
+import {
+  REPORT_STATES,
+  agentStatusLabel,
+  agentStatusTone,
+  cardHeadline,
+  columnTone,
+  modelLabel,
+  opensAsLeft,
+  orphanText,
+  relativeTime,
+} from "./format";
+import { Chip, IconButton, Tag, errorText } from "./ui";
 
 /** A time a remote host reported, moved onto this machine's clock by the host's measured skew. */
 function hostTime(iso: string, skewSeconds: number | null): string {
@@ -78,20 +89,11 @@ function useCardMemory(key: string, startExpanded: boolean, column: ColumnId) {
   return { expanded, setExpanded, draft, setDraft };
 }
 
-const STATE_WORDS: Record<string, string> = {
-  working: "Working",
-  "needs-decision": "Needs a decision",
-  blocked: "Blocked",
-  paused: "Paused",
-  done: "Done",
-  failed: "Failed",
-  resolved: "Resolved",
-};
-
 export function CrewCard({
   card,
   theme,
   compact,
+  density = "comfortable",
   opener,
   onChanged,
   startExpanded = false,
@@ -99,6 +101,8 @@ export function CrewCard({
   card: FleetCard;
   theme: PluginTheme;
   compact: boolean;
+  /** The board's spacing setting; views beside a single card leave it comfortable. */
+  density?: BoardDensity;
   /** Null where the crewmate is already in view, or there is nowhere to open it. */
   opener: CardOpener | null;
   /** Called after an action lands, so the board refreshes without waiting for its poll. */
@@ -126,21 +130,31 @@ export function CrewCard({
   const followed = worker?.followed === true;
   const running = status !== null && (status.status === "running" || status.status === "initializing");
   const tone = columnTone(theme, card.column);
+  const dense = density === "compact";
   const styles = useMemo(() => {
     const { colors } = theme;
     return {
       card: {
         borderWidth: 1,
         borderColor: colors.border,
-        borderLeftWidth: 3,
-        borderLeftColor: tone,
         borderRadius: 10,
         backgroundColor: colors.surface0,
-        padding: compact ? 10 : 12,
-        gap: 6,
+        padding: dense ? 10 : compact ? 12 : 14,
+        gap: dense ? 6 : 8,
       },
       titleRow: { flexDirection: "row" as const, alignItems: "flex-start" as const, gap: 8 },
-      title: { flex: 1, color: colors.foreground, fontSize: 13, fontWeight: "600" as const },
+      title: {
+        flex: 1,
+        color: colors.foreground,
+        fontSize: dense ? 13 : 14,
+        lineHeight: dense ? 18 : 20,
+        fontWeight: "600" as const,
+      },
+      chevron: { paddingTop: dense ? 2 : 3 },
+      chips: { flexDirection: "row" as const, flexWrap: "wrap" as const, alignItems: "center" as const, gap: 6 },
+      time: { marginLeft: "auto" as const, color: colors.foregroundMuted, fontSize: 11 },
+      headline: { color: colors.foregroundMuted, fontSize: 12, lineHeight: 17 },
+      details: { gap: 6 },
       meta: { color: colors.foregroundMuted, fontSize: 11 },
       report: { color: colors.foreground, fontSize: 12, lineHeight: 17 },
       reportState: { color: tone, fontWeight: "600" as const },
@@ -160,7 +174,7 @@ export function CrewCard({
       },
       prompt: { color: colors.foreground, fontSize: 12 },
     };
-  }, [theme, compact, tone]);
+  }, [theme, compact, dense, tone]);
 
   function run(label: string, action: () => Promise<unknown>): void {
     setBusy(true);
@@ -197,101 +211,139 @@ export function CrewCard({
   }
 
   const backlog = card.backlog;
+  const headline = cardHeadline(card);
+  /** When it last moved: the agent's last update, on this machine's clock; for an item alone, its outcome. */
+  const when =
+    agent !== null
+      ? relativeTime(agent.updatedAt)
+      : worker !== null && worker.updatedAt !== ""
+        ? relativeTime(hostTime(worker.updatedAt, remote?.clockSkewSeconds ?? null))
+        : (backlog?.outcome ?? null);
+  /** What only the open card shows: the plumbing behind the work, for the captain who goes looking. */
   const facts = [
-    remote === null
-      ? null
-      : `on ${remote.host}${remote.serverId === null ? " (not a saved host)" : remote.online ? "" : " (unreachable)"}`,
-    followed ? "followed, not crew" : null,
-    card.project,
     card.kind,
     card.taskId,
     backlog?.blockedBy === null || backlog?.blockedBy === undefined ? null : `after ${backlog.blockedBy}`,
+    backlog?.mode ?? null,
+    backlog?.since === null || backlog?.since === undefined ? null : `since ${backlog.since}`,
+    agent === null ? null : modelLabel(agent),
+    agent?.id.slice(0, 8) ?? worker?.id.slice(0, 8) ?? null,
   ].filter((fact): fact is string => fact !== null && fact !== "");
+  const hostText =
+    remote === null
+      ? null
+      : `${remote.host}${remote.serverId === null ? " · not a saved host" : remote.online ? "" : " · unreachable"}`;
+  /**
+   * The state chip: why the board filed the card where its live status alone would not — "waiting",
+   * "stalled", "no worker seen" — in the column's colour, or else the agent's own status.
+   */
+  const stateChip =
+    card.note !== undefined
+      ? { text: card.note, color: tone }
+      : status === null
+        ? null
+        : { text: agentStatusLabel(status), color: agentStatusTone(theme, status) };
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${card.title}. ${expanded ? "Hide" : "Show"} actions`}
+      accessibilityLabel={[
+        card.title,
+        stateChip?.text ?? null,
+        card.project,
+        hostText === null ? null : `on ${hostText}`,
+        headline === null ? null : headline.lead === null ? headline.text : `${headline.lead}: ${headline.text}`,
+        `${expanded ? "Hide" : "Show"} details and actions`,
+      ]
+        .filter((part): part is string => part !== null && part !== "")
+        .join(". ")}
       accessibilityState={{ expanded }}
       onPress={() => setExpanded(!expanded)}
       style={styles.card}
     >
       <View style={styles.titleRow}>
-        <Text style={styles.title}>{card.title}</Text>
-        {card.note !== undefined ? (
-          <Chip theme={theme} text={card.note} color={tone} />
-        ) : status === null ? null : (
-          <Chip theme={theme} text={agentStatusLabel(status)} color={agentStatusTone(theme, status)} />
-        )}
+        <Text style={styles.title} numberOfLines={expanded ? undefined : 2}>
+          {card.title}
+        </Text>
+        <View style={styles.chevron}>
+          <Icon name={expanded ? "ChevronUp" : "ChevronDown"} size={14} color={theme.colors.foregroundMuted} />
+        </View>
       </View>
-      {facts.length === 0 ? null : <Text style={styles.meta}>{facts.join(" · ")}</Text>}
 
-      {card.report === null ? null : (
-        <Text style={styles.report} numberOfLines={expanded ? undefined : 3}>
-          <Text style={styles.reportState}>{STATE_WORDS[card.report.state] ?? card.report.state}: </Text>
-          {card.report.text}
-        </Text>
-      )}
-      {backlog?.hold === null || backlog?.hold === undefined ? null : (
-        <Text style={styles.report}>
-          <Text style={styles.reportState}>Captain's call: </Text>
-          {backlog.hold}
-        </Text>
-      )}
-      {agent?.lastError === null || agent?.lastError === undefined ? null : (
-        <Text style={[styles.report, { color: theme.colors.statusDanger }]} numberOfLines={expanded ? undefined : 2}>
-          {agent.lastError}
-        </Text>
-      )}
-      {worker === null
-        ? null
-        : worker.permissionDetails.map((permission) => (
-            <Text key={permission.id} style={styles.report} numberOfLines={expanded ? undefined : 2}>
-              <Text style={styles.reportState}>Waiting on {permission.tool}: </Text>
-              {permission.description ?? `answer it on ${remote?.host ?? "its host"}`}
-            </Text>
-          ))}
-      {worker === null || worker.recentTools.length === 0 || !expanded ? null : (
-        <Text style={styles.meta}>Latest tool calls: {worker.recentTools.join(" · ")}</Text>
-      )}
-      {agent === null && worker === null && backlog?.section === "in-flight" ? (
-        <Text style={styles.meta}>
-          {remote === null
-            ? "No worker is running for this item."
-            : remote.serverId === null
-              ? "Paseo has no saved host by this name."
-              : `No worker of this first mate's was found on ${remote.host}.`}
-        </Text>
-      ) : null}
+      <View style={styles.chips}>
+        {stateChip === null ? null : <Chip theme={theme} text={stateChip.text} color={stateChip.color} />}
+        {card.project === null || card.project === "" ? null : <Tag theme={theme} text={card.project} />}
+        {hostText === null ? null : (
+          <Tag
+            theme={theme}
+            icon="Server"
+            text={hostText}
+            color={remote?.online === true ? undefined : theme.colors.statusWarning}
+          />
+        )}
+        {followed ? <Tag theme={theme} text="followed, not crew" /> : null}
+        {when === null || when === "" ? null : <Text style={styles.time}>{when}</Text>}
+      </View>
 
-      {card.url === null ? null : (
+      {expanded || headline === null ? null : (
         <Text
-          accessibilityRole="link"
-          style={styles.link}
+          style={[styles.headline, headline.tone === "danger" ? { color: theme.colors.statusDanger } : null]}
           numberOfLines={1}
-          onPress={() => {
-            void openExternalUrl(card.url ?? "").catch((caught: unknown) => toast.error(errorText(caught)));
-          }}
         >
-          {card.url.replace(/^https?:\/\/(www\.)?github\.com\//, "")}
+          {headline.lead === null ? null : <Text style={styles.reportState}>{headline.lead}: </Text>}
+          {headline.text}
         </Text>
       )}
-      {backlog?.reportPath === null || backlog?.reportPath === undefined ? null : (
-        <Text style={styles.meta}>Report: {backlog.reportPath}</Text>
-      )}
 
-      <Text style={styles.meta}>
-        {[
-          agent === null ? null : modelLabel(agent),
-          agent !== null
-            ? relativeTime(agent.updatedAt)
-            : worker !== null && worker.updatedAt !== ""
-              ? relativeTime(hostTime(worker.updatedAt, remote?.clockSkewSeconds ?? null))
-              : backlog?.outcome ?? backlog?.since ?? null,
-        ]
-          .filter((part): part is string => part !== null && part !== "")
-          .join(" · ")}
-      </Text>
+      {expanded ? (
+        <View style={styles.details}>
+          {facts.length === 0 ? null : <Text style={styles.meta}>{facts.join(" · ")}</Text>}
+          {card.report === null ? null : (
+            <Text style={styles.report}>
+              <Text style={styles.reportState}>{REPORT_STATES[card.report.state] ?? card.report.state}: </Text>
+              {card.report.text}
+            </Text>
+          )}
+          {backlog?.hold === null || backlog?.hold === undefined ? null : (
+            <Text style={styles.report}>
+              <Text style={styles.reportState}>Captain's call: </Text>
+              {backlog.hold}
+            </Text>
+          )}
+          {agent?.lastError === null || agent?.lastError === undefined ? null : (
+            <Text style={[styles.report, { color: theme.colors.statusDanger }]}>{agent.lastError}</Text>
+          )}
+          {worker === null
+            ? null
+            : worker.permissionDetails.map((permission) => (
+                <Text key={permission.id} style={styles.report}>
+                  <Text style={styles.reportState}>Waiting on {permission.tool}: </Text>
+                  {permission.description ?? `answer it on ${remote?.host ?? "its host"}`}
+                </Text>
+              ))}
+          {worker === null || worker.recentTools.length === 0 ? null : (
+            <Text style={styles.meta}>Latest tool calls: {worker.recentTools.join(" · ")}</Text>
+          )}
+          {agent === null && worker === null && backlog?.section === "in-flight" ? (
+            <Text style={styles.meta}>{orphanText(remote)}</Text>
+          ) : null}
+          {card.url === null ? null : (
+            <Text
+              accessibilityRole="link"
+              style={styles.link}
+              numberOfLines={1}
+              onPress={() => {
+                void openExternalUrl(card.url ?? "").catch((caught: unknown) => toast.error(errorText(caught)));
+              }}
+            >
+              {card.url.replace(/^https?:\/\/(www\.)?github\.com\//, "")}
+            </Text>
+          )}
+          {backlog?.reportPath === null || backlog?.reportPath === undefined ? null : (
+            <Text style={styles.meta}>Report: {backlog.reportPath}</Text>
+          )}
+        </View>
+      ) : null}
 
       {expanded && target !== null && remote !== null ? (
         <View style={{ gap: 4 }}>
