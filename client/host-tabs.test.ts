@@ -39,7 +39,8 @@ const onLight = (status = "running"): RemoteCard => ({
   serverId: "srv_light",
   host: "Light",
   online: true,
-  worker: { id: "w1", name: "w", status, updatedAt: "", pendingPermissions: 0, permissionDetails: [], followed: false },
+  clockSkewSeconds: null,
+  worker: { id: "w1", name: "w", status, updatedAt: "", pendingPermissions: 0, permissionDetails: [], recentTools: [], followed: false },
 });
 const hosts = [
   { serverId: "srv_light", label: "Light", online: true },
@@ -50,8 +51,8 @@ const cards = [
   card("light-busy", "working", onLight()),
   card("light-blocked", "blocked", onLight("idle")),
   card("light-failed", "failed", onLight("error")),
-  card("light-queued", "queued", { serverId: "srv_light", host: "Light", online: true, worker: null }),
-  card("nowhere", "idle", { serverId: null, host: "Shadow", online: false, worker: null }),
+  card("light-queued", "queued", { serverId: "srv_light", host: "Light", online: true, clockSkewSeconds: null, worker: null }),
+  card("nowhere", "idle", { serverId: null, host: "Shadow", online: false, clockSkewSeconds: null, worker: null }),
 ];
 
 describe("hostTabs", () => {

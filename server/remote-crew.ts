@@ -53,10 +53,10 @@ export async function steerRemoteCrew(
 ): Promise<{ host: RemoteHost; worker: RemoteWorker; text: string }> {
   const words = text.trim();
   if (words === "") throw new Error("Nothing to send.");
-  // The remote CLI would take it for an option, and the request path refuses some options outright.
-  if (words.startsWith("-")) throw new Error("A message to a remote worker cannot start with \"-\".");
   const { host, worker } = await requireWorker(remotes, serverId, agentId);
-  await send(remotes, host, ["send", worker.id, words]);
+  // After `--`, as the helper sends a prompt: the request path keeps it out of its option checks and
+  // puts its own flags before it, and the CLI reads it as text even when it starts with a dash.
+  await send(remotes, host, ["send", worker.id, "--", words]);
   return { host, worker, text: words };
 }
 

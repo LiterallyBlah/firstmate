@@ -245,6 +245,7 @@ describe("independent remote access", () => {
     expect(followedCalls.every((args) => ["inspect", "logs"].includes(args[0]!))).toBe(true);
     expect(calls.map((args) => args[0]).filter((command) => !["status", "project", "workspace", "provider", "ls", "inspect", "logs", "permit"].includes(command!))).toEqual([]);
     expect(calls.filter((args) => args[0] === "permit")).toEqual([["permit", "ls", "--json"]]);
+  });
   it("learns a worker's task by a label-filtered ls, only for tasks it was asked about, and keeps it", async () => {
     const lookups: string[][] = [];
     let asked = 0;

@@ -105,6 +105,7 @@ function remoteOf(host: RemoteHost, worker: RemoteWorker | null): RemoteCard {
     serverId: host.serverId,
     host: host.label,
     online: host.online,
+    clockSkewSeconds: host.clockSkew?.seconds ?? null,
     worker:
       worker === null
         ? null
@@ -115,6 +116,7 @@ function remoteOf(host: RemoteHost, worker: RemoteWorker | null): RemoteCard {
             updatedAt: worker.updatedAt,
             pendingPermissions: pendingCount(worker),
             permissionDetails: (worker.pendingPermissions ?? []).map((permission) => ({ ...permission })),
+            recentTools: pendingCount(worker) > 0 ? [...(worker.recentTools ?? [])] : [],
             followed: worker.followed === true,
           },
   };
@@ -155,6 +157,7 @@ export function buildRemoteCards(items: readonly BacklogItem[], snapshot: Remote
           serverId: null,
           host,
           online: false,
+          clockSkewSeconds: null,
           worker: null,
         }),
       );

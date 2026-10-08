@@ -26,6 +26,12 @@ import { exitRemoteCrew, interruptRemoteCrew, steerRemoteCrew } from "../shared/
 import { agentStatusLabel, agentStatusTone, columnTone, modelLabel, opensAsLeft, relativeTime } from "./format";
 import { Chip, IconButton, errorText } from "./ui";
 
+/** A time a remote host reported, moved onto this machine's clock by the host's measured skew. */
+function hostTime(iso: string, skewSeconds: number | null): string {
+  const at = Date.parse(iso);
+  return skewSeconds === null || Number.isNaN(at) ? iso : new Date(at - skewSeconds * 1000).toISOString();
+}
+
 /** The card's first action, which opens the crewmate somewhere. */
 export interface CardOpener {
   icon: string;
@@ -241,6 +247,9 @@ export function CrewCard({
               {permission.description ?? `answer it on ${remote?.host ?? "its host"}`}
             </Text>
           ))}
+      {worker === null || worker.recentTools.length === 0 || !expanded ? null : (
+        <Text style={styles.meta}>Latest tool calls: {worker.recentTools.join(" · ")}</Text>
+      )}
       {agent === null && worker === null && backlog?.section === "in-flight" ? (
         <Text style={styles.meta}>
           {remote === null
@@ -273,7 +282,7 @@ export function CrewCard({
           agent !== null
             ? relativeTime(agent.updatedAt)
             : worker !== null && worker.updatedAt !== ""
-              ? relativeTime(worker.updatedAt)
+              ? relativeTime(hostTime(worker.updatedAt, remote?.clockSkewSeconds ?? null))
               : backlog?.outcome ?? backlog?.since ?? null,
         ]
           .filter((part): part is string => part !== null && part !== "")
