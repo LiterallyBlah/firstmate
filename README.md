@@ -98,18 +98,30 @@ charter, the records it starts with, the home's icon — is in `templates/`, as 
   recommendation.
 - *Bearings* and *Ahoy* are also buttons above the chat, and *FirstMate: bearings* is in ⌘K.
 - **Suggestions** — when the first mate has an idea of what you will want next ("Land web#42", "Review
-  loop on web#42"), it shows as a button: on a wide screen in a card before the board's columns, on a
-  phone in a Suggestions tab after First mate. Pressing one sends that request to the first mate right
+  loop on web#42"), it shows as a button in a slim row above the crew, on wide screens and phones.
+  Extra suggestions open under **More**. Pressing one sends that request to the first mate right
   away, just as if you had typed it and pressed Send, and brings the chat into view so you see it go
   out; anything you were typing stays in the message box. A suggestion too long to show whole gets a
-  chevron that opens the full request below it, to read or copy, without sending it. The trash button
-  beside a suggestion takes it off the list without sending it. With no suggestions there is no card and no tab.
+  chevron that opens the full request, to read or copy, without sending it. The trash button
+  beside a suggestion takes it off the list without sending it. With no suggestions the row is hidden.
 
 ![After the voyage: the first mate's Bearings report in the chat — Captain's Call: nothing needs your
 action; Recently Landed: the knots fix and the dark mode toggle, both landed on main; Underway and
 Charted Next: nothing — beside the board, where both cards sit in Done marked "landed".](docs/landed.png)
 
-## The board
+## The crew: List and Board
+
+**List** is the default. Each task occupies a full-width row with a state icon, one-line title,
+project and host tags, time since it moved, and its most pressing status. Hover for the full title,
+or press the row for the same details and actions as a board card. Tasks appear in **Needs you**
+(blocked, permissions, Ready and failed), **Working** (including waits), **Queued**, **Idle / stalled**
+(including parked work), then **Done**. Empty groups disappear. Done starts as **30 done · Show**
+and expands in place; the whole list shares one scroll container.
+
+The header's **List / Board** switch is remembered with the layout. Both views work in the phone's
+**Crew** tab. Suggestions sit above either view; watches open from the header.
+
+![Default List at 2866×1694, with the chat taking 45% of the panel and 45 sample tasks.](docs/board-list/after-list-wide.png)
 
 ![The FirstMate panel mid-voyage: the first mate's chat on the left explaining the two workers it sent
 off; on the right the board, with "Add a dark mode toggle to the header" in Working, its card open on
@@ -140,11 +152,13 @@ card with its actions beside its live transcript — the brief it was given, the
 rows for each step (npm test among them), its notes between them, and a spinner on the step under
 way.](docs/watch.png)
 
-A column with nobody in it is hidden, so the board shows only what has workers in it. On a wide
-screen up to three columns sit side by side; past three they take two rows, with the extra one in the
-second row. Columns fold to a strip and move with the arrows in their headers, and the split between
+A column with nobody in it is hidden. In **Board**, wide screens show one row of full-height columns,
+scrolling sideways when needed. Headers and count pills keep their width. Columns fold to a strip
+and move with the arrows in their headers; on phones they stack in one scrolling view. The split between
 chat and board drags. The layout is remembered, including where a hidden column goes when it fills
-again. Done shows its three most recent cards, with **Show all** for the rest.
+again. Board's Done column shows its three most recent cards, with **Show all** for the rest.
+
+[Before-and-after desktop and phone renders, and the reproducible harness](docs/board-list/README.md).
 
 Opening the panel counts as looking at the first mate: when it has finished a turn, its workspace in
 Paseo's sidebar turns to done, as it would if you had opened the first mate itself. One waiting on
@@ -241,7 +255,8 @@ followed sessions aside.
 
 With remote hosts saved, tabs above the columns filter the board: **All**, **This machine**, then one
 per host with an online or unreachable mark and its working and needs-attention counts. A host's tab
-shows that host's health at the top; **All** keeps the **Remote hosts** card below the columns. The
+shows a compact, expandable health line at the top, including its worker count and any clock warning.
+**All** shows health in the tabs, without a second list of workers. The
 board remembers the tab.
 
 Passwords and relay pairing data remain in `plugin-data/firstmate/remotes.json`, outside the mate's
@@ -273,11 +288,12 @@ you passing it on. It needs the `gh` command, logged in, and Node, on the machin
 This private copy also includes **`remote-watch`**, which reports remote host and worker changes
 every minute without an app connection.
 
-A **Watches** card after the board's columns — at the bottom of the Crew tab on a phone — lists each
+A small **Watches** icon in the panel header opens the watch list on wide screens and phones. It
+shows a badge and warning colour only when a watch is failing, invalid or switched off. The list shows each
 watch with its schedule, when it last ran and what came of it, and what it last said (press it to read
 it all). Its switch turns a watch off or on without touching the script, and a watch's name opens the
 script in the Files view. A watch that fails is reported
-to the first mate once, and shown on the card until it works again.
+to the first mate once, and shown in Watches until it works again.
 
 To write your own, put an executable script in `watches/` with its schedule in a comment near the top,
 crontab style, in the Mac's local time:
@@ -289,7 +305,7 @@ crontab style, in the Mac's local time:
 
 `watches/README.md` in the home has the details: the schedule syntax, and what a script is given to find
 the home, the backlog, and a folder of its own to remember what it has already reported. Until you edit
-`pr-watch`, a new version of FirstMate replaces it; once you have, yours is kept, and the card says when
+`pr-watch`, a new version of FirstMate replaces it; once you have, yours is kept, and Watches says when
 FirstMate's has changed. The first mate adds or changes a watch only when you say so.
 
 ## Settings

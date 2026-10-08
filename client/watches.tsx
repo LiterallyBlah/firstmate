@@ -5,20 +5,68 @@
  *
  * A watch's name opens its script in the Files view, which is where it is edited.
  *
- * Drawn as a card after the columns on a wide board, and at the foot of the Crew tab on a phone.
+ * Opened from the panel header, on every layout.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
-import { Icon, useToast } from "@getpaseo/plugin/client/react-native";
+import { Icon, Modal, useToast } from "@getpaseo/plugin/client/react-native";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { toggleWatch, watchPath, type WatchSummary } from "../shared/fleet";
-import { errorText, watchStatusText, watchTone } from "./format";
+import { errorText, watchAttention, watchStatusText, watchTone } from "./format";
 import { MONOSPACE } from "./ui";
 
 export const WATCHES_TITLE = "Watches";
 export const WATCHES_ICON = "Radar";
+
+export function WatchButton(props: Parameters<typeof WatchList>[0]) {
+  const [open, setOpen] = useState(false);
+  const attention = watchAttention(props.watches);
+  const colors = props.theme.colors;
+  const color =
+    attention.count === 0 ? colors.foregroundMuted : attention.failing ? colors.statusDanger : colors.statusWarning;
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Watches${attention.count === 0 ? "" : `: ${attention.count} failing or off`}`}
+        accessibilityState={{ expanded: open }}
+        aria-expanded={open}
+        onPress={() => setOpen(true)}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 4,
+          padding: 7,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: colors.border,
+        }}
+      >
+        <Icon name={WATCHES_ICON} size={14} color={color} />
+        {attention.count === 0 ? null : (
+          <Text style={{ color, fontSize: 11, fontWeight: "600" }}>{attention.count}</Text>
+        )}
+      </Pressable>
+      <Modal title="Watches" open={open} onOpenChange={setOpen}>
+        <Modal.Content>
+          {props.watches.length === 0 ? (
+            <Text style={{ color: colors.foregroundMuted }}>No watches in the home.</Text>
+          ) : (
+            <WatchList
+              {...props}
+              onOpenFile={(path) => {
+                setOpen(false);
+                props.onOpenFile(path);
+              }}
+            />
+          )}
+        </Modal.Content>
+      </Modal>
+    </>
+  );
+}
 
 export function WatchList({
   watches,
@@ -64,15 +112,33 @@ export function WatchList({
         paddingVertical: 8,
         gap: 4,
       },
-      head: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8 },
+      head: {
+        flexDirection: "row" as const,
+        alignItems: "center" as const,
+        gap: 8,
+      },
       dot: { width: 7, height: 7, borderRadius: 4 },
       nameButton: { flex: 1, minWidth: 0 },
-      name: { color: colors.foreground, fontSize: 13, fontWeight: "600" as const, textDecorationLine: "underline" as const },
-      schedule: { color: colors.foregroundMuted, fontSize: 11, fontFamily: MONOSPACE },
+      name: {
+        color: colors.foreground,
+        fontSize: 13,
+        fontWeight: "600" as const,
+        textDecorationLine: "underline" as const,
+      },
+      schedule: {
+        color: colors.foregroundMuted,
+        fontSize: 11,
+        fontFamily: MONOSPACE,
+      },
       status: { color: colors.foregroundMuted, fontSize: 12 },
       problem: { color: colors.statusDanger, fontSize: 12 },
       note: { color: colors.statusWarning, fontSize: 12 },
-      output: { color: colors.foreground, fontSize: 11, fontFamily: MONOSPACE, lineHeight: 15 },
+      output: {
+        color: colors.foreground,
+        fontSize: 11,
+        fontFamily: MONOSPACE,
+        lineHeight: 15,
+      },
       more: { color: colors.foregroundMuted, fontSize: 11 },
     };
   }, [theme]);
@@ -120,6 +186,7 @@ export function WatchList({
                 accessibilityRole="switch"
                 accessibilityLabel={`${watch.name} is ${watch.enabled ? "on" : "off"}; switch it ${watch.enabled ? "off" : "on"}`}
                 accessibilityState={{ checked: watch.enabled }}
+                aria-checked={watch.enabled}
                 hitSlop={6}
                 onPress={() => setEnabled(watch, !watch.enabled)}
               >
@@ -152,9 +219,7 @@ export function WatchList({
                 <Text style={styles.output} numberOfLines={expanded ? undefined : 3}>
                   {watch.lastOutput}
                 </Text>
-                <Text style={styles.more}>
-                  {expanded ? "Show less" : "Last output — show all"}
-                </Text>
+                <Text style={styles.more}>{expanded ? "Show less" : "Last output — show all"}</Text>
               </Pressable>
             )}
           </View>

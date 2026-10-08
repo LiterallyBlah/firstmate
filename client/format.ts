@@ -59,50 +59,49 @@ export function moveColumn(
   return next;
 }
 
-/** The suggestions card, which sits among the wide board's columns but is not one. */
-export const SUGGESTIONS_CARD = "suggestions";
-/** The watches card, likewise. */
-export const WATCHES_CARD = "watches";
-export type BoardItem = ColumnId | typeof SUGGESTIONS_CARD | typeof WATCHES_CARD;
+export const LIST_GROUPS = [
+  { id: "needs-you", title: "Needs you" },
+  { id: "working", title: "Working" },
+  { id: "queued", title: "Queued" },
+  { id: "idle", title: "Idle / stalled" },
+  { id: "done", title: "Done" },
+] as const;
+export type ListGroupId = (typeof LIST_GROUPS)[number]["id"];
 
-/**
- * What the wide board lays out: the suggestions card first, when the first mate
- * has any, then the shown columns, then the watches card when the home has any
- * watches. Each card counts toward `boardRows` like a column, but never folds or
- * moves.
- */
-export function boardItems(shown: readonly ColumnId[], hasSuggestions: boolean, hasWatches = false): BoardItem[] {
-  const items: BoardItem[] = hasSuggestions ? [SUGGESTIONS_CARD, ...shown] : [...shown];
-  if (hasWatches) items.push(WATCHES_CARD);
-  return items;
+/** Urgency wins over placement, including a held or permission-waiting Done item. */
+export function listGroup(card: FleetCard): ListGroupId {
+  if (
+    ["blocked", "ready", "failed"].includes(card.column) ||
+    Boolean(card.backlog?.hold?.trim()) ||
+    (card.agent?.pendingPermissions ?? card.remote?.worker?.pendingPermissions ?? 0) > 0 ||
+    card.agent?.status === "error" ||
+    card.remote?.worker?.status === "error" ||
+    card.report?.state === "needs-decision"
+  )
+    return "needs-you";
+  if (card.column === "working") return "working";
+  if (card.column === "queued") return "queued";
+  if (card.column === "done") return "done";
+  // Parked work remains visible here too, with its own state icon and status.
+  return "idle";
 }
 
-/** At most this many columns sit in one row; past it the board takes two. */
-const ONE_ROW_MAX = 3;
-
-/**
- * The wide board's rows: one for up to three columns, two past that, as even
- * as they go with the extra in the second — five are two over three, seven
- * three over four. Order runs across the first row and on into the second.
- */
-export function boardRows<T>(items: readonly T[]): T[][] {
-  return splitRows(items, items.length > ONE_ROW_MAX ? 2 : 1);
+export function listGroups(cards: readonly FleetCard[]): Map<ListGroupId, FleetCard[]> {
+  const groups = new Map<ListGroupId, FleetCard[]>(LIST_GROUPS.map(({ id }) => [id, []]));
+  for (const card of cards) groups.get(listGroup(card))!.push(card);
+  return groups;
 }
 
-/** At most `rows` rows, as even as they go, with any extra in the later rows. */
-function splitRows<T>(items: readonly T[], rows: number): T[][] {
-  if (items.length === 0) return [];
-  const count = Math.min(Math.max(1, rows), items.length);
-  const base = Math.floor(items.length / count);
-  const longer = items.length % count;
-  const result: T[][] = [];
-  let start = 0;
-  for (let row = 0; row < count; row += 1) {
-    const size = row < count - longer ? base : base + 1;
-    result.push(items.slice(start, start + size));
-    start += size;
-  }
-  return result;
+/** Only failing, invalid or switched-off watches draw attention in the header. */
+export function watchAttention(watches: readonly WatchSummary[]): {
+  count: number;
+  failing: boolean;
+} {
+  const failing = (watch: WatchSummary) => watch.invalid !== null || ["failed", "invalid"].includes(watch.lastResult);
+  return {
+    count: watches.filter((watch) => !watch.enabled || failing(watch)).length,
+    failing: watches.some(failing),
+  };
 }
 
 /**
@@ -133,11 +132,16 @@ export function columnTone(theme: PluginTheme, column: ColumnId): string {
 }
 
 /** What a crewmate's status chip says. A remote worker's status is Paseo's too, as a plain string. */
-type StatusOf = Pick<AgentSummary, "pendingPermissions"> & { status: string; requiresAttention?: boolean };
+type StatusOf = Pick<AgentSummary, "pendingPermissions"> & {
+  status: string;
+  requiresAttention?: boolean;
+};
 
 export function agentStatusLabel(agent: StatusOf): string {
   if (agent.pendingPermissions > 0) {
-    return agent.pendingPermissions === 1 ? "waiting on a permission" : `waiting on ${agent.pendingPermissions} permissions`;
+    return agent.pendingPermissions === 1
+      ? "waiting on a permission"
+      : `waiting on ${agent.pendingPermissions} permissions`;
   }
   switch (agent.status) {
     case "running":
@@ -198,7 +202,8 @@ export function watchStatusText(watch: WatchSummary, now: number = Date.now()): 
   const parts: string[] = [];
   if (!watch.enabled) parts.push("off");
   if (watch.running) parts.push("running now");
-  if (watch.lastRunAt !== null && watch.lastResult !== "invalid") parts.push(`ran ${relativeTime(watch.lastRunAt, now)}`);
+  if (watch.lastRunAt !== null && watch.lastResult !== "invalid")
+    parts.push(`ran ${relativeTime(watch.lastRunAt, now)}`);
   parts.push(WATCH_RESULTS[watch.lastResult]);
   return parts.join(" · ");
 }
@@ -289,12 +294,23 @@ export function cardHeadline(card: FleetCard): CardHeadline | null {
       tone: "column",
     };
   }
+  if ((card.agent?.pendingPermissions ?? worker?.pendingPermissions ?? 0) > 0) {
+    return {
+      lead: "Waiting on a permission",
+      text: "Open Watch to see the request",
+      tone: "column",
+    };
+  }
   const error = card.agent?.lastError ?? null;
   if (error !== null && error !== "") return { lead: null, text: error, tone: "danger" };
   const hold = card.backlog?.hold ?? null;
   if (hold !== null && hold !== "") return { lead: "Captain's call", text: hold, tone: "column" };
   if (card.report !== null) {
-    return { lead: REPORT_STATES[card.report.state] ?? card.report.state, text: card.report.text, tone: "column" };
+    return {
+      lead: REPORT_STATES[card.report.state] ?? card.report.state,
+      text: card.report.text,
+      tone: "column",
+    };
   }
   if (card.agent === null && worker === null && card.backlog?.section === "in-flight") {
     return { lead: null, text: orphanText(remote), tone: "muted" };

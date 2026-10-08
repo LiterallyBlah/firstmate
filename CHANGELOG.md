@@ -10,6 +10,13 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Added
 
+- A remembered **List / Board** switch. List is the new default, grouping full-width task rows into
+  Needs you, Working, Queued, Idle / stalled and Done, with one task scroll container. Done starts
+  collapsed to a count and expands in place. Rows reuse the existing card details and local/remote
+  actions, and offer the full title in a tooltip and screen-reader label.
+- Reproducible renders under `docs/board-list/`: main before the change and both new views at
+  2866×1694 with a 45% chat split, plus 390×844 phone renders, using 45 sample tasks.
+
 - `tools/remote.mjs` takes `--prompt-file <file in the home>` on `run` and `send`, also inside a
   request file, and sends the file's text unchanged, Windows backslashes included.
 - `permit ls` through the helper adds each agent's latest tool calls, which show a pending Bash
@@ -35,6 +42,14 @@ Git repository or local directory; it is marked private to prevent accidental np
 - The sidebar badge counts remote workers that are working or idle.
 
 ### Changed
+
+- Board columns occupy one full-height row on wide screens and scroll sideways; empty columns stay
+  hidden and folded columns become strips. Headers and count pills keep their width. On phones,
+  Board continues to stack columns in one scroll view.
+- Suggestions occupy a slim row above List or Board, with overflow under More and separate send,
+  expand and delete controls. Watches move from a board box to the header icon.
+- Remote health lives in the host tabs on All. A host's own tab shows an expandable summary with
+  reachability, worker count and any clock warning, without repeating the worker list.
 
 - **Idle no longer stands in for Working.** A worker that ended its turn with `working:` or `paused:`
   waiting on something outside itself — a gate, a run, a watcher, another worker, "until …" — is filed
@@ -70,6 +85,9 @@ Git repository or local directory; it is marked private to prevent accidental np
   and its saved state carries over, so nothing is repeated.
 
 ### Fixed
+
+- Web tabs and expansion controls expose explicit ARIA states as well as native accessibility
+  states, so the selected List/Board, host and phone tabs and expanded rows are announced on the web.
 
 - Windows: watches no longer start detached, which left them without a console, so each `gh` the
   built-in `pr-watch` ran waited about three seconds for a console of its own. `pr-watch` overran its
