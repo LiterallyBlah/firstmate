@@ -13,7 +13,8 @@ This file is the plugin's, written once and then yours. It is not a watch, and n
 A watch is a script in this folder, run as it is, so it needs a `#!` line and to be executable
 (`chmod +x`) on Unix. Windows uses the plugin's Node runtime and accepts `#!/usr/bin/env node` or
 `#!node`, without Unix executable permissions. The built-in `pr-watch` works on Windows; custom
-shell watches need to be rewritten or wrapped in Node. In its first 20 lines it names its schedule
+shell watches need to be rewritten or wrapped in Node, and should pass `windowsHide: true` to the
+commands they start. In its first 20 lines it names its schedule
 in a comment:
 
 ```sh

@@ -10,6 +10,16 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runWatchScript } from "./watch-run";
 import { seedWatches } from "./watch-files";
 
+/**
+ * What the runner always passes on Windows, from the daemon's own environment: without `SystemRoot`
+ * Node's crypto can fail at startup (`Assertion failed: ncrypto::CSPRNG`), in the watch or the stand-in.
+ */
+function windowsSystemEnv(): NodeJS.ProcessEnv {
+  if (process.platform !== "win32") return {};
+  const names = ["SystemRoot", "windir", "SystemDrive", "TEMP", "TMP"];
+  return Object.fromEntries(names.filter((name) => process.env[name] !== undefined).map((name) => [name, process.env[name]]));
+}
+
 const tempDirs: string[] = [];
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
@@ -117,6 +127,7 @@ async function setup() {
     return runWatchScript(join(home, "watches", "pr-watch"), {
       cwd: home,
       env: {
+        ...windowsSystemEnv(),
         PATH: path,
         FIRSTMATE_HOME: home,
         FIRSTMATE_BACKLOG: join(home, "data", "backlog.md"),
@@ -219,9 +230,7 @@ describe("pr-watch", () => {
     const { answer, run, state, home } = await setup();
     const urls = [1, 2, 3, 4, 5, 6].map((n) => `https://github.com/someone/lib/pull/${n}`);
     await writeFile(join(home, "data", "backlog.md"), `## In flight\n${urls.map((url) => `- [ ] x ${url}`).join("\n")}\n`, "utf8");
-    // Allow native Node startup on Windows while keeping each batch slower
-    // than the budget; the scheduling assertion stays the same.
-    const budgetMs = process.platform === "win32" ? 1000 : 400;
+    const budgetMs = 400;
     await answer(Object.fromEntries(urls.map((url) => [url, pull({ delayMs: budgetMs * 2 })])));
     const budget = { FIRSTMATE_PR_WATCH_BUDGET_MS: String(budgetMs) };
     const saved = async () => JSON.parse(await readFile(join(state, "prs.json"), "utf8")).prs as Record<string, { seen?: boolean }>;
@@ -235,7 +244,7 @@ describe("pr-watch", () => {
     const after = await saved();
     expect(Object.keys(after).sort()).toEqual(urls);
     expect(Object.values(after).every((entry) => entry.seen === true)).toBe(true);
-  }, process.platform === "win32" ? 15000 : 5000);
+  });
 
   it("mentions a pull request gh keeps failing on once, and fails the run when gh can read none", async () => {
     const { answer, run } = await setup();
@@ -265,7 +274,7 @@ describe("pr-watch", () => {
     expect(none.code).toBe(1);
     expect(none.stderr).toContain("gh could not read any of the backlog's pull requests");
     expect(none.stderr).toContain("HTTP 401");
-  }, process.platform === "win32" ? 15000 : 5000);
+  });
 
   it("fails with a sentence when gh is not there, and is silent with no pull requests", async () => {
     const { run, home, noGh } = await setup();
