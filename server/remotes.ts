@@ -4,13 +4,17 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import { RemoteRequest, RemoteSnapshot, SavedHosts, type RemoteConnection, type RemoteHost, type RemoteProfile } from "../shared/remotes";
+import { RemoteFollow, RemoteRequest, RemoteSnapshot, SavedHosts, type RemoteConnection, type RemoteHost, type RemoteProfile, type RemoteWorker } from "../shared/remotes";
 import { runPaseo, type CliResult } from "./cli";
 import { readFirstmateConfig, resolveHome } from "./config";
 import { paseoHome, pluginDir } from "./data-dir";
 import { serialized } from "./serialize";
 
 const Registry = z.object({ version: z.literal(1), syncedAt: z.string(), hosts: SavedHosts });
+/** At most this many followed agents per host, besides the crew. */
+const MAX_FOLLOWED = 50;
+/** As in the helper's `permit ls`: the latest tool calls of at most this many waiting workers per poll. */
+const MAX_RECENT_TOOLS_AGENTS = 10;
 const empty = (): RemoteSnapshot => ({ version: 1, localServerId: "", syncedAt: null, syncError: null, hosts: [] });
 export const remoteQueue = () => join(pluginDir(), "remote-requests");
 async function atomic(path: string, value: unknown): Promise<void> {
@@ -264,6 +268,49 @@ export class RemoteService {
       + `(agent ${skew.agentId}'s CreatedAt, measured ${skew.measuredAt}). Its times are shown as the host reports them; `
       + `${skew.seconds < 0 ? "add" : "subtract"} about ${minutes} minute${minutes === 1 ? "" : "s"} before comparing them with this machine's clock.`;
   }
+  /** The agent ids `data/remote-follow.json` lists for this host, by serverId or name. Lenient: a bad entry is skipped. */
+  private async followed(host: RemoteProfile): Promise<string[]> {
+    let value: unknown;
+    try { value = await optionalJson(join(resolveHome(await readFirstmateConfig()), "data", "remote-follow.json")); }
+    catch { return []; }
+    const list = Array.isArray(value) ? value : record(value).follow;
+    if (!Array.isArray(list)) return [];
+    const agents = list.flatMap((entry) => {
+      const checked = RemoteFollow.safeParse(entry);
+      return checked.success && (checked.data.host === host.serverId || checked.data.host === host.label) ? [checked.data.agent.trim()] : [];
+    });
+    return [...new Set(agents)].filter(Boolean).slice(0, MAX_FOLLOWED);
+  }
+  /** The last assistant message alone. Paseo's `logs` matches an unknown filter against the item type. */
+  private async lastMessage(host: RemoteProfile, connection: RemoteConnection, id: string): Promise<string | undefined> {
+    try {
+      const logs = await this.call(host, connection, ["logs", id, "--tail", "1", "--filter", "assistant_message", "--json"]);
+      const text = (typeof logs === "string" ? logs : JSON.stringify(logs)).trim();
+      return text === "No activity to display." ? "" : text.slice(-8000);
+    } catch { return undefined; }
+  }
+  /** What each pending permission asks: one read-only `permit ls` for the whole host, and each waiting
+   * worker's `recentTools`, read the way the helper's `permit ls` reads them — a pending Bash call is
+   * usually the last, with its command, which `permit ls` does not give. */
+  private async describePermissions(host: RemoteProfile, connection: RemoteConnection, workers: RemoteWorker[]): Promise<void> {
+    await concurrentMap(workers.filter((worker) => worker.permissions > 0).slice(0, MAX_RECENT_TOOLS_AGENTS), 4, async (worker) => {
+      try {
+        const logs = await this.call(host, connection, ["logs", worker.id, "--filter", "tools", "--tail", "3"]);
+        worker.recentTools = String(typeof logs === "string" ? logs : JSON.stringify(logs)).split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(-3).map((line) => line.slice(0, 1000));
+      } catch { /* The request itself is still reported. */ }
+    });
+    let rows: Record<string, unknown>[];
+    try { rows = publicRows(await this.call(host, connection, ["permit", "ls", "--json"]), ["id", "agentId", "name", "description"]); }
+    catch { return; }
+    for (const worker of workers) {
+      for (const permission of worker.pendingPermissions ?? []) {
+        const row = rows.find((entry) => entry.agentId === worker.id && entry.id === permission.id);
+        if (!row) continue;
+        if (typeof row.name === "string" && row.name) permission.tool = row.name;
+        if (typeof row.description === "string" && row.description && row.description !== "-") permission.description = row.description.slice(0, 2000);
+      }
+    }
+  }
   async poll(): Promise<void> {
     await this.ready;
     if (this.polling || this.stopped) return;
@@ -284,19 +331,38 @@ export class RemoteService {
           next.projects = publicRows(projects, ["projectId", "name", "kind", "path"]);
           next.workspaces = publicRows(workspaces, ["workspaceId", "projectId", "name", "kind", "path", "cwd", "branch"]);
           next.providers = publicRows(providers, ["id", "provider", "name", "available", "status", "models"]);
-          next.workers = await concurrentMap(publicRows(crew, ["id", "name", "status"]).slice(0, 100), 4, async (worker) => {
-            const id = String(worker.id);
-            const detail = record(await this.call(host, connection, ["inspect", id, "--json"]));
+          const crewRows = publicRows(crew, ["id", "name", "status"]).slice(0, 100);
+          const worker = async (row: Record<string, unknown>, followed: boolean): Promise<RemoteWorker> => {
+            const detail = record(await this.call(host, connection, ["inspect", String(row.id), "--json"]));
+            const id = String(detail.Id ?? row.id);
             const old = previous.workers.find((entry) => entry.id === id);
-            const status = String(detail.Status ?? worker.status ?? "unknown");
+            const status = detail.Archived === true ? "archived" : String(detail.Status ?? row.status ?? "unknown");
             const updatedAt = String(detail.UpdatedAt ?? "");
             let output = old?.output ?? "";
+            let lastMessage = old?.lastMessage;
             if (status !== "running" && status !== "initializing" && old?.updatedAt !== updatedAt) {
               const logs = await this.call(host, connection, ["logs", id, "--tail", "8", "--filter", "text", "--json"]);
               output = (typeof logs === "string" ? logs : JSON.stringify(logs)).slice(-8000);
+              lastMessage = await this.lastMessage(host, connection, id);
             }
-            return { id, name: String(detail.Name ?? worker.name ?? id), status, updatedAt, permissions: Array.isArray(detail.PendingPermissions) ? detail.PendingPermissions.length : 0, output };
+            const pending = Array.isArray(detail.PendingPermissions) ? detail.PendingPermissions.map(record) : [];
+            return {
+              id, name: String(detail.Name ?? row.name ?? id), status, updatedAt, permissions: pending.length, output,
+              ...(lastMessage === undefined ? {} : { lastMessage }),
+              ...(pending.length ? { pendingPermissions: pending.map((entry) => ({ id: String(entry.id ?? ""), tool: String(entry.tool ?? entry.name ?? "unknown") })) } : {}),
+              ...(followed ? { followed: true } : {}),
+            };
+          };
+          next.workers = await concurrentMap(crewRows, 4, (row) => worker(row, false));
+          // Followed agents are only ever read: inspect and logs, never a label or a send.
+          const crewIds = next.workers.map((entry) => entry.id);
+          const follow = (await this.followed(host)).filter((agent) => !crewIds.some((id) => id.startsWith(agent)));
+          const followed = await concurrentMap(follow, 4, async (agent): Promise<RemoteWorker> => {
+            try { return await worker({ id: agent }, true); }
+            catch { return { id: agent, name: agent, status: "unavailable", updatedAt: "", permissions: 0, output: "", followed: true }; }
           });
+          for (const entry of followed) if (!next.workers.some((other) => other.id === entry.id)) next.workers.push(entry);
+          if (next.workers.some((entry) => entry.permissions > 0)) await this.describePermissions(host, connection, next.workers);
           next.online = true; next.error = null;
         } catch { next.online = false; next.error = "Cannot read this host. Reconnect it in Paseo; check its daemon and provider configuration."; }
         const index = this.snapshot.hosts.findIndex((entry) => entry.serverId === host.serverId);
