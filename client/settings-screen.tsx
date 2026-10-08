@@ -4,8 +4,8 @@
  * Two stores behind one screen, split on which side reads the value: the
  * home, the first mate's id and the crew's model are the daemon's (its
  * handlers and the charter act on them), so they go through
- * `firstmate.config.*`; the refresh interval only draws the board, so it is a
- * host settings document the app reads itself.
+ * `firstmate.config.*`; the refresh interval and the card spacing only draw
+ * the board, so they are a host settings document the app reads itself.
  */
 import { useRpc, useSettings, type PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { useToast } from "@getpaseo/plugin/client/react-native";
@@ -22,7 +22,7 @@ import { useMemo, useState } from "react";
 import { ScrollView, Text } from "react-native";
 
 import { enableAgentTools, readConfig, releaseMate, writeConfig, type FirstmateConfig } from "../shared/fleet";
-import { POLL_SECONDS, displaySettings } from "../shared/settings";
+import { BOARD_DENSITIES, POLL_SECONDS, displaySettings } from "../shared/settings";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet";
 import { agentStatusLabel, modelLabel } from "./format";
 import { useModeOptions, useModelOptions, withCurrent } from "./models";
@@ -221,6 +221,22 @@ export function SettingsScreen({ theme, layout }: PluginSurfaceProps) {
               if (display.status !== "ready") return;
               void display.save({ ...display.values, pollSeconds: Number(value) }, display.revision).then((ok) => {
                 if (!ok) toast.error(display.saveError ?? "The interval was not saved.");
+              });
+            }}
+          />
+          <SettingsSelect
+            label="Card spacing"
+            value={display.status === "ready" ? display.values.density : "comfortable"}
+            options={BOARD_DENSITIES.map((density) => ({
+              label: density === "comfortable" ? "Comfortable" : "Compact",
+              value: density,
+            }))}
+            disabled={display.status !== "ready"}
+            onValueChange={(value) => {
+              if (display.status !== "ready") return;
+              const density = BOARD_DENSITIES.find((each) => each === value) ?? "comfortable";
+              void display.save({ ...display.values, density }, display.revision).then((ok) => {
+                if (!ok) toast.error(display.saveError ?? "The spacing was not saved.");
               });
             }}
           />

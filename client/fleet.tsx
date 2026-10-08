@@ -545,6 +545,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         collapsed={values.collapsedColumns}
         theme={theme}
         compact={compact}
+        density={values.density}
         suggestions={data.suggestions}
         suggesting={mateSender.sending}
         onSuggest={suggest}

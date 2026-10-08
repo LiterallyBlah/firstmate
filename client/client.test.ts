@@ -30,9 +30,12 @@ import { createRemovalGate, suggestionRemovals } from "./suggestion-removals";
 import { isDirty, markSaved, type OpenFile } from "./open-file";
 import { allAnswered, buildAnswers, dismissSubmitsEmpty, parseQuestions, toggleOption } from "./questions";
 import {
+  DONE_SHOWN,
   boardItems,
   boardRows,
+  cardHeadline,
   contextPercent,
+  doneCards,
   contextTone,
   errorText,
   formatTokenCount,
@@ -45,7 +48,7 @@ import {
   watchStatusText,
   watchTone,
 } from "./format";
-import { watchPath, type AgentSummary, type FleetCard, type WatchSummary } from "../shared/fleet";
+import { watchPath, type AgentSummary, type BacklogItem, type FleetCard, type WatchSummary } from "../shared/fleet";
 import { activeCrewCount } from "./screen";
 import { injectedSummary, transcriptRows, type TimelineEntry } from "./transcript-rows";
 
@@ -1013,5 +1016,82 @@ describe("the sidebar row's badge", () => {
       crewCard("closed", { status: "closed" }, "idle"),
     ];
     expect(activeCrewCount(cards)).toBe(4);
+  });
+});
+
+function backlogItem(section: BacklogItem["section"], extra: Partial<BacklogItem> = {}): BacklogItem {
+  return {
+    section,
+    id: "task",
+    title: "Task",
+    project: null,
+    kind: null,
+    mode: null,
+    agentId: null,
+    hold: null,
+    blockedBy: null,
+    since: null,
+    url: null,
+    reportPath: null,
+    outcome: null,
+    ...extra,
+  };
+}
+
+describe("a card at rest", () => {
+  it("shows one line: a remote permission, then an error, the captain's call, the status line", () => {
+    const report = { state: "working" as const, text: "half way" };
+    const card = { ...crewCard("a", { status: "idle" }), report };
+    expect(cardHeadline(card)).toEqual({ lead: "Working", text: "half way", tone: "column" });
+
+    const held = { ...card, backlog: backlogItem("in-flight", { hold: "land it?" }) };
+    expect(cardHeadline(held)).toEqual({ lead: "Captain's call", text: "land it?", tone: "column" });
+
+    const failing = { ...held, agent: { ...card.agent!, lastError: "provider crashed" } };
+    expect(cardHeadline(failing)).toEqual({ lead: null, text: "provider crashed", tone: "danger" });
+
+    const worker = {
+      id: "w",
+      name: "w",
+      status: "idle",
+      updatedAt: "",
+      pendingPermissions: 1,
+      permissionDetails: [{ id: "p", tool: "Bash" }],
+      recentTools: [],
+      followed: false,
+    };
+    const remote = { ...failing, agent: null, remote: { serverId: "s", host: "box", online: true, clockSkewSeconds: null, worker } };
+    expect(cardHeadline(remote)).toEqual({ lead: "Waiting on Bash", text: "answer it on box", tone: "column" });
+  });
+
+  it("says when an in-flight item has no worker, what a queued one waits for, and nothing otherwise", () => {
+    const orphan = { ...crewCard("o", null), backlog: backlogItem("in-flight") };
+    expect(cardHeadline(orphan)?.text).toBe("No worker is running for this item.");
+    const waiting = { ...crewCard("q", null, "queued"), backlog: backlogItem("queued", { blockedBy: "other" }) };
+    expect(cardHeadline(waiting)).toEqual({ lead: null, text: "After other", tone: "muted" });
+    expect(cardHeadline({ ...crewCard("d", null, "done"), backlog: backlogItem("done") })).toBeNull();
+  });
+});
+
+describe("the Done column", () => {
+  const done = (key: string, outcome: string | null) => ({
+    ...crewCard(key, null, "done"),
+    backlog: backlogItem("done", { outcome }),
+  });
+
+  it("puts the most recent first, undated last in their own order, and shows the latest few", () => {
+    const cards = [done("old", "merged 2026-10-01"), done("plain", null), done("new", "done 2026-10-08"), done("mid", "merged 2026-10-04"), done("plain2", null)];
+    const { shown, hidden } = doneCards(cards, false);
+    expect(shown.map((card) => card.key)).toEqual(["new", "mid", "old"]);
+    expect(hidden).toBe(2);
+    expect(DONE_SHOWN).toBe(3);
+    expect(doneCards(cards, true)).toEqual({
+      shown: ["new", "mid", "old", "plain", "plain2"].map((key) => cards.find((card) => card.key === key)),
+      hidden: 0,
+    });
+  });
+
+  it("hides nothing when there are only a few", () => {
+    expect(doneCards([done("a", null)], false).hidden).toBe(0);
   });
 });
