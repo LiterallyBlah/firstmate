@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SavedHosts, type RemoteProfile } from "../shared/remotes";
-import { commandArguments, connectionTarget, remoteEnvironment, RemoteService } from "./remotes";
+import { commandArguments, connectionTarget, redact, remoteEnvironment, remoteError, RemoteService } from "./remotes";
 import { fill, readTemplate, TEMPLATES } from "./templates";
 
 const run = promisify(execFile);
@@ -98,6 +98,77 @@ describe("independent remote access", () => {
     expect(snapshot.hosts[0]?.workers[0]?.output).toContain("done: PR");
     expect(JSON.stringify(snapshot)).not.toContain("discard");
   });
+  it("keeps a prompt after -- out of the option checks and injects flags before it", () => {
+    expect(commandArguments(["run", "--cwd", "C:\\repo", "--", "--home is a word in this brief"], "owner")).toEqual(["run", "--cwd", "C:\\repo", "--background", "--label", "firstmate.role=crew", "--label", "firstmate.owner=owner", "--json", "--", "--home is a word in this brief"]);
+    expect(commandArguments(["send", "agent", "--", "- guidance"], "owner")).toEqual(["send", "agent", "--no-wait", "--json", "--", "- guidance"]);
+    expect(() => commandArguments(["send", "agent", "--prompt-file", "C:\\anywhere.txt"], "owner")).toThrow("helper's --prompt-file");
+    expect(() => commandArguments(["run", "--host", "x", "--", "brief"], "owner")).toThrow("overridden");
+  });
+  it("returns the remote CLI's own error, redacted, and keeps the authentication mapping", async () => {
+    const relayHost: RemoteProfile = { ...remote, connections: [...remote.connections, { id: "relay", type: "relay", relayEndpoint: "relay.example.test:443", daemonPublicKeyB64: "public-key-value" }] };
+    expect(redact(`pw ${remote.password} link https://app.paseo.sh/#offer=abc relay wss://relay.example.test:443/ws?x=1 key public-key-value paseo.bearer.token`, relayHost))
+      .toBe("pw [redacted] link [pairing link] relay [relay URL] key [redacted] [credential]");
+    expect(remoteError({ code: 1, stdout: "", stderr: JSON.stringify({ error: { code: "X", message: "Working directory does not exist: C:Usersrepo", details: "Check --cwd" } }, null, 2) }))
+      .toBe("Working directory does not exist: C:Usersrepo\nCheck --cwd");
+    expect(remoteError({ code: 1, stdout: "plain stdout complaint\n", stderr: "  " })).toBe("plain stdout complaint");
+    expect(remoteError({ code: 1, stdout: "", stderr: "x".repeat(5000) }).length).toBeLessThan(1600);
+    let stderr = "";
+    const { service } = await fixture(async (args) => args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : { code: 1, stdout: "", stderr });
+    stderr = JSON.stringify({ error: { code: "SEND_FAILED", message: `Failed to send message: Agent not found: abc (via https://app.paseo.sh/#offer=secret, ${remote.password})` } });
+    const error = await service.request("Remote", ["send", "abc", "hi"]).catch((e: Error) => e.message);
+    expect(error).toBe("Remote command failed: Failed to send message: Agent not found: abc (via [pairing link], [redacted])");
+    stderr = JSON.stringify({ error: { code: "AUTH", message: "Incorrect password" } });
+    await expect(service.request("Remote", ["ls"])).rejects.toThrow("Remote authentication failed; reconnect this host in Paseo");
+  });
+  it("names the last probe failure when no saved connection answers", async () => {
+    const { service } = await fixture(async () => ({ code: 1, stdout: "", stderr: JSON.stringify({ error: { message: "connect ECONNREFUSED 10.0.0.2:6767" } }) }));
+    await expect(service.request("Remote", ["ls"])).rejects.toThrow("(last attempt: connect ECONNREFUSED 10.0.0.2:6767)");
+  });
+  it("sends a brief from a home file, shows pending tool calls and local times", async () => {
+    const calls: string[][] = [];
+    const { directory, home, service } = await fixture(async (args) => {
+      if (args[0] === "status") return success({ serverId: remote.serverId, connectedDaemon: "reachable" });
+      calls.push(args);
+      if (args[0] === "permit") return success([{ id: "req-1", agentId: "agent-1", agentShortId: "agent-1", name: "Bash", description: "-" }]);
+      if (args[0] === "logs") return { code: 0, stdout: "[Read] notes.md\n[Shell] npm test -- --run\n", stderr: "" };
+      if (args[0] === "inspect") return success({ Id: "agent-1", UpdatedAt: "2026-10-08T09:09:42.199Z", Name: "2026-10-08T09:09:42.199Z is a title" });
+      return success({ ok: true });
+    });
+    const helper = join(home, "tools", "remote.mjs");
+    await writeFile(helper, fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(join(directory, "remote-requests")) }));
+    service.start();
+    const brief = "- Start here.\nWork in C:\\Users\\captain\\repo\\src and keep \\\\server\\share as written.\n";
+    await mkdir(join(home, "data", "task"), { recursive: true });
+    await writeFile(join(home, "data", "task", "brief.md"), `\uFEFF${brief}`);
+    const cwd = "C:\\Users\\captain\\repo";
+    await run(process.execPath, [helper, remote.serverId, "run", "--prompt-file", "data/task/brief.md", "--cwd", cwd, "--provider", "claude/opus"], { cwd: home, timeout: 10000 });
+    expect(calls.at(-1)).toEqual(["run", "--cwd", cwd, "--provider", "claude/opus", "--background", "--label", "firstmate.role=crew", "--label", "firstmate.owner=local-test:firstmate", "--json", "--", brief]);
+    await writeFile(join(home, "data", "task", "send.json"), JSON.stringify({ host: "Remote", args: ["send", "agent-1", "--prompt-file", join(home, "data", "task", "brief.md")] }));
+    await run(process.execPath, [helper, "--request-file", join(home, "data", "task", "send.json")], { cwd: home, timeout: 10000 });
+    expect(calls.at(-1)).toEqual(["send", "agent-1", "--no-wait", "--json", "--", brief]);
+
+    const sent = calls.length;
+    const refused = async (args: string[], message: string) => {
+      const failure = await run(process.execPath, [helper, remote.serverId, ...args], { cwd: home, timeout: 10000 }).then(() => null, (error: { stderr: string }) => error.stderr);
+      expect(failure).toContain(message);
+    };
+    await writeFile(join(root, "outside.md"), "not in the home");
+    await refused(["run", "--prompt-file", join(root, "outside.md")], "inside the first mate's home");
+    await refused(["send", "agent-1", "extra words", "--prompt-file", "data/task/brief.md"], "send takes only the agent ID");
+    await refused(["run", "inline brief", "--prompt-file", "data/task/brief.md"], "run takes no prompt argument");
+    await refused(["inspect", "agent-1", "--prompt-file", "data/task/brief.md"], "for run and send");
+    await refused(["run", "brief", "--cwd", "C:Userscaptainrepo"], "lost its backslashes");
+    expect(calls).toHaveLength(sent);
+
+    const permits = JSON.parse((await run(process.execPath, [helper, "Remote", "permit", "ls"], { timeout: 10000 })).stdout);
+    expect(permits).toEqual([{ id: "req-1", agentId: "agent-1", agentShortId: "agent-1", name: "Bash", description: "-", recentTools: ["[Read] notes.md", "[Shell] npm test -- --run"] }]);
+    expect(calls.at(-1)).toEqual(["logs", "agent-1", "--filter", "tools", "--tail", "3", "--json"]);
+
+    const inspected = JSON.parse((await run(process.execPath, [helper, "Remote", "inspect", "agent-1"], { timeout: 10000 })).stdout);
+    expect(inspected.UpdatedAt).toMatch(/^2026-10-08T\d{2}:\d{2}:42\.199[+-]\d{2}:\d{2}$/);
+    expect(new Date(inspected.UpdatedAt).getTime()).toBe(Date.parse("2026-10-08T09:09:42.199Z"));
+    expect(inspected.Name).toBe("2026-10-08T09:09:42.199Z is a title");
+  }, 60000);
   it("executes a native terminal helper through the daemon queue", async () => {
     const { directory, home, service } = await fixture(async (args) => args[0] === "status" ? success({ serverId: remote.serverId, connectedDaemon: "reachable" }) : success([{ projectId: "remote-project" }]));
     const helper = join(home, "tools", "remote.mjs");

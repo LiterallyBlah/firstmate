@@ -209,7 +209,11 @@ providers and workers, then routes CLI orchestration commands through that helpe
 use their remote repositories and models and get a stable owner label. `remote-watch` reports their
 completions and pending permissions to the local first mate. The screen includes a **Remote hosts**
 card; the existing crew columns contain local workers. `data/remote-access.md` contains the full
-agent instructions and command examples.
+agent instructions and command examples. The helper reports the remote CLI's own error messages
+(with credentials and connection links removed), takes multi-line briefs from a file in the home
+with `--prompt-file`, adds each pending permission's latest tool calls, and prints Paseo's UTC times
+in local time with their offset. Paseo 0.11's CLI cannot read files on a remote host, so remote
+workers return reports in their final reply or push them.
 
 Passwords and relay pairing data remain in `plugin-data/firstmate/remotes.json`, outside the mate's
 home and this repository. Only public status is copied into `data/remote-hosts.json`. Removing a
