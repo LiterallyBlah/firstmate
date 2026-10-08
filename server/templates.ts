@@ -33,6 +33,7 @@ export const TEMPLATES = {
   opening: "data/opening.md",
   projects: "data/projects.md",
   remoteAccess: "data/remote-access.md",
+  remoteFollow: "data/remote-follow.json",
   remoteHosts: "data/remote-hosts.json",
   remoteHelper: "tools/remote.mjs",
   suggestions: "data/suggestions.md",

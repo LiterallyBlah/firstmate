@@ -206,8 +206,11 @@ own keys/configuration.
 
 The first mate uses `node tools/remote.mjs hosts` to discover remote hosts, projects, workspaces,
 providers and workers, then routes CLI orchestration commands through that helper. Remote workers
-use their remote repositories and models and get a stable owner label. `remote-watch` reports their
-completions and pending permissions to the local first mate. The screen includes a **Remote hosts**
+use their remote repositories and models and get a stable owner label. `remote-watch` reports each
+finished turn once, briefly (status, status line and final message), and each pending permission with
+what it asks, to the local first mate. When you ask the first mate to steer one of your own sessions
+on a remote host, it lists that session in `data/remote-follow.json` and the watch reports it too.
+Following only reads the session and never labels or changes it. The screen includes a **Remote hosts**
 card; the existing crew columns contain local workers. `data/remote-access.md` contains the full
 agent instructions and command examples. The helper reports the remote CLI's own error messages
 (with credentials and connection links removed), takes multi-line briefs from a file in the home

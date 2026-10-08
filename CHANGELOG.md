@@ -14,6 +14,12 @@ Git repository or local directory; it is marked private to prevent accidental np
   request file, and sends the file's text unchanged, Windows backslashes included.
 - `permit ls` through the helper adds each agent's latest tool calls, which show a pending Bash
   command. The remote guide explains answering a question with `permit allow --input`.
+- `data/remote-follow.json` lets the first mate follow remote agents that aren't its crew, such as the
+  captain's own sessions it was asked to steer. The catalog reads them through `inspect`, `logs` and
+  `permit ls` only. It never labels or changes them. `remote-watch` reports them the same way as crew.
+- The remote catalog carries each worker's final message (`lastMessage`) and what each pending
+  permission asks (`pendingPermissions`: request ID, tool and description). A waiting worker carries
+  `recentTools`, the same latest tool calls the helper's `permit ls` adds, and `remote-watch` quotes them.
 
 ### Changed
 
@@ -25,6 +31,12 @@ Git repository or local directory; it is marked private to prevent accidental np
 - The helper refuses a `--cwd` that has lost its backslashes.
 - `data/remote-access.md` documents prompt files, errors, permissions and questions, times, and why
   remote files cannot be read yet.
+- `remote-watch` reports each finished turn once: status, status line and the final message, cut to
+  1,500 characters. Before, it sent the whole recent output tail on every status change. A turn ending
+  with the same words is not reported again. A running worker is reported only for a new permission
+  request, with its tool and question or command. Reports share a 12,000-character budget, and
+  whatever does not fit follows in the next run. An untouched copy in an existing home is replaced,
+  and its saved state carries over, so nothing is repeated.
 
 ### Fixed
 
