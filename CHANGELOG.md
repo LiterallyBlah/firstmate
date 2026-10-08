@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Install this copy from its private
 Git repository or local directory; it is marked private to prevent accidental npm publication.
 
+## [Unreleased]
+
+### Fixed
+
+- Windows: watches no longer start detached, which left them without a console, so each `gh` the
+  built-in `pr-watch` ran waited about three seconds for a console of its own. `pr-watch` overran its
+  time budget and its tests timed out; a run now takes about a second. `pr-watch` also starts `gh`
+  with `windowsHide`, so an untouched copy in a home is updated on the next plugin start.
+
 ## [0.4.0] — 2026-10-07
 
 ### Added
