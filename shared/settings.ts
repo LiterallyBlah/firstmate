@@ -15,11 +15,16 @@ export const POLL_SECONDS = [3, 5, 10, 30] as const;
 export const BOARD_DENSITIES = ["comfortable", "compact"] as const;
 export type BoardDensity = (typeof BOARD_DENSITIES)[number];
 
+export const CREW_VIEWS = ["list", "board"] as const;
+export type CrewView = (typeof CREW_VIEWS)[number];
+
 export const displaySettings = defineSettings({
   id: "display",
   scope: "host",
   version: 1,
   schema: z.object({
+    /** Grouped task rows by default; the wide board remains available. */
+    crewView: z.enum(CREW_VIEWS).default("list"),
     /** Board columns, in the order the captain arranged them. Unknown ids are dropped when read. */
     columnOrder: z.array(z.string()).default([...COLUMN_IDS]),
     /** Columns folded down to a narrow strip. */

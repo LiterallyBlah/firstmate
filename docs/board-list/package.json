@@ -1,0 +1,16 @@
+{
+  "name": "firstmate-board-list-render",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "lucide-react": "^1.53.0",
+    "playwright": "^1.64.0",
+    "prettier": "^3.9.9",
+    "react-dom": "^19.1.0",
+    "react-native-web": "^0.21.4"
+  }
+}
