@@ -24,8 +24,32 @@ export const openExternalUrl = async () => {};
 export const copyText = async () => {};
 export const useRevealedText = (text) => text;
 export const SettingsSection = ({ children }) => <div>{children}</div>;
-export const SettingsSelect = SettingsSection;
-export const SettingsRow = SettingsSection;
+export const SettingsSelect = ({ label, hint, value, options, onValueChange, disabled }) => (
+  <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    {label}
+    <small>{hint}</small>
+    <select
+      aria-label={label}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onValueChange(event.target.value)}
+      style={{ padding: 8 }}
+    >
+      {options?.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </label>
+);
+export const SettingsRow = ({ label, hint, children }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div>{label}</div>
+    {hint ? <small>{hint}</small> : null}
+    {children}
+  </div>
+);
 export const SettingsSwitch = SettingsSection;
 
 const calls = (window.fixtureCalls = []);
@@ -37,10 +61,49 @@ export function useRpc(contract) {
     rpc.set(contract.name, async (input) => {
       calls.push({ name: contract.name, input });
       switch (contract.name) {
-      case "firstmate.fleet.load":
-        return structuredClone(fleet);
-      case "firstmate.remotes.read":
-        return structuredClone(snapshot);
+        case "firstmate.config.read":
+          return {
+            config: { migration: window.fixtureMigration ?? null, previousMateIds: window.fixtureHistory ?? [] },
+          };
+        case "firstmate.mate.targets":
+          return {
+            targets: [
+              {
+                provider: "claude/opus",
+                label: "Claude Opus · claude",
+                modes: [{ id: "bypassPermissions", label: "Bypass permissions" }],
+                thinking: [{ id: "max", label: "Max" }],
+              },
+              {
+                provider: "codex/gpt",
+                label: "GPT · codex",
+                modes: [{ id: "safe", label: "Read only" }],
+                thinking: [{ id: "high", label: "High" }],
+              },
+            ],
+          };
+        case "firstmate.mate.migrate":
+          if (window.fixtureFailMigration) {
+            window.fixtureMigration = {
+              sourceId: fleet.mate.id,
+              agentId: "replacement",
+              target: input.target,
+              handoffPath: "data/handoffs/replacement.md",
+            };
+            throw new Error(
+              "Handover paused: provider unavailable. The saved migration and queued notes are kept. Use Recover migration.",
+            );
+          }
+          window.fixtureHistory = [fleet.mate.id];
+          window.fixtureMigration = null;
+          return { agentId: "replacement", workspaceId: "home" };
+        case "firstmate.fleet.load":
+          return {
+            ...structuredClone(fleet),
+            mate: { ...fleet.mate, status: window.fixtureMateStatus ?? fleet.mate.status },
+          };
+        case "firstmate.remotes.read":
+          return structuredClone(snapshot);
         case "firstmate.files.find":
           return { files: {} };
         case "firstmate.mate.seen":
@@ -144,9 +207,9 @@ function ModalView({ title, open, onOpenChange, children }) {
         aria-modal="true"
         aria-label={title}
         style={{
-          background: "#1e221f",
-          color: "#f1f3f1",
-          border: "1px solid #303531",
+          background: window.fixtureTheme?.colors.surface1 ?? "#1e221f",
+          color: window.fixtureTheme?.colors.foreground ?? "#f1f3f1",
+          border: `1px solid ${window.fixtureTheme?.colors.border ?? "#303531"}`,
           borderRadius: 12,
           width: "min(620px, 92vw)",
           maxHeight: "85vh",

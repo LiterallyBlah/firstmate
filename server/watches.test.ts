@@ -158,15 +158,14 @@ describe("WatchRunner", () => {
     });
 
     const first = instance.tick(MINUTE);
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await vi.waitFor(() => expect(runs).toHaveLength(1));
     expect((await instance.summaries()).find((watch) => watch.name === "slow")).toMatchObject({ name: "slow", running: true });
     await instance.tick(new Date(2026, 8, 25, 10, 6));
     expect(runs).toHaveLength(1);
     release(ok(""));
     await first;
     const third = instance.tick(new Date(2026, 8, 25, 10, 7));
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(runs).toHaveLength(2);
+    await vi.waitFor(() => expect(runs).toHaveLength(2));
     release(ok(""));
     await third;
   });

@@ -24,7 +24,7 @@ import { pluginDir } from "./data-dir";
 import { resolveMate } from "./fleet";
 import { isHomeReady } from "./home";
 import type { PaseoApi } from "./host-types";
-import { isMidTurn } from "./mate";
+import { isMidTurn, oneAtATime, flushMateNotes } from "./mate";
 import { sendWithoutInterrupting } from "./send";
 import { serialized } from "./serialize";
 import { WatchRunner, type DeliveryOutcome } from "./watches";
@@ -33,13 +33,21 @@ import { WatchRunner, type DeliveryOutcome } from "./watches";
  * Sends to the first mate only when Paseo says it is not mid-turn, asked afresh every time, under a
  * watch message id so the chat can tell it from the captain's words.
  */
-export async function deliverToMate(paseo: PaseoApi | null, config: FirstmateConfig, text: string): Promise<DeliveryOutcome> {
-  if (paseo === null) return "wait";
-  const { agent } = await resolveMate(paseo, config);
-  if (agent === null) return "wait";
-  if (isMidTurn(agent)) return "wait";
-  await sendWithoutInterrupting(paseo, agent.id, text, { messageId: `${WATCH_MESSAGE_ID_PREFIX}${randomUUID()}` });
-  return "sent";
+export async function deliverToMate(
+  paseo: PaseoApi | null,
+  config: FirstmateConfig,
+  text: string,
+  readConfig = async () => config,
+): Promise<DeliveryOutcome> {
+  return oneAtATime(async () => {
+    // Re-read after taking the lifecycle gate: a handover may have changed the mate while we waited.
+    const latest = await readConfig();
+    if (latest.migration !== null || paseo === null) return "wait";
+    const { agent } = await resolveMate(paseo, latest);
+    if (agent === null || isMidTurn(agent)) return "wait";
+    await sendWithoutInterrupting(paseo, agent.id, text, { messageId: `${WATCH_MESSAGE_ID_PREFIX}${randomUUID()}` });
+    return "sent";
+  });
 }
 
 export interface WatchService {
@@ -69,7 +77,7 @@ export function startWatches(
       return (await readConfig()).disabledWatches;
     },
     async deliver(text) {
-      return deliverToMate(paseo, await readConfig(), text);
+      return deliverToMate(paseo, await readConfig(), text, readConfig);
     },
     stateFile: join(pluginDir(), "watches.json"),
     scriptStateRoot: join(pluginDir(), "watch-state"),
@@ -79,9 +87,13 @@ export function startWatches(
   const offEnded = server.on("agent.turn_ended", async (event, context) => {
     remember(context.paseo);
     const config = await readConfig();
+    await flushMateNotes(context.paseo).catch((error: unknown) => console.error("[firstmate] crew notes await delivery:", error));
     if (event.agent.id === config.mateAgentId.trim()) runner.flushAfterTurn();
   });
   const stopTimer = runner.start();
+  const noteTimer = setInterval(() => {
+    if (paseo !== null) void flushMateNotes(paseo).catch((error: unknown) => console.error("[firstmate] crew notes await delivery:", error));
+  }, 15000);
 
   return {
     runner,
@@ -97,6 +109,7 @@ export function startWatches(
     },
     stop() {
       stopTimer();
+      clearInterval(noteTimer);
       offStarted();
       offEnded();
     },
