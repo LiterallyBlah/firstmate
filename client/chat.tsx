@@ -421,6 +421,7 @@ export function MateChat({
             <IconButton
               icon="Compass"
               label="Bearings"
+              tooltip="Ask for a fresh fleet overview from saved records and live crew."
               showLabel
               theme={theme}
               disabled={sending}
@@ -429,6 +430,7 @@ export function MateChat({
             <IconButton
               icon="Anchor"
               label="Ahoy"
+              tooltip="Recap this conversation and walk through open decisions. First contact gives Bearings."
               showLabel
               theme={theme}
               disabled={sending}
