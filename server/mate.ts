@@ -6,6 +6,7 @@
  * charter and starts it there; from then on the first mate owns intake,
  * dispatch and supervision, with Paseo's own tools.
  */
+import { randomUUID } from "node:crypto";
 import type { CaptainMessage } from "../shared/attachments";
 import { CREW_LABELS, type AgentSummary, type FirstmateConfig, type MateCommand } from "../shared/fleet";
 import { readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./config";
@@ -17,6 +18,7 @@ import type { PaseoApi } from "./host-types";
 import { sendSessionRequest } from "./daemon-session";
 import { sendWithoutInterrupting } from "./send";
 import { writeUpload } from "./uploads";
+import { serialized } from "./serialize";
 
 export const MATE_TITLE = "First mate";
 
@@ -38,17 +40,12 @@ const NO_MATE = "There is no first mate yet. Open the FirstMate board and launch
  * holding the change here is enough to make the second one wait for the first
  * — and then refuse, or restart the first mate the first one started.
  */
-let changing: Promise<unknown> | null = null;
+export function oneAtATime<T>(change: () => Promise<T>): Promise<T> {
+  return serialized("firstmate.mate.lifecycle", change);
+}
 
-async function oneAtATime<T>(change: () => Promise<T>): Promise<T> {
-  while (changing !== null) await changing.catch(() => {});
-  const run = change();
-  changing = run;
-  try {
-    return await run;
-  } finally {
-    if (changing === run) changing = null;
-  }
+export function requireNoMigration(config: FirstmateConfig): void {
+  if (config.migration !== null) throw new Error("A first-mate handover needs recovery. Use Recover migration on the board.");
 }
 
 /** Refused when a first mate is already aboard, so a second launch cannot start a second one. */
@@ -58,6 +55,7 @@ export async function launchMate(
 ): Promise<{ agentId: string; workspaceId: string | null }> {
   return oneAtATime(async () => {
     const config = await readFirstmateConfig();
+    requireNoMigration(config);
     const current = await resolveMate(paseo, config);
     if (current.agent !== null) {
       throw new Error(
@@ -90,6 +88,7 @@ export function isMidTurn(agent: { status: string }): boolean {
 export async function restartMate(paseo: PaseoApi): Promise<{ agentId: string; workspaceId: string | null }> {
   return oneAtATime(async () => {
     const config = await readFirstmateConfig();
+    requireNoMigration(config);
     const { agent } = await resolveMate(paseo, config);
     if (agent === null) throw new Error(NO_MATE);
     if (isMidTurn(agent)) throw new Error(`${MID_TURN} Restart it once it is idle.`);
@@ -159,6 +158,7 @@ export async function adoptMate(paseo: PaseoApi, agentId: string): Promise<First
   return oneAtATime(async () => {
     if ((await fetchLiveAgent(paseo, agentId)) === null) throw new Error(`Paseo has no live agent ${agentId}.`);
     const config = await readFirstmateConfig();
+    requireNoMigration(config);
     // Checked here rather than trusted from the launch panel: a launch may have finished while this waited.
     const current = await resolveMate(paseo, config);
     if (current.agent !== null && current.agent.id !== agentId) {
@@ -172,7 +172,10 @@ export async function adoptMate(paseo: PaseoApi, agentId: string): Promise<First
 }
 
 export async function releaseMate(): Promise<FirstmateConfig> {
-  return oneAtATime(() => updateFirstmateConfig({ mateAgentId: "" }));
+  return oneAtATime(async () => {
+    requireNoMigration(await readFirstmateConfig());
+    return updateFirstmateConfig({ mateAgentId: "" });
+  });
 }
 
 /** Every live agent that could be adopted, those already working in the home first. */
@@ -202,11 +205,15 @@ export async function requireMate(paseo: PaseoApi): Promise<string> {
  * a send would interrupt it, and a steer would bury the command in a message.
  */
 export async function compactMate(paseo: PaseoApi): Promise<string> {
-  const { agent } = await resolveMate(paseo, await readFirstmateConfig());
-  if (agent === null) throw new Error(NO_MATE);
-  if (isMidTurn(agent)) throw new Error(`${MID_TURN} Compact it once it is idle.`);
-  await paseo.agents.ref(agent.id).send("/compact");
-  return agent.id;
+  return oneAtATime(async () => {
+    const config = await readFirstmateConfig();
+    requireNoMigration(config);
+    const { agent } = await resolveMate(paseo, config);
+    if (agent === null) throw new Error(NO_MATE);
+    if (isMidTurn(agent)) throw new Error(`${MID_TURN} Compact it once it is idle.`);
+    await paseo.agents.ref(agent.id).send("/compact");
+    return agent.id;
+  });
 }
 
 /** The template for each request, with nothing after it and with something. */
@@ -232,14 +239,42 @@ export function commandText(command: MateCommand, args: string): Promise<string>
  * see `shared/attachments.ts`. Nothing is written until the first mate is known to exist.
  */
 export async function askMate(paseo: PaseoApi, message: CaptainMessage): Promise<string> {
-  const agentId = await requireMate(paseo);
-  const images = message.images ?? [];
-  const attachments = await Promise.all((message.files ?? []).map((file) => writeUpload(file)));
-  await sendWithoutInterrupting(paseo, agentId, message.text.trim(), {
-    ...(images.length > 0 ? { images } : {}),
-    ...(attachments.length > 0 ? { attachments } : {}),
+  return oneAtATime(async () => {
+    requireNoMigration(await readFirstmateConfig());
+    const agentId = await requireMate(paseo);
+    const images = message.images ?? [];
+    const attachments = await Promise.all((message.files ?? []).map((file) => writeUpload(file)));
+    await sendWithoutInterrupting(paseo, agentId, message.text.trim(), {
+      ...(images.length > 0 ? { images } : {}),
+      ...(attachments.length > 0 ? { attachments } : {}),
+    });
+    return agentId;
   });
-  return agentId;
+}
+
+/** Durable delivery for crew notes, including those arriving during a failed handover. */
+export async function queueMateNote(paseo: PaseoApi, text: string): Promise<void> {
+  await serialized("firstmate.mate.notes", async () => {
+    const config = await readFirstmateConfig();
+    await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id: `firstmate-note-${randomUUID()}`, text }] });
+  });
+  await flushMateNotes(paseo).catch((error: unknown) => console.error("[firstmate] crew note queued for retry:", error));
+}
+
+export function flushMateNotes(paseo: PaseoApi): Promise<void> {
+  return oneAtATime(async () => {
+    const config = await readFirstmateConfig();
+    if (config.migration !== null || config.mateNotes.length === 0) return;
+    const { agent } = await resolveMate(paseo, config);
+    if (agent === null || isMidTurn(agent)) return;
+    // One note per idle turn: a second send may replace the first on providers without steer.
+    const note = config.mateNotes[0]!;
+    await sendWithoutInterrupting(paseo, agent.id, note.text, { messageId: note.id });
+    await serialized("firstmate.mate.notes", async () => {
+      const latest = await readFirstmateConfig();
+      await updateFirstmateConfig({ mateNotes: latest.mateNotes.filter((entry) => entry.id !== note.id) });
+    });
+  });
 }
 
 /**

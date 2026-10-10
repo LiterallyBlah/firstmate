@@ -7,13 +7,14 @@
  * is `{ type: "paseo_frame", isBinary: false, data }`, and `data` is
  * `{ "type": "session", "message": … }` — the same envelope the app sends over
  * its websocket. `PaseoApi` wraps only part of that protocol; the rest (here,
- * clearing an agent's attention, which the app does when you look at an agent)
+ * clearing attention and reading the complete persisted agent history)
  * is reachable by writing a well-formed session message to the same channel
  * and listening for the response with our own `requestId`. The plugin's own
  * client ignores a response it did not ask for.
  *
- * This is the protocol, not an interface. Checked against 0.9.0 and 0.9.1;
- * a later daemon that changes the message is answered by a timeout, which the
+ * This is the protocol, not an interface. Attention was checked against 0.9.0 and 0.9.1;
+ * archive-inventory's read-only history request was checked against 0.11.0.
+ * A later daemon that changes the message is answered by a timeout, which the
  * caller logs and survives. Use it only for requests whose failure costs
  * nothing, and never send anything but a complete, valid session message: a
  * malformed frame is a protocol violation, and the daemon closes the socket

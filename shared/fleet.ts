@@ -274,6 +274,23 @@ export type Fleet = z.infer<typeof FleetSchema>;
 // The daemon's own file: what handlers act on
 // ---------------------------------------------------------------------------
 
+export const MateTargetSchema = z.object({
+  provider: z.string().min(1),
+  modeId: z.string().default(""),
+  thinkingOptionId: z.string().default(""),
+});
+export type MateTarget = z.infer<typeof MateTargetSchema>;
+
+/** A durable journal: the replacement stays unprompted until the source is archived. */
+export const MateMigrationSchema = z.object({
+  sourceId: z.string(),
+  sourceRevision: z.string(),
+  agentId: z.string(),
+  target: MateTargetSchema,
+  prompt: z.string().max(40000),
+  handoffPath: z.string(),
+});
+
 export const FirstmateConfigSchema = z.object({
   /** The first mate's home; empty means `$PASEO_HOME/plugin-data/firstmate/home`. */
   home: z.string().default(""),
@@ -287,6 +304,10 @@ export const FirstmateConfigSchema = z.object({
   crewModeId: z.string().default(""),
   /** Watch scripts the captain has switched off on the board, by file name. */
   disabledWatches: z.array(z.string()).default([]),
+  migration: MateMigrationSchema.nullable().default(null),
+  previousMateIds: z.array(z.string()).default([]),
+  /** Crew notes awaiting delivery; removed only after a successful send. */
+  mateNotes: z.array(z.object({ id: z.string(), text: z.string() })).default([]),
 });
 export type FirstmateConfig = z.infer<typeof FirstmateConfigSchema>;
 
@@ -433,6 +454,34 @@ export const restartMate = defineRpc({
   name: "firstmate.mate.restart",
   input: z.object({}),
   output: z.object({ agentId: z.string(), workspaceId: z.string().nullable() }),
+});
+
+/** Transfer the role to a fresh session, or resume its saved handover after a failure. */
+export const migrateMate = defineRpc({
+  name: "firstmate.mate.migrate",
+  input: z.object({ sourceId: z.string().min(1), target: MateTargetSchema.optional() }),
+  output: z.object({ agentId: z.string(), workspaceId: z.string().nullable() }),
+});
+
+/** Models and settings validated on this daemon, in the home's working directory. */
+export const migrationTargets = defineRpc({
+  name: "firstmate.mate.targets",
+  input: z.object({}),
+  output: z.object({
+    targets: z.array(z.object({
+      provider: z.string(),
+      label: z.string(),
+      modes: z.array(z.object({ id: z.string(), label: z.string() })),
+      thinking: z.array(z.object({ id: z.string(), label: z.string() })),
+    })),
+  }),
+});
+
+/** Cancel a prepared migration while its source still holds the role. Never resurrect an archived supervisor. */
+export const cancelMigration = defineRpc({
+  name: "firstmate.mate.migration-cancel",
+  input: z.object({ sourceId: z.string().min(1) }),
+  output: z.object({}),
 });
 
 /**

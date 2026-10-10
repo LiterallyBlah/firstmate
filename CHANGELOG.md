@@ -10,6 +10,13 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Added
 
+- **Switch provider/model** transfers the first-mate role to a fresh session with target-specific
+  permission and thinking settings, retained home records, a bounded saved handoff and links to old
+  conversations. A durable journal supports recovery after creation, retirement or delivery failures;
+  queued watches and board crew notes wait for the handover. Migration refuses children in the mate's
+  workspace because Paseo would archive them too; crew in separate workspaces and remote ownership
+  continue. No native conversation or provider state is transferred.
+
 - A remembered **List / Board** switch. List is the new default, grouping full-width task rows into
   Needs you, Working, Queued, Idle / stalled and Done, with one task scroll container. Done starts
   collapsed to a count and expands in place. Rows reuse the existing card details and local/remote

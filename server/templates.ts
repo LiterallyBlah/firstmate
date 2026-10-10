@@ -51,6 +51,7 @@ export const TEMPLATES = {
   relaunch: "messages/relaunch.md",
   remoteSteer: "messages/remote-steer.md",
   restartNote: "messages/restart-note.md",
+  migrationHandoff: "messages/migration-handoff.md",
   steerRelay: "messages/steer-relay.md",
   steerRelayClipped: "messages/steer-relay-clipped.md",
   steerRelayNoAnswer: "messages/steer-relay-no-answer.md",
