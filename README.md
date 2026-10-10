@@ -2,6 +2,10 @@
 
 A [Paseo](https://paseo.sh) plugin: talk to one agent, ship with a crew.
 
+This repository is a personal copy of [FirstMate by Gustavo Ambrozio](https://github.com/gpambrozio/paseo-plugins/tree/main/firstmate),
+imported on 7 October 2026 at version **0.3.1** ([commit 129ec61](https://github.com/LiterallyBlah/firstmate/commit/129ec61)),
+with changes made since. The original MIT license applies to this copy; see [License](#license).
+
 You talk to a single agent — the **first mate** — and it runs the crew for you. Every task goes to a
 **worker**: its own Paseo agent, in its own git worktree, so parallel work on one repository never
 collides. The first mate writes each worker's instructions, supervises it to the end, and brings you
@@ -29,6 +33,33 @@ workers are ordinary Paseo agents you can open, read and type into like any othe
 manages, and Paseo itself tells the first mate when a worker finishes, fails or asks for permission.
 There is nothing else to install.
 
+## Changes in this copy
+
+Since the import, this copy has added:
+
+- **Windows support:** desktop and npm CLI launchers run without a shell, and Node watches run
+  without Unix executable bits, with process-tree cleanup. `pr-watch` avoids the Windows console
+  startup delays that caused timeouts ([PR #4](https://github.com/LiterallyBlah/firstmate/pull/4)).
+- **Saved remote hosts:** desktop host profiles sync to the daemon, and `tools/remote.mjs` supports
+  remote orchestration, briefs from files, redacted CLI errors, permission details and host clock
+  measurements. `remote-watch` reports each finished turn and new permission once, including sessions
+  the first mate follows ([PR #1](https://github.com/LiterallyBlah/firstmate/pull/1),
+  [PR #2](https://github.com/LiterallyBlah/firstmate/pull/2)).
+- **Remote work on the board:** remote workers share the crew columns, with host tabs, Watch,
+  Steer, Interrupt and End, permission details and card times corrected for measured clock skew.
+  Followed sessions are marked separately and cannot be ended from the board
+  ([PR #3](https://github.com/LiterallyBlah/firstmate/pull/3)).
+- **Clearer crew states:** finished workers wait in **Ready** for the first mate; workers waiting
+  on an external job stay in **Working**, while stalled workers remain **Idle**
+  ([PR #5](https://github.com/LiterallyBlah/firstmate/pull/5)).
+- **Calmer crew views:** cards show a glance before expanding, with Comfortable or Compact spacing.
+  A grouped **List** is now the default, with Done collapsed to a count; **Board** keeps full-height
+  columns and shows the three latest Done cards first. Suggestions use a slim strip and Watches
+  open from the header ([PR #6](https://github.com/LiterallyBlah/firstmate/pull/6),
+  [PR #7](https://github.com/LiterallyBlah/firstmate/pull/7)).
+
+See [CHANGELOG.md](CHANGELOG.md) for details and the retained upstream history.
+
 ## What you need
 
 - Paseo **0.11 or newer**, on the daemon and on the device running the app.
@@ -43,7 +74,7 @@ There is nothing else to install.
 
 ## Install
 
-This private copy includes Windows fixes. Install it from your local checkout with
+This personal copy includes Windows fixes. Install it from your local checkout with
 `paseo plugin install "C:/path/to/firstmate"`; the npm command below installs the upstream release.
 After editing the checkout, use `paseo plugin reload firstmate`.
 
@@ -216,7 +247,7 @@ settings, and your choice is kept.
 Because all of it is on disk, a restart is a non-event: the first mate reads its records, checks them
 against the live crew, and carries on.
 
-## Remote hosts in this private copy
+## Remote hosts in this personal copy
 
 This copy follows all hosts saved in Paseo desktop. The app synchronizes connection profiles every
 ten seconds while open, and the plugin retains them in the local daemon to work independently of
@@ -285,7 +316,7 @@ backlog — yours and those to other people's projects — and tells the first m
 closed, gets a review or a comment from someone else, or its checks go red or green. So a pull request
 you merge on GitHub is cleaned up within minutes, and a maintainer's review reaches the worker without
 you passing it on. It needs the `gh` command, logged in, and Node, on the machine Paseo runs on.
-This private copy also includes **`remote-watch`**, which reports remote host and worker changes
+This personal copy also includes **`remote-watch`**, which reports remote host and worker changes
 every minute without an app connection.
 
 A small **Watches** icon in the panel header opens the watch list on wide screens and phones. It
@@ -295,8 +326,8 @@ it all). Its switch turns a watch off or on without touching the script, and a w
 script in the Files view. A watch that fails is reported
 to the first mate once, and shown in Watches until it works again.
 
-To write your own, put an executable script in `watches/` with its schedule in a comment near the top,
-crontab style, in the Mac's local time:
+To write your own, put a script in `watches/` with its schedule in a comment near the top,
+crontab style, in the daemon machine's local time. Make it executable on Unix:
 
 ```sh
 #!/bin/sh
@@ -336,10 +367,12 @@ FirstMate's has changed. The first mate adds or changes a watch only when you sa
   work is in its own session in Paseo.
 - It does not reproduce firstmate's second mates, relay to X and Discord, away mode, or the
   `no-mistakes` pipeline (`reviewed-PR` stands in for the last).
-- **Watches run only while Paseo does**, and a run missed while the Mac was asleep is not made up. After
-  the plugin is reloaded, what a watch prints waits until any agent works or the panel is opened.
+- **Watches run only while Paseo does**, and a run missed while the daemon machine was asleep is not
+  made up. After the plugin is reloaded, what a watch prints waits until any agent works or the panel
+  is opened.
 - The panel has not yet been checked on a phone.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+The original MIT license applies to this copy. Gustavo Ambrozio's upstream copyright and permission
+notice are preserved in [LICENSE](LICENSE).
