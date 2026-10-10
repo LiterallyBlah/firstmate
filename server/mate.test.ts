@@ -31,6 +31,7 @@ interface Snapshot {
   currentModeId: string | null;
   thinkingOptionId?: string | null;
   archivedAt: string | null;
+  labels?: Record<string, string>;
 }
 
 /** Just enough of Paseo for the first mate's lifecycle, recording what was asked of it in order. */
@@ -92,6 +93,12 @@ const oldMate: Snapshot = {
   thinkingOptionId: "high",
   archivedAt: null,
 };
+
+it("refuses to adopt an inspection worker as a supervisor", async () => {
+  const { paseo, calls } = fakePaseo({ inspector: { ...oldMate, id: "inspector", labels: { "firstmate.role": "watch-inspector" } } });
+  await expect(adoptMate(paseo, "inspector")).rejects.toThrow("cannot take the first-mate role");
+  expect(calls).toEqual([]); expect((await readFirstmateConfig()).mateAgentId).toBe("");
+});
 
 describe("restartMate", () => {
   it("archives the old first mate before starting one set up the same way", async () => {
