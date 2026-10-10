@@ -44,6 +44,7 @@ import { captainMessage } from "./attachments";
 import { CrewmateView } from "./crewmate";
 import { agentStatusLabel, agentStatusTone, groupCards, orderedColumns, revealFilesPatch, shortPath } from "./format";
 import { LaunchPanel } from "./launch";
+import { MigrationControl } from "./migration-control";
 import { useMateSender } from "./mate-send";
 import { ResizeHandle, clampShare } from "./resize-handle";
 import { hostTabs, onTab, shownHostTab, watchKey } from "./host-tabs";
@@ -472,6 +473,14 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           <Chip theme={theme} text={`First mate · ${agentStatusLabel(mate)}`} color={agentStatusTone(theme, mate)} />
         )}
         <View style={styles.spacer} />
+        <MigrationControl
+          theme={theme}
+          compact={compact}
+          mate={mate}
+          onChanged={refresh}
+          onOpenFile={openFile}
+          onOpenAgent={navigation === undefined ? null : (agentId) => navigation.openAgent({ agentId })}
+        />
         {mate !== null &&
         (compact ? shownTab === "board" : rightPane === "board" && !values.boardCollapsed) &&
         watching === null ? (

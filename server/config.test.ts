@@ -30,8 +30,11 @@ afterEach(async () => {
 describe("the config.write contract", () => {
   it("carries only the fields a save names, so the rest keep their saved values", async () => {
     expect(writeConfig.input.parse({ crewProvider: "codex/gpt-5.5" })).toEqual({ crewProvider: "codex/gpt-5.5" });
-    // Every field of the config can be written, and nothing else.
-    expect(Object.keys(writeConfig.input.shape).sort()).toEqual(Object.keys(FirstmateConfigSchema.shape).sort());
+    // Lifecycle journals, history and delivery queues are owned by the server, never a settings save.
+    expect(Object.keys(writeConfig.input.shape).sort()).toEqual(
+      Object.keys(FirstmateConfigSchema.shape)
+        .filter((key) => !["migration", "previousMateIds", "mateNotes"].includes(key)).sort(),
+    );
 
     await updateFirstmateConfig({ mateAgentId: "mate-1", disabledWatches: ["pr-watch"] });
     const saved = await updateFirstmateConfig(writeConfig.input.parse({ crewProvider: "codex/gpt-5.5" }));

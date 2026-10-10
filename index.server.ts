@@ -25,7 +25,12 @@ import {
   markMateSeen,
   releaseMate,
   restartMate,
+  oneAtATime,
+  requireNoMigration,
+  queueMateNote,
+  flushMateNotes,
 } from "./server/mate";
+import { cancelMigration, migrateMate, migrationTargets } from "./server/migration";
 import {
   acknowledgeCharter as acknowledgeCharterRpc,
   adoptMate as adoptMateRpc,
@@ -45,6 +50,9 @@ import {
   releaseMate as releaseMateRpc,
   removeSuggestion as removeSuggestionRpc,
   restartMate as restartMateRpc,
+  migrateMate as migrateMateRpc,
+  migrationTargets as migrationTargetsRpc,
+  cancelMigration as cancelMigrationRpc,
   steerCrew as steerCrewRpc,
   toggleWatch,
   writeConfig,
@@ -84,16 +92,20 @@ export default function contribute(server: PluginServerContext) {
     return { config, resolvedHome: resolveHome(config) };
   });
   server.handle(writeConfig, async (patch) => {
-    const config = await updateFirstmateConfig(patch);
-    const home = resolveHome(config);
-    // The charter names the crew's model, so a saved change reaches the file
-    // at once; a home nobody has launched in yet is left for the launch.
-    if (await isHomeReady(home)) await prepareHome(home, config);
-    return { config, resolvedHome: home };
+    return oneAtATime(async () => {
+      requireNoMigration(await readFirstmateConfig());
+      const config = await updateFirstmateConfig(patch);
+      const home = resolveHome(config);
+      // The charter names the crew's model, so a saved change reaches the file
+      // at once; a home nobody has launched in yet is left for the launch.
+      if (await isHomeReady(home)) await prepareHome(home, config);
+      return { config, resolvedHome: home };
+    });
   });
 
   server.handle(loadFleetRpc, async (_input, { paseo }) => {
     watches.remember(paseo);
+    void flushMateNotes(paseo).catch((error: unknown) => console.error("[firstmate] crew notes await delivery:", error));
     const fleet = await loadFleet(
       paseo,
       await readFirstmateConfig(),
@@ -115,6 +127,9 @@ export default function contribute(server: PluginServerContext) {
   server.handle(adoptMateRpc, async ({ agentId }, { paseo }) => ({ config: await adoptMate(paseo, agentId) }));
   server.handle(releaseMateRpc, async () => ({ config: await releaseMate() }));
   server.handle(restartMateRpc, (_input, { paseo }) => restartMate(paseo));
+  server.handle(migrateMateRpc, (input, { paseo }) => migrateMate(paseo, input));
+  server.handle(migrationTargetsRpc, (_input, { paseo }) => migrationTargets(paseo));
+  server.handle(cancelMigrationRpc, ({ sourceId }, { paseo }) => cancelMigration(paseo, sourceId));
   server.handle(compactMateRpc, async (_input, { paseo }) => ({ agentId: await compactMate(paseo) }));
   server.handle(listCandidatesRpc, (_input, { paseo }) => listCandidates(paseo));
   server.handle(askMateRpc, async (message, { paseo }) => ({ agentId: await askMate(paseo, message) }));
@@ -145,7 +160,7 @@ export default function contribute(server: PluginServerContext) {
     const sent = await steerRemoteCrew(remotes, serverId, agentId, text);
     // The plugin cannot see that worker's turn end, so the first mate hears of it now; the words are already sent.
     try {
-      await askMate(paseo, { text: await remoteSteerText(sent.host, sent.worker, sent.text) });
+      await queueMateNote(paseo, await remoteSteerText(sent.host, sent.worker, sent.text));
     } catch (error) {
       console.error(`[firstmate] could not tell the first mate about the captain's words to ${agentId}:`, error);
     }
@@ -197,7 +212,7 @@ export default function contribute(server: PluginServerContext) {
   // board's `useSettings` reads and writes valid for this installation.
   server.registerSettings(displaySettings);
 
-  const unregisterRelay = registerSteerRelay(server, steers, readFirstmateConfig);
+  const unregisterRelay = registerSteerRelay(server, steers);
   // A crewmate whose finish the first mate has been told about leaves Paseo's "Ready to review"; see server/crew-seen.ts.
   const unregisterCrewSeen = registerCrewSeen(server, readFirstmateConfig);
 
