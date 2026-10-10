@@ -7,7 +7,7 @@
  * what came back, and the plan — the latest one only, since each update
  * restates the whole list.
  */
-import { clip, injectedSummary, pushCompaction, rowKey, toolDisplayName, type TimelineEntry } from "./transcript-rows";
+import { clip, continuesText, injectedSummary, pushCompaction, rowKey, toolDisplayName, type TimelineEntry } from "./transcript-rows";
 
 type TimelineItem = TimelineEntry["item"];
 type ToolCallItem = Extract<TimelineItem, { type: "tool_call" }>;
@@ -204,12 +204,12 @@ function planStatus(item: TodoItem): PlanStatus {
 }
 
 /**
- * Timeline entries to rows. Consecutive assistant messages are one row, and
- * so is consecutive reasoning: both stream in pieces that split anywhere.
+ * Timeline entries to rows. Replies and reasoning can stream in pieces that
+ * split anywhere; only continuous pieces within their boundaries are joined.
  */
 export function activityRows(entries: readonly TimelineEntry[]): ActivityRow[] {
   const rows: ActivityRow[] = [];
-  entries.forEach((entry) => {
+  entries.forEach((entry, index) => {
     const key = rowKey(entry);
     const item = entry.item;
     const last = rows[rows.length - 1];
@@ -220,11 +220,11 @@ export function activityRows(entries: readonly TimelineEntry[]): ActivityRow[] {
         break;
       }
       case "assistant_message":
-        if (last !== undefined && last.kind === "reply") last.text += item.text;
+        if (last !== undefined && last.kind === "reply" && continuesText(entries[index - 1], entry)) last.text += item.text;
         else rows.push({ key, kind: "reply", text: item.text });
         break;
       case "reasoning":
-        if (last !== undefined && last.kind === "reasoning") last.text += item.text;
+        if (last !== undefined && last.kind === "reasoning" && continuesText(entries[index - 1], entry)) last.text += item.text;
         else rows.push({ key, kind: "reasoning", text: item.text });
         break;
       case "tool_call":
