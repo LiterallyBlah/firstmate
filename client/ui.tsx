@@ -5,8 +5,9 @@
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { Icon } from "@getpaseo/plugin/client/react-native";
-import { useMemo } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
+import { bindWebKeys, webAttributes } from "./web";
 
 /** A fixed-width font on every platform; iOS has no font named "monospace". */
 export const MONOSPACE = Platform.select({ ios: "Menlo", default: "monospace" });
@@ -21,6 +22,8 @@ export function IconButton({
   tone = "default",
   disabled = false,
   showLabel = false,
+  tooltip,
+  tooltipAlign = "start",
 }: {
   icon: string;
   label: string;
@@ -30,7 +33,24 @@ export function IconButton({
   disabled?: boolean;
   /** Draws the label beside the icon; otherwise it is only the accessibility label. */
   showLabel?: boolean;
+  /** Purpose shown on hover/focus and read as an accessibility hint. */
+  tooltip?: string;
+  tooltipAlign?: "start" | "end";
 }) {
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const tooltipId = useId();
+  const open = tooltip !== undefined && (hovered || focused) && !dismissed;
+  useEffect(() => {
+    if (!open) return;
+    // TextInput stops keyboard bubbling; capture still dismisses a hovered tip.
+    return bindWebKeys(undefined, (key) => {
+      if (key !== "Escape") return false;
+      setDismissed(true);
+      return true;
+    }, true);
+  }, [open]);
   const colors = theme.colors;
   const color =
     tone === "accent" ? colors.accentForeground : tone === "danger" ? colors.statusDanger : colors.foreground;
@@ -52,10 +72,13 @@ export function IconButton({
     }),
     [colors, tone, disabled, showLabel, color],
   );
-  return (
+  const described = tooltip === undefined ? {} : webAttributes({ "aria-describedby": tooltipId });
+  const control = (
     <Pressable
+      {...described}
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityHint={tooltip}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
@@ -64,6 +87,43 @@ export function IconButton({
       <Icon name={icon} size={14} color={color} />
       {showLabel ? <Text style={styles.label}>{label}</Text> : null}
     </Pressable>
+  );
+  if (tooltip === undefined) return control;
+  return (
+    <View
+      style={{ zIndex: open ? 10 : 0 }}
+      onPointerEnter={() => {
+        setHovered(true);
+        setDismissed(false);
+      }}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => {
+        setFocused(true);
+        setDismissed(false);
+      }}
+      onBlur={() => setFocused(false)}
+    >
+      {control}
+      <View
+        nativeID={tooltipId}
+        role="tooltip"
+        // Kept in the accessibility description even when not painted.
+        style={{
+          display: open ? "flex" : "none",
+          position: "absolute",
+          bottom: "100%",
+          ...(tooltipAlign === "end" ? { right: 0 } : { left: 0 }),
+          width: 240,
+          padding: 10,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.surface2,
+        }}
+      >
+        <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 17 }}>{tooltip}</Text>
+      </View>
+    </View>
   );
 }
 
