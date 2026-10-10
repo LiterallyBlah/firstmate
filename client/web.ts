@@ -12,6 +12,54 @@
 import { Platform } from "react-native";
 import { rasterImageType } from "../shared/attachments";
 
+/** Browser attributes omitted by React Native Web. Native keeps its own accessibility props. */
+export function webAttributes(attributes: Record<string, string>, cursor?: string): { ref?: (node: unknown) => void } {
+  if (Platform.OS !== "web") return {};
+  return {
+    ref: (node) => {
+      if (typeof node !== "object" || node === null) return;
+      const setAttribute: unknown = Reflect.get(node, "setAttribute");
+      if (typeof setAttribute === "function") {
+        for (const [key, value] of Object.entries(attributes)) setAttribute.call(node, key, value);
+      }
+      const style: unknown = Reflect.get(node, "style");
+      if (cursor !== undefined && typeof style === "object" && style !== null) Reflect.set(style, "cursor", cursor);
+    },
+  };
+}
+
+/** Keep DOM keyboard listeners at the web boundary and remove them on unmount. */
+export function bindWebKeys(target: unknown, onKey: (key: string, shift: boolean) => boolean, capture = false): () => void {
+  // A hover tooltip needs Escape even while keyboard focus is elsewhere.
+  target ??= (globalThis as WebGlobals).document;
+  if (Platform.OS !== "web" || typeof target !== "object" || target === null) return () => {};
+  const add: unknown = Reflect.get(target, "addEventListener");
+  const remove: unknown = Reflect.get(target, "removeEventListener");
+  if (typeof add !== "function" || typeof remove !== "function") return () => {};
+  const listener = (event: { key: string; shiftKey: boolean; preventDefault(): void }) => {
+    if (onKey(event.key, event.shiftKey)) event.preventDefault();
+  };
+  add.call(target, "keydown", listener, capture);
+  return () => remove.call(target, "keydown", listener, capture);
+}
+
+/** Convert the responder's page coordinate to the document tracker's client coordinate. */
+export function pointerClientX(pageX: number): number {
+  return Platform.OS === "web" ? pageX - ((globalThis as { scrollX?: number }).scrollX ?? 0) : pageX;
+}
+
+/** The split's rendered width, including CSS UI scaling. Native uses onLayout's points. */
+export function renderedWidth(handle: unknown, fallback: number): number {
+  if (Platform.OS !== "web" || typeof handle !== "object" || handle === null) return fallback;
+  const parent: unknown = Reflect.get(handle, "parentElement");
+  if (typeof parent !== "object" || parent === null) return fallback;
+  const bounds: unknown = Reflect.get(parent, "getBoundingClientRect");
+  if (typeof bounds !== "function") return fallback;
+  const rect: unknown = bounds.call(parent);
+  const width: unknown = typeof rect === "object" && rect !== null ? Reflect.get(rect, "width") : null;
+  return typeof width === "number" && width > 0 ? width : fallback;
+}
+
 /** Native reads the full accessibility label; browsers also offer a title tooltip. */
 export function webTitle(title: string): { ref?: (node: unknown) => void } {
   if (Platform.OS !== "web") return {};
