@@ -143,12 +143,29 @@ export function rowKey(entry: TimelineEntry): string {
 }
 
 /**
- * Timeline entries to rows. Consecutive assistant messages are one row, since
- * a streamed reply can arrive in several pieces that split anywhere.
+ * Whether adjacent text entries continue the same streamed message. The
+ * daemon's projected timeline already joins most chunks, but older hosts can
+ * leave pieces. Preserve its turn/message boundaries even when a system
+ * prompt is omitted, and do not bridge entries hidden by this view.
  */
+export function continuesText(previous: TimelineEntry | undefined, entry: TimelineEntry): boolean {
+  if (
+    previous === undefined ||
+    previous.provider !== entry.provider ||
+    previous.turnId !== entry.turnId ||
+    previous.seqEnd + 1 !== entry.seqStart
+  ) return false;
+  const item = entry.item;
+  if (item.type === "assistant_message" && previous.item.type === "assistant_message") {
+    return previous.item.messageId === item.messageId;
+  }
+  return item.type === "reasoning" && previous.item.type === "reasoning";
+}
+
+/** Timeline entries to rows, joining only continuous chunks of one message. */
 export function transcriptRows(entries: readonly TimelineEntry[]): TranscriptRow[] {
   const rows: TranscriptRow[] = [];
-  entries.forEach((entry) => {
+  entries.forEach((entry, index) => {
     const key = rowKey(entry);
     const item = entry.item;
     switch (item.type) {
@@ -161,7 +178,7 @@ export function transcriptRows(entries: readonly TimelineEntry[]): TranscriptRow
       }
       case "assistant_message": {
         const last = rows[rows.length - 1];
-        if (last !== undefined && last.kind === "mate") last.text += item.text;
+        if (last !== undefined && last.kind === "mate" && continuesText(entries[index - 1], entry)) last.text += item.text;
         else rows.push({ key, kind: "mate", text: item.text });
         break;
       }
