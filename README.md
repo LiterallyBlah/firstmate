@@ -333,6 +333,21 @@ an uncertain failure: inspect before retrying.
 
 ## Watches
 
+**Add watch** and **Configure** expose routing fields: **Run in**, **New-session reasoning** and
+**Notify first mate**. Existing scripts keep the current-session path and its reasoning. **Use Board
+review defaults** creates an opt-in, read-only inspection every ten minutes in a separate session at
+Medium, on the current mate's provider/model. Only actionable findings or failures wake the current
+mate; no-change results remain in **Reports**. The main mate alone changes shared records and manages
+crew. Isolated inspection requires the provider's advertised `read-only` mode and the current model's
+supported thinking options; unavailable options are refused. There is no provider/model override.
+
+The home tool `node tools/watch.mjs create|configure --file request.json` takes the same explicit
+fields as the UI. Scripts stay editable in Files; managed inspection briefs and schedules are edited
+in Configure. Definitions, input evidence, results and pending delivery survive reload/handover outside
+the home. Disabling or editing a watch affects future runs; an existing inspection finishes with its
+captured settings. See [the routing design and validation](docs/watch-routing/README.md) for schemas,
+failure handling, retained evidence and reproducible screenshots.
+
 A **watch** is a small script in the home's `watches/` folder that FirstMate runs on a schedule, while
 Paseo is running. When it prints nothing, nothing happens; when it prints something, all of it reaches
 the first mate as one note, as soon as it is between turns — several at once arrive together, and the

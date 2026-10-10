@@ -96,6 +96,7 @@ export async function prepareHome(home: string, config: FirstmateConfig): Promis
   // The helper is plugin-owned transport code, rather than a captain's record.
   await writeFile(join(home, TEMPLATES.remoteHelper), fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(remoteQueue()) }), "utf8");
   await writeFile(join(home, TEMPLATES.remoteAccess), await readTemplate(TEMPLATES.remoteAccess), "utf8");
+  await writeFile(join(home, TEMPLATES.watchHelper), await readTemplate(TEMPLATES.watchHelper), "utf8");
   await seedWatches(home);
 }
 

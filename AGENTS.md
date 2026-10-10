@@ -88,6 +88,13 @@ compile time. This file covers only what is specific to `firstmate`.
 
 ## The plugin never dispatches a crewmate
 
+The narrow exception is an opt-in watch **inspector**, implemented in `server/watch-inspections.ts`:
+read-only, parentless, with its own explicit workspace outside the home and `watch-inspector` labels.
+It cannot inherit the supervisor charter or Paseo supervisory MCP tools. It receives a supplied board
+snapshot, returns structured evidence, and is never crew. The current first mate alone acts on findings.
+Typed routing contracts live in `shared/watch-routing.ts`; `watch-config.ts` and `watch-requests.ts`
+persist definitions and the home tool transport. `docs/watch-routing/README.md` covers lifecycle and tests.
+
 The first mate does, with **Paseo's own MCP tools** — `create_workspace` for the worktree,
 `create_agent` for the crewmate, `send_agent_prompt` to steer, `archive_agent` to clean up. The plugin
 gives it a home and a charter, starts it, carries the captain's words to it, and draws the result.
