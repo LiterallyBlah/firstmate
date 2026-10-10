@@ -59,6 +59,7 @@ import {
 } from "./shared/fleet";
 import { findHomeFiles, listHomeFiles, readHomeFile, writeHomeFile } from "./shared/files";
 import { startWatches } from "./server/watch-service";
+import { createWatch, configureWatch, watchOptions, watchHistory } from "./shared/watch-routing";
 import { displaySettings } from "./shared/settings";
 import { RemoteService } from "./server/remotes";
 import { readRemotes, syncRemotes, reportRemoteSyncError } from "./shared/remotes";
@@ -77,7 +78,12 @@ export default function contribute(server: PluginServerContext) {
   const reports = new ReportCache();
   const steers = new CaptainSteers();
   // The scripts in the home's watches/ folder, run on their schedules; see server/watches.ts.
-  const watches = startWatches(server, readFirstmateConfig);
+  const watches = startWatches(server, readFirstmateConfig, async (paseo, config) => {
+    const fleet = await loadFleet(paseo, config, reports, async () => [], () => remotes.read());
+    // Crew label lookup already excludes inspectors. Watches, inspector history and role instructions stay out.
+    return { capturedAt: new Date().toISOString(), cards: fleet.cards, projects: fleet.projects,
+      remoteHosts: (await remotes.read()).hosts.map(({ serverId, label, online, checkedAt, error }) => ({ serverId, label, online, checkedAt, error })) };
+  });
   // The backlog names the tasks whose remote worker the poll should look up by label; see server/remote-cards.ts.
   const remotes = new RemoteService(undefined, async (host) =>
     remoteTaskQueries(await readBacklog(resolveHome(await readFirstmateConfig())), host, (await remotes.read()).localServerId),
@@ -110,7 +116,7 @@ export default function contribute(server: PluginServerContext) {
       paseo,
       await readFirstmateConfig(),
       reports,
-      () => watches.runner.summaries(),
+      () => watches.summaries(),
       () => remotes.read(),
     );
     // A first mate launched before the plugin named its home gets its name the first time the board looks.
@@ -142,6 +148,10 @@ export default function contribute(server: PluginServerContext) {
     await watches.toggle(name, enabled);
     return {};
   });
+  server.handle(createWatch, async (input, { paseo }) => { watches.remember(paseo); await watches.create(input); return {}; });
+  server.handle(configureWatch, async (input, { paseo }) => { watches.remember(paseo); await watches.configure(input); return {}; });
+  server.handle(watchOptions, (_input, { paseo }) => { watches.remember(paseo); return watches.options(); });
+  server.handle(watchHistory, ({ name }) => watches.history(name));
 
   server.handle(steerCrewRpc, async ({ agentId, text }, { paseo }) => {
     await steerCrew(paseo, steers, agentId, text);

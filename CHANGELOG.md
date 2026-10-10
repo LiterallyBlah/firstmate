@@ -16,6 +16,12 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Added
 
+- Explicit watch session, reasoning and notification fields in creation/configuration RPCs, the home
+  tool and Watches UI. The opt-in Board review preset runs a separate parentless read-only inspection
+  at Medium on the current provider/model; unchanged outcomes stay silent. Durable reports and result
+  receipts survive handover, with failures escalated, overlap prevented and evidence retained after
+  inspector archive. Existing scripts keep current-session defaults and unchanged mate reasoning.
+
 - **Switch provider/model** transfers the first-mate role to a fresh session with target-specific
   permission and thinking settings, retained home records, a bounded saved handoff and links to old
   conversations. A durable journal supports recovery after creation, retirement or delivery failures;
