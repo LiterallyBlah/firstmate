@@ -105,6 +105,22 @@ What that costs:
 
 ## Supervision is Paseo's, not ours
 
+**Archiving a parent can archive workers too.** Paseo 0.11 cascades to children in the parent's
+workspace, recursively. A different `cwd` with `parent` alone still inherits that workspace. Create
+an explicit separate workspace and pass its `workspaceId` (the SDK's workspace agent creation does
+this) for a worker meant to continue independently. Cross-workspace children are detached on parent
+archive and keep running. `server/migration.ts` refuses same-workspace children before preparation
+and again before retirement; its unprompted replacement is created without a parent and checked
+for independence and survival. Lifecycle fixtures must verify both refusal and preservation, using
+only a throwaway daemon.
+
+**A live agent listing is not an archive safety inventory.** Paseo 0.11 omits unloaded persisted
+sessions on unregistered providers from `agents.list`, but archive still traverses those sessions
+and can stop their running descendants. The shared migration/cancellation guard uses
+`server/archive-inventory.ts`: paginated `fetch_agent_history_request` over the existing plugin
+session channel, including unavailable persisted providers. It refuses archive on request/schema
+failures or incomplete/non-progressing pagination, without falling back to the ordinary listing.
+
 FirstMate's "zero-token supervision" was a bash watcher sleeping on status files. Paseo already has it:
 when an agent creates or prompts another through the MCP tools with `notifyOnFinish` (on by default
 for agent-scoped calls), the daemon sends the creator a `<paseo-system>` note when the child finishes,

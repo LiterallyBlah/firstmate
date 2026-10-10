@@ -60,6 +60,37 @@ Since the import, this copy has added:
 
 See [CHANGELOG.md](CHANGELOG.md) for details and the retained upstream history.
 
+## Switching the first mate's provider or model
+
+Open **Switch provider/model** in the FirstMate header, choose an available target model and its
+permission and thinking settings, then **Transfer role** once the mate is idle with no pending
+permissions. Permission settings start at the target provider's default; the old settings are never
+copied between providers.
+
+This creates a new session in the same home and transfers the first-mate role. Standing orders,
+backlog and records stay in place. A saved handoff carries the opening (8,000 characters), the latest
+200 projected conversation entries (20,000 characters) and a local crew snapshot (4,000 characters).
+It is an excerpt, not native conversation or provider state; older context, attachments and private
+reasoning stay in the old conversation. **Previous conversation** opens that history, and saved
+handoffs remain in `data/handoffs/` in Files.
+
+Existing workers keep running. Paseo's archive cascades to children in the same workspace, so
+migration refuses while such children exist, leaving all sessions intact. Detach those children in
+Paseo first or keep the current mate. This check includes persisted children on unregistered
+providers; migration and cancellation refuse archival if the complete inventory cannot be read.
+Crew in separate workspaces survives; earlier local workers'
+native finish notifications still address the old mate, so the replacement checks them on its
+heartbeat. Saved remote ownership stays unchanged.
+
+Failed handovers show **Recover migration** with the saved source and replacement IDs. Watches and
+board crew notes wait in their queues. Recovery reuses the prepared replacement and refreshes the
+handoff if the source worked again. **Keep old mate** cancels only before retirement; once the source
+is archived, continue recovery. The plugin prompts the replacement only after retirement is verified.
+Concurrent changes through FirstMate are serialized. Paseo does not expose an atomic idle-check and
+archive operation, so changes made outside the plugin can still race that last check.
+
+See [migration verification and screenshots](docs/provider-migration/README.md).
+
 ## What you need
 
 - Paseo **0.11 or newer**, on the daemon and on the device running the app.

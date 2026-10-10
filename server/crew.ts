@@ -12,11 +12,11 @@
  */
 import type { PluginLifecycleRegistration } from "@getpaseo/plugin/server";
 
-import { CREW_LABELS, type FirstmateConfig } from "../shared/fleet";
+import { CREW_LABELS } from "../shared/fleet";
 import { stopAgent } from "./cli";
-import { closingText, fetchLiveAgent, resolveMate } from "./fleet";
+import { closingText, fetchLiveAgent } from "./fleet";
 import type { PaseoAgent, PaseoApi } from "./host-types";
-import { askMate } from "./mate";
+import { askMate, queueMateNote } from "./mate";
 import { sendWithoutInterrupting } from "./send";
 import { TEMPLATES, message } from "./templates";
 
@@ -148,7 +148,6 @@ export async function relayText(
 export function registerSteerRelay(
   server: PluginLifecycleRegistration,
   steers: CaptainSteers,
-  readConfig: () => Promise<FirstmateConfig>,
 ): () => void {
   return server.on("agent.turn_ended", async (event, { paseo }) => {
     // A cancelled turn is the one a steer replaced, not the one that answers it.
@@ -157,14 +156,9 @@ export function registerSteerRelay(
     const captain = steers.take(event.agent.id, userMessages);
     if (captain === null) return;
     try {
-      const mate = await resolveMate(paseo, await readConfig());
-      if (mate.agent === null) return;
-      await sendWithoutInterrupting(
-        paseo,
-        mate.agent.id,
-        await relayText(event.agent, captain, closingText(event.timeline)),
-      );
+      await queueMateNote(paseo, await relayText(event.agent, captain, closingText(event.timeline)));
     } catch (error) {
+      captain.forEach((text) => steers.record(event.agent.id, text));
       console.error(`[firstmate] could not tell the first mate about the captain's words to ${event.agent.id}:`, error);
     }
   });
