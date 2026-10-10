@@ -685,6 +685,17 @@ while a tool call runs or a reply streams, and its position in the page shifts b
 entry once the tail is full; a key built from either remounts the row, which closes an open tool
 detail just as its output arrives.
 
+**Text rows preserve the projected timeline's message boundaries.** `continuesText` in
+`client/transcript-rows.ts`, shared with Watch, joins only adjacent text entries with consecutive
+sequence ranges and matching provider, turn id and (for assistant text) message id. It checks the
+previous timeline entry, not the previous visible row, so hidden reasoning and removed plans do not
+join unrelated replies. The daemon already merges continuous streaming chunks; no separator is added
+inside those chunks. Separate messages are separate Markdown renders, using the existing row spacing.
+Paseo omits `<paseo-system>` prompts, so a final reply and the next worker-triggered commentary can be
+adjacent without a user row; their turn/message ids still distinguish them. Rebuilt provider history
+can omit turn ids, making message ids necessary too. The isolated regression harness and exact
+reported boundary are documented in `docs/chat-message-boundaries/README.md`.
+
 A crewmate's pending questions and permissions are answered here exactly as the first mate's are in
 the chat — `usePendingRequests` and `PermissionCard`, shared — and the transcript follows its end the
 same way (`useFollowEnd`, also shared).

@@ -8,6 +8,12 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ## [Unreleased]
 
+### Fixed
+
+- FirstMate chat and Watch keep separate assistant messages apart, including a worker-triggered
+  turn whose system prompt Paseo omits. Continuous streaming chunks still join without added
+  whitespace, preserving Markdown through snapshot refreshes and reconnects.
+
 ### Added
 
 - **Switch provider/model** transfers the first-mate role to a fresh session with target-specific
