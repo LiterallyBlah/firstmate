@@ -8,6 +8,7 @@
  */
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
+import { WatchRoutingSchema } from "./watch-routing";
 
 import { CaptainMessageSchema } from "./attachments";
 
@@ -232,6 +233,9 @@ export const WatchSummarySchema = z.object({
   builtIn: z.boolean(),
   /** A built-in the captain has edited, whose plugin version has changed since. */
   outdated: z.boolean(),
+  routing: WatchRoutingSchema.optional(),
+  managed: z.boolean().optional(),
+  prompt: z.string().optional(),
 });
 export type WatchSummary = z.infer<typeof WatchSummarySchema>;
 

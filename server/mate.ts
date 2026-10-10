@@ -156,7 +156,9 @@ async function startMate(
  */
 export async function adoptMate(paseo: PaseoApi, agentId: string): Promise<FirstmateConfig> {
   return oneAtATime(async () => {
-    if ((await fetchLiveAgent(paseo, agentId)) === null) throw new Error(`Paseo has no live agent ${agentId}.`);
+    const candidate = await fetchLiveAgent(paseo, agentId);
+    if (candidate === null) throw new Error(`Paseo has no live agent ${agentId}.`);
+    if (candidate.labels?.["firstmate.role"] === "watch-inspector") throw new Error("Watch inspectors cannot take the first-mate role.");
     const config = await readFirstmateConfig();
     requireNoMigration(config);
     // Checked here rather than trusted from the launch panel: a launch may have finished while this waited.
@@ -182,7 +184,7 @@ export async function releaseMate(): Promise<FirstmateConfig> {
 export async function listCandidates(paseo: PaseoApi): Promise<{ home: string; agents: AgentSummary[] }> {
   const home = resolveHome(await readFirstmateConfig());
   const agents = (await listAgents(paseo))
-    .filter((agent) => agent.labels[CREW_LABELS.role] !== CREW_LABELS.crewRole)
+    .filter((agent) => agent.labels[CREW_LABELS.role] !== CREW_LABELS.crewRole && agent.labels["firstmate.role"] !== "watch-inspector")
     .map(summarizeAgent)
     .sort((a, b) => {
       const inHome = Number(b.cwd === home) - Number(a.cwd === home);

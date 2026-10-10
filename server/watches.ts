@@ -34,6 +34,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import type { WatchResult, WatchSummary } from "../shared/fleet";
+import { watchRouting, type ManagedWatch } from "../shared/watch-routing";
 import { serialized } from "./serialize";
 import { TEMPLATES, message } from "./templates";
 import { BUILT_IN_WATCHES, builtInStates, listWatches, seedWatches, type WatchFile } from "./watch-files";
@@ -98,6 +99,9 @@ export interface WatchRunnerOptions {
   disabled: () => Promise<readonly string[]>;
   /** Sends the note, or says to wait: while the first mate is mid-turn, or while there is none. */
   deliver: (text: string) => Promise<DeliveryOutcome>;
+  /** Persist isolated-session inputs before removing them from the script's delivery path. */
+  routeNote?: (note: QueuedNote) => Promise<boolean>;
+  canRun?: (name: string) => Promise<boolean>;
   /** The runner's own file, `watches.json`. */
   stateFile: string;
   /** Where each script's `FIRSTMATE_WATCH_STATE` directory goes. */
@@ -268,6 +272,7 @@ export class WatchRunner {
     if (this.running.has(watch.name) || this.aborter.signal.aborted) return;
     this.running.add(watch.name);
     try {
+      if (this.options.canRun && !(await this.options.canRun(watch.name))) return;
       const stateDirectory = join(this.options.scriptStateRoot, watch.name);
       await mkdir(stateDirectory, { recursive: true });
       const result = await this.run(watch.path, {
@@ -298,7 +303,10 @@ export class WatchRunner {
     const reason = failureReason(result, this.timeoutMs);
     if (reason !== null) {
       const stderr = tail(result.stderr, MAX_ERROR_CHARS);
-      if (!previous.failing) this.enqueue(state, { name, ran, kind: "failed", reason, text: stderr });
+      if (!previous.failing) {
+        const note: QueuedNote = { name, ran, kind: "failed", reason, text: stderr };
+        if (!(await this.options.routeNote?.(note))) this.enqueue(state, note);
+      }
       state.watches[name] = {
         ...previous,
         lastRunAt: ran,
@@ -312,7 +320,8 @@ export class WatchRunner {
         state.watches[name] = { ...previous, lastRunAt: ran, lastResult: "silent", lastError: null, failing: false };
       } else {
         const text = clip(output, MAX_OUTPUT_CHARS, result.truncated);
-        this.enqueue(state, { name, ran, kind: "output", text });
+        const note: QueuedNote = { name, ran, kind: "output", text };
+        if (!(await this.options.routeNote?.(note))) this.enqueue(state, note);
         state.watches[name] = {
           lastRunAt: ran,
           lastResult: "queued",
@@ -324,6 +333,31 @@ export class WatchRunner {
       }
     }
     await this.persist();
+  }
+
+  /** Current-session prompt watches use the existing execution queue, with no second result notification. */
+  async enqueuePrompt(name: string, text: string, at: Date): Promise<void> {
+    return serialized(`${this.options.stateFile}.prompts`, async () => {
+      const state = await this.load();
+      const ran = stamp(at);
+      const previous = state.watches[name];
+      if (previous?.lastRunAt?.slice(0, 16) === ran.slice(0, 16) || state.queue.some((note) => note.name === name)) return;
+      this.enqueue(state, { name, ran, kind: "output", text });
+      state.watches[name] = { ...BLANK, lastRunAt: ran, lastResult: "queued", lastOutput: text, lastOutputAt: ran };
+      await this.persist();
+    });
+  }
+
+  async promptSummary(watch: ManagedWatch): Promise<WatchSummary> {
+    const state = await this.load(); const record = state.watches[watch.name] ?? BLANK;
+    return { name: watch.name, schedule: watch.schedule, enabled: watch.enabled, invalid: null, running: false,
+      ...record, lastResult: shownResult(record, state.queue, watch.name), builtIn: false, outdated: false,
+      routing: watchRouting(watch), managed: true, prompt: watch.prompt };
+  }
+
+  /** A route edit must not start an inspector while the same watch's earlier current-session note waits. */
+  async pendingDelivery(name: string): Promise<boolean> {
+    return (await this.load()).queue.some((note) => note.name === name);
   }
 
   private enqueue(state: RunnerState, note: QueuedNote): void {

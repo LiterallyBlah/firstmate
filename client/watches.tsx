@@ -16,6 +16,8 @@ import { Pressable, Text, View } from "react-native";
 import { toggleWatch, watchPath, type WatchSummary } from "../shared/fleet";
 import { errorText, watchAttention, watchStatusText, watchTone } from "./format";
 import { MONOSPACE } from "./ui";
+import { WatchEditor, WatchReports } from "./watch-editor";
+import { CURRENT_ROUTING } from "../shared/watch-routing";
 
 export const WATCHES_TITLE = "Watches";
 export const WATCHES_ICON = "Radar";
@@ -51,17 +53,13 @@ export function WatchButton(props: Parameters<typeof WatchList>[0]) {
       </Pressable>
       <Modal title="Watches" open={open} onOpenChange={setOpen}>
         <Modal.Content>
-          {props.watches.length === 0 ? (
-            <Text style={{ color: colors.foregroundMuted }}>No watches in the home.</Text>
-          ) : (
-            <WatchList
-              {...props}
-              onOpenFile={(path) => {
-                setOpen(false);
-                props.onOpenFile(path);
-              }}
-            />
-          )}
+          <WatchList
+            {...props}
+            onOpenFile={(path) => {
+              setOpen(false);
+              props.onOpenFile(path);
+            }}
+          />
         </Modal.Content>
       </Modal>
     </>
@@ -158,16 +156,20 @@ export function WatchList({
 
   return (
     <View style={styles.list}>
+      <WatchEditor theme={theme} onChanged={onChanged} />
       {watches.map((served) => {
         const pending = switched[served.name];
         const watch = pending === undefined ? served : { ...served, enabled: pending };
         const expanded = open === watch.name;
-        const problem = watch.invalid ?? (watch.lastResult === "failed" ? watch.lastError : null);
+        const problem = watch.invalid ?? watch.lastError;
+        const routing = watch.routing ?? CURRENT_ROUTING;
         return (
           <View key={watch.name} style={styles.row}>
             <View style={styles.head}>
               <View style={[styles.dot, { backgroundColor: watchTone(theme, watch) }]} />
-              <Pressable
+              {watch.managed ? (
+                <Text style={[styles.nameButton, styles.name, { textDecorationLine: "none" }]} numberOfLines={1}>{watch.name}</Text>
+              ) : <Pressable
                 accessibilityRole="link"
                 accessibilityLabel={`Open ${watch.name} in Files`}
                 style={styles.nameButton}
@@ -176,12 +178,14 @@ export function WatchList({
                 <Text style={styles.name} numberOfLines={1}>
                   {watch.name}
                 </Text>
-              </Pressable>
+              </Pressable>}
               {watch.schedule === null ? null : (
                 <Text style={styles.schedule} numberOfLines={1}>
                   {watch.schedule}
                 </Text>
               )}
+              <WatchReports name={watch.name} theme={theme} />
+              <WatchEditor theme={theme} watch={watch} onChanged={onChanged} />
               <Pressable
                 accessibilityRole="switch"
                 accessibilityLabel={`${watch.name} is ${watch.enabled ? "on" : "off"}; switch it ${watch.enabled ? "off" : "on"}`}
@@ -200,6 +204,7 @@ export function WatchList({
             <Text style={styles.status} numberOfLines={1}>
               {watchStatusText(watch)}
             </Text>
+            <Text style={styles.status}>{routing.executionSession === "current" ? "Current session · inherited reasoning" : `Isolated session · ${routing.newSessionReasoning} reasoning · ${routing.notificationPolicy === "actionable" ? "actionable findings notify" : routing.notificationPolicy === "always" ? "every result notifies" : "results kept here"}`}</Text>
             {problem === null ? null : (
               <Text style={styles.problem} numberOfLines={expanded ? undefined : 2}>
                 {problem}

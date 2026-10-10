@@ -58,6 +58,11 @@ export const TEMPLATES = {
   watchOutput: "messages/watch-output.md",
   watchFailed: "messages/watch-failed.md",
   watchDropped: "messages/watch-dropped.md",
+  watchInspection: "messages/watch-inspection.md",
+  watchInspectorAgents: "messages/watch-inspector-agents.md",
+  inspectorMcp: "tools/inspector-mcp.mjs",
+  boardReviewBrief: "messages/board-review-brief.md",
+  watchHelper: "tools/watch.mjs",
 } as const;
 
 export type TemplatePath = (typeof TEMPLATES)[keyof typeof TEMPLATES];
