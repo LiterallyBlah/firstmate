@@ -76,7 +76,9 @@ handoffs remain in `data/handoffs/` in Files.
 
 Existing workers keep running. Paseo's archive cascades to children in the same workspace, so
 migration refuses while such children exist, leaving all sessions intact. Detach those children in
-Paseo first or keep the current mate. Crew in separate workspaces survives; earlier local workers'
+Paseo first or keep the current mate. This check includes persisted children on unregistered
+providers; migration and cancellation refuse archival if the complete inventory cannot be read.
+Crew in separate workspaces survives; earlier local workers'
 native finish notifications still address the old mate, so the replacement checks them on its
 heartbeat. Saved remote ownership stays unchanged.
 
