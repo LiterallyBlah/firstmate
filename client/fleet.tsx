@@ -46,7 +46,8 @@ import { agentStatusLabel, agentStatusTone, groupCards, orderedColumns, revealFi
 import { LaunchPanel } from "./launch";
 import { MigrationControl } from "./migration-control";
 import { useMateSender } from "./mate-send";
-import { ResizeHandle, clampShare } from "./resize-handle";
+import { ResizeHandle } from "./resize-handle";
+import { clampShare, MIN_SPLIT_WIDTH } from "./resize-layout";
 import { hostTabs, onTab, shownHostTab, watchKey } from "./host-tabs";
 import { HostTabRow } from "./host-tab-row";
 import { RemoteWorkerView } from "./remote-worker";
@@ -99,7 +100,8 @@ export function useFleet(pollSeconds: number) {
 }
 
 export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
-  const compact = layout.compact;
+  const [width, setWidth] = useState(0);
+  const compact = layout.compact || (width > 0 && width < MIN_SPLIT_WIDTH);
   const enable = useRpc(enableAgentTools);
   const compareCharters = useRpc(compareCharter);
   const acknowledgeCharters = useRpc(acknowledgeCharter);
@@ -113,7 +115,6 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   const [override, setOverride] = useState<Partial<DisplaySettings>>({});
   const values: DisplaySettings = { ...saved, ...override };
   const [share, setShare] = useState<number | null>(null);
-  const [width, setWidth] = useState(0);
   const [tab, setTabState] = useState<Tab>(cachedTab);
   const [rightPane, setRightPaneState] = useState(cachedRightPane);
   const [watching, setWatchingState] = useState(cachedWatching);
@@ -144,7 +145,12 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   displayRef.current = display;
   const pending = useRef<Partial<DisplaySettings>>({});
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(saveTimer.current), []);
+  useEffect(() => () => {
+    clearTimeout(saveTimer.current);
+    // Opening another screen can unmount this one before the batching delay.
+    // A completed drag must still reach the existing host settings document.
+    if (Object.keys(pending.current).length > 0) flush(0);
+  }, []);
 
   function flush(attempt: number): void {
     const current = displayRef.current;
@@ -569,7 +575,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
 
   if (data === null) {
     return (
-      <View style={styles.screen}>
+      <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         {header}
         {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
         <Text style={styles.loading}>{fleet.error === null ? "Mustering the crew…" : ""}</Text>
@@ -676,7 +682,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   if (compact) {
     const tabs: readonly Tab[] = ["chat", "board", "files"];
     return (
-      <View style={styles.screen}>
+      <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         {header}
         {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
         <View style={styles.tabs}>
@@ -708,12 +714,13 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     );
   }
 
-  const chatShare = clampShare(share ?? values.chatWidthFraction);
+  // Window narrowing constrains the drawn split without overwriting the saved preference.
+  const chatShare = clampShare(share ?? values.chatWidthFraction, width);
   return (
-    <View style={styles.screen}>
+    <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
       {header}
       {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
-      <View style={styles.split} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+      <View style={styles.split}>
         {values.chatCollapsed ? (
           <View style={[styles.rail, { borderRightWidth: 1 }]}>
             <IconButton
@@ -724,7 +731,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             />
           </View>
         ) : (
-          <View style={values.boardCollapsed ? { flex: 1 } : { width: Math.round(chatShare * width) }}>{chat}</View>
+          <View nativeID="firstmate-chat-pane" style={values.boardCollapsed ? { flex: 1 } : { width: Math.round(chatShare * width), flexShrink: 0 }}>{chat}</View>
         )}
         {values.chatCollapsed || values.boardCollapsed ? null : (
           <ResizeHandle

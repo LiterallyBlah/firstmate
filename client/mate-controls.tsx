@@ -69,6 +69,8 @@ export function MateControls({
       <IconButton
         icon="Shrink"
         label="Compact"
+        tooltip="Condense context in the current first-mate session."
+        tooltipAlign="end"
         showLabel={!compact}
         theme={theme}
         disabled={busy || running}
@@ -77,6 +79,8 @@ export function MateControls({
       <IconButton
         icon="RotateCcw"
         label="Restart"
+        tooltip="Start a fresh first mate from saved records. The prior conversation stays in Paseo history."
+        tooltipAlign="end"
         showLabel={!compact}
         theme={theme}
         disabled={busy || running}
