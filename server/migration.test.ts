@@ -1,8 +1,10 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as configModule from "./config";
+import * as daemonSession from "./daemon-session";
 import { readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./config";
 import {
   adoptMate,
@@ -66,6 +68,15 @@ function fake() {
     afterCreate: async () => {},
     afterArchive: async () => {},
   };
+  const history = vi.spyOn(daemonSession, "sendSessionRequest").mockImplementation(async (message) => {
+    const parentId = (message.filter as { labels: Record<string, string> }).labels["paseo.parent-agent-id"];
+    return {
+      entries: Object.values(agents)
+        .filter((agent) => agent.labels["paseo.parent-agent-id"] === parentId && agent.archivedAt === null)
+        .map((agent) => ({ agent })),
+      pageInfo: { nextCursor: null, prevCursor: null, hasMore: false },
+    };
+  });
   const paseo = {
     providers: {
       listAvailable: async () => ({ providers: [{ provider: "codex", available: true }] }),
@@ -76,7 +87,9 @@ function fake() {
     },
     agents: {
       list: async () => ({
-        entries: Object.values(agents).map((agent) => ({ agent })),
+        entries: Object.values(agents)
+          .filter((agent) => agent.provider !== "removed-provider")
+          .map((agent) => ({ agent })),
         pageInfo: {},
       }),
       ref: (id: string) => ({
@@ -139,7 +152,7 @@ function fake() {
       }),
     },
   } as unknown as PaseoApi;
-  return { paseo, agents, calls, inputs, sent, behavior, timelines };
+  return { paseo, agents, calls, inputs, sent, behavior, timelines, history };
 }
 
 function child(state: ReturnType<typeof fake>, id: string, parent: string, workspaceId = "workspace") {
@@ -150,6 +163,145 @@ function child(state: ReturnType<typeof fake>, id: string, parent: string, works
     labels: { "paseo.parent-agent-id": parent, "firstmate.role": "crew" },
   };
 }
+
+async function archiveFixture(operation: "migration" | "cancellation") {
+  const state = fake();
+  let rootId = "old";
+  if (operation === "cancellation") {
+    state.behavior.archiveError = true;
+    await expect(migrateMate(state.paseo, { sourceId: "old", target })).rejects.toThrow();
+    rootId = (await readFirstmateConfig()).migration!.agentId;
+    state.behavior.archiveError = false;
+  }
+  const perform = () =>
+    operation === "migration"
+      ? migrateMate(state.paseo, { sourceId: "old", target })
+      : cancelMigration(state.paseo, "old");
+  return { state, rootId, perform };
+}
+
+describe.each(["migration", "cancellation"] as const)("complete archive inventory for %s", (operation) => {
+  it("sees a hidden intermediate child on a later history page and preserves its running descendant", async () => {
+    const { state, rootId, perform } = await archiveFixture(operation);
+    child(state, "separate-workspace-child", rootId, "other-workspace");
+    child(state, "hidden-parent", rootId);
+    state.agents["hidden-parent"]!.provider = "removed-provider";
+    child(state, "running-grandchild", "hidden-parent");
+    state.agents["running-grandchild"]!.status = "running";
+    // Faithful to Paseo: visible inventory omits the intermediate; archive still recurses through it.
+    const visible = await state.paseo.agents.list();
+    expect(visible.entries.some(({ agent }) => agent.id === "hidden-parent")).toBe(false);
+    expect(visible.entries.some(({ agent }) => agent.id === "running-grandchild")).toBe(true);
+    state.behavior.afterArchive = async () => {
+      for (const id of ["hidden-parent", "running-grandchild"]) {
+        state.agents[id]!.archivedAt = "now";
+        state.agents[id]!.status = "closed";
+      }
+    };
+    state.history.mockClear().mockImplementation(async (message) => {
+      const cursor = (message.page as { cursor?: string }).cursor;
+      return {
+        entries: [{ agent: state.agents[cursor === undefined ? "separate-workspace-child" : "hidden-parent"] }],
+        pageInfo: {
+          prevCursor: cursor ?? null,
+          hasMore: cursor === undefined,
+          nextCursor: cursor === undefined ? "next" : null,
+        },
+      };
+    });
+    const saved = await readFirstmateConfig();
+    const calls = [...state.calls];
+    await expect(perform()).rejects.toThrow("archive child sessions");
+    expect(state.history).toHaveBeenCalledTimes(2);
+    expect(state.history.mock.calls.map(([message]) => message)).toEqual([
+      {
+        type: "fetch_agent_history_request",
+        filter: { labels: { "paseo.parent-agent-id": rootId }, includeArchived: false },
+        sort: [{ key: "created_at", direction: "asc" }],
+        page: { limit: 200 },
+      },
+      {
+        type: "fetch_agent_history_request",
+        filter: { labels: { "paseo.parent-agent-id": rootId }, includeArchived: false },
+        sort: [{ key: "created_at", direction: "asc" }],
+        page: { limit: 200, cursor: "next" },
+      },
+    ]);
+    expect(state.calls).toEqual(calls);
+    expect(state.sent).toEqual([]);
+    expect(Object.values(state.agents).every((agent) => agent.archivedAt === null)).toBe(true);
+    expect(state.agents["running-grandchild"]!.status).toBe("running");
+    expect(await readFirstmateConfig()).toEqual(saved);
+  });
+
+  it.each([
+    "request failure",
+    "malformed entries",
+    "missing page metadata",
+    "missing continuation",
+    "uncertain final page",
+    "empty continuation",
+    "repeated cursor",
+    "repeated session",
+    "wrong page",
+    "response error",
+  ])("refuses archival on %s instead of falling back to a visible listing", async (failure) => {
+    const { state, rootId, perform } = await archiveFixture(operation);
+    child(state, "safe-child", rootId, "other-workspace");
+    state.history.mockClear().mockImplementation(async (message) => {
+      const cursor = (message.page as { cursor?: string }).cursor;
+      const agent = { ...state.agents["safe-child"]!, id: cursor === undefined ? "page-one" : "page-two" };
+      const response: Record<string, unknown> = {
+        entries: [{ agent }],
+        pageInfo: { prevCursor: cursor ?? null, hasMore: false, nextCursor: null },
+      };
+      switch (failure) {
+        case "request failure":
+          throw new Error("History timed out");
+        case "malformed entries":
+          response.entries = [{ agent: { id: "unknown" } }];
+          break;
+        case "missing page metadata":
+          delete response.pageInfo;
+          break;
+        case "missing continuation":
+          response.pageInfo = { prevCursor: null, hasMore: true, nextCursor: null };
+          break;
+        case "uncertain final page":
+          response.pageInfo = { prevCursor: null, hasMore: false, nextCursor: "unexpected" };
+          break;
+        case "empty continuation":
+          response.entries = [];
+          response.pageInfo = { prevCursor: null, hasMore: true, nextCursor: "next" };
+          break;
+        case "repeated cursor":
+          response.pageInfo = { prevCursor: cursor ?? null, hasMore: true, nextCursor: "next" };
+          break;
+        case "repeated session":
+          agent.id = "same";
+          response.pageInfo = {
+            prevCursor: cursor ?? null,
+            hasMore: cursor === undefined,
+            nextCursor: cursor === undefined ? "next" : null,
+          };
+          break;
+        case "wrong page":
+          response.pageInfo = { prevCursor: "other", hasMore: false, nextCursor: null };
+          break;
+        case "response error":
+          response.error = "History unavailable";
+          break;
+      }
+      return response;
+    });
+    const saved = await readFirstmateConfig();
+    const calls = [...state.calls];
+    await expect(perform()).rejects.toThrow("Cannot verify the complete archive inventory");
+    expect(state.calls).toEqual(calls);
+    expect(Object.values(state.agents).every((agent) => agent.archivedAt === null)).toBe(true);
+    expect(await readFirstmateConfig()).toEqual(saved);
+  });
+});
 
 describe("provider migration", () => {
   it("prepares without a prompt, retires the old mate, then sends the bounded handoff and preserves records", async () => {
@@ -401,3 +553,78 @@ it("bounds projected context including oversized tools, quotes historical text a
   expect(excerpt).not.toContain("Private thought");
   excerpt.split("\n").forEach((line) => expect(() => JSON.parse(line)).not.toThrow());
 });
+
+/** The review's deterministic offline reproduction, using an explicitly selected installed daemon. */
+it.runIf(process.env.FM_TEST_SERVER_DIR !== undefined).each(["migration", "cancellation"] as const)(
+  "offline Paseo methods: %s refuses the hidden-child cascade",
+  async (operation) => {
+    const daemonRoot = process.env.FM_TEST_SERVER_DIR!;
+    const { Session } = await import(/* @vite-ignore */ pathToFileURL(join(daemonRoot, "session.js")).href);
+    const { AgentManager } = await import(
+      /* @vite-ignore */ pathToFileURL(join(daemonRoot, "agent/agent-manager.js")).href
+    );
+    const { state, rootId, perform } = await archiveFixture(operation);
+    child(state, "hidden-parent", rootId);
+    state.agents["hidden-parent"]!.provider = "removed-provider";
+    child(state, "live-grandchild", "hidden-parent");
+    state.agents["live-grandchild"]!.status = "running";
+    const registry = { list: async () => Object.values(state.agents), get: async (id: string) => state.agents[id] };
+    const runtime = { has: (id: string) => id !== "hidden-parent" && !!state.agents[id] };
+    const view = {
+      agentManager: { listAgents: () => Object.values(state.agents).filter((agent) => runtime.has(agent.id)) },
+      buildAgentPayload: async (agent: PaseoAgent) => agent,
+      agentStorage: registry,
+      providerSnapshotManager: { listRegisteredProviderIds: () => ["claude", "codex"] },
+      buildStoredAgentPayload: (record: PaseoAgent) => record,
+      isProviderVisibleToClient: () => true,
+    };
+    state.paseo.agents.list = (async (options) => ({
+      entries: (await Session.prototype.listAgentPayloads.call(view, options?.filter)).map((agent: PaseoAgent) => ({
+        agent,
+      })),
+      pageInfo: {},
+    })) as PaseoApi["agents"]["list"];
+    const visible = await state.paseo.agents.list();
+    expect(visible.entries.some(({ agent }) => agent.id === "hidden-parent")).toBe(false);
+    state.history.mockImplementation(async (message) => ({
+      entries: (
+        await Session.prototype.listAgentPayloads.call(view, {
+          ...(message.filter as Record<string, unknown>),
+          includeUnavailablePersisted: true,
+        })
+      ).map((agent: PaseoAgent) => ({ agent })),
+      pageInfo: { nextCursor: null, prevCursor: null, hasMore: false },
+    }));
+    const archived: string[] = [];
+    const manager = {
+      registry,
+      agents: runtime,
+      clients: new Map(),
+      requireRegistry: () => registry,
+      runLifecycleMutation: (_id: string, action: () => Promise<unknown>) => action(),
+      archiveAgentUnlocked: async (id: string) => {
+        archived.push(id);
+        state.agents[id]!.archivedAt = "now";
+        await manager.cascadeArchiveChildren.call(manager, id);
+      },
+      persistArchivedRecord: async (record: PaseoAgent) => {
+        archived.push(record.id);
+        record.archivedAt = "now";
+        return record;
+      },
+      syncNativeArchiveState: AgentManager.prototype.syncNativeArchiveState,
+      discardRetainedAgentState: () => {},
+      dispatchStoredAgentState: () => {},
+      fireAgentArchived: async () => {},
+      cascadeArchiveChildren: AgentManager.prototype.cascadeArchiveChildren,
+      archiveSnapshotUnlocked: AgentManager.prototype.archiveSnapshotUnlocked,
+    };
+    state.behavior.afterArchive = () => manager.cascadeArchiveChildren.call(manager, rootId);
+    const saved = await readFirstmateConfig();
+    await expect(perform()).rejects.toThrow("archive child sessions");
+    expect(archived).toEqual([]);
+    expect(Object.values(state.agents).every((agent) => agent.archivedAt === null)).toBe(true);
+    expect(state.agents["live-grandchild"]!.status).toBe("running");
+    expect(await readFirstmateConfig()).toEqual(saved);
+  },
+);

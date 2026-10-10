@@ -11,6 +11,7 @@ import type { PaseoApi, TimelineItem } from "./host-types";
 import { MATE_TITLE, isMidTurn, oneAtATime } from "./mate";
 import { sendWithoutInterrupting } from "./send";
 import { message, TEMPLATES } from "./templates";
+import { archiveChildren } from "./archive-inventory";
 
 export async function migrationTargets(paseo: PaseoApi) {
   const home = resolveHome(await readFirstmateConfig());
@@ -74,11 +75,8 @@ async function validateTarget(paseo: PaseoApi, target: MateTarget): Promise<void
 }
 
 /** Paseo cascades archive to children in the same workspace. Never let migration end workers. */
-async function requireSafeArchive(
-  paseo: PaseoApi,
-  source: { id: string; workspaceId?: string | null | undefined },
-): Promise<void> {
-  const children = await listAgents(paseo, { labels: { "paseo.parent-agent-id": source.id } });
+async function requireSafeArchive(source: { id: string; workspaceId?: string | null | undefined }): Promise<void> {
+  const children = await archiveChildren(source.id);
   const atRisk = children.filter(
     (child) =>
       child.labels?.["paseo.parent-agent-id"] === source.id &&
@@ -101,7 +99,7 @@ async function saveHandoff(
   if (source === null) throw new Error("The current first mate is no longer available.");
   if (isMidTurn(source) || source.pendingPermissions.length > 0)
     throw new Error("Wait until the first mate is idle and has no pending permissions before migrating.");
-  await requireSafeArchive(paseo, source);
+  await requireSafeArchive(source);
   await validateTarget(paseo, target);
   const home = resolveHome(config);
   await prepareHome(home, config);
@@ -205,7 +203,7 @@ export function migrateMate(paseo: PaseoApi, input: { sourceId: string; target?:
           throw new Error(
             "The prepared replacement was started outside the handover. Stop it in Paseo before recovering.",
           );
-        await requireSafeArchive(paseo, source);
+        await requireSafeArchive(source);
         const beforeArchive = await fetchLiveAgent(paseo, source.id);
         if (
           beforeArchive !== null &&
@@ -275,7 +273,7 @@ export function cancelMigration(paseo: PaseoApi, sourceId: string): Promise<Reco
         throw new Error(
           "The prepared replacement became active outside the handover. Stop it in Paseo before cancelling.",
         );
-      await requireSafeArchive(paseo, replacement);
+      await requireSafeArchive(replacement);
       await paseo.agents.ref(replacement.id).archive();
       if ((await fetchLiveAgent(paseo, replacement.id)) !== null)
         throw new Error("Paseo did not confirm that the prepared replacement was archived.");

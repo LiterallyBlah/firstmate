@@ -28,6 +28,7 @@ await writeFile(
   join(home, "config.json"),
   JSON.stringify({
     pluginsEnabled: true,
+    features: { dictation: { enabled: false }, voiceMode: { enabled: false } },
     daemon: { listen: `127.0.0.1:${port}`, relay: { enabled: false }, mcp: { injectIntoAgents: false } },
   }),
 );
@@ -62,7 +63,7 @@ try {
     logger: { debug() {}, info() {}, warn() {}, error() {} },
   });
   await client.connect();
-  const api = createPaseoApi(client);
+  let api = createPaseoApi(client);
   const rpc = (name, input = {}) => client.invokePluginRpc("firstmate", `firstmate.${name}`, input);
   const launch = await rpc("mate.launch", { provider: "fm-test-source/mock", modeId: "safe" });
   await api.agents.ref(launch.agentId).waitForFinish(10000);
@@ -116,8 +117,92 @@ try {
   assert(paused.config.migration);
   assert.equal((await api.agents.ref(launch.agentId).refresh()).agent.archivedAt, null);
   await rm(join(home, "fail-target-open"));
-  // Reload the isolated plugin to prove the journal survives its process/lifecycle reset.
-  await cli("plugin", "reload", "firstmate");
+  // Prepare the known replacement without a prompt, then seed an unavailable-provider subtree
+  // beneath both archive roots. The creation journal is the one written by the failed RPC above.
+  const homeWorkspace = await api.workspaces.open(config.resolvedHome);
+  await homeWorkspace.agents.create({
+    agentId: paused.config.migration.agentId,
+    idempotencyKey: paused.config.migration.agentId,
+    config: { provider: "fm-test-target/mock", modeId: "safe", thinkingOptionId: "high" },
+    title: "First mate",
+    labels: { "firstmate.role": "first-mate" },
+  });
+  const hiddenPlugin = join(home, "hidden-provider-plugin");
+  await mkdir(hiddenPlugin);
+  await writeFile(
+    join(hiddenPlugin, "package.json"),
+    JSON.stringify({ name: "fm-test-hidden-provider", version: "1.0.0", private: true }),
+  );
+  await writeFile(
+    join(hiddenPlugin, "paseo-plugin.json"),
+    JSON.stringify({ id: "fm-test-hidden-provider", requirements: { paseo: ">=0.11.0" } }),
+  );
+  const providerSource = await readFile(join(here, "mock-provider.ts"), "utf8");
+  const hiddenSource = providerSource.replace('["fm-test-source", "fm-test-target"]', '["fm-test-hidden"]');
+  assert.notEqual(hiddenSource, providerSource);
+  await writeFile(join(hiddenPlugin, "index.server.ts"), hiddenSource);
+  await cli("plugin", "install", hiddenPlugin);
+  const subtrees = [];
+  for (const rootId of [launch.agentId, paused.config.migration.agentId]) {
+    const hidden = await client.createAgent({
+      provider: "fm-test-hidden",
+      model: "mock",
+      cwd: config.resolvedHome,
+      workspaceId: launch.workspaceId,
+      callerAgentId: rootId,
+    });
+    const descendant = await client.createAgent({
+      provider: "fm-test-source",
+      model: "mock",
+      cwd: config.resolvedHome,
+      workspaceId: launch.workspaceId,
+      callerAgentId: hidden.id,
+    });
+    subtrees.push({ rootId, hiddenId: hidden.id, descendantId: descendant.id });
+  }
+  // Remove only the scratch provider, then restart only this daemon to unload its persisted sessions.
+  await cli("plugin", "remove", "fm-test-hidden-provider");
+  await api.dispose();
+  await client.close();
+  await cli("daemon", "stop");
+  started = false;
+  await cli("daemon", "start", "--timeout", "45");
+  started = true;
+  client = new DaemonClient({
+    url: `ws://127.0.0.1:${port}/ws`,
+    clientType: "cli",
+    clientId: "fm-migration-test-restarted",
+    reconnect: { enabled: false },
+    logger: { debug() {}, info() {}, warn() {}, error() {} },
+  });
+  await client.connect();
+  api = createPaseoApi(client);
+  for (const subtree of subtrees) {
+    const filter = { labels: { "paseo.parent-agent-id": subtree.rootId }, includeArchived: false };
+    const ordinary = await api.agents.list({ filter });
+    assert(
+      !ordinary.entries.some(({ agent }) => agent.id === subtree.hiddenId),
+      "Fixture must hide the unloaded intermediate child",
+    );
+    const persisted = await client.fetchAgentHistory({ filter });
+    assert(persisted.entries.some(({ agent }) => agent.id === subtree.hiddenId));
+    await api.agents.ref(subtree.descendantId).send("Hold synthetic turn");
+    assert.equal((await api.agents.ref(subtree.descendantId).refresh()).agent.status, "running");
+  }
+  const beforeRefusal = (await rpc("config.read")).config;
+  await assert.rejects(rpc("mate.migrate", { sourceId: launch.agentId }), /archive child sessions/);
+  await assert.rejects(rpc("mate.migration-cancel", { sourceId: launch.agentId }), /archive child sessions/);
+  assert.deepEqual((await rpc("config.read")).config, beforeRefusal);
+  for (const subtree of subtrees) {
+    assert.equal((await api.agents.ref(subtree.rootId).refresh()).agent.archivedAt, null);
+    assert.equal((await api.agents.ref(subtree.descendantId).refresh()).agent.status, "running");
+    const persisted = await client.fetchAgentHistory({
+      filter: { labels: { "paseo.parent-agent-id": subtree.rootId }, includeArchived: true },
+    });
+    assert.equal(persisted.entries.find(({ agent }) => agent.id === subtree.hiddenId).agent.archivedAt, null);
+    // Detach only these known scratch children so recovery can safely continue.
+    await api.agents.ref(subtree.hiddenId).detach();
+  }
   const result = await rpc("mate.migrate", { sourceId: launch.agentId });
   assert.equal(result.agentId, paused.config.migration.agentId);
   await api.agents.ref(result.agentId).waitForFinish(10000);
@@ -133,6 +218,8 @@ try {
   assert.equal(replacement.labels["paseo.parent-agent-id"], undefined);
   assert.equal(latest.config.mateAgentId, result.agentId);
   assert.equal(latest.config.migration, null);
+  for (const subtree of subtrees)
+    assert.equal((await api.agents.ref(subtree.descendantId).refresh()).agent.status, "running");
   assert.equal(await readFile(join(config.resolvedHome, "data/captain.md"), "utf8"), "Keep this standing order.");
   const history = await api.agents
     .ref(result.agentId)
@@ -165,7 +252,8 @@ try {
           "same-workspace descendant refusal leaves every session intact",
           "explicit separate-workspace crew survives archive cascade",
           "replacement independent of archive cascade",
-          "failed creation recovery across isolated plugin reload uses saved identity",
+          "failed creation recovery across isolated daemon restart uses saved identity",
+          "migration and cancellation refuse hidden persisted children and preserve running descendants",
           "standing order retained",
           "bounded context delivered",
           "stale concurrent request refused",
