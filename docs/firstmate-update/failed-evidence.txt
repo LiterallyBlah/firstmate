@@ -1,0 +1,16 @@
+Initial verification, 2026-10-11:
+- npm.ps1 blocked by Windows execution policy. Used npm.cmd as documented in the existing UI harness.
+- First typecheck: @getpaseo/protocol has no root export. Corrected import to its supported /messages entry.
+- First focused tests: registry fixture used registryUrl/owner/slug; actual 0.11 schema requires url/id.
+  Corrected fixture to the installed schema. 10 other focused tests passed.
+- First test typecheck: zero-argument mock inferred an empty calls tuple. Added its text parameter.
+- First UI run: four desktop light states passed, then the no-mate fixture crashed because the inherited
+  host stub omitted launch provider/mode defaults (useModeOptions needs a string). Blank failed-0.png
+  and failed-render.txt are preserved. Added launch defaults and an empty candidates fixture.
+- First full suite: 464 passed, 3 skipped; host-imports rejected the dev-only protocol/messages runtime import.
+  Replaced it with a local Zod projection of the inspected 0.11 CLI contract. No dependency or host-import
+  allowlist changes. Narrow screenshots also prompted grouping Update/Refresh/Settings at the right edge.
+- Final visual inspection: CircleHelp is an alias absent from the fixture's current lucide icons dictionary,
+  producing a fallback circle (failed-unavailable-icon.png). Used Info, already drawn by the host kit.
+  A diagnostic node -e invocation lost its quote delimiters in PowerShell; inspected the installed
+  icon dictionary with rg instead. No plugin runtime or live daemon was queried.
