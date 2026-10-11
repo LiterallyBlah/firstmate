@@ -57,6 +57,7 @@ import { TaskList } from "./task-list";
 import { ItemTagFilter } from "./item-tags";
 import { matchesTags } from "../shared/item-tags";
 import { WatchButton } from "./watches";
+import { UpdateButton } from "./update-button";
 import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
 
 export const FLEET_QUERY_KEY = ["firstmate", "fleet"] as const;
@@ -588,31 +589,37 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             onPress={openMate}
           />
         )}
-        <IconButton
-          icon="RefreshCw"
-          label={fleet.isFetching ? "Refreshing" : "Refresh"}
-          tooltip={
-            fleet.isFetching
-              ? "FirstMate status is refreshing."
-              : "Refresh the task board and first mate's status."
-          }
-          tooltipSide="bottom"
-          tooltipAlign="end"
-          theme={theme}
-          disabled={fleet.isFetching}
-          onPress={refresh}
-        />
-        {openSettings === null ? null : (
+        <View style={{ flexDirection: "row", gap: 8, marginLeft: compact ? "auto" : 0 }}>
+          <UpdateButton theme={theme} mateId={mate?.id ?? null} sender={mateSender} onSent={() => {
+            if (compact) setTab("chat");
+            else if (values.chatCollapsed) save({ chatCollapsed: false });
+          }} />
           <IconButton
-            icon="Settings"
-            label="FirstMate settings"
-            tooltip="Open FirstMate settings for the home, models and display."
+            icon="RefreshCw"
+            label={fleet.isFetching ? "Refreshing" : "Refresh"}
+            tooltip={
+              fleet.isFetching
+                ? "FirstMate status is refreshing."
+                : "Refresh the task board and first mate's status."
+            }
             tooltipSide="bottom"
             tooltipAlign="end"
             theme={theme}
-            onPress={() => openSettings?.("firstmate")}
+            disabled={fleet.isFetching}
+            onPress={refresh}
           />
-        )}
+          {openSettings === null ? null : (
+            <IconButton
+              icon="Settings"
+              label="FirstMate settings"
+              tooltip="Open FirstMate settings for the home, models and display."
+              tooltipSide="bottom"
+              tooltipAlign="end"
+              theme={theme}
+              onPress={() => openSettings?.("firstmate")}
+            />
+          )}
+        </View>
       </View>
       {data === null ? null : (
         <Text style={styles.meta} numberOfLines={1}>

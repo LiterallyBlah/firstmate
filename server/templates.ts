@@ -48,6 +48,7 @@ export const TEMPLATES = {
   ahoyArgs: "messages/ahoy-args.md",
   bearings: "messages/bearings.md",
   bearingsArgs: "messages/bearings-args.md",
+  updateRequest: "messages/update-request.md",
   relaunch: "messages/relaunch.md",
   remoteSteer: "messages/remote-steer.md",
   restartNote: "messages/restart-note.md",
