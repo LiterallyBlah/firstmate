@@ -183,6 +183,20 @@ and expands in place; the whole list shares one scroll container.
 The header's **List / Board** switch is remembered with the layout. Both views work in the phone's
 **Crew** tab. Suggestions sit above either view; watches open from the header.
 
+Items can carry several plain **tags**, such as **Frontend** and **Dashboard**. Open an item to add
+or remove tags; the same chips and editor appear in List and Board, including queued and completed
+items. Each item allows up to 12 tags of 40 characters. Tags ignore case when matching; commas and
+parentheses are reserved for backlog metadata. The **Filter tags** row requires every selected tag,
+intersects the current host tab, and remembers the selection across view changes and reloads.
+**Clear tag filters** restores all items on that host.
+
+Optional backlog metadata `(tags: Frontend, Dashboard)` is also read. Board edits are durable
+additions/removals in `data/item-tags.json`; they never rewrite the agent-owned backlog, its title,
+unknown metadata or status. Tags follow a task's id, project and host through section moves and
+worker replacement. A worker without a task id keeps tags by its own host and agent id. Agent labels
+and workflow columns retain their existing meanings. [Isolated screenshots and checks](docs/item-tags/README.md)
+cover both layouts, widths and themes.
+
 ![Default List at 2866×1694, with the chat taking 45% of the panel and 45 sample tasks.](docs/board-list/after-list-wide.png)
 
 ![The FirstMate panel mid-voyage: the first mate's chat on the left explaining the two workers it sent

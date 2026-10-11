@@ -28,6 +28,7 @@ import type { RemoteSnapshot } from "../shared/remotes";
 import { isHomeReady, readBacklog, readProjects, readSuggestions } from "./home";
 import type { AgentListOptions, PaseoAgent, PaseoApi, TimelineItem } from "./host-types";
 import { buildRemoteCards, resolveHost } from "./remote-cards";
+import { readItemTags, withItemTags } from "./item-tags";
 
 const PAGE_SIZE = 200;
 /** Enough of a timeline to reach back past a turn's last tool calls to its closing message. */
@@ -394,7 +395,10 @@ export async function loadFleet(
     mate: mate.agent === null ? null : summarizeAgent(mate.agent),
     mateMissing: mate.missing,
     mateInHome: mate.agent === null ? true : await sameDirectory(mate.agent.cwd, home),
-    cards: buildCards(backlog, crew, remotes),
+    cards: withItemTags(buildCards(backlog, crew, remotes), await readItemTags(home).catch((error: unknown) => {
+      warnings.push(`The item tags could not be read: ${describe(error)}`);
+      return { version: 1 as const, items: {} };
+    })),
     projects,
     suggestions,
     watches,
