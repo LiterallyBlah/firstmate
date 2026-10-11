@@ -1,0 +1,211 @@
+{
+  "evidenceKind": "isolated-renderer-and-installed-callback-fixtures",
+  "liveDaemon": false,
+  "nativePaneRendered": false,
+  "publicFileRoutingAvailable": false,
+  "bundle": "index-c0a31850dafcd5deb0a28268147bb36d.js",
+  "bundleSha256": "b9d0dc9eb798ac4b5826272b1917b542704e17ea8b665b0905019ee02df89ac2",
+  "modules": [
+    {
+      "moduleId": 3812,
+      "line": 17073,
+      "sha256": "02c0658fe47c02c97f93cddc590486f10811d4351f017ec9a8bd883471a6195a"
+    },
+    {
+      "moduleId": 3915,
+      "line": 17186,
+      "sha256": "b35410454e6627e4ad47db9986c3f9fabcbaffe157db706a0b698941be0dfe15"
+    },
+    {
+      "moduleId": 3916,
+      "line": 17187,
+      "sha256": "6611325b229b95a29a5d0f7d0e169ad617624cad60ea29858e8584e79599568f"
+    },
+    {
+      "moduleId": 4771,
+      "line": 18042,
+      "sha256": "21b19f57b0c77cc2c68e5c0b7975329f817b9bdf37dc5e68cce27a90575dddf0"
+    },
+    {
+      "moduleId": 4906,
+      "line": 18177,
+      "sha256": "59c61c20c6003caa72bd5fb2137b16a34821495f7b69d65185fdb08e5a726e52"
+    },
+    {
+      "moduleId": 4907,
+      "line": 18178,
+      "sha256": "3e91ad3bcb6959f1767be6101ecce153d8ea2c44968a4a60abd7b52a33ca0b84"
+    },
+    {
+      "moduleId": 4908,
+      "line": 18179,
+      "sha256": "4d8b3d68213bcddac44a927d2ac9c9d9833159019dad1ed2e79ab2af489b60e6"
+    }
+  ],
+  "errors": [],
+  "results": [
+    {
+      "external": [
+        "https://paseo.sh/docs"
+      ],
+      "home": [
+        "data/backlog.md"
+      ],
+      "native": [
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "workspace-fixture",
+          "target": {
+            "raw": "C:/repo/reports/report.md#L12",
+            "path": "C:/repo/reports/report.md",
+            "lineStart": 12
+          },
+          "disposition": "preferred"
+        },
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "workspace-fixture",
+          "target": {
+            "raw": "C:/repo/reports/screen.png",
+            "path": "C:/repo/reports/screen.png"
+          },
+          "disposition": "preferred"
+        },
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "workspace-fixture",
+          "target": {
+            "raw": "file:///C:/repo/reports/report%20one.md#L12",
+            "path": "C:/repo/reports/report one.md",
+            "lineStart": 12
+          },
+          "disposition": "preferred"
+        },
+        {
+          "serverId": "remote-fixture",
+          "workspaceId": "workspace-fixture",
+          "target": {
+            "raw": "C:/repo/reports/report.md#L12",
+            "path": "C:/repo/reports/report.md",
+            "lineStart": 12
+          },
+          "disposition": "preferred"
+        },
+        {
+          "serverId": "remote-fixture",
+          "workspaceId": "workspace-fixture",
+          "target": {
+            "raw": "C:/repo/reports/screen.png",
+            "path": "C:/repo/reports/screen.png"
+          },
+          "disposition": "preferred"
+        },
+        {
+          "serverId": "remote-fixture",
+          "workspaceId": "workspace-fixture",
+          "target": {
+            "raw": "file:///C:/repo/reports/report%20one.md#L12",
+            "path": "C:/repo/reports/report one.md",
+            "lineStart": 12
+          },
+          "disposition": "preferred"
+        }
+      ],
+      "pluginNavigation": [
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "workspace-fixture"
+        },
+        {
+          "serverId": "remote-fixture",
+          "workspaceId": "workspace-fixture"
+        }
+      ],
+      "observations": [
+        {
+          "source": "firstmate",
+          "host": "local-fixture",
+          "url": "C:/repo/reports/report.md#L12",
+          "opened": false
+        },
+        {
+          "source": "firstmate",
+          "host": "local-fixture",
+          "url": "C:/repo/reports/screen.png",
+          "opened": false
+        },
+        {
+          "source": "firstmate",
+          "host": "local-fixture",
+          "url": "file:///C:/repo/reports/report%20one.md#L12",
+          "opened": false
+        },
+        {
+          "source": "firstmate",
+          "host": "remote-fixture",
+          "url": "C:/repo/reports/report.md#L12",
+          "opened": false
+        },
+        {
+          "source": "firstmate",
+          "host": "remote-fixture",
+          "url": "C:/repo/reports/screen.png",
+          "opened": false
+        },
+        {
+          "source": "firstmate",
+          "host": "remote-fixture",
+          "url": "file:///C:/repo/reports/report%20one.md#L12",
+          "opened": false
+        },
+        {
+          "source": "firstmate",
+          "host": "remote-fixture",
+          "url": "https://paseo.sh/docs",
+          "opened": true
+        }
+      ],
+      "tokens": [
+        [
+          {
+            "kind": "link",
+            "text": "Workspace report",
+            "url": "C:/repo/reports/report.md#L12"
+          }
+        ],
+        [
+          {
+            "kind": "link",
+            "text": "Workspace image",
+            "url": "C:/repo/reports/screen.png"
+          }
+        ],
+        [
+          {
+            "kind": "link",
+            "text": "Encoded report",
+            "url": "file:///C:/repo/reports/report%20one.md#L12"
+          }
+        ],
+        [
+          {
+            "kind": "file",
+            "text": "Home backlog",
+            "path": "data/backlog.md",
+            "code": false
+          }
+        ],
+        [
+          {
+            "kind": "link",
+            "text": "HTTPS docs",
+            "url": "https://paseo.sh/docs"
+          }
+        ]
+      ],
+      "candidates": [
+        "data/backlog.md"
+      ]
+    }
+  ]
+}

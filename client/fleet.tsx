@@ -724,7 +724,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     </View>
   );
   const chat = (
-    <MateChat key={mate.id} mate={mate} theme={theme} compact={compact} onChanged={refresh} onOpenFile={openFile} />
+    <MateChat key={mate.id} mate={mate} theme={theme} compact={compact} onChanged={refresh} onOpenFile={openFile} navigation={navigation} />
   );
   const watchedCard = watching === null ? null : (data.cards.find((card) => watchKey(card) === watching) ?? null);
   const watchedRemote = watching === null ? null : /^remote:(.+):([^:]+)$/.exec(watching);

@@ -5,6 +5,7 @@
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
+import type { PluginScreenProps } from "@getpaseo/plugin/client";
 import { Icon, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -34,6 +35,7 @@ import { transcriptRows, type TranscriptRow } from "./transcript-rows";
 import { IconButton, JumpToEnd, MONOSPACE, Spinner, errorText } from "./ui";
 import { useKeyboardOverlap } from "./keyboard";
 import { useAgentTimeline } from "./use-timeline";
+import { useWorkspaceFileLink } from "./workspace-file-link";
 import { canAttachFiles, pickFiles, receiveFiles, type OfferedFile } from "./web";
 
 /** A run of tool calls shows this many before folding the rest behind a count. */
@@ -77,7 +79,7 @@ function groupRows(rows: readonly TranscriptRow[]): Group[] {
 function useHomeFileLinks(rows: readonly TranscriptRow[]) {
   const find = useRpc(findHomeFiles);
   const candidates = useMemo(
-    () => recentCandidates(rows.flatMap((row) => (row.kind === "mate" ? [row.text] : [])), MAX_FILE_CANDIDATES),
+    () => recentCandidates(rows.flatMap((row) => (row.kind === "mate" ? [row.text] : [])), MAX_FILE_CANDIDATES, { workspaceAware: true }),
     [rows],
   );
   const found = useQuery({
@@ -98,6 +100,7 @@ export function MateChat({
   compact,
   onChanged,
   onOpenFile,
+  navigation,
 }: {
   mate: AgentSummary;
   theme: PluginTheme;
@@ -106,8 +109,10 @@ export function MateChat({
   onChanged: () => void;
   /** Opens a home file in the Files view, the same way a watch's name does. */
   onOpenFile: (path: string) => void;
+  navigation?: PluginScreenProps["navigation"];
 }) {
   const toast = useToast();
+  const workspaceLinks = useWorkspaceFileLink(theme, navigation);
   /** Shared with the surface's suggestion buttons: one message on its way at a time — see `./mate-send`. */
   const { sending, send, command: sendMateCommand } = useMateSender(mate.id);
   const timeline = useAgentTimeline(mate.id, `${mate.updatedAt}:${mate.pendingPermissions}`);
@@ -361,7 +366,7 @@ export function MateChat({
       case "mate":
         return (
           <View key={row.key} style={styles.mate}>
-            <Markdown source={row.text} theme={theme} onOpenLink={openLink} files={files} onOpenFile={onOpenFile} />
+            <Markdown source={row.text} theme={theme} onOpenLink={workspaceLinks.open} files={files} onOpenFile={onOpenFile} workspaceAware />
           </View>
         );
       case "error":
@@ -382,6 +387,7 @@ export function MateChat({
 
   return (
     <View ref={pane} style={[styles.pane, { paddingBottom: keyboard }]}>
+      {workspaceLinks.dialog}
       <View style={styles.transcript}>
         <ScrollView {...follow.scrollProps} style={styles.scroller} contentContainerStyle={styles.transcriptBody}>
           {timeline.error === null ? null : <Text style={styles.error}>{timeline.error}</Text>}
