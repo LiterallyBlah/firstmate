@@ -38,6 +38,8 @@ import {
 } from "./format";
 import { Chip, IconButton, Tag, errorText } from "./ui";
 import { webTitle } from "./web";
+import { cardTags } from "../shared/item-tags";
+import { ItemTagEditor } from "./item-tags";
 
 /** A time a remote host reported, moved onto this machine's clock by the host's measured skew. */
 function hostTime(iso: string, skewSeconds: number | null): string {
@@ -358,6 +360,7 @@ export function CrewCard({
           row ? COLUMNS[card.column].title : null,
           stateChip?.text ?? COLUMNS[card.column].title,
           card.project,
+          cardTags(card).length === 0 ? null : `Tags: ${cardTags(card).join(", ")}`,
           hostText === null ? (row ? "on this machine" : null) : `on ${hostText}`,
           headline === null ? null : headline.lead === null ? headline.text : `${headline.lead}: ${headline.text}`,
           `${expanded ? "Hide" : "Show"} details and actions`,
@@ -412,8 +415,14 @@ export function CrewCard({
         )}
       </Pressable>
 
+      {cardTags(card).length === 0 ? null : (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          {cardTags(card).map((tag) => <Tag key={tag} theme={theme} icon="Tag" text={tag} />)}
+        </View>
+      )}
       {expanded ? (
         <View style={styles.details}>
+          <ItemTagEditor card={card} theme={theme} onChanged={onChanged} />
           {facts.length === 0 ? null : <Text style={styles.meta}>{facts.join(" · ")}</Text>}
           {card.report === null ? null : (
             <Text style={styles.report}>

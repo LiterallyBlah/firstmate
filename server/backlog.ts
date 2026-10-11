@@ -19,6 +19,7 @@
  * The item shape is `BacklogItem` in `shared/fleet.ts`, which the board draws.
  */
 import type { BacklogItem, BacklogSection } from "../shared/fleet";
+import { plainTags } from "../shared/item-tags";
 
 const SECTION_HEADINGS: ReadonlyArray<[RegExp, BacklogSection]> = [
   [/^in[\s-]*flight\b/i, "in-flight"],
@@ -54,8 +55,10 @@ function field(groups: Map<string, string>, ...names: string[]): string | null {
 
 function parseItem(section: BacklogSection, body: string): BacklogItem | null {
   const groups = new Map<string, string>();
+  const tags: string[] = [];
   for (const match of body.matchAll(GROUP)) {
     groups.set((match[1] ?? "").toLowerCase(), match[2] ?? "");
+    if (match[1]?.toLowerCase() === "tags") tags.push(...(match[2] ?? "").split(","));
   }
   // `blocked-by: x` is written bare as often as in parentheses.
   const bareBlocker = /\bblocked-by:\s*([\w.-]+)/i.exec(body.replace(GROUP, ""));
@@ -79,6 +82,7 @@ function parseItem(section: BacklogSection, body: string): BacklogItem | null {
   return {
     section,
     id,
+    ...(tags.length === 0 ? {} : { tags: plainTags(tags) }),
     title: title === "" ? id : title,
     project: field(groups, "project", "repo"),
     kind: field(groups, "kind")?.toLowerCase() ?? null,

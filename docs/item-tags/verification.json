@@ -1,0 +1,63 @@
+[
+  {
+    "name": "list-desktop-light",
+    "width": 1440,
+    "documentWidth": 1440,
+    "horizontalOverflow": false,
+    "checks": "keyboard add/remove; AND filter; host intersection; saved filter/tag reload; failed save and retry"
+  },
+  {
+    "name": "board-desktop-light",
+    "width": 1440,
+    "documentWidth": 1440,
+    "horizontalOverflow": false,
+    "checks": "keyboard add/remove; AND filter; host intersection; saved filter/tag reload; failed save and retry"
+  },
+  {
+    "name": "list-desktop-dark",
+    "width": 1440,
+    "documentWidth": 1440,
+    "horizontalOverflow": false,
+    "checks": "keyboard add/remove; AND filter; host intersection; saved filter/tag reload; failed save and retry"
+  },
+  {
+    "name": "board-desktop-dark",
+    "width": 1440,
+    "documentWidth": 1440,
+    "horizontalOverflow": false,
+    "checks": "keyboard add/remove; AND filter; host intersection; saved filter/tag reload; failed save and retry"
+  },
+  {
+    "name": "list-narrow-light",
+    "width": 390,
+    "documentWidth": 390,
+    "horizontalOverflow": false,
+    "checks": "keyboard add/remove; AND filter; host intersection; saved filter/tag reload; failed save and retry"
+  },
+  {
+    "name": "board-narrow-light",
+    "width": 390,
+    "documentWidth": 390,
+    "horizontalOverflow": false,
+    "checks": "keyboard add/remove; AND filter; host intersection; saved filter/tag reload; failed save and retry"
+  },
+  {
+    "name": "list-narrow-dark",
+    "width": 390,
+    "documentWidth": 390,
+    "horizontalOverflow": false,
+    "checks": "keyboard add/remove; AND filter; host intersection; saved filter/tag reload; failed save and retry"
+  },
+  {
+    "name": "board-narrow-dark",
+    "width": 390,
+    "documentWidth": 390,
+    "horizontalOverflow": false,
+    "checks": "keyboard add/remove; AND filter; host intersection; saved filter/tag reload; failed save and retry"
+  },
+  {
+    "name": "board-narrow-light-limit",
+    "width": 390,
+    "checks": "12 tags; 40-character tag; text fits card; input read-only at limit; removing re-enables editing"
+  }
+]

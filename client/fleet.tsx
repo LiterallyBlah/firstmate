@@ -54,6 +54,8 @@ import { RemoteWorkerView } from "./remote-worker";
 import { HostHealthCard, useRemotes } from "./remotes";
 import { SuggestionStrip } from "./suggestions";
 import { TaskList } from "./task-list";
+import { ItemTagFilter } from "./item-tags";
+import { matchesTags } from "../shared/item-tags";
 import { WatchButton } from "./watches";
 import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
 
@@ -650,6 +652,8 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
 
   const tabs = hostTabs(data.cards, remoteHosts);
   const tabHost = remoteHosts.find((host) => host.serverId === hostTab) ?? null;
+  const hostCards = data.cards.filter((card) => onTab(card, hostTab));
+  const filteredCards = hostCards.filter((card) => matchesTags(card, values.tagFilter));
   const board = (
     <View style={{ flex: 1, minHeight: 0 }}>
       {tabs.length === 0 ? null : (
@@ -669,9 +673,12 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         onPick={suggest}
         onRemove={dismissSuggestion}
       />
-      {values.crewView === "list" ? (
+      <ItemTagFilter cards={hostCards} selected={values.tagFilter} theme={theme} onChange={(tagFilter) => save({ tagFilter })} />
+      {hostCards.length > 0 && filteredCards.length === 0 ? (
+        <Text style={{ color: theme.colors.foregroundMuted, padding: 12 }}>No items match the selected tags on this host.</Text>
+      ) : values.crewView === "list" ? (
         <TaskList
-          cards={data.cards.filter((card) => onTab(card, hostTab))}
+          cards={filteredCards}
           theme={theme}
           compact={compact}
           density={values.density}
@@ -680,7 +687,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         />
       ) : (
         <Board
-          cards={data.cards.filter((card) => onTab(card, hostTab))}
+          cards={filteredCards}
           order={order}
           collapsed={values.collapsedColumns}
           theme={theme}
