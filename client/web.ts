@@ -141,15 +141,15 @@ export function tooltipPlacement(
 }
 
 /** Keep DOM keyboard listeners at the web boundary and remove them on unmount. */
-export function bindWebKeys(target: unknown, onKey: (key: string, shift: boolean) => boolean, capture = false): () => void {
+export function bindWebKeys(target: unknown, onKey: (key: string, shift: boolean, repeat: boolean) => boolean, capture = false): () => void {
   // A hover tooltip needs Escape even while keyboard focus is elsewhere.
   target ??= (globalThis as WebGlobals).document;
   if (Platform.OS !== "web" || typeof target !== "object" || target === null) return () => {};
   const add: unknown = Reflect.get(target, "addEventListener");
   const remove: unknown = Reflect.get(target, "removeEventListener");
   if (typeof add !== "function" || typeof remove !== "function") return () => {};
-  const listener = (event: { key: string; shiftKey: boolean; preventDefault(): void }) => {
-    if (onKey(event.key, event.shiftKey)) event.preventDefault();
+  const listener = (event: { key: string; shiftKey: boolean; repeat?: boolean; preventDefault(): void }) => {
+    if (onKey(event.key, event.shiftKey, event.repeat === true)) event.preventDefault();
   };
   add.call(target, "keydown", listener, capture);
   return () => remove.call(target, "keydown", listener, capture);

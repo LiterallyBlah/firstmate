@@ -6,7 +6,7 @@ import {
   TextInput,
   useToast,
 } from "@getpaseo/plugin/client/react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import type { FleetCard } from "../shared/fleet";
 import {
@@ -20,7 +20,7 @@ import {
   tagIdentity,
 } from "../shared/item-tags";
 import { errorText, IconButton } from "./ui";
-import { webTitle } from "./web";
+import { bindWebKeys, hasWebFocus, webTitle } from "./web";
 
 export function ItemTagEditor({
   card,
@@ -174,10 +174,87 @@ export function ItemTagFilter({
   onChange: (tags: string[]) => void;
 }) {
   const choices = tagChoices(cards, selected);
+  const [expanded, setExpanded] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [rowHeight, setRowHeight] = useState(32);
+  const [bottoms, setBottoms] = useState<Record<string, number>>({});
+  const controlsId = useId();
+  const toggle = useRef<View>(null);
+  const scroll = useRef<ScrollView>(null);
+  const content = useRef<View>(null);
+  const chips = useRef(new Map<string, View>());
+  const collapsedHeight = rowHeight * 2 + 6;
+  const overflowing = contentHeight > collapsedHeight + 1;
+  const choiceLayout = JSON.stringify(
+    choices.map(({ tag, count }) => [tag, count, selected.includes(tag)]),
+  );
+  function toggleTag(tag: string): void {
+    const checked = selected.some(
+      (value) => tagIdentity(value) === tagIdentity(tag),
+    );
+    onChange(
+      checked
+        ? selected.filter((value) => tagIdentity(value) !== tagIdentity(tag))
+        : [...selected, tag],
+    );
+  }
+  function measureChips(): void {
+    const parent = content.current;
+    if (parent === null) return;
+    // RN Web's onLayout observes size, not position: wrapping can move a chip
+    // without resizing it. Measure every chip when the container or labels change.
+    for (const [key, node] of chips.current) {
+      node.measureLayout(parent, (_x, y, _width, height) => {
+        if (key === tagIdentity(choices[0]?.tag ?? "")) setRowHeight(height);
+        const bottom = y + height;
+        setBottoms((current) =>
+          current[key] === bottom ? current : { ...current, [key]: bottom },
+        );
+      });
+    }
+  }
+  useLayoutEffect(measureChips, [choiceLayout]);
+  useLayoutEffect(() => {
+    // RN Web activates these checkbox Pressables with Enter but not Space.
+    const cleanups = choices.map(({ tag }) =>
+      bindWebKeys(
+        chips.current.get(tagIdentity(tag)),
+        (key, _shift, repeat) => {
+          if (
+            key !== " " ||
+            (!expanded &&
+              (bottoms[tagIdentity(tag)] ?? 0) > collapsedHeight + 1)
+          )
+            return false;
+          if (
+            selected.length >= MAX_ITEM_TAGS &&
+            !selected.some((value) => tagIdentity(value) === tagIdentity(tag))
+          )
+            return false;
+          if (!repeat) toggleTag(tag);
+          return true;
+        },
+      ),
+    );
+    return () => cleanups.forEach((cleanup) => cleanup());
+  }, [choiceLayout, expanded, bottoms, collapsedHeight, onChange]);
+  useLayoutEffect(() => {
+    if (expanded) return;
+    // A resize can move the focused chip into a clipped row. Keep keyboard
+    // focus on the disclosure instead of leaving it on an invisible filter.
+    for (const [key, node] of chips.current) {
+      if ((bottoms[key] ?? 0) > collapsedHeight + 1 && hasWebFocus(node)) {
+        toggle.current?.focus();
+        break;
+      }
+    }
+  }, [expanded, bottoms, collapsedHeight]);
   if (choices.length === 0) return null;
   return (
     <View
+      testID="firstmate-tag-filter"
       style={{
+        flexShrink: 0,
         paddingHorizontal: 12,
         paddingVertical: 8,
         gap: 6,
@@ -185,71 +262,17 @@ export function ItemTagFilter({
         borderColor: theme.colors.border,
       }}
     >
-      <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
-        Filter tags · match all selected
-      </Text>
-      <ScrollView
-        style={{ maxHeight: 108 }}
-        contentContainerStyle={{
+      <View
+        style={{
           flexDirection: "row",
           flexWrap: "wrap",
-          gap: 6,
+          alignItems: "center",
+          gap: 8,
         }}
       >
-        {choices.map(({ tag, count }) => {
-          const checked = selected.some(
-            (value) => tagIdentity(value) === tagIdentity(tag),
-          );
-          return (
-            <Pressable
-              key={tagIdentity(tag)}
-              accessibilityRole="checkbox"
-              accessibilityLabel={`Filter tag ${tag}, ${count} items`}
-              accessibilityState={{
-                checked,
-                disabled: !checked && selected.length >= MAX_ITEM_TAGS,
-              }}
-              aria-checked={checked}
-              aria-disabled={!checked && selected.length >= MAX_ITEM_TAGS}
-              disabled={!checked && selected.length >= MAX_ITEM_TAGS}
-              onPress={() =>
-                onChange(
-                  checked
-                    ? selected.filter(
-                        (value) => tagIdentity(value) !== tagIdentity(tag),
-                      )
-                    : [...selected, tag],
-                )
-              }
-              style={{
-                maxWidth: "100%",
-                paddingHorizontal: 10,
-                paddingVertical: 7,
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: checked
-                  ? theme.colors.accent
-                  : theme.colors.border,
-                backgroundColor: checked
-                  ? theme.colors.accent
-                  : theme.colors.surface1,
-              }}
-            >
-              <Text
-                numberOfLines={1}
-                style={{
-                  color: checked
-                    ? theme.colors.accentForeground
-                    : theme.colors.foreground,
-                  fontSize: 12,
-                }}
-              >
-                {checked ? "✓ " : ""}
-                {tag} · {count}
-              </Text>
-            </Pressable>
-          );
-        })}
+        <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
+          Filter tags · {selected.length} selected · match all
+        </Text>
         {selected.length === 0 ? null : (
           <IconButton
             icon="X"
@@ -259,6 +282,113 @@ export function ItemTagFilter({
             onPress={() => onChange([])}
           />
         )}
+        {!overflowing ? null : (
+          <Pressable
+            ref={toggle}
+            accessibilityRole="button"
+            accessibilityLabel={
+              expanded ? "Show less tag filters" : "Show more tag filters"
+            }
+            accessibilityState={{ expanded }}
+            aria-expanded={expanded}
+            aria-controls={controlsId}
+            onPress={() => {
+              scroll.current?.scrollTo({ y: 0, animated: false });
+              setExpanded(!expanded);
+            }}
+            style={{ paddingHorizontal: 8, paddingVertical: 4 }}
+          >
+            <Text style={{ color: theme.colors.foreground, fontSize: 12 }}>
+              {expanded ? "Show less" : "Show more"}
+            </Text>
+          </Pressable>
+        )}
+      </View>
+      <ScrollView
+        ref={scroll}
+        nativeID={controlsId}
+        testID="firstmate-tag-filter-choices"
+        scrollEnabled={expanded}
+        style={{
+          maxHeight: expanded
+            ? Math.max(214, collapsedHeight)
+            : collapsedHeight,
+          flexGrow: 0,
+        }}
+      >
+        <View
+          ref={content}
+          onLayout={({ nativeEvent: { layout } }) => {
+            setContentHeight(layout.height);
+            measureChips();
+          }}
+          style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}
+        >
+          {choices.map(({ tag, count }) => {
+            const checked = selected.some(
+              (value) => tagIdentity(value) === tagIdentity(tag),
+            );
+            const key = tagIdentity(tag);
+            const hidden =
+              !expanded && (bottoms[key] ?? 0) > collapsedHeight + 1;
+            return (
+              <Pressable
+                key={key}
+                ref={(node) => {
+                  if (node === null) chips.current.delete(key);
+                  else chips.current.set(key, node);
+                }}
+                accessibilityRole="checkbox"
+                accessibilityElementsHidden={hidden}
+                importantForAccessibility={
+                  hidden ? "no-hide-descendants" : "auto"
+                }
+                aria-hidden={hidden}
+                tabIndex={
+                  hidden || (!checked && selected.length >= MAX_ITEM_TAGS)
+                    ? -1
+                    : 0
+                }
+                accessibilityLabel={`Filter tag ${tag}, ${count} items`}
+                accessibilityState={{
+                  checked,
+                  disabled: !checked && selected.length >= MAX_ITEM_TAGS,
+                }}
+                aria-checked={checked}
+                aria-disabled={!checked && selected.length >= MAX_ITEM_TAGS}
+                disabled={!checked && selected.length >= MAX_ITEM_TAGS}
+                onPress={() => toggleTag(tag)}
+                style={{
+                  maxWidth: "100%",
+                  paddingHorizontal: 10,
+                  paddingVertical: 7,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: checked
+                    ? theme.colors.accent
+                    : theme.colors.border,
+                  backgroundColor: checked
+                    ? theme.colors.accent
+                    : theme.colors.surface1,
+                }}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: checked
+                      ? theme.colors.accentForeground
+                      : theme.colors.foreground,
+                    fontSize: 12,
+                    lineHeight: 16,
+                  }}
+                >
+                  {checked ? "✓ " : ""}
+                  {tag} · {count}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </ScrollView>
     </View>
   );

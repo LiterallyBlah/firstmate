@@ -21,7 +21,8 @@ AND tag filtering, intersection with host tabs, saved tag/filter reload, failed-
 document overflow checks. Screenshots were opened and inspected. The final limit capture exercises
 12 tags and a 40-character tag on a narrow Board; the filter row stays scrollable within 108 points,
 the remove button truncates within the card (its accessible name and hover title retain the full tag),
-and removing a tag re-enables the input.
+and removing a tag re-enables the input. These captures predate the
+[two-row filter limit and completion-scoped choices](../tag-filter-limit/README.md).
 
 | Layout | Light | Dark |
 | --- | --- | --- |
