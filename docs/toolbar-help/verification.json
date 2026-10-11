@@ -1,0 +1,181 @@
+{
+  "checkedAt": "2026-10-11T09:15:03.480Z",
+  "baseRevision": "2c349548388703a32b8cb095a5f2ec2a2d04771d",
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "browser": "headless Microsoft Edge",
+    "hostApis": "mocked",
+    "polling": "enabled"
+  },
+  "checks": {
+    "typecheck": "passed",
+    "tests": {
+      "filesPassed": 36,
+      "passed": 452,
+      "conditionalSkipped": 3
+    },
+    "render": "passed",
+    "diffCheck": "passed"
+  },
+  "matrix": [
+    {
+      "width": 1280,
+      "theme": "dark",
+      "header": 11,
+      "localActions": 5,
+      "disabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "geometryUnchanged": true,
+      "boardActions": 5,
+      "boardDisabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "escapeOverlap": true
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "header": 11,
+      "localActions": 5,
+      "disabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "geometryUnchanged": true,
+      "boardActions": 5,
+      "boardDisabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "escapeOverlap": true
+    },
+    {
+      "width": 800,
+      "theme": "dark",
+      "header": 11,
+      "localActions": 5,
+      "disabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "geometryUnchanged": true,
+      "boardActions": 5,
+      "boardDisabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "escapeOverlap": true
+    },
+    {
+      "width": 800,
+      "theme": "light",
+      "header": 11,
+      "localActions": 5,
+      "disabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "geometryUnchanged": true,
+      "boardActions": 5,
+      "boardDisabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "escapeOverlap": true
+    },
+    {
+      "width": 638,
+      "theme": "dark",
+      "header": 11,
+      "localActions": 5,
+      "disabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "geometryUnchanged": true,
+      "boardActions": 5,
+      "boardDisabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "escapeOverlap": true
+    },
+    {
+      "width": 638,
+      "theme": "light",
+      "header": 11,
+      "localActions": 5,
+      "disabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "geometryUnchanged": true,
+      "boardActions": 5,
+      "boardDisabledStates": [
+        "idle",
+        "remote-relaunch",
+        "unreachable",
+        "followed"
+      ],
+      "escapeOverlap": true
+    },
+    {
+      "stateChanges": [
+        "Files pane",
+        "show chat",
+        "Watch return",
+        "busy action",
+        "refreshing",
+        "migration recovery"
+      ],
+      "mockedRouting": [
+        "Interrupt",
+        "End confirmation/cancel",
+        "transfer dialog",
+        "Watches dialog",
+        "Open",
+        "settings"
+      ]
+    }
+  ],
+  "selfReview": [
+    "Handler-derived descriptions",
+    "Original names and actions retained",
+    "Original control geometry retained",
+    "All ten labelled screenshots inspected",
+    "Web globals stay at the web boundary",
+    "Both original failed receipts preserved unchanged"
+  ],
+  "failedReceiptSha256": "39d4ea0356c501864652404f1835736fc8ca6936ebba57c019fc95fc75fe8cd0",
+  "limitations": [
+    "Desktop browser fixture; native devices not exercised",
+    "No live plugin install/reload or session operations",
+    "Optional daemon integration tests remain conditional"
+  ]
+}

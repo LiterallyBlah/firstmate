@@ -126,7 +126,12 @@ function PanelBody({
             opener={
               navigation === undefined || agentId === null
                 ? null
-                : { icon: "ExternalLink", label: "Open", onPress: () => navigation.openAgent({ agentId }) }
+                : {
+                    icon: "ExternalLink",
+                    label: "Open",
+                    tooltip: "Open this worker's full conversation in Paseo.",
+                    onPress: () => navigation.openAgent({ agentId }),
+                  }
             }
             onChanged={refresh}
             startExpanded

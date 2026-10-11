@@ -75,7 +75,19 @@ export function Board(props: BoardProps) {
         theme={theme}
         compact={compact}
         density={density}
-        opener={key === null ? null : { icon: "Eye", label: "Watch", onPress: () => props.onWatch(key) }}
+        opener={
+          key === null
+            ? null
+            : {
+                icon: "Eye",
+                label: "Watch",
+                tooltip:
+                  card.remote === undefined
+                    ? "View this worker's live activity within FirstMate."
+                    : "View this remote worker's recent log within FirstMate.",
+                onPress: () => props.onWatch(key),
+              }
+        }
         onChanged={props.onChanged}
       />
     );

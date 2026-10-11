@@ -222,6 +222,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     return {
       screen: { flex: 1, backgroundColor: colors.surface0 },
       header: {
+        zIndex: 1,
         paddingHorizontal: compact ? 12 : 16,
         paddingTop: compact ? 10 : 14,
         paddingBottom: 8,
@@ -230,6 +231,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         borderBottomColor: colors.border,
       },
       headerRow: {
+        zIndex: 1,
         flexDirection: "row" as const,
         alignItems: "center" as const,
         gap: 8,
@@ -494,8 +496,16 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             theme={theme}
             value={values.crewView}
             options={[
-              { value: "list", label: "List" },
-              { value: "board", label: "Board" },
+              {
+                value: "list",
+                label: "List",
+                tooltip: "Show tasks in a grouped list.",
+              },
+              {
+                value: "board",
+                label: "Board",
+                tooltip: "Show tasks in columns by status.",
+              },
             ]}
             onChange={(crewView) => save({ crewView })}
           />
@@ -508,8 +518,19 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             theme={theme}
             value={rightPane}
             options={[
-              { value: "board", label: `Crew (${data.cards.length})` },
-              { value: "files", label: "Files" },
+              {
+                value: "board",
+                label: `Crew (${data.cards.length})`,
+                tooltip:
+                  watching === null
+                    ? "Show crew and backlog tasks."
+                    : "Return to crew tasks from the worker's activity.",
+              },
+              {
+                value: "files",
+                label: "Files",
+                tooltip: "Browse and edit files in the FirstMate home.",
+              },
             ]}
             onChange={setRightPane}
           />
@@ -519,6 +540,13 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             <IconButton
               icon={values.chatCollapsed ? "PanelLeftOpen" : "PanelLeftClose"}
               label={values.chatCollapsed ? "Show the chat" : "Hide the chat"}
+              tooltip={
+                values.chatCollapsed
+                  ? "Show the first-mate chat beside the other pane."
+                  : "Hide the first-mate chat to give the other pane more room."
+              }
+              tooltipSide="bottom"
+              tooltipAlign="end"
               theme={theme}
               onPress={() =>
                 save({
@@ -530,6 +558,13 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             <IconButton
               icon={values.boardCollapsed ? "PanelRightOpen" : "PanelRightClose"}
               label={values.boardCollapsed ? "Show the board" : "Hide the board"}
+              tooltip={
+                values.boardCollapsed
+                  ? `Show ${rightPane === "files" ? "Files" : "Crew"} beside the first-mate chat.`
+                  : `Hide the ${rightPane === "files" ? "Files" : "Crew"} pane to give the chat more room.`
+              }
+              tooltipSide="bottom"
+              tooltipAlign="end"
               theme={theme}
               onPress={() =>
                 save({
@@ -541,11 +576,26 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           </>
         ) : null}
         {openMate === null ? null : (
-          <IconButton icon="ExternalLink" label="Open the first mate in Paseo" theme={theme} onPress={openMate} />
+          <IconButton
+            icon="ExternalLink"
+            label="Open the first mate in Paseo"
+            tooltip="Open the first mate's full conversation in Paseo."
+            tooltipSide="bottom"
+            tooltipAlign="end"
+            theme={theme}
+            onPress={openMate}
+          />
         )}
         <IconButton
           icon="RefreshCw"
           label={fleet.isFetching ? "Refreshing" : "Refresh"}
+          tooltip={
+            fleet.isFetching
+              ? "FirstMate status is refreshing."
+              : "Refresh the task board and first mate's status."
+          }
+          tooltipSide="bottom"
+          tooltipAlign="end"
           theme={theme}
           disabled={fleet.isFetching}
           onPress={refresh}
@@ -554,6 +604,9 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           <IconButton
             icon="Settings"
             label="FirstMate settings"
+            tooltip="Open FirstMate settings for the home, models and display."
+            tooltipSide="bottom"
+            tooltipAlign="end"
             theme={theme}
             onPress={() => openSettings?.("firstmate")}
           />
