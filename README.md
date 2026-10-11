@@ -189,6 +189,10 @@ items. Each item allows up to 12 tags of 40 characters. Tags ignore case when ma
 parentheses are reserved for backlog metadata. The **Filter tags** row requires every selected tag,
 intersects the current host tab, and remembers the selection across view changes and reloads.
 **Clear tag filters** restores all items on that host.
+The choices start at two rows; **Show more / Show less** reveals the rest. The selected count and
+Clear control stay visible even when selected chips are outside those rows. Choices and counts exclude
+Done while List's completed tasks are hidden or Board's Done column is folded; showing completed
+work restores its tags. Saved selections stay removable when the visible work or host changes.
 
 Optional backlog metadata `(tags: Frontend, Dashboard)` is also read. Board edits are durable
 additions/removals in `data/item-tags.json`; they never rewrite the agent-owned backlog, its title,

@@ -67,6 +67,11 @@ export function matchesTags(
   return selected.every((tag) => present.has(tagIdentity(tag)));
 }
 
+/** Choices count the host's visible work, before tag matching; saved selections are kept by tagChoices. */
+export function tagScopeCards(cards: readonly FleetCard[], showDone: boolean): FleetCard[] {
+  return cards.filter((card) => showDone || card.column !== "done");
+}
+
 export function tagChoices(
   cards: readonly FleetCard[],
   selected: readonly string[] = [],
