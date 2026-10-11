@@ -1,0 +1,5 @@
+locator.waitFor: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: 'Update FirstMate to bbbbbbbb', exact: true }) to be visible[22m
+
+    at C:\Users\micha\.paseo\worktrees\23z5sbxl\firstmate-update-button\docs\firstmate-update\render.mjs:38:93

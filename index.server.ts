@@ -64,6 +64,8 @@ import { displaySettings } from "./shared/settings";
 import { editItemTag } from "./shared/item-tags";
 import { changeItemTag, findTagItem } from "./server/item-tags";
 import { RemoteService } from "./server/remotes";
+import { UpdateService } from "./server/update";
+import { checkUpdate, requestUpdate } from "./shared/update";
 import { readRemotes, syncRemotes, reportRemoteSyncError } from "./shared/remotes";
 import { readBacklog } from "./server/home";
 import { remoteTaskQueries } from "./server/remote-cards";
@@ -76,6 +78,9 @@ import {
 } from "./shared/remote-crew";
 
 export default function contribute(server: PluginServerContext) {
+  const updates = new UpdateService();
+  server.handle(checkUpdate, () => updates.check());
+  server.handle(requestUpdate, ({ token }, { paseo }) => updates.request(token, (text, beforeSend) => askMate(paseo, { text }, beforeSend)));
   migrateLegacyFiles();
   const reports = new ReportCache();
   const steers = new CaptainSteers();
