@@ -50,8 +50,13 @@ The full repository suite also checks packaging/import boundaries and all existi
 The browser harness mounts the real `FleetSurface`, `UpdateButton`, tooltip and `useMateSender` with
 synthetic host RPCs. It asserts all status states, disabled keyboard activation, tooltip viewport bounds,
 duplicate/shared-gate behavior, pending status and stale/current no-message behavior. It captures 20
-labelled screenshots at **1440×1000** and **390×844**, in light/dark themes; no live daemon is used.
+labelled status screenshots at **1440×1000** and **390×844**, in light/dark themes; no live daemon is used.
+After rebasing onto `62ee750` (merged item-tags PR14), eight additional captures verify selected tags
+across List/Board, the merged settings contract, and a subsequent update request bringing the narrow
+chat into view. The selected tag remains intact while update delivery uses its own shared send gate.
 Initial failed evidence is retained in `failed-evidence.txt`, `failed-render.txt` and `failed-0.png`.
+The focused Board tab's existing tooltip required Escape before clicking a control on the next narrow
+header row; that captured diagnosis is retained in `failed-tags-tooltip.png` and `failed-tags-tooltip.txt`.
 
 ```sh
 npm ci
@@ -71,6 +76,8 @@ Browser layout is covered; native iOS/Android require a device check.
 | Current | [image](desktop-light-current.png) | [image](desktop-dark-current.png) | [image](narrow-light-current.png) | [image](narrow-dark-current.png) |
 | Unavailable | [image](desktop-light-unavailable.png) | [image](desktop-dark-unavailable.png) | [image](narrow-light-unavailable.png) | [image](narrow-dark-unavailable.png) |
 | No mate | [image](desktop-light-no-mate.png) | [image](desktop-dark-no-mate.png) | [image](narrow-light-no-mate.png) | [image](narrow-dark-no-mate.png) |
+| Tag-filtered List | [image](desktop-light-tags-list.png) | [image](desktop-dark-tags-list.png) | [image](narrow-light-tags-list.png) | [image](narrow-dark-tags-list.png) |
+| Tag-filtered Board | [image](desktop-light-tags-board.png) | [image](desktop-dark-tags-board.png) | [image](narrow-light-tags-board.png) | [image](narrow-dark-tags-board.png) |
 
 Self-review checked the complete diff for installation calls, writable source operations, hard-coded
 upstreams, false-current paths, delivery/lifecycle races, duplicate sends and header overlap. Existing

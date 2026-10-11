@@ -3,6 +3,11 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FleetSurface, bindSettingsOpener } from "../../client/fleet";
 import { theme as dark } from "../board-list/theme";
+import { fleet } from "../board-list/fixtures";
+
+fleet.cards[0].tags = ["UI check"];
+fleet.cards[1].tags = ["UI check"];
+window.fixtureTagTitles = fleet.cards.slice(0, 3).map((card) => card.title);
 
 const params = new URLSearchParams(location.search);
 const light = params.get("theme") === "light";
