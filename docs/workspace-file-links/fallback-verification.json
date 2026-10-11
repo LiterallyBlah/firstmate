@@ -1,0 +1,919 @@
+{
+  "evidenceKind": "real-FleetSurface-and-installed-public-navigation-with-API-fixtures",
+  "liveDaemon": false,
+  "fileBytesRead": false,
+  "nativeFilePaneOpened": false,
+  "supportedNavigationFields": [
+    "serverId",
+    "workspaceId"
+  ],
+  "bundle": "index-c0a31850dafcd5deb0a28268147bb36d.js",
+  "bundleSha256": "b9d0dc9eb798ac4b5826272b1917b542704e17ea8b665b0905019ee02df89ac2",
+  "errors": [],
+  "results": [
+    {
+      "size": "wide",
+      "theme": "dark",
+      "workspaceNavigation": [
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "local-workspace"
+        },
+        {
+          "serverId": "remote-fixture",
+          "workspaceId": "remote-workspace"
+        },
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "unix-workspace"
+        },
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "unix-workspace"
+        }
+      ],
+      "external": [
+        "https://paseo.sh/docs?id=2#part",
+        "https://paseo.sh/docs?id=3#part"
+      ],
+      "home": [],
+      "finds": [
+        {
+          "paths": [
+            "data/backlog.md",
+            "data/missing.md"
+          ]
+        }
+      ],
+      "lists": [
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        }
+      ],
+      "toasts": [
+        {
+          "message": "In Quality review on Desktop, manually select reports/quality report.md — Lines 12–18. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Remote review on Remote Windows, manually select reports/preview image.png. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Unix reports on Desktop, manually select report.md — Line 7. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Unix reports on Desktop, manually select reports/a#b?%(c).md — Line 3. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        }
+      ],
+      "copies": [
+        "reports/quality report.md#L12-L18",
+        "reports/preview image.png",
+        "report.md#L7",
+        "reports/a#b?%(c).md#L3"
+      ],
+      "homeFilesOpened": true
+    },
+    {
+      "size": "wide",
+      "theme": "light",
+      "workspaceNavigation": [
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "local-workspace"
+        },
+        {
+          "serverId": "remote-fixture",
+          "workspaceId": "remote-workspace"
+        },
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "unix-workspace"
+        },
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "unix-workspace"
+        }
+      ],
+      "external": [
+        "https://paseo.sh/docs?id=2#part",
+        "https://paseo.sh/docs?id=3#part"
+      ],
+      "home": [],
+      "finds": [
+        {
+          "paths": [
+            "data/backlog.md",
+            "data/missing.md"
+          ]
+        }
+      ],
+      "lists": [
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        }
+      ],
+      "toasts": [
+        {
+          "message": "In Quality review on Desktop, manually select reports/quality report.md — Lines 12–18. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Remote review on Remote Windows, manually select reports/preview image.png. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Unix reports on Desktop, manually select report.md — Line 7. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Unix reports on Desktop, manually select reports/a#b?%(c).md — Line 3. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        }
+      ],
+      "copies": [
+        "reports/quality report.md#L12-L18",
+        "reports/preview image.png",
+        "report.md#L7",
+        "reports/a#b?%(c).md#L3"
+      ],
+      "homeFilesOpened": true
+    },
+    {
+      "size": "phone",
+      "theme": "dark",
+      "workspaceNavigation": [
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "local-workspace"
+        },
+        {
+          "serverId": "remote-fixture",
+          "workspaceId": "remote-workspace"
+        },
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "unix-workspace"
+        },
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "unix-workspace"
+        }
+      ],
+      "external": [
+        "https://paseo.sh/docs?id=2#part",
+        "https://paseo.sh/docs?id=3#part"
+      ],
+      "home": [],
+      "finds": [
+        {
+          "paths": [
+            "data/backlog.md",
+            "data/missing.md"
+          ]
+        }
+      ],
+      "lists": [
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        }
+      ],
+      "toasts": [
+        {
+          "message": "In Quality review on Desktop, manually select reports/quality report.md — Lines 12–18. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Remote review on Remote Windows, manually select reports/preview image.png. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Unix reports on Desktop, manually select report.md — Line 7. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Unix reports on Desktop, manually select reports/a#b?%(c).md — Line 3. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        }
+      ],
+      "copies": [
+        "reports/quality report.md#L12-L18",
+        "reports/preview image.png",
+        "report.md#L7",
+        "reports/a#b?%(c).md#L3"
+      ],
+      "homeFilesOpened": true
+    },
+    {
+      "size": "phone",
+      "theme": "light",
+      "workspaceNavigation": [
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "local-workspace"
+        },
+        {
+          "serverId": "remote-fixture",
+          "workspaceId": "remote-workspace"
+        },
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "unix-workspace"
+        },
+        {
+          "serverId": "local-fixture",
+          "workspaceId": "unix-workspace"
+        }
+      ],
+      "external": [
+        "https://paseo.sh/docs?id=2#part",
+        "https://paseo.sh/docs?id=3#part"
+      ],
+      "home": [],
+      "finds": [
+        {
+          "paths": [
+            "data/backlog.md",
+            "data/missing.md"
+          ]
+        }
+      ],
+      "lists": [
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "remote-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        },
+        {
+          "serverId": "local-fixture",
+          "options": {
+            "page": {
+              "limit": 200
+            }
+          }
+        }
+      ],
+      "toasts": [
+        {
+          "message": "In Quality review on Desktop, manually select reports/quality report.md — Lines 12–18. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Remote review on Remote Windows, manually select reports/preview image.png. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Unix reports on Desktop, manually select report.md — Line 7. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        },
+        {
+          "message": "In Unix reports on Desktop, manually select reports/a#b?%(c).md — Line 3. File existence has not been checked.",
+          "options": {
+            "variant": "info",
+            "durationMs": 15000
+          }
+        }
+      ],
+      "copies": [
+        "reports/quality report.md#L12-L18",
+        "reports/preview image.png",
+        "report.md#L7",
+        "reports/a#b?%(c).md#L3"
+      ],
+      "homeFilesOpened": true
+    }
+  ]
+}

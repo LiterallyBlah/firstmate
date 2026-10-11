@@ -16,6 +16,13 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Added
 
+- FirstMate chat recognizes exact host/workspace provenance in Markdown file-link titles.
+  Links show the workspace-relative filename and line information, then open that workspace
+  through supported Paseo navigation for manual file selection. Bare absolute paths require
+  unambiguous ownership; relative links require provenance, including `firstmate:home` for
+  confined home files. Missing/ambiguous targets explain the problem and HTTPS stays external.
+  No automatic file pane, file existence check or workspace file read is added.
+
 - Explicit watch session, reasoning and notification fields in creation/configuration RPCs, the home
   tool and Watches UI. The opt-in Board review preset runs a separate parentless read-only inspection
   at Medium on the current provider/model; unchanged outcomes stay silent. Durable reports and result

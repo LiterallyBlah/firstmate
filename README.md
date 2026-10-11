@@ -249,6 +249,21 @@ the first mate something about it.
 
 ## The first mate's home
 
+FirstMate chat's workspace file links show the target host, workspace, relative
+filename and optional line selection. **Open workspace** uses Paseo's supported
+navigation; select the file manually in its explorer. Author links with exact
+IDs in the title:
+
+```markdown
+[Report](<reports/report%20one.md#L12> "firstmate:serverId=SERVER_ID&workspaceId=WORKSPACE_ID")
+[Backlog](<data/backlog.md> "firstmate:home")
+```
+
+Unannotated relative references are never guessed against the mate's home.
+Absolute paths resolve only when one known workspace on one host contains them;
+ambiguity, offline inventories and missing targets explain the problem.
+File existence is not checked. See the [complete convention and routing evidence](docs/workspace-file-links/README.md).
+
 The **Files** view — next to the crew board, or its own tab on a phone — shows everything in the home
 and opens any text file for editing, with a preview for Markdown. Cmd/Ctrl+S saves on a desktop. The
 first mate writes these files too, so a save never silently replaces its newer version: you are told
