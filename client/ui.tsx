@@ -5,14 +5,133 @@
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { Icon } from "@getpaseo/plugin/client/react-native";
-import { useEffect, useId, useMemo, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
-import { bindWebKeys, webAttributes } from "./web";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { ActivityIndicator, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
+import { bindWebKeys, fromHiddenTooltip, hasWebFocus, tooltipPlacement, webAttributes } from "./web";
 
 /** A fixed-width font on every platform; iOS has no font named "monospace". */
 export const MONOSPACE = Platform.select({ ios: "Menlo", default: "monospace" });
 
 export type Tone = "default" | "accent" | "danger";
+
+/** PR10's hover/focus help, shared by buttons and tabs without changing their names or actions. */
+export function ControlTooltip({
+  theme,
+  text,
+  align = "start",
+  side = "top",
+  disabledLabel,
+  children,
+}: {
+  theme: PluginTheme;
+  text?: string | undefined;
+  align?: "start" | "end";
+  side?: "top" | "bottom";
+  /** A disabled button cannot receive focus; its wrapper offers the same help without enabling it. */
+  disabledLabel?: string | undefined;
+  children: (description: ReturnType<typeof webAttributes>) => ReactNode;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const tooltipId = useId();
+  const open = text !== undefined && (hovered || focused) && !dismissed;
+  const trigger = useRef<View>(null);
+  const popup = useRef<View>(null);
+  useLayoutEffect(() => {
+    // RN Web can drop the button's blur when it becomes disabled. Keep fresh
+    // wrapper focus, but clear a focus flag whose DOM focus has already left.
+    if (disabledLabel !== undefined && !hasWebFocus(trigger.current)) setFocused(false);
+  }, [disabledLabel]);
+  const [placement, setPlacement] =
+    useState<ReturnType<typeof tooltipPlacement>>(null);
+  const { width, height } = useWindowDimensions();
+  useLayoutEffect(() => {
+    setPlacement(
+      open
+        ? tooltipPlacement(trigger.current, popup.current, align, side)
+        : null,
+    );
+    // A partly visible Board column can narrow the popup. Measure its new
+    // height once more before choosing whether it belongs above or below.
+  }, [open, text, align, side, width, height, placement?.maxWidth]);
+  useEffect(() => {
+    if (!open) return;
+    // TextInput stops keyboard bubbling; capture still dismisses a hovered tip.
+    return bindWebKeys(undefined, (key) => {
+      if (key !== "Escape") return false;
+      setDismissed(true);
+      return true;
+    }, true);
+  }, [open]);
+  if (text === undefined) return children({});
+  const colors = theme.colors;
+  return (
+    <View
+      ref={(node) => {
+        trigger.current = node;
+        webAttributes({
+          tabindex: disabledLabel === undefined ? null : "0",
+          "aria-label": disabledLabel ?? null,
+          "aria-disabled": disabledLabel === undefined ? null : "true",
+          "aria-describedby": disabledLabel === undefined ? null : tooltipId,
+        }).ref?.(node);
+      }}
+      style={{ zIndex: open ? 10 : 0 }}
+      onPointerEnter={(event) => {
+        setHovered(true);
+        // RN Web's enter event retains the pointer-out's source. A hidden
+        // popup exposing this control is not an intentional new hover.
+        setDismissed(fromHiddenTooltip(event.nativeEvent));
+      }}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => {
+        setFocused(true);
+        setDismissed(false);
+      }}
+      onBlur={() => setFocused(false)}
+    >
+      {children(webAttributes({ "aria-describedby": tooltipId }))}
+      <View
+        ref={popup}
+        nativeID={tooltipId}
+        role="tooltip"
+        // Kept in the accessibility description even when not painted.
+        style={{
+          display: open ? "flex" : "none",
+          position: "absolute",
+          ...((placement?.side ?? side) === "bottom"
+            ? { top: "100%" }
+            : { bottom: "100%" }),
+          ...(placement !== null
+            ? { left: placement.left }
+            : align === "end"
+              ? { right: 0 }
+              : { left: 0 }),
+          width: 240,
+          maxWidth: placement?.maxWidth,
+          padding: 10,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.surface2,
+        }}
+      >
+        <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 17 }}>
+          {text}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 export function IconButton({
   icon,
@@ -24,6 +143,7 @@ export function IconButton({
   showLabel = false,
   tooltip,
   tooltipAlign = "start",
+  tooltipSide = "top",
 }: {
   icon: string;
   label: string;
@@ -36,21 +156,8 @@ export function IconButton({
   /** Purpose shown on hover/focus and read as an accessibility hint. */
   tooltip?: string;
   tooltipAlign?: "start" | "end";
+  tooltipSide?: "top" | "bottom";
 }) {
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const tooltipId = useId();
-  const open = tooltip !== undefined && (hovered || focused) && !dismissed;
-  useEffect(() => {
-    if (!open) return;
-    // TextInput stops keyboard bubbling; capture still dismisses a hovered tip.
-    return bindWebKeys(undefined, (key) => {
-      if (key !== "Escape") return false;
-      setDismissed(true);
-      return true;
-    }, true);
-  }, [open]);
   const colors = theme.colors;
   const color =
     tone === "accent" ? colors.accentForeground : tone === "danger" ? colors.statusDanger : colors.foreground;
@@ -72,58 +179,30 @@ export function IconButton({
     }),
     [colors, tone, disabled, showLabel, color],
   );
-  const described = tooltip === undefined ? {} : webAttributes({ "aria-describedby": tooltipId });
-  const control = (
-    <Pressable
-      {...described}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint={tooltip}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={styles.button}
-    >
-      <Icon name={icon} size={14} color={color} />
-      {showLabel ? <Text style={styles.label}>{label}</Text> : null}
-    </Pressable>
-  );
-  if (tooltip === undefined) return control;
   return (
-    <View
-      style={{ zIndex: open ? 10 : 0 }}
-      onPointerEnter={() => {
-        setHovered(true);
-        setDismissed(false);
-      }}
-      onPointerLeave={() => setHovered(false)}
-      onFocus={() => {
-        setFocused(true);
-        setDismissed(false);
-      }}
-      onBlur={() => setFocused(false)}
+    <ControlTooltip
+      theme={theme}
+      text={tooltip}
+      align={tooltipAlign}
+      side={tooltipSide}
+      disabledLabel={disabled ? label : undefined}
     >
-      {control}
-      <View
-        nativeID={tooltipId}
-        role="tooltip"
-        // Kept in the accessibility description even when not painted.
-        style={{
-          display: open ? "flex" : "none",
-          position: "absolute",
-          bottom: "100%",
-          ...(tooltipAlign === "end" ? { right: 0 } : { left: 0 }),
-          width: 240,
-          padding: 10,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: colors.surface2,
-        }}
-      >
-        <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 17 }}>{tooltip}</Text>
-      </View>
-    </View>
+      {(described) => (
+        <Pressable
+          {...described}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityHint={tooltip}
+          accessibilityState={{ disabled }}
+          disabled={disabled}
+          onPress={onPress}
+          style={styles.button}
+        >
+          <Icon name={icon} size={14} color={color} />
+          {showLabel ? <Text style={styles.label}>{label}</Text> : null}
+        </Pressable>
+      )}
+    </ControlTooltip>
   );
 }
 
@@ -140,9 +219,11 @@ export function Segmented<Value extends string>({
 }: {
   theme: PluginTheme;
   value: Value;
-  options: ReadonlyArray<{ value: Value; label: string }>;
+  options: ReadonlyArray<{ value: Value; label: string; tooltip?: string; }>;
   onChange: (value: Value) => void;
 }) {
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const colors = theme.colors;
   const styles = useMemo(
     () => ({
@@ -153,9 +234,12 @@ export function Segmented<Value extends string>({
         borderWidth: 1,
         borderColor: colors.border,
         backgroundColor: colors.surface1,
-        overflow: "hidden" as const,
       },
-      segment: { justifyContent: "center" as const, paddingHorizontal: 12 },
+      segment: {
+        height: 26,
+        justifyContent: "center" as const,
+        paddingHorizontal: 12,
+      },
       selected: { backgroundColor: colors.accent },
       label: { color: colors.foreground, fontSize: 12, fontWeight: "500" as const },
       labelSelected: { color: colors.accentForeground, fontWeight: "600" as const },
@@ -163,20 +247,47 @@ export function Segmented<Value extends string>({
     [colors],
   );
   return (
-    <View style={styles.frame} accessibilityRole="tablist">
-      {options.map((option) => {
+    <View
+      style={[styles.frame, { zIndex: hovered || focused ? 10 : 0 }]}
+      accessibilityRole="tablist"
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+    >
+      {options.map((option, index) => {
         const selected = option.value === value;
         return (
-          <Pressable
+          <ControlTooltip
             key={option.value}
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            aria-selected={selected}
-            style={[styles.segment, selected ? styles.selected : null]}
-            onPress={() => onChange(option.value)}
+            theme={theme}
+            text={option.tooltip}
+            side="bottom"
           >
-            <Text style={[styles.label, selected ? styles.labelSelected : null]}>{option.label}</Text>
-          </Pressable>
+            {(described) => (
+              <Pressable
+                {...described}
+                accessibilityRole="tab"
+                accessibilityHint={option.tooltip}
+                accessibilityState={{ selected }}
+                aria-selected={selected}
+                style={[
+                  styles.segment,
+                  selected ? styles.selected : null,
+                  {
+                    borderTopLeftRadius: index === 0 ? 7 : 0,
+                    borderBottomLeftRadius: index === 0 ? 7 : 0,
+                    borderTopRightRadius: index === options.length - 1 ? 7 : 0,
+                    borderBottomRightRadius:
+                      index === options.length - 1 ? 7 : 0,
+                  },
+                ]}
+                onPress={() => onChange(option.value)}
+              >
+                <Text style={[styles.label, selected ? styles.labelSelected : null]}>{option.label}</Text>
+              </Pressable>
+            )}
+          </ControlTooltip>
         );
       })}
     </View>

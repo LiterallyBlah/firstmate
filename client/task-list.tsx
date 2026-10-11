@@ -87,6 +87,9 @@ export function TaskList({
                           : {
                               icon: "Eye",
                               label: "Watch",
+                              tooltip: card.remote === undefined
+                                ? "View this worker's live activity within FirstMate."
+                                : "View this remote worker's recent log within FirstMate.",
                               onPress: () => onWatch(key),
                             }
                       }

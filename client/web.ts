@@ -13,18 +13,130 @@ import { Platform } from "react-native";
 import { rasterImageType } from "../shared/attachments";
 
 /** Browser attributes omitted by React Native Web. Native keeps its own accessibility props. */
-export function webAttributes(attributes: Record<string, string>, cursor?: string): { ref?: (node: unknown) => void } {
+export function webAttributes(attributes: Record<string, string | null>, cursor?: string): { ref?: (node: unknown) => void } {
   if (Platform.OS !== "web") return {};
   return {
     ref: (node) => {
       if (typeof node !== "object" || node === null) return;
       const setAttribute: unknown = Reflect.get(node, "setAttribute");
+      const removeAttribute: unknown = Reflect.get(node, "removeAttribute");
       if (typeof setAttribute === "function") {
-        for (const [key, value] of Object.entries(attributes)) setAttribute.call(node, key, value);
+        for (const [key, value] of Object.entries(attributes)) {
+          if (value === null) {
+            if (typeof removeAttribute === "function") removeAttribute.call(node, key);
+          } else setAttribute.call(node, key, value);
+        }
       }
       const style: unknown = Reflect.get(node, "style");
       if (cursor !== undefined && typeof style === "object" && style !== null) Reflect.set(style, "cursor", cursor);
     },
+  };
+}
+
+/** Escape can expose another control beneath a popup without any pointer movement. */
+export function fromHiddenTooltip(event: unknown): boolean {
+  if (Platform.OS !== "web" || typeof event !== "object" || event === null) return false;
+  const source: unknown = Reflect.get(event, "target");
+  if (typeof source !== "object" || source === null) return false;
+  const closest: unknown = Reflect.get(source, "closest");
+  if (typeof closest !== "function") return false;
+  const tooltip: unknown = closest.call(source, '[role="tooltip"]');
+  if (typeof tooltip !== "object" || tooltip === null) return false;
+  const style: unknown = Reflect.get(tooltip, "style");
+  return typeof style === "object" && style !== null && Reflect.get(style, "display") === "none";
+}
+
+/** Disabling a focused RN Web button can suppress its component's blur event. */
+export function hasWebFocus(node: unknown): boolean {
+  if (Platform.OS !== "web" || typeof node !== "object" || node === null) return false;
+  const contains: unknown = Reflect.get(node, "contains");
+  const active = (globalThis as { document?: { activeElement?: unknown } }).document?.activeElement;
+  return active !== undefined && typeof contains === "function" && contains.call(node, active) === true;
+}
+
+/** Keep inline help inside the viewport and any pane that clips its contents. */
+export function tooltipPlacement(
+  trigger: unknown,
+  popup: unknown,
+  align: "start" | "end",
+  side: "top" | "bottom",
+): { left: number; side: "top" | "bottom"; maxWidth: number } | null {
+  if (Platform.OS !== "web") return null;
+  interface Element {
+    offsetWidth: number;
+    parentElement: Element | null;
+    getBoundingClientRect(): {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      width: number;
+      height: number;
+    };
+  }
+  const web = globalThis as {
+    innerWidth?: number;
+    innerHeight?: number;
+    getComputedStyle?: (node: Element) => {
+      overflowX: string;
+      overflowY: string;
+    };
+  };
+  if (
+    !web.getComputedStyle ||
+    typeof trigger !== "object" ||
+    trigger === null ||
+    typeof popup !== "object" ||
+    popup === null
+  )
+    return null;
+  const anchor = trigger as Element,
+    tip = popup as Element;
+  if (
+    typeof anchor.getBoundingClientRect !== "function" ||
+    typeof tip.getBoundingClientRect !== "function"
+  )
+    return null;
+  const a = anchor.getBoundingClientRect(),
+    b = tip.getBoundingClientRect();
+  let left = 2,
+    right = (web.innerWidth ?? Infinity) - 2,
+    top = 0,
+    bottom = web.innerHeight ?? Infinity;
+  for (
+    let parent = anchor.parentElement;
+    parent !== null;
+    parent = parent.parentElement
+  ) {
+    const style = web.getComputedStyle(parent),
+      bounds = parent.getBoundingClientRect();
+    // A wide containing row also bounds help, so it cannot spill into an adjacent pane.
+    if (bounds.width >= b.width || /^(hidden|clip|scroll|auto)$/.test(style.overflowX)) {
+      left = Math.max(left, bounds.left + 2);
+      right = Math.min(right, bounds.right - 2);
+    }
+    if (/^(hidden|clip|scroll|auto)$/.test(style.overflowY)) {
+      top = Math.max(top, bounds.top);
+      bottom = Math.min(bottom, bounds.bottom);
+    }
+  }
+  const scale = anchor.offsetWidth > 0 ? a.width / anchor.offsetWidth : 1;
+  const x = Math.max(
+    left,
+    Math.min(align === "end" ? a.right - b.width : a.left, right - b.width),
+  );
+  const placedSide =
+    side === "top" && a.top - b.height < top && a.bottom + b.height <= bottom
+      ? "bottom"
+      : side === "bottom" &&
+          a.bottom + b.height > bottom &&
+          a.top - b.height >= top
+        ? "top"
+        : side;
+  return {
+    left: (x - a.left) / scale,
+    side: placedSide,
+    maxWidth: Math.max(1, right - left) / scale,
   };
 }
 
