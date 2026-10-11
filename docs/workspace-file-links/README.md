@@ -1,166 +1,126 @@
-# Workspace file links: supported navigation blocker
+# FirstMate workspace file references
 
-Investigation on `fm/workspace-file-links`, rebased onto `origin/main`
-`4647135d8197be5597deaf092f9e1412bd346a9b`. **No production change; the requested
-automatic file opening is blocked on a supported client navigation API.** This
-folder preserves the evidence and decision boundary, rather than claiming a
-fixture is a working plugin implementation.
+FirstMate chat identifies a file's Paseo host and workspace, shows its relative
+filename and optional line selection, and offers **Open workspace**. Select the
+file manually in that workspace's explorer. The supported plugin navigation API
+does not open a file pane or select lines. Reports and images follow the same
+rules; image markup becomes a clickable reference without fetching image bytes.
 
-## Trigger, symptom, and cause
+The captain accepted this workspace-only fallback after the API investigation.
+The original findings and four comparison screenshots remain unchanged in
+[investigation.md](investigation.md), [verification.json](verification.json),
+`panel.jsx`, `render.mjs` and `installed-runtime.mjs`. They describe the original
+failure, not the final feature's behavior.
 
-Trigger: a first mate replies with a Markdown link to a report or image outside
-its home, for example `[Workspace report](C:/repo/reports/report.md#L12)`.
+## Authoring convention for standing records
 
-FirstMate's `client/file-links.ts` asks only `firstmate.files.find` about home
-files. A workspace target is not vouched for by that RPC. Markdown links then
-become ordinary `link` tokens, whose press handler in `client/chat.tsx` calls
-`openExternalUrl`. The installed client ignores non-HTTP(S) targets, without an
-error, so clicking does nothing. Windows drive paths are also rejected as path
-candidates by the inline tokenizer's scheme check. Its current Markdown grammar
-does not handle angle-wrapped destinations or link titles.
-
-The home-only resolver is a trust boundary, not an erroneous arbitrary-files
-lookup that should be widened. `server/files.ts` confines both lexical paths and
-symlink resolutions to the home. No production read RPC or filesystem behavior
-has been added by this investigation.
-
-Native conversations take another path: the installed assistant link resolver
-classifies file targets, decodes a `file://` URL and line anchor, then calls the
-conversation's private `onOpenWorkspaceFile(target, disposition)` callback. That
-callback already has its host/workspace pane context. A link in a native mate
-conversation can therefore produce a file pane there, but this does not prove
-that a bare absolute path identifies the file's *associated* workspace or host.
-The native resolver does not infer remote ownership from a Windows drive path.
-
-Smallest counterfactual: keep the exact target constant and replace only the
-click handler. FirstMate's real Markdown component plus the installed external
-opener ignores `C:/repo/reports/report.md#L12`; the installed native resolver and
-click handler produce `{ path: "C:/repo/reports/report.md", lineStart: 12 }` for
-the supplied conversation context. Home `data/backlog.md` and ordinary HTTPS
-links remain working controls. This disconfirms a file-specific failure and
-locates the routing difference before any file read.
-
-## Confirmed public API limit (two independent checks)
-
-1. Installed `@getpaseo/plugin` **0.11.0**,
-   `dist/client/contracts.d.ts`, lines 20–36: surface navigation has `openAgent`,
-   `openWorkspace({ workspaceId, serverId? })`, and optional Electron
-   `openBrowser({ url, workspaceId, serverId? })`. There is no file target or
-   `openFile`. `openPanel` opens a contributed plugin panel; it has no native file
-   path/line target and no cross-host option.
-2. Installed Paseo Desktop **0.11.0** bundle `createPluginHostNavigation`
-   (module 4771, line 18042):
-   `openWorkspace` destructures only `workspaceId` and `serverId`. Supplying an
-   extra `target: { kind: "file", path }` is discarded, even in untyped JS. This
-   is exercised with local and remote fixtures in `verification.json`.
-
-`openBrowser` accepts absolute HTTP(S) URLs only and opens a browser target,
-not a file. `openExternalUrl` similarly accepts HTTP(S) only. The SDK's public
-`PaseoApi` manages agents, projects, workspaces, terminals, providers and config;
-it does not expose a file pane opener. Internal pane stores and daemon file
-methods are not supported plugin navigation APIs. No deep link has been invented
-and no private runtime method is used by production code.
-
-The exact bundle hash and individual module hashes/line numbers are preserved in
-`verification.json`. The extractor reads the installed code and fails if its
-expected modules or private entry point have changed. Generated native source is
-ignored and is not shipped or committed.
-
-## Supported alternative and decision needed
-
-The supported plugin-only alternative is to resolve a known, active workspace
-on an explicitly identified host, call
-`navigation.openWorkspace({ serverId, workspaceId })`, and explain which relative
-file to select in Paseo's explorer. The captain must select the file. This is a
-degraded workspace-only fallback, **not completion of automatic report/image
-opening**. It can be implemented if that behavior is accepted.
-
-For the requested automatic behavior, the host needs to expose supported file
-navigation carrying `serverId`, `workspaceId`, a confined workspace-relative file
-path, and optional line selection, reusing its native file pane. This is an API
-requirement, not a method assumed to exist. A separate plugin file preview is a
-larger product/security choice and was not added. No install, plugin reload,
-live configuration change, core edit, merge, or main push was performed.
-
-## Exact recommended authoring convention (pending router/API support)
-
-Use a normal Markdown file destination with provenance in the title, not a new
-navigation scheme. Recommended future contract:
+Use normal Markdown with exact host/workspace provenance in its title:
 
 ```markdown
 [Report](<file:///C:/repo/reports/report%20one.md#L12> "firstmate:serverId=SERVER_ID&workspaceId=WORKSPACE_ID")
 [Image](<reports/chart%20one.png> "firstmate:serverId=SERVER_ID&workspaceId=WORKSPACE_ID")
+[Backlog](<data/backlog.md> "firstmate:home")
 ```
 
-`SERVER_ID` and `WORKSPACE_ID` are exact Paseo IDs, percent-encoded as field
-values, never host labels, task IDs or path-derived guesses. The destination is
-either a percent-encoded absolute file URI or a workspace-relative path. `/`
-separates path components; spaces, `%`, `#`, and `?` in filenames must be encoded;
-`#L12` (or `#L12-L18`) selects lines, separate from the filename. A plain `[Image]`
-link opens a file, without automatically fetching image bytes.
+Replace `SERVER_ID` and `WORKSPACE_ID` with the exact IDs from Paseo, percent-encoded
+as field values. Use the target host's ID, including for this machine; labels,
+agent/task IDs and workspace ID prefixes do not count. The host must be configured
+in the Paseo client. A host known only to FirstMate's daemon-side remote helper
+cannot be navigated through the client until it is configured there.
 
-**This title metadata is a proposed authoring convention, not a currently
-implemented Paseo deep link or FirstMate feature. Do not add it to standing
-records as working behavior yet.** No captain record, charter, or template was
-rewritten. The first mate can retain this exact recommendation for the follow-up
-once the supported routing choice has been made.
+The destination is either a workspace-relative filename or an absolute filename
+(a `file:///` URI is recommended for absolute paths). Use `/` separators and
+percent-encode each filename component once: space `%20`, percent `%25`, hash
+`%23`, question mark `%3F`, parentheses `%28`/`%29`. Leave structural slashes and
+a Windows drive's colon intact. Use `#L12` or `#L12-L18` for line identification;
+legacy `:12` and `:12:4` suffixes also display line/column information. These
+identify a manual selection; they do not move the explorer or editor cursor.
 
-The follow-up resolver must handle these boundaries before navigation:
+`firstmate:` title metadata is a FirstMate parsing convention, **not a Paseo deep
+link**. Intentional home files require the explicit `firstmate:home` title in
+FirstMate chat. They retain the existing confined home Files view. Unannotated
+relative Markdown links explain the missing provenance; relative plain text and
+inline code remain text. They are never guessed against the mate's home.
+Other Markdown surfaces retain their existing home-file behavior. No standing
+record, charter or template was rewritten by this change.
 
-- A relative destination requires explicit workspace and host provenance; it
-  must never be interpreted as a home file because the named workspace is
-  unavailable. Existing intentional home-file references retain the home Files
-  behavior.
-- A bare absolute path can be routed only when ownership is unambiguous across
-  all known hosts/workspaces. Identical Windows paths on different hosts,
-  incomplete/offline host inventories, and multiple workspace identities require
-  explicit provenance. Nested workspace roots must not silently choose a parent
-  workspace.
-- The requested workspace must exist and be active on the named host. Missing,
-  archived, disconnected, or unsupported targets need a clear explanation, with
-  no fallback to the current host or mate home. Missing files should use the
-  host's confined file viewer's failure handling.
-- Decode once; reject traversal, drive-relative paths, malformed encoding and
-  targets outside the explicit root. Any file bytes must remain subject to the
-  host viewer's existing authorization and confinement. Links cannot execute
-  files, add arbitrary reads, or acquire remote credentials.
-- HTTPS links retain their normal external behavior. Report and image links use
-  the same workspace/host/file identity rules.
+## Resolution and trust boundary
 
-## Reproduction and evidence limits
+| Reference | Result |
+| --- | --- |
+| Exact host/workspace title | Read only that host's workspace inventory; require an exact active workspace and a filename inside its root. |
+| Bare absolute path, including existing plain/code mentions | Inspect all configured hosts' complete inventories; allow only one containing workspace. |
+| Same Windows path on two hosts, or nested workspace roots | Explain ambiguity; require explicit provenance. No host or most-specific-root guess. |
+| Offline/incomplete host inventory | Refuse bare absolute routing. Explicit links to a different online host can still work. |
+| Missing/archived/archiving workspace, unknown host, changed root | Explain the target problem. No fallback to another workspace or host. Recheck on **Open workspace**. |
+| Missing workspace file or symlink | Existence and realpath are not checked. The dialog and follow-up toast say so; manual exploration remains Paseo's responsibility. |
+| Explicit home link | Ask the existing `firstmate.files.find` RPC; only its confined answer enables the home Files callback. Missing/outside/not-yet-checked targets explain the problem. |
+| HTTP(S) | Preserve the complete URL, query and fragment through the existing external opener, regardless of title. |
+
+Paths are decoded once. Parent traversal, unsupported URI authorities/schemes,
+drive-relative paths, malformed encoding, controls, invalid Windows filenames
+and paths outside the explicit root are refused. Windows drive/UNC comparisons
+ignore case; Unix comparisons preserve it. Path component boundaries prevent a
+root such as `C:/repo` from claiming `C:/repo-other`.
+
+Production uses the public `useHosts()`, `getPaseoClient(serverId)`, paginated
+`client.workspaces.list(...)` and
+`navigation.openWorkspace({ serverId, workspaceId })` APIs from the host-injected
+plugin module. No extra file/line fields are sent.
+The installed protocol accepts `idPrefix` but documents it as ignored, so the
+resolver pages the unfiltered inventory and checks workspace IDs itself.
+
+No private native callback, file stat/read/execute endpoint, credential acquisition,
+arbitrary preview or new RPC is added. The existing home server's lexical and symlink confinement
+is unchanged. Workspace directory ownership is lexical only; this feature does
+not claim to establish a file's existence or its symlink destination.
+
+## Verification and screenshots
 
 ```powershell
 npm.cmd ci
 npm.cmd ci --prefix docs/board-list
-node docs/workspace-file-links/render.mjs "C:/Users/micha/AppData/Local/Programs/Paseo/resources/app-dist/_expo/static/js/web"
 npm.cmd run typecheck
 npm.cmd test
+node docs/workspace-file-links/render-fallback.mjs "C:/Users/micha/AppData/Local/Programs/Paseo/resources/app-dist/_expo/static/js/web"
 ```
 
-The harness uses the existing board-list browser dependencies and a loopback-only
-ephemeral HTTP server. It mounts the real `Markdown` component used in FirstMate
-chat. It runs the installed native resolver, private click handler and public
-plugin navigation bridge in an isolated module loader. Only unavailable
-environment/hook modules and external/pane sinks are stubbed; the private click
-entry point is exposed solely inside this evidence harness. No daemon, credentials
-or file bytes are accessed. This harness is **not** a production workaround.
+Typecheck and the full unit suite pass: **40 files, 509 passed, 3 existing skipped
+(512 total)**. The 31 new routing/parser cases cover exact remote identity with
+an identical local Windows path, nested roots, pagination and incomplete
+inventories, cancellation/revalidation, missing/archiving targets, unsafe paths,
+encoding/lines, home confinement and HTTPS preservation. These unit inventories
+and navigation sinks are fixtures, not live host tests.
 
-`verification.json` records six ignored FirstMate file clicks, six native file
-callback targets (local and remote fixtures sharing the same Windows path),
-successful home/HTTPS controls, and two supported workspace callbacks that omit
-the extra file target. Four PNGs capture local/remote FirstMate failures and
-native callback results. The local FirstMate and remote native callback PNGs
-were visually inspected: the result banner and fixture labels are readable,
-with no clipping.
+`render-fallback.mjs` mounts the real `FleetSurface`, `MateChat`, renderer and link
+dialog at 1400×980 and 390×844 in both light and dark themes. It checks four
+successful workspace selections per run plus ambiguity, missing provenance,
+outside-root/missing-home/offline targets, removal after lookup, cancellation,
+copying file locations, home Files routing and titled HTTPS URLs. The actual
+installed 0.11.0 public navigation bridge strips the call to precisely
+`serverId`/`workspaceId` before an instrumented workspace sink receives it.
+[fallback-verification.json](fallback-verification.json) preserves the calls,
+inventories, copies, toasts and installed bundle hash.
 
-There was **no live end-to-end FirstMate-versus-native conversation test and no
-native file pane rendered**. Browser/native app surfaces were unavailable to
-the UI tool, and no plugin installation/reload was authorized. The fixture
-checks prove the callback difference and installed public API boundary; they do
-not prove remote file availability, file rendering, a completed routing fix, or
-correct host routing in a running Paseo session.
+| Evidence | Wide | Phone |
+| --- | --- | --- |
+| Local report, dark | [Screenshot](fallback-local-wide-dark.png) | [Screenshot](fallback-local-phone-dark.png) |
+| Local report, light | [Screenshot](fallback-local-wide-light.png) | [Screenshot](fallback-local-phone-light.png) |
+| Remote image, dark | [Screenshot](fallback-remote-wide-dark.png) | [Screenshot](fallback-remote-phone-dark.png) |
+| Remote image, light | [Screenshot](fallback-remote-wide-light.png) | [Screenshot](fallback-remote-phone-light.png) |
+| Ambiguous absolute path | [Screenshot](fallback-ambiguous-wide.png) | [Screenshot](fallback-ambiguous-phone.png) |
 
-Local validation: typecheck passed; existing full suite **39 files, 478 passed,
-3 skipped (481 total)**. There are no production routing regressions to claim:
-the blocker was confirmed before implementing a router. Delivery is an evidence
-PR pending a navigation/product decision, not a feature PR ready to merge.
+The local wide/dark, remote phone/light and ambiguous phone screenshots were
+visually inspected for readable identity, filenames, line information, actions
+and refusal text. No clipping was found.
+
+**Supported versus fixture evidence:** the installed public bridge and SDK API
+shapes are real. Hosts, workspace inventory, transcript, home answers, clipboard,
+toast and navigation destination are instrumented fixtures. The web render uses
+fixture adapters for host UI primitives, including the modal wrapper; its body
+and actions come from the production component. No live daemon or
+native file pane was opened and no remote file availability was tested. This
+does not prove live local/remote end-to-end routing in a running Paseo session.
+No install, reload, live configuration change, core edit, merge or main push was
+performed. A future automatic file opener still requires a supported core API
+and is outside this PR.

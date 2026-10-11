@@ -21,6 +21,8 @@ const toast = {
 };
 export const useToast = () => toast;
 export const openExternalUrl = async () => {};
+export const useHosts = () => [];
+export const getPaseoClient = () => { throw new Error("No host API in this fixture"); };
 export const copyText = async () => {};
 export const useRevealedText = (text) => text;
 export const SettingsSection = ({ children }) => <div>{children}</div>;

@@ -82,8 +82,9 @@ const noFiles: FileLookup = () => null;
 /** What a press on an inline link does, and which paths are files to link. */
 interface InlineContext {
   lookup: FileLookup;
-  onOpenLink: (url: string) => void;
+  onOpenLink: (url: string, title?: string) => void;
   onOpenFile: ((path: string) => void) | null;
+  workspaceAware: boolean;
 }
 
 function renderInline(text: string, styles: MarkdownStyles, context: InlineContext): ReactNode[] {
@@ -92,7 +93,7 @@ function renderInline(text: string, styles: MarkdownStyles, context: InlineConte
   // value under Hermes.
   const { onOpenFile } = context;
   const lookup = onOpenFile === null ? noFiles : context.lookup;
-  return inlineTokens(text, lookup).map((token, index) => {
+  return inlineTokens(text, lookup, { workspaceAware: context.workspaceAware }).map((token, index) => {
     switch (token.kind) {
       case "text":
         return token.text;
@@ -122,7 +123,7 @@ function renderInline(text: string, styles: MarkdownStyles, context: InlineConte
         );
       default:
         return (
-          <Text key={index} accessibilityRole="link" style={styles.link} onPress={() => context.onOpenLink(token.url)}>
+          <Text key={index} accessibilityRole="link" style={token.code ? [styles.inlineCode, styles.link] : styles.link} onPress={() => context.onOpenLink(token.url, token.title)}>
             {token.text}
           </Text>
         );
@@ -199,16 +200,19 @@ export function Markdown({
   onOpenLink,
   files = noFiles,
   onOpenFile = null,
+  workspaceAware = false,
 }: {
   source: string;
   theme: PluginTheme;
   fontSize?: number;
-  onOpenLink: (url: string) => void;
+  onOpenLink: (url: string, title?: string) => void;
   /** Which paths the text names are files in the home — see `./file-links`; none without `onOpenFile`. */
   files?: FileLookup;
   onOpenFile?: ((path: string) => void) | null;
+  /** FirstMate chat resolves workspace references at click time; bare relative Markdown links need provenance. */
+  workspaceAware?: boolean;
 }) {
   const styles = useMarkdownStyles(theme, fontSize);
   const blocks = useMemo(() => parseMarkdown(source), [source]);
-  return <View style={{ gap: 6 }}>{renderBlocks(blocks, styles, { lookup: files, onOpenLink, onOpenFile })}</View>;
+  return <View style={{ gap: 6 }}>{renderBlocks(blocks, styles, { lookup: files, onOpenLink, onOpenFile, workspaceAware })}</View>;
 }
