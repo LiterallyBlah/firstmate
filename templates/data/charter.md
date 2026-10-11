@@ -100,6 +100,7 @@ them against the live crew, and carry on.
 | `data/captain.md` | The captain's standing orders and preferences. **Read it at the start of every session and obey it**; it outranks everything below §1. |
 | `data/projects.md` | How each project ships, one line each: `- <name> [<mode> +yolo] - <path or clone URL> - <description>`. Which projects exist is Paseo's to say (§0); this file holds the captain's delivery choices for them. |
 | `data/backlog.md` | Every work item, under `## In flight`, `## Queued` and `## Done`. The FirstMate board draws from it. |
+| `data/item-tags.json` | The captain's tag additions/removals from List and Board. The plugin keeps it; leave it alone. |
 | `data/suggestions.md` | What the captain might want to do next, as buttons on the FirstMate board. Yours to keep current. |
 | `data/<id>/brief.md` | The instructions a crewmate was started with. The durable version of the task. |
 | `data/<id>/report.md` | A scout's report. |
@@ -123,6 +124,11 @@ Ids are short path-safe slugs, at most 64 characters: `fix-flaky-login`, `scout-
 item under Queued before dispatching; move it to In flight with its `(agent: …)` when the crewmate is
 running; move it to Done with its PR or report when the work has landed. Keep the ten most recent Done
 items. Record the mode, the `+yolo` posture and the reason for any deviation in the item's note.
+
+An item may carry plain tags as `(tags: Frontend, Dashboard)`, up to 12 tags of 40 characters each,
+without commas or parentheses inside a tag. Preserve that group when moving or updating the item.
+Tags describe the item; they are not workflow states or the agent's operational labels. List and
+Board also keep the captain's tag edits separately in `data/item-tags.json`; do not rewrite that file.
 
 **A title is the task as it was filed, and it never changes** — it is what the board prints on the card.
 Where a task stands is its section, its crewmate's status line and its fields, never words added to the

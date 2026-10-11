@@ -61,6 +61,8 @@ import { findHomeFiles, listHomeFiles, readHomeFile, writeHomeFile } from "./sha
 import { startWatches } from "./server/watch-service";
 import { createWatch, configureWatch, watchOptions, watchHistory } from "./shared/watch-routing";
 import { displaySettings } from "./shared/settings";
+import { editItemTag } from "./shared/item-tags";
+import { changeItemTag, findTagItem } from "./server/item-tags";
 import { RemoteService } from "./server/remotes";
 import { readRemotes, syncRemotes, reportRemoteSyncError } from "./shared/remotes";
 import { readBacklog } from "./server/home";
@@ -127,6 +129,11 @@ export default function contribute(server: PluginServerContext) {
   server.handle(enableAgentTools, async (_input, { paseo }) => {
     await paseo.config.patch({ mcp: { injectIntoAgents: true } });
     return { agentTools: (await readAgentTools(paseo)) === true };
+  });
+
+  server.handle(editItemTag, async ({ key, tag, present }, { paseo }) => {
+    const fleet = await loadFleet(paseo, await readFirstmateConfig(), reports, async () => [], () => remotes.read());
+    return changeItemTag(await requireHome(fleet.home), findTagItem(fleet.cards, key), tag, present);
   });
 
   server.handle(launchMateRpc, (input, { paseo }) => launchMate(paseo, input));
