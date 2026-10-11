@@ -84,6 +84,19 @@ export function MigrationControl({
       <IconButton
         icon="ArrowRightLeft"
         label={pending === null ? "Switch provider/model" : "Recover migration"}
+        tooltip={
+          busy
+            ? "The first-mate transfer is in progress."
+            : config.isLoading
+              ? "Loading the first mate's transfer status."
+              : pending !== null
+                ? "Review the saved first-mate transfer and its recovery options."
+                : mate === null
+                  ? "Launch or adopt a first mate before switching provider or model."
+                  : "Choose a provider or model for a new first mate, carrying over saved records and a handoff."
+        }
+        tooltipSide="bottom"
+        tooltipAlign="end"
         showLabel={pending !== null}
         theme={theme}
         tone={pending === null ? "default" : "danger"}

@@ -1,0 +1,528 @@
+[
+  {
+    "variant": "before",
+    "view": "list",
+    "polling": "polling",
+    "dismissedTooltip": "«rl»",
+    "visibleAfterEscape": [],
+    "pointerMovementAfterEscape": 0,
+    "remountsAfterEscape": 0,
+    "sequence": [
+      {
+        "afterEscapeMs": 0.8,
+        "kind": "escape",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 1.6,
+        "kind": "unlisten",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 1.6,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": true,
+        "focused": false,
+        "dismissed": true
+      },
+      {
+        "afterEscapeMs": 15,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": true
+      }
+    ]
+  },
+  {
+    "variant": "before",
+    "view": "list",
+    "polling": "frozen",
+    "dismissedTooltip": "«rl»",
+    "visibleAfterEscape": [],
+    "pointerMovementAfterEscape": 0,
+    "remountsAfterEscape": 0,
+    "sequence": [
+      {
+        "afterEscapeMs": 0.8,
+        "kind": "escape",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 1.8,
+        "kind": "unlisten",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 1.8,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": true,
+        "focused": false,
+        "dismissed": true
+      },
+      {
+        "afterEscapeMs": 15.8,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": true
+      }
+    ]
+  },
+  {
+    "variant": "before",
+    "view": "board",
+    "polling": "polling",
+    "dismissedTooltip": "«rl»",
+    "visibleAfterEscape": [
+      {
+        "id": "«rj»",
+        "text": "Stop this worker's current turn."
+      }
+    ],
+    "pointerMovementAfterEscape": 0,
+    "remountsAfterEscape": 0,
+    "sequence": [
+      {
+        "afterEscapeMs": 0.7,
+        "kind": "escape",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 1.7,
+        "kind": "unlisten",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 1.7,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": true,
+        "focused": false,
+        "dismissed": true
+      },
+      {
+        "afterEscapeMs": 8.3,
+        "kind": "enter",
+        "id": "«rj»",
+        "text": "Stop this worker's current turn.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": false,
+        "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px; line-height: 17px;\">Confirm archiving this worker. Its workspace and local copy are kept",
+        "related": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px; font-weight: 500;\">Interrupt</div>"
+      },
+      {
+        "afterEscapeMs": 11,
+        "kind": "commit",
+        "id": "«rj»",
+        "text": "Stop this worker's current turn.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 11,
+        "kind": "listen",
+        "id": "«rj»",
+        "text": "Stop this worker's current turn.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 11,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": true
+      }
+    ]
+  },
+  {
+    "variant": "before",
+    "view": "board",
+    "polling": "frozen",
+    "dismissedTooltip": "«rl»",
+    "visibleAfterEscape": [
+      {
+        "id": "«rj»",
+        "text": "Stop this worker's current turn."
+      }
+    ],
+    "pointerMovementAfterEscape": 0,
+    "remountsAfterEscape": 0,
+    "sequence": [
+      {
+        "afterEscapeMs": 0.6,
+        "kind": "escape",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 1.4,
+        "kind": "unlisten",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 1.4,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": true,
+        "focused": false,
+        "dismissed": true
+      },
+      {
+        "afterEscapeMs": 13.9,
+        "kind": "enter",
+        "id": "«rj»",
+        "text": "Stop this worker's current turn.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": false,
+        "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px; line-height: 17px;\">Confirm archiving this worker. Its workspace and local copy are kept",
+        "related": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px; font-weight: 500;\">Interrupt</div>"
+      },
+      {
+        "afterEscapeMs": 17.1,
+        "kind": "commit",
+        "id": "«rj»",
+        "text": "Stop this worker's current turn.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 17.1,
+        "kind": "listen",
+        "id": "«rj»",
+        "text": "Stop this worker's current turn.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 17.1,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": true
+      }
+    ]
+  },
+  {
+    "variant": "fixed",
+    "view": "list",
+    "polling": "polling",
+    "dismissedTooltip": "«rl»",
+    "visibleAfterEscape": [],
+    "pointerMovementAfterEscape": 0,
+    "remountsAfterEscape": 0,
+    "sequence": [
+      {
+        "afterEscapeMs": 1.4,
+        "kind": "escape",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 2.4,
+        "kind": "unlisten",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 2.4,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": true,
+        "focused": false,
+        "dismissed": true
+      },
+      {
+        "afterEscapeMs": 13.2,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": true
+      }
+    ]
+  },
+  {
+    "variant": "fixed",
+    "view": "list",
+    "polling": "frozen",
+    "dismissedTooltip": "«rl»",
+    "visibleAfterEscape": [],
+    "pointerMovementAfterEscape": 0,
+    "remountsAfterEscape": 0,
+    "sequence": [
+      {
+        "afterEscapeMs": 1.6,
+        "kind": "escape",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 2.4,
+        "kind": "unlisten",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 2.4,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": true,
+        "focused": false,
+        "dismissed": true
+      },
+      {
+        "afterEscapeMs": 11.9,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": true
+      }
+    ]
+  },
+  {
+    "variant": "fixed",
+    "view": "board",
+    "polling": "polling",
+    "dismissedTooltip": "«rl»",
+    "visibleAfterEscape": [],
+    "pointerMovementAfterEscape": 0,
+    "remountsAfterEscape": 0,
+    "sequence": [
+      {
+        "afterEscapeMs": 2.3,
+        "kind": "escape",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 4.8,
+        "kind": "unlisten",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 4.8,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": true,
+        "focused": false,
+        "dismissed": true
+      },
+      {
+        "afterEscapeMs": 13.4,
+        "kind": "enter",
+        "id": "«rj»",
+        "text": "Stop this worker's current turn.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": false,
+        "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px; line-height: 17px;\">Confirm archiving this worker. Its workspace and local copy are kept",
+        "related": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px; font-weight: 500;\">Interrupt</div>"
+      },
+      {
+        "afterEscapeMs": 21.2,
+        "kind": "commit",
+        "id": "«rj»",
+        "text": "Stop this worker's current turn.",
+        "open": false,
+        "hovered": true,
+        "focused": false,
+        "dismissed": true
+      },
+      {
+        "afterEscapeMs": 21.2,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": true
+      }
+    ]
+  },
+  {
+    "variant": "fixed",
+    "view": "board",
+    "polling": "frozen",
+    "dismissedTooltip": "«rl»",
+    "visibleAfterEscape": [],
+    "pointerMovementAfterEscape": 0,
+    "remountsAfterEscape": 0,
+    "sequence": [
+      {
+        "afterEscapeMs": 2.6,
+        "kind": "escape",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 4.5,
+        "kind": "unlisten",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": true,
+        "hovered": true,
+        "focused": false,
+        "dismissed": false
+      },
+      {
+        "afterEscapeMs": 4.5,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": true,
+        "focused": false,
+        "dismissed": true
+      },
+      {
+        "afterEscapeMs": 10.2,
+        "kind": "enter",
+        "id": "«rj»",
+        "text": "Stop this worker's current turn.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": false,
+        "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px; line-height: 17px;\">Confirm archiving this worker. Its workspace and local copy are kept",
+        "related": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px; font-weight: 500;\">Interrupt</div>"
+      },
+      {
+        "afterEscapeMs": 14.9,
+        "kind": "commit",
+        "id": "«rj»",
+        "text": "Stop this worker's current turn.",
+        "open": false,
+        "hovered": true,
+        "focused": false,
+        "dismissed": true
+      },
+      {
+        "afterEscapeMs": 14.9,
+        "kind": "commit",
+        "id": "«rl»",
+        "text": "Confirm archiving this worker. Its workspace and local copy are kept.",
+        "open": false,
+        "hovered": false,
+        "focused": false,
+        "dismissed": true
+      }
+    ]
+  }
+]

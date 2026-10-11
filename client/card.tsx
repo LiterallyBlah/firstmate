@@ -49,6 +49,7 @@ function hostTime(iso: string, skewSeconds: number | null): string {
 export interface CardOpener {
   icon: string;
   label: string;
+  tooltip: string;
   onPress: () => void;
 }
 
@@ -145,6 +146,8 @@ export function CrewCard({
         });
   const followed = worker?.followed === true;
   const running = status !== null && (status.status === "running" || status.status === "initializing");
+  const actionPending = "Wait for the current action to finish.";
+  const unreachable = `${remote?.host ?? "The remote host"} is unreachable; wait until it answers.`;
   const tone = columnTone(theme, card.column);
   const dense = density === "compact";
   const row = presentation === "row";
@@ -463,11 +466,25 @@ export function CrewCard({
         <View style={{ gap: 4 }}>
           <View style={styles.actions}>
             {opener === null ? null : (
-              <IconButton icon={opener.icon} label={opener.label} showLabel theme={theme} onPress={opener.onPress} />
+              <IconButton
+                icon={opener.icon}
+                label={opener.label}
+                tooltip={opener.tooltip}
+                showLabel
+                theme={theme}
+                onPress={opener.onPress}
+              />
             )}
             <IconButton
               icon="MessageSquare"
               label="Steer"
+              tooltip={
+                busy
+                  ? actionPending
+                  : !remote.online
+                    ? unreachable
+                    : "Send instructions directly to this worker; the first mate is told about them."
+              }
               showLabel
               theme={theme}
               disabled={busy || !remote.online}
@@ -476,15 +493,41 @@ export function CrewCard({
             <IconButton
               icon="Square"
               label="Interrupt"
+              tooltip={
+                busy
+                  ? actionPending
+                  : !remote.online
+                    ? unreachable
+                    : !running
+                      ? "This worker has no running turn to interrupt."
+                      : "Stop this worker's current turn."
+              }
               showLabel
               theme={theme}
               disabled={busy || !remote.online || !running}
               onPress={() => run("Interrupted.", () => interruptRemote(target))}
             />
-            <IconButton icon="RotateCcw" label="Relaunch" showLabel theme={theme} disabled onPress={() => undefined} />
+            <IconButton
+              icon="RotateCcw"
+              label="Relaunch"
+              tooltip="Remote Relaunch is unavailable here. Ask the first mate to write the new brief and launch a worker on that host."
+              showLabel
+              theme={theme}
+              disabled
+              onPress={() => undefined}
+            />
             <IconButton
               icon="Power"
               label="End"
+              tooltip={
+                followed
+                  ? "This is a followed session, not crew. End it on its own host."
+                  : busy
+                    ? actionPending
+                    : !remote.online
+                      ? unreachable
+                      : "Confirm archiving this worker on its host. Its workspace is kept."
+              }
               showLabel
               tone="danger"
               theme={theme}
@@ -509,11 +552,23 @@ export function CrewCard({
       {expanded && agent !== null ? (
         <View style={styles.actions}>
           {opener === null ? null : (
-            <IconButton icon={opener.icon} label={opener.label} showLabel theme={theme} onPress={opener.onPress} />
+            <IconButton
+              icon={opener.icon}
+              label={opener.label}
+              tooltip={opener.tooltip}
+              showLabel
+              theme={theme}
+              onPress={opener.onPress}
+            />
           )}
           <IconButton
             icon="MessageSquare"
             label="Steer"
+            tooltip={
+              busy
+                ? actionPending
+                : "Send instructions directly to this worker; the first mate is told about them."
+            }
             showLabel
             theme={theme}
             disabled={busy}
@@ -522,6 +577,13 @@ export function CrewCard({
           <IconButton
             icon="Square"
             label="Interrupt"
+            tooltip={
+              busy
+                ? actionPending
+                : !running
+                  ? "This worker has no running turn to interrupt."
+                  : "Stop this worker's current turn."
+            }
             showLabel
             theme={theme}
             disabled={busy || (agent.status !== "running" && agent.status !== "initializing")}
@@ -530,6 +592,11 @@ export function CrewCard({
           <IconButton
             icon="RotateCcw"
             label="Relaunch"
+            tooltip={
+              busy
+                ? actionPending
+                : "Give the first mate a note and ask for a replacement worker in the same local copy."
+            }
             showLabel
             theme={theme}
             disabled={busy}
@@ -538,6 +605,11 @@ export function CrewCard({
           <IconButton
             icon="Power"
             label="End"
+            tooltip={
+              busy
+                ? actionPending
+                : "Confirm archiving this worker. Its workspace and local copy are kept."
+            }
             showLabel
             tone="danger"
             theme={theme}

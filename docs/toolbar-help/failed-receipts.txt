@@ -1,0 +1,34 @@
+Repeated obstacle; stopped as instructed.
+
+Branch: fm/firstmate-toolbar-help
+HEAD (changes remain uncommitted): 2c349548388703a32b8cb095a5f2ec2a2d04771d
+PR: none
+
+Reproduction:
+  node docs/toolbar-help/render.mjs
+  Synthetic host APIs, headless Edge, 1280px dark, real FleetSurface/Board/CrewCard.
+  Switch to Board, focus End, dismiss, hover End, move into its help, press Escape.
+
+First reproduction:
+  AssertionError: 1 !== 0 (one tooltip remains visible after Escape)
+  at checkHelp render.mjs:143
+  at the Board End verification render.mjs:285
+
+Second reproduction, after replacing the immediate assertion with an explicit hidden wait:
+  locator.waitFor: Timeout 5000ms exceeded
+  waiting for getByRole('tooltip') to be hidden
+  13 x locator resolved to visible <div id="«r1h»" role="tooltip">
+  at checkHelp render.mjs:144
+  at the Board End verification render.mjs:287
+
+Passed before the stop:
+  npm run typecheck
+  npm test: 36 files; 452 passed, 3 skipped
+  Fixture checks through List header/local/remote/disabled help at 1280px dark,
+  including PR10 controls, tab access to disabled remote Relaunch and geometry comparisons.
+  Representative 800px dark header-transfer and remote-relaunch screenshots inspected.
+
+Incomplete:
+  Full light/dark/narrow desktop interaction matrix, final screenshot set, self-review,
+  final full checks after the latest edits, PR and CI.
+  No plugin installation, reload, daemon/session operation, default-branch push or merge.

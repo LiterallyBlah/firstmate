@@ -15,7 +15,7 @@ import { Pressable, Text, View } from "react-native";
 
 import { toggleWatch, watchPath, type WatchSummary } from "../shared/fleet";
 import { errorText, watchAttention, watchStatusText, watchTone } from "./format";
-import { MONOSPACE } from "./ui";
+import { ControlTooltip, MONOSPACE } from "./ui";
 import { WatchEditor, WatchReports } from "./watch-editor";
 import { CURRENT_ROUTING } from "../shared/watch-routing";
 
@@ -28,29 +28,42 @@ export function WatchButton(props: Parameters<typeof WatchList>[0]) {
   const colors = props.theme.colors;
   const color =
     attention.count === 0 ? colors.foregroundMuted : attention.failing ? colors.statusDanger : colors.statusWarning;
+  const tooltip =
+    "View scheduled watches, their results and reports, and turn them on or off.";
   return (
     <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Watches${attention.count === 0 ? "" : `: ${attention.count} failing or off`}`}
-        accessibilityState={{ expanded: open }}
-        aria-expanded={open}
-        onPress={() => setOpen(true)}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 4,
-          padding: 7,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: colors.border,
-        }}
+      <ControlTooltip
+        theme={props.theme}
+        text={tooltip}
+        side="bottom"
+        align="end"
       >
-        <Icon name={WATCHES_ICON} size={14} color={color} />
-        {attention.count === 0 ? null : (
-          <Text style={{ color, fontSize: 11, fontWeight: "600" }}>{attention.count}</Text>
+        {(described) => (
+          <Pressable
+            {...described}
+            accessibilityRole="button"
+            accessibilityLabel={`Watches${attention.count === 0 ? "" : `: ${attention.count} failing or off`}`}
+            accessibilityHint={tooltip}
+            accessibilityState={{ expanded: open }}
+            aria-expanded={open}
+            onPress={() => setOpen(true)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              padding: 7,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Icon name={WATCHES_ICON} size={14} color={color} />
+            {attention.count === 0 ? null : (
+              <Text style={{ color, fontSize: 11, fontWeight: "600" }}>{attention.count}</Text>
+            )}
+          </Pressable>
         )}
-      </Pressable>
+      </ControlTooltip>
       <Modal title="Watches" open={open} onOpenChange={setOpen}>
         <Modal.Content>
           <WatchList
