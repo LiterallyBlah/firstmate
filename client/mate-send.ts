@@ -16,6 +16,7 @@ import { useSyncExternalStore } from "react";
 
 import type { CaptainMessage } from "../shared/attachments";
 import { askMate, askMateCommand, type MateCommand } from "../shared/fleet";
+import { requestUpdate, type UpdateStatus } from "../shared/update";
 import { errorText } from "./format";
 
 /** One task at a time; a second started while the first runs is refused. */
@@ -76,11 +77,13 @@ export interface MateSender {
   send: (message: CaptainMessage, onFailure?: () => void) => boolean;
   /** Bearings or Ahoy, worded on the daemon; refused and reported like `send`. */
   command: (command: MateCommand) => boolean;
+  update: (token: string, onResult: (result: { status: UpdateStatus; agentId: string | null }) => void, onFailure: () => void) => boolean;
 }
 
 export function useMateSender(mateId: string): MateSender {
   const ask = useRpc(askMate);
   const askCommand = useRpc(askMateCommand);
+  const update = useRpc(requestUpdate);
   const toast = useToast();
   const gate = gateFor(mateId);
   const sending = useSyncExternalStore(gate.subscribe, gate.busy);
@@ -99,5 +102,6 @@ export function useMateSender(mateId: string): MateSender {
     sending,
     send: (message, onFailure) => deliver(() => ask(message), onFailure),
     command: (command) => deliver(() => askCommand({ command, args: "" })),
+    update: (token, onResult, onFailure) => deliver(() => update({ token }).then(onResult), onFailure),
   };
 }

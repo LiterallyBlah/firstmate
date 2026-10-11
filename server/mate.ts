@@ -240,12 +240,14 @@ export function commandText(command: MateCommand, args: string): Promise<string>
  * Images go with the message; files are written to Paseo's uploads first and go as their paths —
  * see `shared/attachments.ts`. Nothing is written until the first mate is known to exist.
  */
-export async function askMate(paseo: PaseoApi, message: CaptainMessage): Promise<string> {
+export async function askMate(paseo: PaseoApi, message: CaptainMessage, beforeSend?: () => Promise<void>): Promise<string> {
   return oneAtATime(async () => {
     requireNoMigration(await readFirstmateConfig());
     const agentId = await requireMate(paseo);
     const images = message.images ?? [];
     const attachments = await Promise.all((message.files ?? []).map((file) => writeUpload(file)));
+    // Update requests claim their verified identity here, after the lifecycle guards and immediately before delivery.
+    await beforeSend?.();
     await sendWithoutInterrupting(paseo, agentId, message.text.trim(), {
       ...(images.length > 0 ? { images } : {}),
       ...(attachments.length > 0 ? { attachments } : {}),

@@ -213,6 +213,24 @@ describe("compactMate", () => {
 });
 
 describe("askMate", () => {
+  it("checks mate existence and migration before starting a guarded delivery", async () => {
+    const { paseo, sent } = fakePaseo({ "old-mate": { ...oldMate, status: "idle" } });
+    let prepared = 0;
+    const beforeSend = async () => { prepared++; };
+    await expect(askMate(paseo, { text: "install identified revision" }, beforeSend)).rejects.toThrow("no first mate");
+    expect(prepared).toBe(0);
+    await updateFirstmateConfig({ mateAgentId: "old-mate", migration: {
+      sourceId: "old-mate", sourceRevision: "revision", agentId: "replacement",
+      target: { provider: "codex", modeId: "", thinkingOptionId: "" }, prompt: "handover", handoffPath: "data/handoff.md",
+    } });
+    await expect(askMate(paseo, { text: "install identified revision" }, beforeSend)).rejects.toThrow("handover needs recovery");
+    expect(prepared).toBe(0);
+    expect(sent).toEqual([]);
+    await updateFirstmateConfig({ migration: null });
+    await askMate(paseo, { text: "install identified revision" }, beforeSend);
+    expect(prepared).toBe(1);
+    expect(sent).toHaveLength(1);
+  });
   it("sends the words alone, without interrupting, when nothing is attached", async () => {
     await updateFirstmateConfig({ mateAgentId: "old-mate" });
     const { paseo, sent } = fakePaseo({ "old-mate": { ...oldMate, status: "idle" } });
