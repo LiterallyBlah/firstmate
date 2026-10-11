@@ -1,0 +1,18 @@
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+0 !== 2
+
+    at file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/firstmate-item-tags/docs/item-tags/render.mjs:81:12
+
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(await input.isDisabled())
+
+    at file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/firstmate-item-tags/docs/item-tags/render.mjs:119:3
+
+Full-suite check after documenting optional tags in the charter:
+FAIL server/charter-file.test.ts > prepareHome and the charter > renders AGENTS.md from the captain's copy, placeholders filled and notes left out
+Expected fingerprint: 990e6fa8cd274482
+Received fingerprint: 9f1ee9f45b2ef4aa
+Tests: 1 failed, 460 passed, 3 skipped (464), 2026-10-11 13:27:30
+Diagnosis: the existing pinned charter fingerprint requires an explicit update for this intentional charter documentation change.

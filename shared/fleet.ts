@@ -88,6 +88,8 @@ export const BacklogItemSchema = z.object({
    * from `(host: …)` or `(on-host: …)`. Absent for work on this machine.
    */
   host: z.string().optional(),
+  /** Plain tags from optional `(tags: Frontend, Dashboard)` metadata. */
+  tags: z.array(z.string()).optional(),
   hold: z.string().nullable(),
   blockedBy: z.string().nullable(),
   since: z.string().nullable(),
@@ -138,6 +140,8 @@ export type RemoteCard = z.infer<typeof RemoteCardSchema>;
  */
 export const FleetCardSchema = z.object({
   key: z.string(),
+  /** Effective item tags, including the captain's durable additions/removals. */
+  tags: z.array(z.string()).optional(),
   column: ColumnIdSchema,
   taskId: z.string().nullable(),
   title: z.string(),

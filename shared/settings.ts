@@ -39,6 +39,8 @@ export const displaySettings = defineSettings({
     pollSeconds: z.number().int().min(1).max(120).default(5),
     /** The board's host tab: `all`, `local` (this machine), or a saved remote host's serverId. */
     hostTab: z.string().default("all"),
+    /** List and Board both require every selected plain item tag. */
+    tagFilter: z.array(z.string()).max(12).default([]),
     /** The board's spacing. A card at rest shows the same few things either way. */
     density: z.enum(BOARD_DENSITIES).default("comfortable"),
   }),
