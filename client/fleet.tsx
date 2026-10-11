@@ -55,7 +55,7 @@ import { HostHealthCard, useRemotes } from "./remotes";
 import { SuggestionStrip } from "./suggestions";
 import { TaskList } from "./task-list";
 import { ItemTagFilter } from "./item-tags";
-import { matchesTags } from "../shared/item-tags";
+import { matchesTags, tagScopeCards } from "../shared/item-tags";
 import { WatchButton } from "./watches";
 import { UpdateButton } from "./update-button";
 import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
@@ -69,6 +69,8 @@ let cachedTab: Tab = "chat";
 let cachedRightPane: "board" | "files" = "board";
 /** The crewmate shown in the board's place — card and transcript — by `watchKey`: its agent id, or `remote:<serverId>:<id>`. */
 let cachedWatching: string | null = null;
+/** List's completed-task choice survives view switches and surface remounts. */
+let cachedShowDone = false;
 
 /**
  * A surface is given no way to open a settings screen, so the entry lends it
@@ -121,6 +123,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   const [tab, setTabState] = useState<Tab>(cachedTab);
   const [rightPane, setRightPaneState] = useState(cachedRightPane);
   const [watching, setWatchingState] = useState(cachedWatching);
+  const [showDone, setShowDone] = useState(cachedShowDone);
   const [enabling, setEnabling] = useState(false);
   const [charterBusy, setCharterBusy] = useState(false);
   /** A file the Files view should open; not kept across a remount, or it would open again on return. */
@@ -660,6 +663,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   const tabs = hostTabs(data.cards, remoteHosts);
   const tabHost = remoteHosts.find((host) => host.serverId === hostTab) ?? null;
   const hostCards = data.cards.filter((card) => onTab(card, hostTab));
+  const tagCards = tagScopeCards(hostCards, values.crewView === "list" ? showDone : !values.collapsedColumns.includes("done"));
   const filteredCards = hostCards.filter((card) => matchesTags(card, values.tagFilter));
   const board = (
     <View style={{ flex: 1, minHeight: 0 }}>
@@ -680,7 +684,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         onPick={suggest}
         onRemove={dismissSuggestion}
       />
-      <ItemTagFilter cards={hostCards} selected={values.tagFilter} theme={theme} onChange={(tagFilter) => save({ tagFilter })} />
+      <ItemTagFilter cards={tagCards} selected={values.tagFilter} theme={theme} onChange={(tagFilter) => save({ tagFilter })} />
       {hostCards.length > 0 && filteredCards.length === 0 ? (
         <Text style={{ color: theme.colors.foregroundMuted, padding: 12 }}>No items match the selected tags on this host.</Text>
       ) : values.crewView === "list" ? (
@@ -691,6 +695,11 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           density={values.density}
           onWatch={setWatching}
           onChanged={refresh}
+          showDone={showDone}
+          onShowDone={(next) => {
+            cachedShowDone = next;
+            setShowDone(next);
+          }}
         />
       ) : (
         <Board

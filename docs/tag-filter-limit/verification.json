@@ -1,0 +1,131 @@
+{
+  "baseline": "611e9cd0d5f4fb751dc36b5b8451c78b9ed1bd27",
+  "results": [
+    {
+      "name": "before-list-desktop-dark",
+      "choices": 19,
+      "rows": 3
+    },
+    {
+      "name": "list-desktop-light",
+      "height": 70,
+      "rows": 2,
+      "visible": 16,
+      "total": 17,
+      "hiddenFocusable": false,
+      "checks": "disclosure keyboard, reach last tag, hidden focus, saved filter reload, individual removal, match all, host intersection, completion scope, selected zero counts, clear, few tags"
+    },
+    {
+      "name": "board-desktop-light",
+      "height": 70,
+      "rows": 2,
+      "visible": 14,
+      "total": 19,
+      "hiddenFocusable": false,
+      "checks": "disclosure keyboard, reach last tag, hidden focus, saved filter reload, individual removal, match all, host intersection, completion scope, selected zero counts, clear, few tags"
+    },
+    {
+      "name": "list-desktop-dark",
+      "height": 70,
+      "rows": 2,
+      "visible": 16,
+      "total": 17,
+      "hiddenFocusable": false,
+      "checks": "disclosure keyboard, reach last tag, hidden focus, saved filter reload, individual removal, match all, host intersection, completion scope, selected zero counts, clear, few tags"
+    },
+    {
+      "name": "board-desktop-dark",
+      "height": 70,
+      "rows": 2,
+      "visible": 14,
+      "total": 19,
+      "hiddenFocusable": false,
+      "checks": "disclosure keyboard, reach last tag, hidden focus, saved filter reload, individual removal, match all, host intersection, completion scope, selected zero counts, clear, few tags"
+    },
+    {
+      "name": "list-narrow-light",
+      "height": 70,
+      "rows": 2,
+      "visible": 6,
+      "total": 17,
+      "hiddenFocusable": false,
+      "checks": "disclosure keyboard, reach last tag, hidden focus, saved filter reload, individual removal, match all, host intersection, completion scope, selected zero counts, clear, few tags"
+    },
+    {
+      "name": "board-narrow-light",
+      "height": 70,
+      "rows": 2,
+      "visible": 6,
+      "total": 19,
+      "hiddenFocusable": false,
+      "checks": "disclosure keyboard, reach last tag, hidden focus, saved filter reload, individual removal, match all, host intersection, completion scope, selected zero counts, clear, few tags"
+    },
+    {
+      "name": "list-narrow-dark",
+      "height": 70,
+      "rows": 2,
+      "visible": 6,
+      "total": 17,
+      "hiddenFocusable": false,
+      "checks": "disclosure keyboard, reach last tag, hidden focus, saved filter reload, individual removal, match all, host intersection, completion scope, selected zero counts, clear, few tags"
+    },
+    {
+      "name": "board-narrow-dark",
+      "height": 70,
+      "rows": 2,
+      "visible": 6,
+      "total": 19,
+      "hiddenFocusable": false,
+      "checks": "disclosure keyboard, reach last tag, hidden focus, saved filter reload, individual removal, match all, host intersection, completion scope, selected zero counts, clear, few tags"
+    },
+    {
+      "name": "list-resized-light",
+      "widths": [
+        3600,
+        1100,
+        800,
+        390,
+        1440
+      ],
+      "focusTransferred": true,
+      "selectedClearVisible": true
+    },
+    {
+      "name": "board-resized-light",
+      "widths": [
+        3600,
+        1100,
+        800,
+        390,
+        1440
+      ],
+      "focusTransferred": true,
+      "selectedClearVisible": true
+    },
+    {
+      "name": "list-resized-dark",
+      "widths": [
+        3600,
+        1100,
+        800,
+        390,
+        1440
+      ],
+      "focusTransferred": true,
+      "selectedClearVisible": true
+    },
+    {
+      "name": "board-resized-dark",
+      "widths": [
+        3600,
+        1100,
+        800,
+        390,
+        1440
+      ],
+      "focusTransferred": true,
+      "selectedClearVisible": true
+    }
+  ],
+  "errors": []
+}

@@ -86,7 +86,9 @@ try {
         await page.goto(`${url}/?theme=${theme}&view=${view}`);
         await crew(page, width);
         await page
-          .getByRole("checkbox", { name: "Filter tag Frontend, 3 items" })
+          .getByRole("checkbox", {
+            name: `Filter tag Frontend, ${view === "list" ? 2 : 3} items`,
+          })
           .waitFor();
         await page.screenshot({ path: resolve(here, `${name}.png`) });
         if (view === "list")
@@ -151,7 +153,7 @@ try {
         await crew(page, width);
         await page
           .getByRole("checkbox", {
-            name: "Filter tag Frontend, 3 items",
+            name: `Filter tag Frontend, ${view === "list" ? 2 : 3} items`,
             checked: true,
           })
           .waitFor();
