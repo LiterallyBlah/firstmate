@@ -167,6 +167,69 @@ try {
         .getByRole("button", { name: "FirstMate is current", exact: true })
         .waitFor();
       assert.equal(await page.evaluate(() => window.fixtureMessages ?? 0), 0);
+      // Verify the merged item-tag settings/filter contract alongside the update sender.
+      await page.goto(`${url}/?theme=${theme}&state=available`);
+      await page
+        .getByRole("button", {
+          name: "Update FirstMate to bbbbbbbb",
+          exact: true,
+        })
+        .waitFor();
+      if (width === 390)
+        await page.getByRole("tab", { name: "Crew (45)", exact: true }).click();
+      const titles = await page.evaluate(() => window.fixtureTagTitles);
+      await page.getByText(titles[2], { exact: true }).waitFor();
+      const tag = page.getByRole("checkbox", {
+        name: "Filter tag UI check, 2 items",
+        exact: true,
+      });
+      await tag.click();
+      assert.equal(await tag.getAttribute("aria-checked"), "true");
+      await page
+        .getByText(titles[2], { exact: true })
+        .waitFor({ state: "hidden" });
+      for (const view of ["List", "Board"]) {
+        await page.getByRole("tab", { name: view, exact: true }).click();
+        assert.equal(await tag.getAttribute("aria-checked"), "true");
+        await page.getByText(titles[0], { exact: true }).waitFor();
+        await page
+          .getByText(titles[2], { exact: true })
+          .waitFor({ state: "hidden" });
+        await page.keyboard.press("Escape");
+        const name = `${width === 390 ? "narrow" : "desktop"}-${theme}-tags-${view.toLowerCase()}`;
+        await page.screenshot({ path: resolve(here, `${name}.png`) });
+        results.push(name);
+      }
+      await page.waitForFunction(() =>
+        window.fixtureSaves?.some((save) =>
+          save.tagFilter?.includes("UI check"),
+        ),
+      );
+      // The focused Board tab deliberately keeps its explanation open. Dismiss
+      // it through the existing keyboard behavior before reaching the next row.
+      await page.keyboard.press("Escape");
+      await page
+        .getByRole("button", {
+          name: "Update FirstMate to bbbbbbbb",
+          exact: true,
+        })
+        .click();
+      await page.waitForFunction(() => Boolean(window.releaseRequest));
+      await page.evaluate(() => window.releaseRequest());
+      await page
+        .getByRole("button", {
+          name: "FirstMate update requested",
+          exact: true,
+        })
+        .waitFor();
+      assert.equal(await page.evaluate(() => window.fixtureMessages), 1);
+      if (width === 390)
+        assert.equal(
+          await page
+            .getByRole("tab", { name: "First mate", exact: true })
+            .getAttribute("aria-selected"),
+          "true",
+        );
       await page.close();
     }
   assert.deepEqual(errors, []);
@@ -178,13 +241,14 @@ try {
     `Verified ${results.length} labelled screenshots, hover/focus help, duplicate/shared-gate and stale/current no-send behavior.`,
   );
 } catch (error) {
+  const failure = `failed-${Date.now()}`;
   for (const [i, page] of browser
     .contexts()
     .flatMap((c) => c.pages())
     .entries())
-    await page.screenshot({ path: resolve(here, `failed-${i}.png`) });
+    await page.screenshot({ path: resolve(here, `${failure}-${i}.png`) });
   await writeFile(
-    resolve(here, "failed-render.txt"),
+    resolve(here, `${failure}.txt`),
     `${String(error.stack ?? error)}\nPage errors: ${JSON.stringify(errors)}`,
   );
   throw error;

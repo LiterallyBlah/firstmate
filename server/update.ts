@@ -94,8 +94,8 @@ export class UpdateService {
     this.available = {
       token,
       text: await message(TEMPLATES.updateRequest, {
-          source: JSON.stringify(running.description),
-          identity: running.identity,
+        source: JSON.stringify(running.description),
+        identity: running.identity,
         running: running.revision,
         latest: label,
         immutable: latest.immutable,
