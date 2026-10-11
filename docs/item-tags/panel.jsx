@@ -78,6 +78,35 @@ fleet.cards = [
   ]),
   task(local, "untagged", "An untagged task", "idle", []),
 ];
+// Optional overflow fixture: 19 realistic choices, including two Done-only tags.
+if (params.get("tags") === "19") {
+  fleet.cards[0].tags = [
+    "Accessibility",
+    "Agent lifecycle",
+    "Backlog",
+    "Build tooling",
+    "Captain approval",
+    "Charter",
+    "Context controls",
+    "Dashboard",
+    "Dependencies",
+    "Documentation",
+  ];
+  fleet.cards[1].tags = [
+    "FirstMate",
+    "Frontend",
+    "Permissions",
+    "Remote hosts",
+  ];
+  fleet.cards[2].tags = [
+    "Test coverage",
+    "Tooltips",
+    "Windows support",
+    "Dashboard",
+  ];
+  fleet.cards[3].tags = ["Archived release", "Legacy migration", "Dashboard"];
+  for (const card of fleet.cards) card.backlog.tags = [...card.tags];
+}
 fleet.suggestions = [];
 const savedTags = JSON.parse(localStorage.getItem("fixture-item-tags") ?? "{}");
 for (const card of fleet.cards)

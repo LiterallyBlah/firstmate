@@ -1,6 +1,6 @@
 /** A single scrolling list, grouped by what needs attention rather than saved column order. */
 import type { PluginTheme } from "@getpaseo/plugin";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type { FleetCard } from "../shared/fleet";
@@ -9,8 +9,6 @@ import { CrewCard } from "./card";
 import { doneCards, LIST_GROUPS, listGroups } from "./format";
 import { watchKey } from "./host-tabs";
 
-let doneExpanded = false;
-
 export function TaskList({
   cards,
   theme,
@@ -18,6 +16,8 @@ export function TaskList({
   density,
   onWatch,
   onChanged,
+  showDone,
+  onShowDone,
 }: {
   cards: readonly FleetCard[];
   theme: PluginTheme;
@@ -25,9 +25,10 @@ export function TaskList({
   density: BoardDensity;
   onWatch: (key: string) => void;
   onChanged: () => void;
+  showDone: boolean;
+  onShowDone: (show: boolean) => void;
 }) {
   const groups = useMemo(() => listGroups(cards), [cards]);
-  const [showDone, setShowDone] = useState(doneExpanded);
   const colors = theme.colors;
   const heading = {
     color: colors.foregroundMuted,
@@ -54,10 +55,7 @@ export function TaskList({
                 accessibilityLabel={`${entries.length} done. ${showDone ? "Hide" : "Show"} completed tasks`}
                 accessibilityState={{ expanded: showDone }}
                 aria-expanded={showDone}
-                onPress={() => {
-                  doneExpanded = !showDone;
-                  setShowDone(!showDone);
-                }}
+                onPress={() => onShowDone(!showDone)}
                 style={{ paddingVertical: 8 }}
               >
                 <Text style={heading}>

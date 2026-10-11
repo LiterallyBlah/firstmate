@@ -17,6 +17,7 @@ import {
   ItemTagSchema,
   matchesTags,
   tagChoices,
+  tagScopeCards,
 } from "../shared/item-tags";
 import { parseBacklog } from "./backlog";
 import { buildCards } from "./fleet";
@@ -165,6 +166,29 @@ describe("plain item tags", () => {
       { tag: "Dashboard", count: 1 },
       { tag: "Frontend", count: 2 },
     ]);
+  });
+
+  it("omits Done-only choices and Done counts until completed work is shown, without losing saved selections or tags", () => {
+    const active = { ...backlog(), tags: ["Frontend", "Dashboard"] };
+    const ready = { ...backlog(), column: "ready" as const, tags: ["Frontend"] };
+    const done = { ...backlog("Done"), tags: ["Frontend", "Archived release"] };
+    const cards = [active, ready, done];
+    expect(tagChoices(tagScopeCards(cards, false))).toEqual([
+      { tag: "Dashboard", count: 1 },
+      { tag: "Frontend", count: 2 },
+    ]);
+    expect(tagChoices(tagScopeCards(cards, true))).toEqual([
+      { tag: "Archived release", count: 1 },
+      { tag: "Dashboard", count: 1 },
+      { tag: "Frontend", count: 3 },
+    ]);
+    expect(tagChoices(tagScopeCards(cards, false), ["ARCHIVED release"])).toEqual([
+      { tag: "ARCHIVED release", count: 0 },
+      { tag: "Dashboard", count: 1 },
+      { tag: "Frontend", count: 2 },
+    ]);
+    expect(cards.filter((card) => matchesTags(card, ["Frontend", "Archived release"]))).toEqual([done]);
+    expect(done.tags).toEqual(["Frontend", "Archived release"]);
   });
 
   it("rejects stale/ambiguous edit targets but accepts a landed item with its former worker still alive", () => {
