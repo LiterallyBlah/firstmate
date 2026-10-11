@@ -39,7 +39,7 @@ export function updateControl(status: UpdateStatus, blocked: string | null) {
         : status.state === "current"
           ? "CircleCheck"
           : status.state === "unavailable"
-            ? "CircleHelp"
+            ? "Info"
             : status.requested
               ? "Clock"
               : "Download",
