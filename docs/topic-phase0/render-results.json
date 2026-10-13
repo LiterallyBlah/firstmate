@@ -1,0 +1,26 @@
+[
+  {
+    "width": 1440,
+    "theme": "dark",
+    "opensCorrectGuest": true,
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "opensCorrectGuest": true,
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "opensCorrectGuest": true,
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "opensCorrectGuest": true,
+    "overflow": false
+  }
+]

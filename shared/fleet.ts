@@ -256,6 +256,8 @@ export const FleetSchema = z.object({
    * Compared as real paths, since `/tmp` is `/private/tmp` on a Mac.
    */
   mateInHome: z.boolean(),
+  /** Other live sessions in the home; sharing a directory does not confer the role. */
+  homeGuests: z.array(AgentSummarySchema).optional(),
   cards: z.array(FleetCardSchema),
   projects: z.array(ProjectSchema),
   /** What the captain might do next, most likely first; empty hides the suggestion strip. */
@@ -304,6 +306,11 @@ export const FirstmateConfigSchema = z.object({
   home: z.string().default(""),
   /** The Paseo agent that is the first mate; empty until one is launched or adopted. */
   mateAgentId: z.string().default(""),
+  /** Reserved before creation; a send of uncertain outcome is never replayed automatically. */
+  mateLaunch: z.object({
+    agentId: z.string(), home: z.string(), target: MateTargetSchema,
+    prompt: z.string(), state: z.enum(["prepared", "sending"]),
+  }).nullable().default(null),
   /** `provider/model` the first mate is launched with. */
   mateProvider: z.string().default(""),
   mateModeId: z.string().default(""),

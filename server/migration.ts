@@ -128,6 +128,7 @@ async function saveHandoff(
 export function migrateMate(paseo: PaseoApi, input: { sourceId: string; target?: MateTarget | undefined }) {
   return oneAtATime(async () => {
     let config = await readFirstmateConfig();
+    if (config.mateLaunch !== null) throw new Error("Resolve the reserved launch before migrating the first mate.");
     const recovering = config.migration !== null;
     if (config.migration === null) {
       if (config.mateAgentId !== input.sourceId) throw new Error("The first mate changed. Refresh before migrating.");

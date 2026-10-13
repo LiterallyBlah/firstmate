@@ -64,6 +64,7 @@ export const TEMPLATES = {
   inspectorMcp: "tools/inspector-mcp.mjs",
   boardReviewBrief: "messages/board-review-brief.md",
   watchHelper: "tools/watch.mjs",
+  roleHelper: "tools/role.mjs",
 } as const;
 
 export type TemplatePath = (typeof TEMPLATES)[keyof typeof TEMPLATES];

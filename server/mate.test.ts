@@ -32,13 +32,16 @@ interface Snapshot {
   thinkingOptionId?: string | null;
   archivedAt: string | null;
   labels?: Record<string, string>;
+  workspaceId?: string;
+  cwd?: string;
+  pendingPermissions?: unknown[];
 }
 
 /** Just enough of Paseo for the first mate's lifecycle, recording what was asked of it in order. */
 function fakePaseo(agents: Record<string, Snapshot>) {
   const calls: string[] = [];
   const sent: Array<{ agentId: string; text: string; options?: Record<string, unknown> | undefined }> = [];
-  const created: Array<{ config: Record<string, unknown>; title?: string; labels?: Record<string, string>; prompt?: string }> = [];
+  const created: Array<{ agentId: string; idempotencyKey: string; config: Record<string, unknown>; title?: string; labels?: Record<string, string>; prompt?: string }> = [];
   const paseo = {
     agents: {
       ref(id: string) {
@@ -54,6 +57,9 @@ function fakePaseo(agents: Record<string, Snapshot>) {
             if (agent !== undefined) agent.archivedAt = "2026-09-23T12:00:00.000Z";
           },
           async send(text: string, options?: Record<string, unknown>) {
+            if (text !== "/compact" && options?.messageId === `firstmate-opening-${id}`) {
+              expect(await readFirstmateConfig()).toMatchObject({ mateAgentId: id, mateLaunch: { agentId: id, state: "sending" } });
+            }
             calls.push(`send ${id} ${text}`);
             sent.push({ agentId: id, text, options });
           },
@@ -73,8 +79,10 @@ function fakePaseo(agents: Record<string, Snapshot>) {
             async create(input: (typeof created)[number]) {
               calls.push("create");
               created.push(input);
-              agents["new-mate"] = { ...oldMate, id: "new-mate", status: "idle" };
-              return { id: "new-mate" };
+              expect(input.prompt).toBeUndefined();
+              expect(await readFirstmateConfig()).toMatchObject({ mateAgentId: "", mateLaunch: { agentId: input.agentId, state: "prepared" } });
+              agents[input.agentId] = { ...oldMate, id: input.agentId, status: "idle", workspaceId: "wks_home", cwd, pendingPermissions: [] };
+              return { id: input.agentId };
             },
           },
         };
@@ -94,8 +102,8 @@ const oldMate: Snapshot = {
   archivedAt: null,
 };
 
-it("refuses to adopt an inspection worker as a supervisor", async () => {
-  const { paseo, calls } = fakePaseo({ inspector: { ...oldMate, id: "inspector", labels: { "firstmate.role": "watch-inspector" } } });
+it.each(["watch-inspector", "topic-adviser"])("refuses to adopt %s as a supervisor", async role => {
+  const { paseo, calls } = fakePaseo({ inspector: { ...oldMate, id: "inspector", labels: { "firstmate.role": role } } });
   await expect(adoptMate(paseo, "inspector")).rejects.toThrow("cannot take the first-mate role");
   expect(calls).toEqual([]); expect((await readFirstmateConfig()).mateAgentId).toBe("");
 });
@@ -103,20 +111,22 @@ it("refuses to adopt an inspection worker as a supervisor", async () => {
 describe("restartMate", () => {
   it("archives the old first mate before starting one set up the same way", async () => {
     await updateFirstmateConfig({ mateAgentId: "old-mate", mateProvider: "claude/claude-sonnet-5", mateModeId: "" });
-    const { paseo, calls, created } = fakePaseo({ "old-mate": { ...oldMate, status: "idle" } });
+    const { paseo, calls, created, sent } = fakePaseo({ "old-mate": { ...oldMate, status: "idle" } });
 
-    await expect(restartMate(paseo)).resolves.toEqual({ agentId: "new-mate", workspaceId: "wks_home" });
+    const result = await restartMate(paseo);
+    expect(result).toEqual({ agentId: created[0]!.agentId, workspaceId: "wks_home" });
 
     expect(calls[0]).toBe("archive old-mate");
-    expect(calls.at(-1)).toBe("create");
+    expect(calls.at(-1)).toMatch(/^send /);
     // The live agent's setup wins over the config's: it may have been changed in its own tab.
     expect(created[0]).toMatchObject({
       config: { provider: "claude/claude-opus-5-5", modeId: "bypassPermissions", thinkingOptionId: "high" },
       labels: { [CREW_LABELS.role]: CREW_LABELS.mateRole },
-      prompt: `${withoutNotes(await readTemplate(TEMPLATES.opening))}\n\n${await restartNote()}`,
     });
+    expect(sent[0]!.text).toBe(`${withoutNotes(await readTemplate(TEMPLATES.opening))}\n\n${await restartNote()}`);
     expect(await readFirstmateConfig()).toMatchObject({
-      mateAgentId: "new-mate",
+      mateAgentId: result.agentId,
+      mateLaunch: null,
       mateProvider: "claude/claude-opus-5-5",
       mateModeId: "bypassPermissions",
     });
@@ -149,7 +159,7 @@ describe("changing the first mate", () => {
     expect(results.map((result) => result.status)).toEqual(["fulfilled", "rejected"]);
     expect(String((results[1] as PromiseRejectedResult).reason)).toMatch(/already aboard/);
     expect(created).toHaveLength(1);
-    expect((await readFirstmateConfig()).mateAgentId).toBe("new-mate");
+    expect((await readFirstmateConfig()).mateAgentId).toBe(created[0]!.agentId);
   });
 
   it("applies a release that lands during a restart after it, not before", async () => {
@@ -166,6 +176,58 @@ describe("changing the first mate", () => {
   });
 });
 
+describe("reserved launch recovery", () => {
+  it("retries a lost creation reply with the same durable ID and never prompts before identity", async () => {
+    const state = fakePaseo({});
+    const open = state.paseo.workspaces.open.bind(state.paseo.workspaces);
+    let first = true;
+    state.paseo.workspaces.open = async (...args) => {
+      const workspace = await open(...args); const create = workspace.agents.create;
+      workspace.agents.create = async input => {
+        const agent = await create(input);
+        if (first) { first = false; throw new Error("creation reply lost"); }
+        return agent;
+      };
+      return workspace;
+    };
+    await expect(launchMate(state.paseo, { provider: "claude", modeId: "plan" })).rejects.toThrow("creation reply lost");
+    const reserved = (await readFirstmateConfig()).mateLaunch!;
+    expect(state.sent).toEqual([]);
+    const result = await launchMate(state.paseo, { provider: "different", modeId: "" });
+    expect(result.agentId).toBe(reserved.agentId);
+    expect(state.created.map(input => input.idempotencyKey)).toEqual([reserved.agentId, reserved.agentId]);
+    expect(state.created[1]!.config.provider).toBe("claude");
+    expect(state.sent).toHaveLength(1);
+  });
+
+  it("keeps an uncertain opening after a lost send reply and refuses automatic replay", async () => {
+    const state = fakePaseo({}); const ref = state.paseo.agents.ref.bind(state.paseo.agents);
+    state.paseo.agents.ref = id => {
+      const handle = ref(id); const send = handle.send;
+      handle.send = async (...args) => { await send(...args); throw new Error("send reply lost"); };
+      return handle;
+    };
+    await expect(launchMate(state.paseo, { provider: "claude", modeId: "" })).rejects.toThrow("send reply lost");
+    const pending = await readFirstmateConfig();
+    expect(pending.mateLaunch).toMatchObject({ agentId: pending.mateAgentId, state: "sending" });
+    await expect(launchMate(state.paseo, { provider: "claude", modeId: "" })).rejects.toThrow("Opening delivery is uncertain");
+    await expect(askMate(state.paseo, { text: "another prompt" })).rejects.toThrow("launch needs recovery");
+    expect(state.sent).toHaveLength(1);
+    await releaseMate(); expect(await readFirstmateConfig()).toMatchObject({ mateAgentId: "", mateLaunch: null });
+  });
+
+  it("refuses an unexpected creation identity before granting authority or sending", async () => {
+    const state = fakePaseo({}); const open = state.paseo.workspaces.open.bind(state.paseo.workspaces);
+    state.paseo.workspaces.open = async (...args) => {
+      const workspace = await open(...args); const create = workspace.agents.create;
+      workspace.agents.create = async input => ({ ...await create(input), id: "unexpected" });
+      return workspace;
+    };
+    await expect(launchMate(state.paseo, { provider: "claude", modeId: "" })).rejects.toThrow("different identity");
+    expect(state.sent).toEqual([]); expect((await readFirstmateConfig()).mateAgentId).toBe("");
+  });
+});
+
 /** Writes the captain's own `data/opening.md` into the home the next launch uses. */
 async function writeOpening(markdown: string): Promise<void> {
   const data = join(resolveHome(await readFirstmateConfig()), "data");
@@ -176,17 +238,17 @@ async function writeOpening(markdown: string): Promise<void> {
 describe("the opening", () => {
   it("launches with the captain's opening, leaving out its notes", async () => {
     await writeOpening("<!-- A note to myself. -->\n\nAhoy, first mate. Read AGENTS.md and take the helm.\n");
-    const { paseo, created } = fakePaseo({});
+    const { paseo, sent } = fakePaseo({});
     await launchMate(paseo, { provider: "claude/claude-sonnet-5", modeId: "" });
-    expect(created[0]?.prompt).toBe("Ahoy, first mate. Read AGENTS.md and take the helm.");
+    expect(sent[0]?.text).toBe("Ahoy, first mate. Read AGENTS.md and take the helm.");
   });
 
   it("restarts with the captain's opening and then the note about the first mate before", async () => {
     await writeOpening("Olá, imediato. Leia o AGENTS.md e assuma o leme.");
     await updateFirstmateConfig({ mateAgentId: "old-mate" });
-    const { paseo, created } = fakePaseo({ "old-mate": { ...oldMate, status: "idle" } });
+    const { paseo, sent } = fakePaseo({ "old-mate": { ...oldMate, status: "idle" } });
     await restartMate(paseo);
-    expect(created[0]?.prompt).toBe(`Olá, imediato. Leia o AGENTS.md e assuma o leme.\n\n${await restartNote()}`);
+    expect(sent[0]?.text).toBe(`Olá, imediato. Leia o AGENTS.md e assuma o leme.\n\n${await restartNote()}`);
   });
 });
 

@@ -100,9 +100,11 @@ describe("isolated inspection lifecycle", () => {
     await began; const pending = f.runner.reconcile(); release(); await gate; await pending;
     expect(f.sent.at(-1)?.id).toBe("replacement");
   });
-  it("does not launch during migration, and queues results without sending during recovery", async () => {
+  it.each(["migration", "launch"])("does not launch during %s, and queues results without sending during recovery", async state => {
     const f = await fixture(); await f.runner.start(f.watch.name, f.watch.prompt, f.watch); const id = f.created[0].agentId; f.finish(id, "actionable", [f.finding]);
-    f.config = { ...f.config, migration: { sourceId: "mate", sourceRevision: "now", agentId: crypto.randomUUID(), target: { provider: "other/model", modeId: "", thinkingOptionId: "" }, prompt: "handoff", handoffPath: "data/handoff.md" } };
+    f.config = state === "migration"
+      ? { ...f.config, migration: { sourceId: "mate", sourceRevision: "now", agentId: crypto.randomUUID(), target: { provider: "other/model", modeId: "", thinkingOptionId: "" }, prompt: "handoff", handoffPath: "data/handoff.md" } }
+      : { ...f.config, mateLaunch: { agentId: "mate", home: f.config.home, target: { provider: "codex/model", modeId: "", thinkingOptionId: "" }, prompt: "opening", state: "sending" } };
     expect(await f.runner.start("second", "Inspect", f.watch)).toBe(false); await f.runner.reconcile();
     expect((await f.runner.history(f.watch.name)).runs[0]?.delivery).toBe("pending"); expect(f.sent.filter((entry) => entry.id === "mate")).toEqual([]);
   });
