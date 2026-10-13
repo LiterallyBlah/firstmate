@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import type { CaptainMessage } from "../shared/attachments";
 import { CREW_LABELS, type AgentSummary, type FirstmateConfig, type MateCommand } from "../shared/fleet";
 import { readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./config";
-import { fetchLiveAgent, listAgents, resolveMate, summarizeAgent } from "./fleet";
+import { fetchLiveAgent, listAgents, resolveMate, sameDirectory, summarizeAgent } from "./fleet";
 import { prepareHome, readOpening } from "./home";
 import { TEMPLATES, message } from "./templates";
 import { nameHomeOnce } from "./home-name";
@@ -34,7 +34,7 @@ const NO_MATE = "There is no first mate yet. Open the FirstMate board and launch
 /**
  * The change of first mate in progress, if any — a launch, restart, adoption or
  * release. The "already aboard" check below reads the config, which is only
- * written once the agent exists, so two launches that overlap — a double press,
+ * activated once the unprompted agent exists, so two launches that overlap — a double press,
  * the desktop and a phone — would both pass it, and an adoption or release
  * landing mid-launch would be overwritten by it. Every client of this daemon reaches the same plugin process, so
  * holding the change here is enough to make the second one wait for the first
@@ -46,6 +46,7 @@ export function oneAtATime<T>(change: () => Promise<T>): Promise<T> {
 
 export function requireNoMigration(config: FirstmateConfig): void {
   if (config.migration !== null) throw new Error("A first-mate handover needs recovery. Use Recover migration on the board.");
+  if (config.mateLaunch !== null) throw new Error("A first-mate launch needs recovery. Retry Launch if preparation failed; if opening delivery is uncertain, inspect the reserved session in Paseo and release the role before another launch.");
 }
 
 /** Refused when a first mate is already aboard, so a second launch cannot start a second one. */
@@ -55,6 +56,9 @@ export async function launchMate(
 ): Promise<{ agentId: string; workspaceId: string | null }> {
   return oneAtATime(async () => {
     const config = await readFirstmateConfig();
+    if (config.mateLaunch !== null && config.migration === null) {
+      return startMate(paseo, config, config.mateLaunch.target, "launch");
+    }
     requireNoMigration(config);
     const current = await resolveMate(paseo, config);
     if (current.agent !== null) {
@@ -131,21 +135,40 @@ async function startMate(
   const opening = await readOpening(home);
   const prompt = start === "restart" ? `${opening}\n\n${await restartNote()}` : opening;
 
+  const reservation = config.mateLaunch ?? {
+    agentId: randomUUID(), home, target: setup, prompt, state: "prepared" as const,
+  };
+  if (reservation.home !== home) throw new Error("The reserved launch belongs to a different home.");
+  if (reservation.state === "sending") throw new Error(`Opening delivery is uncertain for ${reservation.agentId}. Inspect that session in Paseo; release the role before another launch. The opening will not be resent.`);
+  // Persist the reservation before any creation. A lost create reply retries the same identity.
+  await updateFirstmateConfig({ mateAgentId: "", mateLaunch: reservation });
+
   const workspace = await paseo.workspaces.open(home);
   nameHomeOnce(paseo, workspace.id, home);
-  const modeId = setup.modeId.trim();
-  const thinkingOptionId = setup.thinkingOptionId.trim();
+  const modeId = reservation.target.modeId.trim();
+  const thinkingOptionId = reservation.target.thinkingOptionId.trim();
   const agent = await workspace.agents.create({
+    agentId: reservation.agentId,
+    idempotencyKey: reservation.agentId,
     config: {
-      provider: setup.provider,
+      provider: reservation.target.provider,
       ...(modeId === "" ? {} : { modeId }),
       ...(thinkingOptionId === "" ? {} : { thinkingOptionId }),
     },
     title: MATE_TITLE,
     labels: { [CREW_LABELS.role]: CREW_LABELS.mateRole },
-    prompt,
+    // No prompt until config durably identifies this session as the mate.
   });
-  await updateFirstmateConfig({ mateAgentId: agent.id, mateProvider: setup.provider, mateModeId: modeId });
+  if (agent.id !== reservation.agentId) throw new Error("Paseo returned a different identity for the reserved launch.");
+  const prepared = await fetchLiveAgent(paseo, agent.id);
+  if (prepared === null || prepared.workspaceId !== workspace.id || !(await sameDirectory(prepared.cwd, home)) || prepared.labels?.["paseo.parent-agent-id"] ||
+      isMidTurn(prepared) || prepared.pendingPermissions.length > 0) {
+    throw new Error("The reserved first mate is missing, busy, or outside its independent home workspace. No opening was sent.");
+  }
+  await updateFirstmateConfig({ mateAgentId: agent.id, mateProvider: reservation.target.provider, mateModeId: modeId,
+    mateLaunch: { ...reservation, state: "sending" } });
+  await sendWithoutInterrupting(paseo, agent.id, reservation.prompt, { messageId: `firstmate-opening-${agent.id}` });
+  await updateFirstmateConfig({ mateLaunch: null });
   return { agentId: agent.id, workspaceId: workspace.id };
 }
 
@@ -158,7 +181,7 @@ export async function adoptMate(paseo: PaseoApi, agentId: string): Promise<First
   return oneAtATime(async () => {
     const candidate = await fetchLiveAgent(paseo, agentId);
     if (candidate === null) throw new Error(`Paseo has no live agent ${agentId}.`);
-    if (candidate.labels?.["firstmate.role"] === "watch-inspector") throw new Error("Watch inspectors cannot take the first-mate role.");
+    if (["watch-inspector", "topic-adviser"].includes(candidate.labels?.["firstmate.role"] ?? "")) throw new Error("Inspectors and topic advisers cannot take the first-mate role.");
     const config = await readFirstmateConfig();
     requireNoMigration(config);
     // Checked here rather than trusted from the launch panel: a launch may have finished while this waited.
@@ -175,8 +198,9 @@ export async function adoptMate(paseo: PaseoApi, agentId: string): Promise<First
 
 export async function releaseMate(): Promise<FirstmateConfig> {
   return oneAtATime(async () => {
-    requireNoMigration(await readFirstmateConfig());
-    return updateFirstmateConfig({ mateAgentId: "" });
+    const config = await readFirstmateConfig();
+    requireNoMigration({ ...config, mateLaunch: null });
+    return updateFirstmateConfig({ mateAgentId: "", mateLaunch: null });
   });
 }
 
@@ -184,7 +208,7 @@ export async function releaseMate(): Promise<FirstmateConfig> {
 export async function listCandidates(paseo: PaseoApi): Promise<{ home: string; agents: AgentSummary[] }> {
   const home = resolveHome(await readFirstmateConfig());
   const agents = (await listAgents(paseo))
-    .filter((agent) => agent.labels[CREW_LABELS.role] !== CREW_LABELS.crewRole && agent.labels["firstmate.role"] !== "watch-inspector")
+    .filter((agent) => ![CREW_LABELS.crewRole, "watch-inspector", "topic-adviser"].includes(agent.labels[CREW_LABELS.role] ?? ""))
     .map(summarizeAgent)
     .sort((a, b) => {
       const inHome = Number(b.cwd === home) - Number(a.cwd === home);
@@ -268,7 +292,7 @@ export async function queueMateNote(paseo: PaseoApi, text: string): Promise<void
 export function flushMateNotes(paseo: PaseoApi): Promise<void> {
   return oneAtATime(async () => {
     const config = await readFirstmateConfig();
-    if (config.migration !== null || config.mateNotes.length === 0) return;
+    if (config.migration !== null || config.mateLaunch !== null || config.mateNotes.length === 0) return;
     const { agent } = await resolveMate(paseo, config);
     if (agent === null || isMidTurn(agent)) return;
     // One note per idle turn: a second send may replace the first on providers without steer.

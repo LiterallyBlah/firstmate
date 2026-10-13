@@ -35,8 +35,9 @@
  */
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { z } from "zod";
 
-import type { BacklogItem, FirstmateConfig, Project, Suggestion } from "../shared/fleet";
+import { FirstmateConfigSchema, type BacklogItem, type FirstmateConfig, type Project, type Suggestion } from "../shared/fleet";
 import { parseBacklog } from "./backlog";
 import { renderCharter } from "./charter";
 import { syncCharter } from "./charter-file";
@@ -45,6 +46,7 @@ import { parseSuggestions, withoutSuggestion } from "./suggestions";
 import { TEMPLATES, fill, readTemplate, withoutNotes, type TemplatePath } from "./templates";
 import { seedWatches } from "./watch-files";
 import { remoteQueue } from "./remotes";
+import { paseoHome } from "./data-dir";
 
 /** The home's records: written from their templates when missing, and the captain's or the first mate's after. */
 const RECORDS: readonly TemplatePath[] = [
@@ -97,6 +99,10 @@ export async function prepareHome(home: string, config: FirstmateConfig): Promis
   await writeFile(join(home, TEMPLATES.remoteHelper), fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(remoteQueue()) }), "utf8");
   await writeFile(join(home, TEMPLATES.remoteAccess), await readTemplate(TEMPLATES.remoteAccess), "utf8");
   await writeFile(join(home, TEMPLATES.watchHelper), await readTemplate(TEMPLATES.watchHelper), "utf8");
+  await writeFile(join(home, TEMPLATES.roleHelper), fill(await readTemplate(TEMPLATES.roleHelper), {
+    paseoHomeJson: JSON.stringify(paseoHome()), homeJson: JSON.stringify(home),
+    configSchemaJson: JSON.stringify(z.toJSONSchema(FirstmateConfigSchema, { io: "input" })),
+  }), "utf8");
   await seedWatches(home);
 }
 

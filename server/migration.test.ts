@@ -109,6 +109,7 @@ function fake() {
         },
         timeline: { refetch: async () => ({ entries: (timelines[id] ?? []).map((item) => ({ item })), error: null }) },
         send: async (text: string, options: { messageId?: string }) => {
+          expect((await readFirstmateConfig()).mateAgentId).toBe(id);
           calls.push(`send:${id}`);
           if (behavior.sendError) throw new Error("send failed");
           sent.push({ id, text, messageId: options.messageId });

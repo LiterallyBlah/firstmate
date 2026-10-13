@@ -309,10 +309,12 @@ export function buildCards(
   return [...cards, ...remoteCards];
 }
 
-/** Whether two paths name one directory, through symlinks; a path that does not resolve is compared as written. */
+/** Canonical directory identity, including Windows case; an unresolved path never matches. */
 export async function sameDirectory(a: string, b: string): Promise<boolean> {
-  const [left, right] = await Promise.all([realpath(a).catch(() => a), realpath(b).catch(() => b)]);
-  return left === right;
+  try {
+    const [left, right] = await Promise.all([realpath(a), realpath(b)]);
+    return process.platform === "win32" ? left.toLowerCase() === right.toLowerCase() : left === right;
+  } catch { return false; }
 }
 
 /**
@@ -344,7 +346,7 @@ export async function loadFleet(
   const home = resolveHome(config);
   const warnings: string[] = [];
 
-  const [homeReady, backlog, projects, suggestions, mate, crewAgents, agentTools, charter, watches, remotes] = await Promise.all([
+  const [homeReady, backlog, projects, suggestions, mate, allAgents, agentTools, charter, watches, remotes] = await Promise.all([
     isHomeReady(home),
     readBacklog(home).catch((error: unknown) => {
       warnings.push(`The backlog could not be read: ${describe(error)}`);
@@ -359,8 +361,8 @@ export async function loadFleet(
       return [];
     }),
     resolveMate(paseo, config),
-    listAgents(paseo, { labels: { [CREW_LABELS.role]: CREW_LABELS.crewRole } }).catch((error: unknown) => {
-      warnings.push(`Paseo could not list the crew: ${describe(error)}`);
+    listAgents(paseo).catch((error: unknown) => {
+      warnings.push(`Paseo could not list crew and home guests: ${describe(error)}`);
       return [];
     }),
     readAgentTools(paseo),
@@ -378,6 +380,11 @@ export async function loadFleet(
     }),
   ]);
 
+  const crewAgents = allAgents.filter(agent => agent.labels[CREW_LABELS.role] === CREW_LABELS.crewRole);
+  const homeGuests = (await Promise.all(allAgents.map(async agent =>
+    agent.id !== config.mateAgentId && await sameDirectory(agent.cwd, home) ? summarizeAgent(agent) : null,
+  ))).filter((agent): agent is AgentSummary => agent !== null);
+  if (config.mateLaunch !== null) warnings.push(`Reserved first-mate launch ${config.mateLaunch.agentId}: ${config.mateLaunch.state === "prepared" ? "preparation needs a Launch retry" : "opening delivery is uncertain; inspect the session in Paseo before releasing the role"}.`);
   reports.retain(new Set(crewAgents.map((agent) => agent.id)));
   const crew = await Promise.all(
     crewAgents.map(async (agent) => ({
@@ -392,6 +399,7 @@ export async function loadFleet(
   return {
     home,
     homeReady,
+    homeGuests,
     mate: mate.agent === null ? null : summarizeAgent(mate.agent),
     mateMissing: mate.missing,
     mateInHome: mate.agent === null ? true : await sameDirectory(mate.agent.cwd, home),
