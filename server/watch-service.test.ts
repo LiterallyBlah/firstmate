@@ -23,6 +23,14 @@ function paseoWith(status: string) {
 const config = FirstmateConfigSchema.parse({ mateAgentId: "mate-1" });
 
 describe("deliverToMate", () => {
+  it("waits while an opening has an uncertain delivery", async () => {
+    const { paseo, sent } = paseoWith("idle");
+    const pending = FirstmateConfigSchema.parse({ mateAgentId: "mate-1", mateLaunch: {
+      agentId: "mate-1", home: "/home", target: { provider: "claude" }, prompt: "opening", state: "sending",
+    } });
+    expect(await deliverToMate(paseo, pending, "watch note")).toBe("wait");
+    expect(sent).toEqual([]);
+  });
   it("never sends into a running turn, however it came to be asked", async () => {
     for (const status of ["running", "initializing"]) {
       const { paseo, sent } = paseoWith(status);

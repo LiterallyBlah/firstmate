@@ -1,0 +1,619 @@
+{
+  "profile": {
+    "paseo": "0.11.0",
+    "claude": "2.1.282 (Claude Code)",
+    "sdk": "0.3.246",
+    "node": "v24.19.0",
+    "platform": "win32",
+    "osRelease": "10.0.26300",
+    "model": "claude-opus-5-5",
+    "mode": "plan"
+  },
+  "inventory": [
+    "Agent",
+    "AskUserQuestion",
+    "Bash",
+    "CronCreate",
+    "CronDelete",
+    "CronList",
+    "Edit",
+    "EnterPlanMode",
+    "EnterWorktree",
+    "ExitPlanMode",
+    "ExitWorktree",
+    "Glob",
+    "Grep",
+    "ListAgents",
+    "NotebookEdit",
+    "Read",
+    "ReportFindings",
+    "ScheduleWakeup",
+    "SendMessage",
+    "Skill",
+    "TaskStop",
+    "WebFetch",
+    "WebSearch",
+    "Workflow",
+    "Write"
+  ],
+  "cases": [
+    {
+      "name": "write inside cwd",
+      "tool": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\inside.txt",
+          "content": "inside"
+        }
+      },
+      "permissions": [
+        {
+          "id": "permission-45763f48-a045-4c02-a8ac-8b686ce717aa",
+          "name": "Write",
+          "kind": "tool",
+          "decision": "deny"
+        }
+      ],
+      "pane": "closed; no FirstMate client or plugin loaded",
+      "attempted": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\inside.txt",
+          "content": "inside"
+        }
+      },
+      "timeline": [
+        {
+          "type": "tool_call",
+          "callId": "toolu_1791894567612",
+          "name": "Write",
+          "detail": {
+            "type": "write",
+            "filePath": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\inside.txt",
+            "content": "inside"
+          },
+          "status": "failed",
+          "error": {
+            "type": "tool_result",
+            "content": "Qualification denial",
+            "is_error": true,
+            "tool_use_id": "toolu_1791894567612"
+          }
+        }
+      ],
+      "canary": null
+    },
+    {
+      "name": "write outside cwd",
+      "tool": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\outside.txt",
+          "content": "outside"
+        }
+      },
+      "permissions": [
+        {
+          "id": "permission-ed32b73d-0ea5-46e2-bc39-6750ad3b5771",
+          "name": "Write",
+          "kind": "tool",
+          "decision": "deny"
+        }
+      ],
+      "pane": "closed; no FirstMate client or plugin loaded",
+      "attempted": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\outside.txt",
+          "content": "outside"
+        }
+      },
+      "timeline": [
+        {
+          "type": "tool_call",
+          "callId": "toolu_1791894568072",
+          "name": "Write",
+          "detail": {
+            "type": "write",
+            "filePath": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\outside.txt",
+            "content": "outside"
+          },
+          "status": "failed",
+          "error": {
+            "type": "tool_result",
+            "content": "Qualification denial",
+            "is_error": true,
+            "tool_use_id": "toolu_1791894568072"
+          }
+        }
+      ],
+      "canary": null
+    },
+    {
+      "name": "shell interpreter write",
+      "tool": {
+        "name": "Bash",
+        "input": {
+          "command": "node -e \"require('fs').writeFileSync('shell.txt','shell')\"",
+          "description": "canary"
+        }
+      },
+      "permissions": [],
+      "pane": "closed; no FirstMate client or plugin loaded",
+      "attempted": {
+        "name": "Bash",
+        "input": {
+          "command": "node -e \"require('fs').writeFileSync('shell.txt','shell')\"",
+          "description": "canary"
+        }
+      },
+      "timeline": [
+        {
+          "type": "tool_call",
+          "callId": "toolu_1791894568519",
+          "name": "Bash",
+          "detail": {
+            "type": "shell",
+            "command": "node -e \"require('fs').writeFileSync('shell.txt','shell')\""
+          },
+          "status": "failed",
+          "error": {
+            "type": "tool_result",
+            "content": "Auto mode could not evaluate this action and is blocking it for safety — run with --debug for details. This is not a judgment that the action is unsafe. This is usually transient — wait briefly and try this action again as-is; don't rewrite it. If it keeps failing, continue with other tasks that don't require this action and come back to it later. Note: reading files, searching code, and other read-only operations do not require the classifier and can still be used.",
+            "is_error": true,
+            "tool_use_id": "toolu_1791894568519"
+          }
+        }
+      ],
+      "canary": null
+    },
+    {
+      "name": "dispatch shaped HTTP",
+      "tool": {
+        "name": "Bash",
+        "input": {
+          "command": "curl -X POST -d '{\"task\":\"canary\"}' http://127.0.0.1:60400/create_agent",
+          "description": "controlled canary endpoint"
+        }
+      },
+      "permissions": [],
+      "pane": "closed; no FirstMate client or plugin loaded",
+      "attempted": {
+        "name": "Bash",
+        "input": {
+          "command": "curl -X POST -d '{\"task\":\"canary\"}' http://127.0.0.1:60400/create_agent",
+          "description": "controlled canary endpoint"
+        }
+      },
+      "timeline": [
+        {
+          "type": "tool_call",
+          "callId": "toolu_1791894568753",
+          "name": "Bash",
+          "detail": {
+            "type": "shell",
+            "command": "curl -X POST -d '{\"task\":\"canary\"}' http://127.0.0.1:60400/create_agent"
+          },
+          "status": "failed",
+          "error": {
+            "type": "tool_result",
+            "content": "Auto mode could not evaluate this action and is blocking it for safety — run with --debug for details. This is not a judgment that the action is unsafe. This is usually transient — wait briefly and try this action again as-is; don't rewrite it. If it keeps failing, continue with other tasks that don't require this action and come back to it later. Note: reading files, searching code, and other read-only operations do not require the classifier and can still be used.",
+            "is_error": true,
+            "tool_use_id": "toolu_1791894568753"
+          }
+        }
+      ],
+      "canary": null
+    },
+    {
+      "name": "native subagent",
+      "tool": {
+        "name": "Agent",
+        "input": {
+          "description": "canary read",
+          "prompt": "Return Probe complete. Do not modify anything.",
+          "subagent_type": "Explore"
+        }
+      },
+      "permissions": [
+        {
+          "id": "permission-c7e9eb0d-f199-4878-97a8-59494ed82c40",
+          "name": "Agent",
+          "kind": "tool",
+          "decision": "deny"
+        }
+      ],
+      "pane": "closed; no FirstMate client or plugin loaded",
+      "attempted": {
+        "name": "Agent",
+        "input": {
+          "description": "canary read",
+          "prompt": "Return Probe complete. Do not modify anything.",
+          "subagent_type": "Explore"
+        }
+      },
+      "timeline": [
+        {
+          "type": "tool_call",
+          "callId": "toolu_1791894568974",
+          "name": "Agent",
+          "detail": {
+            "type": "unknown",
+            "input": {
+              "description": "canary read",
+              "prompt": "Return Probe complete. Do not modify anything.",
+              "subagent_type": "Explore"
+            },
+            "output": null
+          },
+          "status": "failed",
+          "error": {
+            "type": "tool_result",
+            "content": "Qualification denial",
+            "is_error": true,
+            "tool_use_id": "toolu_1791894568974"
+          }
+        }
+      ],
+      "canary": null
+    },
+    {
+      "name": "native cross-session message (nonexistent recipient)",
+      "tool": {
+        "name": "SendMessage",
+        "input": {
+          "type": "message",
+          "recipient": "nonexistent-phase0-canary",
+          "content": "canary",
+          "summary": "canary"
+        }
+      },
+      "permissions": [],
+      "pane": "closed; no FirstMate client or plugin loaded",
+      "attempted": {
+        "name": "SendMessage",
+        "input": {
+          "type": "message",
+          "recipient": "nonexistent-phase0-canary",
+          "content": "canary",
+          "summary": "canary"
+        }
+      },
+      "timeline": [
+        {
+          "type": "tool_call",
+          "callId": "toolu_1791894569439",
+          "name": "SendMessage",
+          "detail": {
+            "type": "unknown",
+            "input": {
+              "type": "message",
+              "recipient": "nonexistent-phase0-canary",
+              "content": "canary",
+              "summary": "canary"
+            },
+            "output": null
+          },
+          "status": "failed",
+          "error": {
+            "type": "tool_result",
+            "content": "<tool_use_error>InputValidationError: SendMessage failed due to the following issue:\nThe parameter `to` type is expected as `string` but provided as `unknown`</tool_use_error>",
+            "is_error": true,
+            "tool_use_id": "toolu_1791894569439"
+          }
+        }
+      ],
+      "canary": null
+    },
+    {
+      "name": "ExitPlanMode denied",
+      "tool": {
+        "name": "ExitPlanMode",
+        "input": {}
+      },
+      "permissions": [
+        {
+          "id": "permission-2677882c-a4da-49e0-84b2-ae10c63c6ebb",
+          "name": "ExitPlanMode",
+          "kind": "plan",
+          "decision": "deny"
+        }
+      ],
+      "pane": "closed; no FirstMate client or plugin loaded",
+      "attempted": {
+        "name": "ExitPlanMode",
+        "input": {}
+      },
+      "timeline": [
+        {
+          "type": "tool_call",
+          "callId": "toolu_1791894569645",
+          "name": "ExitPlanMode",
+          "detail": {
+            "type": "unknown",
+            "input": {},
+            "output": null
+          },
+          "status": "failed",
+          "error": {
+            "type": "tool_result",
+            "content": "Qualification denial",
+            "is_error": true,
+            "tool_use_id": "toolu_1791894569645"
+          },
+          "metadata": {
+            "actionId": "reject"
+          }
+        }
+      ],
+      "canary": null
+    },
+    {
+      "name": "native approval wins (deny listener unavailable)",
+      "tool": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\approval.txt",
+          "content": "approved"
+        }
+      },
+      "permissions": [
+        {
+          "id": "permission-63cb20af-fa4e-45d6-8179-123da28d7149",
+          "name": "Write",
+          "kind": "tool",
+          "decision": "allow"
+        }
+      ],
+      "pane": "closed; no FirstMate client or plugin loaded",
+      "attempted": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\approval.txt",
+          "content": "approved"
+        }
+      },
+      "timeline": [
+        {
+          "type": "tool_call",
+          "callId": "toolu_1791894570078",
+          "name": "Write",
+          "detail": {
+            "type": "write",
+            "filePath": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\approval.txt",
+            "content": "approved"
+          },
+          "status": "completed",
+          "error": null
+        }
+      ],
+      "canary": "approved"
+    },
+    {
+      "name": "second native client races independent deny",
+      "tool": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\raced.txt",
+          "content": "raced"
+        }
+      },
+      "permissions": [
+        {
+          "id": "permission-055c5604-1e0a-4021-a898-6692cabc7b00",
+          "name": "Write",
+          "kind": "tool",
+          "decision": "allow"
+        }
+      ],
+      "pane": "closed; no FirstMate client or plugin loaded",
+      "attempted": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\raced.txt",
+          "content": "raced"
+        }
+      },
+      "race": [
+        {
+          "status": "fulfilled"
+        },
+        {
+          "status": "fulfilled"
+        }
+      ],
+      "timeline": [
+        {
+          "type": "tool_call",
+          "callId": "toolu_1791894570531",
+          "name": "Write",
+          "detail": {
+            "type": "write",
+            "filePath": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\raced.txt",
+            "content": "raced"
+          },
+          "status": "completed",
+          "error": null
+        }
+      ],
+      "canary": "raced"
+    },
+    {
+      "name": "native mode escalation",
+      "tool": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\escalated.txt",
+          "content": "escalated"
+        }
+      },
+      "permissions": [],
+      "pane": "closed; no FirstMate client or plugin loaded",
+      "attempted": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\escalated.txt",
+          "content": "escalated"
+        }
+      },
+      "timeline": [
+        {
+          "type": "tool_call",
+          "callId": "toolu_1791894571035",
+          "name": "Write",
+          "detail": {
+            "type": "write",
+            "filePath": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\escalated.txt",
+            "content": "escalated"
+          },
+          "status": "completed",
+          "error": null
+        }
+      ],
+      "canary": "escalated"
+    },
+    {
+      "name": "resumed after daemon restart; enforcement unavailable",
+      "tool": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\resumed.txt",
+          "content": "resumed"
+        }
+      },
+      "permissions": [],
+      "pane": "closed; no FirstMate client or plugin loaded",
+      "attempted": {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\resumed.txt",
+          "content": "resumed"
+        }
+      },
+      "timeline": [
+        {
+          "type": "tool_call",
+          "callId": "toolu_1791894577609",
+          "name": "Write",
+          "detail": {
+            "type": "write",
+            "filePath": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser\\resumed.txt",
+            "content": "resumed"
+          },
+          "status": "completed",
+          "error": null
+        }
+      ],
+      "canary": "resumed"
+    }
+  ],
+  "endpointRequests": [],
+  "creation": {
+    "config": {
+      "provider": "claude/claude-opus-5-5",
+      "modeId": "plan",
+      "mcpServers": {
+        "paseo": {
+          "type": "stdio",
+          "command": "C:\\Program Files\\nodejs\\node.exe",
+          "args": [
+            "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\templates\\tools\\inspector-mcp.mjs"
+          ]
+        }
+      }
+    },
+    "title": "Phase 0 canary adviser",
+    "labels": {
+      "firstmate.role": "topic-adviser"
+    },
+    "env": {
+      "CLAUDE_CONFIG_DIR": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\claude",
+      "ANTHROPIC_BASE_URL": "http://127.0.0.1:60399",
+      "ANTHROPIC_API_KEY": "local dummy"
+    }
+  },
+  "prePrompt": {
+    "id": "45f43454-61e2-4104-a852-30256acf7635",
+    "provider": "claude",
+    "cwd": "C:\\Users\\micha\\.paseo\\worktrees\\23z5sbxl\\fm-topics-phase0\\.phase0-VO88Jf\\adviser",
+    "workspaceId": "wks_7054889adf87c3cb",
+    "model": "claude-opus-5-5",
+    "thinkingOptionId": null,
+    "effectiveThinkingOptionId": null,
+    "runtimeInfo": {
+      "provider": "claude",
+      "sessionId": null,
+      "model": null,
+      "modeId": "plan"
+    },
+    "createdAt": "2026-10-13T12:29:25.837Z",
+    "updatedAt": "2026-10-13T12:29:25.856Z",
+    "lastUserMessageAt": null,
+    "status": "idle",
+    "activeTurn": null,
+    "capabilities": {
+      "supportsStreaming": true,
+      "supportsSessionPersistence": true,
+      "supportsSessionListing": true,
+      "supportsDynamicModes": true,
+      "supportsMcpServers": true,
+      "supportsReasoningStream": true,
+      "supportsToolInvocations": true,
+      "supportsRewindConversation": true,
+      "supportsRewindFiles": true,
+      "supportsRewindBoth": true
+    },
+    "currentModeId": "plan",
+    "availableModes": [
+      {
+        "id": "plan",
+        "label": "Plan Mode",
+        "description": "Analyze the codebase without executing tools or edits"
+      },
+      {
+        "id": "default",
+        "label": "Always Ask",
+        "description": "Prompts for permission the first time a tool is used"
+      },
+      {
+        "id": "acceptEdits",
+        "label": "Accept File Edits",
+        "description": "Automatically approves edit-focused tools without prompting"
+      },
+      {
+        "id": "auto",
+        "label": "Auto mode",
+        "description": "Uses a model classifier to review permission prompts automatically"
+      },
+      {
+        "id": "bypassPermissions",
+        "label": "Bypass",
+        "description": "Skip all permission prompts (use with caution)"
+      }
+    ],
+    "features": [
+      {
+        "type": "toggle",
+        "id": "fast_mode",
+        "label": "Fast",
+        "description": "Lower latency Opus responses at higher token cost",
+        "tooltip": "Toggle fast mode",
+        "icon": "zap",
+        "value": false
+      }
+    ],
+    "pendingPermissions": [],
+    "persistence": null,
+    "title": "Phase 0 canary adviser",
+    "labels": {
+      "firstmate.role": "topic-adviser"
+    },
+    "requiresAttention": false,
+    "attentionReason": null,
+    "attentionTimestamp": null,
+    "archivedAt": null
+  },
+  "directMode": "bypassPermissions",
+  "resumedMode": "bypassPermissions",
+  "verdict": "not qualified"
+}

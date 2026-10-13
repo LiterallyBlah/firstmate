@@ -108,6 +108,8 @@ function PanelBody({
   else if (isMate) {
     const groups = groupCards(data.cards);
     summary = `This is the first mate. ${groups.get("working")?.length ?? 0} working, ${groups.get("blocked")?.length ?? 0} blocked, ${groups.get("queued")?.length ?? 0} queued.`;
+  } else if (data.homeGuests?.some(guest => guest.id === match.agentId)) {
+    summary = "This is a guest chat in the FirstMate home, not the configured first mate. Discuss and read here; only the current first mate changes records or directs the crew. Older sessions may retain their former instructions.";
   } else if (cards.length === 0) summary = "No FirstMate worker is running here.";
   else summary = cards.length === 1 ? "A FirstMate worker." : `${cards.length} FirstMate workers.`;
 

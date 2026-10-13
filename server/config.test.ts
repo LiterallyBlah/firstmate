@@ -33,7 +33,7 @@ describe("the config.write contract", () => {
     // Lifecycle journals, history and delivery queues are owned by the server, never a settings save.
     expect(Object.keys(writeConfig.input.shape).sort()).toEqual(
       Object.keys(FirstmateConfigSchema.shape)
-        .filter((key) => !["migration", "previousMateIds", "mateNotes"].includes(key)).sort(),
+        .filter((key) => !["migration", "mateLaunch", "previousMateIds", "mateNotes"].includes(key)).sort(),
     );
 
     await updateFirstmateConfig({ mateAgentId: "mate-1", disabledWatches: ["pr-watch"] });
