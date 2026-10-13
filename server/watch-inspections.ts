@@ -47,7 +47,7 @@ export interface InspectionOptions {
 }
 
 export async function inspectionChoices(paseo: PaseoApi | null, config: FirstmateConfig) {
-  if (!paseo || config.migration !== null) return { available: false, reason: "Wait for an available first mate and completed handover.", thinking: [] };
+  if (!paseo || config.migration !== null || config.mateLaunch !== null) return { available: false, reason: "Wait for an available first mate and completed handover.", thinking: [] };
   const { agent } = await resolveMate(paseo, config);
   if (!agent) return { available: false, reason: "Launch or adopt a first mate first.", thinking: [] };
   const [models, modes] = await Promise.all([
@@ -168,7 +168,7 @@ export class WatchInspections {
       // No delivery helper is called from this non-reentrant gate.
       return oneAtATime(async () => {
         const config = await this.options.config();
-        if (this.stopped || config.migration !== null) return false;
+        if (this.stopped || config.migration !== null || config.mateLaunch !== null) return false;
         const { agent: mate } = await resolveMate(paseo, config);
         if (!mate) return false;
         const runId = inputId ?? randomUUID();
@@ -307,7 +307,7 @@ export class WatchInspections {
         ...(run.error ? { reason: run.error } : {}), text: JSON.stringify({ runId: run.runId, result: run.report, errors: run.errors }) }], 0);
       await oneAtATime(async () => {
         const config = await this.options.config();
-        if (this.stopped || config.migration !== null) return;
+        if (this.stopped || config.migration !== null || config.mateLaunch !== null) return;
         const { agent } = await resolveMate(paseo, config);
         if (!agent || isMidTurn(agent) || agent.pendingPermissions.length > 0) return;
         const messageId = `firstmate-watch-result-${run.runId}${run.deliveryRevision ? `-${run.deliveryRevision}` : ""}`;

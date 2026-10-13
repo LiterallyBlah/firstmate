@@ -165,6 +165,9 @@ async function applyConfigPatch(patch: FirstmateConfigPatch): Promise<FirstmateC
   const next = FirstmateConfigSchema.parse({ ...previous, ...defined });
   // Validated before it is saved, so a relative home is refused rather than stored.
   const home = resolveHome(next);
+  if (previous.mateLaunch !== null && home !== resolveHome(previous)) {
+    throw new Error("Resolve the reserved launch before moving the first mate's home.");
+  }
   // The board reads the home the config names, and a running first mate keeps
   // writing the one it was launched in; moving it under one would show an
   // empty backlog while the real one carried on out of sight.

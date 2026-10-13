@@ -178,6 +178,24 @@ whatever is left on either side is a card of its own.
 `firstmate.role=first-mate` at launch, for `paseo ls --label`, but the label is not consulted: the SDK
 cannot take a label off, so falling back to it would bring a released first mate straight back.
 
+**Home identity is checked afresh.** `templates/AGENTS.md` puts `node tools/role.mjs` before the
+charter, including a customized one. The generated helper uses the daemon's rendered paths, the
+config's actual input schema and the same current/legacy precedence as `dataPath`. Missing,
+unreadable or conflicting identity is a guest; environment/labels alone never grant the role.
+Canonical paths include Windows case and junction aliases. This is behavioral guidance, not
+revocation of a guest's native tools. The board and native agent panel identify other home chats.
+
+**Launch has a durable reservation.** `mateLaunch` saves ID, setup and opening before unprompted
+creation. Only after checking the prepared session does config activate its identity and send the
+opening. A lost create reply retries the same ID; an uncertain opening is never automatically
+resent. Plugin sends/watches wait on the reservation. Release clears it without archiving the guest.
+Keep this ordering when changing launch, restart or migration.
+
+**Topic advisers remain unavailable.** The phase-0 evidence is `docs/topic-phase0/README.md`:
+Claude plan failed native approval/mode/resume canaries. `server/adviser-profiles.ts` offers no profile.
+`server/submissions.ts` is an unwired, content-bound journal library; it separates uncertain/recorded
+delivery from intake and action receipts. No topic UI, transport or authenticated ack adapter is wired.
+
 ## Remote work is on the board
 
 Work on a saved remote host (see README's *Remote hosts*) is filed in the same columns as the local

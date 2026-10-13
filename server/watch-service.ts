@@ -50,7 +50,7 @@ export async function deliverToMate(
   return oneAtATime(async () => {
     // Re-read after taking the lifecycle gate: a handover may have changed the mate while we waited.
     const latest = await readConfig();
-    if (latest.migration !== null || paseo === null) return "wait";
+    if (latest.migration !== null || latest.mateLaunch !== null || paseo === null) return "wait";
     const { agent } = await resolveMate(paseo, latest);
     if (agent === null || isMidTurn(agent)) return "wait";
     await sendWithoutInterrupting(paseo, agent.id, text, { messageId: `${WATCH_MESSAGE_ID_PREFIX}${randomUUID()}` });
@@ -130,7 +130,7 @@ export function startWatches(
       if (stopped) return;
       await inspections.reconcile();
       const config = await readConfig();
-      if (config.migration !== null || !(await isHomeReady(resolveHome(config)))) return;
+      if (config.migration !== null || config.mateLaunch !== null || !(await isHomeReady(resolveHome(config)))) return;
       await processWatchRequests(resolveHome(config), async (request) => {
         if (request.operation === "create") await service.create(request.input, request.id);
         else await service.configure(request.input);
