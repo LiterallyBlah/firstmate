@@ -1093,6 +1093,14 @@ later, web-only — see *Attachments go the way Paseo's composer sends them*.
 
 ## Checking it
 
+Vitest loads `test/setup.ts` before every test file: it forces `FIRSTMATE_RECEIPT_JOURNAL=0`
+and gives the file a fresh temporary `PASEO_HOME`, removed after the file finishes. This applies to
+`npm test` and direct Vitest runs, regardless of the shell's environment. Receipt tests may opt in
+only against temporary homes and must drain pending receipts before cleanup. Never restore a live
+home in a test. `test/journal-isolation.test.ts` launches a child test run with journaling enabled and
+an existing stand-in journal, checks it stays untouched, and exercises explicit opt-in in the isolated
+home. CI also starts the suite with the flag enabled to keep this boundary covered.
+
 `npm test` covers the parsers, the column rules, the card join, the charter's placeholders, the home's
 write-once records, the relay text, the transcript rows, the column order, and the watches — schedules,
 the runner's queue and guardrails, seeding, and `pr-watch` against a stand-in `gh`. What it cannot cover,
