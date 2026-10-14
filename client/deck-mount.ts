@@ -25,6 +25,7 @@
  * load, Pixi failing to start. A mount torn down while Pixi is still starting destroys what starts.
  */
 import type { DeckArt, DeckEngineSource } from "../shared/ship-deck";
+import type { DeckHover } from "./deck-hover";
 import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { startDeck, type DeckArtImage, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
 import type { DeckScene } from "./deck-scene";
@@ -51,7 +52,12 @@ export interface DeckDrawing {
   destroy(): void;
 }
 
-export type StartDeck = (host: DeckHost, scene: DeckScene, size: { width: number; height: number }) => Promise<DeckDrawing>;
+export type StartDeck = (
+  host: DeckHost,
+  scene: DeckScene,
+  size: { width: number; height: number },
+  onHover: (hover: DeckHover | null) => void,
+) => Promise<DeckDrawing>;
 
 /** Everything the mount does that touches the browser or Pixi, so the tests can stand in for it. */
 export interface DeckEngine {
@@ -82,14 +88,16 @@ function message(error: unknown): string {
 }
 
 /**
- * Starts the deck in `node` and reports how it goes through `onStatus`. The returned mount takes newer
- * scenes — kept until Pixi is up, then drawn — and tears everything down.
+ * Starts the deck in `node` and reports how it goes through `onStatus`, and which sailor the pointer is
+ * over through `onHover`. The returned mount takes newer scenes — kept until Pixi is up, then drawn —
+ * and tears everything down.
  */
 export function mountDeck(
   node: unknown,
   scene: DeckScene,
   engine: DeckEngine,
   onStatus: (status: DeckStatus) => void,
+  onHover: (hover: DeckHover | null) => void = function () {},
 ): DeckMount {
   const idle: DeckMount = { update() {}, destroy() {} };
   if (!isDeckHost(node)) {
@@ -119,7 +127,9 @@ export function mountDeck(
     .then(function (start) {
       if (gone) return null;
       const drawn = latest;
-      return start(host, drawn, { width: host.clientWidth, height: host.clientHeight }).then(function (started) {
+      return start(host, drawn, { width: host.clientWidth, height: host.clientHeight }, function (hover) {
+        if (!gone) onHover(hover);
+      }).then(function (started) {
         return { started, drawn };
       });
     })
@@ -319,8 +329,8 @@ export function browserDeckEngine(
           throw error;
         });
       return engineOnce.then(function ({ pixi, art }): StartDeck {
-        return function (host, scene, size) {
-          return startDeck(pixi, art, host, scene, size, motion());
+        return function (host, scene, size, onHover) {
+          return startDeck(pixi, art, host, scene, size, motion(), onHover);
         };
       });
     },

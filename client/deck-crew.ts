@@ -264,6 +264,8 @@ export interface Figure {
   /** How much of the sailor is out of the hatch, 0 to 1. */
   reveal: number;
   moving: boolean;
+  /** Its idle motion's offset, so the crew does not breathe in step. */
+  seed: number;
 }
 
 const WALK_SIDE: readonly SailorPose[] = ["side-walk-a", "side-idle", "side-walk-b", "side-idle"];
@@ -347,6 +349,7 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
       flip,
       reveal,
       moving,
+      seed: walker.seed,
     });
   }
   return figures;

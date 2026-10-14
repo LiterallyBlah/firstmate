@@ -15,7 +15,9 @@ import * as contracts from "../board-list/contracts.js";
 import { fleet } from "../board-list/fixtures";
 import { theme as dark } from "../board-list/theme";
 import { LANTERNS, WATERLINE } from "../../client/deck-ambient";
+import { badgeInk, badgePixels, BADGE_SIZE } from "../../client/deck-badges";
 import { applyCrew, createCrew, crewFigures } from "../../client/deck-crew";
+import { badgeTop } from "../../client/deck-hover";
 import { fitDeck } from "../../client/deck-pixi";
 import { deckLayers, deckScene } from "../../client/deck-scene";
 import * as stubs from "./stubs.jsx";
@@ -124,6 +126,15 @@ window.referenceDeck = async function referenceDeck() {
       const pose = manifest.crew[sailor.outfit][sailor.pose];
       if (sailor.flip) blit(pose.frame, sailor.x + pose.feet[0], sailor.y - pose.feet[1], true);
       else blit(pose.frame, sailor.x - pose.feet[0], sailor.y - pose.feet[1]);
+      // Its state's badge over its head, in its own layer, so a piece in front covers it as it covers the sailor.
+      const sign = scene.palette.states[sailor.state];
+      const ink = `#${badgeInk(sign).toString(16).padStart(6, "0")}`;
+      const left = sailor.x - Math.floor(BADGE_SIZE.width / 2);
+      const top = badgeTop(sailor, manifest);
+      for (const pixel of badgePixels(sailor.state)) {
+        context.fillStyle = pixel.kind === "sign" ? sign : ink;
+        context.fillRect(left + pixel.x, top + pixel.y, 1, 1);
+      }
     }
   }
   const pixels = Array.from(context.getImageData(0, 0, scene.width, scene.height).data);

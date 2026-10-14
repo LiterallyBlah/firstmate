@@ -59,7 +59,9 @@ up well at this size.
 The Deck's motion (`client/deck-crew.ts`) makes do: a walk is `walk-a`, `idle`, `walk-b`, `idle` on each
 frame's own feet, with the body raised a pixel on the passing frames; the side poses are mirrored to walk
 left; there is no back view, so a sailor walking up the deck shows the front frames. Idle motion is
-whole-pixel shifts of the state's one pose.
+whole-pixel shifts of the state's one pose. Because a still pose does not say enough, each sailor wears a
+drawn badge for its state (`client/deck-badges.ts`) and an idle one breathes out a z: stand-ins for a
+haul cycle, a doze, a pacing fret and a waiting toe-tap that an artist would draw.
 
 Generated art can stand in for now. Animation and state poses beyond today's four, a second ship and any
 interactive layer would be better served by art drawn for them.

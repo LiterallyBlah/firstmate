@@ -17,7 +17,8 @@
  * Only live crew stand on deck: a local crewmate Paseo has not closed, or a remote worker that is
  * crew, not a followed session. Queued and Done cards, and cards with no worker, are left off.
  *
- * The scene says only what each sailor is doing. Where it stands, and its walk there, are
+ * The scene says only what each sailor is doing, and who it is: its `caption`, what the deck shows
+ * when the pointer is over it (`sailorCaption`). Where it stands, and its walk there, are
  * `client/deck-crew.ts`'s.
  *
  * **Coordinates are the art's.** The deck is the hull's own logical pixels (`art/ship-deck/deck.json`'s
@@ -31,6 +32,7 @@ import type { PluginTheme } from "@getpaseo/plugin";
 import type { FleetCard, FleetDeckSwitch } from "../shared/fleet";
 import type { DeckArtManifest, DeckPropName, SailorOutfit } from "../shared/ship-deck";
 import type { Figure } from "./deck-crew";
+import { cardHeadline } from "./format";
 
 export const DECK_STATES = ["working", "waiting", "blocked", "idle"] as const;
 export type DeckState = (typeof DECK_STATES)[number];
@@ -51,7 +53,24 @@ export interface DeckPalette {
   states: Record<DeckState, string>;
 }
 
-/** One live crewmate on deck: what it is doing, never where it stands. */
+/**
+ * Who a sailor is, for the label the deck shows over it on hover: the card's title, its state in the
+ * board's words, where it works, and the one line its card shows at rest.
+ */
+export interface SailorCaption {
+  title: string;
+  /** The column's word and, where the column alone does not say it, why: "Ready · finished, waiting on the first mate". */
+  status: string;
+  project: string | null;
+  /** "This machine", or the remote host's label. */
+  host: string;
+  /** The card's line at rest (`cardHeadline`): "Captain's call: …", a status line, an error. */
+  line: string | null;
+  /** Why the sailor is greyed, or null while its feed is live. */
+  stale: string | null;
+}
+
+/** One live crewmate on deck: what it is doing and who it is, never where it stands. */
 export interface DeckSailor {
   /** The card's key, so a sailor keeps its identity across polls. */
   key: string;
@@ -63,6 +82,7 @@ export interface DeckSailor {
    * and its place, greyed; it never reads as idle.
    */
   stale: boolean;
+  caption: SailorCaption;
 }
 
 export interface DeckScene {
@@ -100,6 +120,55 @@ export function deckState(card: FleetCard): DeckState | null {
     case "done":
       return null;
   }
+}
+
+/** The longest the hover label's line runs before it is cut with an ellipsis. */
+export const CAPTION_LINE_MAX = 160;
+
+/** What a card's column means for a sailor on deck, in the board's words. */
+function captionStatus(card: FleetCard): string {
+  switch (card.column) {
+    case "working":
+      return card.note === "waiting" ? "Working · waiting on a job it started" : "Working";
+    case "ready":
+      return "Ready · finished, waiting on the first mate";
+    case "blocked":
+      return "Blocked";
+    case "failed":
+      return "Failed";
+    case "idle":
+      return card.note === "stalled" ? "Idle · stalled: said working, then stopped" : "Idle · its turn ended with no status line";
+    case "parked":
+      return "Parked · paused";
+    case "queued":
+      return "Queued";
+    case "done":
+      return "Done";
+  }
+}
+
+/** Who a card's sailor is, for its hover label. `feedStale` is the whole fleet load failing. */
+export function sailorCaption(card: FleetCard, options: { feedStale?: boolean } = {}): SailorCaption {
+  const headline = cardHeadline(card);
+  let line: string | null = null;
+  if (headline !== null) {
+    const flat = (headline.lead === null ? headline.text : `${headline.lead}: ${headline.text}`).replace(/\s+/g, " ").trim();
+    line = flat === "" ? null : flat.length > CAPTION_LINE_MAX ? `${flat.slice(0, CAPTION_LINE_MAX - 1).trimEnd()}…` : flat;
+  }
+  const remote = card.remote ?? null;
+  return {
+    title: card.title,
+    status: captionStatus(card),
+    project: card.project,
+    host: remote === null ? "This machine" : remote.host,
+    line,
+    stale:
+      options.feedStale === true
+        ? "Feed lost: shown where it last stood"
+        : remote?.online === false
+          ? `${remote.host} is out of reach: shown where it last stood`
+          : null,
+  };
 }
 
 /** A stable choice of outfit for a card: the same sailor keeps the same clothes from poll to poll. */
@@ -145,6 +214,7 @@ export function deckScene(cards: readonly FleetCard[], theme: PluginTheme, optio
         state,
         outfit: sailorOutfit(card.key),
         stale: options.feedStale === true || card.remote?.online === false,
+        caption: sailorCaption(card, options),
       });
     }
   }
