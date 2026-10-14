@@ -13,14 +13,16 @@
  * **Pixi arrives from the daemon.** It is not in the client bundle (`client/deck-pixi.ts` says why):
  * once the host and WebGL have both been found, `firstmate.deck.engine` sends its browser build as text
  * and `evaluatePixi` runs it with `new Function` — the same permission the app itself uses to evaluate
- * every plugin bundle, `globalThis.eval` — keeping its names out of the page's globals. It is evaluated
- * once per app session and kept; a renderer without a host or WebGL never asks for it.
+ * every plugin bundle, `globalThis.eval` — keeping its names out of the page's globals. **So does the
+ * art**, alongside it: `firstmate.deck.art` sends the atlas as base64, and `decodeAtlas` turns it into
+ * an image the browser has decoded. Both are fetched once per app session and kept; a renderer without
+ * a host or WebGL never asks for either.
  *
- * Every way it can fail ends in a status, never a throw: no host, no WebGL, Pixi failing to load or to
- * start. A mount torn down while Pixi is still starting destroys what starts.
+ * Every way it can fail ends in a status, never a throw: no host, no WebGL, Pixi or the art failing to
+ * load, Pixi failing to start. A mount torn down while Pixi is still starting destroys what starts.
  */
-import type { DeckEngineSource } from "../shared/ship-deck";
-import { startDeck, type PixiModule } from "./deck-pixi";
+import type { DeckArt, DeckEngineSource } from "../shared/ship-deck";
+import { startDeck, type DeckArtImage, type PixiModule } from "./deck-pixi";
 import type { DeckScene } from "./deck-scene";
 
 export type DeckStatus =
@@ -208,7 +210,7 @@ export function evaluatePixi(engine: DeckEngineSource): PixiModule {
 ;return typeof PIXI === "undefined" ? undefined : PIXI;`) as () => unknown;
   const pixi = run();
   if (typeof pixi !== "object" || pixi === null) throw new Error("the Pixi build defined no PIXI namespace");
-  for (const name of ["Application", "Container", "Graphics"]) {
+  for (const name of ["Application", "Container", "Graphics", "Sprite", "ImageSource", "Texture", "Rectangle"]) {
     if (typeof Reflect.get(pixi, name) !== "function") throw new Error(`the Pixi build has no ${name}`);
   }
   const version: unknown = Reflect.get(pixi, "VERSION");
@@ -216,23 +218,51 @@ export function evaluatePixi(engine: DeckEngineSource): PixiModule {
   return pixi as PixiModule;
 }
 
-/** Pixi for this app session: evaluated once, kept; a failure is not kept, so reopening the deck tries again. */
-let pixiOnce: Promise<PixiModule> | null = null;
+interface DecodableImage {
+  src: string;
+  decode(): Promise<void>;
+}
 
-/** The real thing: the browser's WebGL, and Pixi fetched from the daemon and evaluated on first use. */
-export function browserDeckEngine(loadSource: () => Promise<DeckEngineSource>): DeckEngine {
+/** The atlas as an image the browser has decoded, ready to be a texture. */
+export function decodeAtlas(png: string, web: { Image?: new () => DecodableImage } = globalThis as { Image?: new () => DecodableImage }): Promise<unknown> {
+  if (typeof web.Image !== "function") return Promise.reject(new Error("this renderer cannot decode images"));
+  const image = new web.Image();
+  image.src = `data:image/png;base64,${png}`;
+  return image.decode().then(function () {
+    return image;
+  });
+}
+
+/** Pixi and the art for this app session: fetched once, kept; a failure is not kept, so reopening the deck tries again. */
+let engineOnce: Promise<{ pixi: PixiModule; art: DeckArtImage }> | null = null;
+
+/** The real thing: the browser's WebGL, and Pixi and the art fetched from the daemon on first use. */
+export function browserDeckEngine(
+  loadSource: () => Promise<DeckEngineSource>,
+  loadArt: () => Promise<DeckArt>,
+  decode: (png: string) => Promise<unknown> = decodeAtlas,
+): DeckEngine {
   return {
     probe: () => probeWebGL(),
     load() {
-      pixiOnce ??= loadSource()
-        .then(evaluatePixi)
+      engineOnce ??= Promise.all([
+        loadSource().then(evaluatePixi),
+        loadArt().then(function (art) {
+          return decode(art.png).then(function (image): DeckArtImage {
+            return { image, manifest: art.manifest };
+          });
+        }),
+      ])
+        .then(function ([pixi, art]) {
+          return { pixi, art };
+        })
         .catch(function (error: unknown) {
-          pixiOnce = null;
+          engineOnce = null;
           throw error;
         });
-      return pixiOnce.then(function (pixi): StartDeck {
+      return engineOnce.then(function ({ pixi, art }): StartDeck {
         return function (host, scene, size) {
-          return startDeck(pixi, host, scene, size);
+          return startDeck(pixi, art, host, scene, size);
         };
       });
     },

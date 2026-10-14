@@ -7,6 +7,7 @@
       "deckButton": false,
       "canvases": 0,
       "deckEngineCalls": 0,
+      "deckArtCalls": 0,
       "pixiGlobal": false
     },
     {
@@ -16,6 +17,7 @@
       "deckButton": false,
       "canvases": 0,
       "deckEngineCalls": 0,
+      "deckArtCalls": 0,
       "pixiGlobal": false
     }
   ],
@@ -30,6 +32,7 @@
       "hostReactChildren": 1,
       "caption": "Preview · drawn with WebGL · 12 on deck",
       "deckEngineCalls": 1,
+      "deckArtCalls": 1,
       "pixiGlobal": false,
       "counts": {
         "working": 5,
@@ -37,137 +40,204 @@
         "blocked": 4,
         "idle": 2
       },
+      "scale": 1.5,
+      "devicePixelsPerArtPixel": 3,
+      "artPixelsCompared": 67506,
+      "matching": 67506,
+      "drawOrder": [
+        "ship",
+        "prop:barrel",
+        "prop:crate",
+        "work-5",
+        "block-0",
+        "block-2",
+        "piece:bollard-bow-aft",
+        "block-1",
+        "block-3",
+        "work-0",
+        "work-2",
+        "work-4",
+        "piece:bollard-bow-fore",
+        "piece:mast",
+        "work-1",
+        "work-3",
+        "prop:rope",
+        "idle-1",
+        "idle-2",
+        "piece:bollard-gunwale-fore",
+        "piece:bollard-gunwale-aft",
+        "piece:near"
+      ],
+      "behindTheMast": [
+        "work-2"
+      ],
+      "behindTheNearRail": [],
+      "behindABollard": [
+        "block-0"
+      ],
       "sailors": [
         {
           "key": "work-0",
           "state": "working",
-          "color": "#6cb17b",
-          "pixel": [
-            108,
-            177,
-            123
-          ]
+          "x": 145,
+          "y": 101,
+          "pose": "hauling",
+          "outfit": "base",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 313,
+          "visible": 313
         },
         {
           "key": "work-1",
           "state": "working",
-          "color": "#6cb17b",
-          "pixel": [
-            108,
-            177,
-            123
-          ]
+          "x": 180,
+          "y": 111,
+          "pose": "hauling",
+          "outfit": "outfit",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 295,
+          "visible": 295
         },
         {
           "key": "work-2",
           "state": "working",
-          "color": "#6cb17b",
-          "pixel": [
-            108,
-            177,
-            123
-          ]
+          "x": 214,
+          "y": 101,
+          "pose": "hauling",
+          "outfit": "base",
+          "flip": true,
+          "hiddenBy": {
+            "mast": 144
+          },
+          "artPixels": 313,
+          "visible": 169
         },
         {
           "key": "work-3",
           "state": "working",
-          "color": "#6cb17b",
-          "pixel": [
-            108,
-            177,
-            123
-          ]
+          "x": 248,
+          "y": 111,
+          "pose": "hauling",
+          "outfit": "outfit",
+          "flip": true,
+          "hiddenBy": {},
+          "artPixels": 295,
+          "visible": 295
         },
         {
           "key": "work-4",
           "state": "working",
-          "color": "#6cb17b",
-          "pixel": [
-            108,
-            177,
-            123
-          ]
+          "x": 283,
+          "y": 101,
+          "pose": "hauling",
+          "outfit": "base",
+          "flip": true,
+          "hiddenBy": {},
+          "artPixels": 313,
+          "visible": 313
         },
         {
           "key": "work-5",
           "state": "waiting",
-          "color": "#c09664",
-          "pixel": [
-            192,
-            150,
-            100
-          ]
+          "x": 382,
+          "y": 93,
+          "pose": "waiting",
+          "outfit": "outfit",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 320,
+          "visible": 320
         },
         {
           "key": "block-0",
           "state": "blocked",
-          "color": "#d8847b",
-          "pixel": [
-            216,
-            132,
-            123
-          ]
+          "x": 72,
+          "y": 94,
+          "pose": "front-idle",
+          "outfit": "base",
+          "flip": false,
+          "hiddenBy": {
+            "bollard-bow-aft": 46
+          },
+          "artPixels": 358,
+          "visible": 312
         },
         {
           "key": "block-1",
           "state": "blocked",
-          "color": "#d8847b",
-          "pixel": [
-            216,
-            132,
-            123
-          ]
+          "x": 83,
+          "y": 101,
+          "pose": "front-idle",
+          "outfit": "outfit",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 370,
+          "visible": 370
         },
         {
           "key": "block-2",
           "state": "blocked",
-          "color": "#d8847b",
-          "pixel": [
-            216,
-            132,
-            123
-          ]
+          "x": 95,
+          "y": 94,
+          "pose": "front-idle",
+          "outfit": "base",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 358,
+          "visible": 358
         },
         {
           "key": "block-3",
           "state": "blocked",
-          "color": "#d8847b",
-          "pixel": [
-            216,
-            132,
-            123
-          ]
+          "x": 106,
+          "y": 101,
+          "pose": "front-idle",
+          "outfit": "outfit",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 370,
+          "visible": 370
         },
         {
           "key": "idle-1",
           "state": "idle",
-          "color": "#A1A5A4",
-          "pixel": [
-            161,
-            165,
-            164
-          ]
+          "x": 171,
+          "y": 118,
+          "pose": "leaning",
+          "outfit": "base",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 255,
+          "visible": 255
         },
         {
           "key": "idle-2",
           "state": "idle",
-          "color": "#A1A5A4",
-          "pixel": [
-            161,
-            165,
-            164
-          ]
+          "x": 257,
+          "y": 119,
+          "pose": "leaning",
+          "outfit": "outfit",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 260,
+          "visible": 260
         }
       ],
       "redrawnOnPoll": {
-        "working": 5,
-        "waiting": 1,
-        "blocked": 2,
-        "idle": 2
+        "counts": {
+          "working": 5,
+          "waiting": 1,
+          "blocked": 2,
+          "idle": 2
+        },
+        "artPixelsMatching": 67686
       },
-      "resizedCanvasWidth": 561,
+      "resizedCanvasWidth": 408,
       "canvasesAfterLeaving": 0,
-      "deckEngineCallsAfterRedraw": 1
+      "deckEngineCallsAfterRedraw": 1,
+      "deckArtCallsAfterRedraw": 1
     },
     {
       "theme": "light",
@@ -179,6 +249,7 @@
       "hostReactChildren": 1,
       "caption": "Preview · drawn with WebGL · 12 on deck",
       "deckEngineCalls": 1,
+      "deckArtCalls": 1,
       "pixiGlobal": false,
       "counts": {
         "working": 5,
@@ -186,133 +257,197 @@
         "blocked": 4,
         "idle": 2
       },
+      "scale": 1.5,
+      "devicePixelsPerArtPixel": 3,
+      "artPixelsCompared": 67506,
+      "matching": 67506,
+      "drawOrder": [
+        "ship",
+        "prop:barrel",
+        "prop:crate",
+        "work-5",
+        "block-0",
+        "block-2",
+        "piece:bollard-bow-aft",
+        "block-1",
+        "block-3",
+        "work-0",
+        "work-2",
+        "work-4",
+        "piece:bollard-bow-fore",
+        "piece:mast",
+        "work-1",
+        "work-3",
+        "prop:rope",
+        "idle-1",
+        "idle-2",
+        "piece:bollard-gunwale-fore",
+        "piece:bollard-gunwale-aft",
+        "piece:near"
+      ],
+      "behindTheMast": [
+        "work-2"
+      ],
+      "behindTheNearRail": [],
+      "behindABollard": [
+        "block-0"
+      ],
       "sailors": [
         {
           "key": "work-0",
           "state": "working",
-          "color": "#6cb17b",
-          "pixel": [
-            108,
-            177,
-            123
-          ]
+          "x": 145,
+          "y": 101,
+          "pose": "hauling",
+          "outfit": "base",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 313,
+          "visible": 313
         },
         {
           "key": "work-1",
           "state": "working",
-          "color": "#6cb17b",
-          "pixel": [
-            108,
-            177,
-            123
-          ]
+          "x": 180,
+          "y": 111,
+          "pose": "hauling",
+          "outfit": "outfit",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 295,
+          "visible": 295
         },
         {
           "key": "work-2",
           "state": "working",
-          "color": "#6cb17b",
-          "pixel": [
-            108,
-            177,
-            123
-          ]
+          "x": 214,
+          "y": 101,
+          "pose": "hauling",
+          "outfit": "base",
+          "flip": true,
+          "hiddenBy": {
+            "mast": 144
+          },
+          "artPixels": 313,
+          "visible": 169
         },
         {
           "key": "work-3",
           "state": "working",
-          "color": "#6cb17b",
-          "pixel": [
-            108,
-            177,
-            123
-          ]
+          "x": 248,
+          "y": 111,
+          "pose": "hauling",
+          "outfit": "outfit",
+          "flip": true,
+          "hiddenBy": {},
+          "artPixels": 295,
+          "visible": 295
         },
         {
           "key": "work-4",
           "state": "working",
-          "color": "#6cb17b",
-          "pixel": [
-            108,
-            177,
-            123
-          ]
+          "x": 283,
+          "y": 101,
+          "pose": "hauling",
+          "outfit": "base",
+          "flip": true,
+          "hiddenBy": {},
+          "artPixels": 313,
+          "visible": 313
         },
         {
           "key": "work-5",
           "state": "waiting",
-          "color": "#88601d",
-          "pixel": [
-            136,
-            96,
-            29
-          ]
+          "x": 382,
+          "y": 93,
+          "pose": "waiting",
+          "outfit": "outfit",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 320,
+          "visible": 320
         },
         {
           "key": "block-0",
           "state": "blocked",
-          "color": "#d8847b",
-          "pixel": [
-            216,
-            132,
-            123
-          ]
+          "x": 72,
+          "y": 94,
+          "pose": "front-idle",
+          "outfit": "base",
+          "flip": false,
+          "hiddenBy": {
+            "bollard-bow-aft": 46
+          },
+          "artPixels": 358,
+          "visible": 312
         },
         {
           "key": "block-1",
           "state": "blocked",
-          "color": "#d8847b",
-          "pixel": [
-            216,
-            132,
-            123
-          ]
+          "x": 83,
+          "y": 101,
+          "pose": "front-idle",
+          "outfit": "outfit",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 370,
+          "visible": 370
         },
         {
           "key": "block-2",
           "state": "blocked",
-          "color": "#d8847b",
-          "pixel": [
-            216,
-            132,
-            123
-          ]
+          "x": 95,
+          "y": 94,
+          "pose": "front-idle",
+          "outfit": "base",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 358,
+          "visible": 358
         },
         {
           "key": "block-3",
           "state": "blocked",
-          "color": "#d8847b",
-          "pixel": [
-            216,
-            132,
-            123
-          ]
+          "x": 106,
+          "y": 101,
+          "pose": "front-idle",
+          "outfit": "outfit",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 370,
+          "visible": 370
         },
         {
           "key": "idle-1",
           "state": "idle",
-          "color": "#646464",
-          "pixel": [
-            100,
-            100,
-            100
-          ]
+          "x": 171,
+          "y": 118,
+          "pose": "leaning",
+          "outfit": "base",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 255,
+          "visible": 255
         },
         {
           "key": "idle-2",
           "state": "idle",
-          "color": "#646464",
-          "pixel": [
-            100,
-            100,
-            100
-          ]
+          "x": 257,
+          "y": 119,
+          "pose": "leaning",
+          "outfit": "outfit",
+          "flip": false,
+          "hiddenBy": {},
+          "artPixels": 260,
+          "visible": 260
         }
       ]
     }
   ],
   "noWebgl": {
     "canvases": 0,
-    "deckEngineCalls": 0
+    "deckEngineCalls": 0,
+    "deckArtCalls": 0
   },
   "errors": []
 }
