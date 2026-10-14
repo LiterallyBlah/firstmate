@@ -16,15 +16,19 @@
  * every plugin bundle, `globalThis.eval` — keeping its names out of the page's globals. **So does the
  * art**, alongside it: `firstmate.deck.art` sends the atlas as base64, and `decodeAtlas` turns it into
  * an image the browser has decoded. Both are fetched once per app session and kept; a renderer without
- * a host or WebGL never asks for either.
+ * a host or WebGL never asks for either. **The generated sea, sky and gull** come the same way, from
+ * `firstmate.deck.environment`, but are not needed to draw: when they fail to load the deck draws its
+ * ship and crew on a flat sea, says so in the console, and asks again the next time it is opened.
  *
  * **Motion is the browser's too.** `browserMotion` hands the deck `requestAnimationFrame`, the
- * `prefers-reduced-motion` query and `document.hidden`, so `client/deck-loop.ts` can cap, pause and still it.
+ * `prefers-reduced-motion` query and `document.hidden`, so `client/deck-loop.ts` can cap, pause and still it;
+ * and the local clock with a timer, so the sky follows the time of day.
  *
  * Every way it can fail ends in a status, never a throw: no host, no WebGL, Pixi or the art failing to
  * load, Pixi failing to start. A mount torn down while Pixi is still starting destroys what starts.
  */
-import type { DeckArt, DeckEngineSource } from "../shared/ship-deck";
+import { environmentImagePaths, type DeckArt, type DeckEngineSource, type DeckEnvironment } from "../shared/ship-deck";
+import type { DeckEnvironmentImages } from "./deck-environment";
 import type { DeckHover } from "./deck-hover";
 import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { startDeck, type DeckArtImage, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
@@ -258,6 +262,8 @@ type MotionGlobals = {
   cancelAnimationFrame?: (handle: number) => void;
   setTimeout?: (callback: () => void, ms: number) => number;
   clearTimeout?: (handle: number) => void;
+  setInterval?: (callback: () => void, ms: number) => number;
+  clearInterval?: (handle: number) => void;
   performance?: { now(): number };
   matchMedia?: (query: string) => MediaQueryLike;
   document?: {
@@ -269,7 +275,8 @@ type MotionGlobals = {
 
 /**
  * The browser's frames and motion signals: `requestAnimationFrame` (which the browser itself throttles in
- * a background tab), `prefers-reduced-motion`, and `document.hidden` with its `visibilitychange`.
+ * a background tab), `prefers-reduced-motion`, and `document.hidden` with its `visibilitychange`; the
+ * local clock, and `setInterval` for the still deck's sky (none where there is no timer).
  */
 export function browserMotion(web: MotionGlobals = globalThis as MotionGlobals): DeckMotionEnvironment {
   const scheduler: FrameScheduler =
@@ -297,16 +304,47 @@ export function browserMotion(web: MotionGlobals = globalThis as MotionGlobals):
       };
     },
   };
-  return { scheduler, signals };
+  return {
+    scheduler,
+    signals,
+    clock: () => new Date(),
+    every(ms, run) {
+      if (typeof web.setInterval !== "function") return function () {};
+      const handle = web.setInterval(run, ms);
+      return function () {
+        web.clearInterval?.(handle);
+      };
+    },
+  };
+}
+
+/**
+ * The environment with every image it names decoded; refused when one is missing or will not decode.
+ * `browserDeckEngine` turns a refusal into no environment, so the deck draws without it rather than not at all.
+ */
+export function decodeEnvironment(environment: DeckEnvironment, decode: (png: string) => Promise<unknown>): Promise<DeckEnvironmentImages> {
+  const paths = environmentImagePaths(environment.manifest);
+  return Promise.all(
+    paths.map(function (path) {
+      const png = environment.images[path];
+      if (png === undefined) return Promise.reject(new Error(`the environment has no ${path}`));
+      return decode(png).then((image) => [path, image] as const);
+    }),
+  ).then(function (decoded) {
+    return { manifest: environment.manifest, images: new Map(decoded) };
+  });
 }
 
 /** Pixi and the art for this app session: fetched once, kept; a failure is not kept, so reopening the deck tries again. */
-let engineOnce: Promise<{ pixi: PixiModule; art: DeckArtImage }> | null = null;
+let engineOnce: Promise<{ pixi: PixiModule; art: Omit<DeckArtImage, "environment"> }> | null = null;
+/** The generated environment likewise, apart: its failure is a deck without a sky, not no deck. */
+let environmentOnce: Promise<DeckEnvironmentImages | null> | null = null;
 
-/** The real thing: the browser's WebGL, and Pixi and the art fetched from the daemon on first use. */
+/** The real thing: the browser's WebGL, and Pixi, the art and the environment fetched from the daemon on first use. */
 export function browserDeckEngine(
   loadSource: () => Promise<DeckEngineSource>,
   loadArt: () => Promise<DeckArt>,
+  loadEnvironment: () => Promise<DeckEnvironment>,
   decode: (png: string) => Promise<unknown> = decodeAtlas,
   motion: () => DeckMotionEnvironment = browserMotion,
 ): DeckEngine {
@@ -316,7 +354,7 @@ export function browserDeckEngine(
       engineOnce ??= Promise.all([
         loadSource().then(evaluatePixi),
         loadArt().then(function (art) {
-          return decode(art.png).then(function (image): DeckArtImage {
+          return decode(art.png).then(function (image) {
             return { image, manifest: art.manifest };
           });
         }),
@@ -328,9 +366,16 @@ export function browserDeckEngine(
           engineOnce = null;
           throw error;
         });
-      return engineOnce.then(function ({ pixi, art }): StartDeck {
+      environmentOnce ??= loadEnvironment()
+        .then((environment) => decodeEnvironment(environment, decode))
+        .catch(function (error: unknown) {
+          console.warn("[firstmate] the ship deck's sea and sky did not load; drawing a plain sea:", error);
+          environmentOnce = null;
+          return null;
+        });
+      return Promise.all([engineOnce, environmentOnce]).then(function ([{ pixi, art }, environment]): StartDeck {
         return function (host, scene, size, onHover) {
-          return startDeck(pixi, art, host, scene, size, motion(), onHover);
+          return startDeck(pixi, { ...art, environment }, host, scene, size, motion(), onHover);
         };
       });
     },
