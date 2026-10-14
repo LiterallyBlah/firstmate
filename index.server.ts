@@ -15,6 +15,8 @@ import { pageTimeline, registerReceiptObservers } from "./server/receipt-observe
 import { newAction, receiptJournal } from "./server/receipts";
 import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
+import { readDeckEngine, withShipDeck } from "./server/ship-deck";
+import { loadDeckEngine } from "./shared/ship-deck";
 import { findFiles, listDirectory, readTextFile, requireHome, writeTextFile } from "./server/files";
 import { CHARTER_FILE, NEW_CHARTER_FILE, acknowledgeCharter, writeNewCharter } from "./server/charter-file";
 import { isHomeReady, prepareHome, removeSuggestion } from "./server/home";
@@ -132,7 +134,8 @@ export default function contribute(server: PluginServerContext) {
     // A first mate launched before the plugin named its home gets its name the first time the board looks.
     const workspaceId = fleet.mate?.workspaceId ?? null;
     if (workspaceId !== null && fleet.mateInHome) nameHomeOnce(paseo, workspaceId, fleet.home);
-    return fleet;
+    // The ship deck's switch rides on the load; off, the load is returned as it was. See server/ship-deck.ts.
+    return withShipDeck(fleet);
   });
   server.handle(enableAgentTools, async (_input, { paseo }) => {
     await paseo.config.patch({ mcp: { injectIntoAgents: true } });
@@ -249,6 +252,8 @@ export default function contribute(server: PluginServerContext) {
 
   // The receipt journal's read-only timeline pages; refused while FIRSTMATE_RECEIPT_JOURNAL is off. See server/receipts.ts.
   server.handle(pageReceiptTimeline, async (input, { paseo }) => pageTimeline(paseo, await readFirstmateConfig(), input));
+  // PixiJS's browser build for the ship deck; refused while FIRSTMATE_SHIP_DECK is off. See server/ship-deck.ts.
+  server.handle(loadDeckEngine, () => readDeckEngine());
 
   const unregisterRelay = registerSteerRelay(server, steers);
   // A crewmate whose finish the first mate has been told about leaves Paseo's "Ready to review"; see server/crew-seen.ts.

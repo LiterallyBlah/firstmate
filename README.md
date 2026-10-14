@@ -418,6 +418,25 @@ the home, the backlog, and a folder of its own to remember what it has already r
 `pr-watch`, a new version of FirstMate replaces it; once you have, yours is kept, and Watches says when
 FirstMate's has changed. The first mate adds or changes a watch only when you say so.
 
+## The ship deck (preview, off by default)
+
+A first piece of a ship's-deck view of the crew: one sailor per live crewmate on a plain deck, drawn by
+PixiJS on a WebGL canvas, standing where its card's column puts it — **working** at the stations
+amidships, **waiting** (Ready, or waiting on a job) by the helm, **blocked** (Blocked, Failed) in the bow
+rigging, **idle** (Idle, Parked) at the rail. It reads the same cards as the board and polls nothing of
+its own. The art is placeholder shapes; names, tasks and actions stay on the Crew board.
+
+It is behind a switch in the daemon's environment, `FIRSTMATE_SHIP_DECK=1`. Off — the default — nothing
+changes. On, the header's Crew/Files switch gains **Deck**, in the desktop app's wide layout only. On a
+phone or a narrow window it is not offered, and a display without WebGL gets a plain sentence instead
+of the canvas.
+
+To check it in the desktop app once the plugin is installed: start the daemon with `FIRSTMATE_SHIP_DECK=1`
+in its environment and reload the plugin. Open FirstMate and press **Deck**. The caption should read
+"Preview · drawn with WebGL · N on deck", with N matching the live crew. In DevTools, the canvas carries
+`data-firstmate-deck="webgl"`. `docs/ship-deck-canvas/README.md` has the full list, and what was proven
+before install.
+
 ## Settings
 
 **Settings › Plugins › FirstMate** — or the gear in the panel's header, or *FirstMate settings* in ⌘K.
@@ -450,6 +469,8 @@ FirstMate's has changed. The first mate adds or changes a watch only when you sa
   made up. After the plugin is reloaded, what a watch prints waits until any agent works or the panel
   is opened.
 - The panel has not yet been checked on a phone.
+- **The ship deck** (`FIRSTMATE_SHIP_DECK=1`, off by default) is a preview: placeholder art, no
+  animation, desktop only. It has been seen drawing in a browser, not yet inside the Paseo desktop app.
 - **The receipt journal** (`FIRSTMATE_RECEIPT_JOURNAL=1` in the daemon's environment, off by default)
   records what the plugin sends and writes from the day it is switched on, nothing before. It cannot see
   Paseo's own finish notes to the first mate, so those stay marked uncertain.

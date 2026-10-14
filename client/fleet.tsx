@@ -23,7 +23,7 @@ import { useRpc, useSettings } from "@getpaseo/plugin/client";
 import { Icon, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import {
   acknowledgeCharter,
@@ -42,6 +42,7 @@ import { FilesView, type FilesRequest } from "./files";
 import { MateChat } from "./chat";
 import { captainMessage } from "./attachments";
 import { CrewmateView } from "./crewmate";
+import { deckOffered } from "./deck-scene";
 import { agentStatusLabel, agentStatusTone, groupCards, orderedColumns, revealFilesPatch, shortPath } from "./format";
 import { LaunchPanel } from "./launch";
 import { MigrationControl } from "./migration-control";
@@ -52,6 +53,7 @@ import { hostTabs, onTab, shownHostTab, watchKey } from "./host-tabs";
 import { HostTabRow } from "./host-tab-row";
 import { RemoteWorkerView } from "./remote-worker";
 import { HostHealthCard, useRemotes } from "./remotes";
+import { ShipDeckView } from "./ship-deck";
 import { SuggestionStrip } from "./suggestions";
 import { TaskList } from "./task-list";
 import { ItemTagFilter } from "./item-tags";
@@ -65,8 +67,9 @@ export const FLEET_QUERY_KEY = ["firstmate", "fleet"] as const;
 let cachedFleet: Fleet | null = null;
 type Tab = "chat" | "board" | "files";
 let cachedTab: Tab = "chat";
-/** What the right-hand pane shows on a wide layout: the crew, or the home's files. */
-let cachedRightPane: "board" | "files" = "board";
+/** What the right-hand pane shows on a wide layout: the crew, the home's files, or — switched on — the ship deck. */
+type RightPane = "board" | "files" | "deck";
+let cachedRightPane: RightPane = "board";
 /** The crewmate shown in the board's place — card and transcript — by `watchKey`: its agent id, or `remote:<serverId>:<id>`. */
 let cachedWatching: string | null = null;
 /** List's completed-task choice survives view switches and surface remounts. */
@@ -104,6 +107,10 @@ export function useFleet(pollSeconds: number) {
   });
 }
 
+function paneName(pane: RightPane): string {
+  return pane === "files" ? "Files" : pane === "deck" ? "Deck" : "Crew";
+}
+
 export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   const [width, setWidth] = useState(0);
   const compact = layout.compact || (width > 0 && width < MIN_SPLIT_WIDTH);
@@ -139,6 +146,9 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   }, [queryClient]);
 
   const shownTab = tab;
+  /** The ship deck, behind FIRSTMATE_SHIP_DECK: offered only while the load says it is on. A pane left on it falls back to Crew. */
+  const deck = deckOffered(data, Platform.OS, compact);
+  const pane: RightPane = rightPane === "deck" && !deck ? "board" : rightPane;
 
   /**
    * Layout changes are drawn at once and saved behind, batched: a save is
@@ -200,9 +210,9 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     setTabState(next);
   }
 
-  function setRightPane(next: "board" | "files"): void {
+  function setRightPane(next: RightPane): void {
     // Choosing Crew while it is already showing is the way back from a watched crewmate to the board.
-    if (next === "board" && rightPane === "board") setWatching(null);
+    if (next === "board" && pane === "board") setWatching(null);
     cachedRightPane = next;
     setRightPaneState(next);
   }
@@ -505,7 +515,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           onOpenAgent={navigation === undefined ? null : (agentId) => navigation.openAgent({ agentId })}
         />
         {mate !== null &&
-        (compact ? shownTab === "board" : rightPane === "board" && !values.boardCollapsed) &&
+        (compact ? shownTab === "board" : pane === "board" && !values.boardCollapsed) &&
         watching === null ? (
           <Segmented
             theme={theme}
@@ -531,7 +541,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         {!compact && mate !== null && data !== null && !values.boardCollapsed ? (
           <Segmented
             theme={theme}
-            value={rightPane}
+            value={pane}
             options={[
               {
                 value: "board",
@@ -546,6 +556,9 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
                 label: "Files",
                 tooltip: "Browse and edit files in the FirstMate home.",
               },
+              ...(deck
+                ? [{ value: "deck" as const, label: "Deck", tooltip: "Show the crew as sailors on a ship deck (preview)." }]
+                : []),
             ]}
             onChange={setRightPane}
           />
@@ -575,8 +588,8 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
               label={values.boardCollapsed ? "Show the board" : "Hide the board"}
               tooltip={
                 values.boardCollapsed
-                  ? `Show ${rightPane === "files" ? "Files" : "Crew"} beside the first-mate chat.`
-                  : `Hide the ${rightPane === "files" ? "Files" : "Crew"} pane to give the chat more room.`
+                  ? `Show ${paneName(pane)} beside the first-mate chat.`
+                  : `Hide the ${paneName(pane)} pane to give the chat more room.`
               }
               tooltipSide="bottom"
               tooltipAlign="end"
@@ -841,7 +854,13 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           </View>
         ) : (
           <View style={{ flex: 1, minWidth: 0 }}>
-            {rightPane === "board" ? crew : <FilesView theme={theme} compact={false} request={filesRequest} />}
+            {pane === "board" ? (
+              crew
+            ) : pane === "deck" ? (
+              <ShipDeckView cards={data.cards} theme={theme} />
+            ) : (
+              <FilesView theme={theme} compact={false} request={filesRequest} />
+            )}
           </View>
         )}
       </View>
