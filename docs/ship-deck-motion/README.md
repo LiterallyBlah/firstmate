@@ -76,10 +76,10 @@ crew was set walking just before measuring.
 
 | Renderer | Plan | Crew walking | Settled | Window hidden |
 | --- | --- | --- | --- | --- |
-| GPU (AMD Radeon 880M, D3D11) | full | 29.0 fps, main thread 12.0% busy, 2.4 ms JS a frame | 28.8 fps, 12.6% | 0 fps, 2.6% |
-| GPU, reduced motion | still | 0 draws, 4.0% | 0 draws, 4.0% | 0 draws, 3.3% |
-| SwiftShader (CPU) | lite | 11.8 fps, 4.6% busy, 2.1 ms a frame | 11.8 fps, 4.4% | 0 fps, 1.8% |
-| SwiftShader, reduced motion | still | 0 draws, 3.8% | 0 draws, 3.0% | 0 draws, 2.1% |
+| GPU (AMD Radeon 880M, D3D11) | full | 29.0 fps, main thread 11.4% busy, 2.3 ms JS a frame | 29.0 fps, 12.7%, 2.5 ms | 0 fps, 4.1% |
+| GPU, reduced motion | still | 0 draws, 2.3% | 0 draws, 2.4% | 0 draws, 2.9% |
+| SwiftShader (CPU) | lite | 11.8 fps, 4.9% busy, 2.3 ms a frame | 11.8 fps, 5.0%, 2.0 ms | 0 fps, 4.3% |
+| SwiftShader, reduced motion | still | 0 draws, 4.7% | 0 draws, 4.5% | 0 draws, 5.5% |
 
 "Main thread busy" is CDP's `TaskDuration` over five seconds, all of the page's work, not only the deck's.
 The hidden and still rows are the screen's other work, such as the chat and the board's poll. "JS a frame"
@@ -89,7 +89,7 @@ is everything inside the animation-frame callback, Pixi's render included. GPU t
 
 `compile-results.json` (`node docs/ship-deck-canvas/compile.mjs`, Paseo 0.11.0's compiler):
 
-- The client bundle grows by 32,003 bytes (424,448 → 456,451). It is all code, with no Pixi and no art in it.
+- The client bundle grows by 32,072 bytes (424,448 → 456,520). It is all code, with no Pixi and no art in it.
 - It has no `class` syntax, and React Native 0.81's `hermesc` parses it with its default flags.
 - The server is unchanged.
 
@@ -113,10 +113,11 @@ is everything inside the animation-frame callback, Pixi's render included. GPU t
   - `03-walking.png`, `04-arrived.png` — three seconds into the walks, then settled.
   - `05-hatch-arriving.png`, `06-new-crewmate-walks.png` — a new crewmate half out of the hatch, then on
     its way to a station.
-  - `07-leaving.png` — an archived crewmate walking back to the hatch.
+  - `07-leaving.png` — 0.9 s after a blocked crewmate is archived: walking from the bow back to the hatch.
   - `08-feed-lost.png` — the fleet load failing: the banner, "The crew's feed is lost…", every sailor
     greyed in place, the legend "12 stale", and the label "… feed lost: last known".
-  - Window hidden: **0 draws in 3 s**. Shown again: 32 in the next second.
+  - Window hidden: **0 draws in 3 s**. Shown again: 32 in the next second (the fake clock's frames are
+    16 ms apart, so the cap lets one more through than on a 60 Hz display).
 - No page errors and no console errors.
 
 `npm test` (`client/deck-motion.test.ts`, `client/ship-deck.test.ts`):
