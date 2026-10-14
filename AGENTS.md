@@ -42,7 +42,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`), and each send's receipt. |
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
-| `server/ship-deck.ts`, `shared/ship-deck.ts` | The ship deck's switch, `FIRSTMATE_SHIP_DECK` (off by default), carried on the fleet load; `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail and the crew's looks. |
+| `server/ship-deck.ts`, `shared/ship-deck.ts` | What the ship deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail and the crew's looks. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the legend of badges and counts. |
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z. Pure. |
 | `client/deck-hover.ts`        | The sailor under the pointer, by the box it is drawn in; canvas ↔ deck coordinates; where its label goes. Pure. |
@@ -250,25 +250,26 @@ calls to the old ones exactly, and `receipts.test.ts` a prepared home byte for b
   mate's, a former first mate's or a crewmate's timeline through the SDK cursor and returns `gap`,
   `staleCursor`, `hasOlder` as Paseo gives them; it is refused while the journal is off and writes nothing.
 
-## The ship deck is a WebGL canvas, behind `FIRSTMATE_SHIP_DECK`
+## The ship deck is a WebGL canvas
 
-A preview, off by default (`docs/ship-deck-canvas/README.md`, `docs/ship-deck-motion/README.md`,
-`docs/ship-deck-environment/README.md` and `docs/ship-deck-tweaks/README.md` have the evidence). With the switch on, the
-fleet load carries `shipDeck: true` (`withShipDeck`). Then the wide layout's Crew/Files switch gains
-**Deck**, in a web renderer only (`deckOffered`). Off, the load is the same object with no key: the
-browser harness holds the screen's DOM identical to main's. What it found applies to any client code:
+A standard part of the screen (`docs/ship-deck-canvas/README.md`, `docs/ship-deck-motion/README.md`,
+`docs/ship-deck-environment/README.md`, `docs/ship-deck-tweaks/README.md` and
+`docs/ship-deck-default/README.md` have the evidence). The wide layout's Crew/Files switch has **Deck** in a
+web renderer (`deckOffered`); a phone or a narrow window is not offered it, and a display without WebGL
+gets a sentence instead of the canvas. It was built behind a `FIRSTMATE_SHIP_DECK` switch, now removed: the
+fleet load carries nothing for the deck, and its RPCs always answer. What building it found applies to any
+client code:
 
 - **The client bundle must parse under React Native 0.81's Hermes, so it has no `class` syntax.** A phone
   parses the whole bundle before any of it runs, and the host's `hermesc` refuses `class` with its
   default flags (it needs `-Xes6-class`). Whether the app turns that flag on at run time has not been
   checked on a device, so treat it as a constraint. esbuild lowers `async` for the client (the compiler's
   `supported`), but it cannot lower classes. Main's bundle has none. Pixi has them, so even lazily
-  bundled it would risk the plugin on phones with the switch off. `docs/ship-deck-canvas/compile.mjs`
+  bundled it would risk the plugin on every phone. `docs/ship-deck-canvas/compile.mjs`
   runs Paseo's compiler and `hermesc` over both bundles. Check any new client dependency the same way.
 - **A browser-only library is served, not bundled.** `vendor/pixi.min.js` is Pixi's own prebuilt build,
   shipped in `files` and held byte-identical to the pinned devDependency by `ship-deck.test.ts`; an npm
-  dependency would add about 76 MB to every install. `firstmate.deck.engine` sends it as text (refused
-  while the switch is off). `evaluatePixi` runs it with `new Function`, which needs the same permission
+  dependency would add about 76 MB to every install. `firstmate.deck.engine` sends it as text. `evaluatePixi` runs it with `new Function`, which needs the same permission
   as the app's own `(0, globalThis.eval)` of every plugin bundle. It runs once per session, only after a
   host and WebGL have been found.
 - **The escape hatch is a childless `View`.** On the web, react-native-web hands a `View`'s ref the DOM
@@ -281,8 +282,7 @@ browser harness holds the screen's DOM identical to main's. What it found applie
   harness draws with it in Edge.
 
 - **The art is served the same way.** `art/ship-deck/deck.png` (one atlas, about 84 KB) and `deck.json`
-  (its manifest, checked against `DeckArtManifestSchema`) go through `firstmate.deck.art`, refused while
-  the switch is off. They are fetched and decoded once a session alongside Pixi, never bundled.
+  (its manifest, checked against `DeckArtManifestSchema`) go through `firstmate.deck.art`. They are fetched and decoded once a session alongside Pixi, never bundled.
   `docs/ship-deck-art/build-art.py` rebuilds them from the generated sources; `art/ship-deck/README.md`
   says where those came from and what still needs a pixel artist.
 - **Depth is the deck row.** Scene coordinates are the hull's own pixels, and a sailor's `x, y` is its
@@ -346,7 +346,7 @@ starts.
 
 - **Served, not bundled, and not needed to draw.** `art/ship-deck/environment.json` and the ten PNGs it
   names (about 50 KB: the water tile, the foam strip, six skies, the stars, the gull's flap strip) go
-  through `firstmate.deck.environment`, refused while the switch is off. The manifest is checked against
+  through `firstmate.deck.environment`. The manifest is checked against
   `DeckEnvironmentManifestSchema`, whose paths cannot leave `art/ship-deck/`. The mount fetches and decodes
   them once a session beside Pixi and the atlas, but apart: when they fail, the deck draws its ship and
   crew on a flat navy sea, warns in the console, and asks again on the next open.
@@ -376,8 +376,8 @@ starts.
 ### The sail, the wake, the crew's looks and the sailor at ease (`docs/ship-deck-tweaks/README.md` has the evidence)
 
 - **Served apart, and kept image by image.** `art/ship-deck/extras.json` names the sail's two-state strip,
-  the mast occluder and six crew looks (about 31 KB); `firstmate.deck.extras` sends them, refused while the
-  switch is off, checked against `DeckExtrasManifestSchema`, whose paths cannot leave `art/ship-deck/`.
+  the mast occluder and six crew looks (about 31 KB); `firstmate.deck.extras` sends them, checked against
+  `DeckExtrasManifestSchema`, whose paths cannot leave `art/ship-deck/`.
   `decodeExtras` keeps whatever decodes: no sail without both its strip and the occluder, and a look that
   failed is not handed out. A whole failure is a bare mast and the atlas's two outfits, with a warning.
 - **The sail hangs behind the crew** (`ship`'s children: hull, masthead, sail, deck). It rides the bob but

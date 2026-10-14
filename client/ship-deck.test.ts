@@ -1,5 +1,5 @@
 /**
- * The ship deck, behind FIRSTMATE_SHIP_DECK: the scene from a fixture fleet, the mount's every way to
+ * The ship deck: the scene from a fixture fleet, the mount's every way to
  * start or not, the vendored Pixi build evaluated as the client evaluates it, and the view mounted
  * through react-test-renderer with WebGL stood in for. Whether a real WebGL canvas paints is
  * `docs/ship-deck-motion/render.mjs`, in a real browser. The deck's motion is `deck-motion.test.ts`.
@@ -363,15 +363,12 @@ describe("the deck's art", () => {
   });
 });
 
-describe("the switch on the screen", () => {
-  it("offers the deck only when the load says so, in a web renderer, on the wide layout", () => {
-    expect(deckOffered({ shipDeck: true }, "web", false)).toBe(true);
-    // Off: the load has no key, and nothing is offered.
-    expect(deckOffered({}, "web", false)).toBe(false);
-    expect(deckOffered(null, "web", false)).toBe(false);
-    expect(deckOffered({ shipDeck: true }, "ios", false)).toBe(false);
-    expect(deckOffered({ shipDeck: true }, "android", false)).toBe(false);
-    expect(deckOffered({ shipDeck: true }, "web", true)).toBe(false);
+describe("the Deck on the screen", () => {
+  it("is offered in a web renderer on the wide layout, and nowhere else, with no switch to set", () => {
+    expect(deckOffered("web", false)).toBe(true);
+    expect(deckOffered("ios", false)).toBe(false);
+    expect(deckOffered("android", false)).toBe(false);
+    expect(deckOffered("web", true)).toBe(false);
   });
 });
 
@@ -711,7 +708,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
 
   it("decodes every image the environment names, and refuses one it did not send", async () => {
     const root = fileURLToPath(new URL("..", import.meta.url));
-    const environment = await readDeckEnvironment({ FIRSTMATE_SHIP_DECK: "1" }, async () => root);
+    const environment = await readDeckEnvironment(async () => root);
     const decoded = await decodeEnvironment(environment, (png) => Promise.resolve({ png }));
     expect([...decoded.images.keys()]).toEqual(environmentImagePaths(environment.manifest));
     expect(decoded.images.get("sky/night.png")).toEqual({ png: environment.images["sky/night.png"] });
@@ -766,7 +763,7 @@ describe("the ship deck view", () => {
     expect(engine.starts).toHaveLength(1);
     expect(engine.starts[0]?.host).toBe(host);
     expect(engine.starts[0]?.scene.sailors.map((s) => s.key)).toEqual(["w1", "w2", "r1", "w3", "b1", "f1", "i1", "p1"]);
-    expect(text(root)).toContain("Preview · drawn with WebGL · 8 on deck");
+    expect(text(root)).toContain("Drawn with WebGL · 8 on deck");
     expect(text(root)).toContain("2 working | hauling amidships | 2 waiting | by the helm | 2 blocked | in the bow | 2 idle | at the rail");
     expect(text(root)).toContain("Point at a sailor to see who it is");
     const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
@@ -897,7 +894,7 @@ describe("the ship deck view", () => {
 describe("the sail and the crew's looks, decoded", () => {
   it("keeps every image that decodes and leaves out, by name, one that is missing or will not decode", async () => {
     const root = fileURLToPath(new URL("..", import.meta.url));
-    const extras = await readDeckExtras({ FIRSTMATE_SHIP_DECK: "1" }, async () => root);
+    const extras = await readDeckExtras(async () => root);
     const all = await decodeExtras(extras, (png) => Promise.resolve({ png }));
     expect([...all.images.keys()]).toHaveLength(8);
     const missing: string[] = [];

@@ -60,13 +60,12 @@ await build({
   logLevel: "warning",
 });
 const { readDeckArt, readDeckEngine, readDeckEnvironment, readDeckExtras } = await import(pathToFileURL(join(generated, "ship-deck-server.mjs")).href);
-const on = { FIRSTMATE_SHIP_DECK: "1" };
 const served = {
-  "/deck-engine.json": JSON.stringify(await readDeckEngine(on, async () => root)),
-  "/deck-art.json": JSON.stringify(await readDeckArt(on, async () => root)),
-  "/deck-environment.json": JSON.stringify(await readDeckEnvironment(on, async () => root)),
+  "/deck-engine.json": JSON.stringify(await readDeckEngine(async () => root)),
+  "/deck-art.json": JSON.stringify(await readDeckArt(async () => root)),
+  "/deck-environment.json": JSON.stringify(await readDeckEnvironment(async () => root)),
   // The sail and the crew's looks too, as the daemon sends them: without them the deck warns, and this check fails on any warning.
-  "/deck-extras.json": JSON.stringify(await readDeckExtras(on, async () => root)),
+  "/deck-extras.json": JSON.stringify(await readDeckExtras(async () => root)),
 };
 
 const files = {

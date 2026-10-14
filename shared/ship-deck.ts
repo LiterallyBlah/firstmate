@@ -1,5 +1,5 @@
 /**
- * The ship deck's four RPCs, all refused while `FIRSTMATE_SHIP_DECK` is off (`server/ship-deck.ts`):
+ * The ship deck's four RPCs, answered by `server/ship-deck.ts`:
  *
  * - `firstmate.deck.engine` — PixiJS's browser build, as text, for the client to evaluate in a web
  *   renderer (`client/deck-mount.ts`). It reads `vendor/pixi.min.js` in the plugin's folder and nothing else.
@@ -72,8 +72,7 @@ export type DeckArt = z.infer<typeof loadDeckArt.output>;
 
 /**
  * `firstmate.deck.environment` — the generated sea, sky and gull (`art/ship-deck/ENVIRONMENT.md`): the
- * parts of `environment.json` the deck draws with, and each image it names, base64. Refused while the
- * switch is off, like the others. Separate from the atlas so a deck whose environment fails to load
+ * parts of `environment.json` the deck draws with, and each image it names, base64. Separate from the atlas so a deck whose environment fails to load
  * still draws its ship and crew, on a plain sea (`client/deck-mount.ts`).
  */
 /** A file inside `art/ship-deck/`: a relative path to a PNG, never climbing out. */
@@ -149,8 +148,8 @@ export type DeckEnvironment = z.infer<typeof loadDeckEnvironment.output>;
 
 /**
  * `firstmate.deck.extras` — the sail on hull C's mast and the crew's extra looks (`art/ship-deck/assets-2/README.md`):
- * the parts of `art/ship-deck/extras.json` the deck draws with, and each image it names, base64. Refused
- * while the switch is off, like the others. Apart from the atlas and the environment, and not needed to
+ * the parts of `art/ship-deck/extras.json` the deck draws with, and each image it names, base64. Apart from
+ * the atlas and the environment, and not needed to
  * draw: the client keeps whatever of it decodes, so a missing sail is the bare mast and a missing look is
  * one fewer to hand out (`client/deck-mount.ts`).
  */

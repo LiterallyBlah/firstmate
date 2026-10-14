@@ -418,10 +418,9 @@ the home, the backlog, and a folder of its own to remember what it has already r
 `pr-watch`, a new version of FirstMate replaces it; once you have, yours is kept, and Watches says when
 FirstMate's has changed. The first mate adds or changes a watch only when you say so.
 
-## The ship deck (preview, off by default)
+## The ship deck
 
-A first piece of a ship's-deck view of the crew: one sailor per live crewmate on the deck of a pixel-art
-ship, drawn by PixiJS on a WebGL canvas, standing where its card's column puts it. **Working** sailors
+A ship's-deck view of the crew: one sailor per live crewmate on the deck of a pixel-art ship, drawn by PixiJS on a WebGL canvas, standing where its card's column puts it. **Working** sailors
 haul at the stations amidships. **Waiting** (Ready, or waiting on a job) stand by the helm.
 **Blocked** (Blocked, Failed) are in the bow, and **idle** (Idle, Parked) stand at ease at the rail,
 breathing. Each crewmate wears one of eight looks, chosen by its agent, so the same crewmate always looks the same. When a
@@ -435,17 +434,16 @@ hidden, and holds still if the system asks for reduced motion. It reads the same
 board and polls nothing of its own. Names, tasks and actions stay on the Crew board. The art is
 generated and cleaned up by script (`art/ship-deck/README.md`).
 
-It is behind a switch in the daemon's environment, `FIRSTMATE_SHIP_DECK=1`. Off — the default — nothing
-changes. On, the header's Crew/Files switch gains **Deck**, in the desktop app's wide layout only. On a
-phone or a narrow window it is not offered, and a display without WebGL gets a plain sentence instead
-of the canvas.
+The header's Crew/Files switch has **Deck** in the desktop app's wide layout; there is nothing to turn on.
+On a phone or a narrow window it is not offered, and a display without WebGL gets a plain sentence instead
+of the canvas. The `FIRSTMATE_SHIP_DECK` switch it was first released behind is gone; the daemon ignores it.
 
-To check it in the desktop app once the plugin is installed: start the daemon with `FIRSTMATE_SHIP_DECK=1`
-in its environment and reload the plugin. Open FirstMate and press **Deck**. The caption should read
-"Preview · drawn with WebGL · N on deck", with N matching the live crew. In DevTools, the canvas carries
+To check it in the desktop app once the plugin is installed, open FirstMate and press **Deck**. The caption
+should read "Drawn with WebGL · N on deck", with N matching the live crew. In DevTools, the canvas carries
 `data-firstmate-deck="webgl"` and `data-firstmate-deck-motion="full"` (`still` under reduced motion,
-`lite` on a software renderer). `docs/ship-deck-canvas/README.md`, `docs/ship-deck-motion/README.md` and
-`docs/ship-deck-tweaks/README.md` have the full list, and what was proven before install.
+`lite` on a software renderer). `docs/ship-deck-canvas/README.md`, `docs/ship-deck-motion/README.md`,
+`docs/ship-deck-tweaks/README.md` and `docs/ship-deck-default/README.md` have the full list, and what was
+proven before install.
 
 ## Settings
 
@@ -479,8 +477,7 @@ in its environment and reload the plugin. Open FirstMate and press **Deck**. The
   made up. After the plugin is reloaded, what a watch prints waits until any agent works or the panel
   is opened.
 - The panel has not yet been checked on a phone.
-- **The ship deck** (`FIRSTMATE_SHIP_DECK=1`, off by default) is a preview, desktop only, one ship for
-  every host. Its sailors are generated art cleaned up by script, with no real walk cycle or back view,
+- **The ship deck** is desktop only (the wide layout, with WebGL), and one ship for every host. Its sailors are generated art cleaned up by script, with no real walk cycle or back view,
   and they still want a pixel artist's polish. Its motion has been seen in a browser, not yet inside the
   Paseo desktop app.
 - **The receipt journal** (`FIRSTMATE_RECEIPT_JOURNAL=1` in the daemon's environment, off by default)

@@ -10,6 +10,12 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- The ship deck is a standard part of FirstMate, no longer a preview behind `FIRSTMATE_SHIP_DECK`. In the
+  desktop app's wide layout the header's Crew/Files switch always has **Deck**; a phone or a narrow window is
+  not offered it, and a display without WebGL is told in words why it cannot draw. The switch is gone and
+  the daemon ignores it, so there is nothing to set or restart. Its caption drops "Preview". The receipt
+  journal's `FIRSTMATE_RECEIPT_JOURNAL` switch is unchanged.
+
 - The ship deck preview (still behind `FIRSTMATE_SHIP_DECK=1`, off by default) is under sail, with a wake
   and a crew that no longer all look alike. A low square sail hangs on the mast, billowing gently, behind
   the crew. Foam churns astern and the bow and stern waves trail away across the water, scrolling with the
