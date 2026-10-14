@@ -60,7 +60,8 @@ async function snapshot(root: string) {
 
 it("leaves the inherited journal untouched when the test runner starts with journaling enabled", async () => {
   // A stand-in for the live daemon; this regression must never use the real one.
-  const ambientHome = await mkdtemp(join(tmpdir(), "firstmate-ambient-"));
+  const scratch = await mkdtemp(join(tmpdir(), "firstmate-ambient-"));
+  const ambientHome = join(scratch, "home");
   try {
     const plugin = join(ambientHome, "plugin-data", "firstmate");
     const journal = join(plugin, "receipts");
@@ -69,8 +70,10 @@ it("leaves the inherited journal untouched when the test runner starts with jour
     await writeFile(join(plugin, "receipt-uncertainties.jsonl"), "existing uncertainties\n");
     const before = await snapshot(ambientHome);
     const vitest = join(dirname(fileURLToPath(import.meta.resolve("vitest/package.json"))), "vitest.mjs");
+    const report = join(scratch, "report.json");
     await promisify(execFile)(process.execPath, [
-      vitest, "run", "test/journal-isolation.test.ts", "--maxWorkers=1",
+      vitest, "run", "test/journal-isolation.test.ts", "--maxWorkers=1", "--reporter=json",
+      "--outputFile", report,
       "--testNamePattern=^keeps receipt writes in a disposable home$",
     ], {
       cwd: fileURLToPath(new URL("../", import.meta.url)),
@@ -78,8 +81,10 @@ it("leaves the inherited journal untouched when the test runner starts with jour
       windowsHide: true,
       timeout: 30_000,
     });
+    // A renamed filter must fail the guard rather than silently skip the probe.
+    expect(JSON.parse(await readFile(report, "utf8")).numPassedTests).toBe(1);
     expect(await snapshot(ambientHome)).toEqual(before);
   } finally {
-    await rm(ambientHome, { recursive: true, force: true });
+    await rm(scratch, { recursive: true, force: true });
   }
 }, 40_000);
