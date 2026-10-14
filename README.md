@@ -420,11 +420,13 @@ FirstMate's has changed. The first mate adds or changes a watch only when you sa
 
 ## The ship deck (preview, off by default)
 
-A first piece of a ship's-deck view of the crew: one sailor per live crewmate on a plain deck, drawn by
-PixiJS on a WebGL canvas, standing where its card's column puts it — **working** at the stations
-amidships, **waiting** (Ready, or waiting on a job) by the helm, **blocked** (Blocked, Failed) in the bow
-rigging, **idle** (Idle, Parked) at the rail. It reads the same cards as the board and polls nothing of
-its own. The art is placeholder shapes; names, tasks and actions stay on the Crew board.
+A first piece of a ship's-deck view of the crew: one sailor per live crewmate on the deck of a pixel-art
+ship, drawn by PixiJS on a WebGL canvas, standing where its card's column puts it. **Working** sailors
+haul at the stations amidships. **Waiting** (Ready, or waiting on a job) stand by the helm.
+**Blocked** (Blocked, Failed) are in the bow, and **idle** (Idle, Parked) lean at the rail. The deck is
+depth-layered: a sailor behind the mast or a bollard is hidden by it. It reads the same cards as the
+board and polls nothing of its own. Names, tasks and actions stay on the Crew board. The art is
+generated and cleaned up by script (`art/ship-deck/README.md`).
 
 It is behind a switch in the daemon's environment, `FIRSTMATE_SHIP_DECK=1`. Off — the default — nothing
 changes. On, the header's Crew/Files switch gains **Deck**, in the desktop app's wide layout only. On a
@@ -469,8 +471,9 @@ before install.
   made up. After the plugin is reloaded, what a watch prints waits until any agent works or the panel
   is opened.
 - The panel has not yet been checked on a phone.
-- **The ship deck** (`FIRSTMATE_SHIP_DECK=1`, off by default) is a preview: placeholder art, no
-  animation, desktop only. It has been seen drawing in a browser, not yet inside the Paseo desktop app.
+- **The ship deck** (`FIRSTMATE_SHIP_DECK=1`, off by default) is a preview, desktop only, with no
+  animation. Its sailors are generated art cleaned up by script, and they still want a pixel artist's
+  polish. It has been seen drawing in a browser, not yet inside the Paseo desktop app.
 - **The receipt journal** (`FIRSTMATE_RECEIPT_JOURNAL=1` in the daemon's environment, off by default)
   records what the plugin sends and writes from the day it is switched on, nothing before. It cannot see
   Paseo's own finish notes to the first mate, so those stay marked uncertain.

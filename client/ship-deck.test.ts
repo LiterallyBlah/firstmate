@@ -6,6 +6,7 @@
  */
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
+import { inflateSync } from "node:zlib";
 import type { PluginTheme } from "@getpaseo/plugin";
 import { act, createElement } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
@@ -22,8 +23,10 @@ vi.mock("@getpaseo/plugin/client", () => ({
 
 import type { AgentStatus, ColumnId, FleetCard, RemoteCard } from "../shared/fleet";
 import { deckEngineSource } from "../server/ship-deck";
+import { DeckArtManifestSchema, type DeckArt } from "../shared/ship-deck";
 import {
   browserDeckEngine,
+  decodeAtlas,
   evaluatePixi,
   isDeckHost,
   mountDeck,
@@ -34,7 +37,23 @@ import {
   type DeckStatus,
   type StartDeck,
 } from "./deck-mount";
-import { DECK_ZONES, deckOffered, deckScene, deckState, zoneSlots, type DeckScene } from "./deck-scene";
+import { fitDeck } from "./deck-pixi";
+import {
+  DECK_HEIGHT,
+  DECK_POSES,
+  DECK_PROPS,
+  DECK_STATES,
+  DECK_WIDTH,
+  DECK_ZONES,
+  deckLayers,
+  deckOffered,
+  deckScene,
+  deckState,
+  sailorOutfit,
+  zoneSlots,
+  type DeckSailor,
+  type DeckScene,
+} from "./deck-scene";
 import { ShipDeckView, deckStatusText } from "./ship-deck";
 
 const theme = {
@@ -174,6 +193,121 @@ describe("the deck's scene", () => {
     }
     expect(zoneSlots(DECK_ZONES.idle, 0)).toEqual([]);
   });
+
+  it("gives each state its pose, keeps a sailor's outfit from poll to poll, and turns the crew aft of the mast to face it", () => {
+    const scene = deckScene(fixture, theme);
+    for (const sailor of scene.sailors) {
+      expect(sailor.pose).toBe(DECK_POSES[sailor.state]);
+      expect(sailor.outfit).toBe(sailorOutfit(sailor.key));
+      expect(sailor.flip).toBe(sailor.state === "working" && sailor.x > 211);
+    }
+    expect(new Set(fixture.map((c) => sailorOutfit(c.key)))).toEqual(new Set(["base", "outfit"]));
+    expect(deckScene(fixture, theme).sailors.map((s) => s.outfit)).toEqual(scene.sailors.map((s) => s.outfit));
+  });
+});
+
+/** The served atlas, decoded: enough of PNG for the one the build writes (8-bit RGBA, not interlaced). */
+function decodePng(file: Buffer): { width: number; height: number; alpha: (x: number, y: number) => number } {
+  const width = file.readUInt32BE(16);
+  const height = file.readUInt32BE(20);
+  expect([file[24], file[25], file[28]]).toEqual([8, 6, 0]);
+  const chunks: Buffer[] = [];
+  for (let at = 8; at < file.length; ) {
+    const length = file.readUInt32BE(at);
+    if (file.toString("latin1", at + 4, at + 8) === "IDAT") chunks.push(file.subarray(at + 8, at + 8 + length));
+    at += length + 12;
+  }
+  const raw = inflateSync(Buffer.concat(chunks));
+  const stride = width * 4;
+  const pixels = Buffer.alloc(stride * height);
+  for (let y = 0; y < height; y += 1) {
+    const filter = raw[y * (stride + 1)] ?? 0;
+    for (let x = 0; x < stride; x += 1) {
+      const value = raw[y * (stride + 1) + 1 + x] ?? 0;
+      const left = x >= 4 ? (pixels[y * stride + x - 4] ?? 0) : 0;
+      const up = y > 0 ? (pixels[(y - 1) * stride + x] ?? 0) : 0;
+      const corner = x >= 4 && y > 0 ? (pixels[(y - 1) * stride + x - 4] ?? 0) : 0;
+      let predicted = 0;
+      if (filter === 1) predicted = left;
+      else if (filter === 2) predicted = up;
+      else if (filter === 3) predicted = (left + up) >> 1;
+      else if (filter === 4) {
+        const p = left + up - corner;
+        const [pa, pb, pc] = [Math.abs(p - left), Math.abs(p - up), Math.abs(p - corner)];
+        predicted = pa <= pb && pa <= pc ? left : pb <= pc ? up : corner;
+      }
+      pixels[y * stride + x] = (value + predicted) & 0xff;
+    }
+  }
+  return { width, height, alpha: (x, y) => pixels[y * stride + x * 4 + 3] ?? 0 };
+}
+
+describe("the deck's art", () => {
+  const manifest = DeckArtManifestSchema.parse(JSON.parse(readFileSync(new URL("../art/ship-deck/deck.json", import.meta.url), "utf8")));
+  const atlas = decodePng(readFileSync(new URL("../art/ship-deck/deck.png", import.meta.url)));
+  const opaque = (frame: readonly number[], x: number, y: number) => {
+    const [fx = 0, fy = 0, fw = 0, fh = 0] = frame;
+    return x >= 0 && y >= 0 && x < fw && y < fh && atlas.alpha(fx + x, fy + y) === 255;
+  };
+
+  it("is the hull the scene's coordinates are, in an atlas the manifest describes", () => {
+    expect(manifest.ship.frame).toEqual([0, 0, DECK_WIDTH, DECK_HEIGHT]);
+    expect([atlas.width, atlas.height]).toEqual([manifest.atlas.width, manifest.atlas.height]);
+    expect(manifest.atlas.colours).toBeLessThanOrEqual(48);
+    expect(Object.keys(manifest.pieces).sort()).toEqual([
+      "bollard-bow-aft",
+      "bollard-bow-fore",
+      "bollard-gunwale-aft",
+      "bollard-gunwale-fore",
+      "mast",
+      "near",
+    ]);
+    expect(manifest.pieces.near?.baseline).toBeNull();
+  });
+
+  it("puts every sailor's feet on the deck and behind the near rail, however crowded each place gets", () => {
+    const near = manifest.pieces.near!;
+    for (const state of DECK_STATES) {
+      for (const count of [1, 2, 5, 12, 30]) {
+        for (const slot of zoneSlots(DECK_ZONES[state], count)) {
+          // Standing on the hull's deck…
+          expect(opaque(manifest.ship.frame, slot.x, slot.y), `${state} ${slot.x},${slot.y} on deck`).toBe(true);
+          // …and never on the near rail, the stairs or the hull below them, which are in front of everyone.
+          expect(opaque(near.frame, slot.x - near.x, slot.y - near.y), `${state} ${slot.x},${slot.y} behind the rail`).toBe(false);
+        }
+      }
+    }
+    for (const prop of DECK_PROPS) expect(opaque(manifest.ship.frame, prop.x, prop.y), prop.name).toBe(true);
+  });
+
+  it("draws the hull first, the near rail last, and everything else by the row it stands on", () => {
+    const at = (x: number, y: number, key: string): DeckSailor => ({ key, label: key, state: "working", x, y, pose: "hauling", outfit: "base", flip: false });
+    const scene: DeckScene = {
+      ...deckScene([], theme),
+      sailors: [at(211, 111, "before-mast"), at(211, 100, "behind-mast"), at(80, 94, "behind-bollard"), at(80, 95, "before-bollard")],
+    };
+    const order = deckLayers(scene, manifest.pieces).map((layer) =>
+      layer.kind === "ship" ? "ship" : layer.kind === "piece" ? `piece:${layer.name}` : layer.kind === "prop" ? `prop:${layer.name}` : layer.sailor.key,
+    );
+    expect(order[0]).toBe("ship");
+    expect(order.at(-1)).toBe("piece:near");
+    const before = (a: string, b: string) => expect(order.indexOf(a), `${a} before ${b}`).toBeLessThan(order.indexOf(b));
+    before("behind-mast", "piece:mast");
+    before("piece:mast", "before-mast");
+    before("behind-bollard", "piece:bollard-bow-aft");
+    before("piece:bollard-bow-aft", "before-bollard");
+    before("prop:barrel", "behind-mast");
+    expect(order).toHaveLength(1 + DECK_PROPS.length + 4 + Object.keys(manifest.pieces).length);
+  });
+
+  it("fits the deck with whole device pixels once it is twice its size, and exactly below that", () => {
+    const deck = { width: DECK_WIDTH, height: DECK_HEIGHT };
+    expect(fitDeck({ width: 1000, height: 800 }, deck, 1).scale).toBe(2);
+    expect(fitDeck({ width: 1000, height: 800 }, deck, 1.5).scale).toBeCloseTo(3 / 1.5);
+    const small = fitDeck({ width: 600, height: 400 }, deck, 1);
+    expect(small.scale).toBeCloseTo((600 / DECK_WIDTH) * 0.96);
+    expect(small.x).toBe(Math.round((600 - DECK_WIDTH * small.scale) / 2));
+  });
 });
 
 describe("the switch on the screen", () => {
@@ -261,6 +395,9 @@ function fakeEngine(options: { webgl?: "webgl2" | "webgl" | null; load?: () => P
 }
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+/** Every constructor `evaluatePixi` looks for, as do-nothing stand-ins. */
+const FAKE_PIXI_PARTS = "Application() {}, Container() {}, Graphics() {}, Sprite() {}, ImageSource() {}, Texture() {}, Rectangle() {}";
 
 describe("mounting the deck", () => {
   const scene = deckScene(fixture, theme);
@@ -426,37 +563,83 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     // The stage is made in the constructor, the renderer by init.
     expect(new pixi.Application().stage).toBeInstanceOf(pixi.Container);
     const container = methods(pixi.Container);
-    for (const name of ["addChild", "addChildAt", "removeChild", "destroy", "label", "position", "scale"]) expect(container.has(name), name).toBe(true);
+    for (const name of ["addChild", "removeChild", "destroy", "label", "position", "scale"]) expect(container.has(name), name).toBe(true);
     const graphics = methods(pixi.Graphics);
-    for (const name of ["poly", "rect", "circle", "moveTo", "lineTo", "fill", "stroke", "addChild", "destroy"]) expect(graphics.has(name), name).toBe(true);
+    for (const name of ["ellipse", "fill", "addChild", "destroy"]) expect(graphics.has(name), name).toBe(true);
+    const sprite = methods(pixi.Sprite);
+    for (const name of ["anchor", "position", "scale", "label", "destroy"]) expect(sprite.has(name), name).toBe(true);
+    for (const name of ["scaleMode", "destroy"]) expect(methods(pixi.ImageSource).has(name), name).toBe(true);
+    expect(methods(pixi.Texture).has("destroy")).toBe(true);
+    // A texture cut from an atlas: the frame the deck asks for is the one it gets, sampled nearest.
+    const source = new pixi.ImageSource({ resource: { width: 40, height: 30 } });
+    source.scaleMode = "nearest";
+    const texture = new pixi.Texture({ source, frame: new pixi.Rectangle(2, 3, 10, 20) }) as unknown as {
+      frame: { x: number; y: number; width: number; height: number };
+    };
+    expect([texture.frame.x, texture.frame.y, texture.frame.width, texture.frame.height]).toEqual([2, 3, 10, 20]);
+    expect(source.scaleMode).toBe("nearest");
   });
 
   it("refuses a build that is not the Pixi it claims to be", () => {
     const stub = (body: string) => ({ version: "8.22.0", source: body });
     expect(() => evaluatePixi(stub("var NOT_PIXI = {};"))).toThrow("no PIXI namespace");
     expect(() => evaluatePixi(stub("var PIXI = { VERSION: '8.22.0', Application() {}, Container() {} };"))).toThrow("no Graphics");
-    expect(() => evaluatePixi(stub("var PIXI = { VERSION: '7.0.0', Application() {}, Container() {}, Graphics() {} };"))).toThrow(
-      "says 7.0.0, not 8.22.0",
-    );
+    expect(() => evaluatePixi(stub("var PIXI = { VERSION: '8.22.0', Application() {}, Container() {}, Graphics() {} };"))).toThrow("no Sprite");
+    expect(() => evaluatePixi(stub(`var PIXI = { VERSION: '7.0.0', ${FAKE_PIXI_PARTS} };`))).toThrow("says 7.0.0, not 8.22.0");
   });
 
-  it("fetches and evaluates Pixi once a session, and tries again after a failure", async () => {
-    let calls = 0;
-    const good = { version: "1.2.3", source: "var PIXI = { VERSION: '1.2.3', Application() {}, Container() {}, Graphics() {} };" };
-    const failing = browserDeckEngine(() => {
-      calls += 1;
-      return Promise.reject(new Error("daemon away"));
-    });
-    await expect(failing.load()).rejects.toThrow("daemon away");
-    const engine = browserDeckEngine(() => {
-      calls += 1;
-      return Promise.resolve(good);
-    });
+  it("fetches Pixi and the art once a session, decodes the atlas, and tries again after a failure", async () => {
+    let sources = 0;
+    let arts = 0;
+    const decoded: string[] = [];
+    const good = { version: "1.2.3", source: `var PIXI = { VERSION: '1.2.3', ${FAKE_PIXI_PARTS} };` };
+    const art = { png: "iVBOR", manifest: {} } as unknown as DeckArt;
+    const decode = (png: string) => {
+      decoded.push(png);
+      return Promise.resolve({ decoded: png });
+    };
+    const failing = browserDeckEngine(
+      () => {
+        sources += 1;
+        return Promise.resolve(good);
+      },
+      () => {
+        arts += 1;
+        return Promise.reject(new Error("art away"));
+      },
+      decode,
+    );
+    await expect(failing.load()).rejects.toThrow("art away");
+    const engine = browserDeckEngine(
+      () => {
+        sources += 1;
+        return Promise.resolve(good);
+      },
+      () => {
+        arts += 1;
+        return Promise.resolve(art);
+      },
+      decode,
+    );
     const [first, second] = await Promise.all([engine.load(), engine.load()]);
     expect(typeof first).toBe("function");
     expect(typeof second).toBe("function");
     await engine.load();
-    expect(calls).toBe(2);
+    expect([sources, arts]).toEqual([2, 2]);
+    expect(decoded).toEqual(["iVBOR"]);
+  });
+
+  it("decodes the atlas as a PNG data URL, and says so where there is no image decoder", async () => {
+    const made: Array<{ src: string }> = [];
+    const FakeImage = function (this: { src: string; decode(): Promise<void> }) {
+      this.src = "";
+      this.decode = () => Promise.resolve();
+      made.push(this);
+    } as unknown as new () => { src: string; decode(): Promise<void> };
+    const image = await decodeAtlas("AAAA", { Image: FakeImage });
+    expect(image).toBe(made[0]);
+    expect(made[0]?.src).toBe("data:image/png;base64,AAAA");
+    await expect(decodeAtlas("AAAA", {})).rejects.toThrow("cannot decode images");
   });
 });
 
