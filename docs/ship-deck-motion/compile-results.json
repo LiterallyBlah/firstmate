@@ -4,15 +4,15 @@
     "commit": "b95446c",
     "clientBytes": 424448,
     "serverBytes": 289957,
-    "ms": 3661
+    "ms": 3928
   },
   "branch": {
-    "commit": "b95446c",
-    "clientBytes": 456451,
+    "commit": "8e7466e",
+    "clientBytes": 456520,
     "serverBytes": 289957,
-    "ms": 1631
+    "ms": 2178
   },
-  "clientGrowthBytes": 32003,
+  "clientGrowthBytes": 32072,
   "vendoredPixiBytes": 840663,
   "hermesc": "node_modules/react-native/sdks/hermesc (react-native 0.81.5)",
   "hermesParse": {

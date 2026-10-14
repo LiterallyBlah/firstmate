@@ -304,13 +304,13 @@
     "labelAfterTheStateChange": "Ship deck: 6 working, 0 waiting, 4 blocked, 2 idle",
     "labelWithTheFeedLost": "Ship deck: 7 working, 0 waiting, 3 blocked, 2 idle, feed lost: last known",
     "drawsWhileHiddenFor3s": 0,
-    "drawsInTheSecondAfterShown": 31,
+    "drawsInTheSecondAfterShown": 32,
     "animation": {
       "frames": 100,
       "fps": 10,
       "width": 498,
       "height": 211,
-      "bytes": 1854022
+      "bytes": 1854024
     }
   },
   "performance": [
@@ -322,23 +322,23 @@
       "measurements": [
         {
           "label": "crew walking",
-          "drawsPerSecond": 28.8,
-          "mainThreadBusyPercent": 12.4,
-          "scriptPercent": 8.7,
-          "jsMsPerDraw": 2.6
+          "drawsPerSecond": 29,
+          "mainThreadBusyPercent": 11.4,
+          "scriptPercent": 7.8,
+          "jsMsPerDraw": 2.3
         },
         {
           "label": "settled (ambient only)",
-          "drawsPerSecond": 28.4,
-          "mainThreadBusyPercent": 11.9,
-          "scriptPercent": 8,
-          "jsMsPerDraw": 2.41
+          "drawsPerSecond": 29,
+          "mainThreadBusyPercent": 12.7,
+          "scriptPercent": 8.1,
+          "jsMsPerDraw": 2.48
         },
         {
           "label": "window hidden",
           "drawsPerSecond": 0,
-          "mainThreadBusyPercent": 4.4,
-          "scriptPercent": 2.5,
+          "mainThreadBusyPercent": 4.1,
+          "scriptPercent": 2.6,
           "jsMsPerDraw": 0
         }
       ]
@@ -352,22 +352,22 @@
         {
           "label": "crew walking",
           "drawsPerSecond": 0,
-          "mainThreadBusyPercent": 4.9,
-          "scriptPercent": 3.2,
-          "jsMsPerDraw": 0
-        },
-        {
-          "label": "settled (ambient only)",
-          "drawsPerSecond": 0,
           "mainThreadBusyPercent": 2.3,
           "scriptPercent": 1.4,
           "jsMsPerDraw": 0
         },
         {
+          "label": "settled (ambient only)",
+          "drawsPerSecond": 0,
+          "mainThreadBusyPercent": 2.4,
+          "scriptPercent": 1.5,
+          "jsMsPerDraw": 0
+        },
+        {
           "label": "window hidden",
           "drawsPerSecond": 0,
-          "mainThreadBusyPercent": 4.6,
-          "scriptPercent": 2.1,
+          "mainThreadBusyPercent": 2.9,
+          "scriptPercent": 1.4,
           "jsMsPerDraw": 0
         }
       ]
@@ -381,22 +381,22 @@
         {
           "label": "crew walking",
           "drawsPerSecond": 11.8,
-          "mainThreadBusyPercent": 4.2,
-          "scriptPercent": 2.9,
-          "jsMsPerDraw": 1.8
+          "mainThreadBusyPercent": 4.9,
+          "scriptPercent": 3.5,
+          "jsMsPerDraw": 2.32
         },
         {
           "label": "settled (ambient only)",
           "drawsPerSecond": 11.8,
-          "mainThreadBusyPercent": 5.2,
+          "mainThreadBusyPercent": 5,
           "scriptPercent": 3.1,
           "jsMsPerDraw": 1.98
         },
         {
           "label": "window hidden",
           "drawsPerSecond": 0,
-          "mainThreadBusyPercent": 4.4,
-          "scriptPercent": 2.5,
+          "mainThreadBusyPercent": 4.3,
+          "scriptPercent": 2.6,
           "jsMsPerDraw": 0
         }
       ]
@@ -410,22 +410,22 @@
         {
           "label": "crew walking",
           "drawsPerSecond": 0,
-          "mainThreadBusyPercent": 5.4,
-          "scriptPercent": 3.6,
+          "mainThreadBusyPercent": 4.7,
+          "scriptPercent": 3,
           "jsMsPerDraw": 0
         },
         {
           "label": "settled (ambient only)",
           "drawsPerSecond": 0,
-          "mainThreadBusyPercent": 4.6,
+          "mainThreadBusyPercent": 4.5,
           "scriptPercent": 2.8,
           "jsMsPerDraw": 0
         },
         {
           "label": "window hidden",
           "drawsPerSecond": 0,
-          "mainThreadBusyPercent": 4.4,
-          "scriptPercent": 2.7,
+          "mainThreadBusyPercent": 5.5,
+          "scriptPercent": 2.6,
           "jsMsPerDraw": 0
         }
       ]
