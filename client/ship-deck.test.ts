@@ -37,9 +37,11 @@ import {
   type DeckStatus,
   type StartDeck,
 } from "./deck-mount";
+import type { DeckHover } from "./deck-hover";
 import { fitDeck } from "./deck-pixi";
 import type { Figure } from "./deck-crew";
 import {
+  CAPTION_LINE_MAX,
   DECK_HEIGHT,
   DECK_PROPS,
   DECK_WIDTH,
@@ -47,6 +49,7 @@ import {
   deckOffered,
   deckScene,
   deckState,
+  sailorCaption,
   sailorOutfit,
   type DeckScene,
 } from "./deck-scene";
@@ -142,6 +145,51 @@ const fixture: FleetCard[] = [
   card("followed", "working", { remote: { followed: true } }),
 ];
 
+describe("who each sailor is", () => {
+  const captions = () => Object.fromEntries(deckScene(fixture, theme).sailors.map((sailor) => [sailor.key, sailor.caption]));
+
+  it("labels every state with the card's title, its column in the board's words, and where it works", () => {
+    const byKey = captions();
+    expect(Object.fromEntries(Object.entries(byKey).map(([key, caption]) => [key, caption.status]))).toEqual({
+      w1: "Working",
+      w2: "Working",
+      w3: "Working · waiting on a job it started",
+      r1: "Ready · finished, waiting on the first mate",
+      b1: "Blocked",
+      f1: "Failed",
+      i1: "Idle · its turn ended with no status line",
+      p1: "Parked · paused",
+    });
+    expect(byKey.i1).toEqual({ title: "Task i1", status: "Idle · its turn ended with no status line", project: "ariadne", host: "This machine", line: null, stale: null });
+    // A remote worker names its host.
+    expect(byKey.w2?.host).toBe("Light");
+    const stalled = sailorCaption({ ...card("s1", "idle"), note: "stalled" });
+    expect(stalled.status).toBe("Idle · stalled: said working, then stopped");
+  });
+
+  it("carries the card's line at rest: the captain's call, a status line, an error — cut when long", () => {
+    const held = card("h1", "blocked");
+    held.backlog = { hold: "pick a database" } as unknown as FleetCard["backlog"];
+    expect(sailorCaption(held).line).toBe("Captain's call: pick a database");
+    const reported = { ...card("d2", "ready"), report: { state: "done", text: "PR https://example.test/pr/7" } } as unknown as FleetCard;
+    expect(sailorCaption(reported).line).toBe("Done: PR https://example.test/pr/7");
+    const failed = card("e1", "failed", { status: "error" });
+    failed.agent!.lastError = "the build broke\n\n  twice";
+    expect(sailorCaption(failed).line).toBe("the build broke twice");
+    const long = { ...card("l1", "ready"), report: { state: "done", text: "x".repeat(400) } } as unknown as FleetCard;
+    const line = sailorCaption(long).line!;
+    expect(line).toHaveLength(CAPTION_LINE_MAX);
+    expect(line.endsWith("…")).toBe(true);
+  });
+
+  it("says why a greyed sailor is greyed: the feed lost, or its host out of reach", () => {
+    expect(deckScene(fixture, theme, { feedStale: true }).sailors.every((s) => s.caption.stale === "Feed lost: shown where it last stood")).toBe(true);
+    const offline = card("o1", "working", { remote: {} });
+    offline.remote!.online = false;
+    expect(sailorCaption(offline).stale).toBe("Light is out of reach: shown where it last stood");
+  });
+});
+
 describe("the deck's scene", () => {
   it("puts each live crewmate where its column says, and leaves the rest off deck", () => {
     expect(Object.fromEntries(fixture.map((c) => [c.key, deckState(c)]))).toEqual({
@@ -165,7 +213,9 @@ describe("the deck's scene", () => {
     expect(scene.counts).toEqual({ working: 2, waiting: 2, blocked: 2, idle: 2 });
     expect(scene.sailors.map((s) => s.key)).toEqual(["w1", "w2", "r1", "w3", "b1", "f1", "i1", "p1"]);
     expect(scene.sailors.map((s) => s.state)).toEqual(["working", "working", "waiting", "waiting", "blocked", "blocked", "idle", "idle"]);
-    expect(Object.keys(scene.sailors[0]!).sort()).toEqual(["key", "label", "outfit", "stale", "state"]);
+    expect(Object.keys(scene.sailors[0]!).sort()).toEqual(["caption", "key", "label", "outfit", "stale", "state"]);
+    // Who each is, never where: the caption has no position either.
+    expect(Object.keys(scene.sailors[0]!.caption).sort()).toEqual(["host", "line", "project", "stale", "status", "title"]);
     expect(scene.stale).toBe(0);
     expect(scene.palette.states).toEqual({ working: "#6cb17b", waiting: "#c09664", blocked: "#d8847b", idle: "#A1A5A4" });
   });
@@ -274,6 +324,7 @@ describe("the deck's art", () => {
       flip: false,
       reveal: 1,
       moving: true,
+      seed: 0,
     });
     const figures = [at(211, 111, "before-mast"), at(211, 100, "behind-mast"), at(80, 94, "behind-bollard"), at(80, 95, "before-bollard")];
     const order = deckLayers(figures, manifest.pieces).map((layer) =>
@@ -290,13 +341,18 @@ describe("the deck's art", () => {
     expect(order).toHaveLength(1 + DECK_PROPS.length + 4 + Object.keys(manifest.pieces).length);
   });
 
-  it("fits the deck with whole device pixels once it is twice its size, and exactly below that", () => {
+  it("fits the deck exactly at any size, its offset on whole device pixels", () => {
     const deck = { width: DECK_WIDTH, height: DECK_HEIGHT };
-    expect(fitDeck({ width: 1000, height: 800 }, deck, 1).scale).toBe(2);
-    expect(fitDeck({ width: 1000, height: 800 }, deck, 1.5).scale).toBeCloseTo(3 / 1.5);
+    expect(fitDeck({ width: 1000, height: 800 }, deck, 1).scale).toBeCloseTo((1000 / DECK_WIDTH) * 0.96);
+    expect(fitDeck({ width: 1000, height: 800 }, deck, 1.5).scale).toBeCloseTo((1000 / DECK_WIDTH) * 0.96);
+    // A short pane: the height decides.
+    expect(fitDeck({ width: 1000, height: 200 }, deck, 2).scale).toBeCloseTo((200 / DECK_HEIGHT) * 0.96);
     const small = fitDeck({ width: 600, height: 400 }, deck, 1);
     expect(small.scale).toBeCloseTo((600 / DECK_WIDTH) * 0.96);
     expect(small.x).toBe(Math.round((600 - DECK_WIDTH * small.scale) / 2));
+    const hidpi = fitDeck({ width: 777, height: 555 }, deck, 1.25);
+    expect(Number.isInteger(hidpi.x * 1.25) && Number.isInteger(hidpi.y * 1.25)).toBe(true);
+    expect(fitDeck({ width: 0, height: 0 }, deck, 2).scale).toBe(0);
   });
 });
 
@@ -324,6 +380,7 @@ interface FakeEngine extends DeckEngine {
   probes: number;
   stops: number;
   resize?: (width: number, height: number) => void;
+  hover?: (hover: DeckHover | null) => void;
 }
 
 function deferred<T>() {
@@ -350,8 +407,9 @@ function fakeEngine(options: { webgl?: "webgl2" | "webgl" | null; load?: () => P
     load() {
       engine.loads += 1;
       if (options.load !== undefined) return options.load();
-      return Promise.resolve<StartDeck>(async (host, scene, size) => {
+      return Promise.resolve<StartDeck>(async (host, scene, size, onHover) => {
         engine.starts.push({ host, scene, size });
+        engine.hover = onHover;
         if (options.hold !== undefined) await options.hold;
         if (options.startFails !== undefined) throw options.startFails;
         const drawing = {
@@ -666,7 +724,8 @@ describe("the ship deck view", () => {
     expect(engine.starts[0]?.host).toBe(host);
     expect(engine.starts[0]?.scene.sailors.map((s) => s.key)).toEqual(["w1", "w2", "r1", "w3", "b1", "f1", "i1", "p1"]);
     expect(text(root)).toContain("Preview · drawn with WebGL · 8 on deck");
-    expect(text(root)).toContain("2 working | 2 waiting | 2 blocked | 2 idle");
+    expect(text(root)).toContain("2 working | hauling amidships | 2 waiting | by the helm | 2 blocked | in the bow | 2 idle | at the rail");
+    expect(text(root)).toContain("Point at a sailor to see who it is");
     const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
     expect(canvasHost.props.accessibilityLabel).toBe("Ship deck: 2 working, 2 waiting, 2 blocked, 2 idle");
     // A canvas host must stay childless: React owns the element, Pixi owns what is inside it.
@@ -692,7 +751,7 @@ describe("the ship deck view", () => {
     await act(flush);
     const root = renderer!;
     expect(text(root)).toContain("The crew's feed is lost: the deck shows where everyone last stood, greyed.");
-    expect(text(root)).toContain("2 working | 2 waiting | 2 blocked | 2 idle | 8 stale");
+    expect(text(root)).toContain("2 idle | at the rail | 8 stale");
     const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
     expect(canvasHost.props.accessibilityLabel).toBe("Ship deck: 2 working, 2 waiting, 2 blocked, 2 idle, feed lost: last known");
     expect(engine.starts[0]?.scene.sailors.every((s) => s.stale)).toBe(true);
@@ -736,6 +795,52 @@ describe("the ship deck view", () => {
     });
     expect(text(renderer!)).toContain("This display has no WebGL, so the ship deck cannot draw.");
     expect(engine.loads).toBe(0);
+  });
+
+  it("labels the sailor under the pointer with who it is, over the canvas, and takes it away after", async () => {
+    const engine = fakeEngine();
+    await act(async () => {
+      renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web" }), {
+        createNodeMock: () => fakeHost(),
+      });
+    });
+    await act(flush);
+    const root = renderer!;
+    const labels = () => root.root.findAll((node) => node.props.accessibilityRole === "text");
+    const words = (node: (typeof labels extends () => Array<infer T> ? T : never)) =>
+      node.findAll((child) => (child.type as unknown) === "Text").map((child) => child.children.join("")).join(" | ");
+    expect(labels()).toHaveLength(0);
+
+    const where = { x: 300, top: 200, bottom: 260, width: 640, height: 300 };
+    await act(async () => engine.hover?.({ key: "i1", ...where }));
+    expect(labels()).toHaveLength(1);
+    expect(words(labels()[0]!)).toBe("Task i1 | Idle · its turn ended with no status line | ariadne · This machine");
+    // Above the sailor, centred on it; it never takes the pointer from the canvas.
+    expect(labels()[0]!.props.style).toMatchObject({ position: "absolute", pointerEvents: "none", left: 170, width: 260, bottom: 106 });
+    // The canvas's host stays childless: the label is its sibling.
+    expect(root.root.find((node) => node.props.accessibilityRole === "image").children).toHaveLength(0);
+
+    for (const [key, status] of [
+      ["w1", "Working"],
+      ["w3", "Working · waiting on a job it started"],
+      ["r1", "Ready · finished, waiting on the first mate"],
+      ["b1", "Blocked"],
+      ["f1", "Failed"],
+      ["p1", "Parked · paused"],
+    ] as const) {
+      await act(async () => engine.hover?.({ key, ...where }));
+      expect(words(labels()[0]!)).toContain(`Task ${key} | ${status} | ariadne · `);
+    }
+    await act(async () => engine.hover?.({ key: "w2", ...where, top: 40, bottom: 90 }));
+    expect(words(labels()[0]!)).toBe("Task w2 | Working | ariadne · Light");
+    // No room above: below its feet.
+    expect(labels()[0]!.props.style).toMatchObject({ top: 96 });
+
+    await act(async () => engine.hover?.(null));
+    expect(labels()).toHaveLength(0);
+    // A sailor that has left the deck gets no label.
+    await act(async () => engine.hover?.({ key: "gone", ...where }));
+    expect(labels()).toHaveLength(0);
   });
 
   it("words every status", () => {

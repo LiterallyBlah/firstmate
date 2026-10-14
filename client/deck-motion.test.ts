@@ -192,7 +192,14 @@ describe("pathing", () => {
 });
 
 function sailor(key: string, state: DeckState, stale = false): DeckSailor {
-  return { key, label: `Task ${key}`, state, outfit: "base", stale };
+  return {
+    key,
+    label: `Task ${key}`,
+    state,
+    outfit: "base",
+    stale,
+    caption: { title: `Task ${key}`, status: state, project: null, host: "This machine", line: null, stale: null },
+  };
 }
 
 /** Steps the crew `ms` on, a 30 fps frame at a time. */
