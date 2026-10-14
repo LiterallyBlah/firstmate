@@ -1,5 +1,9 @@
 # art/ship-deck/
 
+An assets-only expansion adds [fitted Hull C sails and six crew variants](assets-2/README.md), with
+two sail states, exact existing crew frame layouts, provenance and per-asset quality verdicts. These
+additional textures are not wired into the live Deck by this branch.
+
 Generated environment assets (sea, six sky phases, stars and a gull flap cycle) are documented in
 [ENVIRONMENT.md](ENVIRONMENT.md), with their own [manifest](environment.json). The Deck draws them in
 place of its old code-drawn sea and gull, served by `firstmate.deck.environment` (`client/deck-environment.ts`);

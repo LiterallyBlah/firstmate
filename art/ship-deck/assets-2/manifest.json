@@ -1,0 +1,2106 @@
+﻿{
+    "schemaVersion":  1,
+    "kind":  "ship-deck-asset-expansion",
+    "baseCommit":  "ece9161c354874d73c0cc07defd594e7fea317c2",
+    "coordinateSystem":  "Top-left origin; integer logical pixels; nearest-neighbour sampling",
+    "reference":  {
+                      "atlas":  "deck.png",
+                      "sha256":  "557209a06bb266fa79b09ff985cf9558145b95382d0842bb55717a43980cff9b",
+                      "manifest":  "deck.json",
+                      "hullSize":  [
+                                       426,
+                                       161
+                                   ],
+                      "crewHeight":  32
+                  },
+    "palette":  {
+                    "source":  "Opaque RGB values from deck.png",
+                    "size":  48,
+                    "colours":  [
+                                    "#0E121E",
+                                    "#151E2D",
+                                    "#182B47",
+                                    "#1A1417",
+                                    "#1D314E",
+                                    "#1F3554",
+                                    "#22395A",
+                                    "#271E1D",
+                                    "#2C4869",
+                                    "#2D2B30",
+                                    "#31211D",
+                                    "#3E2921",
+                                    "#492D22",
+                                    "#4F3427",
+                                    "#5D3626",
+                                    "#613A28",
+                                    "#624130",
+                                    "#72412A",
+                                    "#7E472D",
+                                    "#7F422B",
+                                    "#815C43",
+                                    "#834C2D",
+                                    "#834D31",
+                                    "#8B4F2F",
+                                    "#915230",
+                                    "#9B5A33",
+                                    "#9E6139",
+                                    "#A56235",
+                                    "#A86636",
+                                    "#A8693B",
+                                    "#AD6938",
+                                    "#AD6D3D",
+                                    "#B16F3D",
+                                    "#B57642",
+                                    "#BB7B44",
+                                    "#BF854C",
+                                    "#C17F46",
+                                    "#C5864B",
+                                    "#C6884C",
+                                    "#C7894C",
+                                    "#C88C50",
+                                    "#C9894C",
+                                    "#CD8F50",
+                                    "#CE9659",
+                                    "#D39151",
+                                    "#DCA35B",
+                                    "#DD9954",
+                                    "#E8CCA6"
+                                ],
+                    "alpha":  [
+                                  0,
+                                  255
+                              ],
+                    "dither":  false
+                },
+    "crew":  {
+                 "01-bosun":  {
+                                  "image":  "crew-variants/01-bosun.png",
+                                  "size":  [
+                                               426,
+                                               275
+                                           ],
+                                  "description":  "Broad, bareheaded; deep brown skin, black cropped hair, navy waistcoat over cream sleeveless top.",
+                                  "layout":  "Identical atlas coordinates and frame sizes to deck.json; both base and outfit slots carry this identity; other pixels transparent",
+                                  "frames":  {
+                                                 "base":  {
+                                                              "front-idle":  {
+                                                                                 "frame":  [
+                                                                                               0,
+                                                                                               243,
+                                                                                               16,
+                                                                                               32
+                                                                                           ],
+                                                                                 "feet":  [
+                                                                                              8,
+                                                                                              32
+                                                                                          ]
+                                                                             },
+                                                              "front-walk-a":  {
+                                                                                   "frame":  [
+                                                                                                 17,
+                                                                                                 243,
+                                                                                                 16,
+                                                                                                 32
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                7,
+                                                                                                32
+                                                                                            ]
+                                                                               },
+                                                              "front-walk-b":  {
+                                                                                   "frame":  [
+                                                                                                 34,
+                                                                                                 243,
+                                                                                                 16,
+                                                                                                 32
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                8,
+                                                                                                32
+                                                                                            ]
+                                                                               },
+                                                              "side-idle":  {
+                                                                                "frame":  [
+                                                                                              132,
+                                                                                              243,
+                                                                                              11,
+                                                                                              31
+                                                                                          ],
+                                                                                "feet":  [
+                                                                                             6,
+                                                                                             31
+                                                                                         ]
+                                                                            },
+                                                              "side-walk-a":  {
+                                                                                  "frame":  [
+                                                                                                144,
+                                                                                                243,
+                                                                                                16,
+                                                                                                31
+                                                                                            ],
+                                                                                  "feet":  [
+                                                                                               8,
+                                                                                               31
+                                                                                           ]
+                                                                              },
+                                                              "side-walk-b":  {
+                                                                                  "frame":  [
+                                                                                                161,
+                                                                                                243,
+                                                                                                15,
+                                                                                                31
+                                                                                            ],
+                                                                                  "feet":  [
+                                                                                               7,
+                                                                                               31
+                                                                                           ]
+                                                                              },
+                                                              "hauling":  {
+                                                                              "frame":  [
+                                                                                            222,
+                                                                                            243,
+                                                                                            22,
+                                                                                            30
+                                                                                        ],
+                                                                              "feet":  [
+                                                                                           9,
+                                                                                           30
+                                                                                       ]
+                                                                          },
+                                                              "leaning":  {
+                                                                              "frame":  [
+                                                                                            245,
+                                                                                            243,
+                                                                                            15,
+                                                                                            30
+                                                                                        ],
+                                                                              "feet":  [
+                                                                                           4,
+                                                                                           30
+                                                                                       ]
+                                                                          },
+                                                              "waiting":  {
+                                                                              "frame":  [
+                                                                                            51,
+                                                                                            243,
+                                                                                            14,
+                                                                                            32
+                                                                                        ],
+                                                                              "feet":  [
+                                                                                           7,
+                                                                                           32
+                                                                                       ]
+                                                                          }
+                                                          },
+                                                 "outfit":  {
+                                                                "front-idle":  {
+                                                                                   "frame":  [
+                                                                                                 66,
+                                                                                                 243,
+                                                                                                 16,
+                                                                                                 32
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                8,
+                                                                                                32
+                                                                                            ]
+                                                                               },
+                                                                "front-walk-a":  {
+                                                                                     "frame":  [
+                                                                                                   83,
+                                                                                                   243,
+                                                                                                   16,
+                                                                                                   32
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  8,
+                                                                                                  32
+                                                                                              ]
+                                                                                 },
+                                                                "front-walk-b":  {
+                                                                                     "frame":  [
+                                                                                                   100,
+                                                                                                   243,
+                                                                                                   16,
+                                                                                                   32
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  8,
+                                                                                                  32
+                                                                                              ]
+                                                                                 },
+                                                                "side-idle":  {
+                                                                                  "frame":  [
+                                                                                                177,
+                                                                                                243,
+                                                                                                11,
+                                                                                                31
+                                                                                            ],
+                                                                                  "feet":  [
+                                                                                               5,
+                                                                                               31
+                                                                                           ]
+                                                                              },
+                                                                "side-walk-a":  {
+                                                                                    "frame":  [
+                                                                                                  189,
+                                                                                                  243,
+                                                                                                  16,
+                                                                                                  31
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 8,
+                                                                                                 31
+                                                                                             ]
+                                                                                },
+                                                                "side-walk-b":  {
+                                                                                    "frame":  [
+                                                                                                  206,
+                                                                                                  243,
+                                                                                                  15,
+                                                                                                  31
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 7,
+                                                                                                 31
+                                                                                             ]
+                                                                                },
+                                                                "hauling":  {
+                                                                                "frame":  [
+                                                                                              261,
+                                                                                              243,
+                                                                                              19,
+                                                                                              30
+                                                                                          ],
+                                                                                "feet":  [
+                                                                                             9,
+                                                                                             30
+                                                                                         ]
+                                                                            },
+                                                                "leaning":  {
+                                                                                "frame":  [
+                                                                                              281,
+                                                                                              243,
+                                                                                              15,
+                                                                                              30
+                                                                                          ],
+                                                                                "feet":  [
+                                                                                             4,
+                                                                                             30
+                                                                                         ]
+                                                                            },
+                                                                "waiting":  {
+                                                                                "frame":  [
+                                                                                              117,
+                                                                                              243,
+                                                                                              14,
+                                                                                              32
+                                                                                          ],
+                                                                                "feet":  [
+                                                                                             7,
+                                                                                             32
+                                                                                         ]
+                                                                            }
+                                                            }
+                                             },
+                                  "sourceCropRects":  {
+                                                          "front-idle":  [
+                                                                             84,
+                                                                             74,
+                                                                             223,
+                                                                             383
+                                                                         ],
+                                                          "front-walk-a":  [
+                                                                               406,
+                                                                               74,
+                                                                               216,
+                                                                               385
+                                                                           ],
+                                                          "front-walk-b":  [
+                                                                               719,
+                                                                               74,
+                                                                               222,
+                                                                               385
+                                                                           ],
+                                                          "side-idle":  [
+                                                                            112,
+                                                                            546,
+                                                                            150,
+                                                                            374
+                                                                        ],
+                                                          "side-walk-a":  [
+                                                                              412,
+                                                                              546,
+                                                                              211,
+                                                                              374
+                                                                          ],
+                                                          "side-walk-b":  [
+                                                                              740,
+                                                                              546,
+                                                                              205,
+                                                                              374
+                                                                          ],
+                                                          "hauling":  [
+                                                                          84,
+                                                                          1022,
+                                                                          292,
+                                                                          357
+                                                                      ],
+                                                          "leaning":  [
+                                                                          419,
+                                                                          1029,
+                                                                          205,
+                                                                          350
+                                                                      ],
+                                                          "waiting":  [
+                                                                          742,
+                                                                          1007,
+                                                                          180,
+                                                                          382
+                                                                      ]
+                                                      },
+                                  "feetRegistration":  "Bottom eight sampled rows (both boots, including lifted boot) centred at each existing frame feet.x; feet.y unchanged",
+                                  "quality":  "usable-with-cleanup",
+                                  "limitations":  "Separate generated poses, not a newly authored walk cycle. Fixed narrow side and leaning slots compress some silhouettes; artist polish recommended for movement. Front views serve north/south, right profile mirrored for left as in current crew.",
+                                  "metrics":  {
+                                                  "width":  426,
+                                                  "height":  275,
+                                                  "transparent":  111926,
+                                                  "partialAlpha":  0,
+                                                  "opaque":  5224,
+                                                  "colours":  33,
+                                                  "offPalette":  0
+                                              }
+                              },
+                 "02-old-salt":  {
+                                     "image":  "crew-variants/02-old-salt.png",
+                                     "size":  [
+                                                  426,
+                                                  275
+                                              ],
+                                     "description":  "Lean older sailor; light skin, grey beard, navy knit cap, ochre shirt.",
+                                     "layout":  "Identical atlas coordinates and frame sizes to deck.json; both base and outfit slots carry this identity; other pixels transparent",
+                                     "frames":  {
+                                                    "base":  {
+                                                                 "front-idle":  {
+                                                                                    "frame":  [
+                                                                                                  0,
+                                                                                                  243,
+                                                                                                  16,
+                                                                                                  32
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 8,
+                                                                                                 32
+                                                                                             ]
+                                                                                },
+                                                                 "front-walk-a":  {
+                                                                                      "frame":  [
+                                                                                                    17,
+                                                                                                    243,
+                                                                                                    16,
+                                                                                                    32
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   7,
+                                                                                                   32
+                                                                                               ]
+                                                                                  },
+                                                                 "front-walk-b":  {
+                                                                                      "frame":  [
+                                                                                                    34,
+                                                                                                    243,
+                                                                                                    16,
+                                                                                                    32
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   8,
+                                                                                                   32
+                                                                                               ]
+                                                                                  },
+                                                                 "side-idle":  {
+                                                                                   "frame":  [
+                                                                                                 132,
+                                                                                                 243,
+                                                                                                 11,
+                                                                                                 31
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                6,
+                                                                                                31
+                                                                                            ]
+                                                                               },
+                                                                 "side-walk-a":  {
+                                                                                     "frame":  [
+                                                                                                   144,
+                                                                                                   243,
+                                                                                                   16,
+                                                                                                   31
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  8,
+                                                                                                  31
+                                                                                              ]
+                                                                                 },
+                                                                 "side-walk-b":  {
+                                                                                     "frame":  [
+                                                                                                   161,
+                                                                                                   243,
+                                                                                                   15,
+                                                                                                   31
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  7,
+                                                                                                  31
+                                                                                              ]
+                                                                                 },
+                                                                 "hauling":  {
+                                                                                 "frame":  [
+                                                                                               222,
+                                                                                               243,
+                                                                                               22,
+                                                                                               30
+                                                                                           ],
+                                                                                 "feet":  [
+                                                                                              9,
+                                                                                              30
+                                                                                          ]
+                                                                             },
+                                                                 "leaning":  {
+                                                                                 "frame":  [
+                                                                                               245,
+                                                                                               243,
+                                                                                               15,
+                                                                                               30
+                                                                                           ],
+                                                                                 "feet":  [
+                                                                                              4,
+                                                                                              30
+                                                                                          ]
+                                                                             },
+                                                                 "waiting":  {
+                                                                                 "frame":  [
+                                                                                               51,
+                                                                                               243,
+                                                                                               14,
+                                                                                               32
+                                                                                           ],
+                                                                                 "feet":  [
+                                                                                              7,
+                                                                                              32
+                                                                                          ]
+                                                                             }
+                                                             },
+                                                    "outfit":  {
+                                                                   "front-idle":  {
+                                                                                      "frame":  [
+                                                                                                    66,
+                                                                                                    243,
+                                                                                                    16,
+                                                                                                    32
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   8,
+                                                                                                   32
+                                                                                               ]
+                                                                                  },
+                                                                   "front-walk-a":  {
+                                                                                        "frame":  [
+                                                                                                      83,
+                                                                                                      243,
+                                                                                                      16,
+                                                                                                      32
+                                                                                                  ],
+                                                                                        "feet":  [
+                                                                                                     8,
+                                                                                                     32
+                                                                                                 ]
+                                                                                    },
+                                                                   "front-walk-b":  {
+                                                                                        "frame":  [
+                                                                                                      100,
+                                                                                                      243,
+                                                                                                      16,
+                                                                                                      32
+                                                                                                  ],
+                                                                                        "feet":  [
+                                                                                                     8,
+                                                                                                     32
+                                                                                                 ]
+                                                                                    },
+                                                                   "side-idle":  {
+                                                                                     "frame":  [
+                                                                                                   177,
+                                                                                                   243,
+                                                                                                   11,
+                                                                                                   31
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  5,
+                                                                                                  31
+                                                                                              ]
+                                                                                 },
+                                                                   "side-walk-a":  {
+                                                                                       "frame":  [
+                                                                                                     189,
+                                                                                                     243,
+                                                                                                     16,
+                                                                                                     31
+                                                                                                 ],
+                                                                                       "feet":  [
+                                                                                                    8,
+                                                                                                    31
+                                                                                                ]
+                                                                                   },
+                                                                   "side-walk-b":  {
+                                                                                       "frame":  [
+                                                                                                     206,
+                                                                                                     243,
+                                                                                                     15,
+                                                                                                     31
+                                                                                                 ],
+                                                                                       "feet":  [
+                                                                                                    7,
+                                                                                                    31
+                                                                                                ]
+                                                                                   },
+                                                                   "hauling":  {
+                                                                                   "frame":  [
+                                                                                                 261,
+                                                                                                 243,
+                                                                                                 19,
+                                                                                                 30
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                9,
+                                                                                                30
+                                                                                            ]
+                                                                               },
+                                                                   "leaning":  {
+                                                                                   "frame":  [
+                                                                                                 281,
+                                                                                                 243,
+                                                                                                 15,
+                                                                                                 30
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                4,
+                                                                                                30
+                                                                                            ]
+                                                                               },
+                                                                   "waiting":  {
+                                                                                   "frame":  [
+                                                                                                 117,
+                                                                                                 243,
+                                                                                                 14,
+                                                                                                 32
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                7,
+                                                                                                32
+                                                                                            ]
+                                                                               }
+                                                               }
+                                                },
+                                     "sourceCropRects":  {
+                                                             "front-idle":  [
+                                                                                104,
+                                                                                63,
+                                                                                185,
+                                                                                391
+                                                                            ],
+                                                             "front-walk-a":  [
+                                                                                  421,
+                                                                                  63,
+                                                                                  186,
+                                                                                  391
+                                                                              ],
+                                                             "front-walk-b":  [
+                                                                                  736,
+                                                                                  63,
+                                                                                  189,
+                                                                                  391
+                                                                              ],
+                                                             "side-idle":  [
+                                                                               125,
+                                                                               534,
+                                                                               136,
+                                                                               381
+                                                                           ],
+                                                             "side-walk-a":  [
+                                                                                 416,
+                                                                                 534,
+                                                                                 197,
+                                                                                 381
+                                                                             ],
+                                                             "side-walk-b":  [
+                                                                                 747,
+                                                                                 534,
+                                                                                 186,
+                                                                                 381
+                                                                             ],
+                                                             "hauling":  [
+                                                                             91,
+                                                                             1018,
+                                                                             269,
+                                                                             356
+                                                                         ],
+                                                             "leaning":  [
+                                                                             433,
+                                                                             1018,
+                                                                             183,
+                                                                             356
+                                                                         ],
+                                                             "waiting":  [
+                                                                             749,
+                                                                             1001,
+                                                                             168,
+                                                                             382
+                                                                         ]
+                                                         },
+                                     "feetRegistration":  "Bottom eight sampled rows (both boots, including lifted boot) centred at each existing frame feet.x; feet.y unchanged",
+                                     "quality":  "usable-with-cleanup",
+                                     "limitations":  "Separate generated poses, not a newly authored walk cycle. Fixed narrow side and leaning slots compress some silhouettes; artist polish recommended for movement. Front views serve north/south, right profile mirrored for left as in current crew.",
+                                     "metrics":  {
+                                                     "width":  426,
+                                                     "height":  275,
+                                                     "transparent":  111981,
+                                                     "partialAlpha":  0,
+                                                     "opaque":  5169,
+                                                     "colours":  46,
+                                                     "offPalette":  0
+                                                 }
+                                 },
+                 "03-navigator":  {
+                                      "image":  "crew-variants/03-navigator.png",
+                                      "size":  [
+                                                   426,
+                                                   275
+                                               ],
+                                      "description":  "Slim sailor; medium brown skin, black braid, cream headscarf, navy top and brown trousers.",
+                                      "layout":  "Identical atlas coordinates and frame sizes to deck.json; both base and outfit slots carry this identity; other pixels transparent",
+                                      "frames":  {
+                                                     "base":  {
+                                                                  "front-idle":  {
+                                                                                     "frame":  [
+                                                                                                   0,
+                                                                                                   243,
+                                                                                                   16,
+                                                                                                   32
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  8,
+                                                                                                  32
+                                                                                              ]
+                                                                                 },
+                                                                  "front-walk-a":  {
+                                                                                       "frame":  [
+                                                                                                     17,
+                                                                                                     243,
+                                                                                                     16,
+                                                                                                     32
+                                                                                                 ],
+                                                                                       "feet":  [
+                                                                                                    7,
+                                                                                                    32
+                                                                                                ]
+                                                                                   },
+                                                                  "front-walk-b":  {
+                                                                                       "frame":  [
+                                                                                                     34,
+                                                                                                     243,
+                                                                                                     16,
+                                                                                                     32
+                                                                                                 ],
+                                                                                       "feet":  [
+                                                                                                    8,
+                                                                                                    32
+                                                                                                ]
+                                                                                   },
+                                                                  "side-idle":  {
+                                                                                    "frame":  [
+                                                                                                  132,
+                                                                                                  243,
+                                                                                                  11,
+                                                                                                  31
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 6,
+                                                                                                 31
+                                                                                             ]
+                                                                                },
+                                                                  "side-walk-a":  {
+                                                                                      "frame":  [
+                                                                                                    144,
+                                                                                                    243,
+                                                                                                    16,
+                                                                                                    31
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   8,
+                                                                                                   31
+                                                                                               ]
+                                                                                  },
+                                                                  "side-walk-b":  {
+                                                                                      "frame":  [
+                                                                                                    161,
+                                                                                                    243,
+                                                                                                    15,
+                                                                                                    31
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   7,
+                                                                                                   31
+                                                                                               ]
+                                                                                  },
+                                                                  "hauling":  {
+                                                                                  "frame":  [
+                                                                                                222,
+                                                                                                243,
+                                                                                                22,
+                                                                                                30
+                                                                                            ],
+                                                                                  "feet":  [
+                                                                                               9,
+                                                                                               30
+                                                                                           ]
+                                                                              },
+                                                                  "leaning":  {
+                                                                                  "frame":  [
+                                                                                                245,
+                                                                                                243,
+                                                                                                15,
+                                                                                                30
+                                                                                            ],
+                                                                                  "feet":  [
+                                                                                               4,
+                                                                                               30
+                                                                                           ]
+                                                                              },
+                                                                  "waiting":  {
+                                                                                  "frame":  [
+                                                                                                51,
+                                                                                                243,
+                                                                                                14,
+                                                                                                32
+                                                                                            ],
+                                                                                  "feet":  [
+                                                                                               7,
+                                                                                               32
+                                                                                           ]
+                                                                              }
+                                                              },
+                                                     "outfit":  {
+                                                                    "front-idle":  {
+                                                                                       "frame":  [
+                                                                                                     66,
+                                                                                                     243,
+                                                                                                     16,
+                                                                                                     32
+                                                                                                 ],
+                                                                                       "feet":  [
+                                                                                                    8,
+                                                                                                    32
+                                                                                                ]
+                                                                                   },
+                                                                    "front-walk-a":  {
+                                                                                         "frame":  [
+                                                                                                       83,
+                                                                                                       243,
+                                                                                                       16,
+                                                                                                       32
+                                                                                                   ],
+                                                                                         "feet":  [
+                                                                                                      8,
+                                                                                                      32
+                                                                                                  ]
+                                                                                     },
+                                                                    "front-walk-b":  {
+                                                                                         "frame":  [
+                                                                                                       100,
+                                                                                                       243,
+                                                                                                       16,
+                                                                                                       32
+                                                                                                   ],
+                                                                                         "feet":  [
+                                                                                                      8,
+                                                                                                      32
+                                                                                                  ]
+                                                                                     },
+                                                                    "side-idle":  {
+                                                                                      "frame":  [
+                                                                                                    177,
+                                                                                                    243,
+                                                                                                    11,
+                                                                                                    31
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   5,
+                                                                                                   31
+                                                                                               ]
+                                                                                  },
+                                                                    "side-walk-a":  {
+                                                                                        "frame":  [
+                                                                                                      189,
+                                                                                                      243,
+                                                                                                      16,
+                                                                                                      31
+                                                                                                  ],
+                                                                                        "feet":  [
+                                                                                                     8,
+                                                                                                     31
+                                                                                                 ]
+                                                                                    },
+                                                                    "side-walk-b":  {
+                                                                                        "frame":  [
+                                                                                                      206,
+                                                                                                      243,
+                                                                                                      15,
+                                                                                                      31
+                                                                                                  ],
+                                                                                        "feet":  [
+                                                                                                     7,
+                                                                                                     31
+                                                                                                 ]
+                                                                                    },
+                                                                    "hauling":  {
+                                                                                    "frame":  [
+                                                                                                  261,
+                                                                                                  243,
+                                                                                                  19,
+                                                                                                  30
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 9,
+                                                                                                 30
+                                                                                             ]
+                                                                                },
+                                                                    "leaning":  {
+                                                                                    "frame":  [
+                                                                                                  281,
+                                                                                                  243,
+                                                                                                  15,
+                                                                                                  30
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 4,
+                                                                                                 30
+                                                                                             ]
+                                                                                },
+                                                                    "waiting":  {
+                                                                                    "frame":  [
+                                                                                                  117,
+                                                                                                  243,
+                                                                                                  14,
+                                                                                                  32
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 7,
+                                                                                                 32
+                                                                                             ]
+                                                                                }
+                                                                }
+                                                 },
+                                      "sourceCropRects":  {
+                                                              "front-idle":  [
+                                                                                 107,
+                                                                                 66,
+                                                                                 184,
+                                                                                 393
+                                                                             ],
+                                                              "front-walk-a":  [
+                                                                                   424,
+                                                                                   66,
+                                                                                   189,
+                                                                                   393
+                                                                               ],
+                                                              "front-walk-b":  [
+                                                                                   731,
+                                                                                   66,
+                                                                                   188,
+                                                                                   393
+                                                                               ],
+                                                              "side-idle":  [
+                                                                                101,
+                                                                                536,
+                                                                                164,
+                                                                                386
+                                                                            ],
+                                                              "side-walk-a":  [
+                                                                                  422,
+                                                                                  536,
+                                                                                  193,
+                                                                                  385
+                                                                              ],
+                                                              "side-walk-b":  [
+                                                                                  741,
+                                                                                  536,
+                                                                                  197,
+                                                                                  385
+                                                                              ],
+                                                              "hauling":  [
+                                                                              74,
+                                                                              1023,
+                                                                              299,
+                                                                              359
+                                                                          ],
+                                                              "leaning":  [
+                                                                              439,
+                                                                              1023,
+                                                                              189,
+                                                                              359
+                                                                          ],
+                                                              "waiting":  [
+                                                                              740,
+                                                                              1006,
+                                                                              175,
+                                                                              380
+                                                                          ]
+                                                          },
+                                      "feetRegistration":  "Bottom eight sampled rows (both boots, including lifted boot) centred at each existing frame feet.x; feet.y unchanged",
+                                      "quality":  "usable-with-cleanup",
+                                      "limitations":  "Separate generated poses, not a newly authored walk cycle. Fixed narrow side and leaning slots compress some silhouettes; artist polish recommended for movement. Front views serve north/south, right profile mirrored for left as in current crew.",
+                                      "metrics":  {
+                                                      "width":  426,
+                                                      "height":  275,
+                                                      "transparent":  111901,
+                                                      "partialAlpha":  0,
+                                                      "opaque":  5249,
+                                                      "colours":  38,
+                                                      "offPalette":  0
+                                                  }
+                                  },
+                 "04-carpenter":  {
+                                      "image":  "crew-variants/04-carpenter.png",
+                                      "size":  [
+                                                   426,
+                                                   275
+                                               ],
+                                      "description":  "Stout sailor; light skin, copper beard, ochre brimmed hat, cream shirt and suspenders.",
+                                      "layout":  "Identical atlas coordinates and frame sizes to deck.json; both base and outfit slots carry this identity; other pixels transparent",
+                                      "frames":  {
+                                                     "base":  {
+                                                                  "front-idle":  {
+                                                                                     "frame":  [
+                                                                                                   0,
+                                                                                                   243,
+                                                                                                   16,
+                                                                                                   32
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  8,
+                                                                                                  32
+                                                                                              ]
+                                                                                 },
+                                                                  "front-walk-a":  {
+                                                                                       "frame":  [
+                                                                                                     17,
+                                                                                                     243,
+                                                                                                     16,
+                                                                                                     32
+                                                                                                 ],
+                                                                                       "feet":  [
+                                                                                                    7,
+                                                                                                    32
+                                                                                                ]
+                                                                                   },
+                                                                  "front-walk-b":  {
+                                                                                       "frame":  [
+                                                                                                     34,
+                                                                                                     243,
+                                                                                                     16,
+                                                                                                     32
+                                                                                                 ],
+                                                                                       "feet":  [
+                                                                                                    8,
+                                                                                                    32
+                                                                                                ]
+                                                                                   },
+                                                                  "side-idle":  {
+                                                                                    "frame":  [
+                                                                                                  132,
+                                                                                                  243,
+                                                                                                  11,
+                                                                                                  31
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 6,
+                                                                                                 31
+                                                                                             ]
+                                                                                },
+                                                                  "side-walk-a":  {
+                                                                                      "frame":  [
+                                                                                                    144,
+                                                                                                    243,
+                                                                                                    16,
+                                                                                                    31
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   8,
+                                                                                                   31
+                                                                                               ]
+                                                                                  },
+                                                                  "side-walk-b":  {
+                                                                                      "frame":  [
+                                                                                                    161,
+                                                                                                    243,
+                                                                                                    15,
+                                                                                                    31
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   7,
+                                                                                                   31
+                                                                                               ]
+                                                                                  },
+                                                                  "hauling":  {
+                                                                                  "frame":  [
+                                                                                                222,
+                                                                                                243,
+                                                                                                22,
+                                                                                                30
+                                                                                            ],
+                                                                                  "feet":  [
+                                                                                               9,
+                                                                                               30
+                                                                                           ]
+                                                                              },
+                                                                  "leaning":  {
+                                                                                  "frame":  [
+                                                                                                245,
+                                                                                                243,
+                                                                                                15,
+                                                                                                30
+                                                                                            ],
+                                                                                  "feet":  [
+                                                                                               4,
+                                                                                               30
+                                                                                           ]
+                                                                              },
+                                                                  "waiting":  {
+                                                                                  "frame":  [
+                                                                                                51,
+                                                                                                243,
+                                                                                                14,
+                                                                                                32
+                                                                                            ],
+                                                                                  "feet":  [
+                                                                                               7,
+                                                                                               32
+                                                                                           ]
+                                                                              }
+                                                              },
+                                                     "outfit":  {
+                                                                    "front-idle":  {
+                                                                                       "frame":  [
+                                                                                                     66,
+                                                                                                     243,
+                                                                                                     16,
+                                                                                                     32
+                                                                                                 ],
+                                                                                       "feet":  [
+                                                                                                    8,
+                                                                                                    32
+                                                                                                ]
+                                                                                   },
+                                                                    "front-walk-a":  {
+                                                                                         "frame":  [
+                                                                                                       83,
+                                                                                                       243,
+                                                                                                       16,
+                                                                                                       32
+                                                                                                   ],
+                                                                                         "feet":  [
+                                                                                                      8,
+                                                                                                      32
+                                                                                                  ]
+                                                                                     },
+                                                                    "front-walk-b":  {
+                                                                                         "frame":  [
+                                                                                                       100,
+                                                                                                       243,
+                                                                                                       16,
+                                                                                                       32
+                                                                                                   ],
+                                                                                         "feet":  [
+                                                                                                      8,
+                                                                                                      32
+                                                                                                  ]
+                                                                                     },
+                                                                    "side-idle":  {
+                                                                                      "frame":  [
+                                                                                                    177,
+                                                                                                    243,
+                                                                                                    11,
+                                                                                                    31
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   5,
+                                                                                                   31
+                                                                                               ]
+                                                                                  },
+                                                                    "side-walk-a":  {
+                                                                                        "frame":  [
+                                                                                                      189,
+                                                                                                      243,
+                                                                                                      16,
+                                                                                                      31
+                                                                                                  ],
+                                                                                        "feet":  [
+                                                                                                     8,
+                                                                                                     31
+                                                                                                 ]
+                                                                                    },
+                                                                    "side-walk-b":  {
+                                                                                        "frame":  [
+                                                                                                      206,
+                                                                                                      243,
+                                                                                                      15,
+                                                                                                      31
+                                                                                                  ],
+                                                                                        "feet":  [
+                                                                                                     7,
+                                                                                                     31
+                                                                                                 ]
+                                                                                    },
+                                                                    "hauling":  {
+                                                                                    "frame":  [
+                                                                                                  261,
+                                                                                                  243,
+                                                                                                  19,
+                                                                                                  30
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 9,
+                                                                                                 30
+                                                                                             ]
+                                                                                },
+                                                                    "leaning":  {
+                                                                                    "frame":  [
+                                                                                                  281,
+                                                                                                  243,
+                                                                                                  15,
+                                                                                                  30
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 4,
+                                                                                                 30
+                                                                                             ]
+                                                                                },
+                                                                    "waiting":  {
+                                                                                    "frame":  [
+                                                                                                  117,
+                                                                                                  243,
+                                                                                                  14,
+                                                                                                  32
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 7,
+                                                                                                 32
+                                                                                             ]
+                                                                                }
+                                                                }
+                                                 },
+                                      "sourceCropRects":  {
+                                                              "front-idle":  [
+                                                                                 70,
+                                                                                 47,
+                                                                                 246,
+                                                                                 402
+                                                                             ],
+                                                              "front-walk-a":  [
+                                                                                   390,
+                                                                                   48,
+                                                                                   244,
+                                                                                   401
+                                                                               ],
+                                                              "front-walk-b":  [
+                                                                                   710,
+                                                                                   48,
+                                                                                   244,
+                                                                                   408
+                                                                               ],
+                                                              "side-idle":  [
+                                                                                80,
+                                                                                522,
+                                                                                208,
+                                                                                416
+                                                                            ],
+                                                              "side-walk-a":  [
+                                                                                  406,
+                                                                                  522,
+                                                                                  231,
+                                                                                  416
+                                                                              ],
+                                                              "side-walk-b":  [
+                                                                                  734,
+                                                                                  522,
+                                                                                  228,
+                                                                                  416
+                                                                              ],
+                                                              "hauling":  [
+                                                                              60,
+                                                                              1009,
+                                                                              320,
+                                                                              400
+                                                                          ],
+                                                              "leaning":  [
+                                                                              380,
+                                                                              1010,
+                                                                              285,
+                                                                              399
+                                                                          ],
+                                                              "waiting":  [
+                                                                              721,
+                                                                              993,
+                                                                              222,
+                                                                              420
+                                                                          ]
+                                                          },
+                                      "feetRegistration":  "Bottom eight sampled rows (both boots, including lifted boot) centred at each existing frame feet.x; feet.y unchanged",
+                                      "quality":  "usable-with-cleanup",
+                                      "limitations":  "Separate generated poses, not a newly authored walk cycle. Fixed narrow side and leaning slots compress some silhouettes; artist polish recommended for movement. Front views serve north/south, right profile mirrored for left as in current crew.",
+                                      "metrics":  {
+                                                      "width":  426,
+                                                      "height":  275,
+                                                      "transparent":  111750,
+                                                      "partialAlpha":  0,
+                                                      "opaque":  5400,
+                                                      "colours":  43,
+                                                      "offPalette":  0
+                                                  }
+                                  },
+                 "05-rigger":  {
+                                   "image":  "crew-variants/05-rigger.png",
+                                   "size":  [
+                                                426,
+                                                275
+                                            ],
+                                   "description":  "Athletic sailor; deep brown skin, curly dark hair puff, cream top and ochre trousers.",
+                                   "layout":  "Identical atlas coordinates and frame sizes to deck.json; both base and outfit slots carry this identity; other pixels transparent",
+                                   "frames":  {
+                                                  "base":  {
+                                                               "front-idle":  {
+                                                                                  "frame":  [
+                                                                                                0,
+                                                                                                243,
+                                                                                                16,
+                                                                                                32
+                                                                                            ],
+                                                                                  "feet":  [
+                                                                                               8,
+                                                                                               32
+                                                                                           ]
+                                                                              },
+                                                               "front-walk-a":  {
+                                                                                    "frame":  [
+                                                                                                  17,
+                                                                                                  243,
+                                                                                                  16,
+                                                                                                  32
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 7,
+                                                                                                 32
+                                                                                             ]
+                                                                                },
+                                                               "front-walk-b":  {
+                                                                                    "frame":  [
+                                                                                                  34,
+                                                                                                  243,
+                                                                                                  16,
+                                                                                                  32
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 8,
+                                                                                                 32
+                                                                                             ]
+                                                                                },
+                                                               "side-idle":  {
+                                                                                 "frame":  [
+                                                                                               132,
+                                                                                               243,
+                                                                                               11,
+                                                                                               31
+                                                                                           ],
+                                                                                 "feet":  [
+                                                                                              6,
+                                                                                              31
+                                                                                          ]
+                                                                             },
+                                                               "side-walk-a":  {
+                                                                                   "frame":  [
+                                                                                                 144,
+                                                                                                 243,
+                                                                                                 16,
+                                                                                                 31
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                8,
+                                                                                                31
+                                                                                            ]
+                                                                               },
+                                                               "side-walk-b":  {
+                                                                                   "frame":  [
+                                                                                                 161,
+                                                                                                 243,
+                                                                                                 15,
+                                                                                                 31
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                7,
+                                                                                                31
+                                                                                            ]
+                                                                               },
+                                                               "hauling":  {
+                                                                               "frame":  [
+                                                                                             222,
+                                                                                             243,
+                                                                                             22,
+                                                                                             30
+                                                                                         ],
+                                                                               "feet":  [
+                                                                                            9,
+                                                                                            30
+                                                                                        ]
+                                                                           },
+                                                               "leaning":  {
+                                                                               "frame":  [
+                                                                                             245,
+                                                                                             243,
+                                                                                             15,
+                                                                                             30
+                                                                                         ],
+                                                                               "feet":  [
+                                                                                            4,
+                                                                                            30
+                                                                                        ]
+                                                                           },
+                                                               "waiting":  {
+                                                                               "frame":  [
+                                                                                             51,
+                                                                                             243,
+                                                                                             14,
+                                                                                             32
+                                                                                         ],
+                                                                               "feet":  [
+                                                                                            7,
+                                                                                            32
+                                                                                        ]
+                                                                           }
+                                                           },
+                                                  "outfit":  {
+                                                                 "front-idle":  {
+                                                                                    "frame":  [
+                                                                                                  66,
+                                                                                                  243,
+                                                                                                  16,
+                                                                                                  32
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 8,
+                                                                                                 32
+                                                                                             ]
+                                                                                },
+                                                                 "front-walk-a":  {
+                                                                                      "frame":  [
+                                                                                                    83,
+                                                                                                    243,
+                                                                                                    16,
+                                                                                                    32
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   8,
+                                                                                                   32
+                                                                                               ]
+                                                                                  },
+                                                                 "front-walk-b":  {
+                                                                                      "frame":  [
+                                                                                                    100,
+                                                                                                    243,
+                                                                                                    16,
+                                                                                                    32
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   8,
+                                                                                                   32
+                                                                                               ]
+                                                                                  },
+                                                                 "side-idle":  {
+                                                                                   "frame":  [
+                                                                                                 177,
+                                                                                                 243,
+                                                                                                 11,
+                                                                                                 31
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                5,
+                                                                                                31
+                                                                                            ]
+                                                                               },
+                                                                 "side-walk-a":  {
+                                                                                     "frame":  [
+                                                                                                   189,
+                                                                                                   243,
+                                                                                                   16,
+                                                                                                   31
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  8,
+                                                                                                  31
+                                                                                              ]
+                                                                                 },
+                                                                 "side-walk-b":  {
+                                                                                     "frame":  [
+                                                                                                   206,
+                                                                                                   243,
+                                                                                                   15,
+                                                                                                   31
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  7,
+                                                                                                  31
+                                                                                              ]
+                                                                                 },
+                                                                 "hauling":  {
+                                                                                 "frame":  [
+                                                                                               261,
+                                                                                               243,
+                                                                                               19,
+                                                                                               30
+                                                                                           ],
+                                                                                 "feet":  [
+                                                                                              9,
+                                                                                              30
+                                                                                          ]
+                                                                             },
+                                                                 "leaning":  {
+                                                                                 "frame":  [
+                                                                                               281,
+                                                                                               243,
+                                                                                               15,
+                                                                                               30
+                                                                                           ],
+                                                                                 "feet":  [
+                                                                                              4,
+                                                                                              30
+                                                                                          ]
+                                                                             },
+                                                                 "waiting":  {
+                                                                                 "frame":  [
+                                                                                               117,
+                                                                                               243,
+                                                                                               14,
+                                                                                               32
+                                                                                           ],
+                                                                                 "feet":  [
+                                                                                              7,
+                                                                                              32
+                                                                                          ]
+                                                                             }
+                                                             }
+                                              },
+                                   "sourceCropRects":  {
+                                                           "front-idle":  [
+                                                                              97,
+                                                                              38,
+                                                                              201,
+                                                                              419
+                                                                          ],
+                                                           "front-walk-a":  [
+                                                                                412,
+                                                                                38,
+                                                                                201,
+                                                                                420
+                                                                            ],
+                                                           "front-walk-b":  [
+                                                                                736,
+                                                                                38,
+                                                                                194,
+                                                                                420
+                                                                            ],
+                                                           "side-idle":  [
+                                                                             100,
+                                                                             520,
+                                                                             163,
+                                                                             408
+                                                                         ],
+                                                           "side-walk-a":  [
+                                                                               415,
+                                                                               520,
+                                                                               204,
+                                                                               408
+                                                                           ],
+                                                           "side-walk-b":  [
+                                                                               742,
+                                                                               520,
+                                                                               195,
+                                                                               408
+                                                                           ],
+                                                           "hauling":  [
+                                                                           55,
+                                                                           1007,
+                                                                           325,
+                                                                           385
+                                                                       ],
+                                                           "leaning":  [
+                                                                           380,
+                                                                           1007,
+                                                                           241,
+                                                                           385
+                                                                       ],
+                                                           "waiting":  [
+                                                                           745,
+                                                                           979,
+                                                                           181,
+                                                                           413
+                                                                       ]
+                                                       },
+                                   "feetRegistration":  "Bottom eight sampled rows (both boots, including lifted boot) centred at each existing frame feet.x; feet.y unchanged",
+                                   "quality":  "usable-with-cleanup",
+                                   "limitations":  "Separate generated poses, not a newly authored walk cycle. Fixed narrow side and leaning slots compress some silhouettes; artist polish recommended for movement. Front views serve north/south, right profile mirrored for left as in current crew.",
+                                   "metrics":  {
+                                                   "width":  426,
+                                                   "height":  275,
+                                                   "transparent":  112278,
+                                                   "partialAlpha":  0,
+                                                   "opaque":  4872,
+                                                   "colours":  38,
+                                                   "offPalette":  0
+                                               }
+                               },
+                 "06-deckhand":  {
+                                     "image":  "crew-variants/06-deckhand.png",
+                                     "size":  [
+                                                  426,
+                                                  275
+                                              ],
+                                     "description":  "Slender sailor; light skin, short copper hair, no beard or hat, navy shirt and cream trousers.",
+                                     "layout":  "Identical atlas coordinates and frame sizes to deck.json; both base and outfit slots carry this identity; other pixels transparent",
+                                     "frames":  {
+                                                    "base":  {
+                                                                 "front-idle":  {
+                                                                                    "frame":  [
+                                                                                                  0,
+                                                                                                  243,
+                                                                                                  16,
+                                                                                                  32
+                                                                                              ],
+                                                                                    "feet":  [
+                                                                                                 8,
+                                                                                                 32
+                                                                                             ]
+                                                                                },
+                                                                 "front-walk-a":  {
+                                                                                      "frame":  [
+                                                                                                    17,
+                                                                                                    243,
+                                                                                                    16,
+                                                                                                    32
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   7,
+                                                                                                   32
+                                                                                               ]
+                                                                                  },
+                                                                 "front-walk-b":  {
+                                                                                      "frame":  [
+                                                                                                    34,
+                                                                                                    243,
+                                                                                                    16,
+                                                                                                    32
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   8,
+                                                                                                   32
+                                                                                               ]
+                                                                                  },
+                                                                 "side-idle":  {
+                                                                                   "frame":  [
+                                                                                                 132,
+                                                                                                 243,
+                                                                                                 11,
+                                                                                                 31
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                6,
+                                                                                                31
+                                                                                            ]
+                                                                               },
+                                                                 "side-walk-a":  {
+                                                                                     "frame":  [
+                                                                                                   144,
+                                                                                                   243,
+                                                                                                   16,
+                                                                                                   31
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  8,
+                                                                                                  31
+                                                                                              ]
+                                                                                 },
+                                                                 "side-walk-b":  {
+                                                                                     "frame":  [
+                                                                                                   161,
+                                                                                                   243,
+                                                                                                   15,
+                                                                                                   31
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  7,
+                                                                                                  31
+                                                                                              ]
+                                                                                 },
+                                                                 "hauling":  {
+                                                                                 "frame":  [
+                                                                                               222,
+                                                                                               243,
+                                                                                               22,
+                                                                                               30
+                                                                                           ],
+                                                                                 "feet":  [
+                                                                                              9,
+                                                                                              30
+                                                                                          ]
+                                                                             },
+                                                                 "leaning":  {
+                                                                                 "frame":  [
+                                                                                               245,
+                                                                                               243,
+                                                                                               15,
+                                                                                               30
+                                                                                           ],
+                                                                                 "feet":  [
+                                                                                              4,
+                                                                                              30
+                                                                                          ]
+                                                                             },
+                                                                 "waiting":  {
+                                                                                 "frame":  [
+                                                                                               51,
+                                                                                               243,
+                                                                                               14,
+                                                                                               32
+                                                                                           ],
+                                                                                 "feet":  [
+                                                                                              7,
+                                                                                              32
+                                                                                          ]
+                                                                             }
+                                                             },
+                                                    "outfit":  {
+                                                                   "front-idle":  {
+                                                                                      "frame":  [
+                                                                                                    66,
+                                                                                                    243,
+                                                                                                    16,
+                                                                                                    32
+                                                                                                ],
+                                                                                      "feet":  [
+                                                                                                   8,
+                                                                                                   32
+                                                                                               ]
+                                                                                  },
+                                                                   "front-walk-a":  {
+                                                                                        "frame":  [
+                                                                                                      83,
+                                                                                                      243,
+                                                                                                      16,
+                                                                                                      32
+                                                                                                  ],
+                                                                                        "feet":  [
+                                                                                                     8,
+                                                                                                     32
+                                                                                                 ]
+                                                                                    },
+                                                                   "front-walk-b":  {
+                                                                                        "frame":  [
+                                                                                                      100,
+                                                                                                      243,
+                                                                                                      16,
+                                                                                                      32
+                                                                                                  ],
+                                                                                        "feet":  [
+                                                                                                     8,
+                                                                                                     32
+                                                                                                 ]
+                                                                                    },
+                                                                   "side-idle":  {
+                                                                                     "frame":  [
+                                                                                                   177,
+                                                                                                   243,
+                                                                                                   11,
+                                                                                                   31
+                                                                                               ],
+                                                                                     "feet":  [
+                                                                                                  5,
+                                                                                                  31
+                                                                                              ]
+                                                                                 },
+                                                                   "side-walk-a":  {
+                                                                                       "frame":  [
+                                                                                                     189,
+                                                                                                     243,
+                                                                                                     16,
+                                                                                                     31
+                                                                                                 ],
+                                                                                       "feet":  [
+                                                                                                    8,
+                                                                                                    31
+                                                                                                ]
+                                                                                   },
+                                                                   "side-walk-b":  {
+                                                                                       "frame":  [
+                                                                                                     206,
+                                                                                                     243,
+                                                                                                     15,
+                                                                                                     31
+                                                                                                 ],
+                                                                                       "feet":  [
+                                                                                                    7,
+                                                                                                    31
+                                                                                                ]
+                                                                                   },
+                                                                   "hauling":  {
+                                                                                   "frame":  [
+                                                                                                 261,
+                                                                                                 243,
+                                                                                                 19,
+                                                                                                 30
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                9,
+                                                                                                30
+                                                                                            ]
+                                                                               },
+                                                                   "leaning":  {
+                                                                                   "frame":  [
+                                                                                                 281,
+                                                                                                 243,
+                                                                                                 15,
+                                                                                                 30
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                4,
+                                                                                                30
+                                                                                            ]
+                                                                               },
+                                                                   "waiting":  {
+                                                                                   "frame":  [
+                                                                                                 117,
+                                                                                                 243,
+                                                                                                 14,
+                                                                                                 32
+                                                                                             ],
+                                                                                   "feet":  [
+                                                                                                7,
+                                                                                                32
+                                                                                            ]
+                                                                               }
+                                                               }
+                                                },
+                                     "sourceCropRects":  {
+                                                             "front-idle":  [
+                                                                                104,
+                                                                                67,
+                                                                                184,
+                                                                                384
+                                                                            ],
+                                                             "front-walk-a":  [
+                                                                                  420,
+                                                                                  67,
+                                                                                  196,
+                                                                                  386
+                                                                              ],
+                                                             "front-walk-b":  [
+                                                                                  743,
+                                                                                  67,
+                                                                                  185,
+                                                                                  386
+                                                                              ],
+                                                             "side-idle":  [
+                                                                               117,
+                                                                               534,
+                                                                               156,
+                                                                               383
+                                                                           ],
+                                                             "side-walk-a":  [
+                                                                                 419,
+                                                                                 534,
+                                                                                 196,
+                                                                                 383
+                                                                             ],
+                                                             "side-walk-b":  [
+                                                                                 745,
+                                                                                 534,
+                                                                                 187,
+                                                                                 383
+                                                                             ],
+                                                             "hauling":  [
+                                                                             80,
+                                                                             1013,
+                                                                             294,
+                                                                             361
+                                                                         ],
+                                                             "leaning":  [
+                                                                             424,
+                                                                             1017,
+                                                                             197,
+                                                                             357
+                                                                         ],
+                                                             "waiting":  [
+                                                                             748,
+                                                                             1001,
+                                                                             173,
+                                                                             383
+                                                                         ]
+                                                         },
+                                     "feetRegistration":  "Bottom eight sampled rows (both boots, including lifted boot) centred at each existing frame feet.x; feet.y unchanged",
+                                     "quality":  "usable-with-cleanup",
+                                     "limitations":  "Separate generated poses, not a newly authored walk cycle. Fixed narrow side and leaning slots compress some silhouettes; artist polish recommended for movement. Front views serve north/south, right profile mirrored for left as in current crew.",
+                                     "metrics":  {
+                                                     "width":  426,
+                                                     "height":  275,
+                                                     "transparent":  112279,
+                                                     "partialAlpha":  0,
+                                                     "opaque":  4871,
+                                                     "colours":  42,
+                                                     "offPalette":  0
+                                                 }
+                                 }
+             },
+    "sails":  {
+                  "main-sail":  {
+                                    "image":  "sails/main-sail.png",
+                                    "size":  [
+                                                 228,
+                                                 27
+                                             ],
+                                    "frames":  [
+                                                   {
+                                                       "id":  "rest",
+                                                       "frame":  [
+                                                                     0,
+                                                                     0,
+                                                                     114,
+                                                                     27
+                                                                 ]
+                                                   },
+                                                   {
+                                                       "id":  "billow",
+                                                       "frame":  [
+                                                                     114,
+                                                                     0,
+                                                                     114,
+                                                                     27
+                                                                 ]
+                                                   }
+                                               ],
+                                    "hullPosition":  [
+                                                         154,
+                                                         46
+                                                     ],
+                                    "localMastAnchor":  [
+                                                            57,
+                                                            3
+                                                        ],
+                                    "hullMastAnchor":  [
+                                                           211,
+                                                           49
+                                                       ],
+                                    "yardExtentInHull":  [
+                                                             154,
+                                                             46,
+                                                             114,
+                                                             7
+                                                         ],
+                                    "coverageInHull":  [
+                                                           154,
+                                                           46,
+                                                           114,
+                                                           27
+                                                       ],
+                                    "overlayImages":  [
+                                                          "sails/hull-c-frame-0.png",
+                                                          "sails/hull-c-frame-1.png"
+                                                      ],
+                                    "overlaySize":  [
+                                                        426,
+                                                        161
+                                                    ],
+                                    "overlayPosition":  [
+                                                            0,
+                                                            0
+                                                        ],
+                                    "layering":  "Draw hull, then sail, then depth-sorted crew and pieces. When sail is enabled, substitute mast-occluder.png for the original mast depth piece so it cannot overpaint the canvas. Keep the original mast when sail is disabled.",
+                                    "animation":  {
+                                                      "attachmentMotion":  "Inherit whole-ship bob; do not inherit masthead sway (masthead ends at y48).",
+                                                      "reducedMotionFrame":  0,
+                                                      "frameDurationMs":  850,
+                                                      "lockedCornerRegions":  [
+                                                                                  [
+                                                                                      10,
+                                                                                      19,
+                                                                                      8,
+                                                                                      8
+                                                                                  ],
+                                                                                  [
+                                                                                      96,
+                                                                                      19,
+                                                                                      8,
+                                                                                      8
+                                                                                  ]
+                                                                              ],
+                                                      "lockedRows":  [
+                                                                         0,
+                                                                         6
+                                                                     ],
+                                                      "sequence":  [
+                                                                       0,
+                                                                       1
+                                                                   ]
+                                                  },
+                                    "differencePixels":  466,
+                                    "quality":  "usable",
+                                    "limitations":  "Partially reefed low square sail preserves open deck. Two-frame subtle cloth shimmer, not a physical full sailing rig.",
+                                    "metrics":  {
+                                                    "width":  228,
+                                                    "height":  27,
+                                                    "transparent":  1718,
+                                                    "partialAlpha":  0,
+                                                    "opaque":  4438,
+                                                    "colours":  31,
+                                                    "offPalette":  0
+                                                },
+                                    "mastOccluder":  {
+                                                         "image":  "sails/mast-occluder.png",
+                                                         "size":  [
+                                                                      19,
+                                                                      64
+                                                                  ],
+                                                         "frame":  [
+                                                                       0,
+                                                                       0,
+                                                                       19,
+                                                                       64
+                                                                   ],
+                                                         "hullPosition":  [
+                                                                              202,
+                                                                              48
+                                                                          ],
+                                                         "baseline":  110,
+                                                         "source":  "deck.json pieces.mast",
+                                                         "processing":  "Exact original mast pixels, with local rows 0..24 (hull y48..72) transparent; remaining pixels unchanged."
+                                                     }
+                                }
+              },
+    "provenance":  {
+                       "tool":  "built-in image_gen__imagegen",
+                       "backendModel":  "Not disclosed by tool",
+                       "generationCalls":  8,
+                       "generationLimit":  25,
+                       "date":  "2026-10-14",
+                       "promptFile":  "prompts.json",
+                       "sources":  [
+                                       {
+                                           "id":  "01-bosun",
+                                           "size":  [
+                                                        1024,
+                                                        1536
+                                                    ],
+                                           "reference":  "01-crew-base.png (deck.json sources.crew-base)",
+                                           "savedLocally":  "asset-work-2/source/01-bosun.png",
+                                           "sha256":  "fc0703968bdb1ddbf78bd9815e563f736cd9b312d86c0d48dab3ad0ff8e8f1c9",
+                                           "file":  "01-bosun.png"
+                                       },
+                                       {
+                                           "id":  "02-old-salt",
+                                           "size":  [
+                                                        1024,
+                                                        1536
+                                                    ],
+                                           "reference":  "01-crew-base.png (deck.json sources.crew-base)",
+                                           "savedLocally":  "asset-work-2/source/02-old-salt.png",
+                                           "sha256":  "5debde654a46aa73fbc1eb31c90e5462d0c133de8fbb18fd0774fa20ba015a73",
+                                           "file":  "02-old-salt.png"
+                                       },
+                                       {
+                                           "id":  "03-navigator",
+                                           "size":  [
+                                                        1024,
+                                                        1536
+                                                    ],
+                                           "reference":  "01-crew-base.png (deck.json sources.crew-base)",
+                                           "savedLocally":  "asset-work-2/source/03-navigator.png",
+                                           "sha256":  "9bf153540fd5cc3a5e4f7d95197d0a0c516fe74918b681d99733b14c482872e3",
+                                           "file":  "03-navigator.png"
+                                       },
+                                       {
+                                           "id":  "04-carpenter",
+                                           "size":  [
+                                                        1024,
+                                                        1536
+                                                    ],
+                                           "reference":  "01-crew-base.png (deck.json sources.crew-base)",
+                                           "savedLocally":  "asset-work-2/source/04-carpenter.png",
+                                           "sha256":  "8bb1908cd30dee1eca32bbce85ab8d9b0cd9129d59450aaa41955f64e36a3553",
+                                           "file":  "04-carpenter.png"
+                                       },
+                                       {
+                                           "id":  "05-rigger",
+                                           "size":  [
+                                                        1024,
+                                                        1536
+                                                    ],
+                                           "reference":  "01-crew-base.png (deck.json sources.crew-base)",
+                                           "savedLocally":  "asset-work-2/source/05-rigger.png",
+                                           "sha256":  "13e95e31580ca4d350b740a93a0b1b4c56eb61420eac8d062e0a16156a4f8cf1",
+                                           "file":  "05-rigger.png"
+                                       },
+                                       {
+                                           "id":  "06-deckhand",
+                                           "size":  [
+                                                        1024,
+                                                        1536
+                                                    ],
+                                           "reference":  "01-crew-base.png (deck.json sources.crew-base)",
+                                           "savedLocally":  "asset-work-2/source/06-deckhand.png",
+                                           "sha256":  "bdc2e86948f1f37f949f9db4e48eaf5d9316cab4bda90d8dff7a4f4753ce7827",
+                                           "file":  "06-deckhand.png"
+                                       },
+                                       {
+                                           "id":  "07-main-sail",
+                                           "size":  [
+                                                        2142,
+                                                        734
+                                                    ],
+                                           "savedLocally":  "asset-work-2/source/07-main-sail.png",
+                                           "sha256":  "212ef527803341b49ab96cb464a999577a418976c5adaecff9c92f958f496c71",
+                                           "crop":  [
+                                                        80,
+                                                        139,
+                                                        1982,
+                                                        461
+                                                    ],
+                                           "file":  "07-main-sail.png"
+                                       },
+                                       {
+                                           "id":  "08-main-sail-billow",
+                                           "size":  [
+                                                        2142,
+                                                        734
+                                                    ],
+                                           "savedLocally":  "asset-work-2/source/08-main-sail-billow.png",
+                                           "sha256":  "c42cdb4a0ce63e5a330f2c1fb9a6b4cbb5ffec8a7902ab4edb4bd59fb00ba2dd",
+                                           "crop":  [
+                                                        79,
+                                                        134,
+                                                        1981,
+                                                        459
+                                                    ],
+                                           "file":  "08-main-sail-billow.png"
+                                       }
+                                   ],
+                       "referenceCrewSha256":  "0e5eb8bcae8126f365f30297baf8acd3179edf44d521ad29892128054f891e2a",
+                       "normalization":  "C# System.Drawing. Source regions cropped at alpha\u003e=128; block-sampled with median opaque RGB and majority alpha\u003e=128; nearest squared-RGB distance into the 48 opaque deck colours; no dithering. Crew fits existing frame sizes, with per-identity front width caps 16/14/14/16/15/14 and bottom-eight-row boot pivot alignment; width reduced if necessary to avoid clipping. Sail alpha bounds sampled to 114x27; second frame yard rows 0..6 and both corner regions copied from first frame to lock attachment."
+                   }
+}
