@@ -14,6 +14,8 @@ import * as zod from "zod";
 import * as contracts from "../board-list/contracts.js";
 import { fleet } from "../board-list/fixtures";
 import { theme as dark } from "../board-list/theme";
+import { LANTERNS, WATERLINE } from "../../client/deck-ambient";
+import { applyCrew, createCrew, crewFigures } from "../../client/deck-crew";
 import { fitDeck } from "../../client/deck-pixi";
 import { deckLayers, deckScene } from "../../client/deck-scene";
 import * as stubs from "./stubs.jsx";
@@ -80,10 +82,11 @@ window.mountPlugin = function mountPlugin(source, params) {
 };
 
 /**
- * The deck as it should look, drawn independently with a 2D canvas from the same scene, art and layer order
- * the plugin draws with (`deckScene`, `deckLayers`, the served atlas): one RGBA per art pixel, the theme's
- * background where nothing is. Then where each art pixel's centre is on the screenshot, in device pixels,
- * from the canvas's place and the same fit the deck uses.
+ * The still deck as it should look, drawn independently with a 2D canvas from the same scene, crew
+ * placement, art and layer order the plugin draws with (`deckScene`, `applyCrew`, `deckLayers`, the
+ * served atlas): one RGBA per art pixel, transparent where the deck draws sky or sea. Then where each art
+ * pixel's centre is on the screenshot, in device pixels, from the canvas's place and the same fit the deck
+ * uses. Only a still deck (reduced motion) can be held to it: a moving one bobs and sways.
  */
 window.referenceDeck = async function referenceDeck() {
   const art = await (await fetch("/deck-art.json")).json();
@@ -97,8 +100,10 @@ window.referenceDeck = async function referenceDeck() {
   reference.height = scene.height;
   const context = reference.getContext("2d");
   context.imageSmoothingEnabled = false;
-  context.fillStyle = scene.palette.sea;
-  context.fillRect(0, 0, scene.width, scene.height);
+  // The crew where the deck stands it: the same controller, every sailor at its anchor.
+  const crew = createCrew();
+  applyCrew(crew, scene.sailors, { snap: true });
+  const figures = crewFigures(crew, 0, { still: true });
   const blit = (frame, x, y, flip = false) => {
     const [fx, fy, fw, fh] = frame;
     context.save();
@@ -107,7 +112,7 @@ window.referenceDeck = async function referenceDeck() {
     context.drawImage(image, fx, fy, fw, fh, 0, 0, fw, fh);
     context.restore();
   };
-  const layers = deckLayers(scene, manifest.pieces);
+  const layers = deckLayers(figures, manifest.pieces);
   for (const layer of layers) {
     if (layer.kind === "ship") blit(manifest.ship.frame, 0, 0);
     else if (layer.kind === "piece") blit(manifest.pieces[layer.name].frame, manifest.pieces[layer.name].x, manifest.pieces[layer.name].y);
@@ -115,7 +120,7 @@ window.referenceDeck = async function referenceDeck() {
       const prop = manifest.props[layer.name];
       blit(prop.frame, layer.x - prop.feet[0], layer.y - prop.feet[1]);
     } else {
-      const { sailor } = layer;
+      const sailor = layer.figure;
       const pose = manifest.crew[sailor.outfit][sailor.pose];
       if (sailor.flip) blit(pose.frame, sailor.x + pose.feet[0], sailor.y - pose.feet[1], true);
       else blit(pose.frame, sailor.x - pose.feet[0], sailor.y - pose.feet[1]);
@@ -137,7 +142,7 @@ window.referenceDeck = async function referenceDeck() {
   const atlasData = atlasContext.getImageData(0, 0, manifest.atlas.width, manifest.atlas.height).data;
   const atlasAlpha = new Uint8Array(manifest.atlas.width * manifest.atlas.height);
   for (let index = 0; index < atlasAlpha.length; index += 1) atlasAlpha[index] = atlasData[index * 4 + 3];
-  const sailors = scene.sailors.map((sailor) => {
+  const sailors = figures.map((sailor) => {
     const pose = manifest.crew[sailor.outfit][sailor.pose];
     const [, , fw, fh] = pose.frame;
     const own = [];
@@ -149,7 +154,7 @@ window.referenceDeck = async function referenceDeck() {
         const y = sailor.y - pose.feet[1] + v;
         own.push([x, y]);
         for (const [name, piece] of Object.entries(manifest.pieces)) {
-          if (piece.baseline !== null && piece.baseline < sailor.y) continue;
+          if (piece.baseline !== null && piece.baseline < sailor.row) continue;
           if (opaqueIn(piece.frame, x - piece.x, y - piece.y)) hiddenBy[name] = (hiddenBy[name] ?? 0) + 1;
         }
       }
@@ -167,8 +172,11 @@ window.referenceDeck = async function referenceDeck() {
     height: scene.height,
     pixels,
     sailors,
-    order: layers.map((layer) => (layer.kind === "sailor" ? layer.sailor.key : layer.kind === "ship" ? "ship" : `${layer.kind}:${layer.name}`)),
-    marks: scene.sailors.map((sailor) => ({ x: sailor.x, y: sailor.y, color: scene.palette.states[sailor.state] })),
+    order: layers.map((layer) => (layer.kind === "sailor" ? layer.figure.key : layer.kind === "ship" ? "ship" : `${layer.kind}:${layer.name}`)),
+    marks: figures.map((sailor) => ({ x: sailor.x, y: sailor.row, color: scene.palette.states[sailor.state] })),
+    /** What the reference does not draw: the sea from the waterline down, and each lantern with its glow. */
+    waterline: WATERLINE,
+    lanterns: LANTERNS.map((lantern) => ({ x: lantern.x, y: lantern.y })),
     fit,
     dpr,
     /** Device pixel on the screenshot of art pixel (x, y)'s centre. */
@@ -211,4 +219,44 @@ window.deckPixels = async function deckPixels(png, reference) {
     }
   }
   return out;
+};
+
+/**
+ * The whole canvas at one sample per art pixel, as RGB rows: what the motion evidence's frames are made
+ * of, so a moving deck can be kept small and exact. `grid` is the canvas's box and the deck's fit.
+ */
+window.artGrid = async function artGrid(png, grid) {
+  const image = new Image();
+  image.src = `data:image/png;base64,${png}`;
+  await image.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const context = canvas.getContext("2d");
+  context.drawImage(image, 0, 0);
+  const data = context.getImageData(0, 0, image.width, image.height).data;
+  const { box, fit, dpr } = grid;
+  const left = Math.ceil(-fit.x / fit.scale);
+  const top = Math.ceil(-fit.y / fit.scale);
+  const width = Math.floor((box.width - fit.x) / fit.scale) - left;
+  const height = Math.floor((box.height - fit.y) / fit.scale) - top;
+  const rgb = [];
+  for (let y = top; y < top + height; y += 1) {
+    for (let x = left; x < left + width; x += 1) {
+      const sx = Math.floor((box.left + fit.x + (x + 0.5) * fit.scale) * dpr);
+      const sy = Math.floor((box.top + fit.y + (y + 0.5) * fit.scale) * dpr);
+      const at = (sy * image.width + sx) * 4;
+      rgb.push(data[at], data[at + 1], data[at + 2]);
+    }
+  }
+  return { width, height, rgb };
+};
+
+/** The canvas's box and the deck's fit in it, as the deck computes it. */
+window.deckGrid = function deckGrid() {
+  const canvas = document.querySelector("canvas[data-firstmate-deck]");
+  const rect = canvas.getBoundingClientRect();
+  const box = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+  const dpr = window.devicePixelRatio;
+  return { box, dpr, fit: fitDeck({ width: box.width, height: box.height }, { width: 426, height: 161 }, dpr) };
 };

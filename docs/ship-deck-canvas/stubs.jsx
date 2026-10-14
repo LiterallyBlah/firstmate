@@ -10,7 +10,9 @@ export * from "../board-list/stubs.jsx";
 window.deckEngineCalls = 0;
 window.deckArtCalls = 0;
 
+/** The fleet load; `window.fixtureFleetError` makes it fail, as a lost daemon would. */
 function loadFleet() {
+  if (window.fixtureFleetError) return Promise.reject(new Error("Request failed: the daemon is unreachable"));
   return Promise.resolve(structuredClone(window.fixtureFleet));
 }
 

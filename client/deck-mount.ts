@@ -18,11 +18,15 @@
  * an image the browser has decoded. Both are fetched once per app session and kept; a renderer without
  * a host or WebGL never asks for either.
  *
+ * **Motion is the browser's too.** `browserMotion` hands the deck `requestAnimationFrame`, the
+ * `prefers-reduced-motion` query and `document.hidden`, so `client/deck-loop.ts` can cap, pause and still it.
+ *
  * Every way it can fail ends in a status, never a throw: no host, no WebGL, Pixi or the art failing to
  * load, Pixi failing to start. A mount torn down while Pixi is still starting destroys what starts.
  */
 import type { DeckArt, DeckEngineSource } from "../shared/ship-deck";
-import { startDeck, type DeckArtImage, type PixiModule } from "./deck-pixi";
+import type { FrameScheduler, MotionSignals } from "./deck-loop";
+import { startDeck, type DeckArtImage, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
 import type { DeckScene } from "./deck-scene";
 
 export type DeckStatus =
@@ -233,6 +237,59 @@ export function decodeAtlas(png: string, web: { Image?: new () => DecodableImage
   });
 }
 
+interface MediaQueryLike {
+  matches: boolean;
+  addEventListener?: (type: "change", listener: () => void) => void;
+  removeEventListener?: (type: "change", listener: () => void) => void;
+}
+
+type MotionGlobals = {
+  requestAnimationFrame?: (callback: (nowMs: number) => void) => number;
+  cancelAnimationFrame?: (handle: number) => void;
+  setTimeout?: (callback: () => void, ms: number) => number;
+  clearTimeout?: (handle: number) => void;
+  performance?: { now(): number };
+  matchMedia?: (query: string) => MediaQueryLike;
+  document?: {
+    hidden?: boolean;
+    addEventListener?: (type: "visibilitychange", listener: () => void) => void;
+    removeEventListener?: (type: "visibilitychange", listener: () => void) => void;
+  };
+};
+
+/**
+ * The browser's frames and motion signals: `requestAnimationFrame` (which the browser itself throttles in
+ * a background tab), `prefers-reduced-motion`, and `document.hidden` with its `visibilitychange`.
+ */
+export function browserMotion(web: MotionGlobals = globalThis as MotionGlobals): DeckMotionEnvironment {
+  const scheduler: FrameScheduler =
+    typeof web.requestAnimationFrame === "function" && typeof web.cancelAnimationFrame === "function"
+      ? { request: (callback) => web.requestAnimationFrame!(callback), cancel: (handle) => web.cancelAnimationFrame!(handle) }
+      : {
+          request: (callback) => web.setTimeout?.(() => callback(web.performance?.now() ?? Date.now()), 33) ?? 0,
+          cancel: (handle) => web.clearTimeout?.(handle),
+        };
+  let query: MediaQueryLike | null = null;
+  try {
+    query = web.matchMedia?.("(prefers-reduced-motion: reduce)") ?? null;
+  } catch {
+    query = null;
+  }
+  const signals: MotionSignals = {
+    reducedMotion: () => query?.matches === true,
+    documentHidden: () => web.document?.hidden === true,
+    subscribe(onChange) {
+      query?.addEventListener?.("change", onChange);
+      web.document?.addEventListener?.("visibilitychange", onChange);
+      return function () {
+        query?.removeEventListener?.("change", onChange);
+        web.document?.removeEventListener?.("visibilitychange", onChange);
+      };
+    },
+  };
+  return { scheduler, signals };
+}
+
 /** Pixi and the art for this app session: fetched once, kept; a failure is not kept, so reopening the deck tries again. */
 let engineOnce: Promise<{ pixi: PixiModule; art: DeckArtImage }> | null = null;
 
@@ -241,6 +298,7 @@ export function browserDeckEngine(
   loadSource: () => Promise<DeckEngineSource>,
   loadArt: () => Promise<DeckArt>,
   decode: (png: string) => Promise<unknown> = decodeAtlas,
+  motion: () => DeckMotionEnvironment = browserMotion,
 ): DeckEngine {
   return {
     probe: () => probeWebGL(),
@@ -262,7 +320,7 @@ export function browserDeckEngine(
         });
       return engineOnce.then(function ({ pixi, art }): StartDeck {
         return function (host, scene, size) {
-          return startDeck(pixi, art, host, scene, size);
+          return startDeck(pixi, art, host, scene, size, motion());
         };
       });
     },

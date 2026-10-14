@@ -58,7 +58,8 @@ Hermes enables ES6 classes at run time was not checked on a device; serving Pixi
   more.
 - Neither bundle has Pixi or `class` syntax, and `hermesc` parses both with default flags.
 
-`render.mjs` (headless Edge, no daemon) evaluates those compiled bundles with `(0, globalThis.eval)` and a
+`render.mjs` (headless Edge, no daemon; since the deck moves, `docs/ship-deck-motion/render.mjs`, which
+holds a still deck to the same reference and adds the motion's checks) evaluates those compiled bundles with `(0, globalThis.eval)` and a
 host `require`, the way the app does. It renders the screen with the board-list fixture fleet, into
 `render-results.json`:
 
@@ -150,6 +151,6 @@ Steps, on the captain's word only. Installing reloads the first mate.
 ```sh
 (cd docs/board-list && npm ci)          # esbuild, playwright, react-dom, react-native-web
 node docs/ship-deck-canvas/compile.mjs  # needs the Paseo CLI's compiler; PASEO_COMPILER to point elsewhere
-node docs/ship-deck-canvas/render.mjs   # headless Edge
+node docs/ship-deck-motion/render.mjs   # headless Edge: the browser checks, now for a moving deck
 py docs/ship-deck-art/build-art.py <sources>  # only to rebuild art/ship-deck/ from the generated PNGs
 ```

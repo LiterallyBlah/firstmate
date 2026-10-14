@@ -44,7 +44,11 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
 | `server/ship-deck.ts`, `shared/ship-deck.ts` | The ship deck's switch, `FIRSTMATE_SHIP_DECK` (off by default), carried on the fleet load; `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the counts below it.                 |
-| `client/deck-scene.ts`        | Cards → sailors on hull C, placed by column, posed by state; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
+| `client/deck-scene.ts`        | Cards → sailors on hull C, by column, greyed when their feed is lost; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
+| `client/deck-geometry.ts`     | Hull C's walkable deck, its obstacles and named anchors; A* paths; a spot beside a shared anchor. Pure. |
+| `client/deck-crew.ts`         | The crew in motion: anchors reserved, the state shown at once and walked to after, the hatch, idle motion, each frame's poses. Pure. |
+| `client/deck-ambient.ts`      | The sea, the bob, the masthead's sway, the lanterns, the gulls, as functions of the clock; the motion plan. Pure. |
+| `client/deck-loop.ts`         | When the deck draws: 30 fps at most, paused while hidden, still under reduced motion.     |
 | `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated and the atlas decoded; every failure a status. |
 | `client/deck-pixi.ts`         | The deck, its depth pieces, props and sailor sprites drawn with Pixi, handed in through a narrow `PixiModule`. |
 | `art/ship-deck/`, `docs/ship-deck-art/build-art.py` | The deck's art: one atlas and its manifest, built mechanically from the approved generated PNGs. |
@@ -242,7 +246,8 @@ calls to the old ones exactly, and `receipts.test.ts` a prepared home byte for b
 
 ## The ship deck is a WebGL canvas, behind `FIRSTMATE_SHIP_DECK`
 
-A preview, off by default (`docs/ship-deck-canvas/README.md` has the evidence). With the switch on, the
+A preview, off by default (`docs/ship-deck-canvas/README.md` and `docs/ship-deck-motion/README.md` have
+the evidence). With the switch on, the
 fleet load carries `shipDeck: true` (`withShipDeck`). Then the wide layout's Crew/Files switch gains
 **Deck**, in a web renderer only (`deckOffered`). Off, the load is the same object with no key: the
 browser harness holds the screen's DOM identical to main's. What it found applies to any client code:
@@ -275,15 +280,45 @@ browser harness holds the screen's DOM identical to main's. What it found applie
   `docs/ship-deck-art/build-art.py` rebuilds them from the generated sources; `art/ship-deck/README.md`
   says where those came from and what still needs a pixel artist.
 - **Depth is the deck row.** Scene coordinates are the hull's own pixels, and a sailor's `x, y` is its
-  feet. The hull is drawn whole. Its mast, bollards and near rail are cut out again as pieces, each with
-  the row it stands on, and `deckLayers` sorts props, sailors and pieces by row. A new place on deck must
-  keep its feet on the hull's deck and off the near rail: `ship-deck.test.ts` reads the atlas to check
-  every zone, however crowded. `render.mjs` compares the WebGL canvas to an independent 2D composite,
-  art pixel by art pixel.
+  feet. The hull is the backdrop (in slices, so the masthead can sway). Its mast, bollards and near rail
+  are cut out again as pieces, each with the row it stands on, and `depthOf` orders props, sailors and
+  pieces by row. A new place on deck must keep its feet on the hull's deck and off the near rail:
+  `deck-motion.test.ts` reads the atlas to check every anchor, however crowded. `docs/ship-deck-motion/render.mjs` compares the still (reduced-motion)
+  WebGL canvas to an independent 2D composite, art pixel by art pixel.
 
-The ticker never starts: a frame is drawn on a scene change or a resize (a `ResizeObserver` on the host),
-so a quiet crew costs nothing. Leaving the Deck destroys the application and its canvas. A mount torn
-down mid-start destroys whatever starts.
+Leaving the Deck destroys the application and its canvas. A mount torn down mid-start destroys whatever
+starts.
+
+### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
+
+- **State and movement are separate.** The scene says what each sailor is doing (`DeckSailor` has no
+  position). `applyCrew` sets the new state at once, so the mark under the feet and the legend change on
+  the poll; the sprite then walks to the state's anchor at 32 px a second, re-planning from wherever it
+  is. A test holds the state ahead of the position.
+- **Anchors are named and reserved** (`ANCHORS` in `client/deck-geometry.ts`): stations round the mast
+  and the stores, rail spots, helm spots on the quarterdeck, bow spots. A sailor takes the nearest free
+  one; when a place is full it stands beside a taken one (`sharedSpot`), never on it and never on the
+  stairs. A new anchor must stand on open deck: `deck-motion.test.ts` reads the atlas for every anchor,
+  every walkable cell and every path between any two anchors.
+- **Walking is A* over a 2 px grid** of three hand-drawn polygons (main deck, stairs, quarterdeck) minus
+  obstacle footprints, pulled tight. The only way to the helm is the stairs, which belong to the `near`
+  piece, so a climbing sailor passes behind their balustrade.
+- **Depth is set every frame.** The deck's layer sorts by `zIndex` from `depthOf(row, rank)`, so a
+  walking sailor goes behind the mast while its feet are on or behind the mast's row and in front after.
+- **The hatch.** Crew already aboard when the Deck opens are simply there. A crewmate that joins later
+  climbs out of the hatch (its sprite cropped to the rows above the grate) and walks to its anchor; one
+  whose card leaves the deck walks back and climbs down.
+- **Stale never reads idle.** A failing fleet load (`fleet.error`) greys the whole crew, a remote host
+  offline greys its workers: the last state stays, the sprite greys, the mark goes hollow, idle motion
+  stops, and the pane says the feed is lost.
+- **When it draws** (`deckAnimator`): `requestAnimationFrame`, capped at 30 fps; nothing at all while
+  `document.hidden` or the pane has no size; no loop under `prefers-reduced-motion: reduce`, where the
+  deck is drawn once per change with everyone at their anchor; 12 fps with no sea drift or gulls on a
+  software renderer (SwiftShader, llvmpipe, read from the WebGL context). The canvas carries
+  `data-firstmate-deck-motion`: `full`, `lite` or `still`.
+- **Ambient life has no shaders**: whole-pixel bob and sway, pre-drawn wave rows that scroll, three
+  lanterns, a gull now and then, so a software renderer pays only for sprites. The masthead sways because
+  the hull is drawn in slices with it cut out (`MASTHEAD`).
 
 ## Remote work is on the board
 

@@ -5,7 +5,13 @@
  * wide layout.
  *
  * It draws from the cards the board already has — `FleetSurface` passes them in from the shared fleet
- * query — so it polls nothing of its own. The canvas makes the crew legible at a glance; names, tasks and
+ * query — so it polls nothing of its own. When that query fails, `stale` greys the whole crew: each
+ * sailor keeps its last state and place, and the pane says the feed is lost — nobody turns idle.
+ *
+ * The deck moves (`client/deck-pixi.ts`): sailors walk to their state's place, climb up through the
+ * hatch when they join and down it when they leave, and the ship rides a gentle sea. It is capped at
+ * 30 frames a second, paused while the window is hidden, lighter on a software renderer, and still
+ * under reduced motion, where every state still shows by place and mark. The canvas makes the crew legible at a glance; names, tasks and
  * every action stay on the Crew board. The counts below it say the same in words, for a screen reader
  * and for a deck that cannot draw.
  *
@@ -41,16 +47,19 @@ export function deckStatusText(status: DeckStatus): string | null {
 export function ShipDeckView({
   cards,
   theme,
+  stale = false,
   engine,
   os = Platform.OS,
 }: {
   cards: readonly FleetCard[];
   theme: PluginTheme;
+  /** The fleet load is failing: the deck shows the last crew it saw, greyed. */
+  stale?: boolean;
   /** Stood in for by the tests; the browser's WebGL, and Pixi and the art from the daemon, otherwise. */
   engine?: DeckEngine;
   os?: string;
 }) {
-  const scene = useMemo(() => deckScene(cards, theme), [cards, theme]);
+  const scene = useMemo(() => deckScene(cards, theme, { feedStale: stale }), [cards, theme, stale]);
   // One engine for the view's life, so a new `useRpc` function on a re-render never restarts the canvas.
   const loadEngine = useRpc(loadDeckEngine);
   const loadArt = useRpc(loadDeckArt);
@@ -88,7 +97,8 @@ export function ShipDeckView({
 
   const { colors } = theme;
   const crew = scene.sailors.length;
-  const summary = DECK_STATES.map((state) => `${scene.counts[state]} ${state}`).join(", ");
+  const lost = scene.stale === 0 ? "" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
+  const summary = `${DECK_STATES.map((state) => `${scene.counts[state]} ${state}`).join(", ")}${lost}`;
   const note = deckStatusText(status);
 
   return (
@@ -101,6 +111,13 @@ export function ShipDeckView({
             : "Preview"}
         </Text>
       </View>
+      {scene.stale === 0 ? null : (
+        <Text style={{ color: colors.statusWarning, fontSize: 12 }}>
+          {stale
+            ? "The crew's feed is lost: the deck shows where everyone last stood, greyed."
+            : `${scene.stale === 1 ? "One sailor's host is" : `${scene.stale} sailors' hosts are`} out of reach: greyed where last seen.`}
+        </Text>
+      )}
       <View
         style={{
           flex: 1,
@@ -135,6 +152,12 @@ export function ShipDeckView({
             </Text>
           </View>
         ))}
+        {scene.stale === 0 ? null : (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, borderWidth: 1, borderColor: colors.foregroundMuted }} />
+            <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{`${scene.stale} stale`}</Text>
+          </View>
+        )}
       </View>
     </View>
   );

@@ -56,5 +56,10 @@ up well at this size.
 - Mechanical sampling leaves single-pixel noise in places on the hull: plank grain, rigging and some
   edges.
 
+The Deck's motion (`client/deck-crew.ts`) makes do: a walk is `walk-a`, `idle`, `walk-b`, `idle` on each
+frame's own feet, with the body raised a pixel on the passing frames; the side poses are mirrored to walk
+left; there is no back view, so a sailor walking up the deck shows the front frames. Idle motion is
+whole-pixel shifts of the state's one pose.
+
 Generated art can stand in for now. Animation and state poses beyond today's four, a second ship and any
 interactive layer would be better served by art drawn for them.

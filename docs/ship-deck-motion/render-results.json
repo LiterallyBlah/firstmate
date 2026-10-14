@@ -1,0 +1,435 @@
+{
+  "flagOff": [
+    {
+      "width": 1440,
+      "domIdenticalToMain": true,
+      "domChars": 95475,
+      "deckButton": false,
+      "canvases": 0,
+      "deckEngineCalls": 0,
+      "deckArtCalls": 0,
+      "pixiGlobal": false,
+      "deckDraws": 0
+    },
+    {
+      "width": 390,
+      "domIdenticalToMain": true,
+      "domChars": 24680,
+      "deckButton": false,
+      "canvases": 0,
+      "deckEngineCalls": 0,
+      "deckArtCalls": 0,
+      "pixiGlobal": false,
+      "deckDraws": 0
+    }
+  ],
+  "still": [
+    {
+      "theme": "dark",
+      "renderer": "webgl",
+      "motion": "still",
+      "caption": "Preview · drawn with WebGL · 12 on deck",
+      "label": "Ship deck: 5 working, 1 waiting, 4 blocked, 2 idle",
+      "deckEngineCalls": 1,
+      "deckArtCalls": 1,
+      "pixiGlobal": false,
+      "drawsWhileIdleFor2s": 0,
+      "counts": {
+        "working": 5,
+        "waiting": 1,
+        "blocked": 4,
+        "idle": 2
+      },
+      "devicePixelsPerArtPixel": 3,
+      "artPixelsCompared": 31720,
+      "matching": 31720,
+      "sailors": [
+        {
+          "key": "block-0",
+          "state": "blocked",
+          "x": 94,
+          "pose": "front-idle",
+          "artPixels": 358,
+          "visible": 358,
+          "hiddenBy": {}
+        },
+        {
+          "key": "block-1",
+          "state": "blocked",
+          "x": 70,
+          "pose": "front-idle",
+          "artPixels": 370,
+          "visible": 352,
+          "hiddenBy": {
+            "bollard-bow-aft": 18
+          }
+        },
+        {
+          "key": "block-2",
+          "state": "blocked",
+          "x": 106,
+          "pose": "front-idle",
+          "artPixels": 358,
+          "visible": 358,
+          "hiddenBy": {}
+        },
+        {
+          "key": "block-3",
+          "state": "blocked",
+          "x": 84,
+          "pose": "front-idle",
+          "artPixels": 370,
+          "visible": 370,
+          "hiddenBy": {}
+        },
+        {
+          "key": "idle-1",
+          "state": "idle",
+          "x": 196,
+          "pose": "leaning",
+          "artPixels": 255,
+          "visible": 255,
+          "hiddenBy": {}
+        },
+        {
+          "key": "idle-2",
+          "state": "idle",
+          "x": 228,
+          "pose": "leaning",
+          "artPixels": 260,
+          "visible": 260,
+          "hiddenBy": {}
+        },
+        {
+          "key": "work-0",
+          "state": "working",
+          "x": 194,
+          "pose": "hauling",
+          "artPixels": 313,
+          "visible": 311,
+          "hiddenBy": {
+            "mast": 2
+          }
+        },
+        {
+          "key": "work-1",
+          "state": "working",
+          "x": 230,
+          "pose": "hauling",
+          "artPixels": 295,
+          "visible": 295,
+          "hiddenBy": {}
+        },
+        {
+          "key": "work-2",
+          "state": "working",
+          "x": 238,
+          "pose": "hauling",
+          "artPixels": 313,
+          "visible": 313,
+          "hiddenBy": {}
+        },
+        {
+          "key": "work-3",
+          "state": "working",
+          "x": 290,
+          "pose": "hauling",
+          "artPixels": 295,
+          "visible": 295,
+          "hiddenBy": {}
+        },
+        {
+          "key": "work-4",
+          "state": "working",
+          "x": 164,
+          "pose": "hauling",
+          "artPixels": 313,
+          "visible": 313,
+          "hiddenBy": {}
+        },
+        {
+          "key": "work-5",
+          "state": "waiting",
+          "x": 386,
+          "pose": "waiting",
+          "artPixels": 320,
+          "visible": 320,
+          "hiddenBy": {}
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "renderer": "webgl",
+      "motion": "still",
+      "caption": "Preview · drawn with WebGL · 12 on deck",
+      "label": "Ship deck: 5 working, 1 waiting, 4 blocked, 2 idle",
+      "deckEngineCalls": 1,
+      "deckArtCalls": 1,
+      "pixiGlobal": false,
+      "drawsWhileIdleFor2s": 0,
+      "counts": {
+        "working": 5,
+        "waiting": 1,
+        "blocked": 4,
+        "idle": 2
+      },
+      "devicePixelsPerArtPixel": 3,
+      "artPixelsCompared": 31720,
+      "matching": 31720,
+      "sailors": [
+        {
+          "key": "block-0",
+          "state": "blocked",
+          "x": 94,
+          "pose": "front-idle",
+          "artPixels": 358,
+          "visible": 358,
+          "hiddenBy": {}
+        },
+        {
+          "key": "block-1",
+          "state": "blocked",
+          "x": 70,
+          "pose": "front-idle",
+          "artPixels": 370,
+          "visible": 352,
+          "hiddenBy": {
+            "bollard-bow-aft": 18
+          }
+        },
+        {
+          "key": "block-2",
+          "state": "blocked",
+          "x": 106,
+          "pose": "front-idle",
+          "artPixels": 358,
+          "visible": 358,
+          "hiddenBy": {}
+        },
+        {
+          "key": "block-3",
+          "state": "blocked",
+          "x": 84,
+          "pose": "front-idle",
+          "artPixels": 370,
+          "visible": 370,
+          "hiddenBy": {}
+        },
+        {
+          "key": "idle-1",
+          "state": "idle",
+          "x": 196,
+          "pose": "leaning",
+          "artPixels": 255,
+          "visible": 255,
+          "hiddenBy": {}
+        },
+        {
+          "key": "idle-2",
+          "state": "idle",
+          "x": 228,
+          "pose": "leaning",
+          "artPixels": 260,
+          "visible": 260,
+          "hiddenBy": {}
+        },
+        {
+          "key": "work-0",
+          "state": "working",
+          "x": 194,
+          "pose": "hauling",
+          "artPixels": 313,
+          "visible": 311,
+          "hiddenBy": {
+            "mast": 2
+          }
+        },
+        {
+          "key": "work-1",
+          "state": "working",
+          "x": 230,
+          "pose": "hauling",
+          "artPixels": 295,
+          "visible": 295,
+          "hiddenBy": {}
+        },
+        {
+          "key": "work-2",
+          "state": "working",
+          "x": 238,
+          "pose": "hauling",
+          "artPixels": 313,
+          "visible": 313,
+          "hiddenBy": {}
+        },
+        {
+          "key": "work-3",
+          "state": "working",
+          "x": 290,
+          "pose": "hauling",
+          "artPixels": 295,
+          "visible": 295,
+          "hiddenBy": {}
+        },
+        {
+          "key": "work-4",
+          "state": "working",
+          "x": 164,
+          "pose": "hauling",
+          "artPixels": 313,
+          "visible": 313,
+          "hiddenBy": {}
+        },
+        {
+          "key": "work-5",
+          "state": "waiting",
+          "x": 386,
+          "pose": "waiting",
+          "artPixels": 320,
+          "visible": 320,
+          "hiddenBy": {}
+        }
+      ]
+    }
+  ],
+  "motion": {
+    "renderer": "webgl",
+    "motion": "full",
+    "caption": "Preview · drawn with WebGL · 12 on deck",
+    "label": "Ship deck: 5 working, 1 waiting, 4 blocked, 2 idle",
+    "deckEngineCalls": 1,
+    "deckArtCalls": 1,
+    "pixiGlobal": false,
+    "labelAfterTheStateChange": "Ship deck: 6 working, 0 waiting, 4 blocked, 2 idle",
+    "labelWithTheFeedLost": "Ship deck: 7 working, 0 waiting, 3 blocked, 2 idle, feed lost: last known",
+    "drawsWhileHiddenFor3s": 0,
+    "drawsInTheSecondAfterShown": 31,
+    "animation": {
+      "frames": 100,
+      "fps": 10,
+      "width": 498,
+      "height": 211,
+      "bytes": 1854022
+    }
+  },
+  "performance": [
+    {
+      "renderer": "GPU (ANGLE D3D11)",
+      "gpu": "ANGLE (AMD, AMD Radeon(TM) 880M Graphics (0x0000150E) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "reducedMotion": "no-preference",
+      "motion": "full",
+      "measurements": [
+        {
+          "label": "crew walking",
+          "drawsPerSecond": 28.8,
+          "mainThreadBusyPercent": 12.4,
+          "scriptPercent": 8.7,
+          "jsMsPerDraw": 2.6
+        },
+        {
+          "label": "settled (ambient only)",
+          "drawsPerSecond": 28.4,
+          "mainThreadBusyPercent": 11.9,
+          "scriptPercent": 8,
+          "jsMsPerDraw": 2.41
+        },
+        {
+          "label": "window hidden",
+          "drawsPerSecond": 0,
+          "mainThreadBusyPercent": 4.4,
+          "scriptPercent": 2.5,
+          "jsMsPerDraw": 0
+        }
+      ]
+    },
+    {
+      "renderer": "GPU (ANGLE D3D11)",
+      "gpu": "ANGLE (AMD, AMD Radeon(TM) 880M Graphics (0x0000150E) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "reducedMotion": "reduce",
+      "motion": "still",
+      "measurements": [
+        {
+          "label": "crew walking",
+          "drawsPerSecond": 0,
+          "mainThreadBusyPercent": 4.9,
+          "scriptPercent": 3.2,
+          "jsMsPerDraw": 0
+        },
+        {
+          "label": "settled (ambient only)",
+          "drawsPerSecond": 0,
+          "mainThreadBusyPercent": 2.3,
+          "scriptPercent": 1.4,
+          "jsMsPerDraw": 0
+        },
+        {
+          "label": "window hidden",
+          "drawsPerSecond": 0,
+          "mainThreadBusyPercent": 4.6,
+          "scriptPercent": 2.1,
+          "jsMsPerDraw": 0
+        }
+      ]
+    },
+    {
+      "renderer": "SwiftShader (CPU)",
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "reducedMotion": "no-preference",
+      "motion": "lite",
+      "measurements": [
+        {
+          "label": "crew walking",
+          "drawsPerSecond": 11.8,
+          "mainThreadBusyPercent": 4.2,
+          "scriptPercent": 2.9,
+          "jsMsPerDraw": 1.8
+        },
+        {
+          "label": "settled (ambient only)",
+          "drawsPerSecond": 11.8,
+          "mainThreadBusyPercent": 5.2,
+          "scriptPercent": 3.1,
+          "jsMsPerDraw": 1.98
+        },
+        {
+          "label": "window hidden",
+          "drawsPerSecond": 0,
+          "mainThreadBusyPercent": 4.4,
+          "scriptPercent": 2.5,
+          "jsMsPerDraw": 0
+        }
+      ]
+    },
+    {
+      "renderer": "SwiftShader (CPU)",
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "reducedMotion": "reduce",
+      "motion": "still",
+      "measurements": [
+        {
+          "label": "crew walking",
+          "drawsPerSecond": 0,
+          "mainThreadBusyPercent": 5.4,
+          "scriptPercent": 3.6,
+          "jsMsPerDraw": 0
+        },
+        {
+          "label": "settled (ambient only)",
+          "drawsPerSecond": 0,
+          "mainThreadBusyPercent": 4.6,
+          "scriptPercent": 2.8,
+          "jsMsPerDraw": 0
+        },
+        {
+          "label": "window hidden",
+          "drawsPerSecond": 0,
+          "mainThreadBusyPercent": 4.4,
+          "scriptPercent": 2.7,
+          "jsMsPerDraw": 0
+        }
+      ]
+    }
+  ],
+  "errors": []
+}
