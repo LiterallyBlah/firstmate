@@ -42,20 +42,22 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`), and each send's receipt. |
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
-| `server/ship-deck.ts`, `shared/ship-deck.ts` | The ship deck's switch, `FIRSTMATE_SHIP_DECK` (off by default), carried on the fleet load; `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull. |
+| `server/ship-deck.ts`, `shared/ship-deck.ts` | The ship deck's switch, `FIRSTMATE_SHIP_DECK` (off by default), carried on the fleet load; `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail and the crew's looks. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the legend of badges and counts. |
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z. Pure. |
 | `client/deck-hover.ts`        | The sailor under the pointer, by the box it is drawn in; canvas ↔ deck coordinates; where its label goes. Pure. |
 | `client/deck-scene.ts`        | Cards → sailors on hull C, by column, greyed when their feed is lost, each with its hover caption; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
 | `client/deck-geometry.ts`     | Hull C's walkable deck, its obstacles and named anchors; A* paths; a spot beside a shared anchor. Pure. |
-| `client/deck-crew.ts`         | The crew in motion: anchors reserved, the state shown at once and walked to after, the hatch, idle motion, each frame's poses. Pure. |
+| `client/deck-crew.ts`         | The crew in motion: anchors reserved, the state shown at once and walked to after, the hatch, idle motion and the at-ease breath, each sailor's look, each frame's poses. Pure. |
+| `client/deck-extras.ts`       | The sail and the crew's looks: which looks there are, who wears which (by agent id), the sail's billow, whether it is drawn. Pure. |
+| `client/deck-wake.ts`         | The wake astern and the bow and stern waves' arms, as runs of foam pixels scrolled with the sea. Pure. |
 | `client/deck-ambient.ts`      | The bob, the masthead's sway, the lanterns, where the water is and when a gull flies, as functions of the clock; the motion plan. Pure. |
 | `client/deck-sky.ts`          | The sky by the local time of day, its place behind the ship; the sea's and foam's scroll, the gull's pose. Pure. |
-| `client/deck-environment.ts`  | The generated sky, stars, gull, sea and foam drawn with Pixi, behind and in front of the ship; a plain sea without them. |
+| `client/deck-environment.ts`  | The generated sky, stars, gull, sea and foam, and the wake, drawn with Pixi, behind and in front of the ship; a plain sea (with its wake) without them. |
 | `client/deck-loop.ts`         | When the deck draws: 30 fps at most, paused while hidden, still under reduced motion.     |
-| `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated, the atlas and environment decoded; every failure a status. |
-| `client/deck-pixi.ts`         | The deck, its depth pieces, props and sailor sprites drawn with Pixi, handed in through a narrow `PixiModule`. |
-| `art/ship-deck/`, `docs/ship-deck-art/build-art.py` | The deck's art: one atlas and its manifest, built mechanically from the approved generated PNGs; the generated environment and `environment.json`. |
+| `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated, the atlas, environment and extras decoded; every failure a status. |
+| `client/deck-pixi.ts`         | The deck, its sail, depth pieces, props and sailor sprites drawn with Pixi, handed in through a narrow `PixiModule`. |
+| `art/ship-deck/`, `docs/ship-deck-art/build-art.py` | The deck's art: one atlas and its manifest, built mechanically from the approved generated PNGs; the generated environment and `environment.json`; the sail and crew looks and `extras.json`. |
 | `shared/attachments.ts`       | What the captain can attach: the message's shape, image-or-file by Paseo's rules, the size cap. |
 | `server/uploads.ts`           | An attached file written to `$PASEO_HOME/uploads/`, described as Paseo's `uploaded_file`.     |
 | `server/cli.ts`               | `paseo stop` and `paseo project rename`, for what the SDK does not have.                   |
@@ -250,8 +252,8 @@ calls to the old ones exactly, and `receipts.test.ts` a prepared home byte for b
 
 ## The ship deck is a WebGL canvas, behind `FIRSTMATE_SHIP_DECK`
 
-A preview, off by default (`docs/ship-deck-canvas/README.md`, `docs/ship-deck-motion/README.md` and
-`docs/ship-deck-environment/README.md` have the evidence). With the switch on, the
+A preview, off by default (`docs/ship-deck-canvas/README.md`, `docs/ship-deck-motion/README.md`,
+`docs/ship-deck-environment/README.md` and `docs/ship-deck-tweaks/README.md` have the evidence). With the switch on, the
 fleet load carries `shipDeck: true` (`withShipDeck`). Then the wide layout's Crew/Files switch gains
 **Deck**, in a web renderer only (`deckOffered`). Off, the load is the same object with no key: the
 browser harness holds the screen's DOM identical to main's. What it found applies to any client code:
@@ -370,6 +372,31 @@ starts.
 - **What still wants an artist** is in `art/ship-deck/ENVIRONMENT.md`: the foam's scallops are regular and
   not fitted to hull C's curve, and the gull's wing sweep is approximate. The hull and sea are not tinted
   for night.
+
+### The sail, the wake, the crew's looks and the sailor at ease (`docs/ship-deck-tweaks/README.md` has the evidence)
+
+- **Served apart, and kept image by image.** `art/ship-deck/extras.json` names the sail's two-state strip,
+  the mast occluder and six crew looks (about 31 KB); `firstmate.deck.extras` sends them, refused while the
+  switch is off, checked against `DeckExtrasManifestSchema`, whose paths cannot leave `art/ship-deck/`.
+  `decodeExtras` keeps whatever decodes: no sail without both its strip and the occluder, and a look that
+  failed is not handed out. A whole failure is a bare mast and the atlas's two outfits, with a warning.
+- **The sail hangs behind the crew** (`ship`'s children: hull, masthead, sail, deck). It rides the bob but
+  not the masthead's sway, and alternates rest and billow every 850 ms, resting under reduced motion.
+  While it shows, the mast's depth piece is the occluder — the mast with the rows behind the cloth
+  cleared — so a sailor behind the mast is still covered from the cloth down, and the mast never paints
+  over the sail. A sailor behind the mast stands with its head in front of the sail.
+- **A look per crewmate, stable by agent id** (`DeckSailor.identity`: the agent's id, a remote worker's
+  host and id): `lookFor` hashes it over the looks that loaded, whoever else is aboard, so two crewmates can
+  share a look and a relaunched one (a new agent) changes its own. The extra looks use the atlas's
+  base-lane rectangles and feet exactly, so `Figure.outfit` (the lane) still drives hit boxes and badges,
+  and `Figure.look` the texture.
+- **Idle is at ease**: the side view standing at rest (`STATE_POSES.idle`), looking fore or aft by seed,
+  feet still; on the out-breath the top `BREATH_ROWS` rows are drawn a pixel lower over the body, each part
+  placed by its top in whole pixels. Read the deck's canvas at art-pixel centres to compare frames: drawn
+  in two parts, the body's rows can round to device pixels a little differently from the whole sprite.
+- **The wake is code**: `wakeRuns` in `client/deck-wake.ts`, drawn as one `Graphics` over the near sea and
+  under the foam, redrawn only when the sea has scrolled a whole pixel. Its outline stays with the ship;
+  its foam is anchored to the water.
 
 ## Remote work is on the board
 

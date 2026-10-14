@@ -18,7 +18,9 @@
  * an image the browser has decoded. Both are fetched once per app session and kept; a renderer without
  * a host or WebGL never asks for either. **The generated sea, sky and gull** come the same way, from
  * `firstmate.deck.environment`, but are not needed to draw: when they fail to load the deck draws its
- * ship and crew on a flat sea, says so in the console, and asks again the next time it is opened.
+ * ship and crew on a flat sea, says so in the console, and asks again the next time it is opened. **The
+ * sail and the crew's extra looks** likewise, from `firstmate.deck.extras`, image by image: whatever
+ * decodes is drawn, whatever does not is left out with a warning — a bare mast, or fewer looks to go round.
  *
  * **Motion is the browser's too.** `browserMotion` hands the deck `requestAnimationFrame`, the
  * `prefers-reduced-motion` query and `document.hidden`, so `client/deck-loop.ts` can cap, pause and still it;
@@ -27,8 +29,9 @@
  * Every way it can fail ends in a status, never a throw: no host, no WebGL, Pixi or the art failing to
  * load, Pixi failing to start. A mount torn down while Pixi is still starting destroys what starts.
  */
-import { environmentImagePaths, type DeckArt, type DeckEngineSource, type DeckEnvironment } from "../shared/ship-deck";
+import { environmentImagePaths, extrasImagePaths, type DeckArt, type DeckEngineSource, type DeckEnvironment, type DeckExtras } from "../shared/ship-deck";
 import type { DeckEnvironmentImages } from "./deck-environment";
+import type { DeckExtrasImages } from "./deck-extras";
 import type { DeckHover } from "./deck-hover";
 import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { startDeck, type DeckArtImage, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
@@ -335,16 +338,45 @@ export function decodeEnvironment(environment: DeckEnvironment, decode: (png: st
   });
 }
 
+/**
+ * The extras with every image that decodes; one that is missing or will not decode is left out, and
+ * `onMissing` hears which. Never refused: the deck draws whatever arrived (`client/deck-extras.ts`).
+ */
+export function decodeExtras(
+  extras: DeckExtras,
+  decode: (png: string) => Promise<unknown>,
+  onMissing: (path: string, error: unknown) => void = function () {},
+): Promise<DeckExtrasImages> {
+  return Promise.all(
+    extrasImagePaths(extras.manifest).map(function (path) {
+      const png = extras.images[path];
+      const decoded = png === undefined ? Promise.reject(new Error(`the extras have no ${path}`)) : decode(png);
+      return decoded.then(
+        (image) => [path, image] as const,
+        function (error: unknown) {
+          onMissing(path, error);
+          return null;
+        },
+      );
+    }),
+  ).then(function (decoded) {
+    return { manifest: extras.manifest, images: new Map(decoded.filter((entry) => entry !== null)) };
+  });
+}
+
 /** Pixi and the art for this app session: fetched once, kept; a failure is not kept, so reopening the deck tries again. */
-let engineOnce: Promise<{ pixi: PixiModule; art: Omit<DeckArtImage, "environment"> }> | null = null;
+let engineOnce: Promise<{ pixi: PixiModule; art: Omit<DeckArtImage, "environment" | "extras"> }> | null = null;
 /** The generated environment likewise, apart: its failure is a deck without a sky, not no deck. */
 let environmentOnce: Promise<DeckEnvironmentImages | null> | null = null;
+/** The sail and the crew's looks likewise, apart: their failure is a bare mast and the atlas's two outfits. */
+let extrasOnce: Promise<DeckExtrasImages | null> | null = null;
 
-/** The real thing: the browser's WebGL, and Pixi, the art and the environment fetched from the daemon on first use. */
+/** The real thing: the browser's WebGL, and Pixi, the art, the environment and the extras fetched from the daemon on first use. */
 export function browserDeckEngine(
   loadSource: () => Promise<DeckEngineSource>,
   loadArt: () => Promise<DeckArt>,
   loadEnvironment: () => Promise<DeckEnvironment>,
+  loadExtras: () => Promise<DeckExtras>,
   decode: (png: string) => Promise<unknown> = decodeAtlas,
   motion: () => DeckMotionEnvironment = browserMotion,
 ): DeckEngine {
@@ -373,9 +405,20 @@ export function browserDeckEngine(
           environmentOnce = null;
           return null;
         });
-      return Promise.all([engineOnce, environmentOnce]).then(function ([{ pixi, art }, environment]): StartDeck {
+      extrasOnce ??= loadExtras()
+        .then((extras) =>
+          decodeExtras(extras, decode, function (path, error) {
+            console.warn(`[firstmate] the ship deck's ${path} did not load; drawing without it:`, error);
+          }),
+        )
+        .catch(function (error: unknown) {
+          console.warn("[firstmate] the ship deck's sail and crew looks did not load; drawing a bare mast and the atlas's two outfits:", error);
+          extrasOnce = null;
+          return null;
+        });
+      return Promise.all([engineOnce, environmentOnce, extrasOnce]).then(function ([{ pixi, art }, environment, extras]): StartDeck {
         return function (host, scene, size, onHover) {
-          return startDeck(pixi, { ...art, environment }, host, scene, size, motion(), onHover);
+          return startDeck(pixi, { ...art, environment, extras }, host, scene, size, motion(), onHover);
         };
       });
     },

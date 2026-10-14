@@ -27,7 +27,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Text, View } from "react-native";
 
 import type { FleetCard } from "../shared/fleet";
-import { loadDeckArt, loadDeckEngine, loadDeckEnvironment } from "../shared/ship-deck";
+import { loadDeckArt, loadDeckEngine, loadDeckEnvironment, loadDeckExtras } from "../shared/ship-deck";
 import { badgeInk, badgePixels, BADGE_SIZE } from "./deck-badges";
 import { labelPlacement, type DeckHover } from "./deck-hover";
 import { browserDeckEngine, mountDeck, type DeckEngine, type DeckMount, type DeckStatus } from "./deck-mount";
@@ -133,7 +133,7 @@ export function ShipDeckView({
   theme: PluginTheme;
   /** The fleet load is failing: the deck shows the last crew it saw, greyed. */
   stale?: boolean;
-  /** Stood in for by the tests; the browser's WebGL, and Pixi, the art and the environment from the daemon, otherwise. */
+  /** Stood in for by the tests; the browser's WebGL, and Pixi, the art, the environment and the extras from the daemon, otherwise. */
   engine?: DeckEngine;
   os?: string;
 }) {
@@ -142,13 +142,15 @@ export function ShipDeckView({
   const loadEngine = useRpc(loadDeckEngine);
   const loadArt = useRpc(loadDeckArt);
   const loadEnvironment = useRpc(loadDeckEnvironment);
-  const loadRef = useRef({ loadEngine, loadArt, loadEnvironment });
-  loadRef.current = { loadEngine, loadArt, loadEnvironment };
+  const loadExtras = useRpc(loadDeckExtras);
+  const loadRef = useRef({ loadEngine, loadArt, loadEnvironment, loadExtras });
+  loadRef.current = { loadEngine, loadArt, loadEnvironment, loadExtras };
   const [browser] = useState(() =>
     browserDeckEngine(
       () => loadRef.current.loadEngine({}),
       () => loadRef.current.loadArt({}),
       () => loadRef.current.loadEnvironment({}),
+      () => loadRef.current.loadExtras({}),
     ),
   );
   const used = engine ?? browser;

@@ -15,8 +15,8 @@ import { pageTimeline, registerReceiptObservers } from "./server/receipt-observe
 import { newAction, receiptJournal } from "./server/receipts";
 import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
-import { readDeckArt, readDeckEngine, readDeckEnvironment, withShipDeck } from "./server/ship-deck";
-import { loadDeckArt, loadDeckEngine, loadDeckEnvironment } from "./shared/ship-deck";
+import { readDeckArt, readDeckEngine, readDeckEnvironment, readDeckExtras, withShipDeck } from "./server/ship-deck";
+import { loadDeckArt, loadDeckEngine, loadDeckEnvironment, loadDeckExtras } from "./shared/ship-deck";
 import { findFiles, listDirectory, readTextFile, requireHome, writeTextFile } from "./server/files";
 import { CHARTER_FILE, NEW_CHARTER_FILE, acknowledgeCharter, writeNewCharter } from "./server/charter-file";
 import { isHomeReady, prepareHome, removeSuggestion } from "./server/home";
@@ -258,6 +258,8 @@ export default function contribute(server: PluginServerContext) {
   server.handle(loadDeckArt, () => readDeckArt());
   // The generated sea, sky and gull from art/ship-deck/environment.json; refused while the switch is off, likewise.
   server.handle(loadDeckEnvironment, () => readDeckEnvironment());
+  // The sail and the crew's extra looks from art/ship-deck/extras.json; refused while the switch is off, likewise.
+  server.handle(loadDeckExtras, () => readDeckExtras());
 
   const unregisterRelay = registerSteerRelay(server, steers);
   // A crewmate whose finish the first mate has been told about leaves Paseo's "Ready to review"; see server/crew-seen.ts.
