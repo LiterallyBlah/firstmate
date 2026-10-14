@@ -29,7 +29,7 @@
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 
-import type { FleetCard, FleetDeckSwitch } from "../shared/fleet";
+import type { FleetCard } from "../shared/fleet";
 import type { DeckArtManifest, DeckPropName } from "../shared/ship-deck";
 import type { Figure } from "./deck-crew";
 import { cardHeadline } from "./format";
@@ -263,9 +263,10 @@ export function deckLayers(figures: readonly Figure[], pieces: DeckArtManifest["
 }
 
 /**
- * Whether the screen offers the Deck at all: only when the daemon says the switch is on, only in a web
- * renderer (the desktop app), and only on the wide layout, where it takes the right-hand pane.
+ * Whether the screen offers the Deck: in a web renderer (the desktop app), on the wide layout, where it
+ * takes the right-hand pane. Not on a phone or in a narrow window; a renderer without WebGL is offered it
+ * and says in words why it cannot draw (`deckStatusText`).
  */
-export function deckOffered(fleet: FleetDeckSwitch | null, os: string, compact: boolean): boolean {
-  return fleet?.shipDeck === true && os === "web" && !compact;
+export function deckOffered(os: string, compact: boolean): boolean {
+  return os === "web" && !compact;
 }

@@ -1,5 +1,8 @@
 # The ship deck canvas: evidence
 
+> The Deck has since become a standard feature, and the `FIRSTMATE_SHIP_DECK` switch this describes is gone
+> (`docs/ship-deck-default/README.md`). What follows is the evidence as it stood when it was written, behind the switch.
+
 The open question was whether a PixiJS 8 WebGL canvas can live inside the plugin's react-native-web UI.
 The prototype (`fm-ship-deck-prototype/.local/ship-deck-prototype`) proved the look, standalone. This is
 the plugin-side half: the Deck pane, behind `FIRSTMATE_SHIP_DECK`, drawn from the board's own cards.

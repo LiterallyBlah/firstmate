@@ -10,8 +10,8 @@ Generated environment assets (sea, six sky phases, stars and a gull flap cycle) 
 place of its old code-drawn sea and gull, served by `firstmate.deck.environment` (`client/deck-environment.ts`);
 they do not change `deck.json`.
 
-The ship deck's art, served to the Deck by `firstmate.deck.art` while `FIRSTMATE_SHIP_DECK` is on
-(`server/ship-deck.ts`). Never bundled into the client.
+The ship deck's art, served to the Deck by `firstmate.deck.art` (`server/ship-deck.ts`). Never bundled
+into the client.
 
 - `deck.png` is one atlas, 426 × 275, 48 colours, binary alpha, about 84 KB. It holds hull C's
   deck (426 × 161, the deck's coordinate space), the parts of the hull cut out again as depth pieces,

@@ -1,6 +1,6 @@
 /**
- * FIRSTMATE_SHIP_DECK: off by default, and off means the fleet load is exactly what it was — the same
- * object, no `shipDeck` key, the same JSON on the wire — and no Pixi, art, environment or extras is read or sent.
+ * What the ship deck's RPCs serve: Pixi's vendored build, the atlas, the generated environment and the
+ * extras — with no switch: the Deck is a standard part of the screen, and the fleet load carries nothing for it.
  */
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,14 +17,11 @@ import {
   DECK_EXTRAS_MANIFEST,
   DECK_MANIFEST,
   PIXI_BUILD,
-  SHIP_DECK_ENV,
   deckEngineSource,
   readDeckArt,
   readDeckEngine,
   readDeckEnvironment,
   readDeckExtras,
-  shipDeckEnabled,
-  withShipDeck,
 } from "./ship-deck";
 
 const fleet: Fleet = {
@@ -43,47 +40,49 @@ const fleet: Fleet = {
   warnings: [],
 };
 
-describe("the ship deck's switch", () => {
-  it("is off unless the daemon's environment says an explicit yes", () => {
-    expect(shipDeckEnabled({})).toBe(false);
-    for (const value of ["", "0", "false", "off", "no", "maybe"]) expect(shipDeckEnabled({ [SHIP_DECK_ENV]: value })).toBe(false);
-    for (const value of ["1", "true", "ON", " yes "]) expect(shipDeckEnabled({ [SHIP_DECK_ENV]: value })).toBe(true);
-  });
+/** Runs `run` with these variables set (or unset) in the daemon's environment, then puts them back. */
+async function withEnvironment(values: Record<string, string | undefined>, run: () => Promise<unknown>): Promise<void> {
+  const before = Object.fromEntries(Object.keys(values).map((name) => [name, process.env[name]]));
+  const put = (entries: Record<string, string | undefined>) => {
+    for (const [name, value] of Object.entries(entries)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  };
+  put(values);
+  try {
+    await run();
+  } finally {
+    put(before);
+  }
+}
 
-  it("off, leaves the fleet load byte-identical", () => {
+describe("the deck without a switch", () => {
+  it("leaves the fleet load as it is: no deck key, and the contract drops one if it ever came", () => {
     const before = JSON.stringify(fleet);
-    const off = withShipDeck(fleet, {});
-    expect(off).toBe(fleet);
-    expect(JSON.stringify(off)).toBe(before);
-    expect("shipDeck" in off).toBe(false);
-    // And through the contract, as the app reads it.
-    expect(JSON.stringify(FleetSchema.parse(off))).toBe(before);
+    expect(JSON.stringify(FleetSchema.parse(fleet))).toBe(before);
+    expect(FleetSchema.parse({ ...fleet, shipDeck: true })).not.toHaveProperty("shipDeck");
   });
 
-  it("on, marks the load and nothing else", () => {
-    const on = withShipDeck(fleet, { [SHIP_DECK_ENV]: "1" });
-    expect(on).toEqual({ ...fleet, shipDeck: true });
-    expect(fleet).not.toHaveProperty("shipDeck");
-    expect(FleetSchema.parse(on).shipDeck).toBe(true);
+  it("reads no FIRSTMATE_SHIP_DECK anywhere in the plugin's code", () => {
+    const root = fileURLToPath(new URL("..", import.meta.url));
+    for (const file of ["server/ship-deck.ts", "index.server.ts", "client/fleet.tsx", "client/deck-scene.ts", "shared/fleet.ts"]) {
+      const code = readFileSync(join(root, file), "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+      expect(code, file).not.toContain("FIRSTMATE_SHIP_DECK");
+    }
   });
 });
 
 describe("the Pixi build the daemon serves", () => {
   const root = fileURLToPath(new URL("..", import.meta.url));
 
-  it("is refused while the switch is off, before the plugin's folder is even looked for", async () => {
-    let looked = 0;
-    await expect(
-      readDeckEngine({}, async () => {
-        looked += 1;
-        return root;
-      }),
-    ).rejects.toThrow(`set ${SHIP_DECK_ENV}=1`);
-    expect(looked).toBe(0);
+  it("is served with no switch set in the daemon's environment, and an old `FIRSTMATE_SHIP_DECK=0` changes nothing", async () => {
+    await withEnvironment({ FIRSTMATE_SHIP_DECK: undefined }, () => expect(readDeckEngine(async () => root)).resolves.toBeDefined());
+    await withEnvironment({ FIRSTMATE_SHIP_DECK: "0" }, () => expect(readDeckEngine(async () => root)).resolves.toBeDefined());
   });
 
   it("on, is the vendored build with its version, no source map comment, and a sourceURL", async () => {
-    const engine = await readDeckEngine({ [SHIP_DECK_ENV]: "1" }, async () => root);
+    const engine = await readDeckEngine(async () => root);
     expect(engine.version).toBe("8.22.0");
     expect(engine.source).not.toContain("sourceMappingURL");
     expect(engine.source.endsWith("//# sourceURL=firstmate-pixi-8.22.0.js\n")).toBe(true);
@@ -112,19 +111,13 @@ describe("the Pixi build the daemon serves", () => {
 describe("the art the daemon serves", () => {
   const root = fileURLToPath(new URL("..", import.meta.url));
 
-  it("is refused while the switch is off, before the plugin's folder is even looked for", async () => {
-    let looked = 0;
-    await expect(
-      readDeckArt({}, async () => {
-        looked += 1;
-        return root;
-      }),
-    ).rejects.toThrow(`set ${SHIP_DECK_ENV}=1`);
-    expect(looked).toBe(0);
+  it("is served with no switch set in the daemon's environment, and an old `FIRSTMATE_SHIP_DECK=0` changes nothing", async () => {
+    await withEnvironment({ FIRSTMATE_SHIP_DECK: undefined }, () => expect(readDeckArt(async () => root)).resolves.toBeDefined());
+    await withEnvironment({ FIRSTMATE_SHIP_DECK: "0" }, () => expect(readDeckArt(async () => root)).resolves.toBeDefined());
   });
 
   it("on, is the atlas byte for byte as base64, and its manifest checked against the contract", async () => {
-    const art = await readDeckArt({ [SHIP_DECK_ENV]: "1" }, async () => root);
+    const art = await readDeckArt(async () => root);
     expect(Buffer.from(art.png, "base64").equals(readFileSync(join(root, DECK_ATLAS)))).toBe(true);
     expect(art.manifest).toEqual(JSON.parse(readFileSync(join(root, DECK_MANIFEST), "utf8")));
     // Small enough to send whole: the bundle carries none of it.
@@ -137,9 +130,9 @@ describe("the art the daemon serves", () => {
       mkdirSync(join(dir, "art/ship-deck"), { recursive: true });
       writeFileSync(join(dir, DECK_ATLAS), readFileSync(join(root, DECK_ATLAS)));
       writeFileSync(join(dir, DECK_MANIFEST), JSON.stringify({ ship: {} }));
-      await expect(readDeckArt({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow();
+      await expect(readDeckArt(async () => dir)).rejects.toThrow();
       writeFileSync(join(dir, DECK_MANIFEST), readFileSync(join(root, DECK_MANIFEST)));
-      await expect(readDeckArt({ [SHIP_DECK_ENV]: "1" }, async () => dir)).resolves.toHaveProperty("png");
+      await expect(readDeckArt(async () => dir)).resolves.toHaveProperty("png");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -164,19 +157,13 @@ describe("the art the daemon serves", () => {
 describe("the generated environment the daemon serves", () => {
   const root = fileURLToPath(new URL("..", import.meta.url));
 
-  it("is refused while the switch is off, before the plugin's folder is even looked for", async () => {
-    let looked = 0;
-    await expect(
-      readDeckEnvironment({}, async () => {
-        looked += 1;
-        return root;
-      }),
-    ).rejects.toThrow(`set ${SHIP_DECK_ENV}=1`);
-    expect(looked).toBe(0);
+  it("is served with no switch set in the daemon's environment, and an old `FIRSTMATE_SHIP_DECK=0` changes nothing", async () => {
+    await withEnvironment({ FIRSTMATE_SHIP_DECK: undefined }, () => expect(readDeckEnvironment(async () => root)).resolves.toBeDefined());
+    await withEnvironment({ FIRSTMATE_SHIP_DECK: "0" }, () => expect(readDeckEnvironment(async () => root)).resolves.toBeDefined());
   });
 
   it("on, is every image the manifest names, byte for byte, and small enough to send whole", async () => {
-    const environment = await readDeckEnvironment({ [SHIP_DECK_ENV]: "1" }, async () => root);
+    const environment = await readDeckEnvironment(async () => root);
     const paths = environmentImagePaths(environment.manifest);
     expect(Object.keys(environment.images)).toEqual(paths);
     expect(paths).toHaveLength(10);
@@ -194,9 +181,9 @@ describe("the generated environment the daemon serves", () => {
       mkdirSync(join(dir, DECK_ENVIRONMENT_DIR), { recursive: true });
       const manifest = JSON.parse(readFileSync(join(root, DECK_ENVIRONMENT_MANIFEST), "utf8")) as { sea: { texture: string } };
       writeFileSync(join(dir, DECK_ENVIRONMENT_MANIFEST), JSON.stringify({ ...manifest, sea: { ...manifest.sea, texture: "../../vendor/pixi.png" } }));
-      await expect(readDeckEnvironment({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow("relative .png path");
+      await expect(readDeckEnvironment(async () => dir)).rejects.toThrow("relative .png path");
       writeFileSync(join(dir, DECK_ENVIRONMENT_MANIFEST), JSON.stringify({ ...manifest, sea: { ...manifest.sea, texture: "/etc/passwd.png" } }));
-      await expect(readDeckEnvironment({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow("relative .png path");
+      await expect(readDeckEnvironment(async () => dir)).rejects.toThrow("relative .png path");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -206,19 +193,13 @@ describe("the generated environment the daemon serves", () => {
 describe("the sail and the crew's looks the daemon serves", () => {
   const root = fileURLToPath(new URL("..", import.meta.url));
 
-  it("is refused while the switch is off, before the plugin's folder is even looked for", async () => {
-    let looked = 0;
-    await expect(
-      readDeckExtras({}, async () => {
-        looked += 1;
-        return root;
-      }),
-    ).rejects.toThrow(`set ${SHIP_DECK_ENV}=1`);
-    expect(looked).toBe(0);
+  it("is served with no switch set in the daemon's environment, and an old `FIRSTMATE_SHIP_DECK=0` changes nothing", async () => {
+    await withEnvironment({ FIRSTMATE_SHIP_DECK: undefined }, () => expect(readDeckExtras(async () => root)).resolves.toBeDefined());
+    await withEnvironment({ FIRSTMATE_SHIP_DECK: "0" }, () => expect(readDeckExtras(async () => root)).resolves.toBeDefined());
   });
 
   it("on, is the sail, its occluder and six looks, byte for byte, and small enough to send whole", async () => {
-    const extras = await readDeckExtras({ [SHIP_DECK_ENV]: "1" }, async () => root);
+    const extras = await readDeckExtras(async () => root);
     const paths = extrasImagePaths(extras.manifest);
     expect(Object.keys(extras.images)).toEqual(paths);
     expect(paths).toHaveLength(8);
@@ -248,9 +229,9 @@ describe("the sail and the crew's looks the daemon serves", () => {
       mkdirSync(join(dir, DECK_ENVIRONMENT_DIR), { recursive: true });
       const manifest = JSON.parse(readFileSync(join(root, DECK_EXTRAS_MANIFEST), "utf8")) as { sail: { texture: string }; crew: Array<{ id: string }> };
       writeFileSync(join(dir, DECK_EXTRAS_MANIFEST), JSON.stringify({ ...manifest, sail: { ...manifest.sail, texture: "../../vendor/pixi.png" } }));
-      await expect(readDeckExtras({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow("relative .png path");
+      await expect(readDeckExtras(async () => dir)).rejects.toThrow("relative .png path");
       writeFileSync(join(dir, DECK_EXTRAS_MANIFEST), JSON.stringify({ ...manifest, crew: [...manifest.crew, manifest.crew[0]] }));
-      await expect(readDeckExtras({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow("its own id");
+      await expect(readDeckExtras(async () => dir)).rejects.toThrow("its own id");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
