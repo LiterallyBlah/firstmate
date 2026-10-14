@@ -15,7 +15,7 @@ import { pageTimeline, registerReceiptObservers } from "./server/receipt-observe
 import { newAction, receiptJournal } from "./server/receipts";
 import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
-import { readDeckArt, readDeckEngine, readDeckEnvironment, readDeckExtras, withShipDeck } from "./server/ship-deck";
+import { readDeckArt, readDeckEngine, readDeckEnvironment, readDeckExtras } from "./server/ship-deck";
 import { loadDeckArt, loadDeckEngine, loadDeckEnvironment, loadDeckExtras } from "./shared/ship-deck";
 import { findFiles, listDirectory, readTextFile, requireHome, writeTextFile } from "./server/files";
 import { CHARTER_FILE, NEW_CHARTER_FILE, acknowledgeCharter, writeNewCharter } from "./server/charter-file";
@@ -134,8 +134,7 @@ export default function contribute(server: PluginServerContext) {
     // A first mate launched before the plugin named its home gets its name the first time the board looks.
     const workspaceId = fleet.mate?.workspaceId ?? null;
     if (workspaceId !== null && fleet.mateInHome) nameHomeOnce(paseo, workspaceId, fleet.home);
-    // The ship deck's switch rides on the load; off, the load is returned as it was. See server/ship-deck.ts.
-    return withShipDeck(fleet);
+    return fleet;
   });
   server.handle(enableAgentTools, async (_input, { paseo }) => {
     await paseo.config.patch({ mcp: { injectIntoAgents: true } });
@@ -252,13 +251,13 @@ export default function contribute(server: PluginServerContext) {
 
   // The receipt journal's read-only timeline pages; refused while FIRSTMATE_RECEIPT_JOURNAL is off. See server/receipts.ts.
   server.handle(pageReceiptTimeline, async (input, { paseo }) => pageTimeline(paseo, await readFirstmateConfig(), input));
-  // PixiJS's browser build for the ship deck; refused while FIRSTMATE_SHIP_DECK is off. See server/ship-deck.ts.
+  // PixiJS's browser build for the ship deck. See server/ship-deck.ts.
   server.handle(loadDeckEngine, () => readDeckEngine());
-  // The deck's art: the atlas and its manifest from art/ship-deck/; refused while the switch is off, likewise.
+  // The deck's art: the atlas and its manifest from art/ship-deck/.
   server.handle(loadDeckArt, () => readDeckArt());
-  // The generated sea, sky and gull from art/ship-deck/environment.json; refused while the switch is off, likewise.
+  // The generated sea, sky and gull from art/ship-deck/environment.json.
   server.handle(loadDeckEnvironment, () => readDeckEnvironment());
-  // The sail and the crew's extra looks from art/ship-deck/extras.json; refused while the switch is off, likewise.
+  // The sail and the crew's extra looks from art/ship-deck/extras.json.
   server.handle(loadDeckExtras, () => readDeckExtras());
 
   const unregisterRelay = registerSteerRelay(server, steers);

@@ -1,6 +1,6 @@
 # Generated sea, sky and gull assets
 
-Art for hull C, drawn by the Deck behind `FIRSTMATE_SHIP_DECK` (`client/deck-environment.ts`; the evidence
+Art for hull C, drawn by the Deck (`client/deck-environment.ts`; the evidence
 is `docs/ship-deck-environment/`). `environment.json` is the asset manifest, served by
 `firstmate.deck.environment` and checked against `DeckEnvironmentManifestSchema`; it is independent of the
 existing `deck.json` contract. All paths in it are relative to this folder.

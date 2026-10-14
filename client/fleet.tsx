@@ -146,8 +146,8 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   }, [queryClient]);
 
   const shownTab = tab;
-  /** The ship deck, behind FIRSTMATE_SHIP_DECK: offered only while the load says it is on. A pane left on it falls back to Crew. */
-  const deck = deckOffered(data, Platform.OS, compact);
+  /** The ship deck, offered in the desktop app's wide layout. A pane left on it falls back to Crew where it is not. */
+  const deck = deckOffered(Platform.OS, compact);
   const pane: RightPane = rightPane === "deck" && !deck ? "board" : rightPane;
 
   /**
@@ -557,7 +557,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
                 tooltip: "Browse and edit files in the FirstMate home.",
               },
               ...(deck
-                ? [{ value: "deck" as const, label: "Deck", tooltip: "Show the crew as sailors on a ship deck (preview)." }]
+                ? [{ value: "deck" as const, label: "Deck", tooltip: "Show the crew as sailors on a ship deck." }]
                 : []),
             ]}
             onChange={setRightPane}
