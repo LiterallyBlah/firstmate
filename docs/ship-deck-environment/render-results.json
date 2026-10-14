@@ -1,0 +1,308 @@
+{
+  "flagOff": [
+    {
+      "width": 1440,
+      "identical": true,
+      "characters": 95473,
+      "environmentCalls": 0
+    },
+    {
+      "width": 390,
+      "identical": true,
+      "characters": 24680,
+      "environmentCalls": 0
+    }
+  ],
+  "day": [
+    {
+      "clock": "05:30",
+      "sky": "dawn",
+      "motion": "still",
+      "screenshot": "sky-0530.png",
+      "skyColour": [
+        44,
+        72,
+        105
+      ],
+      "seaColour": [
+        24,
+        43,
+        71
+      ]
+    },
+    {
+      "clock": "08:00",
+      "sky": "morning",
+      "motion": "still",
+      "screenshot": "sky-0800.png",
+      "skyColour": [
+        100,
+        132,
+        154
+      ],
+      "seaColour": [
+        24,
+        43,
+        71
+      ]
+    },
+    {
+      "clock": "12:00",
+      "sky": "midday",
+      "motion": "still",
+      "screenshot": "sky-1200.png",
+      "skyColour": [
+        69,
+        97,
+        122
+      ],
+      "seaColour": [
+        24,
+        43,
+        71
+      ]
+    },
+    {
+      "clock": "16:00",
+      "sky": "afternoon",
+      "motion": "still",
+      "screenshot": "sky-1600.png",
+      "skyColour": [
+        83,
+        110,
+        135
+      ],
+      "seaColour": [
+        24,
+        43,
+        71
+      ]
+    },
+    {
+      "clock": "18:30",
+      "sky": "dusk",
+      "motion": "still",
+      "screenshot": "sky-1830.png",
+      "skyColour": [
+        29,
+        49,
+        78
+      ],
+      "seaColour": [
+        24,
+        43,
+        71
+      ]
+    },
+    {
+      "clock": "20:15",
+      "sky": "night",
+      "motion": "still",
+      "screenshot": "sky-2015.png",
+      "skyColour": [
+        22,
+        34,
+        54
+      ],
+      "seaColour": [
+        24,
+        43,
+        71
+      ]
+    },
+    {
+      "clock": "21:00",
+      "sky": "night",
+      "motion": "still",
+      "screenshot": "sky-2100.png",
+      "skyColour": [
+        14,
+        18,
+        30
+      ],
+      "seaColour": [
+        24,
+        43,
+        71
+      ]
+    },
+    {
+      "clock": "02:00",
+      "sky": "night",
+      "motion": "still",
+      "screenshot": "sky-0200.png",
+      "skyColour": [
+        14,
+        18,
+        30
+      ],
+      "seaColour": [
+        24,
+        43,
+        71
+      ]
+    }
+  ],
+  "realTime": {
+    "before": "dusk",
+    "after": "night",
+    "secondsToTurn": 60,
+    "draws": 1
+  },
+  "motion": {
+    "motion": "full",
+    "seaPixelsChanged": 169983,
+    "highSkyPixelsChanged": 0,
+    "drawsInASecond": 31,
+    "gullExpectedAtSeconds": 11.599999999999977
+  },
+  "resize": [
+    {
+      "canvasCss": [
+        748,
+        726
+      ],
+      "corners": [
+        [
+          69,
+          97,
+          122
+        ],
+        [
+          69,
+          97,
+          122
+        ],
+        [
+          24,
+          43,
+          71
+        ],
+        [
+          34,
+          57,
+          90
+        ]
+      ],
+      "bareCorners": 0
+    },
+    {
+      "canvasCss": [
+        1048,
+        726
+      ],
+      "corners": [
+        [
+          69,
+          97,
+          122
+        ],
+        [
+          69,
+          97,
+          122
+        ],
+        [
+          29,
+          49,
+          78
+        ],
+        [
+          24,
+          43,
+          71
+        ]
+      ],
+      "bareCorners": 0
+    },
+    {
+      "canvasCss": [
+        848,
+        726
+      ],
+      "corners": [
+        [
+          69,
+          97,
+          122
+        ],
+        [
+          69,
+          97,
+          122
+        ],
+        [
+          24,
+          43,
+          71
+        ],
+        [
+          34,
+          57,
+          90
+        ]
+      ],
+      "bareCorners": 0
+    },
+    {
+      "canvasCss": [
+        548,
+        698
+      ],
+      "corners": [
+        [
+          69,
+          97,
+          122
+        ],
+        [
+          69,
+          97,
+          122
+        ],
+        [
+          24,
+          43,
+          71
+        ],
+        [
+          34,
+          57,
+          90
+        ]
+      ],
+      "bareCorners": 0
+    },
+    {
+      "canvasCss": [
+        348,
+        698
+      ],
+      "corners": [
+        [
+          69,
+          97,
+          122
+        ],
+        [
+          69,
+          97,
+          122
+        ],
+        [
+          24,
+          43,
+          71
+        ],
+        [
+          24,
+          43,
+          71
+        ]
+      ],
+      "bareCorners": 0
+    }
+  ],
+  "environmentCalls": 1,
+  "errors": []
+}

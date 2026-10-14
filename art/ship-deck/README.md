@@ -1,8 +1,9 @@
 # art/ship-deck/
 
 Generated environment assets (sea, six sky phases, stars and a gull flap cycle) are documented in
-[ENVIRONMENT.md](ENVIRONMENT.md), with their own [manifest](environment.json). These are standalone
-assets awaiting integration; they do not change `deck.json` or the current renderer.
+[ENVIRONMENT.md](ENVIRONMENT.md), with their own [manifest](environment.json). The Deck draws them in
+place of its old code-drawn sea and gull, served by `firstmate.deck.environment` (`client/deck-environment.ts`);
+they do not change `deck.json`.
 
 The ship deck's art, served to the Deck by `firstmate.deck.art` while `FIRSTMATE_SHIP_DECK` is on
 (`server/ship-deck.ts`). Never bundled into the client.

@@ -1,6 +1,6 @@
 /**
  * FIRSTMATE_SHIP_DECK: off by default, and off means the fleet load is exactly what it was — the same
- * object, no `shipDeck` key, the same JSON on the wire — and no Pixi or art is read or sent.
+ * object, no `shipDeck` key, the same JSON on the wire — and no Pixi, art or environment is read or sent.
  */
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,14 +9,18 @@ import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { FleetSchema, type Fleet } from "../shared/fleet";
+import { environmentImagePaths } from "../shared/ship-deck";
 import {
   DECK_ATLAS,
+  DECK_ENVIRONMENT_DIR,
+  DECK_ENVIRONMENT_MANIFEST,
   DECK_MANIFEST,
   PIXI_BUILD,
   SHIP_DECK_ENV,
   deckEngineSource,
   readDeckArt,
   readDeckEngine,
+  readDeckEnvironment,
   shipDeckEnabled,
   withShipDeck,
 } from "./ship-deck";
@@ -152,5 +156,47 @@ describe("the art the daemon serves", () => {
       "05-rope.png",
     ]);
     for (const source of Object.values(art.sources)) expect(source.sha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("the generated environment the daemon serves", () => {
+  const root = fileURLToPath(new URL("..", import.meta.url));
+
+  it("is refused while the switch is off, before the plugin's folder is even looked for", async () => {
+    let looked = 0;
+    await expect(
+      readDeckEnvironment({}, async () => {
+        looked += 1;
+        return root;
+      }),
+    ).rejects.toThrow(`set ${SHIP_DECK_ENV}=1`);
+    expect(looked).toBe(0);
+  });
+
+  it("on, is every image the manifest names, byte for byte, and small enough to send whole", async () => {
+    const environment = await readDeckEnvironment({ [SHIP_DECK_ENV]: "1" }, async () => root);
+    const paths = environmentImagePaths(environment.manifest);
+    expect(Object.keys(environment.images)).toEqual(paths);
+    expect(paths).toHaveLength(10);
+    for (const path of paths) {
+      expect(Buffer.from(environment.images[path]!, "base64").equals(readFileSync(join(root, DECK_ENVIRONMENT_DIR, path))), path).toBe(true);
+    }
+    expect(environment.manifest.sky.phases.map((phase) => phase.id)).toEqual(["dawn", "morning", "midday", "afternoon", "dusk", "night"]);
+    const total = Object.values(environment.images).reduce((sum, png) => sum + png.length, 0);
+    expect(total).toBeLessThan(100_000);
+  });
+
+  it("refuses a manifest whose images would leave art/ship-deck/, and does not keep the failure", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "firstmate-deck-environment-"));
+    try {
+      mkdirSync(join(dir, DECK_ENVIRONMENT_DIR), { recursive: true });
+      const manifest = JSON.parse(readFileSync(join(root, DECK_ENVIRONMENT_MANIFEST), "utf8")) as { sea: { texture: string } };
+      writeFileSync(join(dir, DECK_ENVIRONMENT_MANIFEST), JSON.stringify({ ...manifest, sea: { ...manifest.sea, texture: "../../vendor/pixi.png" } }));
+      await expect(readDeckEnvironment({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow("relative .png path");
+      writeFileSync(join(dir, DECK_ENVIRONMENT_MANIFEST), JSON.stringify({ ...manifest, sea: { ...manifest.sea, texture: "/etc/passwd.png" } }));
+      await expect(readDeckEnvironment({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow("relative .png path");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

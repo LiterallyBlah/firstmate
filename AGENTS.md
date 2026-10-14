@@ -42,18 +42,20 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`), and each send's receipt. |
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
-| `server/ship-deck.ts`, `shared/ship-deck.ts` | The ship deck's switch, `FIRSTMATE_SHIP_DECK` (off by default), carried on the fleet load; `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`. |
+| `server/ship-deck.ts`, `shared/ship-deck.ts` | The ship deck's switch, `FIRSTMATE_SHIP_DECK` (off by default), carried on the fleet load; `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the legend of badges and counts. |
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z. Pure. |
 | `client/deck-hover.ts`        | The sailor under the pointer, by the box it is drawn in; canvas ↔ deck coordinates; where its label goes. Pure. |
 | `client/deck-scene.ts`        | Cards → sailors on hull C, by column, greyed when their feed is lost, each with its hover caption; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
 | `client/deck-geometry.ts`     | Hull C's walkable deck, its obstacles and named anchors; A* paths; a spot beside a shared anchor. Pure. |
 | `client/deck-crew.ts`         | The crew in motion: anchors reserved, the state shown at once and walked to after, the hatch, idle motion, each frame's poses. Pure. |
-| `client/deck-ambient.ts`      | The sea, the bob, the masthead's sway, the lanterns, the gulls, as functions of the clock; the motion plan. Pure. |
+| `client/deck-ambient.ts`      | The bob, the masthead's sway, the lanterns, where the water is and when a gull flies, as functions of the clock; the motion plan. Pure. |
+| `client/deck-sky.ts`          | The sky by the local time of day, its place behind the ship; the sea's and foam's scroll, the gull's pose. Pure. |
+| `client/deck-environment.ts`  | The generated sky, stars, gull, sea and foam drawn with Pixi, behind and in front of the ship; a plain sea without them. |
 | `client/deck-loop.ts`         | When the deck draws: 30 fps at most, paused while hidden, still under reduced motion.     |
-| `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated and the atlas decoded; every failure a status. |
+| `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated, the atlas and environment decoded; every failure a status. |
 | `client/deck-pixi.ts`         | The deck, its depth pieces, props and sailor sprites drawn with Pixi, handed in through a narrow `PixiModule`. |
-| `art/ship-deck/`, `docs/ship-deck-art/build-art.py` | The deck's art: one atlas and its manifest, built mechanically from the approved generated PNGs. |
+| `art/ship-deck/`, `docs/ship-deck-art/build-art.py` | The deck's art: one atlas and its manifest, built mechanically from the approved generated PNGs; the generated environment and `environment.json`. |
 | `shared/attachments.ts`       | What the captain can attach: the message's shape, image-or-file by Paseo's rules, the size cap. |
 | `server/uploads.ts`           | An attached file written to `$PASEO_HOME/uploads/`, described as Paseo's `uploaded_file`.     |
 | `server/cli.ts`               | `paseo stop` and `paseo project rename`, for what the SDK does not have.                   |
@@ -248,8 +250,8 @@ calls to the old ones exactly, and `receipts.test.ts` a prepared home byte for b
 
 ## The ship deck is a WebGL canvas, behind `FIRSTMATE_SHIP_DECK`
 
-A preview, off by default (`docs/ship-deck-canvas/README.md` and `docs/ship-deck-motion/README.md` have
-the evidence). With the switch on, the
+A preview, off by default (`docs/ship-deck-canvas/README.md`, `docs/ship-deck-motion/README.md` and
+`docs/ship-deck-environment/README.md` have the evidence). With the switch on, the
 fleet load carries `shipDeck: true` (`withShipDeck`). Then the wide layout's Crew/Files switch gains
 **Deck**, in a web renderer only (`deckOffered`). Off, the load is the same object with no key: the
 browser harness holds the screen's DOM identical to main's. What it found applies to any client code:
@@ -334,9 +336,40 @@ starts.
   badge keys the legend. An idle sailor breathes out a z under motion. The badge stands in for state poses
   the art lacks; a pixel artist's moving poses would carry state better (`art/ship-deck/README.md`). The
   canvas harness's 2D reference draws the badges too, so the still comparison stays exact.
-- **Ambient life has no shaders**: whole-pixel bob and sway, pre-drawn wave rows that scroll, three
-  lanterns, a gull now and then, so a software renderer pays only for sprites. The masthead sways because
-  the hull is drawn in slices with it cut out (`MASTHEAD`).
+- **Ambient life has no shaders**: whole-pixel bob and sway, a sea tile that scrolls, three lanterns, a
+  gull now and then, so a software renderer pays only for sprites. The masthead sways because the hull is
+  drawn in slices with it cut out (`MASTHEAD`).
+
+### The sea, the sky and the gull are generated art (`docs/ship-deck-environment/README.md` has the evidence)
+
+- **Served, not bundled, and not needed to draw.** `art/ship-deck/environment.json` and the ten PNGs it
+  names (about 50 KB: the water tile, the foam strip, six skies, the stars, the gull's flap strip) go
+  through `firstmate.deck.environment`, refused while the switch is off. The manifest is checked against
+  `DeckEnvironmentManifestSchema`, whose paths cannot leave `art/ship-deck/`. The mount fetches and decodes
+  them once a session beside Pixi and the atlas, but apart: when they fail, the deck draws its ship and
+  crew on a flat navy sea, warns in the console, and asks again on the next open.
+- **Depth, back to front** (`createScenery`'s `back` and `front`, either side of `ship` in the world):
+  the sky, its stars, the gull, the far sea from the horizon; the ship and everything on deck; the near
+  sea from the waterline, cut from the same tiles so they line up, and the foam over the waterline.
+  `client/deck-environment.test.ts` drives `startDeck` with a stand-in Pixi and reads the scene graph.
+- **The sky follows the machine's local clock**, read through `DeckMotionEnvironment.clock`. Each of the
+  six skies is alone from its manifest anchor (dawn 05:30, morning 08:00, midday 12:00, afternoon 16:00,
+  dusk 18:30, night 21:00) until the 90 minutes before the next, when the next is drawn over it, eased
+  (`skyBlend`); the stars fade with the night's share. Not the manifest's whole-gap fade, which put half
+  a dawn in the sky at a quarter past one. An invalid clock shows midday. No location or season is read:
+  the anchors are wall-clock hours. A running deck reads the clock every frame; a still one (reduced
+  motion) is redrawn once a minute by `every(SKY_REFRESH_MS)`, never while hidden. The canvas carries
+  `data-firstmate-deck-sky`: the phase that shows most, or `none`.
+- **The sky is placed, not tiled**: at the hull's pixel scale, centred on the ship, its row 213 (two
+  thirds down, where the asset preview puts the sea) on the horizon, scaled up only as far as a wide or
+  tall pane needs (`skyPlacement`). The water tile scrolls 10 px a second and the foam 6.25, in whole
+  pixels, both still under reduced motion and on a software renderer. The foam is cut from its repeat into
+  at most three crops a frame across the hull's waterline (`FOAM_SPAN`), so it never runs into open sea.
+  The gull flies behind the ship, beak-registered and mirrored to fly left, flapping `up mid down mid` at
+  125 ms, and not at all while the stars are more than half out.
+- **What still wants an artist** is in `art/ship-deck/ENVIRONMENT.md`: the foam's scallops are regular and
+  not fitted to hull C's curve, and the gull's wing sweep is approximate. The hull and sea are not tinted
+  for night.
 
 ## Remote work is on the board
 
