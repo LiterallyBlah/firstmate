@@ -1,0 +1,127 @@
+{
+    "passed":  true,
+    "runtimePngCount":  13,
+    "paletteSize":  64,
+    "checks":  [
+                   "dimensions",
+                   "palette membership",
+                   "binary alpha",
+                   "transparent RGB zero",
+                   "sea horizontal and vertical edge equality",
+                   "foam horizontal edge equality",
+                   "gull padding",
+                   "gull strip matches individual frames",
+                   "sky geometry registration"
+               ],
+    "assets":  [
+                   {
+                       "path":  "sea/foam-strip.png",
+                       "width":  256,
+                       "height":  16,
+                       "opaquePixels":  1247,
+                       "transparentPixels":  2849,
+                       "colours":  6
+                   },
+                   {
+                       "path":  "sea/water-tile.png",
+                       "width":  256,
+                       "height":  128,
+                       "opaquePixels":  32768,
+                       "transparentPixels":  0,
+                       "colours":  8
+                   },
+                   {
+                       "path":  "sky/afternoon.png",
+                       "width":  512,
+                       "height":  320,
+                       "opaquePixels":  163840,
+                       "transparentPixels":  0,
+                       "colours":  7
+                   },
+                   {
+                       "path":  "sky/dawn.png",
+                       "width":  512,
+                       "height":  320,
+                       "opaquePixels":  163840,
+                       "transparentPixels":  0,
+                       "colours":  8
+                   },
+                   {
+                       "path":  "sky/dusk.png",
+                       "width":  512,
+                       "height":  320,
+                       "opaquePixels":  163840,
+                       "transparentPixels":  0,
+                       "colours":  7
+                   },
+                   {
+                       "path":  "sky/midday.png",
+                       "width":  512,
+                       "height":  320,
+                       "opaquePixels":  163840,
+                       "transparentPixels":  0,
+                       "colours":  9
+                   },
+                   {
+                       "path":  "sky/morning.png",
+                       "width":  512,
+                       "height":  320,
+                       "opaquePixels":  163840,
+                       "transparentPixels":  0,
+                       "colours":  7
+                   },
+                   {
+                       "path":  "sky/night.png",
+                       "width":  512,
+                       "height":  320,
+                       "opaquePixels":  163840,
+                       "transparentPixels":  0,
+                       "colours":  6
+                   },
+                   {
+                       "path":  "sky/stars.png",
+                       "width":  512,
+                       "height":  320,
+                       "opaquePixels":  168,
+                       "transparentPixels":  163672,
+                       "colours":  2
+                   },
+                   {
+                       "path":  "gull/down.png",
+                       "width":  32,
+                       "height":  32,
+                       "opaquePixels":  120,
+                       "transparentPixels":  904,
+                       "colours":  7
+                   },
+                   {
+                       "path":  "gull/flap-strip.png",
+                       "width":  96,
+                       "height":  32,
+                       "opaquePixels":  458,
+                       "transparentPixels":  2614,
+                       "colours":  7
+                   },
+                   {
+                       "path":  "gull/mid.png",
+                       "width":  32,
+                       "height":  32,
+                       "opaquePixels":  144,
+                       "transparentPixels":  880,
+                       "colours":  7
+                   },
+                   {
+                       "path":  "gull/up.png",
+                       "width":  32,
+                       "height":  32,
+                       "opaquePixels":  194,
+                       "transparentPixels":  830,
+                       "colours":  7
+                   }
+               ],
+    "reviewedPreviews":  [
+                             "environment-preview.png",
+                             "environment-detail.png"
+                         ],
+    "scope":  "Artifact verification only; no client integration test; GIF preview encoded from the three PNG poses"
+}

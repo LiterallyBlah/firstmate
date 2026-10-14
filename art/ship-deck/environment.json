@@ -1,0 +1,448 @@
+{
+    "schemaVersion":  1,
+    "coordinateSystem":  "Top-left origin; logical pixels; nearest-neighbour rendering at hull C pixel scale",
+    "reference":  {
+                      "deckAtlas":  "deck.png",
+                      "hullSize":  [
+                                       426,
+                                       161
+                                   ],
+                      "crewHeight":  32,
+                      "baseCommit":  "5619884062e9ac22078fb6ee914fe3572c5ee9d0"
+                  },
+    "palette":  {
+                    "size":  64,
+                    "deckColours":  [
+                                        "#0E121E",
+                                        "#151E2D",
+                                        "#182B47",
+                                        "#1A1417",
+                                        "#1D314E",
+                                        "#1F3554",
+                                        "#22395A",
+                                        "#271E1D",
+                                        "#2C4869",
+                                        "#2D2B30",
+                                        "#31211D",
+                                        "#3E2921",
+                                        "#492D22",
+                                        "#4F3427",
+                                        "#5D3626",
+                                        "#613A28",
+                                        "#624130",
+                                        "#72412A",
+                                        "#7E472D",
+                                        "#7F422B",
+                                        "#815C43",
+                                        "#834C2D",
+                                        "#834D31",
+                                        "#8B4F2F",
+                                        "#915230",
+                                        "#9B5A33",
+                                        "#9E6139",
+                                        "#A56235",
+                                        "#A86636",
+                                        "#A8693B",
+                                        "#AD6938",
+                                        "#AD6D3D",
+                                        "#B16F3D",
+                                        "#B57642",
+                                        "#BB7B44",
+                                        "#BF854C",
+                                        "#C17F46",
+                                        "#C5864B",
+                                        "#C6884C",
+                                        "#C7894C",
+                                        "#C88C50",
+                                        "#C9894C",
+                                        "#CD8F50",
+                                        "#CE9659",
+                                        "#D39151",
+                                        "#DCA35B",
+                                        "#DD9954",
+                                        "#E8CCA6"
+                                    ],
+                    "environmentExtension":  [
+                                                 "#45617A",
+                                                 "#536E87",
+                                                 "#64849A",
+                                                 "#7795A5",
+                                                 "#8FA8B4",
+                                                 "#A8B9BD",
+                                                 "#BECAC6",
+                                                 "#D9D4BE",
+                                                 "#F1DEC0",
+                                                 "#675E78",
+                                                 "#7C7183",
+                                                 "#927F8B",
+                                                 "#B38B88",
+                                                 "#C7987D",
+                                                 "#D2AD86",
+                                                 "#DFBB96"
+                                             ],
+                    "policy":  "Original 48 unchanged; add 16 muted environment colours; each runtime PNG uses a subset"
+                },
+    "assets":  [
+                   {
+                       "path":  "sea/foam-strip.png",
+                       "size":  [
+                                    256,
+                                    16
+                                ],
+                       "sha256":  "385c1e52e2d3b973287915d6dd4ed630edc526d4be645c2e8494d7a4afe67727",
+                       "source":  "foam",
+                       "colours":  6,
+                       "alpha":  "binary"
+                   },
+                   {
+                       "path":  "sea/water-tile.png",
+                       "size":  [
+                                    256,
+                                    128
+                                ],
+                       "sha256":  "bba28137ac6a6eca95276fe33d0b098806715a8d64529a63b60fc0fee81d5111",
+                       "source":  "sea",
+                       "colours":  8,
+                       "alpha":  "opaque"
+                   },
+                   {
+                       "path":  "sky/afternoon.png",
+                       "size":  [
+                                    512,
+                                    320
+                                ],
+                       "sha256":  "c8bc5a0115aca09aeca7db231e7f902b38aeee3663b7b73c569074af77e4d9e0",
+                       "source":  "afternoon",
+                       "colours":  7,
+                       "alpha":  "opaque"
+                   },
+                   {
+                       "path":  "sky/dawn.png",
+                       "size":  [
+                                    512,
+                                    320
+                                ],
+                       "sha256":  "b0558fbd844e09cee6128a2ed0830c1ff07dd00ad311f44f123c1d1a1a63325d",
+                       "source":  "dawn",
+                       "colours":  8,
+                       "alpha":  "opaque"
+                   },
+                   {
+                       "path":  "sky/dusk.png",
+                       "size":  [
+                                    512,
+                                    320
+                                ],
+                       "sha256":  "c25cc4904b93b0c85b8e4d735c94ea298c9bc3d9e6df968f7fa3f56836f985b7",
+                       "source":  "dusk",
+                       "colours":  7,
+                       "alpha":  "opaque"
+                   },
+                   {
+                       "path":  "sky/midday.png",
+                       "size":  [
+                                    512,
+                                    320
+                                ],
+                       "sha256":  "c130554c8c944987a788fb1d122336303be8f1c349569db1b5a96c5a7c94cc97",
+                       "source":  "midday",
+                       "colours":  9,
+                       "alpha":  "opaque"
+                   },
+                   {
+                       "path":  "sky/morning.png",
+                       "size":  [
+                                    512,
+                                    320
+                                ],
+                       "sha256":  "aad1394125fba269fb929ac09b091d725684b852d46e35b236ef56e6366b4217",
+                       "source":  "morning",
+                       "colours":  7,
+                       "alpha":  "opaque"
+                   },
+                   {
+                       "path":  "sky/night.png",
+                       "size":  [
+                                    512,
+                                    320
+                                ],
+                       "sha256":  "2ef01e53dd15cf0262a02148ba45e522d50fa1751b403bedaccc08ccbd0a77e4",
+                       "source":  "night",
+                       "colours":  6,
+                       "alpha":  "opaque"
+                   },
+                   {
+                       "path":  "sky/stars.png",
+                       "size":  [
+                                    512,
+                                    320
+                                ],
+                       "sha256":  "c1cf821674f1ddd52042e8feccbd8c7551aa9e00b4f1fdd12764e6fddd8499d2",
+                       "source":  "stars",
+                       "colours":  2,
+                       "alpha":  "binary"
+                   },
+                   {
+                       "path":  "gull/down.png",
+                       "size":  [
+                                    32,
+                                    32
+                                ],
+                       "sha256":  "b269e1f65ec3a78c4002202935cab0227a833dbc90f95caf448be7b40c2bf5c5",
+                       "source":  "gull",
+                       "colours":  7,
+                       "alpha":  "binary"
+                   },
+                   {
+                       "path":  "gull/flap-strip.png",
+                       "size":  [
+                                    96,
+                                    32
+                                ],
+                       "sha256":  "2b6d4fdc383ff27c9dcde52f2cd808ef429aab4d6a925b6d75c958110a9003e2",
+                       "source":  "gull",
+                       "colours":  7,
+                       "alpha":  "binary"
+                   },
+                   {
+                       "path":  "gull/mid.png",
+                       "size":  [
+                                    32,
+                                    32
+                                ],
+                       "sha256":  "00080b44fcfafc99d32b9af3e7d2c398e007ec8f29830a1fb463e4f9c3473671",
+                       "source":  "gull",
+                       "colours":  7,
+                       "alpha":  "binary"
+                   },
+                   {
+                       "path":  "gull/up.png",
+                       "size":  [
+                                    32,
+                                    32
+                                ],
+                       "sha256":  "0f076ef9e5a6701e179b131c74ee6b65bb2ca6003fef667ed822e3ec4e014186",
+                       "source":  "gull",
+                       "colours":  7,
+                       "alpha":  "binary"
+                   }
+               ],
+    "sea":  {
+                "texture":  "sea/water-tile.png",
+                "repeat":  [
+                               "x",
+                               "y"
+                           ],
+                "period":  [
+                               256,
+                               128
+                           ],
+                "animation":  {
+                                  "type":  "integer-pixel-scroll",
+                                  "xPixelsPerSecond":  10,
+                                  "horizontalLoopMs":  25600
+                              },
+                "verdict":  "usable"
+            },
+    "foam":  {
+                 "texture":  "sea/foam-strip.png",
+                 "repeat":  [
+                                "x"
+                            ],
+                 "period":  256,
+                 "xPixelsPerSecond":  6.25,
+                 "layer":  "Above water, clipped to hull waterline; not pre-fitted to hull C",
+                 "verdict":  "usable-with-cleanup",
+                 "limitation":  "Regular scallops; human artist should vary rhythm and fit contact contour"
+             },
+    "sky":  {
+                "size":  [
+                             512,
+                             320
+                         ],
+                "tileable":  false,
+                "geometry":  "All six phases registered to cleaned midday pixel regions",
+                "blending":  "Draw current phase opaque; next phase over it at t; same destination rectangle; cyclic across midnight",
+                "anchorBasis":  "Illustrative local wall-clock minutes after midnight; optional location/season solar anchors supplied by integrator",
+                "phases":  [
+                               {
+                                   "id":  "dawn",
+                                   "path":  "sky/dawn.png",
+                                   "localMinute":  330
+                               },
+                               {
+                                   "id":  "morning",
+                                   "path":  "sky/morning.png",
+                                   "localMinute":  480
+                               },
+                               {
+                                   "id":  "midday",
+                                   "path":  "sky/midday.png",
+                                   "localMinute":  720
+                               },
+                               {
+                                   "id":  "afternoon",
+                                   "path":  "sky/afternoon.png",
+                                   "localMinute":  960
+                               },
+                               {
+                                   "id":  "dusk",
+                                   "path":  "sky/dusk.png",
+                                   "localMinute":  1110
+                               },
+                               {
+                                   "id":  "night",
+                                   "path":  "sky/night.png",
+                                   "localMinute":  1260
+                               }
+                           ],
+                "overlays":  [
+                                 {
+                                     "path":  "sky/stars.png",
+                                     "size":  [
+                                                  512,
+                                                  320
+                                              ],
+                                     "opacity":  "night weight",
+                                     "layer":  "above sky, behind ship"
+                                 }
+                             ],
+                "verdict":  "usable",
+                "limitation":  "Intentionally banded, muted backgrounds; close morning/afternoon colours; no astronomical clock or runtime lighting included"
+            },
+    "gull":  {
+                 "sheet":  "gull/flap-strip.png",
+                 "frameSize":  [
+                                   32,
+                                   32
+                               ],
+                 "direction":  "right",
+                 "anchor":  [
+                                26,
+                                20
+                            ],
+                 "anchorMeaning":  "beak registration",
+                 "frames":  [
+                                {
+                                    "id":  "up",
+                                    "rect":  [
+                                                 0,
+                                                 0,
+                                                 32,
+                                                 32
+                                             ],
+                                    "path":  "gull/up.png"
+                                },
+                                {
+                                    "id":  "mid",
+                                    "rect":  [
+                                                 32,
+                                                 0,
+                                                 32,
+                                                 32
+                                             ],
+                                    "path":  "gull/mid.png"
+                                },
+                                {
+                                    "id":  "down",
+                                    "rect":  [
+                                                 64,
+                                                 0,
+                                                 32,
+                                                 32
+                                             ],
+                                    "path":  "gull/down.png"
+                                }
+                            ],
+                 "sequence":  [
+                                  "up",
+                                  "mid",
+                                  "down",
+                                  "mid"
+                              ],
+                 "frameMs":  125,
+                 "loopMs":  500,
+                 "mirrorForLeft":  true,
+                 "verdict":  "usable-with-cleanup",
+                 "limitation":  "Approximate wing sweep, small pose shape variation; angled middle wing, not a true level glide"
+             },
+    "cleanup":  {
+                    "sampling":  "Per-output-pixel block median over source pixels above alpha threshold; output opaque only if at least half the block qualifies; no dithering; transparent RGB zero",
+                    "alphaThresholds":  {
+                                            "sea":  128,
+                                            "sky":  128,
+                                            "foam":  192,
+                                            "gull":  192,
+                                            "stars":  220
+                                        },
+                    "water":  "Sample full source to 256x128; replace opposing edge pixels by their average and fade to source over 8 horizontal / 6 vertical edge pixels; then map to 8-colour palette subset",
+                    "foam":  {
+                                 "sourceCrop":  [
+                                                    0,
+                                                    367,
+                                                    1983,
+                                                    60
+                                                ],
+                                 "sampleSize":  [
+                                                    256,
+                                                    12
+                                                ],
+                                 "canvas":  [
+                                                256,
+                                                16
+                                            ],
+                                 "offset":  [
+                                                0,
+                                                2
+                                            ],
+                                 "horizontalEdgeBlend":  4,
+                                 "paletteColours":  6
+                             },
+                    "sky":  "Block sample each full source to 512x320. Quantize midday to shared palette, then 3x3 median filter and re-quantize. Group pixels by cleaned midday colour; take the median source RGB of each corresponding group in each generated phase, quantize it, then apply to the common geometry.",
+                    "gull":  {
+                                 "sourceCrops":  [
+                                                     [
+                                                         96,
+                                                         54,
+                                                         626,
+                                                         626
+                                                     ],
+                                                     [
+                                                         783,
+                                                         54,
+                                                         626,
+                                                         626
+                                                     ],
+                                                     [
+                                                         1444,
+                                                         54,
+                                                         626,
+                                                         626
+                                                     ]
+                                                 ],
+                                 "outputSize":  [
+                                                    32,
+                                                    32
+                                                ],
+                                 "scaleBasis":  "20 logical pixels per 391 source pixels; same for all frames",
+                                 "palette":  [
+                                                 "#151E2D",
+                                                 "#2C4869",
+                                                 "#64849A",
+                                                 "#8FA8B4",
+                                                 "#E8CCA6",
+                                                 "#F1DEC0",
+                                                 "#DCA35B"
+                                             ]
+                             },
+                    "stars":  "Sample full source to 512x320 at alpha threshold 220; discard pixels whose maximum RGB channel is below 100 and rows \u003e=214; quantize to blue-grey/cream subset"
+                },
+    "previews":  [
+                     "environment-preview.png",
+                     "environment-detail.png",
+                     "gull/flap-preview.gif"
+                 ],
+    "provenance":  "environment-provenance.json",
+    "verification":  "environment-verification.json",
+    "documentation":  "ENVIRONMENT.md"
+}
