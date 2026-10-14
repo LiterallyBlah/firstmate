@@ -14,13 +14,22 @@
  *
  * **So is the art**, for the same reason and to keep the bundle small: `art/ship-deck/deck.png`, one
  * atlas of about 84 KB, and `deck.json`, its manifest, are read once per process and sent as base64 and
- * JSON (`readDeckArt`). Neither is in the client bundle.
+ * JSON (`readDeckArt`). Neither is in the client bundle. The generated sea, sky and gull likewise:
+ * `art/ship-deck/environment.json` and the ten small PNGs it draws with, about 50 KB together, read once
+ * per process and sent as base64 (`readDeckEnvironment`).
  */
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import type { Fleet } from "../shared/fleet";
-import { DeckArtManifestSchema, type DeckArt, type DeckEngineSource } from "../shared/ship-deck";
+import {
+  DeckArtManifestSchema,
+  DeckEnvironmentManifestSchema,
+  environmentImagePaths,
+  type DeckArt,
+  type DeckEngineSource,
+  type DeckEnvironment,
+} from "../shared/ship-deck";
 import { templatesDirectory } from "./templates";
 
 export const SHIP_DECK_ENV = "FIRSTMATE_SHIP_DECK";
@@ -30,6 +39,9 @@ export const PIXI_BUILD = "vendor/pixi.min.js";
 /** Where the deck's art sits, likewise: the atlas and its manifest, built by `docs/ship-deck-art/build-art.py`. */
 export const DECK_ATLAS = "art/ship-deck/deck.png";
 export const DECK_MANIFEST = "art/ship-deck/deck.json";
+/** The generated environment's manifest; the images it names are relative to its folder. */
+export const DECK_ENVIRONMENT_DIR = "art/ship-deck";
+export const DECK_ENVIRONMENT_MANIFEST = "art/ship-deck/environment.json";
 
 /** The switch. Anything but an explicit yes is off, as for the receipt journal. */
 export function shipDeckEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -96,6 +108,34 @@ export async function readDeckArt(
     });
     artCache.set(root, read);
     read.catch(() => artCache.delete(root));
+  }
+  return read;
+}
+
+/** The environment read from each plugin folder, once per process; a failed read is not kept. */
+const environmentCache = new Map<string, Promise<DeckEnvironment>>();
+
+/**
+ * The generated sea, sky and gull, for `firstmate.deck.environment`: the manifest checked against the
+ * contract — whose paths cannot leave `art/ship-deck/` — and every image it names. Refused while the
+ * switch is off, before anything is read.
+ */
+export async function readDeckEnvironment(
+  env: NodeJS.ProcessEnv = process.env,
+  pluginRoot: () => Promise<string> = defaultRoot,
+): Promise<DeckEnvironment> {
+  refuseWhenOff(env);
+  const root = await pluginRoot();
+  let read = environmentCache.get(root);
+  if (read === undefined) {
+    read = readFile(join(root, DECK_ENVIRONMENT_MANIFEST), "utf8").then(async function (text) {
+      const manifest = DeckEnvironmentManifestSchema.parse(JSON.parse(text));
+      const paths = environmentImagePaths(manifest);
+      const images = await Promise.all(paths.map((path) => readFile(join(root, DECK_ENVIRONMENT_DIR, path))));
+      return { manifest, images: Object.fromEntries(paths.map((path, index) => [path, images[index]!.toString("base64")])) };
+    });
+    environmentCache.set(root, read);
+    read.catch(() => environmentCache.delete(root));
   }
   return read;
 }

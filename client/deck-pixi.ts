@@ -1,9 +1,15 @@
 /**
- * The ship deck drawn with PixiJS 8 on WebGL, alive: hull C on a moving sea, one sailor sprite per live
- * crewmate walking to where its state sends it, the hull's depth pieces drawn back over any sailor behind
- * them, and the deck's ambient life — the bob, the masthead's sway, the lanterns, a gull now and then.
+ * The ship deck drawn with PixiJS 8 on WebGL, alive: hull C on a moving sea under the sky of the local
+ * time of day, one sailor sprite per live crewmate walking to where its state sends it, the hull's depth
+ * pieces drawn back over any sailor behind them, and the deck's ambient life — the bob, the masthead's
+ * sway, the lanterns, a gull now and then.
  *
- * Who moves where is `client/deck-crew.ts`; the ambient motion is `client/deck-ambient.ts`; when a frame
+ * **Depth, back to front:** the sky, its stars and the gull, then the far sea (the `back` of
+ * `client/deck-environment.ts`); the ship with its deck of props, pieces, lanterns and crew; then the near
+ * sea and the foam over the hull's waterline (its `front`). The hover label and legend are React, on top.
+ *
+ * Who moves where is `client/deck-crew.ts`; the ambient motion is `client/deck-ambient.ts`; the sea, the
+ * sky and the gull are `client/deck-environment.ts`, from the generated art; when a frame
  * is drawn at all is `client/deck-loop.ts`; each state's badge is `client/deck-badges.ts`; which sailor the
  * pointer is over is `client/deck-hover.ts`, reported to the pane, which draws its label. This file only
  * turns those into sprites and reads the pointer off the canvas.
@@ -15,47 +21,35 @@
  * `firstmate.deck.engine`, and `client/deck-mount.ts` evaluates it in a web renderer and passes the
  * namespace here. `PixiModule` is the narrow shape of it this file uses; `client/ship-deck.test.ts` holds
  * it to Pixi's own build. **So is the art**: one atlas from `firstmate.deck.art`, decoded once a session
- * by the mount and handed in as an image with its manifest.
+ * by the mount and handed in as an image with its manifest — and the environment's images beside it.
  *
  * It is pixel art, so it is sampled `nearest` and every position is a whole art pixel; the deck is
  * scaled to fit the pane exactly, so it follows a resize smoothly (`fitDeck` says why not by whole
  * device pixels). The ticker never starts (`autoStart: false`): `deckAnimator` calls `render` itself, at most
- * 30 times a second, and not at all while the deck is hidden or under reduced motion.
+ * 30 times a second, and not at all while the deck is hidden or under reduced motion. A still deck is drawn
+ * again once a minute, so its sky keeps up with the clock.
  *
  * **Depth while moving.** The deck's layer sorts its children by `zIndex`, set from `depthOf` for every
  * prop, piece and lantern once and for every sailor on every frame, so a sailor walking aft passes
  * behind the mast, the bollards and the stairs' balustrade, and in front of them on its way back.
  */
 import type { DeckArtManifest, SailorOutfit, SailorPose } from "../shared/ship-deck";
-import {
-  foamFrame,
-  gullsAt,
-  HORIZON,
-  LANTERNS,
-  lanternFlicker,
-  MASTHEAD,
-  mastSway,
-  SEA,
-  shipBob,
-  WATERLINE,
-  WAVE_PERIOD,
-  waveDrift,
-  waveRows,
-  hashUnit,
-  type MotionPlan,
-  type WaveRow,
-} from "./deck-ambient";
+import { LANTERNS, lanternFlicker, MASTHEAD, mastSway, shipBob, type MotionPlan } from "./deck-ambient";
 import { BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, createCrew, crewFigures, stepCrew, type Figure } from "./deck-crew";
 import { badgeTop, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
 import type { DeckDrawing, DeckHost } from "./deck-mount";
 import { DECK_PROPS, depthOf, type DeckScene, type DeckState } from "./deck-scene";
+import { createScenery, type DeckEnvironmentImages } from "./deck-environment";
+import { dominantPhase, localMinute, SKY_REFRESH_MS } from "./deck-sky";
 
 /** Marks the canvas with its renderer, so the live check can read it in the app's DevTools. */
 export const DECK_CANVAS_ATTRIBUTE = "data-firstmate-deck";
 /** Marks the canvas with the motion in force: `full`, `lite` or `still`. */
 export const DECK_MOTION_ATTRIBUTE = "data-firstmate-deck-motion";
+/** Marks the canvas with the sky that shows most (`dawn` … `night`), or `none` without the environment. */
+export const DECK_SKY_ATTRIBUTE = "data-firstmate-deck-sky";
 
 type Style = string | number | { color?: string | number; width?: number; alpha?: number };
 
@@ -140,16 +134,24 @@ export interface PixiModule {
   readonly Rectangle: new (x: number, y: number, width: number, height: number) => unknown;
 }
 
-/** The deck's art as the mount hands it over: the decoded atlas image, and where everything is in it. */
+/**
+ * The deck's art as the mount hands it over: the decoded atlas image, and where everything is in it; and
+ * the generated sea, sky and gull, or null when they could not be loaded.
+ */
 export interface DeckArtImage {
   image: unknown;
   manifest: DeckArtManifest;
+  environment: DeckEnvironmentImages | null;
 }
 
-/** What the deck needs to decide when to move: a frame scheduler and the motion signals. */
+/** What the deck needs to decide when to move: a frame scheduler and the motion signals; and what time it is. */
 export interface DeckMotionEnvironment {
   scheduler: FrameScheduler;
   signals: MotionSignals;
+  /** The local time, for the sky. */
+  clock: () => Date;
+  /** Runs `run` every `ms`; returns the way to stop. */
+  every: (ms: number, run: () => void) => () => void;
 }
 
 type Frame = readonly [number, number, number, number];
@@ -257,13 +259,6 @@ export function fitDeck(screen: { width: number; height: number }, deck: { width
   return { scale, x: snap((screen.width - deck.width * scale) / 2), y: snap((screen.height - deck.height * scale) / 2) };
 }
 
-/** The gull, three frames, drawn flying right: `#` is the wing and body, `o` the darker wingtip. */
-const GULL_FRAMES: readonly (readonly string[])[] = [
-  ["o.....o", ".#...#.", "..###.."],
-  [".......", "o#####o", "..###.."],
-  [".......", "..###..", ".#...#.", "o.....o"],
-];
-
 /** One sailor's sprites: the state's mark under its feet, the figure itself, its state's badge over its head, and an idle sailor's z. */
 interface SailorSprites {
   root: PixiContainer;
@@ -341,15 +336,9 @@ export async function startDeck(
   world.label = "world";
   app.stage.addChild(world);
 
-  // The sea: the far water behind the hull from the horizon down, the near water in front of its waterline.
-  const farSea = new pixi.Container();
-  farSea.label = "sea:far";
-  const nearSea = new pixi.Container();
-  nearSea.label = "sea:near";
-  let seaGraphics: Array<[PixiContainer, PixiGraphics]> = [];
-  let seaRows: Array<{ row: WaveRow; graphics: PixiGraphics }> = [];
-  let foam: PixiGraphics[] = [];
-  let seaBounds = { left: 0, right: 0, bottom: 0 };
+  // The sky, the gull and the far sea behind the hull; the near sea and the foam in front of its waterline.
+  const scenery = createScenery(pixi, art.environment);
+  const skyPhases = art.environment?.manifest.sky.phases ?? [];
 
   // The ship: the hull, the swaying masthead, and the deck's layer of props, pieces, lanterns and crew.
   const ship = new pixi.Container();
@@ -417,52 +406,7 @@ export async function startDeck(
   let pointer: { x: number; y: number } | null = null;
   let hoveredKey: string | null = null;
   let reported: DeckHover | null = null;
-  const gulls = new pixi.Graphics();
-  gulls.label = "gulls";
-  world.addChild(farSea, ship, nearSea, gulls);
-
-  /** The sea for the part of the world the screen shows, rebuilt only when that grows. */
-  function buildSea(left: number, right: number, bottom: number): void {
-    if (left >= seaBounds.left && right <= seaBounds.right && bottom <= seaBounds.bottom && seaRows.length > 0) return;
-    seaBounds = { left: Math.floor(left) - 8, right: Math.ceil(right) + 8, bottom: Math.ceil(bottom) + 8 };
-    for (const [parent, graphics] of seaGraphics) {
-      parent.removeChild(graphics);
-      graphics.destroy();
-    }
-    seaGraphics = [];
-    const add = (parent: PixiContainer, graphics: PixiGraphics) => {
-      parent.addChild(graphics);
-      seaGraphics.push([parent, graphics]);
-      return graphics;
-    };
-    const { left: l, right: r, bottom: b } = seaBounds;
-    const width = r - l;
-    add(farSea, new pixi.Graphics().rect(l, HORIZON, width, b - HORIZON).fill(SEA.deep).rect(l, HORIZON, width, 1).fill(SEA.crest));
-    // The same water in front of the hull, so the waterline is the hull's edge and not a seam across the sea.
-    add(nearSea, new pixi.Graphics().rect(l, WATERLINE, width, b - WATERLINE).fill(SEA.deep));
-    seaRows = [];
-    for (const row of [...waveRows(HORIZON, WATERLINE), ...waveRows(WATERLINE, b)]) {
-      const graphics = new pixi.Graphics();
-      for (let base = Math.floor(l / WAVE_PERIOD) * WAVE_PERIOD - WAVE_PERIOD * 2; base < r + WAVE_PERIOD; base += WAVE_PERIOD) {
-        for (const dash of row.dashes) graphics.rect(base + dash.x, row.y, dash.length, 1).fill(dash.glint ? SEA.glint : SEA.crest);
-      }
-      add(row.y < WATERLINE ? farSea : nearSea, graphics);
-      seaRows.push({ row, graphics });
-    }
-    // Foam where the near water meets the hull: two shapes, lapping.
-    foam = [0, 1].map(function (shape) {
-      const graphics = new pixi.Graphics();
-      for (let x = 72; x <= 388; x += 1) {
-        const lap = hashUnit(x * 7 + shape * 1013);
-        if (lap > 0.3) graphics.rect(x, WATERLINE, 1, 1).fill(lap > 0.75 ? SEA.foamShade : SEA.foam);
-        if (lap > 0.82) graphics.rect(x, WATERLINE + 1, 1, 1).fill(SEA.foamShade);
-      }
-      // A little spray off the bow and the stern.
-      const spray = shape === 0 ? [[70, WATERLINE - 1], [67, WATERLINE], [391, WATERLINE]] : [[69, WATERLINE], [392, WATERLINE - 1], [394, WATERLINE]];
-      for (const [x = 0, y = 0] of spray) graphics.rect(x, y, 1, 1).fill(SEA.foam);
-      return add(nearSea, graphics);
-    });
-  }
+  world.addChild(scenery.back, ship, scenery.front);
 
   function sailorSprites(figure: Figure): SailorSprites {
     let sprites = sailors.get(figure.key);
@@ -552,20 +496,6 @@ export async function startDeck(
     }
   }
 
-  function drawGulls(seconds: number): void {
-    gulls.clear();
-    for (const gull of gullsAt(seconds)) {
-      const rows = GULL_FRAMES[gull.frame]!;
-      rows.forEach(function (line, dy) {
-        for (let dx = 0; dx < line.length; dx += 1) {
-          const cell = line[gull.flip ? line.length - 1 - dx : dx];
-          if (cell === "#") gulls.rect(gull.x + dx - 3, gull.y + dy, 1, 1).fill(0xf2f5f4);
-          else if (cell === "o") gulls.rect(gull.x + dx - 3, gull.y + dy, 1, 1).fill(0x6c767c);
-        }
-      });
-    }
-  }
-
   /** Draws the deck as it is at `elapsedMs` on the scene clock. */
   function draw(elapsedMs: number, stepMs: number, plan: MotionPlan): void {
     const seconds = elapsedMs / 1000;
@@ -576,23 +506,18 @@ export async function startDeck(
     const bob = moving ? shipBob(seconds) : { x: 0, y: 0 };
     ship.position.set(bob.x, bob.y);
     masthead.position.set(MASTHEAD.x + (moving ? mastSway(seconds) : 0), MASTHEAD.y);
-    for (const { row, graphics } of seaRows) graphics.position.set(plan.ambient ? waveDrift(row, seconds) - WAVE_PERIOD : -WAVE_PERIOD, 0);
-    const lap = plan.ambient ? foamFrame(seconds) : 0;
-    foam.forEach(function (graphics, shape) {
-      graphics.visible = shape === lap;
-    });
+    const sky = scenery.draw(seconds, plan, currentMinute());
     for (const { lantern, glow, glass } of lanterns) {
       const level = moving ? lanternFlicker(seconds, lantern.seed) : 0.85;
       glow.alpha = 0.45 + 0.55 * level;
       glass.tint = level > 0.88 ? 0xffffff : level > 0.74 ? 0xf2dcb8 : 0xd8b890;
     }
-    if (plan.ambient) drawGulls(seconds);
-    else gulls.clear();
     drawnFigures = crewFigures(crew, elapsedMs, { still: !moving });
     drawnBob = bob;
     findHover();
     drawSailors(drawnFigures, elapsedMs, !moving);
     canvas.setAttribute(DECK_MOTION_ATTRIBUTE, plan.level);
+    canvas.setAttribute(DECK_SKY_ATTRIBUTE, sky === null ? "none" : (skyPhases[dominantPhase(sky)]?.id ?? "none"));
     app.render();
   }
 
@@ -613,17 +538,30 @@ export async function startDeck(
     return changed;
   }
 
+  /** The local minute of the day for the sky, or null when the clock will not say (midday is drawn then). */
+  function currentMinute(): number | null {
+    try {
+      return localMinute(environment.clock());
+    } catch {
+      return null;
+    }
+  }
+
   function fit(): void {
     const { scale, x, y } = fitDeck(app.screen, current, app.renderer.resolution);
     world.scale.set(scale);
     world.position.set(x, y);
     drawnFit = { scale, x, y };
-    buildSea(-x / scale, (app.screen.width - x) / scale, (app.screen.height - y) / scale);
+    if (scale > 0) scenery.layout({ left: -x / scale, right: (app.screen.width - x) / scale, top: -y / scale, bottom: (app.screen.height - y) / scale });
   }
 
   applyCrew(crew, scene.sailors, { snap: true });
   fit();
   const animator = deckAnimator({ scheduler: environment.scheduler, signals: environment.signals, software, size, frame: draw });
+  // A running loop reads the clock every frame; a still deck is drawn again once a minute, so its sky keeps up.
+  const stopSky = environment.every(SKY_REFRESH_MS, function () {
+    if (animator.plan().level === "still" && !environment.signals.documentHidden()) animator.invalidate();
+  });
 
   // The pointer, in CSS pixels on the canvas. A touch's pointer leaves as the finger lifts, so its label
   // stays until the next tap; a mouse's goes when it leaves the canvas.
@@ -665,9 +603,11 @@ export async function startDeck(
       canvas.removeEventListener?.("pointerleave", onLeave);
       if (reported !== null) onHover(null);
       reported = null;
+      stopSky();
       animator.destroy();
       app.destroy({ removeView: true }, { children: true });
       textures.destroy();
+      scenery.destroy();
     },
   };
 }

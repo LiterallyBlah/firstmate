@@ -11,18 +11,16 @@ import { describe, expect, it } from "vitest";
 import { DeckArtManifestSchema } from "../shared/ship-deck";
 import {
   DECK_FPS,
+  GULL_LOWEST,
   GULL_SLOT_SECONDS,
   HORIZON,
   LANTERNS,
   LITE_FPS,
-  WAVE_PERIOD,
   gullsAt,
   lanternFlicker,
   mastSway,
   motionPlan,
   shipBob,
-  waveDrift,
-  waveRows,
 } from "./deck-ambient";
 import { HATCH_MS, PLACES, STATE_POSES, applyCrew, createCrew, crewFigures, idleMotion, stepCrew, type Crew } from "./deck-crew";
 import { deckAnimator, MAX_STEP_MS, type FrameScheduler, type MotionSignals } from "./deck-loop";
@@ -465,13 +463,19 @@ describe("the ambient clock", () => {
     expect(lanternFlicker(1, LANTERNS[0]!.seed)).not.toBe(lanternFlicker(1, LANTERNS[1]!.seed));
   });
 
-  it("flies the odd gull, the same gulls for the same clock, above the masthead and never more than two", () => {
+  it("flies the odd gull, the same gulls for the same clock, at the masthead's height and never more than two", () => {
     let seconds = 0;
     for (let t = 0; t < 600; t += 0.25) {
       const gulls = gullsAt(t);
       expect(gulls).toEqual(gullsAt(t));
       expect(gulls.length).toBeLessThanOrEqual(2);
-      for (const gull of gulls) expect(gull.y).toBeLessThan(20);
+      for (const gull of gulls) {
+        // The generated sprite's raised wing reaches 17 rows over the beak, its lowered one 9 under it:
+        // the whole gull stays inside the deck's frame, and well above the horizon.
+        expect(gull.y - 17).toBeGreaterThanOrEqual(0);
+        expect(gull.y + 9).toBeLessThan(HORIZON);
+        expect(gull.y).toBeLessThanOrEqual(GULL_LOWEST + 3);
+      }
       if (gulls.length > 0) seconds += 0.25;
     }
     // Now and then: some of the time, never most of it.
@@ -479,18 +483,6 @@ describe("the ambient clock", () => {
     expect(seconds).toBeLessThan(400);
     expect(gullsAt(0)).toEqual([]);
     expect(GULL_SLOT_SECONDS).toBeGreaterThan(15);
-  });
-
-  it("drifts the sea in whole pixels within one period, nearer rows faster", () => {
-    const rows = waveRows(HORIZON, 200);
-    for (const row of rows) {
-      for (let t = 0; t < 60; t += 0.7) {
-        const drift = waveDrift(row, t);
-        expect(Number.isInteger(drift) && drift >= 0 && drift < WAVE_PERIOD).toBe(true);
-      }
-    }
-    expect(Math.abs(rows.at(-1)!.speed)).toBeGreaterThan(Math.abs(rows[0]!.speed));
-    expect(waveRows(HORIZON, 200)).toEqual(rows);
   });
 
   it("knows a software renderer from a GPU", () => {
@@ -664,5 +656,27 @@ describe("the browser's motion signals", () => {
     expect(frames).toHaveLength(1);
     const bare = browserMotion({});
     expect([bare.signals.reducedMotion(), bare.signals.documentHidden()]).toEqual([false, false]);
+    // No timer, no refresh: the sky is still drawn whenever the deck is.
+    expect(() => bare.every(60_000, () => {})()).not.toThrow();
+    expect(bare.clock()).toBeInstanceOf(Date);
+  });
+
+  it("refreshes on the browser's interval, and stops it when asked", () => {
+    const running = new Map<number, { run: () => void; ms: number }>();
+    let next = 1;
+    const motion = browserMotion({
+      setInterval: (run, ms) => {
+        running.set(next, { run, ms });
+        return next++;
+      },
+      clearInterval: (handle) => running.delete(handle),
+    });
+    let ran = 0;
+    const stop = motion.every(60_000, () => (ran += 1));
+    expect([...running.values()].map((entry) => entry.ms)).toEqual([60_000]);
+    running.get(1)!.run();
+    expect(ran).toBe(1);
+    stop();
+    expect(running.size).toBe(0);
   });
 });

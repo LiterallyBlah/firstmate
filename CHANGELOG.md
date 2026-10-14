@@ -10,6 +10,14 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- The ship deck preview (still behind `FIRSTMATE_SHIP_DECK=1`, off by default) sails the generated sea
+  under a sky that follows your local time of day: dawn from 05:30, morning, midday, afternoon, dusk at
+  18:30 and a starry night from 21:00, each fading into the next over an hour and a half. The water scrolls,
+  foam laps at the waterline, and a generated gull flaps across the sky by day. Under reduced motion the sea
+  holds still and no gull flies, but the sky still keeps the hour. The art is served by the new
+  `firstmate.deck.environment`, refused while the switch is off; if it cannot load, the deck draws on a
+  plain sea. With the switch off, the screen and every RPC answer are as they were.
+
 - The ship deck preview (still behind `FIRSTMATE_SHIP_DECK=1`, off by default) says who each sailor is.
   Pointing at one shows a label with the crewmate's title, its state in the board's words, its project
   and host, and its card's line at rest. Every sailor wears a small badge for its state (▶ working,

@@ -5,7 +5,7 @@
  * `docs/ship-deck-motion/render.mjs`, in a real browser. The deck's motion is `deck-motion.test.ts`.
  */
 import { readFileSync } from "node:fs";
-import { URL } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import type { PluginTheme } from "@getpaseo/plugin";
 import { act, createElement } from "react";
@@ -22,11 +22,13 @@ vi.mock("@getpaseo/plugin/client", () => ({
 }));
 
 import type { AgentStatus, ColumnId, FleetCard, RemoteCard } from "../shared/fleet";
-import { deckEngineSource } from "../server/ship-deck";
-import { DeckArtManifestSchema, type DeckArt } from "../shared/ship-deck";
+import { deckEngineSource, readDeckEnvironment } from "../server/ship-deck";
+import { DeckArtManifestSchema, environmentImagePaths, type DeckArt } from "../shared/ship-deck";
+import { environmentComplete } from "./deck-environment";
 import {
   browserDeckEngine,
   decodeAtlas,
+  decodeEnvironment,
   evaluatePixi,
   isDeckHost,
   mountDeck,
@@ -641,6 +643,13 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
   it("fetches Pixi and the art once a session, decodes the atlas, and tries again after a failure", async () => {
     let sources = 0;
     let arts = 0;
+    let environments = 0;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // The environment never loads here: the deck is drawn without it, and asks again on the next open.
+    const noEnvironment = () => {
+      environments += 1;
+      return Promise.reject(new Error("sea away"));
+    };
     const decoded: string[] = [];
     const good = { version: "1.2.3", source: `var PIXI = { VERSION: '1.2.3', ${FAKE_PIXI_PARTS} };` };
     const art = { png: "iVBOR", manifest: {} } as unknown as DeckArt;
@@ -657,6 +666,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
         arts += 1;
         return Promise.reject(new Error("art away"));
       },
+      noEnvironment,
       decode,
     );
     await expect(failing.load()).rejects.toThrow("art away");
@@ -669,6 +679,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
         arts += 1;
         return Promise.resolve(art);
       },
+      noEnvironment,
       decode,
     );
     const [first, second] = await Promise.all([engine.load(), engine.load()]);
@@ -677,6 +688,23 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     await engine.load();
     expect([sources, arts]).toEqual([2, 2]);
     expect(decoded).toEqual(["iVBOR"]);
+    // Once for the failing open, once for the two at once, once more for the last.
+    expect(environments).toBe(3);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("drawing a plain sea"), expect.any(Error));
+    warn.mockRestore();
+  });
+
+  it("decodes every image the environment names, and refuses one it did not send", async () => {
+    const root = fileURLToPath(new URL("..", import.meta.url));
+    const environment = await readDeckEnvironment({ FIRSTMATE_SHIP_DECK: "1" }, async () => root);
+    const decoded = await decodeEnvironment(environment, (png) => Promise.resolve({ png }));
+    expect([...decoded.images.keys()]).toEqual(environmentImagePaths(environment.manifest));
+    expect(decoded.images.get("sky/night.png")).toEqual({ png: environment.images["sky/night.png"] });
+    expect(environmentComplete(decoded)).toBe(true);
+    const { "sky/dusk.png": _dusk, ...missing } = environment.images;
+    await expect(decodeEnvironment({ ...environment, images: missing }, (png) => Promise.resolve(png))).rejects.toThrow("no sky/dusk.png");
+    expect(environmentComplete({ manifest: environment.manifest, images: new Map() })).toBe(false);
+    expect(environmentComplete(null)).toBe(false);
   });
 
   it("decodes the atlas as a PNG data URL, and says so where there is no image decoder", async () => {
