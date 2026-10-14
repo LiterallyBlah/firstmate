@@ -6,10 +6,12 @@
  * 1. **Switch off**: origin/main's bundle and this branch's, same fixture, same frozen clock — the screen's
  *    DOM must be identical, character for character, wide and narrow; no Deck, no canvas, no Pixi fetched.
  * 2. **Switch on**: Deck appears beside Crew and Files; opening it starts Pixi from the served build on a
- *    WebGL canvas inside the deck's react-native-web view; the screenshot has each sailor's state colour
- *    where the scene puts it, and the deck's colour on the deck. A poll that changes the crew redraws it,
- *    a resize resizes it, and leaving the Deck takes the canvas away.
- * 3. **No WebGL** (`--disable-webgl`): the Deck says so in words, and Pixi is never fetched.
+ *    WebGL canvas inside the deck's react-native-web view, with the served art. The screenshot, read at
+ *    every art pixel, is the deck a 2D canvas draws independently from the same scene, atlas and layer
+ *    order — hull, props, sailors and depth pieces — so each sailor is where its state puts it, in its
+ *    pose, and hidden exactly where the mast, a bollard or the near rail stands in front of it. A poll
+ *    that changes the crew redraws it, a resize resizes it, and leaving the Deck takes the canvas away.
+ * 3. **No WebGL** (`--disable-webgl`): the Deck says so in words, and neither Pixi nor the art is fetched.
  *
  * Run: `node docs/ship-deck-canvas/compile.mjs && node docs/ship-deck-canvas/render.mjs`, with
  * `docs/board-list`'s `npm ci` done. Writes the screenshots and `render-results.json` here.
@@ -52,7 +54,7 @@ await build({
   ],
 });
 
-// What `firstmate.deck.engine` answers with the switch on: the server's own code, reading vendor/.
+// What `firstmate.deck.engine` and `firstmate.deck.art` answer with the switch on: the server's own code, reading vendor/ and art/.
 await build({
   entryPoints: [join(root, "server/ship-deck.ts")],
   outfile: join(generated, "ship-deck-server.mjs"),
@@ -61,8 +63,9 @@ await build({
   format: "esm",
   logLevel: "warning",
 });
-const { readDeckEngine } = await import(pathToFileURL(join(generated, "ship-deck-server.mjs")).href);
+const { readDeckArt, readDeckEngine } = await import(pathToFileURL(join(generated, "ship-deck-server.mjs")).href);
 const deckEngine = JSON.stringify(await readDeckEngine({ FIRSTMATE_SHIP_DECK: "1" }, async () => root));
+const deckArt = JSON.stringify(await readDeckArt({ FIRSTMATE_SHIP_DECK: "1" }, async () => root));
 
 const files = {
   "/host.js": join(generated, "host.js"),
@@ -79,6 +82,9 @@ const server = createServer(async (request, response) => {
   if (path === "/deck-engine.json") {
     response.setHeader("Content-Type", "application/json");
     response.end(deckEngine);
+  } else if (path === "/deck-art.json") {
+    response.setHeader("Content-Type", "application/json");
+    response.end(deckArt);
   } else if (files[path] !== undefined) {
     response.setHeader("Content-Type", "application/javascript");
     response.end(await readFile(files[path]));
@@ -94,8 +100,8 @@ const now = new Date("2026-10-08T12:00:00.000Z");
 const results = { flagOff: [], flagOn: [], noWebgl: null };
 const errors = [];
 
-async function open(browser, { bundle, deck = false, theme = "dark", width = 1440 }) {
-  const view = await browser.newPage({ viewport: { width, height: width < 600 ? 844 : 900 } });
+async function open(browser, { bundle, deck = false, theme = "dark", width = 1440, scale = 1 }) {
+  const view = await browser.newPage({ viewport: { width, height: width < 600 ? 844 : 900 }, deviceScaleFactor: scale });
   view.on("pageerror", (error) => errors.push(`${bundle}/${theme}/${width}: ${error.message}`));
   view.on("console", (message) => {
     if (message.type() === "error") errors.push(`${bundle}/${theme}/${width} console: ${message.text()}`);
@@ -137,18 +143,20 @@ try {
       deckButton: [...document.querySelectorAll("[role=button],[role=tab]")].some((node) => node.textContent === "Deck"),
       canvases: document.querySelectorAll("canvas").length,
       deckEngineCalls: window.deckEngineCalls,
+      deckArtCalls: window.deckArtCalls,
       pixiGlobal: "PIXI" in window,
     }));
-    assert.deepEqual(off, { deckButton: false, canvases: 0, deckEngineCalls: 0, pixiGlobal: false });
+    assert.deepEqual(off, { deckButton: false, canvases: 0, deckEngineCalls: 0, deckArtCalls: 0, pixiGlobal: false });
     if (width === 1440) await branch.screenshot({ path: join(here, "flag-off-1440-dark.png") });
     results.flagOff.push({ width, domIdenticalToMain: true, domChars: branchHtml.length, ...off });
     await main.close();
     await branch.close();
   }
 
-  // 2. On: the Deck, drawn with WebGL from the fixture fleet.
+  // 2. On: the Deck, drawn with WebGL from the fixture fleet and the served art. A 2x display, as most
+  // laptops are, so the deck is scaled by whole device pixels and every art pixel can be read back.
   for (const theme of ["dark", "light"]) {
-    const view = await open(browser, { bundle: "branch", deck: true, theme });
+    const view = await open(browser, { bundle: "branch", deck: true, theme, scale: 2 });
     await view.getByText("Deck", { exact: true }).click();
     await view.locator("canvas[data-firstmate-deck]").waitFor();
     await view.getByText(/drawn with WebGL · \d+ on deck/).waitFor();
@@ -164,42 +172,41 @@ try {
         hostReactChildren: host.children.length,
         caption: [...document.querySelectorAll("div")].map((node) => node.textContent).find((text) => /^Preview · drawn/.test(text)),
         deckEngineCalls: window.deckEngineCalls,
+        deckArtCalls: window.deckArtCalls,
         pixiGlobal: "PIXI" in window,
       };
     });
-    const expected = await view.evaluate(() => window.expectedSailors());
     // Off the Deck button and out of focus, so its tooltip is not in the picture.
     await view.mouse.move(700, 880);
     await view.evaluate(() => document.activeElement?.blur());
     await view.waitForTimeout(300);
     const shot = await view.screenshot({ path: join(here, `deck-1440-${theme}.png`) });
-    const points = [expected.deckPoint, ...expected.sailors];
-    const pixels = await view.evaluate(([png, at]) => window.pixelsAt(png, at), [shot.toString("base64"), points]);
-    const hex = (color) => [1, 3, 5].map((index) => parseInt(color.slice(index, index + 2), 16));
-    const near = (actual, color) => actual.every((value, index) => Math.abs(value - hex(color)[index]) <= 6);
-    assert(near(pixels[0], expected.deckColor), `deck colour at the open deck: ${pixels[0]}`);
-    const sailors = expected.sailors.map((sailor, index) => ({ ...sailor, pixel: pixels[index + 1], matches: near(pixels[index + 1], sailor.color) }));
-    assert(sailors.every((sailor) => sailor.matches), `every sailor's colour: ${JSON.stringify(sailors.filter((s) => !s.matches))}`);
-    assert.deepEqual(expected.counts, { working: 5, waiting: 1, blocked: 4, idle: 2 });
+    const drawn = await compare(view, shot);
+    assert.deepEqual(drawn.counts, { working: 5, waiting: 1, blocked: 4, idle: 2 });
     assert.equal(facts.renderer, "webgl");
     assert.equal(facts.hostRole, "img");
     assert.equal(facts.canvasFillsHost, true);
     assert.equal(facts.hostReactChildren, 1, "the host view holds only Pixi's canvas");
     assert.equal(facts.deckEngineCalls, 1);
+    assert.equal(facts.deckArtCalls, 1);
     assert.equal(facts.pixiGlobal, false, "Pixi's namespace stays out of the page's globals");
 
     let after = {};
     if (theme === "dark") {
+      // A crop of the hull at 3x the deck's own scale, for the eye: the depth pieces in front of sailors.
+      const crop = await view.evaluate(() => {
+        const canvas = document.querySelector("canvas[data-firstmate-deck]").getBoundingClientRect();
+        return { x: canvas.left, y: canvas.top, width: canvas.width, height: canvas.height };
+      });
+      await view.screenshot({ path: join(here, "deck-1440-dark-canvas.png"), clip: crop });
       // A poll that changes the crew: two blocked crewmates are let go; the deck redraws from the new cards.
       await view.evaluate(() => {
         window.fixtureFleet.cards = window.fixtureFleet.cards.filter((card) => card.key !== "block-0" && card.key !== "block-1");
       });
       await view.getByRole("button", { name: "Refresh" }).click();
       await view.getByText("Preview · drawn with WebGL · 10 on deck").waitFor();
-      const redrawn = await view.evaluate(() => window.expectedSailors());
       const reshot = await view.screenshot({ path: join(here, "deck-1440-dark-after-poll.png") });
-      const repixels = await view.evaluate(([png, at]) => window.pixelsAt(png, at), [reshot.toString("base64"), redrawn.sailors]);
-      assert(redrawn.sailors.every((sailor, index) => near(repixels[index], sailor.color)), "redrawn sailors");
+      const redrawn = await compare(view, reshot);
       // A narrower window: the canvas follows its view.
       await view.setViewportSize({ width: 1100, height: 900 });
       await view.waitForFunction(() => {
@@ -210,13 +217,63 @@ try {
       // Leaving the Deck takes the canvas with it.
       await view.getByText(/^Crew \(/).click();
       await view.waitForFunction(() => document.querySelectorAll("canvas").length === 0);
-      after = { redrawnOnPoll: redrawn.counts, resizedCanvasWidth: resized, canvasesAfterLeaving: 0, deckEngineCallsAfterRedraw: await view.evaluate(() => window.deckEngineCalls) };
+      after = {
+        redrawnOnPoll: { counts: redrawn.counts, artPixelsMatching: redrawn.matching },
+        resizedCanvasWidth: resized,
+        canvasesAfterLeaving: 0,
+        deckEngineCallsAfterRedraw: await view.evaluate(() => window.deckEngineCalls),
+        deckArtCallsAfterRedraw: await view.evaluate(() => window.deckArtCalls),
+      };
     }
-    results.flagOn.push({ theme, ...facts, counts: expected.counts, sailors: sailors.map(({ key, state, color, pixel }) => ({ key, state, color, pixel })), ...after });
+    results.flagOn.push({ theme, ...facts, ...drawn, ...after });
     await view.close();
   }
 } finally {
   await browser.close();
+}
+
+/**
+ * The screenshot against the deck the 2D reference draws, art pixel by art pixel, outside each sailor's
+ * state mark (a soft ellipse the reference does not draw). Every one must match; and the sailors the scene
+ * stands behind the mast, a bollard or the near rail must be hidden there.
+ */
+async function compare(view, shot) {
+  const reference = await view.evaluate(() => window.referenceDeck());
+  const actual = await view.evaluate(([png, at]) => window.deckPixels(png, at), [shot.toString("base64"), reference]);
+  const marked = (x, y) => reference.marks.some((mark) => Math.abs(x - mark.x) <= 7 && y - mark.y >= -3 && y - mark.y <= 2);
+  let compared = 0;
+  const mismatches = [];
+  for (let y = 0; y < reference.height; y += 1) {
+    for (let x = 0; x < reference.width; x += 1) {
+      if (marked(x, y)) continue;
+      compared += 1;
+      const at = y * reference.width + x;
+      const want = reference.pixels.slice(at * 4, at * 4 + 3);
+      const got = actual.slice(at * 3, at * 3 + 3);
+      if (want.some((value, index) => Math.abs(value - got[index]) > 3)) mismatches.push({ x, y, want, got });
+    }
+  }
+  assert.equal(Number.isInteger(reference.fit.scale * reference.dpr), true, `whole device pixels per art pixel: ${reference.fit.scale * reference.dpr}`);
+  assert.deepEqual(mismatches.slice(0, 10), [], `${mismatches.length} of ${compared} art pixels differ from the reference`);
+  // Each sailor is on screen: its own art pixels show where nothing stands in front of it.
+  const sailors = reference.sailors.map(({ pixels, ...sailor }) => {
+    const hidden = Object.values(sailor.hiddenBy).reduce((sum, count) => sum + count, 0);
+    return { ...sailor, artPixels: pixels.length, visible: pixels.length - hidden };
+  });
+  for (const sailor of sailors) assert(sailor.visible > sailor.artPixels / 3, `${sailor.key} is mostly visible`);
+  const hiddenBy = (name) => sailors.filter((sailor) => (sailor.hiddenBy[name] ?? 0) > 0).map((sailor) => sailor.key);
+  return {
+    counts: reference.counts,
+    scale: reference.fit.scale,
+    devicePixelsPerArtPixel: reference.fit.scale * reference.dpr,
+    artPixelsCompared: compared,
+    matching: compared - mismatches.length,
+    drawOrder: reference.order,
+    behindTheMast: hiddenBy("mast"),
+    behindTheNearRail: hiddenBy("near"),
+    behindABollard: ["bollard-bow-aft", "bollard-bow-fore", "bollard-gunwale-fore", "bollard-gunwale-aft"].flatMap(hiddenBy),
+    sailors,
+  };
 }
 
 // 3. No WebGL: a plain message, and the daemon is never asked for Pixi.
@@ -226,8 +283,12 @@ try {
   await view.getByText("Deck", { exact: true }).click();
   await view.getByText(/This display has no WebGL/).waitFor();
   await view.mouse.move(700, 880);
-  results.noWebgl = await view.evaluate(() => ({ canvases: document.querySelectorAll("canvas").length, deckEngineCalls: window.deckEngineCalls }));
-  assert.deepEqual(results.noWebgl, { canvases: 0, deckEngineCalls: 0 });
+  results.noWebgl = await view.evaluate(() => ({
+    canvases: document.querySelectorAll("canvas").length,
+    deckEngineCalls: window.deckEngineCalls,
+    deckArtCalls: window.deckArtCalls,
+  }));
+  assert.deepEqual(results.noWebgl, { canvases: 0, deckEngineCalls: 0, deckArtCalls: 0 });
   await view.screenshot({ path: join(here, "deck-no-webgl.png") });
   await view.close();
 } finally {
@@ -238,4 +299,4 @@ try {
 results.errors = errors;
 await writeFile(join(here, "render-results.json"), JSON.stringify(results, null, 2) + "\n");
 assert.deepEqual(errors, [], "no page errors or console errors");
-console.log(JSON.stringify({ ...results, flagOn: results.flagOn.map(({ sailors, ...rest }) => rest) }, null, 2));
+console.log(JSON.stringify({ ...results, flagOn: results.flagOn.map(({ sailors, drawOrder, ...rest }) => rest) }, null, 2));

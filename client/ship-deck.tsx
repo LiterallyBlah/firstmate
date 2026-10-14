@@ -1,7 +1,8 @@
 /**
- * The ship deck: the crew as sailors on one deck, drawn by PixiJS on a WebGL canvas in the right-hand
- * pane. Behind `FIRSTMATE_SHIP_DECK` (`server/ship-deck.ts`), off by default; the screen offers it only
- * while the fleet load says the switch is on, and only in the desktop app's wide layout.
+ * The ship deck: the crew as sailors on hull C's deck, drawn from the generated art by PixiJS on a WebGL
+ * canvas in the right-hand pane. Behind `FIRSTMATE_SHIP_DECK` (`server/ship-deck.ts`), off by default;
+ * the screen offers it only while the fleet load says the switch is on, and only in the desktop app's
+ * wide layout.
  *
  * It draws from the cards the board already has — `FleetSurface` passes them in from the shared fleet
  * query — so it polls nothing of its own. The canvas makes the crew legible at a glance; names, tasks and
@@ -17,7 +18,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Text, View } from "react-native";
 
 import type { FleetCard } from "../shared/fleet";
-import { loadDeckEngine } from "../shared/ship-deck";
+import { loadDeckArt, loadDeckEngine } from "../shared/ship-deck";
 import { browserDeckEngine, mountDeck, type DeckEngine, type DeckMount, type DeckStatus } from "./deck-mount";
 import { DECK_STATES, deckScene } from "./deck-scene";
 
@@ -45,16 +46,22 @@ export function ShipDeckView({
 }: {
   cards: readonly FleetCard[];
   theme: PluginTheme;
-  /** Stood in for by the tests; the browser's WebGL, and Pixi from the daemon, otherwise. */
+  /** Stood in for by the tests; the browser's WebGL, and Pixi and the art from the daemon, otherwise. */
   engine?: DeckEngine;
   os?: string;
 }) {
   const scene = useMemo(() => deckScene(cards, theme), [cards, theme]);
   // One engine for the view's life, so a new `useRpc` function on a re-render never restarts the canvas.
   const loadEngine = useRpc(loadDeckEngine);
-  const loadRef = useRef(loadEngine);
-  loadRef.current = loadEngine;
-  const [browser] = useState(() => browserDeckEngine(() => loadRef.current({})));
+  const loadArt = useRpc(loadDeckArt);
+  const loadRef = useRef({ loadEngine, loadArt });
+  loadRef.current = { loadEngine, loadArt };
+  const [browser] = useState(() =>
+    browserDeckEngine(
+      () => loadRef.current.loadEngine({}),
+      () => loadRef.current.loadArt({}),
+    ),
+  );
   const used = engine ?? browser;
   const web = os === "web";
   const [status, setStatus] = useState<DeckStatus>(

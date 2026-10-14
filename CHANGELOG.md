@@ -8,6 +8,16 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ## [Unreleased]
 
+### Changed
+
+- The ship deck preview (still behind `FIRSTMATE_SHIP_DECK=1`, off by default) draws the approved
+  generated art in place of placeholder shapes: hull C's deck, and a sailor sprite per live crewmate,
+  posed by state (hauling, arms folded by the helm, standing in the bow, leaning at the rail), in one of
+  two outfits. A barrel, a crate and a coil of rope stand on deck. Sailors are depth-layered against the
+  mast, the bollards and the near rail. The art is one 84 KB atlas the daemon serves through the new
+  `firstmate.deck.art`, refused while the switch is off, so the client bundle carries none of it. With
+  the switch off, the screen and every RPC answer are as they were.
+
 ### Fixed
 
 - FirstMate chat and Watch keep separate assistant messages apart, including a worker-triggered

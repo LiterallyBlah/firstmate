@@ -1,14 +1,25 @@
 /**
  * FIRSTMATE_SHIP_DECK: off by default, and off means the fleet load is exactly what it was — the same
- * object, no `shipDeck` key, the same JSON on the wire — and no Pixi is read or sent.
+ * object, no `shipDeck` key, the same JSON on the wire — and no Pixi or art is read or sent.
  */
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { FleetSchema, type Fleet } from "../shared/fleet";
-import { PIXI_BUILD, SHIP_DECK_ENV, deckEngineSource, readDeckEngine, shipDeckEnabled, withShipDeck } from "./ship-deck";
+import {
+  DECK_ATLAS,
+  DECK_MANIFEST,
+  PIXI_BUILD,
+  SHIP_DECK_ENV,
+  deckEngineSource,
+  readDeckArt,
+  readDeckEngine,
+  shipDeckEnabled,
+  withShipDeck,
+} from "./ship-deck";
 
 const fleet: Fleet = {
   home: "/home/firstmate",
@@ -89,5 +100,57 @@ describe("the Pixi build the daemon serves", () => {
 
   it("refuses a file that is not a Pixi build", () => {
     expect(() => deckEngineSource("console.log('hello')")).toThrow("not a PixiJS build");
+  });
+});
+
+describe("the art the daemon serves", () => {
+  const root = fileURLToPath(new URL("..", import.meta.url));
+
+  it("is refused while the switch is off, before the plugin's folder is even looked for", async () => {
+    let looked = 0;
+    await expect(
+      readDeckArt({}, async () => {
+        looked += 1;
+        return root;
+      }),
+    ).rejects.toThrow(`set ${SHIP_DECK_ENV}=1`);
+    expect(looked).toBe(0);
+  });
+
+  it("on, is the atlas byte for byte as base64, and its manifest checked against the contract", async () => {
+    const art = await readDeckArt({ [SHIP_DECK_ENV]: "1" }, async () => root);
+    expect(Buffer.from(art.png, "base64").equals(readFileSync(join(root, DECK_ATLAS)))).toBe(true);
+    expect(art.manifest).toEqual(JSON.parse(readFileSync(join(root, DECK_MANIFEST), "utf8")));
+    // Small enough to send whole: the bundle carries none of it.
+    expect(art.png.length).toBeLessThan(150_000);
+  });
+
+  it("refuses a manifest that is not the contract's, and does not keep the failure", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "firstmate-deck-art-"));
+    try {
+      mkdirSync(join(dir, "art/ship-deck"), { recursive: true });
+      writeFileSync(join(dir, DECK_ATLAS), readFileSync(join(root, DECK_ATLAS)));
+      writeFileSync(join(dir, DECK_MANIFEST), JSON.stringify({ ship: {} }));
+      await expect(readDeckArt({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow();
+      writeFileSync(join(dir, DECK_MANIFEST), readFileSync(join(root, DECK_MANIFEST)));
+      await expect(readDeckArt({ [SHIP_DECK_ENV]: "1" }, async () => dir)).resolves.toHaveProperty("png");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("ships with the plugin, and names the generated sources it was built from", () => {
+    const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { files: string[] };
+    expect(manifest.files).toContain("art/");
+    const art = JSON.parse(readFileSync(join(root, DECK_MANIFEST), "utf8")) as { sources: Record<string, { file: string; sha256: string }> };
+    expect(Object.values(art.sources).map((source) => source.file)).toEqual([
+      "10-ship-low-rig.png",
+      "01-crew-base.png",
+      "02-crew-outfit.png",
+      "03-barrel.png",
+      "04-crate.png",
+      "05-rope.png",
+    ]);
+    for (const source of Object.values(art.sources)) expect(source.sha256).toMatch(/^[0-9a-f]{64}$/);
   });
 });
