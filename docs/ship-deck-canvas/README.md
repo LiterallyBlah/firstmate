@@ -36,7 +36,7 @@ Hermes enables ES6 classes at run time was not checked on a device; serving Pixi
 
 `compile.mjs` (Paseo 0.11.0's own `compilePlugin`, the global CLI's copy), into `compile-results.json`:
 
-- origin/main and this branch both compile. The client bundle grows by about 16.7 KB (401,649 → 418,356
+- origin/main and this branch both compile. The client bundle grows by about 16.6 KB (401,649 → 418,216
   bytes) and the server's by about 2.2 KB.
 - Neither bundle has Pixi or `class` syntax, and `hermesc` parses both with default flags.
 

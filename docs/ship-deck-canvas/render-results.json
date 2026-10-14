@@ -1,0 +1,318 @@
+{
+  "flagOff": [
+    {
+      "width": 1440,
+      "domIdenticalToMain": true,
+      "domChars": 95475,
+      "deckButton": false,
+      "canvases": 0,
+      "deckEngineCalls": 0,
+      "pixiGlobal": false
+    },
+    {
+      "width": 390,
+      "domIdenticalToMain": true,
+      "domChars": 24680,
+      "deckButton": false,
+      "canvases": 0,
+      "deckEngineCalls": 0,
+      "pixiGlobal": false
+    }
+  ],
+  "flagOn": [
+    {
+      "theme": "dark",
+      "renderer": "webgl",
+      "webgl2": true,
+      "hostRole": "img",
+      "hostLabel": "Ship deck: 5 working, 1 waiting, 4 blocked, 2 idle",
+      "canvasFillsHost": true,
+      "hostReactChildren": 1,
+      "caption": "Preview · drawn with WebGL · 12 on deck",
+      "deckEngineCalls": 1,
+      "pixiGlobal": false,
+      "counts": {
+        "working": 5,
+        "waiting": 1,
+        "blocked": 4,
+        "idle": 2
+      },
+      "sailors": [
+        {
+          "key": "work-0",
+          "state": "working",
+          "color": "#6cb17b",
+          "pixel": [
+            108,
+            177,
+            123
+          ]
+        },
+        {
+          "key": "work-1",
+          "state": "working",
+          "color": "#6cb17b",
+          "pixel": [
+            108,
+            177,
+            123
+          ]
+        },
+        {
+          "key": "work-2",
+          "state": "working",
+          "color": "#6cb17b",
+          "pixel": [
+            108,
+            177,
+            123
+          ]
+        },
+        {
+          "key": "work-3",
+          "state": "working",
+          "color": "#6cb17b",
+          "pixel": [
+            108,
+            177,
+            123
+          ]
+        },
+        {
+          "key": "work-4",
+          "state": "working",
+          "color": "#6cb17b",
+          "pixel": [
+            108,
+            177,
+            123
+          ]
+        },
+        {
+          "key": "work-5",
+          "state": "waiting",
+          "color": "#c09664",
+          "pixel": [
+            192,
+            150,
+            100
+          ]
+        },
+        {
+          "key": "block-0",
+          "state": "blocked",
+          "color": "#d8847b",
+          "pixel": [
+            216,
+            132,
+            123
+          ]
+        },
+        {
+          "key": "block-1",
+          "state": "blocked",
+          "color": "#d8847b",
+          "pixel": [
+            216,
+            132,
+            123
+          ]
+        },
+        {
+          "key": "block-2",
+          "state": "blocked",
+          "color": "#d8847b",
+          "pixel": [
+            216,
+            132,
+            123
+          ]
+        },
+        {
+          "key": "block-3",
+          "state": "blocked",
+          "color": "#d8847b",
+          "pixel": [
+            216,
+            132,
+            123
+          ]
+        },
+        {
+          "key": "idle-1",
+          "state": "idle",
+          "color": "#A1A5A4",
+          "pixel": [
+            161,
+            165,
+            164
+          ]
+        },
+        {
+          "key": "idle-2",
+          "state": "idle",
+          "color": "#A1A5A4",
+          "pixel": [
+            161,
+            165,
+            164
+          ]
+        }
+      ],
+      "redrawnOnPoll": {
+        "working": 5,
+        "waiting": 1,
+        "blocked": 2,
+        "idle": 2
+      },
+      "resizedCanvasWidth": 561,
+      "canvasesAfterLeaving": 0,
+      "deckEngineCallsAfterRedraw": 1
+    },
+    {
+      "theme": "light",
+      "renderer": "webgl",
+      "webgl2": true,
+      "hostRole": "img",
+      "hostLabel": "Ship deck: 5 working, 1 waiting, 4 blocked, 2 idle",
+      "canvasFillsHost": true,
+      "hostReactChildren": 1,
+      "caption": "Preview · drawn with WebGL · 12 on deck",
+      "deckEngineCalls": 1,
+      "pixiGlobal": false,
+      "counts": {
+        "working": 5,
+        "waiting": 1,
+        "blocked": 4,
+        "idle": 2
+      },
+      "sailors": [
+        {
+          "key": "work-0",
+          "state": "working",
+          "color": "#6cb17b",
+          "pixel": [
+            108,
+            177,
+            123
+          ]
+        },
+        {
+          "key": "work-1",
+          "state": "working",
+          "color": "#6cb17b",
+          "pixel": [
+            108,
+            177,
+            123
+          ]
+        },
+        {
+          "key": "work-2",
+          "state": "working",
+          "color": "#6cb17b",
+          "pixel": [
+            108,
+            177,
+            123
+          ]
+        },
+        {
+          "key": "work-3",
+          "state": "working",
+          "color": "#6cb17b",
+          "pixel": [
+            108,
+            177,
+            123
+          ]
+        },
+        {
+          "key": "work-4",
+          "state": "working",
+          "color": "#6cb17b",
+          "pixel": [
+            108,
+            177,
+            123
+          ]
+        },
+        {
+          "key": "work-5",
+          "state": "waiting",
+          "color": "#88601d",
+          "pixel": [
+            136,
+            96,
+            29
+          ]
+        },
+        {
+          "key": "block-0",
+          "state": "blocked",
+          "color": "#d8847b",
+          "pixel": [
+            216,
+            132,
+            123
+          ]
+        },
+        {
+          "key": "block-1",
+          "state": "blocked",
+          "color": "#d8847b",
+          "pixel": [
+            216,
+            132,
+            123
+          ]
+        },
+        {
+          "key": "block-2",
+          "state": "blocked",
+          "color": "#d8847b",
+          "pixel": [
+            216,
+            132,
+            123
+          ]
+        },
+        {
+          "key": "block-3",
+          "state": "blocked",
+          "color": "#d8847b",
+          "pixel": [
+            216,
+            132,
+            123
+          ]
+        },
+        {
+          "key": "idle-1",
+          "state": "idle",
+          "color": "#646464",
+          "pixel": [
+            100,
+            100,
+            100
+          ]
+        },
+        {
+          "key": "idle-2",
+          "state": "idle",
+          "color": "#646464",
+          "pixel": [
+            100,
+            100,
+            100
+          ]
+        }
+      ]
+    }
+  ],
+  "noWebgl": {
+    "canvases": 0,
+    "deckEngineCalls": 0
+  },
+  "errors": []
+}
