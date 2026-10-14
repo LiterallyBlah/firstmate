@@ -1,11 +1,13 @@
 /**
- * The ship deck's two RPCs, both refused while `FIRSTMATE_SHIP_DECK` is off (`server/ship-deck.ts`):
+ * The ship deck's three RPCs, all refused while `FIRSTMATE_SHIP_DECK` is off (`server/ship-deck.ts`):
  *
  * - `firstmate.deck.engine` — PixiJS's browser build, as text, for the client to evaluate in a web
  *   renderer (`client/deck-mount.ts`). It reads `vendor/pixi.min.js` in the plugin's folder and nothing else.
  * - `firstmate.deck.art` — the deck's art: one atlas PNG, base64, and the manifest that says where the
  *   hull, its depth pieces, each sailor's pose and each prop are in it. Read from `art/ship-deck/` in the
  *   plugin's folder; built by `docs/ship-deck-art/build-art.py`.
+ * - `firstmate.deck.environment` — the generated sea, sky and gull: each image, base64, and what
+ *   `art/ship-deck/environment.json` says about drawing them. See below.
  */
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
@@ -65,3 +67,80 @@ export const loadDeckArt = defineRpc({
   output: z.object({ png: z.string(), manifest: DeckArtManifestSchema }),
 });
 export type DeckArt = z.infer<typeof loadDeckArt.output>;
+
+/**
+ * `firstmate.deck.environment` — the generated sea, sky and gull (`art/ship-deck/ENVIRONMENT.md`): the
+ * parts of `environment.json` the deck draws with, and each image it names, base64. Refused while the
+ * switch is off, like the others. Separate from the atlas so a deck whose environment fails to load
+ * still draws its ship and crew, on a plain sea (`client/deck-mount.ts`).
+ */
+/** A file inside `art/ship-deck/`: a relative path to a PNG, never climbing out. */
+const ArtPath = z
+  .string()
+  .regex(/^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.png$/i, "an environment image must be a relative .png path inside art/ship-deck/");
+const Size = z.tuple([z.number().int().positive(), z.number().int().positive()]);
+
+/** The six sky phases, in the order of the day. */
+export const SKY_PHASES = ["dawn", "morning", "midday", "afternoon", "dusk", "night"] as const;
+export type SkyPhaseId = (typeof SKY_PHASES)[number];
+export const GULL_POSES = ["up", "mid", "down"] as const;
+export type GullPose = (typeof GULL_POSES)[number];
+
+const MINUTES_PER_DAY = 1440;
+
+export const DeckEnvironmentManifestSchema = z.object({
+  /** The water: one opaque tile repeating both ways, scrolled sideways in whole pixels. */
+  sea: z.object({
+    texture: ArtPath,
+    period: Size,
+    animation: z.object({ xPixelsPerSecond: z.number().positive() }),
+  }),
+  /** The foam at the hull's waterline: a transparent strip repeating sideways. */
+  foam: z.object({ texture: ArtPath, period: z.number().int().positive(), xPixelsPerSecond: z.number().positive() }),
+  /**
+   * The sky: six registered backdrops, each with the local wall-clock minute it is shown alone at, and
+   * overlays (the stars) faded with the night. The phases are listed in the order of the day.
+   */
+  sky: z.object({
+    size: Size,
+    phases: z
+      .array(z.object({ id: z.enum(SKY_PHASES), path: ArtPath, localMinute: z.number().int().min(0).max(MINUTES_PER_DAY - 1) }))
+      .length(SKY_PHASES.length)
+      .refine((phases) => phases.every((phase, index) => phase.id === SKY_PHASES[index]), "the sky's phases must be dawn to night, in order")
+      .refine((phases) => phases.every((phase, index) => index === 0 || phase.localMinute > phases[index - 1]!.localMinute), "the sky's phases must be in the order of the day"),
+    overlays: z.array(z.object({ path: ArtPath, size: Size })),
+  }),
+  /** The gull: three poses in one strip, drawn flying right, registered at the beak. */
+  gull: z.object({
+    sheet: ArtPath,
+    frameSize: Size,
+    anchor: z.tuple([z.number().int(), z.number().int()]),
+    frames: z
+      .array(z.object({ id: z.enum(GULL_POSES), rect: Frame }))
+      .length(GULL_POSES.length)
+      .refine((frames) => frames.every((frame, index) => frame.id === GULL_POSES[index]), "the gull's frames must be up, mid and down"),
+    sequence: z.array(z.enum(GULL_POSES)).min(1),
+    frameMs: z.number().positive(),
+  }),
+});
+export type DeckEnvironmentManifest = z.infer<typeof DeckEnvironmentManifestSchema>;
+
+/** Every image the manifest names, once each, in a stable order. */
+export function environmentImagePaths(manifest: DeckEnvironmentManifest): string[] {
+  const paths = [
+    manifest.sea.texture,
+    manifest.foam.texture,
+    ...manifest.sky.phases.map((phase) => phase.path),
+    ...manifest.sky.overlays.map((overlay) => overlay.path),
+    manifest.gull.sheet,
+  ];
+  return [...new Set(paths)];
+}
+
+export const loadDeckEnvironment = defineRpc({
+  name: "firstmate.deck.environment",
+  input: z.object({}),
+  /** `images` maps each path the manifest names to that PNG, base64. */
+  output: z.object({ manifest: DeckEnvironmentManifestSchema, images: z.record(z.string(), z.string()) }),
+});
+export type DeckEnvironment = z.infer<typeof loadDeckEnvironment.output>;

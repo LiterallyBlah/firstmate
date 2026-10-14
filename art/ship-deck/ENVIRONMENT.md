@@ -1,7 +1,9 @@
 # Generated sea, sky and gull assets
 
-Standalone art for hull C. Nothing is wired into the plugin. `environment.json` is the asset manifest;
-it is independent of the existing `deck.json` contract. All paths in it are relative to this folder.
+Art for hull C, drawn by the Deck behind `FIRSTMATE_SHIP_DECK` (`client/deck-environment.ts`; the evidence
+is `docs/ship-deck-environment/`). `environment.json` is the asset manifest, served by
+`firstmate.deck.environment` and checked against `DeckEnvironmentManifestSchema`; it is independent of the
+existing `deck.json` contract. All paths in it are relative to this folder.
 
 | Asset | Logical size | Use | Verdict |
 | --- | --- | --- | --- |
@@ -37,6 +39,9 @@ colour quantization by the integration worker.
   These are illustrative defaults, not astronomical sunrise/sunset. An integration using location and
   season can assign the same layers to calculated sunrise, solar noon and sunset. No clock logic is
   included here. Intermediate colours come from blending; no extra transition PNGs are necessary.
+  **As integrated** (`client/deck-sky.ts`), each phase holds from its anchor and fades into the next only
+  over the 90 minutes before that one's anchor: interpolating across the whole gap would show half a
+  dawn at 01:15.
 - **Stars:** fade independently with night weight, above the sky and behind the ship; no moon is baked
   in. **Gull:** use `up, mid, down, mid` at 125 ms per pose (500 ms loop), or hold `mid` for a distant
   glide. Anchor all frames at `[26,20]` (beak registration); mirror the whole sprite to fly left. Its

@@ -7,14 +7,14 @@
  * no shaders, so a software renderer pays only for sprites. Motion is whole art pixels, slow, and
  * small — the crew is what should catch the eye.
  *
- * - **Sea** — a band of water from a horizon behind the hull down past the canvas, and a strip in front
- *   of the hull's waterline. Rows of short crest dashes drift at their own pace (nearer rows faster); the
- *   foam where the water meets the hull laps between two shapes.
+ * The sea, the sky and the gull's sprite are the generated environment's (`client/deck-environment.ts`,
+ * `client/deck-sky.ts`); this file keeps only where the water is and where a gull flies.
+ *
  * - **Ship** — bobs a pixel up and down over about six seconds, crew and all; the sea does not.
  * - **Masthead** — the crow's nest and topmast, cut from the hull, sway a pixel each way behind the bob.
  * - **Lanterns** — three, on the stern post, the quarterdeck's front post and the mast, flickering on
  *   three out-of-step sines.
- * - **Gulls** — now and then one crosses the sky above the masthead, flapping in bursts and gliding.
+ * - **Gulls** — now and then one crosses the sky at the masthead's height, flapping in bursts and gliding.
  */
 import { DECK_WIDTH } from "./deck-scene";
 
@@ -27,7 +27,7 @@ export interface MotionPlan {
   animate: boolean;
   /** The frame-rate cap while it runs. */
   fps: number;
-  /** Whether the sea drifts and gulls fly; off on a software renderer, where every frame is CPU-drawn. */
+  /** Whether the sea and foam scroll and gulls fly; off on a software renderer, where every frame is CPU-drawn. */
   ambient: boolean;
 }
 
@@ -98,10 +98,13 @@ export function hashUnit(n: number): number {
 
 /** A gull in the sky this frame. */
 export interface Gull {
+  /** Where its beak is: the generated sprite's registration point. */
   x: number;
   y: number;
-  /** 0 wings up, 1 wings level, 2 wings down. */
-  frame: 0 | 1 | 2;
+  /** Flapping (the sprite's flap cycle), or gliding on its middle pose. */
+  flapping: boolean;
+  /** Seconds since it set off, for the flap cycle's phase. */
+  age: number;
   /** Flying left (the sprite is drawn flying right). */
   flip: boolean;
 }
@@ -110,10 +113,14 @@ export interface Gull {
 export const GULL_SLOT_SECONDS = 24;
 const GULL_SPEED = 26;
 const GULL_MARGIN = 60;
+/** The lowest a gull's beak flies: its raised wing reaches 17 rows above that, its lowered one 9 below. */
+export const GULL_LOWEST = 40;
 
 /**
- * The gulls in the sky at `seconds`: one now and then crosses from one side to the other above the
- * masthead, its height drifting, flapping for a second in every three and gliding between.
+ * The gulls in the sky at `seconds`: one now and then crosses from one side to the other at about the
+ * masthead's height, its height drifting, flapping for a second in every three and gliding between.
+ * It flies behind the ship, so one that meets the masthead passes behind it, and low enough that its
+ * whole sprite is inside the deck's frame: a pane that fits the deck's height still shows it.
  * Deterministic: slot k's gull, if it flies at all, leaves at a time and side drawn from k.
  */
 export function gullsAt(seconds: number): Gull[] {
@@ -129,69 +136,16 @@ export function gullsAt(seconds: number): Gull[] {
     const leftward = hashUnit(k * 3 + 3) < 0.5;
     const travelled = age * GULL_SPEED - GULL_MARGIN;
     const x = leftward ? DECK_WIDTH - travelled : travelled;
-    const height = -18 + hashUnit(k * 7 + 5) * 28;
-    const y = height + Math.sin(age * 0.7 + k) * 4;
-    const flapping = age % 3 < 1;
-    const frame: 0 | 1 | 2 = flapping ? ([0, 1, 2, 1] as const)[Math.floor(age * 10) % 4]! : 1;
-    gulls.push({ x: Math.round(x), y: Math.round(y), frame, flip: leftward });
+    const height = GULL_LOWEST - hashUnit(k * 7 + 5) * 18;
+    const y = height + Math.sin(age * 0.7 + k) * 3;
+    gulls.push({ x: Math.round(x), y: Math.round(y), flapping: age % 3 < 1, age, flip: leftward });
   }
   return gulls;
 }
 
-/** The sea's colours: the hull's navy, deepened, and a pale foam. Fixed, so the sea reads in any theme. */
-export const SEA = {
-  deep: 0x15304a,
-  crest: 0x2f5f86,
-  glint: 0x8fb8d0,
-  foam: 0xd8ecf2,
-  foamShade: 0x9cc3d4,
-} as const;
+/** The sea's colour where the generated water could not be loaded: the hull's navy, deepened. */
+export const SEA_FALLBACK = 0x15304a;
 
 /** Where the water is, in deck rows: the far sea's edge behind the hull, and the waterline in front of it. */
 export const HORIZON = 96;
 export const WATERLINE = 151;
-
-/** The pattern repeats every this many pixels across, so a strip scrolls by moving, never redrawing. */
-export const WAVE_PERIOD = 64;
-
-/** A row of crest dashes: where each starts within one period, how long, and whether it glints. */
-export interface WaveRow {
-  y: number;
-  dashes: Array<{ x: number; length: number; glint: boolean }>;
-  /** Drift, in pixels a second: nearer rows drift faster. */
-  speed: number;
-}
-
-/**
- * The sea's crest rows from `top` to `bottom`, every third row, each with a few dashes spread through
- * one period by a hash of the row. Nearer rows (further down) get longer dashes and drift faster.
- */
-export function waveRows(top: number, bottom: number): WaveRow[] {
-  const rows: WaveRow[] = [];
-  for (let y = top + 2; y < bottom; y += 3) {
-    const depth = Math.max(0, Math.min(1, (y - top) / 80));
-    const count = 2 + Math.floor(hashUnit(y * 13) * 2);
-    const dashes: WaveRow["dashes"] = [];
-    for (let index = 0; index < count; index += 1) {
-      dashes.push({
-        x: Math.floor(((index + hashUnit(y * 31 + index) * 0.6) * WAVE_PERIOD) / count),
-        length: 2 + Math.floor(depth * 3 + hashUnit(y * 17 + index) * 3),
-        glint: hashUnit(y * 41 + index) > 0.82,
-      });
-    }
-    const direction = Math.floor(y / 3) % 2 === 0 ? 1 : -1;
-    rows.push({ y, dashes, speed: direction * (1.5 + depth * 4) });
-  }
-  return rows;
-}
-
-/** How far a wave row has drifted at `seconds`, in whole pixels within one period. */
-export function waveDrift(row: WaveRow, seconds: number): number {
-  const drift = Math.floor(seconds * row.speed) % WAVE_PERIOD;
-  return drift < 0 ? drift + WAVE_PERIOD : drift;
-}
-
-/** Which of the foam's two shapes shows at `seconds`: it laps against the hull about once a second. */
-export function foamFrame(seconds: number): 0 | 1 {
-  return Math.floor(seconds / 0.9) % 2 === 0 ? 0 : 1;
-}
