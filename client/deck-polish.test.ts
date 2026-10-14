@@ -70,14 +70,14 @@ function sailor(key: string, state: DeckState): DeckSailor {
     key,
     label: key,
     state,
-    outfit: "base",
+    identity: `agent-${key}`,
     stale: false,
     caption: { title: key, status: state, project: null, host: "This machine", line: null, stale: null },
   };
 }
 
 function figure(key: string, x: number, row: number, overrides: Partial<Figure> = {}): Figure {
-  return { key, label: key, state: "idle", stale: false, outfit: "base", x, y: row, row, pose: "leaning", flip: false, reveal: 1, moving: false, seed: 0, ...overrides };
+  return { key, label: key, state: "idle", stale: false, look: "base", outfit: "base", x, y: row, row, pose: "leaning", flip: false, reveal: 1, moving: false, seed: 0, sink: 0, ...overrides };
 }
 
 describe("the sailor under the pointer", () => {

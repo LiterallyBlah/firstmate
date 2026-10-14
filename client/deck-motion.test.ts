@@ -194,7 +194,7 @@ function sailor(key: string, state: DeckState, stale = false): DeckSailor {
     key,
     label: `Task ${key}`,
     state,
-    outfit: "base",
+    identity: `agent-${key}`,
     stale,
     caption: { title: `Task ${key}`, status: state, project: null, host: "This machine", line: null, stale: null },
   };
@@ -368,7 +368,7 @@ describe("the crew on deck", () => {
   });
 
   it("idles with motion: hauling, breathing and fretting in whole pixels", () => {
-    for (const state of ["working", "waiting", "blocked", "idle"] as const) {
+    for (const state of ["working", "waiting", "blocked"] as const) {
       const seen = new Set<string>();
       for (let at = 0; at < 8000; at += 50) {
         const { dx, dy } = idleMotion(state, "right", 3, at);
@@ -377,6 +377,8 @@ describe("the crew on deck", () => {
       }
       expect(seen.size, state).toBeGreaterThan(1);
     }
+    // At ease, the feet never move: the sailor breathes in place instead.
+    for (let at = 0; at < 8000; at += 50) expect(idleMotion("idle", "front", 3, at)).toEqual({ dx: 0, dy: 0 });
     // A sailor facing left hauls to the left.
     expect(new Set(Array.from({ length: 40 }, (_, i) => idleMotion("working", "left", 0, i * 100).dx))).toEqual(new Set([0, -1]));
   });

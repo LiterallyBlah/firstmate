@@ -1,0 +1,18 @@
+{
+  "sail": {
+    "texture": "sails/main-sail.png",
+    "frameSize": [114, 27],
+    "frames": 2,
+    "position": [154, 46],
+    "frameMs": 850,
+    "occluder": { "texture": "sails/mast-occluder.png", "replaces": "mast", "position": [202, 48], "baseline": 110 }
+  },
+  "crew": [
+    { "id": "bosun", "texture": "crew-variants/01-bosun.png" },
+    { "id": "old-salt", "texture": "crew-variants/02-old-salt.png" },
+    { "id": "navigator", "texture": "crew-variants/03-navigator.png" },
+    { "id": "carpenter", "texture": "crew-variants/04-carpenter.png" },
+    { "id": "rigger", "texture": "crew-variants/05-rigger.png" },
+    { "id": "deckhand", "texture": "crew-variants/06-deckhand.png" }
+  ]
+}

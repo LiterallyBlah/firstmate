@@ -423,10 +423,12 @@ FirstMate's has changed. The first mate adds or changes a watch only when you sa
 A first piece of a ship's-deck view of the crew: one sailor per live crewmate on the deck of a pixel-art
 ship, drawn by PixiJS on a WebGL canvas, standing where its card's column puts it. **Working** sailors
 haul at the stations amidships. **Waiting** (Ready, or waiting on a job) stand by the helm.
-**Blocked** (Blocked, Failed) are in the bow, and **idle** (Idle, Parked) lean at the rail. When a
+**Blocked** (Blocked, Failed) are in the bow, and **idle** (Idle, Parked) stand at ease at the rail,
+breathing. Each crewmate wears one of eight looks, chosen by its agent, so the same crewmate always looks the same. When a
 crewmate's state changes, its mark changes at once and the sailor walks to its new place; a new crewmate
-climbs up through the hatch and one that leaves climbs back down. The ship bobs on a moving sea, the
-masthead sways, the lanterns flicker and a gull crosses now and then. If the board's feed is lost, the
+climbs up through the hatch and one that leaves climbs back down. The ship sails: it bobs on a moving
+sea with its wake trailing astern, its sail billows, the masthead sways, the lanterns flicker and a gull
+crosses now and then. If the board's feed is lost, the
 crew greys where it last stood rather than turning idle. The deck is depth-layered: a sailor behind the
 mast or a bollard is hidden by it. It draws at most 30 frames a second, nothing while the window is
 hidden, and holds still if the system asks for reduced motion. It reads the same cards as the
@@ -442,8 +444,8 @@ To check it in the desktop app once the plugin is installed: start the daemon wi
 in its environment and reload the plugin. Open FirstMate and press **Deck**. The caption should read
 "Preview · drawn with WebGL · N on deck", with N matching the live crew. In DevTools, the canvas carries
 `data-firstmate-deck="webgl"` and `data-firstmate-deck-motion="full"` (`still` under reduced motion,
-`lite` on a software renderer). `docs/ship-deck-canvas/README.md` and `docs/ship-deck-motion/README.md`
-have the full list, and what was proven before install.
+`lite` on a software renderer). `docs/ship-deck-canvas/README.md`, `docs/ship-deck-motion/README.md` and
+`docs/ship-deck-tweaks/README.md` have the full list, and what was proven before install.
 
 ## Settings
 

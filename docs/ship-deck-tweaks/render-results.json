@@ -1,0 +1,160 @@
+{
+  "flagOff": [
+    {
+      "width": 1440,
+      "identical": true,
+      "characters": 95473,
+      "extrasCalls": 0
+    },
+    {
+      "width": 390,
+      "identical": true,
+      "characters": 24680,
+      "extrasCalls": 0
+    }
+  ],
+  "still": {
+    "motion": "still",
+    "artPixelsCompared": 31500,
+    "sailPixelsCompared": 2334,
+    "matching": 31500,
+    "firstMismatches": [],
+    "looks": [
+      {
+        "key": "block-0",
+        "state": "blocked",
+        "look": "deckhand",
+        "pose": "front-idle",
+        "flip": false
+      },
+      {
+        "key": "block-1",
+        "state": "blocked",
+        "look": "navigator",
+        "pose": "front-idle",
+        "flip": false
+      },
+      {
+        "key": "block-2",
+        "state": "blocked",
+        "look": "carpenter",
+        "pose": "front-idle",
+        "flip": false
+      },
+      {
+        "key": "block-3",
+        "state": "blocked",
+        "look": "bosun",
+        "pose": "front-idle",
+        "flip": false
+      },
+      {
+        "key": "idle-1",
+        "state": "idle",
+        "look": "navigator",
+        "pose": "side-idle",
+        "flip": true
+      },
+      {
+        "key": "idle-2",
+        "state": "idle",
+        "look": "carpenter",
+        "pose": "side-idle",
+        "flip": false
+      },
+      {
+        "key": "work-0",
+        "state": "working",
+        "look": "base",
+        "pose": "hauling",
+        "flip": false
+      },
+      {
+        "key": "work-1",
+        "state": "working",
+        "look": "old-salt",
+        "pose": "hauling",
+        "flip": true
+      },
+      {
+        "key": "work-2",
+        "state": "working",
+        "look": "rigger",
+        "pose": "hauling",
+        "flip": false
+      },
+      {
+        "key": "work-3",
+        "state": "working",
+        "look": "outfit",
+        "pose": "hauling",
+        "flip": false
+      },
+      {
+        "key": "work-4",
+        "state": "working",
+        "look": "navigator",
+        "pose": "hauling",
+        "flip": false
+      },
+      {
+        "key": "work-5",
+        "state": "waiting",
+        "look": "deckhand",
+        "pose": "waiting",
+        "flip": false
+      }
+    ],
+    "drawOrder": [
+      "ship+sail",
+      "prop:barrel",
+      "prop:crate",
+      "work-2",
+      "work-5",
+      "block-1",
+      "work-3",
+      "piece:bollard-bow-aft",
+      "block-0",
+      "block-3",
+      "work-0",
+      "work-1",
+      "block-2",
+      "piece:bollard-bow-fore",
+      "piece:mast",
+      "prop:rope",
+      "work-4",
+      "idle-1",
+      "idle-2",
+      "piece:bollard-gunwale-fore",
+      "piece:bollard-gunwale-aft",
+      "piece:near"
+    ],
+    "sailStillFrames": 1
+  },
+  "motion": {
+    "motion": "full",
+    "sailStates": 12,
+    "wakeStates": 12,
+    "drawsInASecond": 31
+  },
+  "breath": [
+    {
+      "key": "idle-1",
+      "look": "navigator",
+      "legStates": 3,
+      "headStatesAtOneLegState": 2
+    },
+    {
+      "key": "idle-2",
+      "look": "carpenter",
+      "legStates": 3,
+      "headStatesAtOneLegState": 2
+    }
+  ],
+  "extrasCalls": 1,
+  "breathPair": {
+    "fromMs": 0,
+    "toMs": 6300
+  },
+  "errors": []
+}
