@@ -4,7 +4,9 @@
  * them, and the deck's ambient life — the bob, the masthead's sway, the lanterns, a gull now and then.
  *
  * Who moves where is `client/deck-crew.ts`; the ambient motion is `client/deck-ambient.ts`; when a frame
- * is drawn at all is `client/deck-loop.ts`. This file only turns those into sprites.
+ * is drawn at all is `client/deck-loop.ts`; each state's badge is `client/deck-badges.ts`; which sailor the
+ * pointer is over is `client/deck-hover.ts`, reported to the pane, which draws its label. This file only
+ * turns those into sprites and reads the pointer off the canvas.
  *
  * **Pixi is handed in, never imported.** The plugin's client bundle is one script that a phone's Hermes
  * must parse whole before any of it runs, and Pixi is written with `class` syntax that React Native
@@ -15,9 +17,9 @@
  * it to Pixi's own build. **So is the art**: one atlas from `firstmate.deck.art`, decoded once a session
  * by the mount and handed in as an image with its manifest.
  *
- * It is pixel art, so it is sampled `nearest`, every position is a whole art pixel, and the deck is
- * scaled by whole device pixels once it is at least twice its size, so every art pixel is the same size
- * on screen. The ticker never starts (`autoStart: false`): `deckAnimator` calls `render` itself, at most
+ * It is pixel art, so it is sampled `nearest` and every position is a whole art pixel; the deck is
+ * scaled to fit the pane exactly, so it follows a resize smoothly (`fitDeck` says why not by whole
+ * device pixels). The ticker never starts (`autoStart: false`): `deckAnimator` calls `render` itself, at most
  * 30 times a second, and not at all while the deck is hidden or under reduced motion.
  *
  * **Depth while moving.** The deck's layer sorts its children by `zIndex`, set from `depthOf` for every
@@ -43,10 +45,12 @@ import {
   type MotionPlan,
   type WaveRow,
 } from "./deck-ambient";
+import { BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, createCrew, crewFigures, stepCrew, type Figure } from "./deck-crew";
+import { badgeTop, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
 import type { DeckDrawing, DeckHost } from "./deck-mount";
-import { DECK_PROPS, depthOf, type DeckScene } from "./deck-scene";
+import { DECK_PROPS, depthOf, type DeckScene, type DeckState } from "./deck-scene";
 
 /** Marks the canvas with its renderer, so the live check can read it in the app's DevTools. */
 export const DECK_CANVAS_ATTRIBUTE = "data-firstmate-deck";
@@ -237,12 +241,18 @@ function stand(sprite: PixiSprite, standing: { frame: readonly number[]; feet: r
 }
 
 /**
- * The scale and offset that fit the deck in the screen with a small margin: whole device pixels per art
- * pixel once there is room for two or more, so the pixel art stays even; below that, the exact fit.
+ * The scale and offset that fit the deck in the screen with a small margin: the exact fit at every size,
+ * so the ship grows and shrinks smoothly with the pane. The offset is snapped to whole device pixels.
+ *
+ * It used to round the scale down to whole device pixels per art pixel once there were two or more, to
+ * keep every art pixel the same size. That made the ship a staircase of sizes: at 2× it held one size
+ * from about 665 to 1000 CSS px of pane and lost a third of its size the moment the pane was dragged a
+ * pixel narrower than a step (3 device pixels an art pixel to 2). Sampled `nearest`, a fractional scale
+ * makes some art pixels one device pixel wider than others, which at three or more device pixels an
+ * art pixel hardly shows; a ship that jumps does.
  */
 export function fitDeck(screen: { width: number; height: number }, deck: { width: number; height: number }, resolution: number) {
-  let scale = Math.min(screen.width / deck.width, screen.height / deck.height) * 0.96;
-  if (scale * resolution >= 2) scale = Math.floor(scale * resolution) / resolution;
+  const scale = Math.max(0, Math.min(screen.width / deck.width, screen.height / deck.height) * 0.96);
   const snap = (value: number) => Math.round(value * resolution) / resolution;
   return { scale, x: snap((screen.width - deck.width * scale) / 2), y: snap((screen.height - deck.height * scale) / 2) };
 }
@@ -254,21 +264,43 @@ const GULL_FRAMES: readonly (readonly string[])[] = [
   [".......", "..###..", ".#...#.", "o.....o"],
 ];
 
-function hexColour(colour: string): number {
-  const match = /^#?([0-9a-f]{6})/i.exec(colour);
-  return match === null ? 0xa1a5a4 : parseInt(match[1]!, 16);
-}
-
-/** One sailor's sprites: the state's mark under its feet and the figure itself. */
+/** One sailor's sprites: the state's mark under its feet, the figure itself, its state's badge over its head, and an idle sailor's z. */
 interface SailorSprites {
   root: PixiContainer;
   mark: PixiGraphics;
   sprite: PixiSprite;
-  /** What the mark was last drawn as, so it is redrawn only when the state or the feed changes. */
+  badge: PixiGraphics;
+  doze: PixiGraphics;
+  /** What the mark and badge were last drawn as, so they are redrawn only when the state, the feed or the hover changes. */
   marked: string;
 }
 
-/** Starts Pixi on `host`, draws `scene` at `size`, and hands back what updates and tears it down. */
+/** Draws `state`'s badge (`client/deck-badges.ts`) into `graphics`, its top left at the origin. */
+function drawBadge(graphics: PixiGraphics, state: DeckState, colour: string): void {
+  const sign = hexColour(colour);
+  const ink = badgeInk(colour);
+  graphics.clear();
+  for (const pixel of badgePixels(state)) graphics.rect(pixel.x, pixel.y, 1, 1).fill(pixel.kind === "sign" ? sign : ink);
+}
+
+/** Pointer events as the deck reads them off the canvas: CSS pixels from its top left. */
+interface CanvasPointerEvent {
+  offsetX: number;
+  offsetY: number;
+  pointerType?: string;
+}
+
+interface DeckCanvas {
+  style: Record<string, string>;
+  setAttribute(name: string, value: string): void;
+  addEventListener?(type: string, listener: (event: CanvasPointerEvent) => void): void;
+  removeEventListener?(type: string, listener: (event: CanvasPointerEvent) => void): void;
+}
+
+/**
+ * Starts Pixi on `host`, draws `scene` at `size`, and hands back what updates and tears it down.
+ * `onHover` hears which sailor the pointer is over, and where it is on the canvas (`client/deck-hover.ts`).
+ */
 export async function startDeck(
   pixi: PixiModule,
   art: DeckArtImage,
@@ -276,6 +308,7 @@ export async function startDeck(
   scene: DeckScene,
   size: { width: number; height: number },
   environment: DeckMotionEnvironment,
+  onHover: (hover: DeckHover | null) => void = function () {},
 ): Promise<DeckDrawing> {
   const app = new pixi.Application();
   await app.init({
@@ -291,10 +324,7 @@ export async function startDeck(
     sharedTicker: false,
   });
   const software = isSoftwareRenderer(glRendererName(app.renderer));
-  const canvas = app.canvas as {
-    style: Record<string, string>;
-    setAttribute(name: string, value: string): void;
-  };
+  const canvas = app.canvas as DeckCanvas;
   canvas.style.position = "absolute";
   canvas.style.left = "0";
   canvas.style.top = "0";
@@ -380,6 +410,13 @@ export async function startDeck(
   });
 
   const sailors = new Map<string, SailorSprites>();
+  // What the last frame drew, for finding the sailor under the pointer between frames.
+  let drawnFigures: Figure[] = [];
+  let drawnBob = { x: 0, y: 0 };
+  let drawnFit: DeckFit = { scale: 0, x: 0, y: 0 };
+  let pointer: { x: number; y: number } | null = null;
+  let hoveredKey: string | null = null;
+  let reported: DeckHover | null = null;
   const gulls = new pixi.Graphics();
   gulls.label = "gulls";
   world.addChild(farSea, ship, nearSea, gulls);
@@ -434,15 +471,19 @@ export async function startDeck(
       root.label = figure.key;
       const mark = new pixi.Graphics();
       const sprite = new pixi.Sprite(textures.crew[figure.outfit].get(figure.pose)!);
-      root.addChild(mark, sprite);
+      const badge = new pixi.Graphics();
+      badge.label = "badge";
+      const doze = new pixi.Graphics();
+      doze.label = "doze";
+      root.addChild(mark, sprite, badge, doze);
       deck.addChild(root);
-      sprites = { root, mark, sprite, marked: "" };
+      sprites = { root, mark, sprite, badge, doze, marked: "" };
       sailors.set(figure.key, sprites);
     }
     return sprites;
   }
 
-  function drawSailors(figures: readonly Figure[]): void {
+  function drawSailors(figures: readonly Figure[], nowMs: number, still: boolean): void {
     const present = new Set<string>();
     for (const figure of figures) {
       present.add(figure.key);
@@ -463,10 +504,12 @@ export async function startDeck(
       sprites.sprite.scale.set(figure.flip ? -1 : 1, 1);
       sprites.sprite.tint = figure.stale ? 0x8a9096 : 0xffffff;
       sprites.sprite.alpha = figure.stale ? 0.6 : 1;
-      const marked = `${figure.state}:${figure.stale ? "stale" : "live"}:${rows < height ? "hatch" : "deck"}`;
+      const hovered = figure.key === hoveredKey;
+      const marked = `${figure.state}:${figure.stale ? "stale" : "live"}:${rows < height ? "hatch" : "deck"}:${hovered ? "hover" : ""}`;
+      const stateColour = current.palette.states[figure.state];
       if (sprites.marked !== marked) {
         sprites.mark.clear();
-        const colour = hexColour(current.palette.states[figure.state]);
+        const colour = hexColour(stateColour);
         if (rows < height) {
           // Nothing under the feet while still on the ladder.
         } else if (figure.stale) {
@@ -475,12 +518,31 @@ export async function startDeck(
         } else {
           sprites.mark.ellipse(0, 0, 6, 2).fill({ color: colour, alpha: 0.9 });
         }
+        // The sailor under the pointer: a ring round its mark, so the label and the sailor are plainly one.
+        if (hovered && rows >= height) sprites.mark.ellipse(0, 0, 9, 3).stroke({ color: 0xffffff, width: 1, alpha: 0.85 });
+        drawBadge(sprites.badge, figure.state, stateColour);
+        sprites.doze.clear();
+        DOZE_GLYPH.forEach(function (line, y) {
+          for (let x = 0; x < line.length; x += 1) if (line[x] === "#") sprites.doze.rect(x, y, 1, 1).fill(colour);
+        });
         sprites.marked = marked;
       }
       // The mark stays on the deck row; the figure above it rises and leans with its motion.
       sprites.root.position.set(figure.x, figure.row);
       sprites.sprite.position.set(0, figure.y - figure.row);
       sprites.root.zIndex = depthOf(figure.row, 0) + figure.x / 10000;
+      // The badge rides over the head, with it: greyed with a stale sailor, not shown on the ladder.
+      const badgeY = badgeTop(figure, manifest) - figure.row;
+      sprites.badge.visible = showsBadge(figure);
+      sprites.badge.alpha = figure.stale ? 0.5 : 1;
+      sprites.badge.position.set(-Math.floor(BADGE_SIZE.width / 2), badgeY);
+      // A settled idle sailor dozes: a small z drifts up off its badge now and then. Never under reduced motion.
+      const doze = figure.state === "idle" && !figure.stale && !figure.moving && !still && showsBadge(figure) ? dozeAt(figure.seed, nowMs) : null;
+      sprites.doze.visible = doze !== null;
+      if (doze !== null) {
+        sprites.doze.position.set(Math.ceil(BADGE_SIZE.width / 2) + doze.dx, badgeY - 3 + doze.dy);
+        sprites.doze.alpha = doze.alpha;
+      }
     }
     for (const [key, sprites] of [...sailors.entries()]) {
       if (present.has(key)) continue;
@@ -526,21 +588,57 @@ export async function startDeck(
     }
     if (plan.ambient) drawGulls(seconds);
     else gulls.clear();
-    drawSailors(crewFigures(crew, elapsedMs, { still: !moving }));
+    drawnFigures = crewFigures(crew, elapsedMs, { still: !moving });
+    drawnBob = bob;
+    findHover();
+    drawSailors(drawnFigures, elapsedMs, !moving);
     canvas.setAttribute(DECK_MOTION_ATTRIBUTE, plan.level);
     app.render();
+  }
+
+  /**
+   * Finds the sailor under the pointer in what was last drawn, and tells `onHover` when that sailor, or
+   * its place on the canvas, changes. Says whether the sailor changed, so its ring is redrawn.
+   */
+  function findHover(): boolean {
+    const figure = pointer === null || drawnFit.scale <= 0 ? null : sailorAt(drawnFigures, manifest, toDeck(pointer, drawnFit, drawnBob));
+    const key = figure?.key ?? null;
+    const changed = key !== hoveredKey;
+    hoveredKey = key;
+    const next = figure === null ? null : hoverOf(figure, manifest, drawnFit, drawnBob, app.screen);
+    if (hoverChanged(reported, next)) {
+      reported = next;
+      onHover(next);
+    }
+    return changed;
   }
 
   function fit(): void {
     const { scale, x, y } = fitDeck(app.screen, current, app.renderer.resolution);
     world.scale.set(scale);
     world.position.set(x, y);
+    drawnFit = { scale, x, y };
     buildSea(-x / scale, (app.screen.width - x) / scale, (app.screen.height - y) / scale);
   }
 
   applyCrew(crew, scene.sailors, { snap: true });
   fit();
   const animator = deckAnimator({ scheduler: environment.scheduler, signals: environment.signals, software, size, frame: draw });
+
+  // The pointer, in CSS pixels on the canvas. A touch's pointer leaves as the finger lifts, so its label
+  // stays until the next tap; a mouse's goes when it leaves the canvas.
+  function onPointer(event: CanvasPointerEvent): void {
+    pointer = { x: event.offsetX, y: event.offsetY };
+    if (findHover()) animator.invalidate();
+  }
+  function onLeave(event: CanvasPointerEvent): void {
+    if (event.pointerType === "touch") return;
+    pointer = null;
+    if (findHover()) animator.invalidate();
+  }
+  canvas.addEventListener?.("pointermove", onPointer);
+  canvas.addEventListener?.("pointerdown", onPointer);
+  canvas.addEventListener?.("pointerleave", onLeave);
 
   return {
     renderer: app.renderer.name,
@@ -562,6 +660,11 @@ export async function startDeck(
       animator.invalidate();
     },
     destroy() {
+      canvas.removeEventListener?.("pointermove", onPointer);
+      canvas.removeEventListener?.("pointerdown", onPointer);
+      canvas.removeEventListener?.("pointerleave", onLeave);
+      if (reported !== null) onHover(null);
+      reported = null;
       animator.destroy();
       app.destroy({ removeView: true }, { children: true });
       textures.destroy();

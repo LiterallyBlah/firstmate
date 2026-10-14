@@ -43,8 +43,10 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
 | `server/ship-deck.ts`, `shared/ship-deck.ts` | The ship deck's switch, `FIRSTMATE_SHIP_DECK` (off by default), carried on the fleet load; `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`. |
-| `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the counts below it.                 |
-| `client/deck-scene.ts`        | Cards → sailors on hull C, by column, greyed when their feed is lost; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
+| `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the legend of badges and counts. |
+| `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z. Pure. |
+| `client/deck-hover.ts`        | The sailor under the pointer, by the box it is drawn in; canvas ↔ deck coordinates; where its label goes. Pure. |
+| `client/deck-scene.ts`        | Cards → sailors on hull C, by column, greyed when their feed is lost, each with its hover caption; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
 | `client/deck-geometry.ts`     | Hull C's walkable deck, its obstacles and named anchors; A* paths; a spot beside a shared anchor. Pure. |
 | `client/deck-crew.ts`         | The crew in motion: anchors reserved, the state shown at once and walked to after, the hatch, idle motion, each frame's poses. Pure. |
 | `client/deck-ambient.ts`      | The sea, the bob, the masthead's sway, the lanterns, the gulls, as functions of the clock; the motion plan. Pure. |
@@ -316,6 +318,22 @@ starts.
   deck is drawn once per change with everyone at their anchor; 12 fps with no sea drift or gulls on a
   software renderer (SwiftShader, llvmpipe, read from the WebGL context). The canvas carries
   `data-firstmate-deck-motion`: `full`, `lite` or `still`.
+- **The fit is exact, not by whole device pixels** (`fitDeck`). Rounding the scale down to whole device
+  pixels an art pixel made the ship a staircase: at 2× it lost a third of its size a pixel past each step as
+  the pane was dragged narrower. Now it is 0.96 of the pane at every size; only the offset is snapped.
+  `client/deck-polish.test.ts` sweeps widths 200–2400 at five resolutions; `docs/ship-deck-polish/` has the
+  drag measured in Edge, main against the fix.
+- **Who each sailor is, on hover** (`docs/ship-deck-polish/README.md`). `startDeck` reads pointer events off
+  the canvas, finds the sailor under it in the last frame drawn (`sailorAt`, the frontmost by depth, badge
+  included) and reports `DeckHover` — key and place on the canvas — only when the sailor changes or moves
+  more than two pixels. The label is React, the canvas host's sibling (the host stays childless), with
+  `pointerEvents: "none"`: the card's title, the state in the board's words, project and host, the
+  card's line at rest, and why it is greyed. Its words are `sailorCaption`, built in the scene from the card.
+- **Every state wears a badge** (`client/deck-badges.ts`): ▶ working, hourglass waiting, ! blocked, Z idle,
+  in the state's colour, drawn in the sailor's own layer so the pieces in front cover it, and the same
+  badge keys the legend. An idle sailor breathes out a z under motion. The badge stands in for state poses
+  the art lacks; a pixel artist's moving poses would carry state better (`art/ship-deck/README.md`). The
+  canvas harness's 2D reference draws the badges too, so the still comparison stays exact.
 - **Ambient life has no shaders**: whole-pixel bob and sway, pre-drawn wave rows that scroll, three
   lanterns, a gull now and then, so a software renderer pays only for sprites. The masthead sways because
   the hull is drawn in slices with it cut out (`MASTHEAD`).

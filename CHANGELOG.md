@@ -10,6 +10,12 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- The ship deck preview (still behind `FIRSTMATE_SHIP_DECK=1`, off by default) says who each sailor is.
+  Pointing at one shows a label with the crewmate's title, its state in the board's words, its project
+  and host, and its card's line at rest. Every sailor wears a small badge for its state (▶ working,
+  hourglass waiting, ! blocked, Z idle), and the legend below the deck keys each badge to where that state
+  stands. Idle sailors doze, a z rising now and then. With the switch off, the screen is as it was.
+
 - The ship deck preview (still behind `FIRSTMATE_SHIP_DECK=1`, off by default) moves. A crewmate whose
   state changes shows its new state at once and then walks to that state's place, along the deck and up
   the stairs to the helm, passing behind the mast and the rail. New crew climb out of the hatch; crew
@@ -28,6 +34,9 @@ Git repository or local directory; it is marked private to prevent accidental np
   the switch off, the screen and every RPC answer are as they were.
 
 ### Fixed
+
+- The ship deck preview no longer shrinks by a third when its pane is dragged a little narrower: it
+  scales smoothly and fills the same share of the pane at any width.
 
 - FirstMate chat and Watch keep separate assistant messages apart, including a worker-triggered
   turn whose system prompt Paseo omits. Continuous streaming chunks still join without added

@@ -1,0 +1,878 @@
+{
+  "flagOff": [
+    {
+      "width": 1440,
+      "domIdenticalToMain": true,
+      "domChars": 95475,
+      "canvases": 0,
+      "deckEngineCalls": 0,
+      "deckArtCalls": 0,
+      "pixiGlobal": false
+    },
+    {
+      "width": 390,
+      "domIdenticalToMain": true,
+      "domChars": 24680,
+      "canvases": 0,
+      "deckEngineCalls": 0,
+      "deckArtCalls": 0,
+      "pixiGlobal": false
+    }
+  ],
+  "resize": {
+    "main": {
+      "canvasCss": [
+        508,
+        748
+      ],
+      "shipShare": [
+        0.6474,
+        0.9566
+      ],
+      "biggestShipStepDevicePx": {
+        "shipStep": 426,
+        "canvasStep": 20,
+        "at": [
+          668,
+          658
+        ]
+      },
+      "series": [
+        {
+          "canvasCss": 748,
+          "canvasWidth": 1496,
+          "shipWidth": 1278,
+          "share": 0.8543
+        },
+        {
+          "canvasCss": 738,
+          "canvasWidth": 1476,
+          "shipWidth": 1278,
+          "share": 0.8659,
+          "drew": 4
+        },
+        {
+          "canvasCss": 728,
+          "canvasWidth": 1456,
+          "shipWidth": 1278,
+          "share": 0.8777,
+          "drew": 4
+        },
+        {
+          "canvasCss": 718,
+          "canvasWidth": 1436,
+          "shipWidth": 1278,
+          "share": 0.89,
+          "drew": 4
+        },
+        {
+          "canvasCss": 708,
+          "canvasWidth": 1416,
+          "shipWidth": 1278,
+          "share": 0.9025,
+          "drew": 4
+        },
+        {
+          "canvasCss": 698,
+          "canvasWidth": 1396,
+          "shipWidth": 1278,
+          "share": 0.9155,
+          "drew": 4
+        },
+        {
+          "canvasCss": 688,
+          "canvasWidth": 1376,
+          "shipWidth": 1278,
+          "share": 0.9288,
+          "drew": 4
+        },
+        {
+          "canvasCss": 678,
+          "canvasWidth": 1356,
+          "shipWidth": 1278,
+          "share": 0.9425,
+          "drew": 4
+        },
+        {
+          "canvasCss": 668,
+          "canvasWidth": 1336,
+          "shipWidth": 1278,
+          "share": 0.9566,
+          "drew": 4
+        },
+        {
+          "canvasCss": 658,
+          "canvasWidth": 1316,
+          "shipWidth": 852,
+          "share": 0.6474,
+          "drew": 4
+        },
+        {
+          "canvasCss": 648,
+          "canvasWidth": 1296,
+          "shipWidth": 852,
+          "share": 0.6574,
+          "drew": 4
+        },
+        {
+          "canvasCss": 638,
+          "canvasWidth": 1276,
+          "shipWidth": 852,
+          "share": 0.6677,
+          "drew": 4
+        },
+        {
+          "canvasCss": 628,
+          "canvasWidth": 1256,
+          "shipWidth": 852,
+          "share": 0.6783,
+          "drew": 4
+        },
+        {
+          "canvasCss": 618,
+          "canvasWidth": 1236,
+          "shipWidth": 852,
+          "share": 0.6893,
+          "drew": 4
+        },
+        {
+          "canvasCss": 608,
+          "canvasWidth": 1216,
+          "shipWidth": 852,
+          "share": 0.7007,
+          "drew": 4
+        },
+        {
+          "canvasCss": 598,
+          "canvasWidth": 1196,
+          "shipWidth": 852,
+          "share": 0.7124,
+          "drew": 4
+        },
+        {
+          "canvasCss": 588,
+          "canvasWidth": 1176,
+          "shipWidth": 852,
+          "share": 0.7245,
+          "drew": 4
+        },
+        {
+          "canvasCss": 578,
+          "canvasWidth": 1156,
+          "shipWidth": 852,
+          "share": 0.737,
+          "drew": 4
+        },
+        {
+          "canvasCss": 568,
+          "canvasWidth": 1136,
+          "shipWidth": 852,
+          "share": 0.75,
+          "drew": 4
+        },
+        {
+          "canvasCss": 558,
+          "canvasWidth": 1116,
+          "shipWidth": 852,
+          "share": 0.7634,
+          "drew": 4
+        },
+        {
+          "canvasCss": 548,
+          "canvasWidth": 1096,
+          "shipWidth": 852,
+          "share": 0.7774,
+          "drew": 4
+        },
+        {
+          "canvasCss": 538,
+          "canvasWidth": 1076,
+          "shipWidth": 852,
+          "share": 0.7918,
+          "drew": 4
+        },
+        {
+          "canvasCss": 528,
+          "canvasWidth": 1056,
+          "shipWidth": 852,
+          "share": 0.8068,
+          "drew": 4
+        },
+        {
+          "canvasCss": 518,
+          "canvasWidth": 1036,
+          "shipWidth": 852,
+          "share": 0.8224,
+          "drew": 4
+        },
+        {
+          "canvasCss": 508,
+          "canvasWidth": 1016,
+          "shipWidth": 852,
+          "share": 0.8386,
+          "drew": 4
+        },
+        {
+          "canvasCss": 518,
+          "canvasWidth": 1036,
+          "shipWidth": 852,
+          "share": 0.8224,
+          "drew": 4
+        },
+        {
+          "canvasCss": 528,
+          "canvasWidth": 1056,
+          "shipWidth": 852,
+          "share": 0.8068,
+          "drew": 4
+        },
+        {
+          "canvasCss": 538,
+          "canvasWidth": 1076,
+          "shipWidth": 852,
+          "share": 0.7918,
+          "drew": 4
+        },
+        {
+          "canvasCss": 548,
+          "canvasWidth": 1096,
+          "shipWidth": 852,
+          "share": 0.7774,
+          "drew": 4
+        },
+        {
+          "canvasCss": 558,
+          "canvasWidth": 1116,
+          "shipWidth": 852,
+          "share": 0.7634,
+          "drew": 4
+        },
+        {
+          "canvasCss": 568,
+          "canvasWidth": 1136,
+          "shipWidth": 852,
+          "share": 0.75,
+          "drew": 4
+        },
+        {
+          "canvasCss": 578,
+          "canvasWidth": 1156,
+          "shipWidth": 852,
+          "share": 0.737,
+          "drew": 4
+        },
+        {
+          "canvasCss": 588,
+          "canvasWidth": 1176,
+          "shipWidth": 852,
+          "share": 0.7245,
+          "drew": 4
+        },
+        {
+          "canvasCss": 598,
+          "canvasWidth": 1196,
+          "shipWidth": 852,
+          "share": 0.7124,
+          "drew": 4
+        },
+        {
+          "canvasCss": 608,
+          "canvasWidth": 1216,
+          "shipWidth": 852,
+          "share": 0.7007,
+          "drew": 4
+        },
+        {
+          "canvasCss": 618,
+          "canvasWidth": 1236,
+          "shipWidth": 852,
+          "share": 0.6893,
+          "drew": 4
+        },
+        {
+          "canvasCss": 628,
+          "canvasWidth": 1256,
+          "shipWidth": 852,
+          "share": 0.6783,
+          "drew": 4
+        },
+        {
+          "canvasCss": 638,
+          "canvasWidth": 1276,
+          "shipWidth": 852,
+          "share": 0.6677,
+          "drew": 4
+        },
+        {
+          "canvasCss": 648,
+          "canvasWidth": 1296,
+          "shipWidth": 852,
+          "share": 0.6574,
+          "drew": 4
+        },
+        {
+          "canvasCss": 658,
+          "canvasWidth": 1316,
+          "shipWidth": 852,
+          "share": 0.6474,
+          "drew": 4
+        },
+        {
+          "canvasCss": 668,
+          "canvasWidth": 1336,
+          "shipWidth": 1278,
+          "share": 0.9566,
+          "drew": 4
+        },
+        {
+          "canvasCss": 678,
+          "canvasWidth": 1356,
+          "shipWidth": 1278,
+          "share": 0.9425,
+          "drew": 4
+        },
+        {
+          "canvasCss": 688,
+          "canvasWidth": 1376,
+          "shipWidth": 1278,
+          "share": 0.9288,
+          "drew": 4
+        },
+        {
+          "canvasCss": 698,
+          "canvasWidth": 1396,
+          "shipWidth": 1278,
+          "share": 0.9155,
+          "drew": 4
+        },
+        {
+          "canvasCss": 708,
+          "canvasWidth": 1416,
+          "shipWidth": 1278,
+          "share": 0.9025,
+          "drew": 4
+        },
+        {
+          "canvasCss": 718,
+          "canvasWidth": 1436,
+          "shipWidth": 1278,
+          "share": 0.89,
+          "drew": 4
+        },
+        {
+          "canvasCss": 728,
+          "canvasWidth": 1456,
+          "shipWidth": 1278,
+          "share": 0.8777,
+          "drew": 4
+        },
+        {
+          "canvasCss": 738,
+          "canvasWidth": 1476,
+          "shipWidth": 1278,
+          "share": 0.8659,
+          "drew": 4
+        },
+        {
+          "canvasCss": 748,
+          "canvasWidth": 1496,
+          "shipWidth": 1278,
+          "share": 0.8543,
+          "drew": 4
+        }
+      ]
+    },
+    "branch": {
+      "canvasCss": [
+        508,
+        748
+      ],
+      "shipShare": [
+        0.9596,
+        0.9604
+      ],
+      "biggestShipStepDevicePx": {
+        "shipStep": 20,
+        "canvasStep": 20,
+        "at": [
+          718,
+          708
+        ]
+      },
+      "series": [
+        {
+          "canvasCss": 748,
+          "canvasWidth": 1496,
+          "shipWidth": 1436,
+          "share": 0.9599
+        },
+        {
+          "canvasCss": 738,
+          "canvasWidth": 1476,
+          "shipWidth": 1417,
+          "share": 0.96,
+          "drew": 4
+        },
+        {
+          "canvasCss": 728,
+          "canvasWidth": 1456,
+          "shipWidth": 1398,
+          "share": 0.9602,
+          "drew": 4
+        },
+        {
+          "canvasCss": 718,
+          "canvasWidth": 1436,
+          "shipWidth": 1379,
+          "share": 0.9603,
+          "drew": 4
+        },
+        {
+          "canvasCss": 708,
+          "canvasWidth": 1416,
+          "shipWidth": 1359,
+          "share": 0.9597,
+          "drew": 4
+        },
+        {
+          "canvasCss": 698,
+          "canvasWidth": 1396,
+          "shipWidth": 1340,
+          "share": 0.9599,
+          "drew": 4
+        },
+        {
+          "canvasCss": 688,
+          "canvasWidth": 1376,
+          "shipWidth": 1321,
+          "share": 0.96,
+          "drew": 4
+        },
+        {
+          "canvasCss": 678,
+          "canvasWidth": 1356,
+          "shipWidth": 1302,
+          "share": 0.9602,
+          "drew": 4
+        },
+        {
+          "canvasCss": 668,
+          "canvasWidth": 1336,
+          "shipWidth": 1283,
+          "share": 0.9603,
+          "drew": 4
+        },
+        {
+          "canvasCss": 658,
+          "canvasWidth": 1316,
+          "shipWidth": 1263,
+          "share": 0.9597,
+          "drew": 4
+        },
+        {
+          "canvasCss": 648,
+          "canvasWidth": 1296,
+          "shipWidth": 1244,
+          "share": 0.9599,
+          "drew": 4
+        },
+        {
+          "canvasCss": 638,
+          "canvasWidth": 1276,
+          "shipWidth": 1225,
+          "share": 0.96,
+          "drew": 4
+        },
+        {
+          "canvasCss": 628,
+          "canvasWidth": 1256,
+          "shipWidth": 1206,
+          "share": 0.9602,
+          "drew": 4
+        },
+        {
+          "canvasCss": 618,
+          "canvasWidth": 1236,
+          "shipWidth": 1187,
+          "share": 0.9604,
+          "drew": 4
+        },
+        {
+          "canvasCss": 608,
+          "canvasWidth": 1216,
+          "shipWidth": 1167,
+          "share": 0.9597,
+          "drew": 4
+        },
+        {
+          "canvasCss": 598,
+          "canvasWidth": 1196,
+          "shipWidth": 1148,
+          "share": 0.9599,
+          "drew": 4
+        },
+        {
+          "canvasCss": 588,
+          "canvasWidth": 1176,
+          "shipWidth": 1129,
+          "share": 0.96,
+          "drew": 4
+        },
+        {
+          "canvasCss": 578,
+          "canvasWidth": 1156,
+          "shipWidth": 1110,
+          "share": 0.9602,
+          "drew": 4
+        },
+        {
+          "canvasCss": 568,
+          "canvasWidth": 1136,
+          "shipWidth": 1091,
+          "share": 0.9604,
+          "drew": 4
+        },
+        {
+          "canvasCss": 558,
+          "canvasWidth": 1116,
+          "shipWidth": 1071,
+          "share": 0.9597,
+          "drew": 4
+        },
+        {
+          "canvasCss": 548,
+          "canvasWidth": 1096,
+          "shipWidth": 1052,
+          "share": 0.9599,
+          "drew": 4
+        },
+        {
+          "canvasCss": 538,
+          "canvasWidth": 1076,
+          "shipWidth": 1033,
+          "share": 0.96,
+          "drew": 4
+        },
+        {
+          "canvasCss": 528,
+          "canvasWidth": 1056,
+          "shipWidth": 1014,
+          "share": 0.9602,
+          "drew": 4
+        },
+        {
+          "canvasCss": 518,
+          "canvasWidth": 1036,
+          "shipWidth": 995,
+          "share": 0.9604,
+          "drew": 4
+        },
+        {
+          "canvasCss": 508,
+          "canvasWidth": 1016,
+          "shipWidth": 975,
+          "share": 0.9596,
+          "drew": 4
+        },
+        {
+          "canvasCss": 518,
+          "canvasWidth": 1036,
+          "shipWidth": 995,
+          "share": 0.9604,
+          "drew": 4
+        },
+        {
+          "canvasCss": 528,
+          "canvasWidth": 1056,
+          "shipWidth": 1014,
+          "share": 0.9602,
+          "drew": 4
+        },
+        {
+          "canvasCss": 538,
+          "canvasWidth": 1076,
+          "shipWidth": 1033,
+          "share": 0.96,
+          "drew": 4
+        },
+        {
+          "canvasCss": 548,
+          "canvasWidth": 1096,
+          "shipWidth": 1052,
+          "share": 0.9599,
+          "drew": 4
+        },
+        {
+          "canvasCss": 558,
+          "canvasWidth": 1116,
+          "shipWidth": 1071,
+          "share": 0.9597,
+          "drew": 4
+        },
+        {
+          "canvasCss": 568,
+          "canvasWidth": 1136,
+          "shipWidth": 1091,
+          "share": 0.9604,
+          "drew": 4
+        },
+        {
+          "canvasCss": 578,
+          "canvasWidth": 1156,
+          "shipWidth": 1110,
+          "share": 0.9602,
+          "drew": 4
+        },
+        {
+          "canvasCss": 588,
+          "canvasWidth": 1176,
+          "shipWidth": 1129,
+          "share": 0.96,
+          "drew": 4
+        },
+        {
+          "canvasCss": 598,
+          "canvasWidth": 1196,
+          "shipWidth": 1148,
+          "share": 0.9599,
+          "drew": 4
+        },
+        {
+          "canvasCss": 608,
+          "canvasWidth": 1216,
+          "shipWidth": 1167,
+          "share": 0.9597,
+          "drew": 4
+        },
+        {
+          "canvasCss": 618,
+          "canvasWidth": 1236,
+          "shipWidth": 1187,
+          "share": 0.9604,
+          "drew": 4
+        },
+        {
+          "canvasCss": 628,
+          "canvasWidth": 1256,
+          "shipWidth": 1206,
+          "share": 0.9602,
+          "drew": 4
+        },
+        {
+          "canvasCss": 638,
+          "canvasWidth": 1276,
+          "shipWidth": 1225,
+          "share": 0.96,
+          "drew": 4
+        },
+        {
+          "canvasCss": 648,
+          "canvasWidth": 1296,
+          "shipWidth": 1244,
+          "share": 0.9599,
+          "drew": 4
+        },
+        {
+          "canvasCss": 658,
+          "canvasWidth": 1316,
+          "shipWidth": 1263,
+          "share": 0.9597,
+          "drew": 4
+        },
+        {
+          "canvasCss": 668,
+          "canvasWidth": 1336,
+          "shipWidth": 1283,
+          "share": 0.9603,
+          "drew": 4
+        },
+        {
+          "canvasCss": 678,
+          "canvasWidth": 1356,
+          "shipWidth": 1302,
+          "share": 0.9602,
+          "drew": 4
+        },
+        {
+          "canvasCss": 688,
+          "canvasWidth": 1376,
+          "shipWidth": 1321,
+          "share": 0.96,
+          "drew": 4
+        },
+        {
+          "canvasCss": 698,
+          "canvasWidth": 1396,
+          "shipWidth": 1340,
+          "share": 0.9599,
+          "drew": 4
+        },
+        {
+          "canvasCss": 708,
+          "canvasWidth": 1416,
+          "shipWidth": 1359,
+          "share": 0.9597,
+          "drew": 4
+        },
+        {
+          "canvasCss": 718,
+          "canvasWidth": 1436,
+          "shipWidth": 1379,
+          "share": 0.9603,
+          "drew": 4
+        },
+        {
+          "canvasCss": 728,
+          "canvasWidth": 1456,
+          "shipWidth": 1398,
+          "share": 0.9602,
+          "drew": 4
+        },
+        {
+          "canvasCss": 738,
+          "canvasWidth": 1476,
+          "shipWidth": 1417,
+          "share": 0.96,
+          "drew": 4
+        },
+        {
+          "canvasCss": 748,
+          "canvasWidth": 1496,
+          "shipWidth": 1436,
+          "share": 0.9599,
+          "drew": 4
+        }
+      ]
+    },
+    "mainJump": {
+      "from": {
+        "canvasCss": 668,
+        "canvasWidth": 1336,
+        "shipWidth": 1278,
+        "share": 0.9566,
+        "drew": 4
+      },
+      "to": {
+        "canvasCss": 658,
+        "canvasWidth": 1316,
+        "shipWidth": 852,
+        "share": 0.6474,
+        "drew": 4
+      }
+    }
+  },
+  "hover": {
+    "sailors": 12,
+    "labelledAsThemselves": 9,
+    "statesShot": [
+      "blocked",
+      "idle",
+      "working",
+      "waiting"
+    ],
+    "leavesWithThePointer": true,
+    "labels": [
+      {
+        "key": "block-0",
+        "state": "blocked",
+        "labelled": "block-0",
+        "ownLabel": true,
+        "text": "Install the merged board changes and check the live panel | Blocked | firstmate · This machine | Captain's call: run the local smoke check when you have a moment"
+      },
+      {
+        "key": "block-1",
+        "state": "blocked",
+        "labelled": "block-1",
+        "ownLabel": true,
+        "text": "Decide the delivery mode for the next chapter review | Blocked | Ariadne · This machine | Captain's call: choose local-only or a reviewed pull request"
+      },
+      {
+        "key": "block-2",
+        "state": "blocked",
+        "labelled": "block-2",
+        "ownLabel": true,
+        "text": "Approve the new story-opening prompt before rollout | Blocked | Ariadne · This machine | Captain's call: confirm which opening reads best"
+      },
+      {
+        "key": "block-3",
+        "state": "blocked",
+        "labelled": "block-3",
+        "ownLabel": true,
+        "text": "Review the workstation setup before the worker continues | Blocked | Ariadne · This machine | Waiting on a permission: Open Watch to see the request"
+      },
+      {
+        "key": "idle-1",
+        "state": "idle",
+        "labelled": "idle-1",
+        "ownLabel": true,
+        "text": "In another session we are going over voices and styles | Idle · stalled: said working, then stopped | Ariadne · Light | Working: No wait target reported after the last turn"
+      },
+      {
+        "key": "idle-2",
+        "state": "idle",
+        "labelled": "idle-2",
+        "ownLabel": true,
+        "text": "There are some inconsistencies in how things are described | Idle · its turn ended with no status line | Ariadne · Light"
+      },
+      {
+        "key": "work-0",
+        "state": "working",
+        "labelled": "idle-1",
+        "ownLabel": false,
+        "text": "In another session we are going over voices and styles | Idle · stalled: said working, then stopped | Ariadne · Light | Working: No wait target reported after the last turn"
+      },
+      {
+        "key": "work-1",
+        "state": "working",
+        "labelled": "idle-2",
+        "ownLabel": false,
+        "text": "There are some inconsistencies in how things are described | Idle · its turn ended with no status line | Ariadne · Light"
+      },
+      {
+        "key": "work-2",
+        "state": "working",
+        "labelled": "work-1",
+        "ownLabel": false,
+        "text": "Brief helper: coach prompt, skill and button | Working | Ariadne · Light | Working: Connecting the coach to Begin a story"
+      },
+      {
+        "key": "work-3",
+        "state": "working",
+        "labelled": "work-3",
+        "ownLabel": true,
+        "text": "Compare twelve humour-source drafts in blind review packets | Working | Ariadne · Light | Working: Building the blind review packets"
+      },
+      {
+        "key": "work-4",
+        "state": "working",
+        "labelled": "work-4",
+        "ownLabel": true,
+        "text": "Check the remote heartbeat and report new worker completions | Working | Ariadne · Light | Working: Checking finish reports on the next heartbeat"
+      },
+      {
+        "key": "work-5",
+        "state": "waiting",
+        "labelled": "work-5",
+        "ownLabel": true,
+        "text": "Finish the chapter review: waiting for the background check | Working · waiting on a job it started | Ariadne · Light | Working: waiting for the background check until 12:15"
+      }
+    ]
+  },
+  "hoverMoving": {
+    "key": "idle-1",
+    "text": "In another session we are going over voices and styles | Idle · stalled: said working, then stopped | Ariadne · Light | Working: No wait target reported after the last turn",
+    "motion": "full",
+    "drawsInASecond": 29
+  },
+  "badges": [
+    {
+      "theme": "dark",
+      "legend": "Ship deckPreview · drawn with WebGL · 12 on deck5 workinghauling amidships1 waitingby the helm4 blockedin the bow2 idleat the railPoint at a sailor to see who it is and what it is on."
+    },
+    {
+      "theme": "light",
+      "legend": "Ship deckPreview · drawn with WebGL · 12 on deck5 workinghauling amidships1 waitingby the helm4 blockedin the bow2 idleat the railPoint at a sailor to see who it is and what it is on."
+    }
+  ],
+  "errors": []
+}
