@@ -1,0 +1,104 @@
+{
+    "schemaVersion":  1,
+    "generatedDate":  "2026-10-14",
+    "tool":  "image_gen__imagegen",
+    "mode":  "built-in",
+    "backendModel":  null,
+    "generationCalls":  10,
+    "sourceStorage":  "environment-source/ beside the checkout on the generation host; originals not committed",
+    "licence":  "Repository MIT license, ../../LICENSE",
+    "referenceCommit":  "5619884062e9ac22078fb6ee914fe3572c5ee9d0",
+    "referenceAtlasSha256":  "557209a06bb266fa79b09ff985cf9558145b95382d0842bb55717a43980cff9b",
+    "sources":  [
+                    {
+                        "call":  1,
+                        "id":  "sea",
+                        "file":  "sea.png",
+                        "sha256":  "80ca4cf3b282a85425dc92eeda3b1a2fca0f1f13cd56e65367498f970e0c66fe",
+                        "prompt":  "Use case: stylized-concept. Generate a production pixel-art sea texture for FirstMate, matching the nautical wooden ship atlas visible in context: restrained warm cream highlights, dark desaturated navy, crisp chunky 16-bit pixel clusters. Output a wide 3:2 opaque image showing ONLY open ocean surface, no sky, horizon, ship, land, text, frame, panels or icons. This is a seamless horizontally and vertically repeatable texture, an even overhead/slightly oblique ocean water field with no lighting gradient. Intended logical size 256x128 pixels, so use large solid rectangular pixel clusters, sparse thin horizontal broken wavelets, not busy stippling or realistic water. Calm deep blue water with small muted blue-grey ripples and very occasional cream glints. Restrained palette based on #151E2D #182B47 #1D314E #22395A #2C4869 with modest lighter desaturated blues #45617A #64849A and rare #E8CCA6. Match left and right edge wave forms and colours exactly for tiling. No tall surf, no foamy white wash. Aim for quiet background behind a 426px wooden hull. Artwork fills the entire canvas.",
+                        "editReference":  null,
+                        "transparentBackground":  false
+                    },
+                    {
+                        "call":  2,
+                        "id":  "midday",
+                        "file":  "midday.png",
+                        "sha256":  "5871345bc604a4d13dc5e23c7ca6831d8c520952dfa7b3d1d81fdb35e669ec70",
+                        "prompt":  "Use case: stylized-concept. Generate a pixel-art SKY ONLY backdrop for a nautical game, matching the wooden hull C pixel art in context. Wide 3:2 full-bleed opaque sky; intended logical resolution 384x256, crisp large square pixels, restrained 16-bit colour clusters, absolutely no smooth gradients or anti-aliasing. MIDDAY: muted desaturated blue at zenith, lighter dusty blue in middle, pale warm cream-blue at bottom. Broad quiet horizontal bands, very sparse small pixel dither only at band transitions. Just two subtle thin horizontal distant cloud banks in lower third, each with blocky stepped cream edges, plenty of quiet empty sky for a mast and small birds. No sun, moon, stars, birds, ships, ground, ocean, horizon line, text, borders, objects or panels. Sky fills entire canvas all the way to bottom. Palette echoes deck navy #182B47 #2C4869, cream #E8CCA6, supported by muted #45617A #64849A #8FA8B4 #BECAC6 #D9D4BE. Avoid bright cyan, saturated turquoise, purple, photoreal texture and fluffy painted clouds. Clean game background, soft mood but hard pixel geometry. Keep cloud silhouettes simple and restrained; the ship must remain the focal point.",
+                        "editReference":  null,
+                        "transparentBackground":  false
+                    },
+                    {
+                        "call":  3,
+                        "id":  "dawn",
+                        "file":  "dawn.png",
+                        "sha256":  "5520f70ce86686df4842744ed6a0e42181aada7fcb239b55c2779d76f18669db",
+                        "prompt":  "Use case: lighting-weather. Edit this MIDDAY sky into DAWN. Preserve exact canvas, cloud shapes and positions, band boundaries, pixel grid, composition. Change colours only. Top cold dark muted navy #22395A through blue-grey #64849A to a muted dusty mauve #927F8B band and warm peach #C7987D then #E8CCA6 cream at the bottom. Clouds become muted warm peach-cream with blue-grey shadows. A restrained nautical sunrise before the sun appears. No sun/moon/stars, no new objects, no ocean or ground, no text. Hard pixel clusters, no new textures. It must cross-fade cleanly with the original at exactly the same size. The image is a standalone full-frame opaque sky background.",
+                        "editReference":  "midday",
+                        "transparentBackground":  false
+                    },
+                    {
+                        "call":  4,
+                        "id":  "morning",
+                        "file":  "morning.png",
+                        "sha256":  "1a2ae63d4fb2b51f8b5038a0d058bab649bc6237c2a66e0e3a64958e6892fde8",
+                        "prompt":  "Use case: lighting-weather. Edit the reference sky into MORNING after sunrise. Preserve the exact canvas, cloud silhouettes and positions, horizontal band boundaries and pixel grid. Colours only: airy muted blue-grey #64849A upper sky, pale blue #8FA8B4 middle, warm pale #D9D4BE and #E8CCA6 below. Slightly warmer and lighter than midday. Clouds soft warm cream with muted slate shadows. No sun, moon, stars, birds, ground, ocean, text, new objects. Maintain hard pixel clusters and the existing sparse dither without adding texture. Full-frame opaque sky, suitable to cross-fade with the reference.",
+                        "editReference":  "midday",
+                        "transparentBackground":  false
+                    },
+                    {
+                        "call":  5,
+                        "id":  "afternoon",
+                        "file":  "afternoon.png",
+                        "sha256":  "86e2cfb88e4b955c17d3d559b8e7fce644c9359139b4ee882e1cb45c4e6fc08e",
+                        "prompt":  "Use case: lighting-weather. Edit the reference sky into AFTERNOON, warm late afternoon before sunset. Preserve exact canvas, cloud silhouettes and positions, horizontal band boundaries and pixel grid; change colours only. Muted slate blue #45617A at top, blue-grey #8FA8B4 middle, warm honey cream #E8CCA6 at bottom, cloud highlights warm cream with muted #C7987D peach shadows. Slightly warmer than midday, brighter than dusk, no orange overload. No sun, moon, stars, birds, ground, ocean, text or new objects. Maintain hard pixel clusters and existing restrained dither. Full-frame opaque sky for cross-fading with the reference.",
+                        "editReference":  "midday",
+                        "transparentBackground":  false
+                    },
+                    {
+                        "call":  6,
+                        "id":  "dusk",
+                        "file":  "dusk.png",
+                        "sha256":  "2e2ab906dd11823c10619c9de6edc44b45a5e32b7d3afd1527b047114054ed1e",
+                        "prompt":  "Use case: lighting-weather. Edit the reference sky into DUSK after sunset. Preserve exact canvas, cloud silhouettes and positions, horizontal band boundaries and pixel grid; colours only. Dark navy #182B47 zenith to muted slate #45617A, dusty twilight mauve #675E78 #927F8B middle, muted copper peach #C7987D narrow lower band ending in soft dim #D2AD86. Cloud tops muted dusky rose #B38B88, shadows navy, no bright white. Significantly darker than daytime. No sun, moon, stars, birds, ground, ocean, text or new objects. Hard pixel clusters and original sparse dither. Full-frame opaque sky for cross-fading.",
+                        "editReference":  "midday",
+                        "transparentBackground":  false
+                    },
+                    {
+                        "call":  7,
+                        "id":  "night",
+                        "file":  "night.png",
+                        "sha256":  "0a004b396d6fd62df1b34fc24a58d6d0e57e6424fc702ca0cb47bd71536d6eed",
+                        "prompt":  "Use case: lighting-weather. Edit the reference sky into deep NIGHT. Preserve exact canvas, cloud silhouettes and positions, horizontal band boundaries and pixel grid; colours only. Very dark #0E121E upper sky, #151E2D #182B47 through middle, #22395A #2C4869 bottom. Clouds are subtle dark slate #2C4869 with #182B47 shadows, low contrast. No bright horizon, no cream highlights. No sun, moon, stars, birds, ground, ocean, text or any new objects. Keep existing geometry, restrained dither, crisp pixel clusters. Full-frame opaque sky for cross-fading; stars will be supplied separately.",
+                        "editReference":  "midday",
+                        "transparentBackground":  false
+                    },
+                    {
+                        "call":  8,
+                        "id":  "gull",
+                        "file":  "gull.png",
+                        "sha256":  "13e15c8383681bb74969298c3fa1557d2602937b5278557a617b7a006475d37e",
+                        "prompt":  "Use case: stylized-concept. Generate a small game sprite sheet of one SEAGULL flying RIGHT, 3 flap frames arranged horizontally in three equal spacious cells with fully TRANSPARENT background. One single bird per cell; total three birds. Consistent identical body, head, eye, beak, tail and size in all frames. Side-on view with a tiny hint of the far wing. Frame 1 wings raised high, frame 2 wings extended level, frame 3 wings lowered. All bodies horizontally aligned and exactly the same level, beaks point right, no body rotation, no legs dangling. Intended each frame only 32x32 logical pixels, bird body about 14 pixels long, wingspan height max 22 pixels. Large hard square pixel blocks, very simple clustered 16-bit sprite art, not illustration; display enlarged for pixel-art editing. Match a nautical wooden ship whose sailors are 32 pixels high. Restricted palette: navy outlines #151E2D #182B47, creamy white body #E8CCA6, desaturated blue-grey wing shadows #64849A #8FA8B4, tiny ochre beak #DCA35B, dark wingtips. Short gull tail, plump streamlined gull body, clear pointed beak. No outlines around cells, no grid, labels, text, shadows, background, cloud, water, scenery or decorative marks. Clean binary alpha outside birds. Leave generous empty transparent space around every wing.",
+                        "editReference":  null,
+                        "transparentBackground":  true
+                    },
+                    {
+                        "call":  9,
+                        "id":  "foam",
+                        "file":  "foam.png",
+                        "sha256":  "cb213ba71edf425876b76059b4240dee8a2584f913cc48499bdc27f4b07cc050",
+                        "prompt":  "Use case: stylized-concept. Generate a single isolated narrow horizontal strip of pixel-art sea foam on a truly transparent background, for the waterline beside a wooden ship hull. Wide panoramic canvas, one continuous thin broken wake band runs horizontally through the center from the very left to the very right edge, perfectly horizontally tileable; all space above and below is transparent. No boat, hull, sea background, land, horizon, typography, panels or multiple strips. The foam forms short quiet interlocking horizontal ripples with tiny stepped curves; low amplitude, maximum band height around 1/16 of its length. Restrained nautical 16-bit pixel art, hard square chunky cells, intended logical tile 256x16. Palette: warm cream #E8CCA6 for a few pale glints, muted #BECAC6 and #8FA8B4 for most foam, #45617A #2C4869 for sparse shadow pixels. Avoid solid white, photorealism, fuzzy alpha, spray, dramatic surf and decorative swirls. Sparse organic broken scallops suitable below hull C\u0027s navy gunwale. Ensure empty transparent gaps within the foam and crisp alpha, matching pattern at left/right edges.",
+                        "editReference":  null,
+                        "transparentBackground":  true
+                    },
+                    {
+                        "call":  10,
+                        "id":  "stars",
+                        "file":  "stars.png",
+                        "sha256":  "af30afebd192462cb016554f5ae4391fcc4995bc78ea5d1ef56a598bac855f81",
+                        "prompt":  "Use case: stylized-concept. Generate a transparent pixel-art star overlay for a quiet nautical night sky. Wide 3:2 canvas. Only around 30 tiny sparse stars, mostly single square dots and just three very small stepped four-point twinkles. They should occupy the upper two thirds; bottom third entirely empty transparent. Use hard crisp square logical pixels, intended canvas 384x256; majority of stars 1 logical pixel, twinkles at most 3x3 logical pixels. Restrained palette #8FA8B4 #BECAC6 and rare cream #E8CCA6. Natural irregular spacing, no constellations, moon, sun, clouds, galaxies, glow, gradients, haze, borders, labels or text. Actual transparent background, not black fill. Clean tiny sky overlay matching a muted 16-bit wooden sailing ship and navy night backdrop.",
+                        "editReference":  null,
+                        "transparentBackground":  true
+                    }
+                ]
+}
