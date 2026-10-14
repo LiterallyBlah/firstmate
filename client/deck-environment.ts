@@ -15,9 +15,12 @@
  *   so the waterline is the hull's edge and not a seam across the water.
  * - **Foam** — the strip across the hull's waterline only, cut from a scrolling repeat into at most three
  *   sprites a frame, so it never runs out into open water. Generic, not fitted to hull C's curve.
+ * - **Wake** — the churn astern and the bow and stern waves' near arms, drawn in code (`client/deck-wake.ts`)
+ *   over the near sea and under the foam, scrolling aft with the water. Redrawn only when the scroll moves a
+ *   whole pixel, so about ten times a second; still under reduced motion and on a software renderer.
  *
  * Without the environment (it failed to load, or names an image it did not send) the deck still draws:
- * a flat sea of the hull's navy over the theme's background, no sky, no gull.
+ * a flat sea of the hull's navy over the theme's background, no sky, no gull — and the wake, on it.
  *
  * Every texture is cut from its own image once, except the foam's crops, which are made as the scroll
  * first reaches them and kept: at most a few hundred small objects on six images' sources.
@@ -25,7 +28,9 @@
 import { environmentImagePaths, GULL_POSES, type DeckEnvironmentManifest, type GullPose } from "../shared/ship-deck";
 import { gullsAt, HORIZON, SEA_FALLBACK, WATERLINE, type MotionPlan } from "./deck-ambient";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
+import { DECK_HEIGHT, DECK_WIDTH } from "./deck-scene";
 import { gullPose, scrollOffset, skyBlend, skyHorizonRow, skyPlacement, type SkyBlend } from "./deck-sky";
+import { WAKE_COLOURS, WAKE_SPEED, wakeRuns } from "./deck-wake";
 
 /** The environment as the mount hands it over: what the manifest says, and each image it names, decoded. */
 export interface DeckEnvironmentImages {
@@ -53,7 +58,7 @@ const GULL_SPRITES = 2;
 export interface Scenery {
   /** Behind the ship: the sky, the stars, the gull and the far sea. */
   readonly back: PixiContainer;
-  /** In front of the hull from its waterline down: the near sea and the foam. */
+  /** In front of the hull from its waterline down: the near sea, the wake and the foam. */
   readonly front: PixiContainer;
   /** Whether the generated environment is drawn, or the flat fallback sea. */
   readonly generated: boolean;
@@ -83,6 +88,31 @@ export function foamSegments(span: { left: number; right: number }, period: numb
     x += width;
   }
   return segments;
+}
+
+/**
+ * The wake's layer: its foam drawn as rectangles, again only when the sea has scrolled a whole pixel or
+ * the screen shows more of the water than it did.
+ */
+function wakeLayer(pixi: PixiModule) {
+  const graphics: PixiGraphics = new pixi.Graphics();
+  graphics.label = "wake";
+  let reach = { right: DECK_WIDTH, bottom: DECK_HEIGHT };
+  let drawn: string | null = null;
+  return {
+    graphics,
+    layout(visible: VisibleWorld) {
+      reach = { right: Math.ceil(visible.right), bottom: Math.ceil(visible.bottom) };
+    },
+    draw(seconds: number, plan: MotionPlan, pixelsPerSecond: number) {
+      const shift = plan.ambient && Number.isFinite(seconds) ? Math.floor(seconds * pixelsPerSecond) : 0;
+      const key = `${shift}:${reach.right}:${reach.bottom}`;
+      if (key === drawn) return;
+      drawn = key;
+      graphics.clear();
+      for (const run of wakeRuns(shift, reach)) graphics.rect(run.x, run.y, run.width, 1).fill(WAKE_COLOURS[run.tone]);
+    },
+  };
 }
 
 export function createScenery(pixi: PixiModule, environment: DeckEnvironmentImages | null): Scenery {
@@ -169,8 +199,10 @@ export function createScenery(pixi: PixiModule, environment: DeckEnvironmentImag
   }
   let foamDrawn = -1;
 
+  const wake = wakeLayer(pixi);
+
   back.addChild(skyUnder, skyOver, ...overlays, ...gulls, farSea);
-  front.addChild(nearSea, foam);
+  front.addChild(nearSea, wake.graphics, foam);
 
   function tile(parent: PixiContainer, texture: PixiTexture, x: number, y: number): void {
     const sprite = new pixi.Sprite(texture);
@@ -189,6 +221,7 @@ export function createScenery(pixi: PixiModule, environment: DeckEnvironmentImag
         sprite.position.set(place.x, place.y);
         sprite.scale.set(place.scale);
       }
+      wake.layout(visible);
       if (tiles.length > 0 && visible.left >= tiled.left && visible.right <= tiled.right && visible.bottom <= tiled.bottom) return;
       // A tile's width of slack either side, so a scroll of up to a tile never shows an edge.
       tiled = { left: Math.floor(visible.left) - 8, right: Math.ceil(visible.right) + 8, bottom: Math.ceil(visible.bottom) + 8 };
@@ -218,6 +251,7 @@ export function createScenery(pixi: PixiModule, environment: DeckEnvironmentImag
       const drift = plan.ambient ? scrollOffset(seconds, manifest.sea.animation.xPixelsPerSecond, tileWidth) : 0;
       farSea.position.set(drift, 0);
       nearSea.position.set(drift, 0);
+      wake.draw(seconds, plan, manifest.sea.animation.xPixelsPerSecond);
 
       const lap = plan.ambient ? scrollOffset(seconds, manifest.foam.xPixelsPerSecond, foamPeriod) : 0;
       if (lap !== foamDrawn) {
@@ -250,14 +284,15 @@ export function createScenery(pixi: PixiModule, environment: DeckEnvironmentImag
   };
 }
 
-/** The deck without its environment: a flat navy sea from the horizon, and again from the waterline in front of the hull. */
+/** The deck without its environment: a flat navy sea from the horizon, and again from the waterline in front of the hull, with the wake. */
 function flatScenery(pixi: PixiModule, back: PixiContainer, front: PixiContainer): Scenery {
   const farSea: PixiGraphics = new pixi.Graphics();
   farSea.label = "sea:far";
   const nearSea: PixiGraphics = new pixi.Graphics();
   nearSea.label = "sea:near";
+  const wake = wakeLayer(pixi);
   back.addChild(farSea);
-  front.addChild(nearSea);
+  front.addChild(nearSea, wake.graphics);
   return {
     back,
     front,
@@ -268,8 +303,10 @@ function flatScenery(pixi: PixiModule, back: PixiContainer, front: PixiContainer
       const bottom = Math.ceil(visible.bottom) + 8;
       farSea.clear().rect(left, HORIZON, width, bottom - HORIZON).fill(SEA_FALLBACK);
       nearSea.clear().rect(left, WATERLINE, width, bottom - WATERLINE).fill(SEA_FALLBACK);
+      wake.layout(visible);
     },
-    draw() {
+    draw(seconds, plan) {
+      wake.draw(seconds, plan, WAKE_SPEED);
       return null;
     },
     destroy() {},

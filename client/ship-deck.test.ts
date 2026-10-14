@@ -22,13 +22,14 @@ vi.mock("@getpaseo/plugin/client", () => ({
 }));
 
 import type { AgentStatus, ColumnId, FleetCard, RemoteCard } from "../shared/fleet";
-import { deckEngineSource, readDeckEnvironment } from "../server/ship-deck";
+import { deckEngineSource, readDeckEnvironment, readDeckExtras } from "../server/ship-deck";
 import { DeckArtManifestSchema, environmentImagePaths, type DeckArt } from "../shared/ship-deck";
 import { environmentComplete } from "./deck-environment";
 import {
   browserDeckEngine,
   decodeAtlas,
   decodeEnvironment,
+  decodeExtras,
   evaluatePixi,
   isDeckHost,
   mountDeck,
@@ -52,7 +53,7 @@ import {
   deckScene,
   deckState,
   sailorCaption,
-  sailorOutfit,
+  sailorIdentity,
   type DeckScene,
 } from "./deck-scene";
 import { ShipDeckView, deckStatusText } from "./ship-deck";
@@ -215,7 +216,7 @@ describe("the deck's scene", () => {
     expect(scene.counts).toEqual({ working: 2, waiting: 2, blocked: 2, idle: 2 });
     expect(scene.sailors.map((s) => s.key)).toEqual(["w1", "w2", "r1", "w3", "b1", "f1", "i1", "p1"]);
     expect(scene.sailors.map((s) => s.state)).toEqual(["working", "working", "waiting", "waiting", "blocked", "blocked", "idle", "idle"]);
-    expect(Object.keys(scene.sailors[0]!).sort()).toEqual(["caption", "key", "label", "outfit", "stale", "state"]);
+    expect(Object.keys(scene.sailors[0]!).sort()).toEqual(["caption", "identity", "key", "label", "stale", "state"]);
     // Who each is, never where: the caption has no position either.
     expect(Object.keys(scene.sailors[0]!.caption).sort()).toEqual(["host", "line", "project", "stale", "status", "title"]);
     expect(scene.stale).toBe(0);
@@ -242,10 +243,12 @@ describe("the deck's scene", () => {
     expect(partly.sailors.filter((s) => s.key !== "w9").every((s) => !s.stale)).toBe(true);
   });
 
-  it("keeps a sailor's outfit from poll to poll", () => {
+  it("knows each sailor by its agent's id, a remote worker by its host and id, for the look it wears", () => {
     const scene = deckScene(fixture, theme);
-    for (const sailor of scene.sailors) expect(sailor.outfit).toBe(sailorOutfit(sailor.key));
-    expect(new Set(fixture.map((c) => sailorOutfit(c.key)))).toEqual(new Set(["base", "outfit"]));
+    for (const sailor of scene.sailors) expect(sailor.identity).toBe(sailorIdentity(fixture.find((c) => c.key === sailor.key)!));
+    expect(sailorIdentity(card("w1", "working"))).toBe("agent-w1");
+    expect(sailorIdentity(card("w2", "working", { remote: {} }))).toBe("light:worker-w2");
+    expect(sailorIdentity(card("q1", "queued", { status: null }))).toBe("q1");
   });
 });
 
@@ -318,6 +321,7 @@ describe("the deck's art", () => {
       label: key,
       state: "working",
       stale: false,
+      look: "base",
       outfit: "base",
       x,
       y: y - 1,
@@ -327,6 +331,7 @@ describe("the deck's art", () => {
       reveal: 1,
       moving: true,
       seed: 0,
+      sink: 0,
     });
     const figures = [at(211, 111, "before-mast"), at(211, 100, "behind-mast"), at(80, 94, "behind-bollard"), at(80, 95, "before-bollard")];
     const order = deckLayers(figures, manifest.pieces).map((layer) =>
@@ -650,6 +655,12 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
       environments += 1;
       return Promise.reject(new Error("sea away"));
     };
+    // Nor do the sail and the crew's looks: a bare mast and the atlas's two outfits, asked for again likewise.
+    let extras = 0;
+    const noExtras = () => {
+      extras += 1;
+      return Promise.reject(new Error("rig away"));
+    };
     const decoded: string[] = [];
     const good = { version: "1.2.3", source: `var PIXI = { VERSION: '1.2.3', ${FAKE_PIXI_PARTS} };` };
     const art = { png: "iVBOR", manifest: {} } as unknown as DeckArt;
@@ -667,6 +678,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
         return Promise.reject(new Error("art away"));
       },
       noEnvironment,
+      noExtras,
       decode,
     );
     await expect(failing.load()).rejects.toThrow("art away");
@@ -680,6 +692,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
         return Promise.resolve(art);
       },
       noEnvironment,
+      noExtras,
       decode,
     );
     const [first, second] = await Promise.all([engine.load(), engine.load()]);
@@ -690,7 +703,9 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     expect(decoded).toEqual(["iVBOR"]);
     // Once for the failing open, once for the two at once, once more for the last.
     expect(environments).toBe(3);
+    expect(extras).toBe(3);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("drawing a plain sea"), expect.any(Error));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("drawing a bare mast"), expect.any(Error));
     warn.mockRestore();
   });
 
@@ -876,5 +891,24 @@ describe("the ship deck view", () => {
     expect(deckStatusText({ kind: "starting" })).toBe("Raising the deck…");
     expect(deckStatusText({ kind: "failed", message: "boom" })).toBe("The ship deck could not start: boom");
     expect(deckStatusText({ kind: "unsupported", reason: "no-host" })).toContain("desktop app");
+  });
+});
+
+describe("the sail and the crew's looks, decoded", () => {
+  it("keeps every image that decodes and leaves out, by name, one that is missing or will not decode", async () => {
+    const root = fileURLToPath(new URL("..", import.meta.url));
+    const extras = await readDeckExtras({ FIRSTMATE_SHIP_DECK: "1" }, async () => root);
+    const all = await decodeExtras(extras, (png) => Promise.resolve({ png }));
+    expect([...all.images.keys()]).toHaveLength(8);
+    const missing: string[] = [];
+    const { ["crew-variants/03-navigator.png"]: _navigator, ...without } = extras.images;
+    const some = await decodeExtras(
+      { manifest: extras.manifest, images: without },
+      (png) => (png === extras.images["sails/main-sail.png"] ? Promise.reject(new Error("bad png")) : Promise.resolve({ png })),
+      (path) => missing.push(path),
+    );
+    expect(missing.sort()).toEqual(["crew-variants/03-navigator.png", "sails/main-sail.png"]);
+    expect([...some.images.keys()]).toHaveLength(6);
+    expect(some.manifest).toBe(extras.manifest);
   });
 });

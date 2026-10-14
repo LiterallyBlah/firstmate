@@ -1,6 +1,6 @@
 # Hull C sails and crew variants
 
-Assets-only expansion based on `ece9161c354874d73c0cc07defd594e7fea317c2` (`origin/main` at the fresh clone). Existing art and manifests are unchanged. These assets are ready for a separate integration change; this branch does not load them in the live plugin.
+Assets-only expansion based on `ece9161c354874d73c0cc07defd594e7fea317c2` (`origin/main` at the fresh clone). Existing art and manifests are unchanged. The Deck now draws the sail strip, the mast occluder and the six crew textures through `../extras.json` (`client/deck-extras.ts`); the review images and full-canvas overlays here are not loaded.
 
 [Manifest](manifest.json) contains dimensions, exact frame rectangles and feet, palette, hull attachment coordinates, generation provenance and per-asset verdicts. Paths in the manifest are relative to `art/ship-deck/`, except `promptFile`, which is relative to this folder. [Verification](verification.json) records delivered PNG hashes and pixel checks. [Prompts](prompts.json) records all eight built-in `image_gen__imagegen` calls; the tool does not disclose its backend model.
 

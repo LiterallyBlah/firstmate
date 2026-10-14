@@ -1,5 +1,5 @@
 /**
- * The ship deck's three RPCs, all refused while `FIRSTMATE_SHIP_DECK` is off (`server/ship-deck.ts`):
+ * The ship deck's four RPCs, all refused while `FIRSTMATE_SHIP_DECK` is off (`server/ship-deck.ts`):
  *
  * - `firstmate.deck.engine` — PixiJS's browser build, as text, for the client to evaluate in a web
  *   renderer (`client/deck-mount.ts`). It reads `vendor/pixi.min.js` in the plugin's folder and nothing else.
@@ -8,6 +8,8 @@
  *   plugin's folder; built by `docs/ship-deck-art/build-art.py`.
  * - `firstmate.deck.environment` — the generated sea, sky and gull: each image, base64, and what
  *   `art/ship-deck/environment.json` says about drawing them. See below.
+ * - `firstmate.deck.extras` — the sail and the crew's extra looks: each image, base64, and what
+ *   `art/ship-deck/extras.json` says about drawing them. See the last note.
  */
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
@@ -144,3 +146,52 @@ export const loadDeckEnvironment = defineRpc({
   output: z.object({ manifest: DeckEnvironmentManifestSchema, images: z.record(z.string(), z.string()) }),
 });
 export type DeckEnvironment = z.infer<typeof loadDeckEnvironment.output>;
+
+/**
+ * `firstmate.deck.extras` — the sail on hull C's mast and the crew's extra looks (`art/ship-deck/assets-2/README.md`):
+ * the parts of `art/ship-deck/extras.json` the deck draws with, and each image it names, base64. Refused
+ * while the switch is off, like the others. Apart from the atlas and the environment, and not needed to
+ * draw: the client keeps whatever of it decodes, so a missing sail is the bare mast and a missing look is
+ * one fewer to hand out (`client/deck-mount.ts`).
+ */
+export const DeckExtrasManifestSchema = z.object({
+  /**
+   * The sail: `frames` states of `frameSize` side by side in one strip, drawn at `position` on the hull
+   * and alternated every `frameMs`. While it shows, `occluder` stands in for the depth piece it
+   * `replaces`: the mast with its rows behind the sail cleared, so the mast cannot paint over the cloth.
+   */
+  sail: z.object({
+    texture: ArtPath,
+    frameSize: Size,
+    frames: z.number().int().positive(),
+    position: z.tuple([z.number().int(), z.number().int()]),
+    frameMs: z.number().positive(),
+    occluder: z.object({
+      texture: ArtPath,
+      replaces: z.string(),
+      position: z.tuple([z.number().int(), z.number().int()]),
+      baseline: z.number().int().nullable(),
+    }),
+  }),
+  /**
+   * The crew's extra looks: each a texture the atlas's size holding every pose at exactly the atlas's
+   * own crew rectangles and feet (`deck.json`), so a look is drawn with the base lane's frames.
+   */
+  crew: z
+    .array(z.object({ id: z.string().regex(/^[a-z0-9-]+$/), texture: ArtPath }))
+    .refine((looks) => new Set(looks.map((look) => look.id)).size === looks.length, "each crew look needs its own id"),
+});
+export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;
+
+/** Every image the extras manifest names, once each, in a stable order. */
+export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
+  return [...new Set([manifest.sail.texture, manifest.sail.occluder.texture, ...manifest.crew.map((look) => look.texture)])];
+}
+
+export const loadDeckExtras = defineRpc({
+  name: "firstmate.deck.extras",
+  input: z.object({}),
+  /** `images` maps each path the manifest names to that PNG, base64. */
+  output: z.object({ manifest: DeckExtrasManifestSchema, images: z.record(z.string(), z.string()) }),
+});
+export type DeckExtras = z.infer<typeof loadDeckExtras.output>;

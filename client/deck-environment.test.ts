@@ -2,21 +2,24 @@
  * The generated environment on the deck, through `startDeck` itself with a stand-in for Pixi that keeps
  * the scene graph: the depth order (sky behind, sea behind and at the hull, ship and crew in front), the
  * sky following an injected clock — once a minute on a still deck — reduced motion's still sea and empty
- * sky, and the plain sea the deck falls back to without its environment. Whether WebGL paints it is the
- * browser harness's (`docs/ship-deck-environment/`).
+ * sky, and the plain sea the deck falls back to without its environment. Then the extras: the sail and its
+ * occluder, the crew's looks, the at-ease sailor's breath, and the wake. Whether WebGL paints it is the
+ * browser harnesses' (`docs/ship-deck-environment/`, `docs/ship-deck-tweaks/`).
  */
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import type { PluginTheme } from "@getpaseo/plugin";
 import { describe, expect, it } from "vitest";
 
-import { DeckArtManifestSchema, DeckEnvironmentManifestSchema, environmentImagePaths } from "../shared/ship-deck";
+import { DeckArtManifestSchema, DeckEnvironmentManifestSchema, DeckExtrasManifestSchema, environmentImagePaths, extrasImagePaths } from "../shared/ship-deck";
 import { HORIZON, WATERLINE } from "./deck-ambient";
 import { FOAM_SPAN, FOAM_TOP, type DeckEnvironmentImages } from "./deck-environment";
+import { BREATH_ROWS } from "./deck-crew";
+import type { DeckExtrasImages } from "./deck-extras";
 import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { DECK_MOTION_ATTRIBUTE, DECK_SKY_ATTRIBUTE, startDeck, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
 import { SKY_REFRESH_MS } from "./deck-sky";
-import { deckScene } from "./deck-scene";
+import { deckScene, depthOf, type DeckScene, type DeckSailor, type DeckState } from "./deck-scene";
 
 const theme = {
   colors: {
@@ -229,14 +232,17 @@ function world(options: { reducedMotion?: boolean; hidden?: boolean; now: Date }
   };
 }
 
-async function start(art: DeckEnvironmentImages | null, options: { reducedMotion?: boolean; hidden?: boolean; now: Date }) {
+async function start(
+  art: DeckEnvironmentImages | null,
+  options: { reducedMotion?: boolean; hidden?: boolean; now: Date; extras?: DeckExtrasImages | null; scene?: DeckScene },
+) {
   const w = world(options);
   const host = { appendChild() {}, clientWidth: 800, clientHeight: 400 };
   const drawing = await startDeck(
     pixi,
-    { image: { atlas: true }, manifest: deckManifest, environment: art },
+    { image: { atlas: true }, manifest: deckManifest, environment: art, extras: options.extras ?? null },
     host,
-    deckScene([], theme),
+    options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
     w.motion,
   );
@@ -268,7 +274,7 @@ describe("the generated environment on the deck", () => {
     expect(worldLayer.children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front"]);
     const back = one(deck.app.stage, "scenery:back");
     expect(back.children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:stars", "gull", "gull", "sea:far"]);
-    expect(one(deck.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:near", "foam"]);
+    expect(one(deck.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:near", "wake", "foam"]);
     // The crew's deck is inside the ship, so every sailor is in front of the sky and the far sea.
     expect(one(one(deck.app.stage, "ship"), "deck")).toBeDefined();
 
@@ -408,5 +414,172 @@ describe("the generated environment on the deck", () => {
     expect(deck.timers[0]!.stopped).toBe(true);
     expect(made.every((texture) => texture.destroyed)).toBe(true);
     expect(sources.every((source) => source.destroyed)).toBe(true);
+  });
+});
+
+const extrasManifest = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(new URL("../art/ship-deck/extras.json", import.meta.url), "utf8")));
+/** The extras as the mount decodes them: each image a token naming its path. */
+const extras: DeckExtrasImages = {
+  manifest: extrasManifest,
+  images: new Map(extrasImagePaths(extrasManifest).map((path) => [path, { image: path }])),
+};
+
+function crewScene(sailors: Array<[string, DeckState]>): DeckScene {
+  const scene = deckScene([], theme);
+  return {
+    ...scene,
+    sailors: sailors.map(
+      ([key, state]): DeckSailor => ({
+        key,
+        label: key,
+        state,
+        identity: `agent-${key}`,
+        stale: false,
+        caption: { title: key, status: state, project: null, host: "This machine", line: null, stale: null },
+      }),
+    ),
+  };
+}
+
+const sailorSprites = (stage: FakeContainer, key: string) => {
+  const root = one(stage, key);
+  return { root, sprite: root.children[1] as FakeSprite, upper: one(root, "breath") as FakeSprite };
+};
+
+describe("the sail, the crew's looks and the wake on the deck", () => {
+  it("hangs the sail between the masthead and the crew, and stands the occluder in the mast's place on its row", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
+    deck.advance(16);
+    const ship = one(deck.app.stage, "ship");
+    expect(ship.children.map((child) => child.label)).toEqual(["hull:0", "hull:1", "hull:2", "masthead", "sail", "deck"]);
+    const sail = one(ship, "sail") as FakeSprite;
+    expect([sail.position.x, sail.position.y]).toEqual(extrasManifest.sail.position);
+    expect(texturePath(sail)).toBe("sails/main-sail.png");
+    expect(byLabel(deck.app.stage, "piece:mast")).toEqual([]);
+    const occluder = one(deck.app.stage, "piece:mast:occluder") as FakeSprite;
+    expect(texturePath(occluder)).toBe("sails/mast-occluder.png");
+    expect([occluder.position.x, occluder.position.y, occluder.zIndex]).toEqual([202, 48, depthOf(110, 1)]);
+    // Every other piece is the atlas's, as before.
+    expect(byLabel(deck.app.stage, "piece:near")).toHaveLength(1);
+    deck.drawing.destroy();
+  });
+
+  it("billows the sail every 850 ms while the deck moves, rides the bob and not the masthead's sway, and rests under reduced motion", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
+    deck.advance(0);
+    const sail = one(deck.app.stage, "sail") as FakeSprite;
+    const frames = new Set<number>();
+    for (let frame = 0; frame < 120; frame += 1) {
+      deck.advance(34);
+      frames.add(sail.texture.frame.x);
+      expect([sail.position.x, sail.position.y]).toEqual(extrasManifest.sail.position);
+    }
+    expect(frames).toEqual(new Set([0, 114]));
+    deck.drawing.destroy();
+    const still = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, reducedMotion: true });
+    expect((one(still.app.stage, "sail") as FakeSprite).texture.frame.x).toBe(0);
+    still.drawing.destroy();
+  });
+
+  it("without the extras, or missing the occluder, keeps the bare mast and its own piece", async () => {
+    const bare = await start(environment, { now: new Date(2026, 9, 14, 12, 0) });
+    expect(byLabel(bare.app.stage, "sail")).toEqual([]);
+    expect(byLabel(bare.app.stage, "piece:mast")).toHaveLength(1);
+    bare.drawing.destroy();
+    const partial = { manifest: extrasManifest, images: new Map([...extras.images].filter(([path]) => path !== "sails/mast-occluder.png")) };
+    const half = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: partial });
+    expect(byLabel(half.app.stage, "sail")).toEqual([]);
+    expect(byLabel(half.app.stage, "piece:mast")).toHaveLength(1);
+    half.drawing.destroy();
+  });
+
+  it("dresses each sailor in its look, at the atlas's frames, and never in a look that did not load", async () => {
+    const scene = crewScene(Array.from({ length: 24 }, (_, index): [string, DeckState] => [`s${index}`, "working"]));
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene, reducedMotion: true });
+    const lookOf = (stage: FakeContainer, key: string) => {
+      const { sprite } = sailorSprites(stage, key);
+      return `${texturePath(sprite) ?? "atlas"}@${sprite.texture.frame.x}`;
+    };
+    const worn = scene.sailors.map((sailor) => lookOf(deck.app.stage, sailor.key));
+    // Twenty-four sailors wear all eight looks between them: the atlas's two outfits and the six extra ones.
+    expect(new Set(worn).size).toBe(8);
+    for (const sailor of scene.sailors) {
+      const { sprite } = sailorSprites(deck.app.stage, sailor.key);
+      const [x, y, width, height] = deckManifest.crew.base.hauling.frame;
+      const outfit = deckManifest.crew.outfit.hauling.frame;
+      expect([[x, y, width, height], outfit]).toContainEqual([sprite.texture.frame.x, sprite.texture.frame.y, sprite.texture.frame.width, sprite.texture.frame.height]);
+    }
+    deck.drawing.destroy();
+    const partial = { manifest: extrasManifest, images: new Map([...extras.images].filter(([path]) => !path.includes("bosun"))) };
+    const fewer = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: partial, scene, reducedMotion: true });
+    const wornFewer = scene.sailors.map((sailor) => lookOf(fewer.app.stage, sailor.key));
+    expect(wornFewer.some((path) => path.includes("bosun"))).toBe(false);
+    fewer.drawing.destroy();
+  });
+
+  it("breathes an at-ease sailor: its head and shoulders a pixel lower over its planted body, then whole again", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: crewScene([["rest", "idle"]]) });
+    deck.advance(0);
+    const { sprite, upper } = sailorSprites(deck.app.stage, "rest");
+    const lane = sprite.texture.frame.x === deckManifest.crew.outfit["side-idle"].frame[0] ? "outfit" : "base";
+    const standing = deckManifest.crew[lane]["side-idle"];
+    const seen = { whole: 0, out: 0 };
+    for (let frame = 0; frame < 200; frame += 1) {
+      deck.advance(34);
+      if (upper.visible) {
+        seen.out += 1;
+        expect(upper.texture.frame.height).toBe(BREATH_ROWS);
+        expect(sprite.texture.frame.y).toBe(upper.texture.frame.y + BREATH_ROWS);
+        expect(sprite.texture.frame.height).toBe(standing.frame[3] - BREATH_ROWS);
+        // The body where the whole sailor's rows would be; the head and shoulders a pixel lower; mirrored alike.
+        expect(sprite.anchor.y).toBe(0);
+        expect(upper.position.y).toBe(sprite.position.y - BREATH_ROWS + 1);
+        expect(sprite.position.y + standing.frame[3] - BREATH_ROWS).toBe(standing.frame[3] - standing.feet[1]);
+        expect(upper.scale.x).toBe(sprite.scale.x);
+      } else {
+        seen.whole += 1;
+        expect(sprite.texture.frame.height).toBe(standing.frame[3]);
+      }
+    }
+    expect(seen.whole).toBeGreaterThan(20);
+    expect(seen.out).toBeGreaterThan(20);
+    deck.drawing.destroy();
+  });
+
+  it("draws the wake over the near sea, scrolling with the water, and still under reduced motion and on a plain sea", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0) });
+    deck.advance(0);
+    const wake = one(deck.app.stage, "wake") as FakeGraphics;
+    const drawn = new Set<string>();
+    for (let frame = 0; frame < 60; frame += 1) {
+      deck.advance(34);
+      expect(wake.shapes.length).toBeGreaterThan(20);
+      drawn.add(JSON.stringify(wake.shapes));
+    }
+    // Two seconds at ten pixels a second: about twenty different wakes, not sixty.
+    expect(drawn.size).toBeGreaterThan(10);
+    expect(drawn.size).toBeLessThan(30);
+    deck.drawing.destroy();
+
+    const still = await start(environment, { now: new Date(2026, 9, 14, 12, 0), reducedMotion: true });
+    const first = JSON.stringify((one(still.app.stage, "wake") as FakeGraphics).shapes);
+    still.state.now = new Date(2026, 9, 14, 12, 5);
+    still.timers[0]!.run();
+    expect(JSON.stringify((one(still.app.stage, "wake") as FakeGraphics).shapes)).toBe(first);
+    still.drawing.destroy();
+
+    const plain = await start(null, { now: new Date(2026, 9, 14, 12, 0) });
+    plain.advance(16);
+    expect(one(plain.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:near", "wake"]);
+    expect((one(plain.app.stage, "wake") as FakeGraphics).shapes.length).toBeGreaterThan(20);
+    plain.drawing.destroy();
+  });
+
+  it("lets go of the sail's and the looks' textures and sources when torn down", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: crewScene([["a", "working"], ["b", "idle"]]) });
+    deck.advance(16);
+    const sprites = [one(deck.app.stage, "sail"), one(deck.app.stage, "piece:mast:occluder"), sailorSprites(deck.app.stage, "a").sprite] as FakeSprite[];
+    deck.drawing.destroy();
+    expect(sprites.every((sprite) => sprite.texture.destroyed && sprite.texture.source.destroyed)).toBe(true);
   });
 });
