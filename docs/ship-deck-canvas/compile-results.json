@@ -4,13 +4,13 @@
     "commit": "2ae3fc8",
     "clientBytes": 418216,
     "serverBytes": 286854,
-    "ms": 5351
+    "ms": 4669
   },
   "branch": {
-    "commit": "2ae3fc8",
+    "commit": "0c61063",
     "clientBytes": 424448,
     "serverBytes": 289957,
-    "ms": 3465
+    "ms": 2773
   },
   "clientGrowthBytes": 6232,
   "vendoredPixiBytes": 840663,
