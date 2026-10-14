@@ -10,6 +10,16 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- The ship deck preview (still behind `FIRSTMATE_SHIP_DECK=1`, off by default) is under sail, with a wake
+  and a crew that no longer all look alike. A low square sail hangs on the mast, billowing gently, behind
+  the crew. Foam churns astern and the bow and stern waves trail away across the water, scrolling with the
+  sea. Each crewmate wears one of eight looks — the original sailor's two outfits, a bosun, an old salt, a
+  navigator, a carpenter, a rigger and a deckhand — chosen by its agent, so the same crewmate always looks the same. Idle
+  crew stand at ease in profile at the rail and breathe, instead of reaching an arm forward. The sail and
+  looks are served by the new `firstmate.deck.extras`, refused while the switch is off; anything in it that
+  cannot load is left out. Under reduced motion the sail rests and the wake holds still. With the switch
+  off, the screen and every RPC answer are as they were.
+
 - The ship deck preview (still behind `FIRSTMATE_SHIP_DECK=1`, off by default) sails the generated sea
   under a sky that follows your local time of day: dawn from 05:30, morning, midday, afternoon, dusk at
   18:30 and a starry night from 21:00, each fading into the next over an hour and a half. The water scrolls,

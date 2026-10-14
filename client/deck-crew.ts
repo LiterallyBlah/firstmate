@@ -16,8 +16,14 @@
  * - **Still.** With `snap` (reduced motion), every change is a jump: no walk, no hatch, no sway.
  * - **Stale.** A sailor whose feed is lost keeps its last state and place, greyed by the renderer, and
  *   stops its idle motion: it never turns idle on its own.
+ * - **Looks.** A sailor wears the look its agent id hashes to (`lookFor` in `client/deck-extras.ts`),
+ *   whoever else is aboard.
+ * - **At ease.** An idle sailor stands in profile, arms at its sides, looking fore or aft along the rail,
+ *   and breathes: its head and shoulders settle a pixel and rise again every four seconds or so
+ *   (`breathSink`), while its feet stay planted. The drawn badge and the drifting z say the rest.
  */
 import type { SailorOutfit, SailorPose } from "../shared/ship-deck";
+import { ATLAS_LOOKS, lookFor, lookLane } from "./deck-extras";
 import { anchorsAt, findPath, HATCH, sharedSpot, type Anchor, type AnchorPlace, type Facing, type Point } from "./deck-geometry";
 import type { DeckSailor, DeckState } from "./deck-scene";
 
@@ -42,7 +48,8 @@ export interface Walker {
   key: string;
   label: string;
   state: DeckState;
-  outfit: SailorOutfit;
+  /** What it wears: an atlas outfit or an extra look, by its agent id. */
+  look: string;
   stale: boolean;
   x: number;
   y: number;
@@ -67,10 +74,12 @@ export interface Crew {
   walkers: Map<string, Walker>;
   /** Whether a scene has been applied: the first one places the crew already aboard. */
   started: boolean;
+  /** The looks there are to hand out (`crewLooks`): the atlas's two, and each extra look that loaded. */
+  looks: readonly string[];
 }
 
-export function createCrew(): Crew {
-  return { walkers: new Map(), started: false };
+export function createCrew(looks: readonly string[] = ATLAS_LOOKS): Crew {
+  return { walkers: new Map(), started: false, looks: looks.length > 0 ? looks : ATLAS_LOOKS };
 }
 
 function seedOf(key: string): number {
@@ -131,7 +140,7 @@ export function applyCrew(crew: Crew, sailors: readonly DeckSailor[], options: {
         key: sailor.key,
         label: sailor.label,
         state: sailor.state,
-        outfit: sailor.outfit,
+        look: lookFor(sailor.identity, crew.looks),
         stale: sailor.stale,
         x: HATCH.x,
         y: HATCH.y,
@@ -152,7 +161,8 @@ export function applyCrew(crew: Crew, sailors: readonly DeckSailor[], options: {
       continue;
     }
     existing.label = sailor.label;
-    existing.outfit = sailor.outfit;
+    // A relaunched crewmate keeps its card but is a new agent, and dresses as one.
+    existing.look = lookFor(sailor.identity, crew.looks);
     existing.stale = sailor.stale;
     const returning = existing.phase === "leaving" || existing.phase === "sinking";
     if (existing.state === sailor.state && !returning) {
@@ -252,6 +262,9 @@ export interface Figure {
   label: string;
   state: DeckState;
   stale: boolean;
+  /** What it wears (`client/deck-extras.ts`). */
+  look: string;
+  /** Whose frames it is drawn, hit-tested and badged with: the look's lane of the atlas (`lookLane`). */
   outfit: SailorOutfit;
   /** Feet, in whole deck pixels, idle motion and the walk's rise included. */
   x: number;
@@ -266,22 +279,45 @@ export interface Figure {
   moving: boolean;
   /** Its idle motion's offset, so the crew does not breathe in step. */
   seed: number;
+  /** How far its head and shoulders (the top `BREATH_ROWS` rows) have settled: 1 on an at-ease sailor's out-breath, else 0. */
+  sink: number;
 }
 
 const WALK_SIDE: readonly SailorPose[] = ["side-walk-a", "side-idle", "side-walk-b", "side-idle"];
 const WALK_FRONT: readonly SailorPose[] = ["front-walk-a", "front-idle", "front-walk-b", "front-idle"];
 
-/** Each state's pose once its sailor has arrived. */
+/**
+ * Each state's pose once its sailor has arrived. Idle is the side view standing at rest — not `leaning`,
+ * whose arm reaching forward read as someone about to do something.
+ */
 export const STATE_POSES: Record<DeckState, SailorPose> = {
   working: "hauling",
   waiting: "waiting",
   blocked: "front-idle",
-  idle: "leaning",
+  idle: "side-idle",
 };
 
+/** The rows from the top of a sailor that settle on an at-ease out-breath: its head and shoulders. */
+export const BREATH_ROWS = 12;
+/** One breath at ease: in for 2.2 s, out — settled a pixel — for 2 s. */
+export const BREATH_MS = 4200;
+const BREATH_IN_MS = 2200;
+
+/** Whether an at-ease sailor is on its out-breath, its head and shoulders a pixel lower: 1 or 0. */
+export function breathSink(seed: number, nowMs: number): number {
+  const t = (((nowMs + seed * 53) % BREATH_MS) + BREATH_MS) % BREATH_MS;
+  return t >= BREATH_IN_MS ? 1 : 0;
+}
+
+/** Which way an at-ease sailor looks along the rail: half the crew fore (left), half aft, by its seed. */
+export function looksFore(seed: number): boolean {
+  return seed % 2 === 1;
+}
+
 /**
- * Idle motion at an anchor, in whole pixels: hauling leans into the line and back, the waiting and the
- * leaning breathe, the blocked fret from foot to foot now and then. A pure function of the clock.
+ * Idle motion at an anchor, in whole pixels: hauling leans into the line and back, the waiting
+ * breathe, the blocked fret from foot to foot now and then. A sailor at ease does not move its feet at
+ * all; it breathes in place (`breathSink`). A pure function of the clock.
  */
 export function idleMotion(state: DeckState, facing: Facing, seed: number, nowMs: number): { dx: number; dy: number } {
   const t = nowMs + seed * 37;
@@ -294,7 +330,7 @@ export function idleMotion(state: DeckState, facing: Facing, seed: number, nowMs
     case "waiting":
       return { dx: 0, dy: t % 2600 < 900 ? -1 : 0 };
     case "idle":
-      return { dx: 0, dy: t % 3400 < 1200 ? -1 : 0 };
+      return { dx: 0, dy: 0 };
     case "blocked": {
       // A 1.2 s fret every 4 s: left, centre, right, centre.
       const at = t % 4000;
@@ -314,6 +350,7 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
     let dx = 0;
     let dy = 0;
     let reveal = 1;
+    let sink = 0;
     if (walker.phase === "arriving") {
       pose = "front-idle";
       reveal = Math.min(1, walker.phaseMs / HATCH_MS);
@@ -329,11 +366,12 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
       dy = step % 2 === 1 ? -1 : 0;
     } else {
       pose = STATE_POSES[walker.state];
-      flip = walker.facing === "left" && pose === "hauling";
+      flip = pose === "hauling" ? walker.facing === "left" : pose === "side-idle" && looksFore(walker.seed);
       if (!options.still && !walker.stale) {
         const motion = idleMotion(walker.state, walker.facing, walker.seed, nowMs);
         dx = motion.dx;
         dy = motion.dy;
+        if (walker.state === "idle") sink = breathSink(walker.seed, nowMs);
       }
     }
     figures.push({
@@ -341,7 +379,8 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
       label: walker.label,
       state: walker.state,
       stale: walker.stale,
-      outfit: walker.outfit,
+      look: walker.look,
+      outfit: lookLane(walker.look),
       x: Math.round(walker.x) + dx,
       y: Math.round(walker.y) + dy,
       row: Math.round(walker.y),
@@ -350,6 +389,7 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
       reveal,
       moving,
       seed: walker.seed,
+      sink,
     });
   }
   return figures;

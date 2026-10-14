@@ -12,7 +12,7 @@
  * - **waiting** — Ready (finished, waiting on the first mate) and Working with the `waiting` note (a
  *   wait on a job outside the worker), arms folded by the helm on the quarterdeck;
  * - **blocked** — Blocked and Failed, fretting in the bow;
- * - **idle** — Idle and Parked, leaning at the near rail.
+ * - **idle** — Idle and Parked, at ease at the near rail.
  *
  * Only live crew stand on deck: a local crewmate Paseo has not closed, or a remote worker that is
  * crew, not a followed session. Queued and Done cards, and cards with no worker, are left off.
@@ -30,7 +30,7 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 
 import type { FleetCard, FleetDeckSwitch } from "../shared/fleet";
-import type { DeckArtManifest, DeckPropName, SailorOutfit } from "../shared/ship-deck";
+import type { DeckArtManifest, DeckPropName } from "../shared/ship-deck";
 import type { Figure } from "./deck-crew";
 import { cardHeadline } from "./format";
 
@@ -76,7 +76,11 @@ export interface DeckSailor {
   key: string;
   label: string;
   state: DeckState;
-  outfit: SailorOutfit;
+  /**
+   * Whose look it wears: its agent's id (a remote worker's host and id), so the same crewmate looks the
+   * same from poll to poll and from one opening of the deck to the next. `client/deck-crew.ts` dresses it.
+   */
+  identity: string;
   /**
    * Its feed is lost — the fleet load failing, or its remote host unreachable. It keeps its last state
    * and its place, greyed; it never reads as idle.
@@ -171,11 +175,12 @@ export function sailorCaption(card: FleetCard, options: { feedStale?: boolean } 
   };
 }
 
-/** A stable choice of outfit for a card: the same sailor keeps the same clothes from poll to poll. */
-export function sailorOutfit(key: string): SailorOutfit {
-  let hash = 0;
-  for (let index = 0; index < key.length; index += 1) hash = (hash * 31 + key.charCodeAt(index)) >>> 0;
-  return hash % 2 === 0 ? "base" : "outfit";
+/** Who a card's sailor is, for its look: the agent's id, a remote worker's host and id, or else the card's key. */
+export function sailorIdentity(card: FleetCard): string {
+  if (card.agent !== null) return card.agent.id;
+  const remote = card.remote ?? null;
+  if (remote?.worker != null) return `${remote.serverId ?? remote.host}:${remote.worker.id}`;
+  return card.key;
 }
 
 export function deckPalette(theme: PluginTheme): DeckPalette {
@@ -212,7 +217,7 @@ export function deckScene(cards: readonly FleetCard[], theme: PluginTheme, optio
         key: card.key,
         label: card.title,
         state,
-        outfit: sailorOutfit(card.key),
+        identity: sailorIdentity(card),
         stale: options.feedStale === true || card.remote?.online === false,
         caption: sailorCaption(card, options),
       });

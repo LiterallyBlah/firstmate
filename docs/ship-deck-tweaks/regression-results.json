@@ -1,0 +1,198 @@
+{
+  "note": "The earlier deck harnesses re-run on this branch (2026-10-15), all passing; their own evidence files were left as committed. Motion and polish serve no extras, so they draw the bare mast and the atlas outfits, and their still comparisons hold the rest of the deck unchanged.",
+  "motion": {
+    "flagOff": [
+      {
+        "width": 1440,
+        "domIdenticalToMain": true,
+        "domChars": 95475,
+        "deckButton": false,
+        "canvases": 0,
+        "deckEngineCalls": 0,
+        "deckArtCalls": 0,
+        "pixiGlobal": false,
+        "deckDraws": 0
+      },
+      {
+        "width": 390,
+        "domIdenticalToMain": true,
+        "domChars": 24680,
+        "deckButton": false,
+        "canvases": 0,
+        "deckEngineCalls": 0,
+        "deckArtCalls": 0,
+        "pixiGlobal": false,
+        "deckDraws": 0
+      }
+    ],
+    "still": [
+      {
+        "theme": "dark",
+        "renderer": "webgl",
+        "motion": "still",
+        "caption": "Preview · drawn with WebGL · 12 on deck",
+        "label": "Ship deck: 5 working, 1 waiting, 4 blocked, 2 idle",
+        "deckEngineCalls": 1,
+        "deckArtCalls": 1,
+        "pixiGlobal": false,
+        "drawsWhileIdleFor2s": 0,
+        "counts": {
+          "working": 5,
+          "waiting": 1,
+          "blocked": 4,
+          "idle": 2
+        },
+        "devicePixelsPerArtPixel": 3.3712676056338027,
+        "artPixelsCompared": 32054,
+        "matching": 32054
+      },
+      {
+        "theme": "light",
+        "renderer": "webgl",
+        "motion": "still",
+        "caption": "Preview · drawn with WebGL · 12 on deck",
+        "label": "Ship deck: 5 working, 1 waiting, 4 blocked, 2 idle",
+        "deckEngineCalls": 1,
+        "deckArtCalls": 1,
+        "pixiGlobal": false,
+        "drawsWhileIdleFor2s": 0,
+        "counts": {
+          "working": 5,
+          "waiting": 1,
+          "blocked": 4,
+          "idle": 2
+        },
+        "devicePixelsPerArtPixel": 3.3712676056338027,
+        "artPixelsCompared": 32054,
+        "matching": 32054
+      }
+    ],
+    "errors": []
+  },
+  "polish": {
+    "keys": [
+      "flagOff",
+      "resize",
+      "hover",
+      "hoverMoving",
+      "badges",
+      "errors"
+    ],
+    "errors": [],
+    "flagOff": [
+      {
+        "width": 1440,
+        "domIdenticalToMain": true,
+        "domChars": 95475,
+        "canvases": 0,
+        "deckEngineCalls": 0,
+        "deckArtCalls": 0,
+        "pixiGlobal": false
+      },
+      {
+        "width": 390,
+        "domIdenticalToMain": true,
+        "domChars": 24680,
+        "canvases": 0,
+        "deckEngineCalls": 0,
+        "deckArtCalls": 0,
+        "pixiGlobal": false
+      }
+    ]
+  },
+  "environment": {
+    "flagOff": [
+      {
+        "width": 1440,
+        "identical": true,
+        "characters": 95473,
+        "environmentCalls": 0
+      },
+      {
+        "width": 390,
+        "identical": true,
+        "characters": 24680,
+        "environmentCalls": 0
+      }
+    ],
+    "day": [
+      {
+        "clock": "05:30",
+        "sky": "dawn"
+      },
+      {
+        "clock": "08:00",
+        "sky": "morning"
+      },
+      {
+        "clock": "12:00",
+        "sky": "midday"
+      },
+      {
+        "clock": "16:00",
+        "sky": "afternoon"
+      },
+      {
+        "clock": "18:30",
+        "sky": "dusk"
+      },
+      {
+        "clock": "20:15",
+        "sky": "night"
+      },
+      {
+        "clock": "21:00",
+        "sky": "night"
+      },
+      {
+        "clock": "02:00",
+        "sky": "night"
+      }
+    ],
+    "motion": {
+      "motion": "full",
+      "seaPixelsChanged": 170029,
+      "highSkyPixelsChanged": 0,
+      "drawsInASecond": 32,
+      "gullExpectedAtSeconds": 11.599999999999977
+    },
+    "resize": [
+      {
+        "canvasCss": [
+          748,
+          726
+        ],
+        "bareCorners": 0
+      },
+      {
+        "canvasCss": [
+          1048,
+          726
+        ],
+        "bareCorners": 0
+      },
+      {
+        "canvasCss": [
+          848,
+          726
+        ],
+        "bareCorners": 0
+      },
+      {
+        "canvasCss": [
+          548,
+          698
+        ],
+        "bareCorners": 0
+      },
+      {
+        "canvasCss": [
+          348,
+          698
+        ],
+        "bareCorners": 0
+      }
+    ],
+    "errors": []
+  }
+}

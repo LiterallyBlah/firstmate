@@ -16,7 +16,8 @@
  * atlas of about 84 KB, and `deck.json`, its manifest, are read once per process and sent as base64 and
  * JSON (`readDeckArt`). Neither is in the client bundle. The generated sea, sky and gull likewise:
  * `art/ship-deck/environment.json` and the ten small PNGs it draws with, about 50 KB together, read once
- * per process and sent as base64 (`readDeckEnvironment`).
+ * per process and sent as base64 (`readDeckEnvironment`). And the sail and the crew's extra looks:
+ * `art/ship-deck/extras.json` and the eight PNGs it names, about 31 KB, the same way (`readDeckExtras`).
  */
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -25,10 +26,13 @@ import type { Fleet } from "../shared/fleet";
 import {
   DeckArtManifestSchema,
   DeckEnvironmentManifestSchema,
+  DeckExtrasManifestSchema,
   environmentImagePaths,
+  extrasImagePaths,
   type DeckArt,
   type DeckEngineSource,
   type DeckEnvironment,
+  type DeckExtras,
 } from "../shared/ship-deck";
 import { templatesDirectory } from "./templates";
 
@@ -42,6 +46,8 @@ export const DECK_MANIFEST = "art/ship-deck/deck.json";
 /** The generated environment's manifest; the images it names are relative to its folder. */
 export const DECK_ENVIRONMENT_DIR = "art/ship-deck";
 export const DECK_ENVIRONMENT_MANIFEST = "art/ship-deck/environment.json";
+/** The sail and the crew's extra looks; the images it names are relative to the same folder. */
+export const DECK_EXTRAS_MANIFEST = "art/ship-deck/extras.json";
 
 /** The switch. Anything but an explicit yes is off, as for the receipt journal. */
 export function shipDeckEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -128,14 +134,40 @@ export async function readDeckEnvironment(
   const root = await pluginRoot();
   let read = environmentCache.get(root);
   if (read === undefined) {
-    read = readFile(join(root, DECK_ENVIRONMENT_MANIFEST), "utf8").then(async function (text) {
-      const manifest = DeckEnvironmentManifestSchema.parse(JSON.parse(text));
-      const paths = environmentImagePaths(manifest);
-      const images = await Promise.all(paths.map((path) => readFile(join(root, DECK_ENVIRONMENT_DIR, path))));
-      return { manifest, images: Object.fromEntries(paths.map((path, index) => [path, images[index]!.toString("base64")])) };
-    });
+    read = readManifestImages(root, DECK_ENVIRONMENT_MANIFEST, (json) => DeckEnvironmentManifestSchema.parse(json), environmentImagePaths);
     environmentCache.set(root, read);
     read.catch(() => environmentCache.delete(root));
+  }
+  return read;
+}
+
+/** A manifest in `art/ship-deck/`, parsed, and every image it names there, base64, keyed by its path. */
+async function readManifestImages<M>(root: string, file: string, parse: (json: unknown) => M, paths: (manifest: M) => string[]) {
+  const manifest = parse(JSON.parse(await readFile(join(root, file), "utf8")));
+  const names = paths(manifest);
+  const images = await Promise.all(names.map((path) => readFile(join(root, DECK_ENVIRONMENT_DIR, path))));
+  return { manifest, images: Object.fromEntries(names.map((path, index) => [path, images[index]!.toString("base64")])) };
+}
+
+/** The extras read from each plugin folder, once per process; a failed read is not kept. */
+const extrasCache = new Map<string, Promise<DeckExtras>>();
+
+/**
+ * The sail and the crew's extra looks, for `firstmate.deck.extras`: the manifest checked against the
+ * contract — whose paths cannot leave `art/ship-deck/` either — and every image it names. Refused while
+ * the switch is off, before anything is read.
+ */
+export async function readDeckExtras(
+  env: NodeJS.ProcessEnv = process.env,
+  pluginRoot: () => Promise<string> = defaultRoot,
+): Promise<DeckExtras> {
+  refuseWhenOff(env);
+  const root = await pluginRoot();
+  let read = extrasCache.get(root);
+  if (read === undefined) {
+    read = readManifestImages(root, DECK_EXTRAS_MANIFEST, (json) => DeckExtrasManifestSchema.parse(json), extrasImagePaths);
+    extrasCache.set(root, read);
+    read.catch(() => extrasCache.delete(root));
   }
   return read;
 }

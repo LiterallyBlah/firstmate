@@ -1,5 +1,10 @@
 # art/ship-deck/
 
+An expansion adds [fitted Hull C sails and six crew variants](assets-2/README.md), with two sail states,
+exact existing crew frame layouts, provenance and per-asset quality verdicts. The Deck draws them through
+[`extras.json`](extras.json), served by `firstmate.deck.extras` (`client/deck-extras.ts`); without them it
+draws a bare mast and the atlas's two outfits.
+
 Generated environment assets (sea, six sky phases, stars and a gull flap cycle) are documented in
 [ENVIRONMENT.md](ENVIRONMENT.md), with their own [manifest](environment.json). The Deck draws them in
 place of its old code-drawn sea and gull, served by `firstmate.deck.environment` (`client/deck-environment.ts`);
@@ -64,7 +69,9 @@ up well at this size.
 The Deck's motion (`client/deck-crew.ts`) makes do: a walk is `walk-a`, `idle`, `walk-b`, `idle` on each
 frame's own feet, with the body raised a pixel on the passing frames; the side poses are mirrored to walk
 left; there is no back view, so a sailor walking up the deck shows the front frames. Idle motion is
-whole-pixel shifts of the state's one pose. Because a still pose does not say enough, each sailor wears a
+whole-pixel shifts of the state's one pose. An idle sailor uses `side-idle`, not `leaning` — the lean's arm
+reaching forward read as someone about to act — and breathes by drawing its head and shoulders a pixel
+lower on the out-breath. A drawn at-ease cycle (a slump, a yawn, a weight shift) would say "idle" better. Because a still pose does not say enough, each sailor wears a
 drawn badge for its state (`client/deck-badges.ts`) and an idle one breathes out a z: stand-ins for a
 haul cycle, a doze, a pacing fret and a waiting toe-tap that an artist would draw.
 

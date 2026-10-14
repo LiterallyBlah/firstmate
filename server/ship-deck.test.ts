@@ -1,6 +1,6 @@
 /**
  * FIRSTMATE_SHIP_DECK: off by default, and off means the fleet load is exactly what it was — the same
- * object, no `shipDeck` key, the same JSON on the wire — and no Pixi, art or environment is read or sent.
+ * object, no `shipDeck` key, the same JSON on the wire — and no Pixi, art, environment or extras is read or sent.
  */
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,11 +9,12 @@ import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { FleetSchema, type Fleet } from "../shared/fleet";
-import { environmentImagePaths } from "../shared/ship-deck";
+import { DeckArtManifestSchema, environmentImagePaths, extrasImagePaths } from "../shared/ship-deck";
 import {
   DECK_ATLAS,
   DECK_ENVIRONMENT_DIR,
   DECK_ENVIRONMENT_MANIFEST,
+  DECK_EXTRAS_MANIFEST,
   DECK_MANIFEST,
   PIXI_BUILD,
   SHIP_DECK_ENV,
@@ -21,6 +22,7 @@ import {
   readDeckArt,
   readDeckEngine,
   readDeckEnvironment,
+  readDeckExtras,
   shipDeckEnabled,
   withShipDeck,
 } from "./ship-deck";
@@ -195,6 +197,60 @@ describe("the generated environment the daemon serves", () => {
       await expect(readDeckEnvironment({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow("relative .png path");
       writeFileSync(join(dir, DECK_ENVIRONMENT_MANIFEST), JSON.stringify({ ...manifest, sea: { ...manifest.sea, texture: "/etc/passwd.png" } }));
       await expect(readDeckEnvironment({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow("relative .png path");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("the sail and the crew's looks the daemon serves", () => {
+  const root = fileURLToPath(new URL("..", import.meta.url));
+
+  it("is refused while the switch is off, before the plugin's folder is even looked for", async () => {
+    let looked = 0;
+    await expect(
+      readDeckExtras({}, async () => {
+        looked += 1;
+        return root;
+      }),
+    ).rejects.toThrow(`set ${SHIP_DECK_ENV}=1`);
+    expect(looked).toBe(0);
+  });
+
+  it("on, is the sail, its occluder and six looks, byte for byte, and small enough to send whole", async () => {
+    const extras = await readDeckExtras({ [SHIP_DECK_ENV]: "1" }, async () => root);
+    const paths = extrasImagePaths(extras.manifest);
+    expect(Object.keys(extras.images)).toEqual(paths);
+    expect(paths).toHaveLength(8);
+    for (const path of paths) {
+      expect(Buffer.from(extras.images[path]!, "base64").equals(readFileSync(join(root, DECK_ENVIRONMENT_DIR, path))), path).toBe(true);
+    }
+    expect(extras.manifest.crew.map((look) => look.id)).toEqual(["bosun", "old-salt", "navigator", "carpenter", "rigger", "deckhand"]);
+    const total = Object.values(extras.images).reduce((sum, png) => sum + png.length, 0);
+    expect(total).toBeLessThan(60_000);
+  });
+
+  it("puts the occluder exactly where the mast piece it replaces stands, at its size and on its row", () => {
+    const extras = JSON.parse(readFileSync(join(root, DECK_EXTRAS_MANIFEST), "utf8")) as {
+      sail: { occluder: { texture: string; replaces: string; position: [number, number]; baseline: number | null } };
+    };
+    const deck = DeckArtManifestSchema.parse(JSON.parse(readFileSync(join(root, DECK_MANIFEST), "utf8")));
+    const { occluder } = extras.sail;
+    const mast = deck.pieces[occluder.replaces]!;
+    expect([occluder.position, occluder.baseline]).toEqual([[mast.x, mast.y], mast.baseline]);
+    const png = readFileSync(join(root, DECK_ENVIRONMENT_DIR, occluder.texture));
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([mast.frame[2], mast.frame[3]]);
+  });
+
+  it("refuses a manifest whose images would leave art/ship-deck/, or two looks of one name, and does not keep the failure", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "firstmate-deck-extras-"));
+    try {
+      mkdirSync(join(dir, DECK_ENVIRONMENT_DIR), { recursive: true });
+      const manifest = JSON.parse(readFileSync(join(root, DECK_EXTRAS_MANIFEST), "utf8")) as { sail: { texture: string }; crew: Array<{ id: string }> };
+      writeFileSync(join(dir, DECK_EXTRAS_MANIFEST), JSON.stringify({ ...manifest, sail: { ...manifest.sail, texture: "../../vendor/pixi.png" } }));
+      await expect(readDeckExtras({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow("relative .png path");
+      writeFileSync(join(dir, DECK_EXTRAS_MANIFEST), JSON.stringify({ ...manifest, crew: [...manifest.crew, manifest.crew[0]] }));
+      await expect(readDeckExtras({ [SHIP_DECK_ENV]: "1" }, async () => dir)).rejects.toThrow("its own id");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
