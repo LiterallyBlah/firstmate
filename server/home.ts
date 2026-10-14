@@ -47,6 +47,7 @@ import { TEMPLATES, fill, readTemplate, withoutNotes, type TemplatePath } from "
 import { seedWatches } from "./watch-files";
 import { remoteQueue } from "./remotes";
 import { paseoHome } from "./data-dir";
+import { newAction, observedWrite, type RecordOrigin } from "./receipts";
 
 /** The home's records: written from their templates when missing, and the captain's or the first mate's after. */
 const RECORDS: readonly TemplatePath[] = [
@@ -71,12 +72,20 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-async function writeIfMissing(path: string, content: string): Promise<void> {
+/** Whether it wrote: false when the file was already there. */
+async function writeIfMissing(path: string, content: string): Promise<boolean> {
   try {
     await writeFile(path, content, { encoding: "utf8", flag: "wx" });
+    return true;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    return false;
   }
+}
+
+/** A plugin write into the home, for the receipt journal's record ledger; just the write while it is off. */
+function homeWrite(home: string, path: string, origin: RecordOrigin, content: string): Promise<void> {
+  return observedWrite({ absolute: join(home, path), path }, origin, () => writeFile(join(home, path), content, "utf8"), { after: content });
 }
 
 /**
@@ -84,26 +93,26 @@ async function writeIfMissing(path: string, content: string): Promise<void> {
  * (`charter-file.ts`) and the built-in watches with theirs (`watch-files.ts`), and renders `AGENTS.md`
  * from the charter with the current config.
  */
-export async function prepareHome(home: string, config: FirstmateConfig): Promise<void> {
+export async function prepareHome(home: string, config: FirstmateConfig, origin: RecordOrigin = newAction("prepare-home")): Promise<void> {
   await mkdir(join(home, "data"), { recursive: true });
   await mkdir(join(home, "projects"), { recursive: true });
   await mkdir(join(home, "tools"), { recursive: true });
-  const charter = await syncCharter(home);
-  await writeFile(
-    join(home, TEMPLATES.agents),
-    await renderCharter({ home, crewProvider: config.crewProvider, crewModeId: config.crewModeId }, charter.template),
-    "utf8",
-  );
-  for (const record of RECORDS) await writeIfMissing(join(home, record), await readTemplate(record));
+  const charter = await syncCharter(home, undefined, origin);
+  await homeWrite(home, TEMPLATES.agents, origin,
+    await renderCharter({ home, crewProvider: config.crewProvider, crewModeId: config.crewModeId }, charter.template));
+  for (const record of RECORDS) {
+    const content = await readTemplate(record);
+    await observedWrite({ absolute: join(home, record), path: record }, origin, () => writeIfMissing(join(home, record), content), { before: null, after: content });
+  }
   // The helper is plugin-owned transport code, rather than a captain's record.
-  await writeFile(join(home, TEMPLATES.remoteHelper), fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(remoteQueue()) }), "utf8");
-  await writeFile(join(home, TEMPLATES.remoteAccess), await readTemplate(TEMPLATES.remoteAccess), "utf8");
-  await writeFile(join(home, TEMPLATES.watchHelper), await readTemplate(TEMPLATES.watchHelper), "utf8");
-  await writeFile(join(home, TEMPLATES.roleHelper), fill(await readTemplate(TEMPLATES.roleHelper), {
+  await homeWrite(home, TEMPLATES.remoteHelper, origin, fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(remoteQueue()) }));
+  await homeWrite(home, TEMPLATES.remoteAccess, origin, await readTemplate(TEMPLATES.remoteAccess));
+  await homeWrite(home, TEMPLATES.watchHelper, origin, await readTemplate(TEMPLATES.watchHelper));
+  await homeWrite(home, TEMPLATES.roleHelper, origin, fill(await readTemplate(TEMPLATES.roleHelper), {
     paseoHomeJson: JSON.stringify(paseoHome()), homeJson: JSON.stringify(home),
     configSchemaJson: JSON.stringify(z.toJSONSchema(FirstmateConfigSchema, { io: "input" })),
-  }), "utf8");
-  await seedWatches(home);
+  }));
+  await seedWatches(home, origin);
 }
 
 /** Whether a launch has ever prepared this home. */
