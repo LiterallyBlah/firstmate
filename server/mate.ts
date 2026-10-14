@@ -16,7 +16,8 @@ import { TEMPLATES, message } from "./templates";
 import { nameHomeOnce } from "./home-name";
 import type { PaseoApi } from "./host-types";
 import { sendSessionRequest } from "./daemon-session";
-import { sendWithoutInterrupting } from "./send";
+import { receiptJournal, recordGeneration, sha256 } from "./receipts";
+import { observedSend, sendWithoutInterrupting } from "./send";
 import { writeUpload } from "./uploads";
 import { serialized } from "./serialize";
 
@@ -167,7 +168,9 @@ async function startMate(
   }
   await updateFirstmateConfig({ mateAgentId: agent.id, mateProvider: reservation.target.provider, mateModeId: modeId,
     mateLaunch: { ...reservation, state: "sending" } });
-  await sendWithoutInterrupting(paseo, agent.id, reservation.prompt, { messageId: `firstmate-opening-${agent.id}` });
+  recordGeneration(start, agent.id, config.mateAgentId);
+  await sendWithoutInterrupting(paseo, agent.id, reservation.prompt, { messageId: `firstmate-opening-${agent.id}` },
+    { channel: "mate-opening", actor: "captain", mateRecipient: true });
   await updateFirstmateConfig({ mateLaunch: null });
   return { agentId: agent.id, workspaceId: workspace.id };
 }
@@ -192,7 +195,9 @@ export async function adoptMate(paseo: PaseoApi, agentId: string): Promise<First
       );
     }
     await prepareHome(resolveHome(config), config);
-    return updateFirstmateConfig({ mateAgentId: agentId });
+    const adopted = await updateFirstmateConfig({ mateAgentId: agentId });
+    recordGeneration("adopt", agentId, config.mateAgentId);
+    return adopted;
   });
 }
 
@@ -200,7 +205,9 @@ export async function releaseMate(): Promise<FirstmateConfig> {
   return oneAtATime(async () => {
     const config = await readFirstmateConfig();
     requireNoMigration({ ...config, mateLaunch: null });
-    return updateFirstmateConfig({ mateAgentId: "", mateLaunch: null });
+    const released = await updateFirstmateConfig({ mateAgentId: "", mateLaunch: null });
+    recordGeneration("release", "", config.mateAgentId);
+    return released;
   });
 }
 
@@ -237,7 +244,7 @@ export async function compactMate(paseo: PaseoApi): Promise<string> {
     const { agent } = await resolveMate(paseo, config);
     if (agent === null) throw new Error(NO_MATE);
     if (isMidTurn(agent)) throw new Error(`${MID_TURN} Compact it once it is idle.`);
-    await paseo.agents.ref(agent.id).send("/compact");
+    await observedSend(paseo, agent.id, "/compact", undefined, { channel: "mate-compact", actor: "captain", mateRecipient: true });
     return agent.id;
   });
 }
@@ -275,17 +282,26 @@ export async function askMate(paseo: PaseoApi, message: CaptainMessage, beforeSe
     await sendWithoutInterrupting(paseo, agentId, message.text.trim(), {
       ...(images.length > 0 ? { images } : {}),
       ...(attachments.length > 0 ? { attachments } : {}),
-    });
+    }, { channel: "mate-ask", actor: "captain", mateRecipient: true });
     return agentId;
   });
 }
 
-/** Durable delivery for crew notes, including those arriving during a failed handover. */
-export async function queueMateNote(paseo: PaseoApi, text: string): Promise<void> {
+/**
+ * Durable delivery for crew notes, including those arriving during a failed handover. `receipt` names, for the
+ * receipt journal, where the note came from and what it follows from; it changes nothing about the note.
+ */
+export async function queueMateNote(
+  paseo: PaseoApi,
+  text: string,
+  receipt?: { source: "steer-relay" | "remote-steer"; relates: readonly string[] },
+): Promise<void> {
+  const id = `firstmate-note-${randomUUID()}`;
   await serialized("firstmate.mate.notes", async () => {
     const config = await readFirstmateConfig();
-    await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id: `firstmate-note-${randomUUID()}`, text }] });
+    await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id, text }] });
   });
+  if (receipt !== undefined) recordNoteQueued(id, receipt.source, text, receipt.relates);
   await flushMateNotes(paseo).catch((error: unknown) => console.error("[firstmate] crew note queued for retry:", error));
 }
 
@@ -297,11 +313,19 @@ export function flushMateNotes(paseo: PaseoApi): Promise<void> {
     if (agent === null || isMidTurn(agent)) return;
     // One note per idle turn: a second send may replace the first on providers without steer.
     const note = config.mateNotes[0]!;
-    await sendWithoutInterrupting(paseo, agent.id, note.text, { messageId: note.id });
+    await sendWithoutInterrupting(paseo, agent.id, note.text, { messageId: note.id }, { channel: "mate-note", actor: "plugin", mateRecipient: true });
     await serialized("firstmate.mate.notes", async () => {
       const latest = await readFirstmateConfig();
       await updateFirstmateConfig({ mateNotes: latest.mateNotes.filter((entry) => entry.id !== note.id) });
     });
+  });
+}
+
+/** A note put in the first mate's outbox, for the receipt journal; nothing when it is off. */
+export function recordNoteQueued(noteId: string, source: "steer-relay" | "remote-steer" | "watch-runtime", text: string, relates: readonly string[] = []): void {
+  receiptJournal()?.record({
+    kind: "note-queued", noteId, source, generationOf: null,
+    contentSha256: sha256(text), contentBytes: Buffer.byteLength(text), relates: [...relates].slice(0, 100),
   });
 }
 

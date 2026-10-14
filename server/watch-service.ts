@@ -26,7 +26,7 @@ import { pluginDir } from "./data-dir";
 import { resolveMate } from "./fleet";
 import { isHomeReady } from "./home";
 import type { PaseoApi } from "./host-types";
-import { isMidTurn, oneAtATime, flushMateNotes } from "./mate";
+import { isMidTurn, oneAtATime, flushMateNotes, recordNoteQueued } from "./mate";
 import { sendWithoutInterrupting } from "./send";
 import { serialized } from "./serialize";
 import { WatchRunner, watchNote, type DeliveryOutcome } from "./watches";
@@ -53,7 +53,8 @@ export async function deliverToMate(
     if (latest.migration !== null || latest.mateLaunch !== null || paseo === null) return "wait";
     const { agent } = await resolveMate(paseo, latest);
     if (agent === null || isMidTurn(agent)) return "wait";
-    await sendWithoutInterrupting(paseo, agent.id, text, { messageId: `${WATCH_MESSAGE_ID_PREFIX}${randomUUID()}` });
+    await sendWithoutInterrupting(paseo, agent.id, text, { messageId: `${WATCH_MESSAGE_ID_PREFIX}${randomUUID()}` },
+      { channel: "watch-flush", actor: "plugin", mateRecipient: true });
     return "sent";
   });
 }
@@ -157,10 +158,13 @@ export function startWatches(
         // Never enter the non-reentrant lifecycle gate before queuing/flushing it.
         const id = `firstmate-watch-runtime-${createHash("sha256").update(reason).digest("hex")}`;
         const text = await watchNote([{ name: "watch-runtime", ran: new Date().toISOString(), kind: "failed", reason, text: reason }], 0);
-        await serialized("firstmate.mate.notes", async () => {
+        const queued = await serialized("firstmate.mate.notes", async () => {
           const config = await readConfig();
-          if (!config.mateNotes.some((note) => note.id === id)) await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id, text }] });
+          if (config.mateNotes.some((note) => note.id === id)) return false;
+          await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id, text }] });
+          return true;
         });
+        if (queued) recordNoteQueued(id, "watch-runtime", text);
         lastFault = reason;
         await flushMateNotes(paseo);
       } catch (failure) { console.error("[firstmate] watch runtime failure awaits recovery:", failure); }
