@@ -857,7 +857,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             {pane === "board" ? (
               crew
             ) : pane === "deck" ? (
-              <ShipDeckView cards={data.cards} theme={theme} />
+              <ShipDeckView cards={data.cards} theme={theme} stale={fleet.error !== null} />
             ) : (
               <FilesView theme={theme} compact={false} request={filesRequest} />
             )}

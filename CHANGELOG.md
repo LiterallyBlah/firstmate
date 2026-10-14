@@ -10,6 +10,15 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- The ship deck preview (still behind `FIRSTMATE_SHIP_DECK=1`, off by default) moves. A crewmate whose
+  state changes shows its new state at once and then walks to that state's place, along the deck and up
+  the stairs to the helm, passing behind the mast and the rail. New crew climb out of the hatch; crew
+  that leave climb back down. Sailors sway, haul and fret where they stand. The ship bobs on a drifting
+  sea, the masthead sways, three lanterns flicker and a gull crosses now and then. A lost feed greys the
+  crew where it stood. The deck draws at most 30 frames a second, nothing while the window is hidden,
+  12 on a software renderer, and holds still under reduced motion. With the switch off, the screen is as
+  it was.
+
 - The ship deck preview (still behind `FIRSTMATE_SHIP_DECK=1`, off by default) draws the approved
   generated art in place of placeholder shapes: hull C's deck, and a sailor sprite per live crewmate,
   posed by state (hauling, arms folded by the helm, standing in the bow, leaning at the rail), in one of

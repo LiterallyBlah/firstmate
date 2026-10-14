@@ -2,7 +2,7 @@
  * The ship deck, behind FIRSTMATE_SHIP_DECK: the scene from a fixture fleet, the mount's every way to
  * start or not, the vendored Pixi build evaluated as the client evaluates it, and the view mounted
  * through react-test-renderer with WebGL stood in for. Whether a real WebGL canvas paints is
- * `docs/ship-deck-canvas/render.mjs`, in a real browser.
+ * `docs/ship-deck-motion/render.mjs`, in a real browser. The deck's motion is `deck-motion.test.ts`.
  */
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
@@ -38,20 +38,16 @@ import {
   type StartDeck,
 } from "./deck-mount";
 import { fitDeck } from "./deck-pixi";
+import type { Figure } from "./deck-crew";
 import {
   DECK_HEIGHT,
-  DECK_POSES,
   DECK_PROPS,
-  DECK_STATES,
   DECK_WIDTH,
-  DECK_ZONES,
   deckLayers,
   deckOffered,
   deckScene,
   deckState,
   sailorOutfit,
-  zoneSlots,
-  type DeckSailor,
   type DeckScene,
 } from "./deck-scene";
 import { ShipDeckView, deckStatusText } from "./ship-deck";
@@ -164,18 +160,13 @@ describe("the deck's scene", () => {
     });
   });
 
-  it("draws one sailor per live crewmate from a fixture fleet, inside its zone", () => {
+  it("draws one sailor per live crewmate from a fixture fleet, saying only what each is doing", () => {
     const scene = deckScene(fixture, theme);
     expect(scene.counts).toEqual({ working: 2, waiting: 2, blocked: 2, idle: 2 });
     expect(scene.sailors.map((s) => s.key)).toEqual(["w1", "w2", "r1", "w3", "b1", "f1", "i1", "p1"]);
-    for (const sailor of scene.sailors) {
-      const zone = DECK_ZONES[sailor.state];
-      expect(sailor.x).toBeGreaterThanOrEqual(zone.x);
-      expect(sailor.x).toBeLessThanOrEqual(zone.x + zone.width);
-      expect(sailor.y).toBeGreaterThanOrEqual(zone.y);
-      expect(sailor.y).toBeLessThanOrEqual(zone.y + zone.height);
-    }
-    expect(new Set(scene.sailors.map((s) => `${s.x},${s.y}`)).size).toBe(scene.sailors.length);
+    expect(scene.sailors.map((s) => s.state)).toEqual(["working", "working", "waiting", "waiting", "blocked", "blocked", "idle", "idle"]);
+    expect(Object.keys(scene.sailors[0]!).sort()).toEqual(["key", "label", "outfit", "stale", "state"]);
+    expect(scene.stale).toBe(0);
     expect(scene.palette.states).toEqual({ working: "#6cb17b", waiting: "#c09664", blocked: "#d8847b", idle: "#A1A5A4" });
   });
 
@@ -183,26 +174,26 @@ describe("the deck's scene", () => {
     expect(deckScene([...fixture].reverse(), theme)).toEqual(deckScene(fixture, theme));
   });
 
-  it("squeezes a crowded zone rather than spilling out of it", () => {
-    const slots = zoneSlots(DECK_ZONES.blocked, 40);
-    expect(new Set(slots.map((s) => `${s.x},${s.y}`)).size).toBe(40);
-    for (const slot of slots) {
-      expect(slot.x).toBeGreaterThanOrEqual(DECK_ZONES.blocked.x);
-      expect(slot.x).toBeLessThanOrEqual(DECK_ZONES.blocked.x + DECK_ZONES.blocked.width);
-      expect(slot.y).toBeLessThanOrEqual(DECK_ZONES.blocked.y + DECK_ZONES.blocked.height);
-    }
-    expect(zoneSlots(DECK_ZONES.idle, 0)).toEqual([]);
+  it("greys the whole crew when the feed is lost, and a remote host's workers when it is out of reach, keeping every state", () => {
+    const live = deckScene(fixture, theme);
+    const lost = deckScene(fixture, theme, { feedStale: true });
+    expect(lost.stale).toBe(8);
+    expect(lost.sailors.every((s) => s.stale)).toBe(true);
+    // Never idle on its own: the same states and counts as the last load.
+    expect(lost.sailors.map((s) => s.state)).toEqual(live.sailors.map((s) => s.state));
+    expect(lost.counts).toEqual(live.counts);
+    const remote = card("w9", "working", { remote: {} });
+    const unreachable: FleetCard = { ...remote, remote: { ...remote.remote!, online: false } };
+    const partly = deckScene([...fixture, unreachable], theme);
+    expect(partly.stale).toBe(1);
+    expect(partly.sailors.find((s) => s.key === "w9")).toMatchObject({ state: "working", stale: true });
+    expect(partly.sailors.filter((s) => s.key !== "w9").every((s) => !s.stale)).toBe(true);
   });
 
-  it("gives each state its pose, keeps a sailor's outfit from poll to poll, and turns the crew aft of the mast to face it", () => {
+  it("keeps a sailor's outfit from poll to poll", () => {
     const scene = deckScene(fixture, theme);
-    for (const sailor of scene.sailors) {
-      expect(sailor.pose).toBe(DECK_POSES[sailor.state]);
-      expect(sailor.outfit).toBe(sailorOutfit(sailor.key));
-      expect(sailor.flip).toBe(sailor.state === "working" && sailor.x > 211);
-    }
+    for (const sailor of scene.sailors) expect(sailor.outfit).toBe(sailorOutfit(sailor.key));
     expect(new Set(fixture.map((c) => sailorOutfit(c.key)))).toEqual(new Set(["base", "outfit"]));
-    expect(deckScene(fixture, theme).sailors.map((s) => s.outfit)).toEqual(scene.sailors.map((s) => s.outfit));
   });
 });
 
@@ -265,29 +256,28 @@ describe("the deck's art", () => {
     expect(manifest.pieces.near?.baseline).toBeNull();
   });
 
-  it("puts every sailor's feet on the deck and behind the near rail, however crowded each place gets", () => {
-    const near = manifest.pieces.near!;
-    for (const state of DECK_STATES) {
-      for (const count of [1, 2, 5, 12, 30]) {
-        for (const slot of zoneSlots(DECK_ZONES[state], count)) {
-          // Standing on the hull's deck…
-          expect(opaque(manifest.ship.frame, slot.x, slot.y), `${state} ${slot.x},${slot.y} on deck`).toBe(true);
-          // …and never on the near rail, the stairs or the hull below them, which are in front of everyone.
-          expect(opaque(near.frame, slot.x - near.x, slot.y - near.y), `${state} ${slot.x},${slot.y} behind the rail`).toBe(false);
-        }
-      }
-    }
+  it("stands every prop on the deck", () => {
     for (const prop of DECK_PROPS) expect(opaque(manifest.ship.frame, prop.x, prop.y), prop.name).toBe(true);
   });
 
   it("draws the hull first, the near rail last, and everything else by the row it stands on", () => {
-    const at = (x: number, y: number, key: string): DeckSailor => ({ key, label: key, state: "working", x, y, pose: "hauling", outfit: "base", flip: false });
-    const scene: DeckScene = {
-      ...deckScene([], theme),
-      sailors: [at(211, 111, "before-mast"), at(211, 100, "behind-mast"), at(80, 94, "behind-bollard"), at(80, 95, "before-bollard")],
-    };
-    const order = deckLayers(scene, manifest.pieces).map((layer) =>
-      layer.kind === "ship" ? "ship" : layer.kind === "piece" ? `piece:${layer.name}` : layer.kind === "prop" ? `prop:${layer.name}` : layer.sailor.key,
+    const at = (x: number, y: number, key: string): Figure => ({
+      key,
+      label: key,
+      state: "working",
+      stale: false,
+      outfit: "base",
+      x,
+      y: y - 1,
+      row: y,
+      pose: "hauling",
+      flip: false,
+      reveal: 1,
+      moving: true,
+    });
+    const figures = [at(211, 111, "before-mast"), at(211, 100, "behind-mast"), at(80, 94, "behind-bollard"), at(80, 95, "before-bollard")];
+    const order = deckLayers(figures, manifest.pieces).map((layer) =>
+      layer.kind === "ship" ? "ship" : layer.kind === "piece" ? `piece:${layer.name}` : layer.kind === "prop" ? `prop:${layer.name}` : layer.figure.key,
     );
     expect(order[0]).toBe("ship");
     expect(order.at(-1)).toBe("piece:near");
@@ -563,11 +553,13 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     // The stage is made in the constructor, the renderer by init.
     expect(new pixi.Application().stage).toBeInstanceOf(pixi.Container);
     const container = methods(pixi.Container);
-    for (const name of ["addChild", "removeChild", "destroy", "label", "position", "scale"]) expect(container.has(name), name).toBe(true);
+    for (const name of ["addChild", "removeChild", "destroy", "label", "position", "scale", "zIndex", "sortableChildren", "visible", "alpha", "tint"]) {
+      expect(container.has(name), name).toBe(true);
+    }
     const graphics = methods(pixi.Graphics);
-    for (const name of ["ellipse", "fill", "addChild", "destroy"]) expect(graphics.has(name), name).toBe(true);
+    for (const name of ["clear", "rect", "circle", "ellipse", "fill", "stroke", "addChild", "destroy", "tint"]) expect(graphics.has(name), name).toBe(true);
     const sprite = methods(pixi.Sprite);
-    for (const name of ["anchor", "position", "scale", "label", "destroy"]) expect(sprite.has(name), name).toBe(true);
+    for (const name of ["anchor", "texture", "tint", "position", "scale", "label", "destroy"]) expect(sprite.has(name), name).toBe(true);
     for (const name of ["scaleMode", "destroy"]) expect(methods(pixi.ImageSource).has(name), name).toBe(true);
     expect(methods(pixi.Texture).has("destroy")).toBe(true);
     // A texture cut from an atlas: the frame the deck asks for is the one it gets, sampled nearest.
@@ -688,6 +680,27 @@ describe("the ship deck view", () => {
     act(() => root.unmount());
     renderer = null;
     expect(engine.drawings[0]?.destroyed).toBe(1);
+  });
+
+  it("with the feed lost, greys the crew it last saw and says so, keeping every count", async () => {
+    const engine = fakeEngine();
+    await act(async () => {
+      renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web", stale: true }), {
+        createNodeMock: () => fakeHost(),
+      });
+    });
+    await act(flush);
+    const root = renderer!;
+    expect(text(root)).toContain("The crew's feed is lost: the deck shows where everyone last stood, greyed.");
+    expect(text(root)).toContain("2 working | 2 waiting | 2 blocked | 2 idle | 8 stale");
+    const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
+    expect(canvasHost.props.accessibilityLabel).toBe("Ship deck: 2 working, 2 waiting, 2 blocked, 2 idle, feed lost: last known");
+    expect(engine.starts[0]?.scene.sailors.every((s) => s.stale)).toBe(true);
+    await act(async () => {
+      root.update(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web", stale: false }));
+    });
+    expect(text(root)).not.toContain("stale");
+    expect(engine.drawings[0]?.updates.at(-1)?.stale).toBe(0);
   });
 
   it("on a phone says where it draws, with no host view and no WebGL or Pixi touched", async () => {

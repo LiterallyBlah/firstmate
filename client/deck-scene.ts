@@ -1,31 +1,36 @@
 /**
- * The ship deck's scene: the board's own cards turned into sailors on one deck, placed by state. Pure.
+ * The ship deck's scene: the board's own cards turned into sailors on one deck, sent by state. Pure.
  *
  * The deck draws nothing the board does not already know. It reads the cards `firstmate.fleet.load`
  * already filed into columns — the same query the board, the panels and the sidebar share — so a
- * sailor stands where its card's column says, and the column rules stay in `server/fleet.ts`.
+ * sailor goes where its card's column says, and the column rules stay in `server/fleet.ts`.
  *
- * Four places on deck, from the column:
+ * Four places on deck, from the column (`PLACES` in `client/deck-crew.ts`, the anchors in
+ * `client/deck-geometry.ts`):
  *
- * - **working** — Working, hauling at the stations amidships, round the mast;
+ * - **working** — Working, hauling at the stations amidships, round the mast and the stores;
  * - **waiting** — Ready (finished, waiting on the first mate) and Working with the `waiting` note (a
  *   wait on a job outside the worker), arms folded by the helm on the quarterdeck;
- * - **blocked** — Blocked and Failed, in the bow;
+ * - **blocked** — Blocked and Failed, fretting in the bow;
  * - **idle** — Idle and Parked, leaning at the near rail.
  *
  * Only live crew stand on deck: a local crewmate Paseo has not closed, or a remote worker that is
  * crew, not a followed session. Queued and Done cards, and cards with no worker, are left off.
  *
+ * The scene says only what each sailor is doing. Where it stands, and its walk there, are
+ * `client/deck-crew.ts`'s.
+ *
  * **Coordinates are the art's.** The deck is the hull's own logical pixels (`art/ship-deck/deck.json`'s
  * ship frame, 426 × 161): the bow on the left, the quarterdeck and helm on the right. A sailor's `x, y`
- * is where its feet are. **Depth is the deck row**: `deckLayers` draws the hull, then props, sailors and
- * the hull's own depth pieces (the mast, bollards, the near rail) in order of the row they stand on, so
- * a sailor behind the mast is hidden by it and one in front of it covers it.
+ * is where its feet are. **Depth is the deck row**: `depthOf` orders props, sailors and the hull's own
+ * depth pieces (the mast, bollards, the near rail) by the row each stands on, every frame, so a sailor
+ * walking behind the mast is hidden by it and one passing in front of it covers it.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 
 import type { FleetCard, FleetDeckSwitch } from "../shared/fleet";
-import type { DeckArtManifest, DeckPropName, SailorOutfit, SailorPose } from "../shared/ship-deck";
+import type { DeckArtManifest, DeckPropName, SailorOutfit } from "../shared/ship-deck";
+import type { Figure } from "./deck-crew";
 
 export const DECK_STATES = ["working", "waiting", "blocked", "idle"] as const;
 export type DeckState = (typeof DECK_STATES)[number];
@@ -34,63 +39,30 @@ export type DeckState = (typeof DECK_STATES)[number];
 export const DECK_WIDTH = 426;
 export const DECK_HEIGHT = 161;
 
-interface Zone {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-/** Where each state's feet stand, in deck coordinates: clear deck, inside the near rail. */
-export const DECK_ZONES: Record<DeckState, Zone> = {
-  // The quarterdeck, in front of the wheel's foot (row 88) and behind its front rail (row 97).
-  waiting: { x: 358, y: 90, width: 48, height: 5 },
-  // Amidships, between the hatch and the stairs, behind and before the mast (which stands on row 110).
-  working: { x: 128, y: 96, width: 172, height: 20 },
-  // The bow, behind its two bollards.
-  blocked: { x: 66, y: 90, width: 46, height: 14 },
-  // Along the near rail, behind its two bollards (which stand on row 121).
-  idle: { x: 128, y: 117, width: 172, height: 3 },
-};
-
-/** Each state's pose. The side poses face the bow's other way (right); `flip` turns them round. */
-export const DECK_POSES: Record<DeckState, SailorPose> = {
-  working: "hauling",
-  waiting: "waiting",
-  blocked: "front-idle",
-  idle: "leaning",
-};
-
-/** The mast's column: a sailor working aft of it turns to face it. */
-const MAST_X = 211;
-
-/** Props on deck, where each stands: out of the zones' way, so the sailors are what moves. */
+/** Props on deck, where each stands: out of the anchors' way, and their feet blocked to walkers (`OBSTACLES`). */
 export const DECK_PROPS: ReadonlyArray<{ name: DeckPropName; x: number; y: number }> = [
   { name: "barrel", x: 252, y: 88 },
   { name: "crate", x: 306, y: 90 },
   { name: "rope", x: 178, y: 115 },
 ];
 
-/** The smallest gap between two sailors' feet before a crowded zone squeezes them. */
-const SPACING = 13;
-
 export interface DeckPalette {
   sea: string;
   states: Record<DeckState, string>;
 }
 
+/** One live crewmate on deck: what it is doing, never where it stands. */
 export interface DeckSailor {
   /** The card's key, so a sailor keeps its identity across polls. */
   key: string;
   label: string;
   state: DeckState;
-  /** Where its feet are. */
-  x: number;
-  y: number;
-  pose: SailorPose;
   outfit: SailorOutfit;
-  /** Mirrored, to face the bow. */
-  flip: boolean;
+  /**
+   * Its feed is lost — the fleet load failing, or its remote host unreachable. It keeps its last state
+   * and its place, greyed; it never reads as idle.
+   */
+  stale: boolean;
 }
 
 export interface DeckScene {
@@ -99,6 +71,8 @@ export interface DeckScene {
   palette: DeckPalette;
   sailors: DeckSailor[];
   counts: Record<DeckState, number>;
+  /** How many of the sailors are stale. */
+  stale: number;
 }
 
 /** Whether a card has a live crew worker behind it. */
@@ -108,7 +82,7 @@ export function hasLiveWorker(card: FleetCard): boolean {
   return worker !== null && !worker.followed && worker.status !== "closed";
 }
 
-/** Where a card's sailor stands, or null for a card that is not on deck. */
+/** What a card's sailor is doing on deck, or null for a card that is not on deck. */
 export function deckState(card: FleetCard): DeckState | null {
   if (!hasLiveWorker(card)) return null;
   switch (card.column) {
@@ -126,24 +100,6 @@ export function deckState(card: FleetCard): DeckState | null {
     case "done":
       return null;
   }
-}
-
-/**
- * `count` points spread over `zone`, row by row, as square as the zone allows. A single row is
- * staggered a little front and back, so a line of sailors stands about the deck rather than in file.
- */
-export function zoneSlots(zone: Zone, count: number): Array<{ x: number; y: number }> {
-  if (count <= 0) return [];
-  const across = Math.max(1, Math.round(zone.width / SPACING));
-  const columns = Math.min(count, Math.max(across, Math.ceil(Math.sqrt((count * zone.width) / zone.height))));
-  const rows = Math.ceil(count / columns);
-  const stepX = zone.width / columns;
-  const stepY = zone.height / rows;
-  const stagger = rows === 1 && count > 1 ? zone.height / 4 : 0;
-  return Array.from({ length: count }, (_, index) => ({
-    x: Math.round(zone.x + stepX * ((index % columns) + 0.5)),
-    y: Math.round(zone.y + stepY * (Math.floor(index / columns) + 0.5) + (index % 2 === 0 ? -stagger : stagger)),
-  }));
 }
 
 /** A stable choice of outfit for a card: the same sailor keeps the same clothes from poll to poll. */
@@ -166,8 +122,12 @@ export function deckPalette(theme: PluginTheme): DeckPalette {
   };
 }
 
-/** The deck for these cards: one sailor per live crew worker, in card-key order within its place. */
-export function deckScene(cards: readonly FleetCard[], theme: PluginTheme): DeckScene {
+/**
+ * The deck for these cards: one sailor per live crew worker, in card-key order within its state.
+ * `feedStale` — the fleet load failing — greys the whole crew; a remote host that cannot be reached
+ * greys its own workers.
+ */
+export function deckScene(cards: readonly FleetCard[], theme: PluginTheme, options: { feedStale?: boolean } = {}): DeckScene {
   const byState = new Map<DeckState, FleetCard[]>(DECK_STATES.map((state) => [state, []]));
   for (const card of cards) {
     const state = deckState(card);
@@ -178,44 +138,52 @@ export function deckScene(cards: readonly FleetCard[], theme: PluginTheme): Deck
   for (const state of DECK_STATES) {
     const crew = [...(byState.get(state) ?? [])].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
     counts[state] = crew.length;
-    const slots = zoneSlots(DECK_ZONES[state], crew.length);
-    crew.forEach((card, index) => {
-      const slot = slots[index] ?? { x: DECK_ZONES[state].x, y: DECK_ZONES[state].y };
+    for (const card of crew) {
       sailors.push({
         key: card.key,
         label: card.title,
         state,
-        x: slot.x,
-        y: slot.y,
-        pose: DECK_POSES[state],
         outfit: sailorOutfit(card.key),
-        flip: state === "working" && slot.x > MAST_X,
+        stale: options.feedStale === true || card.remote?.online === false,
       });
-    });
+    }
   }
-  return { width: DECK_WIDTH, height: DECK_HEIGHT, palette: deckPalette(theme), sailors, counts };
+  return {
+    width: DECK_WIDTH,
+    height: DECK_HEIGHT,
+    palette: deckPalette(theme),
+    sailors,
+    counts,
+    stale: sailors.filter((sailor) => sailor.stale).length,
+  };
+}
+
+/**
+ * A depth for something standing on `row`: what is further back (a smaller row) is drawn first, and a
+ * hull piece (`rank` 1) after anything else on its own row, so a sailor's feet on the mast's row are
+ * behind the mast. `null` is the near rail, in front of everything. The renderer sets it as each
+ * sprite's `zIndex` every frame, so a walking sailor passes behind the mast and then in front of it.
+ */
+export function depthOf(row: number | null, rank: 0 | 1): number {
+  return row === null ? 1_000_000 : Math.round(row) * 2 + rank;
 }
 
 export type DeckLayer =
   | { kind: "ship" }
   | { kind: "piece"; name: string }
   | { kind: "prop"; name: DeckPropName; x: number; y: number }
-  | { kind: "sailor"; sailor: DeckSailor };
+  | { kind: "sailor"; figure: Figure };
 
 /**
  * Everything on deck in the order it is drawn, back to front: the hull, then props, sailors and the
- * hull's depth pieces by the row they stand on — a piece after anything on its own row, so a sailor's
- * feet on the mast's row are behind the mast — and last the near rail (`baseline: null`). Sailors on
- * one row go left to right.
+ * hull's depth pieces by `depthOf`, and last the near rail. Ties go left to right.
  */
-export function deckLayers(scene: DeckScene, pieces: DeckArtManifest["pieces"]): DeckLayer[] {
-  const sorted: Array<{ layer: DeckLayer; row: number; rank: number; x: number }> = [];
-  for (const prop of DECK_PROPS) sorted.push({ layer: { kind: "prop", ...prop }, row: prop.y, rank: 0, x: prop.x });
-  for (const sailor of scene.sailors) sorted.push({ layer: { kind: "sailor", sailor }, row: sailor.y, rank: 0, x: sailor.x });
-  for (const [name, piece] of Object.entries(pieces)) {
-    sorted.push({ layer: { kind: "piece", name }, row: piece.baseline ?? Number.POSITIVE_INFINITY, rank: 1, x: piece.x });
-  }
-  sorted.sort((a, b) => a.row - b.row || a.rank - b.rank || a.x - b.x);
+export function deckLayers(figures: readonly Figure[], pieces: DeckArtManifest["pieces"]): DeckLayer[] {
+  const sorted: Array<{ layer: DeckLayer; depth: number; x: number }> = [];
+  for (const prop of DECK_PROPS) sorted.push({ layer: { kind: "prop", ...prop }, depth: depthOf(prop.y, 0), x: prop.x });
+  for (const figure of figures) sorted.push({ layer: { kind: "sailor", figure }, depth: depthOf(figure.row, 0), x: figure.x });
+  for (const [name, piece] of Object.entries(pieces)) sorted.push({ layer: { kind: "piece", name }, depth: depthOf(piece.baseline, 1), x: piece.x });
+  sorted.sort((a, b) => a.depth - b.depth || a.x - b.x);
   return [{ kind: "ship" }, ...sorted.map((entry) => entry.layer)];
 }
 
