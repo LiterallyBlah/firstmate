@@ -16,6 +16,14 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Added
 
+- A preview of the ship deck, behind `FIRSTMATE_SHIP_DECK=1` and off by default: a **Deck** beside Crew
+  and Files on the desktop app's wide layout, with one sailor per live crewmate on a plain deck, drawn by
+  PixiJS 8 on a WebGL canvas and placed by its card's column, from the cards the board already loads.
+  The daemon serves Pixi's browser build (`vendor/pixi.min.js`) through `firstmate.deck.engine`, so the
+  client bundle carries no Pixi, and a phone's Hermes never parses it. A phone, a narrow window or a
+  display without WebGL gets a plain sentence instead. With the switch off, the screen and every RPC
+  answer are as they were.
+
 - An observe-only receipt journal, behind `FIRSTMATE_RECEIPT_JOURNAL=1` and off by default: a persisted,
   append-only, hash-linked record of every plugin send (with an original message id, now on board steers,
   asks and Compact too), its result and the first-mate generation it belongs to; a generation ledger of

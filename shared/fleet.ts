@@ -277,8 +277,15 @@ export const FleetSchema = z.object({
   charterOutdated: z.boolean(),
   /** Things worth a line on the board: an unreadable backlog, a failed agent listing. */
   warnings: z.array(z.string()),
+  /**
+   * Present, and true, only while `FIRSTMATE_SHIP_DECK` is on for the daemon (`server/ship-deck.ts`):
+   * the screen then offers the ship deck. Off, the key is absent, so the load is what it was before.
+   */
+  shipDeck: z.literal(true).optional(),
 });
 export type Fleet = z.infer<typeof FleetSchema>;
+/** The part of the fleet the ship deck's switch reads. */
+export type FleetDeckSwitch = Pick<Fleet, "shipDeck">;
 
 // ---------------------------------------------------------------------------
 // The daemon's own file: what handlers act on
