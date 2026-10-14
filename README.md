@@ -423,8 +423,13 @@ FirstMate's has changed. The first mate adds or changes a watch only when you sa
 A first piece of a ship's-deck view of the crew: one sailor per live crewmate on the deck of a pixel-art
 ship, drawn by PixiJS on a WebGL canvas, standing where its card's column puts it. **Working** sailors
 haul at the stations amidships. **Waiting** (Ready, or waiting on a job) stand by the helm.
-**Blocked** (Blocked, Failed) are in the bow, and **idle** (Idle, Parked) lean at the rail. The deck is
-depth-layered: a sailor behind the mast or a bollard is hidden by it. It reads the same cards as the
+**Blocked** (Blocked, Failed) are in the bow, and **idle** (Idle, Parked) lean at the rail. When a
+crewmate's state changes, its mark changes at once and the sailor walks to its new place; a new crewmate
+climbs up through the hatch and one that leaves climbs back down. The ship bobs on a moving sea, the
+masthead sways, the lanterns flicker and a gull crosses now and then. If the board's feed is lost, the
+crew greys where it last stood rather than turning idle. The deck is depth-layered: a sailor behind the
+mast or a bollard is hidden by it. It draws at most 30 frames a second, nothing while the window is
+hidden, and holds still if the system asks for reduced motion. It reads the same cards as the
 board and polls nothing of its own. Names, tasks and actions stay on the Crew board. The art is
 generated and cleaned up by script (`art/ship-deck/README.md`).
 
@@ -436,8 +441,9 @@ of the canvas.
 To check it in the desktop app once the plugin is installed: start the daemon with `FIRSTMATE_SHIP_DECK=1`
 in its environment and reload the plugin. Open FirstMate and press **Deck**. The caption should read
 "Preview · drawn with WebGL · N on deck", with N matching the live crew. In DevTools, the canvas carries
-`data-firstmate-deck="webgl"`. `docs/ship-deck-canvas/README.md` has the full list, and what was proven
-before install.
+`data-firstmate-deck="webgl"` and `data-firstmate-deck-motion="full"` (`still` under reduced motion,
+`lite` on a software renderer). `docs/ship-deck-canvas/README.md` and `docs/ship-deck-motion/README.md`
+have the full list, and what was proven before install.
 
 ## Settings
 
@@ -471,9 +477,10 @@ before install.
   made up. After the plugin is reloaded, what a watch prints waits until any agent works or the panel
   is opened.
 - The panel has not yet been checked on a phone.
-- **The ship deck** (`FIRSTMATE_SHIP_DECK=1`, off by default) is a preview, desktop only, with no
-  animation. Its sailors are generated art cleaned up by script, and they still want a pixel artist's
-  polish. It has been seen drawing in a browser, not yet inside the Paseo desktop app.
+- **The ship deck** (`FIRSTMATE_SHIP_DECK=1`, off by default) is a preview, desktop only, one ship for
+  every host. Its sailors are generated art cleaned up by script, with no real walk cycle or back view,
+  and they still want a pixel artist's polish. Its motion has been seen in a browser, not yet inside the
+  Paseo desktop app.
 - **The receipt journal** (`FIRSTMATE_RECEIPT_JOURNAL=1` in the daemon's environment, off by default)
   records what the plugin sends and writes from the day it is switched on, nothing before. It cannot see
   Paseo's own finish notes to the first mate, so those stay marked uncertain.
