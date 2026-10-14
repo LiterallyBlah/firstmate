@@ -15,13 +15,13 @@ import {
 import { serialized } from "./serialize";
 
 /** Stable object order; array order and exact text remain part of the submitted content. */
-function canonical(value: unknown): string {
+export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (value !== null && typeof value === "object") return `{${Object.entries(value).filter(([, v]) => v !== undefined)
     .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(",")}}`;
   return JSON.stringify(value);
 }
-function digest(value: unknown): string { return createHash("sha256").update(canonical(value)).digest("hex"); }
+export function digest(value: unknown): string { return createHash("sha256").update(canonical(value)).digest("hex"); }
 export function submissionHash(payload: SubmissionPayload): string { return digest(SubmissionPayloadSchema.parse(payload)); }
 const sameActor = (a: SubmissionActor | null, b: SubmissionActor) => a?.agentId === b.agentId && a.generation === b.generation;
 const terminal = (record: SubmissionRecord) => ["declined", "completed"].includes(record.receipts.at(-1)?.disposition ?? "");
@@ -33,7 +33,7 @@ export class SubmissionConflict extends Error {
 /** Hard-link publication is exclusive across processes. A crash leaves a whole revision or a temp,
  * never a partially published request. No file/registry registration gap exists.
  */
-async function publish(path: string, value: unknown): Promise<void> {
+export async function publish(path: string, value: unknown): Promise<void> {
   const temporary = `${path}.${randomUUID()}.tmp`;
   const file = await open(temporary, "wx");
   try { await file.writeFile(`${canonical(value)}\n`, "utf8"); await file.sync(); }

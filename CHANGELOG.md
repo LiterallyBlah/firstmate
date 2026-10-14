@@ -16,6 +16,15 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Added
 
+- An observe-only receipt journal, behind `FIRSTMATE_RECEIPT_JOURNAL=1` and off by default: a persisted,
+  append-only, hash-linked record of every plugin send (with an original message id, now on board steers,
+  asks and Compact too), its result and the first-mate generation it belongs to; a generation ledger of
+  launches, restarts, adoptions, releases and handovers; before/after hashes of every plugin write into
+  the home, bound to an action id; the first mate's own Paseo tool calls; and crewmate finishes, marked
+  uncertain. A read-only `firstmate.receipts.timeline` RPC pages the first mate's and crew's timelines
+  with Paseo's `gap`/`staleCursor`/`hasOlder`. With the switch off nothing is sent, written or recorded
+  differently.
+
 - FirstMate chat recognizes exact host/workspace provenance in Markdown file-link titles.
   Links show the workspace-relative filename and line information, then open that workspace
   through supported Paseo navigation for manual file selection. Bare absolute paths require

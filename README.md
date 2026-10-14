@@ -450,6 +450,9 @@ FirstMate's has changed. The first mate adds or changes a watch only when you sa
   made up. After the plugin is reloaded, what a watch prints waits until any agent works or the panel
   is opened.
 - The panel has not yet been checked on a phone.
+- **The receipt journal** (`FIRSTMATE_RECEIPT_JOURNAL=1` in the daemon's environment, off by default)
+  records what the plugin sends and writes from the day it is switched on, nothing before. It cannot see
+  Paseo's own finish notes to the first mate, so those stay marked uncertain.
 
 ## License
 
