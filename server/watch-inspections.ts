@@ -212,7 +212,7 @@ export class WatchInspections {
             throw new Error("Inspector did not confirm independent read-only isolation.");
           // Persist prepared identity and exact prompt before send. Reconciliation reuses this message ID.
           await this.save();
-          await sendWithoutInterrupting(paseo, runId, run.prompt, { messageId: `firstmate-inspection-${runId}` });
+          await sendWithoutInterrupting(paseo, runId, run.prompt, { messageId: `firstmate-inspection-${runId}` }, { channel: "inspection-prompt", actor: "plugin" });
           run.status = "sent"; await this.save();
         } catch (error) { await this.fail(run, error); }
         return true;
@@ -255,7 +255,7 @@ export class WatchInspections {
             const accepted = page.entries.some(({ item }) => item.type === "user_message" && item.clientMessageId === `firstmate-inspection-${run.runId}`);
             if (!accepted && run.status === "prepared") {
               // Do not create another agent after a lost acknowledgement. Existing identity is the recovery boundary.
-              await sendWithoutInterrupting(paseo, run.runId, run.prompt, { messageId: `firstmate-inspection-${run.runId}` });
+              await sendWithoutInterrupting(paseo, run.runId, run.prompt, { messageId: `firstmate-inspection-${run.runId}` }, { channel: "inspection-prompt", actor: "plugin" });
               run.status = "sent"; await this.save(); continue;
             }
             if (!accepted) throw new Error("Inspector timeline did not contain the saved prompt.");
@@ -318,7 +318,7 @@ export class WatchInspections {
           }
         }
         if (!run.attempts.includes(agent.id)) { run.attempts.push(agent.id); await this.save(); }
-        await sendWithoutInterrupting(paseo, agent.id, text, { messageId });
+        await sendWithoutInterrupting(paseo, agent.id, text, { messageId }, { channel: "inspection-delivery", actor: "plugin", relates: [`firstmate-inspection-${run.runId}`], mateRecipient: true });
         run.delivery = "sent"; run.deliveryError = null; await this.save();
       });
     } catch (error) { run.deliveryError = String(error); await this.save(); }

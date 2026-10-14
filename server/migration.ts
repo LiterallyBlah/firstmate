@@ -9,6 +9,7 @@ import { fetchLiveAgent, listAgents } from "./fleet";
 import { prepareHome, readOpening } from "./home";
 import type { PaseoApi, TimelineItem } from "./host-types";
 import { MATE_TITLE, isMidTurn, oneAtATime } from "./mate";
+import { newAction, observedWrite, recordGeneration } from "./receipts";
 import { sendWithoutInterrupting } from "./send";
 import { message, TEMPLATES } from "./templates";
 import { archiveChildren } from "./archive-inventory";
@@ -121,7 +122,8 @@ async function saveHandoff(
   });
   const path = join(home, handoffPath);
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${prompt}\n`, "utf8");
+  await observedWrite({ absolute: path, path: handoffPath }, newAction("handover.prepare", "captain"),
+    () => writeFile(path, `${prompt}\n`, "utf8"), { after: `${prompt}\n` });
   return { sourceId, sourceRevision: source.updatedAt, agentId, target, prompt, handoffPath };
 }
 
@@ -232,6 +234,7 @@ export function migrateMate(paseo: PaseoApi, input: { sourceId: string; target?:
         mateModeId: migration.target.modeId,
         previousMateIds: [...new Set([...config.previousMateIds, migration.sourceId])],
       });
+      if (config.mateAgentId !== migration.agentId) recordGeneration("handover", migration.agentId, config.mateAgentId);
       // If send succeeded but its response was lost, the transcript proves delivery on recovery.
       const messageId = `firstmate-handover-${migration.agentId}`;
       const page = await paseo.agents
@@ -246,7 +249,7 @@ export function migrateMate(paseo: PaseoApi, input: { sourceId: string; target?:
           throw new Error(
             "The replacement is busy without a recorded handover. Wait until it is idle before recovering.",
           );
-        await sendWithoutInterrupting(paseo, migration.agentId, migration.prompt, { messageId });
+        await sendWithoutInterrupting(paseo, migration.agentId, migration.prompt, { messageId }, { channel: "mate-handover", actor: "captain", mateRecipient: true });
       }
       await updateFirstmateConfig({ migration: null });
       return { agentId: migration.agentId, workspaceId: workspace.id };

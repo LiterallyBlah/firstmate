@@ -24,6 +24,7 @@ import { chmod, mkdir, open, readdir, readFile, realpath, rename, rm, stat, writ
 import { dirname, isAbsolute, join, normalize, relative, sep } from "node:path";
 
 import { MAX_EDITABLE_BYTES, type HomeEntry } from "../shared/files";
+import { newAction, observedWrite, type RecordOrigin } from "./receipts";
 import { serialized } from "./serialize";
 
 /** How much of a file is read to decide whether it is text. */
@@ -137,7 +138,11 @@ export class FileChangedError extends Error {
 /** For tests: runs once the temporary file is written, before the destination is checked again. */
 export interface WriteHooks {
   afterStaging?: () => Promise<void>;
+  /** The action the write is part of, for the receipt journal's record ledger; nothing when it is off. */
+  origin?: RecordOrigin | (() => RecordOrigin);
 }
+
+const originOf = (hooks: WriteHooks) => hooks.origin ?? (() => newAction("home.write"));
 
 export async function writeTextFile(
   home: string,
@@ -147,7 +152,8 @@ export async function writeTextFile(
   const { absolute, relative: rel } = await resolveInHome(home, input.path);
   if (rel === "") throw new Error("The home itself is not a file.");
   return serialized(absolute, async () => {
-    await stageAndReplace(absolute, input.content, (current) => checkVersion(rel, current, input), hooks);
+    await observedWrite({ absolute, path: rel }, originOf(hooks),
+      () => stageAndReplace(absolute, input.content, (current) => checkVersion(rel, current, input), hooks), { after: input.content });
     const saved = await stat(absolute);
     return { path: rel, size: saved.size, modifiedMs: Math.floor(saved.mtimeMs) };
   });
@@ -168,16 +174,17 @@ export async function replaceTextIfUnchanged(
   const { absolute, relative: rel } = await resolveInHome(home, path);
   if (rel === "") throw new Error("The home itself is not a file.");
   await serialized(absolute, () =>
-    stageAndReplace(
-      absolute,
-      content,
-      async (current) => {
-        if (current === null) throw new FileChangedError(`"${rel}" was deleted since it was read.`);
-        if (!current.isFile()) throw new Error(`"${rel}" is not a file.`);
-        if ((await readFile(absolute, "utf8")) !== expected) throw new FileChangedError(`"${rel}" changed since it was read.`);
-      },
-      hooks,
-    ),
+    observedWrite({ absolute, path: rel }, originOf(hooks), () =>
+      stageAndReplace(
+        absolute,
+        content,
+        async (current) => {
+          if (current === null) throw new FileChangedError(`"${rel}" was deleted since it was read.`);
+          if (!current.isFile()) throw new Error(`"${rel}" is not a file.`);
+          if ((await readFile(absolute, "utf8")) !== expected) throw new FileChangedError(`"${rel}" changed since it was read.`);
+        },
+        hooks,
+      ), { before: expected, after: content }),
   );
 }
 

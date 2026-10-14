@@ -24,6 +24,15 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { TEMPLATES, fill, readTemplate, withoutNotes } from "./templates";
+import { newAction, observedWrite, type RecordOrigin } from "./receipts";
+
+/** A write of the charter's copies, for the receipt journal's record ledger; just the write while it is off. */
+function charterWrite(home: string, path: string, origin: RecordOrigin, content: string): Promise<void> {
+  return observedWrite({ absolute: join(home, path), path }, origin, () => writeFile(join(home, path), content, "utf8"), { after: content });
+}
+function charterRemove(home: string, path: string, origin: RecordOrigin): Promise<void> {
+  return observedWrite({ absolute: join(home, path), path }, origin, () => rm(join(home, path), { force: true }), { after: null });
+}
 
 export const CHARTER_FILE = TEMPLATES.charter;
 export const NEW_CHARTER_FILE = TEMPLATES.charterNew;
@@ -108,21 +117,21 @@ export async function readCharterState(home: string, plugin?: PluginCharter): Pr
  * and out of date, and `charter.new.md` beside an edited one that is out of date — and says what
  * `AGENTS.md` should be rendered from. The caller has created `data/`.
  */
-export async function syncCharter(home: string, plugin?: PluginCharter): Promise<CharterState> {
+export async function syncCharter(home: string, plugin?: PluginCharter, origin: RecordOrigin = newAction("charter.sync")): Promise<CharterState> {
   const templates = plugin ?? (await pluginTemplates());
   const path = join(home, CHARTER_FILE);
   const { rewrite, ...state } = assessCharter(await readOptional(path), templates.charter);
-  if (rewrite) await writeFile(path, copyOf(templates), "utf8");
-  if (state.outdated) await writeFile(join(home, NEW_CHARTER_FILE), newCopyOf(templates), "utf8");
-  else await rm(join(home, NEW_CHARTER_FILE), { force: true });
+  if (rewrite) await charterWrite(home, CHARTER_FILE, origin, copyOf(templates));
+  if (state.outdated) await charterWrite(home, NEW_CHARTER_FILE, origin, newCopyOf(templates));
+  else await charterRemove(home, NEW_CHARTER_FILE, origin);
   return state;
 }
 
 /** Writes `charter.new.md` for the captain to compare, when there is anything to compare. */
-export async function writeNewCharter(home: string, plugin?: PluginCharter): Promise<boolean> {
+export async function writeNewCharter(home: string, plugin?: PluginCharter, origin: RecordOrigin = newAction("charter.compare", "captain")): Promise<boolean> {
   const templates = plugin ?? (await pluginTemplates());
   const state = await readCharterState(home, templates);
-  if (state.outdated) await writeFile(join(home, NEW_CHARTER_FILE), newCopyOf(templates), "utf8");
+  if (state.outdated) await charterWrite(home, NEW_CHARTER_FILE, origin, newCopyOf(templates));
   return state.outdated;
 }
 
@@ -131,7 +140,7 @@ export async function writeNewCharter(home: string, plugin?: PluginCharter): Pro
  * Moves the fingerprint on — restoring the note if it was deleted — keeps every word the captain wrote,
  * and removes `charter.new.md`.
  */
-export async function acknowledgeCharter(home: string, plugin?: PluginCharter): Promise<void> {
+export async function acknowledgeCharter(home: string, plugin?: PluginCharter, origin: RecordOrigin = newAction("charter.acknowledge", "captain")): Promise<void> {
   const templates = plugin ?? (await pluginTemplates());
   const path = join(home, CHARTER_FILE);
   const copy = await readOptional(path);
@@ -140,7 +149,7 @@ export async function acknowledgeCharter(home: string, plugin?: PluginCharter): 
     const next = MARK.test(copy)
       ? copy.replace(MARK, `firstmate-charter ${current}`)
       : `${noteOf(templates, current)}\n\n${copy.trimStart()}`;
-    if (next !== copy) await writeFile(path, next, "utf8");
+    if (next !== copy) await charterWrite(home, CHARTER_FILE, origin, next);
   }
-  await rm(join(home, NEW_CHARTER_FILE), { force: true });
+  await charterRemove(home, NEW_CHARTER_FILE, origin);
 }

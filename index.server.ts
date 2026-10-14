@@ -11,6 +11,9 @@ import {
   steerCrew,
 } from "./server/crew";
 import { registerCrewSeen } from "./server/crew-seen";
+import { pageTimeline, registerReceiptObservers } from "./server/receipt-observers";
+import { newAction, receiptJournal } from "./server/receipts";
+import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
 import { findFiles, listDirectory, readTextFile, requireHome, writeTextFile } from "./server/files";
 import { CHARTER_FILE, NEW_CHARTER_FILE, acknowledgeCharter, writeNewCharter } from "./server/charter-file";
@@ -138,7 +141,7 @@ export default function contribute(server: PluginServerContext) {
 
   server.handle(editItemTag, async ({ key, tag, present }, { paseo }) => {
     const fleet = await loadFleet(paseo, await readFirstmateConfig(), reports, async () => [], () => remotes.read());
-    return changeItemTag(await requireHome(fleet.home), findTagItem(fleet.cards, key), tag, present);
+    return changeItemTag(await requireHome(fleet.home), findTagItem(fleet.cards, key), tag, present, { origin: () => newAction("item-tag.edit", "captain") });
   });
 
   server.handle(launchMateRpc, (input, { paseo }) => launchMate(paseo, input));
@@ -179,10 +182,20 @@ export default function contribute(server: PluginServerContext) {
   });
   // A remote worker's card, through the remote request path; see server/remote-crew.ts.
   server.handle(steerRemoteCrewRpc, async ({ serverId, agentId, text }, { paseo }) => {
-    const sent = await steerRemoteCrew(remotes, serverId, agentId, text);
+    // A remote send carries no id of ours into that host's timeline, so its receipt says so (`carried: false`).
+    const receipt = receiptJournal()?.beginSend({ channel: "remote-steer", actor: "captain", recipient: `${serverId}/${agentId}`, text: text.trim(), carried: false });
+    let sent: Awaited<ReturnType<typeof steerRemoteCrew>>;
+    try {
+      sent = await steerRemoteCrew(remotes, serverId, agentId, text);
+    } catch (error) {
+      receipt?.settle("failed", error);
+      throw error;
+    }
+    receipt?.settle("sent");
     // The plugin cannot see that worker's turn end, so the first mate hears of it now; the words are already sent.
     try {
-      await queueMateNote(paseo, await remoteSteerText(sent.host, sent.worker, sent.text));
+      await queueMateNote(paseo, await remoteSteerText(sent.host, sent.worker, sent.text),
+        receipt === undefined ? undefined : { source: "remote-steer", relates: [receipt.messageId] });
     } catch (error) {
       console.error(`[firstmate] could not tell the first mate about the captain's words to ${agentId}:`, error);
     }
@@ -212,14 +225,14 @@ export default function contribute(server: PluginServerContext) {
   server.handle(readHomeFile, async ({ path }) => readTextFile(await home(), path));
   server.handle(findHomeFiles, async ({ paths }) => ({ files: await findFiles(await home(), paths) }));
   server.handle(writeHomeFile, async (input) => {
-    const written = await writeTextFile(await home(), input);
+    const written = await writeTextFile(await home(), input, { origin: () => newAction("files.save", "captain") });
     // The charter's source, saved in the panel, reaches AGENTS.md at once rather than at the next reload.
     if (written.path === CHARTER_FILE) await refreshCharter();
     return written;
   });
 
   server.handle(removeSuggestionRpc, async (suggestion) => ({
-    suggestions: await removeSuggestion(await home(), suggestion),
+    suggestions: await removeSuggestion(await home(), suggestion, { origin: () => newAction("suggestion.remove", "captain") }),
   }));
 
   server.handle(compareCharterRpc, async () => ({
@@ -234,9 +247,14 @@ export default function contribute(server: PluginServerContext) {
   // board's `useSettings` reads and writes valid for this installation.
   server.registerSettings(displaySettings);
 
+  // The receipt journal's read-only timeline pages; refused while FIRSTMATE_RECEIPT_JOURNAL is off. See server/receipts.ts.
+  server.handle(pageReceiptTimeline, async (input, { paseo }) => pageTimeline(paseo, await readFirstmateConfig(), input));
+
   const unregisterRelay = registerSteerRelay(server, steers);
   // A crewmate whose finish the first mate has been told about leaves Paseo's "Ready to review"; see server/crew-seen.ts.
   const unregisterCrewSeen = registerCrewSeen(server, readFirstmateConfig);
+  // The first mate's tool calls and its crew's turn ends, for the receipt journal; idle while it is off.
+  const unregisterReceipts = registerReceiptObservers(server, readFirstmateConfig);
 
   // A charter change reaches a home already in use on the next reload, rather
   // than waiting for the next launch. Only a home a launch has prepared: this
@@ -248,6 +266,7 @@ export default function contribute(server: PluginServerContext) {
   return () => {
     unregisterRelay();
     unregisterCrewSeen();
+    unregisterReceipts();
     watches.stop();
     remotes.stop();
   };

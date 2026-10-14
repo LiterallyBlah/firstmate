@@ -39,7 +39,9 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/watch-schedule.ts`    | A crontab line → `Schedule`, and whether a local minute matches it. Pure.                  |
 | `server/watch-run.ts`         | One script run: its own process group, a timeout, stdout capped, stderr's tail.           |
 | `server/process-launch.ts`    | Windows desktop/npm CLI entry points and native Node watch launches, without a shell.   |
-| `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`).   |
+| `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`), and each send's receipt. |
+| `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
+| `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
 | `shared/attachments.ts`       | What the captain can attach: the message's shape, image-or-file by Paseo's rules, the size cap. |
 | `server/uploads.ts`           | An attached file written to `$PASEO_HOME/uploads/`, described as Paseo's `uploaded_file`.     |
 | `server/cli.ts`               | `paseo stop` and `paseo project rename`, for what the SDK does not have.                   |
@@ -195,6 +197,42 @@ Keep this ordering when changing launch, restart or migration.
 Claude plan failed native approval/mode/resume canaries. `server/adviser-profiles.ts` offers no profile.
 `server/submissions.ts` is an unwired, content-bound journal library; it separates uncertain/recorded
 delivery from intake and action receipts. No topic UI, transport or authenticated ack adapter is wired.
+
+## The receipt journal is observe-only, and off by default
+
+`server/receipts.ts` keeps a forward-only, append-only, hash-linked record of what the plugin sends, which
+first mate was at the helm, what it sees the first mate do, and what it writes into the home — so a first
+mate's calls can be bound to what it was told and what it changed. It runs only with
+`FIRSTMATE_RECEIPT_JOURNAL=1` in the daemon's environment. **Off, nothing changes**: no file, no
+`messageId` added, every send and write the call it was before (`receipt-paths.test.ts` holds the off
+calls to the old ones exactly, and `receipts.test.ts` a prepared home byte for byte).
+
+- **Shape.** `$PASEO_HOME/plugin-data/firstmate/receipts/NNNNNN/NNNNNNNN.json`, one canonical-JSON entry
+  per file published by `submissions.ts`'s exclusive hard link (its `canonical`, `digest` and `publish`),
+  each with its sequence and the SHA-256 of the canonical entry before it. Every shard of 1,000 opens
+  with a `checkpoint` of the generation ledger, so a start-up reads only the newest shard;
+  `verifyReceiptJournal` reads all of it and fails closed with a coded `ReceiptJournalError`.
+- **Never in the live path's way.** A receipt is queued beside the operation and written after it hands
+  off; a send's attempt is recorded before its result, so an attempt with no result is an uncertain send.
+  A receipt that cannot be written becomes an `uncertainty` entry at the next good append; one a broken
+  chain refuses goes to `receipt-uncertainties.jsonl` beside it. `observedSend` falls back to the off
+  path if the journal throws, and `observedWrite` passes the write's own result and errors on untouched.
+- **Sends** go through `sendWithoutInterrupting`/`observedSend` with a `receipt` (channel, actor). Ids the
+  plugin already gave (opening, handover, notes, watches, inspections) are kept; a steer, an ask and
+  `/compact` get `firstmate-<channel>-<uuid>`, never starting `firstmate-watch-`. A remote steer's id does
+  not travel to the host (`carried: false`). A board steer's id rides in `CaptainSteers` to the relay,
+  which records `steer-read` and a `note-queued` naming it.
+- **Generations** are recorded where the plugin changes the first mate (launch, restart, adopt, release,
+  handover) and, where the config changed without it (the role helper can), as `observed` at the next
+  receipt. A receipt to a first mate is its generation's; any other the one at the helm when it happened.
+- **Records**: `observedWrite` hashes before and after each plugin write into the home — the Files view,
+  suggestions, item tags, `prepareHome`, the charter's copies, built-in watches, handoffs — under an
+  `actionId` (`newAction`). An unchanged write records nothing. The first mate's own writes are not seen.
+- **Observed, not sent**: the first mate's Paseo tool calls in a turn it ends (`mate-actions`, hashed
+  detail), and a crewmate of it ending a turn (`native-finish`, always `certainty: "uncertain"` — the
+  `<paseo-system>` note is in no timeline a plugin reads). `firstmate.receipts.timeline` pages the first
+  mate's, a former first mate's or a crewmate's timeline through the SDK cursor and returns `gap`,
+  `staleCursor`, `hasOlder` as Paseo gives them; it is refused while the journal is off and writes nothing.
 
 ## Remote work is on the board
 

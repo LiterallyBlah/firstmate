@@ -17,6 +17,7 @@ import { stopAgent } from "./cli";
 import { closingText, fetchLiveAgent } from "./fleet";
 import type { PaseoAgent, PaseoApi } from "./host-types";
 import { askMate, queueMateNote } from "./mate";
+import { receiptJournal, receiptMessageId } from "./receipts";
 import { sendWithoutInterrupting } from "./send";
 import { TEMPLATES, message } from "./templates";
 
@@ -48,12 +49,13 @@ const STEER_TTL_MS = 60 * 60 * 1000;
  * a new one, so the ended turn has to show it read the words.
  */
 export class CaptainSteers {
-  private readonly pending = new Map<string, Array<{ text: string; at: number }>>();
+  private readonly pending = new Map<string, Array<{ text: string; at: number; messageId?: string | undefined }>>();
 
   constructor(private readonly now: () => number = Date.now) {}
 
-  record(agentId: string, text: string): void {
-    this.pending.set(agentId, [...this.fresh(agentId), { text, at: this.now() }]);
+  /** `messageId` is the steer's receipt id, when the receipt journal is on; it changes nothing here. */
+  record(agentId: string, text: string, messageId?: string): void {
+    this.pending.set(agentId, [...this.fresh(agentId), { text, at: this.now(), messageId }]);
   }
 
   /** Takes back a steer whose send failed, so it is never relayed as said. */
@@ -65,15 +67,20 @@ export class CaptainSteers {
 
   /** The steers `userMessages` shows were read, removed; null when it shows none of them. */
   take(agentId: string, userMessages: readonly string[]): string[] | null {
+    return this.takeRead(agentId, userMessages)?.map((entry) => entry.text) ?? null;
+  }
+
+  /** As `take`, with each steer's receipt id. */
+  takeRead(agentId: string, userMessages: readonly string[]): Array<{ text: string; messageId?: string | undefined }> | null {
     const entries = this.fresh(agentId);
     const read = entries.filter((entry) => userMessages.some((message) => message.includes(entry.text.trim())));
     const left = entries.filter((entry) => !read.includes(entry));
     if (left.length === 0) this.pending.delete(agentId);
     else this.pending.set(agentId, left);
-    return read.length === 0 ? null : read.map((entry) => entry.text);
+    return read.length === 0 ? null : read.map(({ text, messageId }) => ({ text, messageId }));
   }
 
-  private fresh(agentId: string): Array<{ text: string; at: number }> {
+  private fresh(agentId: string): Array<{ text: string; at: number; messageId?: string | undefined }> {
     const cutoff = this.now() - STEER_TTL_MS;
     return (this.pending.get(agentId) ?? []).filter((entry) => entry.at >= cutoff);
   }
@@ -85,9 +92,11 @@ export class CaptainSteers {
  */
 export async function steerCrew(paseo: PaseoApi, steers: CaptainSteers, agentId: string, text: string): Promise<void> {
   await requireCrew(paseo, agentId);
-  steers.record(agentId, text);
+  // With the receipt journal on, the steer carries an id of its own into the crewmate's timeline.
+  const messageId = receiptMessageId("crew-steer");
+  steers.record(agentId, text, messageId);
   try {
-    await sendWithoutInterrupting(paseo, agentId, text);
+    await sendWithoutInterrupting(paseo, agentId, text, messageId === undefined ? {} : { messageId }, { channel: "crew-steer", actor: "captain" });
   } catch (error) {
     steers.forget(agentId, text);
     throw error;
@@ -153,12 +162,21 @@ export function registerSteerRelay(
     // A cancelled turn is the one a steer replaced, not the one that answers it.
     if (event.outcome.kind === "canceled") return;
     const userMessages = event.timeline.flatMap((item) => (item.type === "user_message" ? [item.text] : []));
-    const captain = steers.take(event.agent.id, userMessages);
-    if (captain === null) return;
+    const read = steers.takeRead(event.agent.id, userMessages);
+    if (read === null) return;
+    const captain = read.map((entry) => entry.text);
+    const ids = read.flatMap((entry) => (entry.messageId === undefined ? [] : [entry.messageId]));
+    const journal = receiptJournal();
+    for (const messageId of journal === null ? [] : ids) {
+      journal!.record({
+        kind: "steer-read", messageId, crewAgentId: event.agent.id, turnId: event.turnId,
+        clientMessageIdSeen: event.timeline.some((item) => item.type === "user_message" && item.clientMessageId === messageId),
+      });
+    }
     try {
-      await queueMateNote(paseo, await relayText(event.agent, captain, closingText(event.timeline)));
+      await queueMateNote(paseo, await relayText(event.agent, captain, closingText(event.timeline)), { source: "steer-relay", relates: ids });
     } catch (error) {
-      captain.forEach((text) => steers.record(event.agent.id, text));
+      read.forEach((entry) => steers.record(event.agent.id, entry.text, entry.messageId));
       console.error(`[firstmate] could not tell the first mate about the captain's words to ${event.agent.id}:`, error);
     }
   });

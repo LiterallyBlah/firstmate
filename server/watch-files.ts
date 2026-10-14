@@ -27,6 +27,7 @@ import { WATCHES_DIR } from "../shared/fleet";
 import { parseSchedule, type Schedule } from "./watch-schedule";
 import { TEMPLATES, fill, readTemplate, type TemplatePath } from "./templates";
 import { windowsWatchProblem } from "./process-launch";
+import { newAction, observedWrite, type RecordOrigin } from "./receipts";
 
 export { WATCHES_DIR };
 
@@ -192,22 +193,31 @@ export async function builtInStates(home: string): Promise<Map<string, BuiltInSt
  * Writes the folder and its README when missing, and each built-in watch when it is missing or an
  * untouched copy of an older version.
  */
-export async function seedWatches(home: string): Promise<void> {
+export async function seedWatches(home: string, origin: RecordOrigin = newAction("seed-watches")): Promise<void> {
   const directory = join(home, WATCHES_DIR);
   await mkdir(directory, { recursive: true });
-  try {
-    await writeFile(join(home, TEMPLATES.watchesReadme), await readTemplate(TEMPLATES.watchesReadme), {
-      encoding: "utf8",
-      flag: "wx",
-    });
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-  }
+  const readme = await readTemplate(TEMPLATES.watchesReadme);
+  await observedWrite({ absolute: join(home, TEMPLATES.watchesReadme), path: TEMPLATES.watchesReadme }, origin, async () => {
+    try {
+      await writeFile(join(home, TEMPLATES.watchesReadme), readme, {
+        encoding: "utf8",
+        flag: "wx",
+      });
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      return false;
+    }
+  }, { before: null, after: readme });
   for (const watch of BUILT_IN_WATCHES) {
     const path = join(directory, watch.name);
     const template = await readTemplate(watch.template);
-    if (!assessBuiltIn(await readOptional(path), template).rewrite) continue;
-    await writeFile(path, copyOf(template), "utf8");
-    await chmod(path, 0o755);
+    const copy = await readOptional(path);
+    if (!assessBuiltIn(copy, template).rewrite) continue;
+    const content = copyOf(template);
+    await observedWrite({ absolute: path, path: `${WATCHES_DIR}/${watch.name}` }, origin, async () => {
+      await writeFile(path, content, "utf8");
+      await chmod(path, 0o755);
+    }, { before: copy, after: content });
   }
 }
