@@ -1,5 +1,8 @@
 # The ship deck in motion: evidence
 
+> The Deck has since become a standard feature, and the `FIRSTMATE_SHIP_DECK` switch this describes is gone
+> (`docs/ship-deck-default/README.md`). What follows is the evidence as it stood when it was written, behind the switch.
+
 The canvas (`docs/ship-deck-canvas/`) and the art (`art/ship-deck/`) put hull C, its crew and its props on
 screen, standing still. This increment makes it move: sailors walk to their state's place as their state
 changes, join and leave through the hatch, idle with small motions, and the ship rides a living sea. Still

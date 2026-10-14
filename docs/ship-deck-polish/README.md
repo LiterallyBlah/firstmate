@@ -1,5 +1,8 @@
 # The ship deck's polish: evidence
 
+> The Deck has since become a standard feature, and the `FIRSTMATE_SHIP_DECK` switch this describes is gone
+> (`docs/ship-deck-default/README.md`). What follows is the evidence as it stood when it was written, behind the switch.
+
 Three fixes to the moving deck (`docs/ship-deck-motion/`), still behind `FIRSTMATE_SHIP_DECK` and still
 desktop only. No new art: the badges are drawn, and the sea, sky and gulls are left as they were.
 

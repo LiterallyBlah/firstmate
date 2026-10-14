@@ -1,0 +1,50 @@
+{
+  "narrow": {
+    "identical": true,
+    "characters": 24680,
+    "deckCalls": {
+      "engine": 0,
+      "art": 0,
+      "environment": 0,
+      "extras": 0
+    }
+  },
+  "wide": {
+    "characters": {
+      "main": 95473,
+      "branch": 96318
+    },
+    "differsAt": 7762,
+    "addedText": "Deck Show the crew as sailors on a ship deck.",
+    "identicalWithoutTheDeckSegment": true,
+    "deckCalls": {
+      "engine": 0,
+      "art": 0,
+      "environment": 0,
+      "extras": 0
+    }
+  },
+  "deck": {
+    "renderer": "webgl",
+    "motion": "still",
+    "caption": "Drawn with WebGL · 12 on deck",
+    "deckCalls": {
+      "engine": 1,
+      "art": 1,
+      "environment": 1,
+      "extras": 1
+    }
+  },
+  "noWebgl": {
+    "offered": true,
+    "sentence": "This display has no WebGL, so the ship deck cannot draw. The Crew board shows everything it would.",
+    "canvases": 0,
+    "deckCalls": {
+      "engine": 0,
+      "art": 0,
+      "environment": 0,
+      "extras": 0
+    }
+  },
+  "errors": []
+}

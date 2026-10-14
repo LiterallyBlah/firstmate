@@ -60,8 +60,8 @@ await build({
   logLevel: "warning",
 });
 const { readDeckArt, readDeckEngine } = await import(pathToFileURL(join(generated, "ship-deck-server.mjs")).href);
-const deckEngine = JSON.stringify(await readDeckEngine({ FIRSTMATE_SHIP_DECK: "1" }, async () => root));
-const deckArt = JSON.stringify(await readDeckArt({ FIRSTMATE_SHIP_DECK: "1" }, async () => root));
+const deckEngine = JSON.stringify(await readDeckEngine(async () => root));
+const deckArt = JSON.stringify(await readDeckArt(async () => root));
 
 const files = {
   "/host.js": join(generated, "polish-host.js"),

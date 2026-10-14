@@ -1,8 +1,8 @@
 /**
  * The ship deck: the crew as sailors on hull C's deck, drawn from the generated art by PixiJS on a WebGL
- * canvas in the right-hand pane. Behind `FIRSTMATE_SHIP_DECK` (`server/ship-deck.ts`), off by default;
- * the screen offers it only while the fleet load says the switch is on, and only in the desktop app's
- * wide layout.
+ * canvas in the right-hand pane. A standard part of the screen in the desktop app's wide layout
+ * (`deckOffered`); a phone or a narrow window is not offered it, and a display without WebGL is told why
+ * in words.
  *
  * It draws from the cards the board already has — `FleetSurface` passes them in from the shared fleet
  * query — so it polls nothing of its own. When that query fails, `stale` greys the whole crew: each
@@ -192,8 +192,8 @@ export function ShipDeckView({
         <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Ship deck</Text>
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
           {status.kind === "drawing"
-            ? `Preview · drawn with ${status.renderer === "webgl" ? "WebGL" : status.renderer} · ${crew} on deck`
-            : "Preview"}
+            ? `Drawn with ${status.renderer === "webgl" ? "WebGL" : status.renderer} · ${crew} on deck`
+            : ""}
         </Text>
       </View>
       {scene.stale === 0 ? null : (

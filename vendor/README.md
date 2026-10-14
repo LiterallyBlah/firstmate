@@ -4,7 +4,7 @@
 the version `package.json` pins as a devDependency (8.22.0), copied unchanged. PixiJS is MIT-licensed;
 its copyright and licence notice is in the file's banner.
 
-The daemon serves it to the ship deck (`server/ship-deck.ts`) while `FIRSTMATE_SHIP_DECK` is on. It is a
+The daemon serves it to the ship deck (`server/ship-deck.ts`) when a desktop app opens it. It is a
 file rather than a dependency so that an npm install of the plugin does not pull Pixi's whole package.
 It is not bundled, so a phone's Hermes never has to parse it.
 

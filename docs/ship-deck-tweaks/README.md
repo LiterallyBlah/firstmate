@@ -1,5 +1,8 @@
 # The ship deck under sail: evidence
 
+> The Deck has since become a standard feature, and the `FIRSTMATE_SHIP_DECK` switch this describes is gone
+> (`docs/ship-deck-default/README.md`). What follows is the evidence as it stood when it was written, behind the switch.
+
 Four changes to the Deck, all still behind `FIRSTMATE_SHIP_DECK` and desktop only: the generated sail on
 hull C's mast, a wake, a look per crewmate, and an idle sailor that reads as at rest. The art is the
 assets-2 expansion (`art/ship-deck/assets-2/README.md`), served by a new `firstmate.deck.extras` from
