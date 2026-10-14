@@ -8,6 +8,10 @@
  * The exports are the chat pane's resize drag, copied from
  * `github-board/client/web.ts` — there is no workspace root to share it from —
  * and the chat's file picker, paste and drop.
+ *
+ * The one exception is the ship deck, behind `FIRSTMATE_SHIP_DECK`: its canvas
+ * mount (`client/deck-mount.ts`) and its Pixi drawing (`client/deck-pixi.ts`)
+ * keep their browser globals to themselves, in the same narrow-shape style.
  */
 import { Platform } from "react-native";
 import { rasterImageType } from "../shared/attachments";

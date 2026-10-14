@@ -1,0 +1,2 @@
+# The vendored PixiJS browser build is served byte for byte; never convert its line endings.
+vendor/** -text -diff linguist-vendored

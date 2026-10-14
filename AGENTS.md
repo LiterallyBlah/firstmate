@@ -42,6 +42,11 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`), and each send's receipt. |
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
+| `server/ship-deck.ts`, `shared/ship-deck.ts` | The ship deck's switch, `FIRSTMATE_SHIP_DECK` (off by default), carried on the fleet load; `firstmate.deck.engine` serving `vendor/pixi.min.js`. |
+| `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the counts below it.                 |
+| `client/deck-scene.ts`        | Cards → sailors on the deck, placed by column; whether the screen offers the Deck. Pure.    |
+| `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated; every failure a status. |
+| `client/deck-pixi.ts`         | The deck and its sailors drawn with Pixi, handed in through a narrow `PixiModule`.          |
 | `shared/attachments.ts`       | What the captain can attach: the message's shape, image-or-file by Paseo's rules, the size cap. |
 | `server/uploads.ts`           | An attached file written to `$PASEO_HOME/uploads/`, described as Paseo's `uploaded_file`.     |
 | `server/cli.ts`               | `paseo stop` and `paseo project rename`, for what the SDK does not have.                   |
@@ -233,6 +238,39 @@ calls to the old ones exactly, and `receipts.test.ts` a prepared home byte for b
   `<paseo-system>` note is in no timeline a plugin reads). `firstmate.receipts.timeline` pages the first
   mate's, a former first mate's or a crewmate's timeline through the SDK cursor and returns `gap`,
   `staleCursor`, `hasOlder` as Paseo gives them; it is refused while the journal is off and writes nothing.
+
+## The ship deck is a WebGL canvas, behind `FIRSTMATE_SHIP_DECK`
+
+A preview, off by default (`docs/ship-deck-canvas/README.md` has the evidence). With the switch on, the
+fleet load carries `shipDeck: true` (`withShipDeck`). Then the wide layout's Crew/Files switch gains
+**Deck**, in a web renderer only (`deckOffered`). Off, the load is the same object with no key: the
+browser harness holds the screen's DOM identical to main's. What it found applies to any client code:
+
+- **The client bundle must parse under React Native 0.81's Hermes, so it has no `class` syntax.** A phone
+  parses the whole bundle before any of it runs, and the host's `hermesc` refuses `class` with its
+  default flags (it needs `-Xes6-class`). Whether the app turns that flag on at run time has not been
+  checked on a device, so treat it as a constraint. esbuild lowers `async` for the client (the compiler's
+  `supported`), but it cannot lower classes. Main's bundle has none. Pixi has them, so even lazily
+  bundled it would risk the plugin on phones with the switch off. `docs/ship-deck-canvas/compile.mjs`
+  runs Paseo's compiler and `hermesc` over both bundles. Check any new client dependency the same way.
+- **A browser-only library is served, not bundled.** `vendor/pixi.min.js` is Pixi's own prebuilt build,
+  shipped in `files` and held byte-identical to the pinned devDependency by `ship-deck.test.ts`; an npm
+  dependency would add about 76 MB to every install. `firstmate.deck.engine` sends it as text (refused
+  while the switch is off). `evaluatePixi` runs it with `new Function`, which needs the same permission
+  as the app's own `(0, globalThis.eval)` of every plugin bundle. It runs once per session, only after a
+  host and WebGL have been found.
+- **The escape hatch is a childless `View`.** On the web, react-native-web hands a `View`'s ref the DOM
+  element, so `mountDeck` appends Pixi's `<canvas>` to it by hand — no DOM JSX, no forbidden host module.
+  React owns the element and nothing inside it. On native the ref has no `appendChild`, so the deck says
+  where it draws instead.
+- **Pixi's types cannot be imported into the project**: `@xmldom/xmldom`, one of its dependencies,
+  references `lib="dom"`, which would quietly let all of `client/` use DOM types. `deck-pixi.ts` declares
+  the narrow shape it draws with. The test holds that shape to the real build's prototypes, and the
+  harness draws with it in Edge.
+
+The ticker never starts: a frame is drawn on a scene change or a resize (a `ResizeObserver` on the host),
+so a quiet crew costs nothing. Leaving the Deck destroys the application and its canvas. A mount torn
+down mid-start destroys whatever starts.
 
 ## Remote work is on the board
 
