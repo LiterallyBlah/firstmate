@@ -15,3 +15,6 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+        env:
+          # Test setup must override an enabled journal on developer machines.
+          FIRSTMATE_RECEIPT_JOURNAL: "1"
