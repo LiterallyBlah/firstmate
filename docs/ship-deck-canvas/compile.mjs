@@ -69,6 +69,7 @@ assert.equal(main.clientBundle.includes("node_modules/pixi.js"), false, "main bu
 assert.equal(classes(main.clientBundle), 0, "main has no class syntax");
 assert.equal(classes(branch.clientBundle), 0, "the branch has no class syntax");
 assert(branch.clientBundle.includes("client/deck-mount.ts"), "the deck is in the branch bundle");
+assert.equal(branch.clientBundle.includes("iVBORw0KGgo"), false, "the deck's art is served, not bundled");
 
 const hermesc = join(
   root,

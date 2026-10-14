@@ -1,0 +1,369 @@
+{
+  "atlas": {
+    "width": 426,
+    "height": 275,
+    "colours": 48
+  },
+  "ship": {
+    "frame": [
+      0,
+      0,
+      426,
+      161
+    ]
+  },
+  "pieces": {
+    "near": {
+      "frame": [
+        0,
+        162,
+        404,
+        80
+      ],
+      "x": 22,
+      "y": 81,
+      "baseline": null
+    },
+    "mast": {
+      "frame": [
+        405,
+        162,
+        19,
+        64
+      ],
+      "x": 202,
+      "y": 48,
+      "baseline": 110
+    },
+    "bollard-bow-aft": {
+      "frame": [
+        328,
+        243,
+        10,
+        16
+      ],
+      "x": 75,
+      "y": 79,
+      "baseline": 94
+    },
+    "bollard-bow-fore": {
+      "frame": [
+        339,
+        243,
+        10,
+        13
+      ],
+      "x": 62,
+      "y": 98,
+      "baseline": 110
+    },
+    "bollard-gunwale-fore": {
+      "frame": [
+        373,
+        243,
+        6,
+        5
+      ],
+      "x": 271,
+      "y": 116,
+      "baseline": 121
+    },
+    "bollard-gunwale-aft": {
+      "frame": [
+        366,
+        243,
+        6,
+        5
+      ],
+      "x": 293,
+      "y": 116,
+      "baseline": 121
+    }
+  },
+  "crew": {
+    "base": {
+      "front-idle": {
+        "frame": [
+          0,
+          243,
+          16,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "front-walk-a": {
+        "frame": [
+          17,
+          243,
+          16,
+          32
+        ],
+        "feet": [
+          7,
+          32
+        ]
+      },
+      "front-walk-b": {
+        "frame": [
+          34,
+          243,
+          16,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "side-idle": {
+        "frame": [
+          132,
+          243,
+          11,
+          31
+        ],
+        "feet": [
+          6,
+          31
+        ]
+      },
+      "side-walk-a": {
+        "frame": [
+          144,
+          243,
+          16,
+          31
+        ],
+        "feet": [
+          8,
+          31
+        ]
+      },
+      "side-walk-b": {
+        "frame": [
+          161,
+          243,
+          15,
+          31
+        ],
+        "feet": [
+          7,
+          31
+        ]
+      },
+      "hauling": {
+        "frame": [
+          222,
+          243,
+          22,
+          30
+        ],
+        "feet": [
+          9,
+          30
+        ]
+      },
+      "leaning": {
+        "frame": [
+          245,
+          243,
+          15,
+          30
+        ],
+        "feet": [
+          4,
+          30
+        ]
+      },
+      "waiting": {
+        "frame": [
+          51,
+          243,
+          14,
+          32
+        ],
+        "feet": [
+          7,
+          32
+        ]
+      }
+    },
+    "outfit": {
+      "front-idle": {
+        "frame": [
+          66,
+          243,
+          16,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "front-walk-a": {
+        "frame": [
+          83,
+          243,
+          16,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "front-walk-b": {
+        "frame": [
+          100,
+          243,
+          16,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "side-idle": {
+        "frame": [
+          177,
+          243,
+          11,
+          31
+        ],
+        "feet": [
+          5,
+          31
+        ]
+      },
+      "side-walk-a": {
+        "frame": [
+          189,
+          243,
+          16,
+          31
+        ],
+        "feet": [
+          8,
+          31
+        ]
+      },
+      "side-walk-b": {
+        "frame": [
+          206,
+          243,
+          15,
+          31
+        ],
+        "feet": [
+          7,
+          31
+        ]
+      },
+      "hauling": {
+        "frame": [
+          261,
+          243,
+          19,
+          30
+        ],
+        "feet": [
+          9,
+          30
+        ]
+      },
+      "leaning": {
+        "frame": [
+          281,
+          243,
+          15,
+          30
+        ],
+        "feet": [
+          4,
+          30
+        ]
+      },
+      "waiting": {
+        "frame": [
+          117,
+          243,
+          14,
+          32
+        ],
+        "feet": [
+          7,
+          32
+        ]
+      }
+    }
+  },
+  "props": {
+    "barrel": {
+      "frame": [
+        297,
+        243,
+        14,
+        18
+      ],
+      "feet": [
+        7,
+        18
+      ]
+    },
+    "crate": {
+      "frame": [
+        312,
+        243,
+        15,
+        17
+      ],
+      "feet": [
+        7,
+        17
+      ]
+    },
+    "rope": {
+      "frame": [
+        350,
+        243,
+        15,
+        8
+      ],
+      "feet": [
+        7,
+        8
+      ]
+    }
+  },
+  "sources": {
+    "ship": {
+      "file": "10-ship-low-rig.png",
+      "sha256": "5c3f7b43df9707bcaf84725c06324e25b410863e3ed133e23a830b761c2ebd93"
+    },
+    "crew-base": {
+      "file": "01-crew-base.png",
+      "sha256": "0e5eb8bcae8126f365f30297baf8acd3179edf44d521ad29892128054f891e2a"
+    },
+    "crew-outfit": {
+      "file": "02-crew-outfit.png",
+      "sha256": "9ac825e86d569941af0aa239f7c7b66d0eb743b46d75d3db4e02d0708da8add3"
+    },
+    "barrel": {
+      "file": "03-barrel.png",
+      "sha256": "df02cd52da3f5f40801e9d3a1f2c943270df7baad65237327ea628e5ee883578"
+    },
+    "crate": {
+      "file": "04-crate.png",
+      "sha256": "cf0a6c0a3ede0ba3229c400a8fa71f2a3cf8337c90a6f189d2817bd381896a4f"
+    },
+    "rope": {
+      "file": "05-rope.png",
+      "sha256": "66f55b693b718e74f8c0cd7894aa8f336845657ecd253449bec58ee782bf8930"
+    }
+  }
+}

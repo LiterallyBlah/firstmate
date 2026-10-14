@@ -14,7 +14,8 @@ import * as zod from "zod";
 import * as contracts from "../board-list/contracts.js";
 import { fleet } from "../board-list/fixtures";
 import { theme as dark } from "../board-list/theme";
-import { deckScene } from "../../client/deck-scene";
+import { fitDeck } from "../../client/deck-pixi";
+import { deckLayers, deckScene } from "../../client/deck-scene";
 import * as stubs from "./stubs.jsx";
 
 const modules = {
@@ -78,26 +79,100 @@ window.mountPlugin = function mountPlugin(source, params) {
   );
 };
 
-/** Where each sailor's body should be on screen, from the same scene code the plugin draws with. */
-window.expectedSailors = function expectedSailors() {
+/**
+ * The deck as it should look, drawn independently with a 2D canvas from the same scene, art and layer order
+ * the plugin draws with (`deckScene`, `deckLayers`, the served atlas): one RGBA per art pixel, the theme's
+ * background where nothing is. Then where each art pixel's centre is on the screenshot, in device pixels,
+ * from the canvas's place and the same fit the deck uses.
+ */
+window.referenceDeck = async function referenceDeck() {
+  const art = await (await fetch("/deck-art.json")).json();
+  const image = new Image();
+  image.src = `data:image/png;base64,${art.png}`;
+  await image.decode();
+  const { manifest } = art;
+  const scene = deckScene(window.fixtureFleet.cards, window.fixtureTheme);
+  const reference = document.createElement("canvas");
+  reference.width = scene.width;
+  reference.height = scene.height;
+  const context = reference.getContext("2d");
+  context.imageSmoothingEnabled = false;
+  context.fillStyle = scene.palette.sea;
+  context.fillRect(0, 0, scene.width, scene.height);
+  const blit = (frame, x, y, flip = false) => {
+    const [fx, fy, fw, fh] = frame;
+    context.save();
+    context.translate(x, y);
+    if (flip) context.scale(-1, 1);
+    context.drawImage(image, fx, fy, fw, fh, 0, 0, fw, fh);
+    context.restore();
+  };
+  const layers = deckLayers(scene, manifest.pieces);
+  for (const layer of layers) {
+    if (layer.kind === "ship") blit(manifest.ship.frame, 0, 0);
+    else if (layer.kind === "piece") blit(manifest.pieces[layer.name].frame, manifest.pieces[layer.name].x, manifest.pieces[layer.name].y);
+    else if (layer.kind === "prop") {
+      const prop = manifest.props[layer.name];
+      blit(prop.frame, layer.x - prop.feet[0], layer.y - prop.feet[1]);
+    } else {
+      const { sailor } = layer;
+      const pose = manifest.crew[sailor.outfit][sailor.pose];
+      if (sailor.flip) blit(pose.frame, sailor.x + pose.feet[0], sailor.y - pose.feet[1], true);
+      else blit(pose.frame, sailor.x - pose.feet[0], sailor.y - pose.feet[1]);
+    }
+  }
+  const pixels = Array.from(context.getImageData(0, 0, scene.width, scene.height).data);
+
+  // Which art pixels are a sailor's, and which of those a depth piece in front of it covers.
+  const opaqueIn = (frame, u, v) => {
+    const [fx, fy, fw, fh] = frame;
+    if (u < 0 || v < 0 || u >= fw || v >= fh) return false;
+    return atlasAlpha[(fy + v) * manifest.atlas.width + fx + u] === 255;
+  };
+  const atlasCanvas = document.createElement("canvas");
+  atlasCanvas.width = manifest.atlas.width;
+  atlasCanvas.height = manifest.atlas.height;
+  const atlasContext = atlasCanvas.getContext("2d");
+  atlasContext.drawImage(image, 0, 0);
+  const atlasData = atlasContext.getImageData(0, 0, manifest.atlas.width, manifest.atlas.height).data;
+  const atlasAlpha = new Uint8Array(manifest.atlas.width * manifest.atlas.height);
+  for (let index = 0; index < atlasAlpha.length; index += 1) atlasAlpha[index] = atlasData[index * 4 + 3];
+  const sailors = scene.sailors.map((sailor) => {
+    const pose = manifest.crew[sailor.outfit][sailor.pose];
+    const [, , fw, fh] = pose.frame;
+    const own = [];
+    const hiddenBy = {};
+    for (let v = 0; v < fh; v += 1) {
+      for (let u = 0; u < fw; u += 1) {
+        if (!opaqueIn(pose.frame, u, v)) continue;
+        const x = sailor.flip ? sailor.x + pose.feet[0] - u - 1 : sailor.x - pose.feet[0] + u;
+        const y = sailor.y - pose.feet[1] + v;
+        own.push([x, y]);
+        for (const [name, piece] of Object.entries(manifest.pieces)) {
+          if (piece.baseline !== null && piece.baseline < sailor.y) continue;
+          if (opaqueIn(piece.frame, x - piece.x, y - piece.y)) hiddenBy[name] = (hiddenBy[name] ?? 0) + 1;
+        }
+      }
+    }
+    return { key: sailor.key, state: sailor.state, x: sailor.x, y: sailor.y, pose: sailor.pose, outfit: sailor.outfit, flip: sailor.flip, pixels: own, hiddenBy };
+  });
+
   const canvas = document.querySelector("canvas[data-firstmate-deck]");
   const box = canvas.getBoundingClientRect();
-  const scene = deckScene(window.fixtureFleet.cards, window.fixtureTheme);
-  const scale = Math.min(box.width / scene.width, box.height / scene.height);
-  const left = box.left + (box.width - scene.width * scale) / 2;
-  const top = box.top + (box.height - scene.height * scale) / 2;
+  const dpr = window.devicePixelRatio;
+  const fit = fitDeck({ width: box.width, height: box.height }, scene, dpr);
   return {
     counts: scene.counts,
-    deckColor: scene.palette.deck,
-    // A point on the open deck, between the quarterdeck and the mast, clear of every zone's sailors.
-    deckPoint: { x: Math.round(left + 280 * scale), y: Math.round(top + 100 * scale) },
-    sailors: scene.sailors.map((sailor) => ({
-      key: sailor.key,
-      state: sailor.state,
-      color: scene.palette.states[sailor.state],
-      x: Math.round(left + sailor.x * scale),
-      y: Math.round(top + (sailor.y + 4) * scale),
-    })),
+    width: scene.width,
+    height: scene.height,
+    pixels,
+    sailors,
+    order: layers.map((layer) => (layer.kind === "sailor" ? layer.sailor.key : layer.kind === "ship" ? "ship" : `${layer.kind}:${layer.name}`)),
+    marks: scene.sailors.map((sailor) => ({ x: sailor.x, y: sailor.y, color: scene.palette.states[sailor.state] })),
+    fit,
+    dpr,
+    /** Device pixel on the screenshot of art pixel (x, y)'s centre. */
+    origin: { left: box.left, top: box.top },
   };
 };
 
@@ -112,4 +187,28 @@ window.pixelsAt = async function pixelsAt(png, points) {
   const context = canvas.getContext("2d");
   context.drawImage(image, 0, 0);
   return points.map(({ x, y }) => Array.from(context.getImageData(x, y, 1, 1).data.slice(0, 3)));
+};
+
+/** The screenshot at every art pixel's centre, as one flat RGB array, row by row. */
+window.deckPixels = async function deckPixels(png, reference) {
+  const image = new Image();
+  image.src = `data:image/png;base64,${png}`;
+  await image.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const context = canvas.getContext("2d");
+  context.drawImage(image, 0, 0);
+  const data = context.getImageData(0, 0, image.width, image.height).data;
+  const { fit, dpr, origin } = reference;
+  const out = [];
+  for (let y = 0; y < reference.height; y += 1) {
+    for (let x = 0; x < reference.width; x += 1) {
+      const sx = Math.floor((origin.left + fit.x + (x + 0.5) * fit.scale) * dpr);
+      const sy = Math.floor((origin.top + fit.y + (y + 0.5) * fit.scale) * dpr);
+      const at = (sy * image.width + sx) * 4;
+      out.push(data[at], data[at + 1], data[at + 2]);
+    }
+  }
+  return out;
 };

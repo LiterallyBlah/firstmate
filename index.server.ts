@@ -15,8 +15,8 @@ import { pageTimeline, registerReceiptObservers } from "./server/receipt-observe
 import { newAction, receiptJournal } from "./server/receipts";
 import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
-import { readDeckEngine, withShipDeck } from "./server/ship-deck";
-import { loadDeckEngine } from "./shared/ship-deck";
+import { readDeckArt, readDeckEngine, withShipDeck } from "./server/ship-deck";
+import { loadDeckArt, loadDeckEngine } from "./shared/ship-deck";
 import { findFiles, listDirectory, readTextFile, requireHome, writeTextFile } from "./server/files";
 import { CHARTER_FILE, NEW_CHARTER_FILE, acknowledgeCharter, writeNewCharter } from "./server/charter-file";
 import { isHomeReady, prepareHome, removeSuggestion } from "./server/home";
@@ -254,6 +254,8 @@ export default function contribute(server: PluginServerContext) {
   server.handle(pageReceiptTimeline, async (input, { paseo }) => pageTimeline(paseo, await readFirstmateConfig(), input));
   // PixiJS's browser build for the ship deck; refused while FIRSTMATE_SHIP_DECK is off. See server/ship-deck.ts.
   server.handle(loadDeckEngine, () => readDeckEngine());
+  // The deck's art: the atlas and its manifest from art/ship-deck/; refused while the switch is off, likewise.
+  server.handle(loadDeckArt, () => readDeckArt());
 
   const unregisterRelay = registerSteerRelay(server, steers);
   // A crewmate whose finish the first mate has been told about leaves Paseo's "Ready to review"; see server/crew-seen.ts.

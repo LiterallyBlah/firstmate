@@ -42,11 +42,12 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`), and each send's receipt. |
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
-| `server/ship-deck.ts`, `shared/ship-deck.ts` | The ship deck's switch, `FIRSTMATE_SHIP_DECK` (off by default), carried on the fleet load; `firstmate.deck.engine` serving `vendor/pixi.min.js`. |
+| `server/ship-deck.ts`, `shared/ship-deck.ts` | The ship deck's switch, `FIRSTMATE_SHIP_DECK` (off by default), carried on the fleet load; `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the counts below it.                 |
-| `client/deck-scene.ts`        | Cards → sailors on the deck, placed by column; whether the screen offers the Deck. Pure.    |
-| `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated; every failure a status. |
-| `client/deck-pixi.ts`         | The deck and its sailors drawn with Pixi, handed in through a narrow `PixiModule`.          |
+| `client/deck-scene.ts`        | Cards → sailors on hull C, placed by column, posed by state; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
+| `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated and the atlas decoded; every failure a status. |
+| `client/deck-pixi.ts`         | The deck, its depth pieces, props and sailor sprites drawn with Pixi, handed in through a narrow `PixiModule`. |
+| `art/ship-deck/`, `docs/ship-deck-art/build-art.py` | The deck's art: one atlas and its manifest, built mechanically from the approved generated PNGs. |
 | `shared/attachments.ts`       | What the captain can attach: the message's shape, image-or-file by Paseo's rules, the size cap. |
 | `server/uploads.ts`           | An attached file written to `$PASEO_HOME/uploads/`, described as Paseo's `uploaded_file`.     |
 | `server/cli.ts`               | `paseo stop` and `paseo project rename`, for what the SDK does not have.                   |
@@ -267,6 +268,18 @@ browser harness holds the screen's DOM identical to main's. What it found applie
   references `lib="dom"`, which would quietly let all of `client/` use DOM types. `deck-pixi.ts` declares
   the narrow shape it draws with. The test holds that shape to the real build's prototypes, and the
   harness draws with it in Edge.
+
+- **The art is served the same way.** `art/ship-deck/deck.png` (one atlas, about 84 KB) and `deck.json`
+  (its manifest, checked against `DeckArtManifestSchema`) go through `firstmate.deck.art`, refused while
+  the switch is off. They are fetched and decoded once a session alongside Pixi, never bundled.
+  `docs/ship-deck-art/build-art.py` rebuilds them from the generated sources; `art/ship-deck/README.md`
+  says where those came from and what still needs a pixel artist.
+- **Depth is the deck row.** Scene coordinates are the hull's own pixels, and a sailor's `x, y` is its
+  feet. The hull is drawn whole. Its mast, bollards and near rail are cut out again as pieces, each with
+  the row it stands on, and `deckLayers` sorts props, sailors and pieces by row. A new place on deck must
+  keep its feet on the hull's deck and off the near rail: `ship-deck.test.ts` reads the atlas to check
+  every zone, however crowded. `render.mjs` compares the WebGL canvas to an independent 2D composite,
+  art pixel by art pixel.
 
 The ticker never starts: a frame is drawn on a scene change or a resize (a `ResizeObserver` on the host),
 so a quiet crew costs nothing. Leaving the Deck destroys the application and its canvas. A mount torn
