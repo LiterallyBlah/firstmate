@@ -45,8 +45,10 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/ship-deck.ts`, `shared/ship-deck.ts` | What the ship deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail, the crew's looks, the plank's shark and splash, and the sky's clouds. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the focused sailor's panel and keys, the legend of badges and counts. |
 | `client/deck-camera.ts`       | The camera: the exact fit or a shot closed in on a focused sailor, the eased zoom between, where the focus panel goes; what a click or an arrow does to the focus. Pure. |
-| `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z. Pure. |
-| `client/deck-hover.ts`        | The sailor under the pointer, by the box it is drawn in; canvas ↔ deck coordinates; where its label goes. Pure. |
+| `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z; the reply marker's pixels and bob. Pure. |
+| `client/deck-hover.ts`        | The sailor under the pointer, by the box it is drawn in; canvas ↔ deck coordinates; where its label goes; where each reply marker hangs (`askMarks`). Pure. |
+| `client/deck-replies.ts`      | Which suggestions are a sailor's replies (`cardReplies`), the replies already picked (`answeredReplies`), where the speech bubble hangs. Pure but for that store. |
+| `client/reply-bubble.tsx`     | The speech bubble over a sailor with its replies as chips, the focus panel's replies, the marker in the legend. |
 | `client/deck-scene.ts`        | Cards → sailors on hull C, by column, greyed when their feed is lost, each with its hover caption; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
 | `client/deck-geometry.ts`     | Hull C's walkable deck, its obstacles and named anchors; A* paths; a spot beside a shared anchor. Pure. |
 | `client/deck-crew.ts`         | The crew in motion: anchors reserved, the state shown at once and walked to after, the hatch, the queue for the plank and each departure's clock, idle motion and the at-ease breath, each sailor's look, each frame's poses. Pure. |
@@ -369,6 +371,17 @@ starts.
   badge keys the legend. An idle sailor breathes out a z under motion. The badge stands in for state poses
   the art lacks; a pixel artist's moving poses would carry state better (`art/ship-deck/README.md`). The
   canvas harness's 2D reference draws the badges too, so the still comparison stays exact.
+- **Replies hang over the crewmate they name** (`client/deck-replies.ts`, `docs/ship-deck-replies/README.md`).
+  A first mate's suggestion whose label or prompt names a card's task id, pull request or agent id is that
+  sailor's reply: it wears a marker (a white speech bubble over its badge), and pointing at it or focusing it
+  shows a speech bubble with each reply as a chip. Nothing new is read or sent: a chip calls the screen's
+  `suggest`, the strip's own send, which marks the reply answered (`answeredReplies`, module scope) so the
+  deck clears the sailor at once, and unmarks it if the send fails. `askMarks` places each marker where it
+  covers no other sailor or marker — over the badge, beside it, else as the badge's white edge — so a crowd
+  never hides anyone's state. While a sailor with replies is focused, `onHover` reports where it stands, so
+  the bubble follows the camera. The bubble listens with a `View`'s `onPointerEnter`/`onPointerLeave`, not a
+  `Pressable`'s hover: react-native-web ends a `Pressable`'s hover when the pointer reaches a `Pressable`
+  inside it, which applies to any hover card with buttons in it.
 - **Ambient life has no shaders**: whole-pixel bob and sway, a sea tile that scrolls, three lanterns, a
   gull now and then, so a software renderer pays only for sprites. The masthead sways because the hull is
   drawn in slices with it cut out (`MASTHEAD`).

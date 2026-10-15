@@ -25,21 +25,28 @@
  * the keyboard, Tab reaches the deck, an arrow key or Enter focuses a sailor, and Tab stays inside the panel
  * until Esc. Under reduced motion the camera snaps instead of zooming.
  *
+ * **A sailor can have replies for the captain** (`client/deck-replies.ts`): the first mate's suggestions that
+ * name its crewmate. It wears a speech-bubble marker, and pointing at it, or focusing it, opens a speech bubble
+ * over it with each reply as a chip (`client/reply-bubble.tsx`); the focused sailor's panel lists them too.
+ * Picking one goes through `onReply`, the screen's own suggestion send.
+ *
  * The canvas lives in a childless `View` (`client/deck-mount.ts` explains the escape hatch). A renderer
  * that cannot draw — native, no WebGL, Pixi failing to start — gets a plain message in its place.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Platform, ScrollView, Text, View } from "react-native";
 
-import type { FleetCard } from "../shared/fleet";
+import type { FleetCard, Suggestion } from "../shared/fleet";
 import { loadDeckArt, loadDeckEngine, loadDeckEnvironment, loadDeckExtras } from "../shared/ship-deck";
 import { badgeInk, badgePixels, BADGE_SIZE } from "./deck-badges";
 import { focusLayout, nextFocus, stepFocus } from "./deck-camera";
 import { labelPlacement, type DeckHover } from "./deck-hover";
 import { browserDeckEngine, mountDeck, type DeckEngine, type DeckMount, type DeckStatus } from "./deck-mount";
+import { answeredReplies, bubblePlacement, repliesByCard, type DeckRegion } from "./deck-replies";
 import { DECK_STATES, deckScene, type DeckSailor, type DeckState } from "./deck-scene";
+import { DeckAskMarker, ReplyBubble, ReplyOptions } from "./reply-bubble";
 
 /** Where each state stands on deck, for the legend. */
 export const DECK_PLACES: Record<DeckState, string> = {
@@ -163,6 +170,20 @@ function panelStops(panel: PanelElement): FocusTarget[] {
   return Array.from(panel.querySelectorAll(FOCUSABLE)).filter((node) => node.getAttribute?.("aria-disabled") !== "true");
 }
 
+const NO_SUGGESTIONS: readonly Suggestion[] = [];
+
+/** How long a hovered sailor's bubble stays up once the pointer has left it, for the pointer to reach its chips. */
+export const BUBBLE_LINGER_MS = 600;
+
+/** Where a bubble may hang: the whole canvas, or with a sailor focused, the room its panel leaves. */
+export function bubbleRegion(size: { width: number; height: number }, focused: boolean): DeckRegion {
+  if (!focused) return { left: 0, top: 0, right: size.width, bottom: size.height };
+  const layout = focusLayout(size);
+  return layout.side === "right"
+    ? { left: 0, top: 0, right: "left" in layout.panel ? layout.panel.left : size.width, bottom: size.height }
+    : { left: 0, top: 0, right: size.width, bottom: layout.room.height };
+}
+
 /** What the pane says where the canvas would be, or null while it draws. */
 export function deckStatusText(status: DeckStatus): string | null {
   switch (status.kind) {
@@ -186,21 +207,41 @@ export function ShipDeckView({
   engine,
   os = Platform.OS,
   renderFocus,
+  suggestions = NO_SUGGESTIONS,
+  onReply,
+  replyBlocked = null,
 }: {
   cards: readonly FleetCard[];
   theme: PluginTheme;
   /**
    * The focused sailor's card, compact, with its actions: the screen hands in the board's own card so the deck
-   * acts through the same handlers. `close` pulls the camera back out. Without it, a click focuses no one.
+   * acts through the same handlers. `close` pulls the camera back out. `replies` is the sailor's replies for the
+   * captain to pick, or null, for the card to show under its glance. Without it, a click focuses no one.
    */
-  renderFocus?: (card: FleetCard, close: () => void) => ReactNode;
+  renderFocus?: (card: FleetCard, close: () => void, replies: ReactNode) => ReactNode;
+  /** The first mate's suggestions, as the board's strip has them: those that name a crewmate hang over its sailor. */
+  suggestions?: readonly Suggestion[];
+  /** Sends a reply the way the strip sends a suggestion. Without it, the deck offers no replies. */
+  onReply?: (reply: Suggestion) => void;
+  /** Why a reply cannot be sent just now (`replyBlockedText`), or null. */
+  replyBlocked?: string | null;
   /** The fleet load is failing: the deck shows the last crew it saw, greyed. */
   stale?: boolean;
   /** Stood in for by the tests; the browser's WebGL, and Pixi, the art, the environment and the extras from the daemon, otherwise. */
   engine?: DeckEngine;
   os?: string;
 }) {
-  const scene = useMemo(() => deckScene(cards, theme, { feedStale: stale }), [cards, theme, stale]);
+  const answered = useSyncExternalStore(answeredReplies.subscribe, answeredReplies.version);
+  const offers = onReply !== undefined;
+  // `answered` is the store's version: a pick, or a send that failed, changes what is still waiting.
+  const replies = useMemo(
+    () => (offers ? repliesByCard(cards, suggestions, answeredReplies.has) : new Map<string, Suggestion[]>()),
+    [cards, suggestions, offers, answered],
+  );
+  // A reply the file has dropped is forgotten, so one that comes back later is offered again.
+  useEffect(() => answeredReplies.keepOnly(suggestions), [suggestions]);
+  const asking = useMemo(() => new Set(replies.keys()), [replies]);
+  const scene = useMemo(() => deckScene(cards, theme, { feedStale: stale, asking }), [cards, theme, stale, asking]);
   // One engine for the view's life, so a new `useRpc` function on a re-render never restarts the canvas.
   const loadEngine = useRpc(loadDeckEngine);
   const loadArt = useRpc(loadDeckArt);
@@ -223,6 +264,7 @@ export function ShipDeckView({
   );
   const host = useRef<View>(null);
   const panel = useRef<View>(null);
+  const bubble = useRef<View>(null);
   const [hover, setHover] = useState<DeckHover | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   /** The sailor the camera is closed in on, by card key. */
@@ -270,6 +312,52 @@ export function ShipDeckView({
     if (open) lastFocused.current = focused;
   }, [focused, open]);
 
+  /** The sailors with replies waiting, live: those wearing the marker. */
+  const speakers = useMemo(() => new Set(scene.sailors.filter((sailor) => sailor.asks === true).map((sailor) => sailor.key)), [scene]);
+
+  /**
+   * The hovered sailor whose bubble is up, and where it was: kept `BUBBLE_LINGER_MS` after the pointer leaves the
+   * sailor, and as long as it is over the bubble, so it can cross to the chips. Another sailor under the pointer
+   * takes it down at once, for its own label; so does focusing one, whose bubble follows the camera instead.
+   */
+  const [held, setHeld] = useState<DeckHover | null>(null);
+  const overBubble = useRef(false);
+  const linger = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function stopLinger(): void {
+    if (linger.current === null) return;
+    clearTimeout(linger.current);
+    linger.current = null;
+  }
+  function letGo(): void {
+    stopLinger();
+    linger.current = setTimeout(() => {
+      linger.current = null;
+      if (!overBubble.current) setHeld(null);
+    }, BUBBLE_LINGER_MS);
+  }
+  useEffect(() => {
+    if (open) {
+      stopLinger();
+      overBubble.current = false;
+      setHeld(null);
+    } else if (hover !== null && speakers.has(hover.key)) {
+      stopLinger();
+      setHeld(hover);
+    } else if (hover !== null) {
+      stopLinger();
+      overBubble.current = false;
+      setHeld(null);
+    } else letGo();
+  }, [hover, open, speakers]);
+  // Answered while the pointer was on it, the bubble goes without a pointer leave: let go of it for good.
+  useEffect(() => {
+    if (held === null || speakers.has(held.key)) return;
+    stopLinger();
+    overBubble.current = false;
+    setHeld(null);
+  }, [held, speakers]);
+  useEffect(() => stopLinger, []);
+
   // Opened, the panel takes the keyboard; closed, the deck has it back, unless it went somewhere else meanwhile.
   const wasOpen = useRef(false);
   useEffect(() => {
@@ -296,13 +384,15 @@ export function ShipDeckView({
       if (action === "trap") {
         const panelNode: unknown = panel.current;
         if (!isPanelElement(panelNode)) return;
-        const stops = panelStops(panelNode);
+        // The focused sailor's bubble, when it speaks, and its panel: its chips first, then the card.
+        const bubbleNode: unknown = bubble.current;
+        const stops = [...(isPanelElement(bubbleNode) ? panelStops(bubbleNode) : []), ...panelStops(panelNode)];
+        if (stops.length === 0) return;
         const at = stops.findIndex((stop) => stop === keys.activeElement);
         const last = stops.length - 1;
-        const wrap = at === -1 ? (event.shiftKey ? last : 0) : event.shiftKey && at === 0 ? last : !event.shiftKey && at === last ? 0 : null;
-        if (wrap === null) return;
+        const next = at === -1 ? (event.shiftKey ? last : 0) : (at + (event.shiftKey ? -1 : 1) + stops.length) % stops.length;
         event.preventDefault();
-        stops[wrap]?.focus({ preventScroll: true });
+        stops[next]?.focus({ preventScroll: true });
         return;
       }
       event.preventDefault();
@@ -325,11 +415,21 @@ export function ShipDeckView({
   const { colors } = theme;
   const crew = scene.sailors.length;
   const lost = scene.stale === 0 ? "" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
-  const summary = `${DECK_STATES.map((state) => `${scene.counts[state]} ${state}`).join(", ")}${lost}`;
+  const asked = speakers.size === 0 ? "" : `, ${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you to pick`;
+  const summary = `${DECK_STATES.map((state) => `${scene.counts[state]} ${state}`).join(", ")}${asked}${lost}`;
   const note = deckStatusText(status);
+  // A sailor with replies waiting speaks in its bubble instead of wearing the label.
   const hovered =
-    hover === null || status.kind !== "drawing" || open ? null : (scene.sailors.find((sailor) => sailor.key === hover.key) ?? null);
+    hover === null || status.kind !== "drawing" || open || speakers.has(hover.key)
+      ? null
+      : (scene.sailors.find((sailor) => sailor.key === hover.key) ?? null);
   const layout = focusLayout(size);
+  // While focused, the canvas reports where the focused sailor stands, and only while it has replies waiting.
+  const speaking = status.kind !== "drawing" ? null : open ? (hover !== null && hover.key === focused ? hover : null) : held;
+  const speaker = speaking === null || !speakers.has(speaking.key) ? null : (scene.sailors.find((sailor) => sailor.key === speaking.key) ?? null);
+  const speakerReplies = speaker === null ? undefined : replies.get(speaker.key);
+  const focusedReplies = open && focused !== null && speakers.has(focused) ? replies.get(focused) : undefined;
+  const reply = (picked: Suggestion) => onReply?.(picked);
 
   return (
     <View style={{ flex: 1, minHeight: 0, padding: 12, gap: 8 }}>
@@ -378,8 +478,32 @@ export function ShipDeckView({
             testID="firstmate-deck-focus"
             style={{ position: "absolute", ...layout.panel }}
           >
-            <ScrollView style={{ maxHeight: layout.panel.maxHeight }}>{renderFocus(focusedCard, () => setFocused(null))}</ScrollView>
+            <ScrollView style={{ maxHeight: layout.panel.maxHeight }}>
+              {renderFocus(
+                focusedCard,
+                () => setFocused(null),
+                focusedReplies === undefined ? null : (
+                  <ReplyOptions replies={focusedReplies} theme={theme} blocked={replyBlocked} onReply={reply} />
+                ),
+              )}
+            </ScrollView>
           </View>
+        )}
+        {speaking === null || speaker === null || speakerReplies === undefined ? null : (
+          <ReplyBubble
+            sailor={speaker}
+            replies={speakerReplies}
+            place={bubblePlacement(speaking, bubbleRegion({ width: speaking.width, height: speaking.height }, open), { focused: open })}
+            theme={theme}
+            blocked={replyBlocked}
+            onReply={reply}
+            holdRef={bubble}
+            onHover={(over) => {
+              overBubble.current = over;
+              if (over) stopLinger();
+              else if (!open) letGo();
+            }}
+          />
         )}
         {hovered === null || hover === null ? null : (
           <SailorLabel sailor={hovered} hover={hover} theme={theme} colour={scene.palette.states[hovered.state]} />
@@ -398,6 +522,13 @@ export function ShipDeckView({
             <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{DECK_PLACES[state]}</Text>
           </View>
         ))}
+        {speakers.size === 0 ? null : (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <DeckAskMarker accent={scene.palette.ask} />
+            <Text style={{ color: colors.foreground, fontSize: 12 }}>{`${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you`}</Text>
+            <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>point at one to pick</Text>
+          </View>
+        )}
         {scene.stale === 0 ? null : (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <View style={{ width: 10, height: 10, borderRadius: 5, borderWidth: 1, borderColor: colors.foregroundMuted }} />

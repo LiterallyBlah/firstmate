@@ -18,14 +18,15 @@
  * The ship deck shows the same card beside a focused sailor (`presentation:
  * "focus"`): always open, with a close button where the chevron was, and only
  * what a glance needs — its state, where it works, its status line, the
- * captain's call, an error or a waiting permission, its link — over the same
+ * captain's call, an error or a waiting permission, its link, and any replies the first mate has offered for
+ * it (`replies`, from the deck) — over the same
  * actions, with the same handlers, guards and End confirmation. The tags, the
  * plumbing facts and the report's path stay on the board.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
 import { Icon, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { exitCrew, interruptCrew, relaunchCrew, steerCrew, type ColumnId, type FleetCard } from "../shared/fleet";
@@ -128,6 +129,7 @@ export function CrewCard({
   startExpanded = false,
   presentation = "card",
   onClose,
+  replies = null,
 }: {
   card: FleetCard;
   theme: PluginTheme;
@@ -143,6 +145,8 @@ export function CrewCard({
   presentation?: "card" | "row" | "focus";
   /** The focus panel's close button. */
   onClose?: () => void;
+  /** The focus panel's replies for the captain to pick (`client/reply-bubble.tsx`), under its glance. */
+  replies?: ReactNode;
 }) {
   const steer = useRpc(steerCrew);
   const interrupt = useRpc(interruptCrew);
@@ -404,6 +408,7 @@ export function CrewCard({
             )}
           </View>
           {glance}
+          {replies}
         </View>
       ) : (
       <Pressable
