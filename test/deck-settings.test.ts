@@ -272,7 +272,10 @@ describe.each(packs)("the %s pack", (id) => {
           if (from === to || (from.x === to.x && from.y === to.y)) continue;
           const path = findPath(floor, from, to);
           expect(path.at(-1), `${from.id} → ${to.id} ends there`).toEqual({ x: to.x, y: to.y });
-          for (const point of walkPoints(from, path)) expect(walkable(floor, point.x, point.y), `${from.id} → ${to.id} at ${point.x},${point.y}`).toBe(true);
+          // Keep every half-pixel sample, but create one assertion per route instead of hundreds of
+          // thousands of matcher objects. Long rooms must not turn exhaustive lint into a CI timeout.
+          const offFloor = walkPoints(from, path).find((point) => !walkable(floor, point.x, point.y));
+          expect(offFloor, `${from.id} → ${to.id} leaves the floor at`).toBeUndefined();
           // A long obstacle can demand a long detour even between close posts. Test the path against the floor,
           // not a ship-specific straight-line ratio: no retained corner may be skipped along open floor.
           const route = [from, ...path];
