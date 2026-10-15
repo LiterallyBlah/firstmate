@@ -124,6 +124,8 @@ export function compileAmbience(manifest: SettingManifest, has: (image: string) 
         return arrived([behaviour.image]) ? { ...head, behaviour } : null;
       case "flash":
         return arrived(behaviour.frames.map((frame) => frame.sprite.image)) ? { ...head, behaviour } : null;
+      case "phase-frames":
+        return arrived(behaviour.frames.map((frame) => frame.image)) ? { ...head, behaviour } : null;
       case "flyby":
         return arrived(Object.values(behaviour.poses).map((sprite) => sprite.image)) ? { ...head, behaviour } : null;
       case "drifters": {

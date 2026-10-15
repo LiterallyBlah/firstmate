@@ -29,7 +29,7 @@ describe("a setting manifest", () => {
   it("is whole for the ship: nothing it names is missing, and it needs exactly what it uses", () => {
     expect(settingProblems(shipManifest())).toEqual([]);
     expect(capabilitiesUsed(shipManifest())).toEqual(shipManifest().requires);
-    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["stable-posts@1", "pose-fidgets@1", "walk-in@1", "phase-tint@1"]);
+    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["stable-posts@1", "pose-fidgets@1", "walk-in@1", "phase-tint@1", "phase-frames@1"]);
   });
 
   it("names every image it draws with once, the backdrop first", () => {
@@ -105,6 +105,49 @@ describe("a setting manifest", () => {
       }),
     ];
     for (const change of changes) expect(SettingManifestSchema.safeParse(broken(change)).success).toBe(false);
+  });
+});
+
+describe("wall-clock frames in the closed catalogue", () => {
+  const framed = () => {
+    const manifest = structuredClone(shipManifest());
+    // This behaviour needs neither a day cycle nor an atmosphere clock.
+    manifest.dayCycle = undefined;
+    manifest.atmosphere = undefined;
+    manifest.stage.parts = [];
+    manifest.stage.motion = undefined;
+    manifest.stage.lights = [];
+    manifest.ambience = [{
+      id: "indicator", slot: "front", order: 0, lite: "run", still: "first-frame",
+      behaviour: { kind: "phase-frames", by: "local-minute", frames: [{ image: "deck" }], at: [20, 30], anchor: [0, 0] },
+    }];
+    manifest.requires = capabilitiesUsed(manifest);
+    return manifest;
+  };
+
+  it("requires phase-frames@1 and validates every frame's image without requiring a day cycle", () => {
+    const manifest = framed();
+    expect(SettingManifestSchema.safeParse(manifest).success).toBe(true);
+    expect(manifest.requires).toContain("phase-frames@1");
+    expect(settingImageIds(manifest)).toContain("deck");
+    manifest.requires = manifest.requires.filter((id) => id !== "phase-frames@1");
+    expect(SettingManifestSchema.safeParse(manifest).success).toBe(false);
+    const unknown = framed();
+    const behaviour = unknown.ambience[0]!.behaviour;
+    if (behaviour.kind !== "phase-frames") throw new Error("expected phase frames");
+    behaviour.frames.push({ image: "absent" });
+    expect(settingProblems(unknown)).toContain('ambience indicator names image "absent", which the setting does not have');
+  });
+
+  it("rejects empty frames, open clock selectors, expressions and animation/variant hooks", () => {
+    for (const change of [
+      { frames: [] }, { by: "local-second" }, { by: "hour % 12" }, { frameMs: 100 },
+      { clock: "wind" }, { expression: "clock()" }, { variants: [] }, { opacity: { channel: "mood" } },
+    ]) {
+      const manifest = framed();
+      Object.assign(manifest.ambience[0]!.behaviour, change);
+      expect(SettingManifestSchema.safeParse(manifest).success, JSON.stringify(change)).toBe(false);
+    }
   });
 });
 
