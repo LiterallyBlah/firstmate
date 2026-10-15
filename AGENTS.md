@@ -351,6 +351,10 @@ what those look like and where they are. The ship is the first pack, `art/settin
   Every manifest object has a strict shape: undeclared fields, including script/expression hooks, fail validation.
   Step 9a adds `stable-posts@1` (`assign: "stable"`: agent identity's preferred post, nearest free on collision)
   and `pose-fidgets@1` (a key's optional pose, retaining the settled mirror rule; skipped in still/stale).
+  Step 9b adds `walk-in@1`: an authored straight corridor from an off-floor mark to a navigable endpoint,
+  with optional finite effects using only `from`/`at` marks and `start`/`entered` events. `shared/deck-portals.ts`
+  lowers it to the existing choreography machinery; the crew reverses entry progress continuously and snaps
+  to posts in still mode. `portalEffects` supplies both entry and exit tracks. No persistent door-state hooks.
   The office's commissioning contract and uninstalled draft live in `docs/settings/office/`. Never move its
   null image digests or proposed unsupported fields into `art/settings/`; art and the remaining capabilities
   must land first. `test/office-draft.test.ts` checks its geometry and registrations without manufacturing art.

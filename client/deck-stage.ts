@@ -5,6 +5,7 @@
  * and two decks two settings.
  */
 import type { ActivityState, SettingManifest } from "../shared/deck-setting";
+import { walkInChoreography } from "../shared/deck-portals";
 import { compileChoreography, type Choreography, type DeckDeparture } from "./deck-choreography";
 import { createFloor, type Anchor, type Floor, type Point } from "./deck-geometry";
 
@@ -38,8 +39,10 @@ export interface DeckStage {
   zones: ReadonlyMap<string, Zone>;
   /** Where each activity state sends its worker. */
   zoneOf(state: ActivityState): Zone;
-  /** Where a worker comes up onto the stage. */
+  /** Where an arrival joins the navigable floor. */
   entry: Point;
+  /** The off-floor corridor, or null for a cropped rise. Effects finish before floor navigation starts. */
+  walkIn: { from: Point; walkMs: number; choreography: Choreography } | null;
   entryMs: number;
   fadeMs: number;
   byDeparture: Readonly<Record<DeckDeparture, string>>;
@@ -79,6 +82,8 @@ export function compileStage(manifest: SettingManifest): DeckStage {
         : compileChoreography(exit, floor.walkSpeed, manifest.effects),
     ]),
   );
+  const arrival = portals.entry.kind === "walk-in" ? compileChoreography(walkInChoreography(portals.entry), floor.walkSpeed, manifest.effects) : null;
+  const timeline = arrival?.timelines.get(0);
   return {
     width: stage.size[0],
     height: stage.size[1],
@@ -93,7 +98,8 @@ export function compileStage(manifest: SettingManifest): DeckStage {
     zones: compiledZones,
     zoneOf: (state) => compiledZones.get(zones.byState[state])!,
     entry: point(portals.entry.at),
-    entryMs: portals.entry.ms,
+    walkIn: arrival === null ? null : { from: arrival.queue.at, walkMs: timeline!.releaseMs, choreography: arrival },
+    entryMs: portals.entry.kind === "rise" ? portals.entry.ms : timeline!.durationMs,
     fadeMs: portals.still.fadeMs,
     byDeparture: portals.byDeparture,
     exits,
