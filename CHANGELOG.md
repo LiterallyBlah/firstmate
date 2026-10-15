@@ -10,6 +10,12 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- The ship deck's sea moves. Generated water replaces the still sea tile: its four frames play in turn, so
+  the waves shimmer gently as they drift past, and a new strip of foam along the waterline breathes with them.
+  The scattered dashes of the old wake are gone; a generated stern wake, a churned V of white water opening
+  aft, trails the ship instead. Under reduced motion, and on a software renderer, the water holds its calm
+  first frame.
+
 - The ship deck's crow's nest sits snug over the sail. A trimmed generated mast, 32 px shorter, brings the
   nest down to 23 rows above the yard instead of 55, so the long bare stretch of pole between them is gone.
   The sail, the mast's foot and every crewmate stay where they were, and the nest still sways. The deck's fit

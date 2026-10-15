@@ -427,8 +427,8 @@ rest area on the foredeck by the hatch (and, past six, at the foot of the quarte
 so the working deck shows only the crew at work. Pointing at a sleeper labels it below the deck's rail, where
 the label covers no one. Each crewmate wears one of eight looks, chosen by its agent, so the same crewmate always looks the same. When a
 crewmate's state changes, its mark changes at once and the sailor walks to its new place; a new crewmate
-climbs up through the hatch and one that leaves climbs back down. The ship sails: it bobs on a moving
-sea with its wake trailing astern, its sail billows, the masthead sways, the lanterns flicker and a gull
+climbs up through the hatch and one that leaves climbs back down. The ship sails: it bobs on a gently
+shimmering sea with a churned wake trailing astern, its sail billows, the masthead sways, the lanterns flicker and a gull
 crosses now and then. If the board's feed is lost, the
 crew greys where it last stood rather than turning idle. The deck is depth-layered: a sailor behind the
 mast or a bollard is hidden by it. It draws at most 30 frames a second, nothing while the window is
