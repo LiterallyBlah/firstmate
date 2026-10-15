@@ -55,6 +55,8 @@ export const DECK_PROPS: ReadonlyArray<{ name: DeckPropName; x: number; y: numbe
 export interface DeckPalette {
   sea: string;
   states: Record<DeckState, string>;
+  /** The reply marker's dots: the theme's accent, no state's colour. */
+  ask: string;
 }
 
 /**
@@ -91,6 +93,11 @@ export interface DeckSailor {
    */
   stale: boolean;
   caption: SailorCaption;
+  /**
+   * Replies wait for the captain over it: first mate's suggestions that name its crewmate
+   * (`client/deck-replies.ts`), so it wears the reply marker and speaks them in a bubble. Never while stale.
+   */
+  asks?: boolean;
 }
 
 export interface DeckScene {
@@ -206,15 +213,20 @@ export function deckPalette(theme: PluginTheme): DeckPalette {
       blocked: colors.statusDanger,
       idle: colors.foregroundMuted,
     },
+    ask: colors.accent,
   };
 }
 
 /**
  * The deck for these cards: one sailor per live crew worker, in card-key order within its state.
  * `feedStale` — the fleet load failing — greys the whole crew; a remote host that cannot be reached
- * greys its own workers.
+ * greys its own workers. `asking` names the cards with replies waiting for the captain.
  */
-export function deckScene(cards: readonly FleetCard[], theme: PluginTheme, options: { feedStale?: boolean } = {}): DeckScene {
+export function deckScene(
+  cards: readonly FleetCard[],
+  theme: PluginTheme,
+  options: { feedStale?: boolean; asking?: ReadonlySet<string> } = {},
+): DeckScene {
   const byState = new Map<DeckState, FleetCard[]>(DECK_STATES.map((state) => [state, []]));
   const departures: Record<string, DeckDeparture> = {};
   for (const card of cards) {
@@ -228,13 +240,15 @@ export function deckScene(cards: readonly FleetCard[], theme: PluginTheme, optio
     const crew = [...(byState.get(state) ?? [])].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
     counts[state] = crew.length;
     for (const card of crew) {
+      const stale = options.feedStale === true || card.remote?.online === false;
       sailors.push({
         key: card.key,
         label: card.title,
         state,
         identity: sailorIdentity(card),
-        stale: options.feedStale === true || card.remote?.online === false,
+        stale,
         caption: sailorCaption(card, options),
+        ...(options.asking?.has(card.key) === true && !stale ? { asks: true } : {}),
       });
     }
   }

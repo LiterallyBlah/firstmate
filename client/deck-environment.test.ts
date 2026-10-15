@@ -17,6 +17,7 @@ import { DeckArtManifestSchema, DeckEnvironmentManifestSchema, DeckExtrasManifes
 import { HORIZON, WATERLINE } from "./deck-ambient";
 import { cloudPeriod } from "./deck-clouds";
 import { FOAM_SPAN, FOAM_TOP, type DeckEnvironmentImages } from "./deck-environment";
+import { ASK_PAPER, askPixels } from "./deck-badges";
 import { FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout } from "./deck-camera";
 import { BREATH_ROWS } from "./deck-crew";
 import { toCanvas } from "./deck-hover";
@@ -1002,5 +1003,62 @@ describe("the clouds in the sky", () => {
     const masks = cloudsOf(deck).flatMap((cloud) => cloud.children) as FakeSprite[];
     deck.drawing.destroy();
     expect(masks.every((mask) => mask.texture.destroyed && mask.texture.source.destroyed)).toBe(true);
+  });
+});
+
+describe("the reply marker on deck", () => {
+  /** `asking` sailors have replies waiting for the captain. */
+  const askingScene = (asking: string[]) => {
+    const scene = crewScene([["a", "blocked"], ["b", "working"], ["c", "idle"]]);
+    return { ...scene, sailors: scene.sailors.map((sailor) => (asking.includes(sailor.key) ? { ...sailor, asks: true } : sailor)) };
+  };
+  const ask = (deck: Awaited<ReturnType<typeof start>>, key: string) => one(one(deck.app.stage, key), "ask") as unknown as FakeGraphics;
+
+  it("hangs a light bubble with the accent's dots over a sailor with replies, and nothing over the rest", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: askingScene(["a"]), reducedMotion: true });
+    const marker = ask(deck, "a");
+    expect(marker.visible).toBe(true);
+    expect(marker.shapes).toHaveLength(askPixels().length);
+    const fills = new Set(marker.shapes.map((shape) => shape.at(-1)));
+    expect(fills).toEqual(new Set([ASK_PAPER, parseInt(theme.colors.accent.slice(1), 16)]));
+    // Over the badge, in the sailor's own layer.
+    const badge = one(one(deck.app.stage, "a"), "badge");
+    expect(marker.position.y).toBeLessThan(badge.position.y);
+    expect(ask(deck, "b").visible).toBe(false);
+    expect(ask(deck, "c").visible).toBe(false);
+    // Answered: the next scene has no replies for it, and the marker goes.
+    deck.drawing.update(askingScene([]));
+    expect(ask(deck, "a").visible).toBe(false);
+    deck.drawing.destroy();
+  });
+
+  it("bobs a pixel under motion, and holds still under reduced motion", async () => {
+    const moving = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: askingScene(["a"]) });
+    const heights = new Set<number>();
+    for (let elapsed = 0; elapsed < 3200; elapsed += 100) {
+      moving.advance(100);
+      heights.add(ask(moving, "a").position.y);
+    }
+    expect(heights.size).toBe(2);
+    moving.drawing.destroy();
+    const still = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: askingScene(["a"]), reducedMotion: true });
+    const before = ask(still, "a").position.y;
+    still.drawing.update(askingScene(["a", "b"]));
+    expect(ask(still, "a").position.y).toBe(before);
+    expect(still.pending()).toBe(0);
+    still.drawing.destroy();
+  });
+
+  it("while a sailor with replies is focused, reports where it stands for its bubble; one without, nothing", async () => {
+    const hovers: Array<DeckHover | null> = [];
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: askingScene(["a"]), reducedMotion: true, onHover: (hover) => hovers.push(hover) });
+    deck.drawing.focus("a");
+    expect(hovers.at(-1)?.key).toBe("a");
+    const layout = focusLayout({ width: 800, height: 400 });
+    expect(Math.abs(hovers.at(-1)!.x - layout.anchor.x)).toBeLessThan(24);
+    deck.drawing.focus("b");
+    expect(hovers.at(-1)).toBeNull();
+    deck.drawing.focus(null);
+    deck.drawing.destroy();
   });
 });

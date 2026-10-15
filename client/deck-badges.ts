@@ -94,3 +94,66 @@ export function dozeAt(seed: number, nowMs: number): { dx: number; dy: number; a
   const t = at / DOZE_RISE_MS;
   return { dx: Math.round(t * 2), dy: -Math.round(t * 6), alpha: Math.round((1 - t) * 100) / 100 };
 }
+
+/**
+ * The marker over a sailor whose crewmate has replies waiting for the captain (`client/deck-replies.ts`): a
+ * speech bubble with three dots, over its state's badge — a sailor with something to say, not a state, so it
+ * is not a coloured sign like the badges but a light bubble, its dots in the theme's accent, its tail down to
+ * the badge. Seven wide like the badge, so the marks of two sleepers packed side by side never touch.
+ * `#` is the bubble, `*` a dot.
+ */
+export const ASK_GLYPH: readonly string[] = [".#####.", "#######", "#*#*#*#", "#######", ".#####.", ".##....", ".#....."];
+
+/** The marker's size in art pixels, its tail included. */
+export const ASK_SIZE = { width: 7, height: 7 };
+
+/** Gap between the tip of the marker's tail and the top of the badge under it. */
+export const ASK_GAP = 1;
+
+/** The bubble's paper: as light as the badges' light ink. */
+export const ASK_PAPER = INK_LIGHT;
+
+export interface AskPixel {
+  x: number;
+  y: number;
+  kind: "bubble" | "dot";
+}
+
+/** The marker's pixels, from its top left; `flip` mirrors it, its tail down to the right. */
+export function askPixels(flip = false): AskPixel[] {
+  const pixels: AskPixel[] = [];
+  ASK_GLYPH.forEach(function (row, y) {
+    for (let x = 0; x < row.length; x += 1) {
+      const at = flip ? ASK_SIZE.width - 1 - x : x;
+      if (row[x] === "#") pixels.push({ x: at, y, kind: "bubble" });
+      else if (row[x] === "*") pixels.push({ x: at, y, kind: "dot" });
+    }
+  });
+  return pixels;
+}
+
+/**
+ * The marker when there is no room for it round the badge: the badge's sign edged in the bubble's paper, from
+ * the badge's top left. The glyph inside keeps the state; the frame says replies are waiting.
+ */
+export function askFramePixels(): AskPixel[] {
+  const pixels: AskPixel[] = [];
+  for (let y = 0; y < 7; y += 1) {
+    for (let x = 0; x < 7; x += 1) {
+      const edge = x === 0 || x === 6 || y === 0 || y === 6;
+      const corner = (x === 0 || x === 6) && (y === 0 || y === 6);
+      if (edge && !corner) pixels.push({ x, y, kind: "bubble" });
+    }
+  }
+  return pixels;
+}
+
+/** The marker bobs a pixel up for `ASK_LIFT_MS` of every `ASK_BOB_MS`, a little out of step per sailor. */
+export const ASK_BOB_MS = 1600;
+export const ASK_LIFT_MS = 500;
+
+/** How far the marker is lifted at `nowMs`: a pixel, or none. Under reduced motion the caller keeps it still. */
+export function askLift(seed: number, nowMs: number): number {
+  const at = (nowMs + seed * 37) % ASK_BOB_MS;
+  return at < ASK_LIFT_MS ? 1 : 0;
+}

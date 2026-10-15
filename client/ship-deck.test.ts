@@ -12,7 +12,7 @@ import { act, createElement } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-vi.mock("react-native", () => ({ Platform: { OS: "web" }, View: "View", Text: "Text", ScrollView: "ScrollView" }));
+vi.mock("react-native", () => ({ Platform: { OS: "web" }, View: "View", Text: "Text", ScrollView: "ScrollView", Pressable: "Pressable" }));
 const rpcLoads = vi.hoisted(() => ({ count: 0 }));
 vi.mock("@getpaseo/plugin/client", () => ({
   useRpc: () => () => {
@@ -57,7 +57,8 @@ import {
   sailorIdentity,
   type DeckScene,
 } from "./deck-scene";
-import { ShipDeckView, deckKeyAction, deckStatusText } from "./ship-deck";
+import { answeredReplies } from "./deck-replies";
+import { BUBBLE_LINGER_MS, ShipDeckView, deckKeyAction, deckStatusText } from "./ship-deck";
 import { focusLayout } from "./deck-camera";
 
 const theme = {
@@ -1032,6 +1033,141 @@ describe("the ship deck view", () => {
       } finally {
         (globalThis as { document?: unknown }).document = saved;
       }
+    });
+  });
+
+  describe("replies on deck", () => {
+    /** One suggestion names b1's crewmate by its agent id; the other names no one. */
+    const land = { label: "Land b1", prompt: "Merge agent-b1's branch, captain's word." };
+    const coffee = { label: "Coffee", prompt: "Make coffee." };
+    const bubbles = (root: ReactTestRenderer) => root.root.findAll((node) => node.props.testID === "firstmate-deck-bubble" && typeof node.props.onPointerEnter === "function");
+    const chips = (root: ReactTestRenderer) =>
+      bubbles(root)[0]?.findAll((node) => node.props.accessibilityRole === "button" && typeof node.props.onPress === "function") ?? [];
+    const where = { x: 300, top: 200, bottom: 260, width: 900, height: 500, floor: null };
+    afterEach(() => answeredReplies.keepOnly([]));
+
+    async function mounted(options: { replyBlocked?: string | null } = {}) {
+      const engine = fakeEngine();
+      const picked: Array<{ label: string; prompt: string }> = [];
+      const focusReplies: unknown[] = [];
+      const props = {
+        cards: fixture,
+        theme,
+        engine,
+        os: "web",
+        suggestions: [coffee, land],
+        onReply: (reply: { label: string; prompt: string }) => picked.push(reply),
+        replyBlocked: options.replyBlocked ?? null,
+        renderFocus: (focused: FleetCard, _close: () => void, replies: unknown) => {
+          focusReplies.push(replies);
+          return createElement("Text", {}, `card for ${focused.key}`);
+        },
+      };
+      await act(async () => {
+        renderer = create(createElement(ShipDeckView, props), { createNodeMock: () => fakeHost() });
+      });
+      await act(flush);
+      const root = renderer!;
+      const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
+      await act(async () => canvasHost.props.onLayout({ nativeEvent: { layout: { width: 900, height: 500 } } }));
+      return { engine, root, picked, focusReplies };
+    }
+
+    it("marks the sailor a suggestion names, and says so in the legend and to a screen reader", async () => {
+      const { engine, root } = await mounted();
+      const scene = engine.drawings[0]!.updates.at(-1) ?? engine.starts[0]!.scene;
+      expect(scene.sailors.filter((sailor) => sailor.asks === true).map((sailor) => sailor.key)).toEqual(["b1"]);
+      expect(text(root)).toContain("1 with a reply for you");
+      const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
+      expect(canvasHost.props.accessibilityLabel).toContain("1 with a reply for you to pick");
+    });
+
+    it("speaks in a bubble on hover instead of the label, its chips sending through the board's own send", async () => {
+      const { engine, root, picked } = await mounted();
+      await act(async () => engine.hover?.({ key: "b1", ...where }));
+      expect(bubbles(root)).toHaveLength(1);
+      expect(root.root.findAll((node) => node.props.accessibilityRole === "text")).toHaveLength(0);
+      expect(text(root)).toContain("Task b1");
+      expect(chips(root).map((chip) => chip.props.accessibilityLabel)).toEqual([`Land b1: send "${land.prompt}" to the first mate`]);
+      // Over the sailor, by its bottom, inside the canvas.
+      expect(bubbles(root)[0]!.props.style).toMatchObject({ position: "absolute", bottom: 500 - 200 + 8 });
+      await act(async () => chips(root)[0]!.props.onPress());
+      expect(picked).toEqual([land]);
+      // Another sailor under the pointer: its own label, and the bubble comes down.
+      await act(async () => engine.hover?.({ key: "w1", ...where }));
+      expect(bubbles(root)).toHaveLength(0);
+      expect(root.root.findAll((node) => node.props.accessibilityRole === "text")).toHaveLength(1);
+    });
+
+    it("lingers while the pointer crosses to its chips, and stays while it is over them", async () => {
+      const { engine, root } = await mounted();
+      await act(async () => engine.hover?.({ key: "b1", ...where }));
+      await act(async () => engine.hover?.(null));
+      expect(bubbles(root)).toHaveLength(1);
+      await act(async () => bubbles(root)[0]!.props.onPointerEnter());
+      await act(() => new Promise((resolve) => setTimeout(resolve, BUBBLE_LINGER_MS + 50)));
+      expect(bubbles(root)).toHaveLength(1);
+      await act(async () => bubbles(root)[0]!.props.onPointerLeave());
+      await act(() => new Promise((resolve) => setTimeout(resolve, BUBBLE_LINGER_MS + 50)));
+      expect(bubbles(root)).toHaveLength(0);
+    });
+
+    it("clears the marker and the bubble once a reply is picked, and offers it again if the send fails", async () => {
+      const { engine, root } = await mounted();
+      await act(async () => engine.hover?.({ key: "b1", ...where }));
+      await act(async () => answeredReplies.mark(land.prompt));
+      expect(bubbles(root)).toHaveLength(0);
+      expect(engine.drawings[0]!.updates.at(-1)!.sailors.some((sailor) => sailor.asks === true)).toBe(false);
+      expect(text(root)).not.toContain("with a reply for you");
+      await act(async () => answeredReplies.unmark(land.prompt));
+      expect(engine.drawings[0]!.updates.at(-1)!.sailors.find((sailor) => sailor.key === "b1")?.asks).toBe(true);
+    });
+
+    it("lets go of a bubble answered under the pointer, so it never comes back without one", async () => {
+      const { engine, root } = await mounted();
+      await act(async () => engine.hover?.({ key: "b1", ...where }));
+      await act(async () => bubbles(root)[0]!.props.onPointerEnter());
+      await act(async () => engine.hover?.(null));
+      // The chip is pressed: the bubble goes with the pointer still on it, so no leave is heard.
+      await act(async () => answeredReplies.mark(land.prompt));
+      expect(bubbles(root)).toHaveLength(0);
+      await act(async () => answeredReplies.unmark(land.prompt));
+      expect(bubbles(root)).toHaveLength(0);
+    });
+
+    it("disables its chips and says why while a reply cannot go", async () => {
+      const { engine, root, picked } = await mounted({ replyBlocked: "A message to the first mate is on its way; wait for it to go." });
+      await act(async () => engine.hover?.({ key: "b1", ...where }));
+      expect(chips(root).map((chip) => [chip.props.disabled, chip.props.accessibilityHint])).toEqual([
+        [true, "A message to the first mate is on its way; wait for it to go."],
+      ]);
+      expect(text(root)).toContain("on its way");
+      expect(picked).toHaveLength(0);
+    });
+
+    it("focused, speaks over the sailor where the canvas reports it and hands its card the same replies", async () => {
+      const { engine, root, focusReplies } = await mounted();
+      await act(async () => engine.select?.("b1"));
+      expect(focusReplies.at(-1)).not.toBeNull();
+      // The canvas reports where the focused sailor stands: the bubble hangs there, inside the panel's room.
+      await act(async () => engine.hover?.({ key: "b1", ...where, x: 290 }));
+      expect(bubbles(root)).toHaveLength(1);
+      const style = bubbles(root)[0]!.props.style as { left: number; width: number };
+      const panel = focusLayout({ width: 900, height: 500 }).panel as { left: number };
+      expect(style.left + style.width).toBeLessThanOrEqual(panel.left);
+      await act(async () => engine.select?.(null));
+      await act(async () => engine.select?.("w1"));
+      expect(focusReplies.at(-1)).toBeNull();
+      expect(bubbles(root)).toHaveLength(0);
+    });
+
+    it("offers nothing without a way to send", async () => {
+      const engine = fakeEngine();
+      await act(async () => {
+        renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web", suggestions: [land] }), { createNodeMock: () => fakeHost() });
+      });
+      await act(flush);
+      expect(engine.starts[0]!.scene.sailors.some((sailor) => sailor.asks === true)).toBe(false);
     });
   });
 

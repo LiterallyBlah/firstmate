@@ -43,6 +43,7 @@ import { FilesView, type FilesRequest } from "./files";
 import { MateChat } from "./chat";
 import { captainMessage } from "./attachments";
 import { CrewmateView } from "./crewmate";
+import { answeredReplies, replyBlockedText } from "./deck-replies";
 import { deckOffered } from "./deck-scene";
 import { agentStatusLabel, agentStatusTone, groupCards, orderedColumns, revealFilesPatch, shortPath } from "./format";
 import { LaunchPanel } from "./launch";
@@ -323,11 +324,17 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
    * captain was typing is left as it was. While a message is on its way the
    * buttons are disabled, and a press that still gets through is refused by
    * the sender, so a double press sends once.
+   *
+   * The ship deck's reply chips are these same suggestions, sent through here.
+   * A pick is marked answered, so the deck stops offering it at once, and
+   * offered again if the send fails. Says whether it went.
    */
-  function suggest(prompt: string): void {
-    if (mate === null || !mateSender.send(captainMessage(prompt, []))) return;
+  function suggest(prompt: string): boolean {
+    if (mate === null || !mateSender.send(captainMessage(prompt, []), () => answeredReplies.unmark(prompt))) return false;
+    answeredReplies.mark(prompt);
     if (compact) setTab("chat");
     else if (values.chatCollapsed) save({ chatCollapsed: false });
+    return true;
   }
 
   /**
@@ -862,13 +869,19 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
                 cards={data.cards}
                 theme={theme}
                 stale={fleet.error !== null}
-                renderFocus={(card, close) => (
+                suggestions={data.suggestions}
+                replyBlocked={replyBlockedText({ mate: mate !== null, sending: mateSender.sending })}
+                onReply={(reply) => {
+                  if (suggest(reply.prompt)) toast.show(`Sending to the first mate: ${reply.label}`, { variant: "success" });
+                }}
+                renderFocus={(card, close, replies) => (
                   <CrewCard
                     card={card}
                     theme={theme}
                     compact={false}
                     presentation="focus"
                     onClose={close}
+                    replies={replies}
                     // Watch leaves the deck for the crew pane, where the board's Watch shows it.
                     opener={watchOpener(card, (key) => {
                       setWatching(key);
