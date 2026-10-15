@@ -433,8 +433,14 @@ crosses now and then. If the board's feed is lost, the
 crew greys where it last stood rather than turning idle. The deck is depth-layered: a sailor behind the
 mast or a bollard is hidden by it. It draws at most 30 frames a second, nothing while the window is
 hidden, and holds still if the system asks for reduced motion. It reads the same cards as the
-board and polls nothing of its own. Names, tasks and actions stay on the Crew board. The art is
-generated and cleaned up by script (`art/ship-deck/README.md`).
+board and polls nothing of its own. The art is generated and cleaned up by script (`art/ship-deck/README.md`).
+
+**Click a sailor to work from the deck.** The camera zooms in on it, the rest of the deck dims, and a small
+panel beside it shows that crewmate's card: its state, project and host, its status line and anything waiting
+on you, and the card's own buttons — Watch, Steer, Interrupt, Relaunch, End — which do exactly what they do on
+the board, End's confirmation included. Esc, the panel's ✕, or a click anywhere else on the deck pulls the
+camera back out. From the keyboard, Tab to the deck and press an arrow key or Enter; Tab then stays in the
+panel until Esc. Under reduced motion the camera snaps instead of zooming. Watch takes you to the Crew pane.
 
 The header's Crew/Files switch has **Deck** in the desktop app's wide layout; there is nothing to turn on.
 On a phone or a narrow window it is not offered, and a display without WebGL gets a plain sentence instead

@@ -5,9 +5,8 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type { FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
-import { CrewCard } from "./card";
+import { CrewCard, watchOpener } from "./card";
 import { doneCards, LIST_GROUPS, listGroups } from "./format";
-import { watchKey } from "./host-tabs";
 
 export function TaskList({
   cards,
@@ -69,32 +68,18 @@ export function TaskList({
             )}
             {id === "done" && !showDone
               ? null
-              : (id === "done" ? doneCards(entries, true).shown : entries).map((card) => {
-                  const key = watchKey(card);
-                  return (
-                    <CrewCard
-                      key={card.key}
-                      card={card}
-                      theme={theme}
-                      compact={compact}
-                      density={density}
-                      presentation="row"
-                      opener={
-                        key === null
-                          ? null
-                          : {
-                              icon: "Eye",
-                              label: "Watch",
-                              tooltip: card.remote === undefined
-                                ? "View this worker's live activity within FirstMate."
-                                : "View this remote worker's recent log within FirstMate.",
-                              onPress: () => onWatch(key),
-                            }
-                      }
-                      onChanged={onChanged}
-                    />
-                  );
-                })}
+              : (id === "done" ? doneCards(entries, true).shown : entries).map((card) => (
+                  <CrewCard
+                    key={card.key}
+                    card={card}
+                    theme={theme}
+                    compact={compact}
+                    density={density}
+                    presentation="row"
+                    opener={watchOpener(card, onWatch)}
+                    onChanged={onChanged}
+                  />
+                ))}
           </View>
         );
       })}

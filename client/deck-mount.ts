@@ -55,6 +55,8 @@ export interface DeckDrawing {
   /** Pixi's renderer: `webgl`, or whatever it fell back to. */
   readonly renderer: string;
   update(scene: DeckScene): void;
+  /** Closes the camera in on the sailor with this key, or pulls it back to the whole deck for null. */
+  focus(key: string | null): void;
   resize(width: number, height: number): void;
   destroy(): void;
 }
@@ -64,6 +66,7 @@ export type StartDeck = (
   scene: DeckScene,
   size: { width: number; height: number },
   onHover: (hover: DeckHover | null) => void,
+  onSelect: (key: string | null) => void,
 ) => Promise<DeckDrawing>;
 
 /** Everything the mount does that touches the browser or Pixi, so the tests can stand in for it. */
@@ -77,6 +80,8 @@ export interface DeckEngine {
 
 export interface DeckMount {
   update(scene: DeckScene): void;
+  /** The sailor the camera should focus, or null; kept until Pixi is up, like the scene. */
+  focus(key: string | null): void;
   destroy(): void;
 }
 
@@ -95,9 +100,9 @@ function message(error: unknown): string {
 }
 
 /**
- * Starts the deck in `node` and reports how it goes through `onStatus`, and which sailor the pointer is
- * over through `onHover`. The returned mount takes newer scenes — kept until Pixi is up, then drawn —
- * and tears everything down.
+ * Starts the deck in `node` and reports how it goes through `onStatus`, which sailor the pointer is
+ * over through `onHover`, and which a click landed on through `onSelect`. The returned mount takes newer
+ * scenes and the sailor to focus — kept until Pixi is up, then drawn — and tears everything down.
  */
 export function mountDeck(
   node: unknown,
@@ -105,8 +110,9 @@ export function mountDeck(
   engine: DeckEngine,
   onStatus: (status: DeckStatus) => void,
   onHover: (hover: DeckHover | null) => void = function () {},
+  onSelect: (key: string | null) => void = function () {},
 ): DeckMount {
-  const idle: DeckMount = { update() {}, destroy() {} };
+  const idle: DeckMount = { update() {}, focus() {}, destroy() {} };
   if (!isDeckHost(node)) {
     onStatus({ kind: "unsupported", reason: "no-host" });
     return idle;
@@ -124,6 +130,7 @@ export function mountDeck(
 
   const host = node;
   let latest = scene;
+  let focused: string | null = null;
   let drawing: DeckDrawing | null = null;
   let stopObserving: (() => void) | null = null;
   let gone = false;
@@ -134,9 +141,17 @@ export function mountDeck(
     .then(function (start) {
       if (gone) return null;
       const drawn = latest;
-      return start(host, drawn, { width: host.clientWidth, height: host.clientHeight }, function (hover) {
-        if (!gone) onHover(hover);
-      }).then(function (started) {
+      return start(
+        host,
+        drawn,
+        { width: host.clientWidth, height: host.clientHeight },
+        function (hover) {
+          if (!gone) onHover(hover);
+        },
+        function (key) {
+          if (!gone) onSelect(key);
+        },
+      ).then(function (started) {
         return { started, drawn };
       });
     })
@@ -149,6 +164,7 @@ export function mountDeck(
       }
       drawing = started;
       if (latest !== drawn) started.update(latest);
+      if (focused !== null) started.focus(focused);
       stopObserving = engine.observeSize(host, function (width, height) {
         drawing?.resize(width, height);
       });
@@ -162,6 +178,10 @@ export function mountDeck(
     update(next) {
       latest = next;
       drawing?.update(next);
+    },
+    focus(key) {
+      focused = key;
+      drawing?.focus(key);
     },
     destroy() {
       gone = true;
@@ -417,8 +437,8 @@ export function browserDeckEngine(
           return null;
         });
       return Promise.all([engineOnce, environmentOnce, extrasOnce]).then(function ([{ pixi, art }, environment, extras]): StartDeck {
-        return function (host, scene, size, onHover) {
-          return startDeck(pixi, { ...art, environment, extras }, host, scene, size, motion(), onHover);
+        return function (host, scene, size, onHover, onSelect) {
+          return startDeck(pixi, { ...art, environment, extras }, host, scene, size, motion(), onHover, onSelect);
         };
       });
     },

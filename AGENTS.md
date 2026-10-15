@@ -43,7 +43,8 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
 | `server/ship-deck.ts`, `shared/ship-deck.ts` | What the ship deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail and the crew's looks. |
-| `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the legend of badges and counts. |
+| `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the focused sailor's panel and keys, the legend of badges and counts. |
+| `client/deck-camera.ts`       | The camera: the exact fit or a shot closed in on a focused sailor, the eased zoom between, where the focus panel goes; what a click or an arrow does to the focus. Pure. |
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z. Pure. |
 | `client/deck-hover.ts`        | The sailor under the pointer, by the box it is drawn in; canvas ↔ deck coordinates; where its label goes. Pure. |
 | `client/deck-scene.ts`        | Cards → sailors on hull C, by column, greyed when their feed is lost, each with its hover caption; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
@@ -341,6 +342,17 @@ starts.
   more than two pixels. The label is React, the canvas host's sibling (the host stays childless), with
   `pointerEvents: "none"`: the card's title, the state in the board's words, project and host, the
   card's line at rest, and why it is greyed. Its words are `sailorCaption`, built in the scene from the card.
+- **Clicking a sailor focuses it** (`client/deck-camera.ts`, `docs/ship-deck-focus/README.md`). The pane owns
+  the focus (`nextFocus`: a click on the whole deck focuses, then any click but on that sailor lets go); the
+  canvas only reports which sailor a click hit (`onSelect`) and takes `focus(key)`. The camera is a shot —
+  how far in, and the deck point — turned into the world's fit each frame by `cameraFit` from the canvas's
+  size *now*, so a resize mid-zoom or while focused re-fits; it follows a walking sailor, eases over
+  `FOCUS_MS` on the deck's clock, and snaps under reduced motion. Behind the sailor a `veil` dims the world,
+  and the sailor's sprites move into a `spot` container over it (riding the bob) until the camera is back
+  out. The panel is not the deck's: `ShipDeckView` takes `renderFocus`, and the screen hands in the board's
+  own `CrewCard` with `presentation: "focus"` — always open, a ✕ for the chevron, no tags, facts or report
+  path — so its actions, guards and End confirmation are the board's. `focusLayout` places the panel (beside
+  the sailor from `FOCUS_SIDE_MIN`, docked under it below) and the camera's anchor from one rectangle.
 - **Every state wears a badge** (`client/deck-badges.ts`): ▶ working, hourglass waiting, ! blocked, Z idle,
   in the state's colour, drawn in the sailor's own layer so the pieces in front cover it, and the same
   badge keys the legend. An idle sailor breathes out a z under motion. The badge stands in for state poses
