@@ -1,0 +1,73 @@
+{
+  "before": {
+    "visible": {
+      "top": -134.96407085561498,
+      "bottom": 295.7344585561497,
+      "left": -8.898729946524064,
+      "right": 434.85127005347596,
+      "scale": 1.6856338028169013
+    },
+    "motion": "full"
+  },
+  "after": {
+    "visible": {
+      "top": -185.98345588235296,
+      "bottom": 244.71507352941177,
+      "left": -8.898729946524064,
+      "right": 434.85127005347596,
+      "scale": 1.6856338028169013
+    },
+    "motion": "full"
+  },
+  "panes": {
+    "after-pane-wide-short.png": {
+      "top": -117.61118307426598,
+      "bottom": 177.1804835924007,
+      "left": -253.55138169257341,
+      "right": 678.9372841105354,
+      "scale": 1.309399293286219
+    },
+    "after-pane-narrow-tall.png": {
+      "top": -364.3836462450593,
+      "bottom": 423.141057312253,
+      "left": -8.769762845849803,
+      "right": 434.98023715415025,
+      "scale": 1.140281690140845
+    },
+    "after-pane-fractional.png": {
+      "top": -225.0357530889153,
+      "bottom": 283.5887320918715,
+      "left": -8.611061980443187,
+      "right": 435.1389380195568,
+      "scale": 1.393556338028169
+    },
+    "before-pane-wide-short.png": {
+      "top": -3.475820379965458,
+      "bottom": 164.2325129533679,
+      "left": -52.13730569948187,
+      "right": 478.35977979274617,
+      "scale": 2.301614906832298
+    }
+  },
+  "plank": {
+    "key": "work-1",
+    "boardsAfterMs": 759,
+    "beats": {
+      "plank-1-walking": 380,
+      "plank-2-on-the-board": 1184.5,
+      "plank-3-at-the-end": 1600,
+      "plank-4-splash": 2290,
+      "plank-5-chomp": 3100,
+      "plank-6-gone": 3790
+    },
+    "motion": "full"
+  },
+  "focus": {
+    "panel": "Build the chapter-craft plan: chapter styles, pacing and introductions: details and actions",
+    "after": null
+  },
+  "reducedMotion": {
+    "motion": "still"
+  },
+  "errors": []
+}
