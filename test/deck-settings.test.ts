@@ -18,7 +18,8 @@ import { describe, expect, it } from "vitest";
 import { ENGINE_FORMAT_VERSION, SettingManifestSchema, capabilitiesUsed, settingImageIds, type SettingManifest } from "../shared/deck-setting";
 import { PACK_BYTES_MAX, SETTING_MANIFEST, SETTINGS_DIR } from "../server/deck-settings";
 import { areaAt, clearLine, findPath, inRects, walkable, type Point } from "../client/deck-geometry";
-import { compileStage } from "../client/deck-stage";
+import { compileStage, type ZoneAppearance } from "../client/deck-stage";
+import { pieceDepths } from "../client/deck-parts";
 import { choreographyAt } from "../client/deck-choreography";
 import { compileCast } from "../client/deck-cast";
 import { applyCrew, createCrew, crewFigures, type Figure } from "../client/deck-crew";
@@ -130,6 +131,7 @@ describe.each(packs)("the %s pack", (id) => {
     }
     for (const piece of stage.pieces) inside(piece.sprite, piece.id);
     for (const prop of stage.props) inside(prop.sprite, prop.id);
+    for (const zone of manifest.zones.zones) if (zone.appearance !== undefined) inside(zone.appearance.sprite, zone.id);
     for (const look of manifest.cast.looks) {
       for (const [pose, standing] of Object.entries(manifest.cast.lanes[look.lane]!)) inside({ image: look.image, rect: standing.rect }, `${look.id} ${pose}`);
     }
@@ -221,11 +223,13 @@ describe.each(packs)("the %s pack", (id) => {
     const onBackdrop = (point: Point) => opaqueIn(manifest.stage.backdrop.sprite, point.x, point.y);
     // What stands in front of everything on the floor: a worker's feet behind one of these are hidden.
     const fronts = manifest.stage.pieces.filter((piece) => piece.baseline === null);
-    const hidden = (point: Point) => fronts.some((piece) => opaqueIn(piece.sprite, point.x - piece.at[0], point.y - piece.at[1]));
-    const posts = [...stage.zones.values()].flatMap((zone) => zone.posts);
+    const depths = pieceDepths(manifest.stage.pieces);
+    const hidden = (point: Point, appearance?: ZoneAppearance | null) => fronts.some((piece) =>
+      (appearance == null || depths.get(piece.id)! >= appearance.depth) && opaqueIn(piece.sprite, point.x - piece.at[0], point.y - piece.at[1]));
+    const posts = [...stage.zones.values()].flatMap((zone) => zone.posts.map((post) => ({ ...post, appearance: zone.appearance })));
     const queues = [...stage.exits.entries()].flatMap(([exitId, exit]) => (exit.kind === "choreography" ? [{ id: `${exitId} queue`, ...exit.queue.at }] : []));
     const sinks = [...stage.exits.entries()].flatMap(([exitId, exit]) => (exit.kind === "sink" ? [{ id: exitId, ...exit.at }] : []));
-    const places: Array<Point & { id: string }> = [...posts, { id: "entry", ...stage.entry }, ...sinks, ...queues];
+    const places: Array<Point & { id: string; appearance?: ZoneAppearance | null }> = [...posts, { id: "entry", ...stage.entry }, ...sinks, ...queues];
     const [gridLeft, gridTop, gridWidth, gridHeight] = manifest.floor.grid.bounds;
 
     it("keeps walking entry corridors clear and their actors inside the fit", () => {
@@ -253,8 +257,8 @@ describe.each(packs)("the %s pack", (id) => {
     it("puts every post, the entry, every exit and every queue on open floor: walkable, in sight, where a crowd may stand", () => {
       for (const place of places) {
         expect(walkable(floor, place.x, place.y), place.id).toBe(true);
-        expect(hidden(place), `${place.id} hidden`).toBe(false);
-        expect(areaAt(floor, place.x, place.y)?.spill, place.id).toBe(true);
+        expect(hidden(place, place.appearance), `${place.id} hidden`).toBe(false);
+        if (place.appearance == null) expect(areaAt(floor, place.x, place.y)?.spill, place.id).toBe(true);
       }
     });
 
@@ -321,8 +325,25 @@ describe.each(packs)("the %s pack", (id) => {
             const feet = { x: figure.x, y: figure.row };
             expect(inRects(areas, feet), `${zone.id} ${count}: ${figure.key} in its areas`).toBe(true);
             expect(walkable(floor, feet.x, feet.y)).toBe(true);
-            expect(hidden(feet), `${zone.id} ${count}: ${figure.key} hidden`).toBe(false);
+            expect(hidden(feet, figure.appearance), `${zone.id} ${count}: ${figure.key} hidden`).toBe(false);
             const box = figureBox(figure, cast)!;
+            if (figure.appearance !== undefined) {
+              const appearance = figure.appearance;
+              expect(box.left).toBeGreaterThanOrEqual(0);
+              expect(box.right).toBeLessThanOrEqual(stage.width);
+              expect(box.top).toBeGreaterThanOrEqual(stage.fit.top);
+              expect(box.bottom).toBeLessThanOrEqual(stage.fit.bottom);
+              const [rx, ry, width, height] = appearance.frame;
+              let visible = 0;
+              for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+                if (image(appearance.image).alpha(rx + x, ry + y) < 128) continue;
+                const point = { x: figure.x - appearance.feet[0] + x, y: figure.y - appearance.feet[1] + y };
+                expect(onBackdrop(point), `${zone.id}: handle off backdrop`).toBe(true);
+                expect(hidden(point, appearance), `${zone.id}: hidden handle pixel`).toBe(false);
+                visible++;
+              }
+              expect(visible).toBeGreaterThan(0);
+            }
             for (const other of awake) expect(overlaps(box, figureBox(other, cast)!), `${zone.id} ${count}: ${figure.key} on ${other.key}`).toBe(false);
             expect(reachable(figures, figure), `${zone.id} ${count}: ${figure.key} out of reach`).toBe(true);
           }
