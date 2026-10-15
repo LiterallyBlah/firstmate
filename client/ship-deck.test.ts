@@ -46,10 +46,7 @@ import { fitDeck } from "./deck-pixi";
 import type { Figure } from "./deck-crew";
 import {
   CAPTION_LINE_MAX,
-  DECK_HEIGHT,
-  DECK_PROPS,
   DECK_STATES,
-  DECK_WIDTH,
   deckLayers,
   deckOffered,
   deckScene,
@@ -62,7 +59,7 @@ import {
 import { answeredReplies } from "./deck-replies";
 import { BUBBLE_LINGER_MS, DECK_PLACES, ShipDeckView, deckKeyAction, deckStatusText } from "./ship-deck";
 import { focusLayout } from "./deck-camera";
-import { shipFile, shipImages, shipManifest, shipViews } from "../test/ship-pack";
+import { shipFile, shipImages, shipManifest, shipStage, shipViews } from "../test/ship-pack";
 
 const theme = {
   colors: {
@@ -300,6 +297,8 @@ function decodePng(file: Buffer): { width: number; height: number; alpha: (x: nu
   return { width, height, alpha: (x, y) => pixels[y * stride + x * 4 + 3] ?? 0 };
 }
 
+const DECK_PROPS = shipStage().props.map((prop) => ({ name: prop.id, x: prop.x, y: prop.y }));
+
 describe("the deck's art", () => {
   const manifest = shipViews().art;
   const atlas = decodePng(readFileSync(shipFile("deck.png")));
@@ -309,7 +308,7 @@ describe("the deck's art", () => {
   };
 
   it("is the hull the scene's coordinates are, in an atlas the manifest describes", () => {
-    expect(manifest.ship.frame).toEqual([0, 0, DECK_WIDTH, DECK_HEIGHT]);
+    expect(manifest.ship.frame).toEqual([0, 0, shipStage().width, shipStage().height]);
     expect([atlas.width, atlas.height]).toEqual(shipManifest().images[shipManifest().stage.backdrop.sprite.image]!.size);
     expect(Object.keys(manifest.pieces).sort()).toEqual([
       "bollard-bow-aft",
@@ -348,7 +347,7 @@ describe("the deck's art", () => {
       alpha: 1,
     });
     const figures = [at(211, 111, "before-mast"), at(211, 100, "behind-mast"), at(80, 94, "behind-bollard"), at(80, 95, "before-bollard")];
-    const order = deckLayers(figures, manifest.pieces).map((layer) =>
+    const order = deckLayers(figures, manifest.pieces, shipStage().props).map((layer) =>
       layer.kind === "ship" ? "ship" : layer.kind === "piece" ? `piece:${layer.name}` : layer.kind === "prop" ? `prop:${layer.name}` : layer.figure.key,
     );
     expect(order[0]).toBe("ship");
@@ -363,17 +362,17 @@ describe("the deck's art", () => {
   });
 
   it("fits the deck exactly at any size, its offset on whole device pixels", () => {
-    const deck = { width: DECK_WIDTH, height: DECK_HEIGHT };
-    expect(fitDeck({ width: 1000, height: 800 }, deck, 1).scale).toBeCloseTo((1000 / DECK_WIDTH) * 0.96);
-    expect(fitDeck({ width: 1000, height: 800 }, deck, 1.5).scale).toBeCloseTo((1000 / DECK_WIDTH) * 0.96);
+    const deck = { width: shipStage().width, height: shipStage().height };
+    expect(fitDeck({ width: 1000, height: 800 }, deck, 1, shipStage().fit.margin).scale).toBeCloseTo((1000 / shipStage().width) * 0.96);
+    expect(fitDeck({ width: 1000, height: 800 }, deck, 1.5, shipStage().fit.margin).scale).toBeCloseTo((1000 / shipStage().width) * 0.96);
     // A short pane: the height decides.
-    expect(fitDeck({ width: 1000, height: 200 }, deck, 2).scale).toBeCloseTo((200 / DECK_HEIGHT) * 0.96);
-    const small = fitDeck({ width: 600, height: 400 }, deck, 1);
-    expect(small.scale).toBeCloseTo((600 / DECK_WIDTH) * 0.96);
-    expect(small.x).toBe(Math.round((600 - DECK_WIDTH * small.scale) / 2));
-    const hidpi = fitDeck({ width: 777, height: 555 }, deck, 1.25);
+    expect(fitDeck({ width: 1000, height: 200 }, deck, 2, shipStage().fit.margin).scale).toBeCloseTo((200 / shipStage().height) * 0.96);
+    const small = fitDeck({ width: 600, height: 400 }, deck, 1, shipStage().fit.margin);
+    expect(small.scale).toBeCloseTo((600 / shipStage().width) * 0.96);
+    expect(small.x).toBe(Math.round((600 - shipStage().width * small.scale) / 2));
+    const hidpi = fitDeck({ width: 777, height: 555 }, deck, 1.25, shipStage().fit.margin);
     expect(Number.isInteger(hidpi.x * 1.25) && Number.isInteger(hidpi.y * 1.25)).toBe(true);
-    expect(fitDeck({ width: 0, height: 0 }, deck, 2).scale).toBe(0);
+    expect(fitDeck({ width: 0, height: 0 }, deck, 2, shipStage().fit.margin).scale).toBe(0);
   });
 });
 

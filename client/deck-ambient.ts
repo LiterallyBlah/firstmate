@@ -18,7 +18,6 @@
  * - **Gulls** — now and then one crosses the sky at the short masthead's height, about halfway up the tall
  *   mast, flapping in bursts and gliding.
  */
-import { DECK_WIDTH } from "./deck-scene";
 
 /** How the deck moves: fully, lightly on a software renderer, or not at all (reduced motion, or hidden). */
 export type MotionLevel = "full" | "lite" | "still";
@@ -125,17 +124,17 @@ const GULL_MARGIN = 60;
 export const GULL_LOWEST = 40;
 
 /**
- * The gulls in the sky at `seconds`: one now and then crosses from one side to the other at about the
+ * The gulls in the sky at `seconds` over a stage `stageWidth` wide: one now and then crosses from one side to the other at about the
  * short masthead's height (halfway up the tall mast), its height drifting, flapping for a second in every
  * three and gliding between.
  * It flies behind the ship, so one that meets the mast passes behind it, and low enough that its
  * whole sprite is inside the deck's frame: a pane that fits the deck's height still shows it.
  * Deterministic: slot k's gull, if it flies at all, leaves at a time and side drawn from k.
  */
-export function gullsAt(seconds: number): Gull[] {
+export function gullsAt(seconds: number, stageWidth: number): Gull[] {
   const gulls: Gull[] = [];
   const slot = Math.floor(seconds / GULL_SLOT_SECONDS);
-  const span = DECK_WIDTH + GULL_MARGIN * 2;
+  const span = stageWidth + GULL_MARGIN * 2;
   const duration = span / GULL_SPEED;
   for (let k = slot - 1; k <= slot; k += 1) {
     if (k < 0 || hashUnit(k * 3 + 1) > 0.68) continue;
@@ -144,7 +143,7 @@ export function gullsAt(seconds: number): Gull[] {
     if (age < 0 || age > duration) continue;
     const leftward = hashUnit(k * 3 + 3) < 0.5;
     const travelled = age * GULL_SPEED - GULL_MARGIN;
-    const x = leftward ? DECK_WIDTH - travelled : travelled;
+    const x = leftward ? stageWidth - travelled : travelled;
     const height = GULL_LOWEST - hashUnit(k * 7 + 5) * 18;
     const y = height + Math.sin(age * 0.7 + k) * 3;
     gulls.push({ x: Math.round(x), y: Math.round(y), flapping: age % 3 < 1, age, flip: leftward });

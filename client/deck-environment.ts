@@ -53,7 +53,6 @@ import { deliveredWeather, moodTint, shade, type Weather } from "./deck-atmosphe
 import { cloudColours, cloudField, cloudX, variantPalette, type CloudImages } from "./deck-clouds";
 import { flashAt, flashSalt, underCloud, type Flash } from "./deck-flash";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
-import { DECK_HEIGHT, DECK_WIDTH } from "./deck-scene";
 import { gullPose, scrollOffset, skyBlend, skyHorizonRow, skyPlacement, type SkyBlend } from "./deck-sky";
 import { cycleFrame, curvePeak, opacityAt, variantBlend, variantsOf, type DrawnVariants, type Variant } from "./deck-variants";
 import { WAKE_COLOURS, WAKE_SPEED, wakeRuns } from "./deck-wake";
@@ -174,10 +173,10 @@ interface WakeLayer {
  * The code wake's layer: its foam drawn as rectangles, again only when the sea has scrolled a whole pixel or
  * the screen shows more of the water than it did.
  */
-function codeWake(pixi: PixiModule): WakeLayer {
+function codeWake(pixi: PixiModule, stage: StageSize): WakeLayer {
   const graphics: PixiGraphics = new pixi.Graphics();
   graphics.label = "wake";
-  let reach = { right: DECK_WIDTH, bottom: DECK_HEIGHT };
+  let reach = { right: stage.width, bottom: stage.height };
   let drawn: string | null = null;
   return {
     views: [graphics],
@@ -213,9 +212,9 @@ function generatedWake(pixi: PixiModule, wake: WaterManifest["wake"], cut: Cut, 
 }
 
 /** The wake to draw: the generated one where every frame of it decoded, with its variants; or the one drawn in code. */
-function wakeOf(pixi: PixiModule, water: DrawnWater | null, layers: WeatherLayers | null, cut: Cut): WakeLayer {
+function wakeOf(pixi: PixiModule, stage: StageSize, water: DrawnWater | null, layers: WeatherLayers | null, cut: Cut): WakeLayer {
   const wake = water?.wake ?? null;
-  return wake === null ? codeWake(pixi) : generatedWake(pixi, wake, cut, variantsOf(layers?.variants ?? null, "wake"));
+  return wake === null ? codeWake(pixi, stage) : generatedWake(pixi, wake, cut, variantsOf(layers?.variants ?? null, "wake"));
 }
 
 /** A cycle (`client/deck-variants.ts`): its frames looping on the water's clock at its place, its opacity by the weather. */
@@ -256,14 +255,21 @@ function textureCutter(pixi: PixiModule, images: (path: string) => unknown) {
   };
 }
 
+/** The stage's size in its own pixels (`client/deck-stage.ts`): what the scenery is centred on and runs across. */
+export interface StageSize {
+  width: number;
+  height: number;
+}
+
 /**
- * The scenery behind and in front of the ship. `clouds`, when there are any, drift across the sky, laid out
+ * The scenery behind and in front of the ship, on a stage of `stage`'s size. `clouds`, when there are any, drift across the sky, laid out
  * from `seed`; without the environment's sky there is nowhere for them, and they are not drawn. `water` is the
  * extras' animated sea, foam and wake, each drawn in place of the environment's own where it loaded. `layers` are the
  * extras' weather layers, drawn over all of it as the weather's intensity says (`client/deck-variants.ts`).
  */
 export function createScenery(
   pixi: PixiModule,
+  stage: StageSize,
   environment: DeckEnvironmentImages | null,
   clouds: CloudImages | null = null,
   seed = 0,
@@ -275,7 +281,7 @@ export function createScenery(
   const front = new pixi.Container();
   front.label = "scenery:front";
   const extraImage = (path: string) => water?.images.get(path) ?? layers?.variants?.images.get(path);
-  if (!environmentComplete(environment)) return flatScenery(pixi, back, front, water, layers, extraImage);
+  if (!environmentComplete(environment)) return flatScenery(pixi, stage, back, front, water, layers, extraImage);
 
   const { manifest, images } = environment;
   const cutter = textureCutter(pixi, (path) => (images.has(path) ? images.get(path) : extraImage(path)));
@@ -452,7 +458,7 @@ export function createScenery(
   for (const strip of foamOver) strip.container.visible = false;
   let foamDrawn = "";
 
-  const wake = wakeOf(pixi, water, layers, cut);
+  const wake = wakeOf(pixi, stage, water, layers, cut);
   const cycles = (variants?.cycles ?? []).map((cycle) => cycleLayer(pixi, cycle, cut, variantsOf(variants, `cycle:${cycle.id}`)));
 
   back.addChild(
@@ -494,7 +500,7 @@ export function createScenery(
     front,
     generated: true,
     layout(visible) {
-      const place = skyPlacement(visible, manifest.sky.size, horizonRow);
+      const place = skyPlacement(visible, manifest.sky.size, horizonRow, stage.width);
       for (const sprite of [skyUnder, skyOver, ...moods.map((mood) => mood.sprite), ...overlays]) {
         sprite.position.set(place.x, place.y);
         sprite.scale.set(place.scale);
@@ -652,7 +658,7 @@ export function createScenery(
       }
       for (const cycle of cycles) cycle.draw(weather, plan);
 
-      const flying = plan.ambient && blend.stars < 0.5 ? gullsAt(seconds) : [];
+      const flying = plan.ambient && blend.stars < 0.5 ? gullsAt(seconds, stage.width) : [];
       gulls.forEach(function (sprite, index) {
         const gull = flying[index];
         sprite.visible = gull !== undefined;
@@ -675,6 +681,7 @@ export function createScenery(
  */
 function flatScenery(
   pixi: PixiModule,
+  stage: StageSize,
   back: PixiContainer,
   front: PixiContainer,
   water: DrawnWater | null,
@@ -686,7 +693,7 @@ function flatScenery(
   const nearSea: PixiGraphics = new pixi.Graphics();
   nearSea.label = "sea:near";
   const cutter = textureCutter(pixi, images);
-  const wake = wakeOf(pixi, water, layers, cutter.cut);
+  const wake = wakeOf(pixi, stage, water, layers, cutter.cut);
   const variants = layers?.variants ?? null;
   const cycles = (variants?.cycles ?? []).map((cycle) => cycleLayer(pixi, cycle, cutter.cut, variantsOf(variants, `cycle:${cycle.id}`)));
   back.addChild(farSea);

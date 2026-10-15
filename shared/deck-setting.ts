@@ -282,8 +282,8 @@ const Segment = z.object({
 const Choreography = z.object({
   kind: z.literal("choreography"),
   marks: z.record(Id, Point),
-  /** Departures wait their turn at `at`; the next goes once the one before has reached `release`. */
-  queue: z.object({ at: Id, release: Id }),
+  /** Departures wait their turn at `at`, `spacing` apart; the next goes once the one before has reached `release`. */
+  queue: z.object({ at: Id, release: Id, spacing: Spacing }),
   /** By departure serial: which side effects come from, and how far across the worker lands. */
   alternate: z.object({ side: z.array(z.union([z.literal(-1), z.literal(1)])).min(1), drift: z.array(Px).min(1) }),
   actor: z.array(Segment).min(1),

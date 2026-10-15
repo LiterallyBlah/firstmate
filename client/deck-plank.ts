@@ -11,7 +11,7 @@
  *   is two rows thick. It is the generated board (`art/settings/ship/plank/`, served with the pack), placed on
  *   these same anchors, in the deck's layer just in front of the near rail, so it rides the bob. Where that
  *   image did not load, the board is drawn in code from the hull's own colours instead (`plankPixels`).
- * - **The walk.** A departing sailor walks the deck to the plank's foot (`PLANK.foot`, open deck behind the
+ * - **The walk.** A departing sailor walks the deck to the plank's foot (its `foot` mark, open deck behind the
  *   rail) by the deck's own paths. One at a time: the rest wait beside the foot, in the order they left,
  *   and the next steps up only once the one before has hit the water (`plankFree`), so two sharks are
  *   never in the water at once. From the foot the sequence is this file's timeline, `plankExit`.
@@ -22,7 +22,9 @@
  *   second burst. About two and a half seconds from the foot to empty sea.
  * - **Where the water is.** The sailor drops into the sea straight below the plank's tip: as far in front
  *   of the hull's waterline as the tip is in front of the rail, so the splash and the shark are in the near
- *   sea (row 168), outside the ship's bob. The shark's art is anchored at its water contact
+ *   sea (the `water` mark, row 168), outside the ship's bob.
+ * - **The marks are the setting's** (the ship pack's `plank` exit, read by `client/deck-stage.ts`); the timeline is
+ *   still this file's, and becomes the pack's own when the choreography does. The shark's art is anchored at its water contact
  *   (`docs/ship-deck-art/shark/README.md`); its mouth is placed over the sailor, and it comes from the left or
  *   the right by turns (`side`), mirrored about its anchor.
  */
@@ -46,41 +48,41 @@ export function exitFor(departure: DeckDeparture): "plank" | "hatch" {
 }
 
 /**
- * The plank, in deck pixels (`client/deck-geometry.ts`): `foot` is where a sailor stands on the open deck
- * behind the rail before stepping up, `rail` its feet on the plank over the rail's top, `tip` its feet at
- * the end. `water` is the near sea's row straight below the tip. `left`/`width` are the board's top face at
- * the rail; it widens by a pixel each side at each third of its length, towards the viewer.
+ * The plank's marks, in stage pixels (`client/deck-geometry.ts`): `foot` is where a sailor stands on the open
+ * deck behind the rail before stepping up, `rail` its feet on the plank over the rail's top, `tip` its feet at the
+ * end, and `water` the near sea straight below the tip.
  */
-export const PLANK = {
-  foot: { x: 250, y: 118 },
-  rail: { x: 250, y: 121 },
-  tip: { x: 250, y: 138 },
-  water: 168,
-  left: 244,
-  width: 12,
-} as const;
+export interface PlankMarks {
+  foot: { x: number; y: number };
+  rail: { x: number; y: number };
+  tip: { x: number; y: number };
+  water: { x: number; y: number };
+}
 
-/** The row below the lowest the shark and the splash reach at the water (the pack's shark and splash): their ripple ends two rows under it. */
-export const PLANK_SEA_BOTTOM = PLANK.water + 3;
+/**
+ * The board drawn in code where the generated one did not load, until it is retired: its top face at the rail,
+ * `left` and `width`, widening by a pixel each side at each third of its length, towards the viewer.
+ */
+const CODE_BOARD = { left: 244, width: 12 } as const;
 
 /**
  * The plank's pixels, top to bottom, in the hull's own colours: [x, y, width, height, colour, alpha]. Two
  * boards side by side with a seam between them, widening towards the viewer, their end two rows thick, and
  * the shadow they cast on the hull's side below and to the right, which is what says they stick out.
  */
-export function plankPixels(): ReadonlyArray<readonly [number, number, number, number, number, number]> {
-  const top = PLANK.rail.y;
-  const bottom = PLANK.tip.y + 1;
+export function plankPixels(marks: PlankMarks): ReadonlyArray<readonly [number, number, number, number, number, number]> {
+  const top = marks.rail.y;
+  const bottom = marks.tip.y + 1;
   const span = bottom - top;
   const runs: Array<readonly [number, number, number, number, number, number]> = [];
   const run = (x: number, y: number, width: number, height: number, colour: number, alpha = 1) => runs.push([x, y, width, height, colour, alpha]);
-  let left = PLANK.left;
-  let width = PLANK.width;
+  let left: number = CODE_BOARD.left;
+  let width: number = CODE_BOARD.width;
   for (let y = top; y <= bottom; y += 1) {
     // A pixel wider each side at each third, nearer the viewer.
     const grow = Math.floor(((y - top) * 3) / (span + 1));
-    left = PLANK.left - grow;
-    width = PLANK.width + grow * 2;
+    left = CODE_BOARD.left - grow;
+    width = CODE_BOARD.width + grow * 2;
     const seam = left + Math.floor(width / 2);
     run(left, y, 1, 1, PLANK_COLOURS.edge);
     run(left + width - 1, y, 1, 1, PLANK_COLOURS.edge);
@@ -117,8 +119,8 @@ export const PLANK_SHADOW_ALPHA = 0.45;
 
 /** The step up over the gunwale from the foot. */
 export const HOP_MS = 160;
-/** Out along the plank, at the deck's walking pace (`WALK_SPEED`, 32 px a second). */
-export const PLANK_WALK_MS = Math.round(((PLANK.tip.y - PLANK.rail.y) / 32) * 1000);
+/** Out along the plank, at the floor's walking pace: the ship's 17 rows at 32 px a second (`client/ship-pack.test.ts` holds it to the pack). */
+export const PLANK_WALK_MS = 531;
 /** A teeter at the end. */
 export const TEETER_MS = 300;
 /** The jump, from the tip into the water. */
@@ -175,36 +177,40 @@ function between(from: number, to: number, t: number): number {
 /**
  * One departure's sequence at `t` milliseconds from the plank's foot. `side` is where the shark comes
  * from (-1 the left, facing right; 1 the right, facing left), `drift` how far across the sailor lands
- * from the tip, `sailorHeight` its pose's rows, and `mouth` the shark's mouth from its water anchor, as
- * drawn facing right. Whole pixels throughout.
+ * from the tip, `sailorHeight` its pose's rows, `mouth` the shark's mouth from its water anchor, as
+ * drawn facing right, and `marks` the plank's. Whole pixels throughout.
  */
-export function plankExit(t: number, options: { side: -1 | 1; drift: number; sailorHeight: number; mouth: readonly [number, number] }): PlankMoment {
-  const { side, drift, sailorHeight, mouth } = options;
-  const wx = PLANK.tip.x + drift;
-  const wy = PLANK.water;
+export function plankExit(
+  t: number,
+  options: { side: -1 | 1; drift: number; sailorHeight: number; mouth: readonly [number, number]; marks: PlankMarks },
+): PlankMoment {
+  const { side, drift, sailorHeight, mouth, marks } = options;
+  const { foot, rail, tip } = marks;
+  const wx = tip.x + drift;
+  const wy = marks.water.y;
   if (t >= PLANK_EXIT_MS) return { sailor: null, shark: null, splash: null, done: true };
 
   let sailor: PlankMoment["sailor"] = null;
   if (t < HOP_MS) {
     // A step up over the gunwale onto the plank, a little arc; in front of the rail once more than halfway over.
     const u = t / HOP_MS;
-    const y = between(PLANK.foot.y, PLANK.rail.y, u) - Math.sin(Math.PI * u) * 2;
-    sailor = { x: PLANK.foot.x, y: Math.round(y), pose: "front-walk-a", reveal: 1, layer: u >= 0.5 ? "rail" : "deck", moving: true };
+    const y = between(foot.y, rail.y, u) - Math.sin(Math.PI * u) * 2;
+    sailor = { x: foot.x, y: Math.round(y), pose: "front-walk-a", reveal: 1, layer: u >= 0.5 ? "rail" : "deck", moving: true };
   } else if (t < HOP_MS + PLANK_WALK_MS) {
     const walked = t - HOP_MS;
     const step = Math.floor(walked / STEP_MS) % 4;
-    const y = between(PLANK.rail.y, PLANK.tip.y, walked / PLANK_WALK_MS);
-    sailor = { x: PLANK.rail.x, y: Math.round(y) - (step % 2 === 1 ? 1 : 0), pose: WALK_FRONT[step]!, reveal: 1, layer: "rail", moving: true };
+    const y = between(rail.y, tip.y, walked / PLANK_WALK_MS);
+    sailor = { x: rail.x, y: Math.round(y) - (step % 2 === 1 ? 1 : 0), pose: WALK_FRONT[step]!, reveal: 1, layer: "rail", moving: true };
   } else if (t < HOP_MS + PLANK_WALK_MS + TEETER_MS) {
     // At the end, rocking from foot to foot.
     const at = t - HOP_MS - PLANK_WALK_MS;
     const dx = [0, -1, 0, 1][Math.floor(at / 75) % 4] ?? 0;
-    sailor = { x: PLANK.tip.x + dx, y: PLANK.tip.y, pose: "front-idle", reveal: 1, layer: "rail", moving: false };
+    sailor = { x: tip.x + dx, y: tip.y, pose: "front-idle", reveal: 1, layer: "rail", moving: false };
   } else if (t < IMPACT_AT) {
     // Off the end: a little up, then down into the sea, drifting across.
     const u = (t - (IMPACT_AT - JUMP_MS)) / JUMP_MS;
-    const y = PLANK.tip.y + (wy - PLANK.tip.y) * u * u - 16 * u * (1 - u);
-    sailor = { x: Math.round(between(PLANK.tip.x, wx, u)), y: Math.round(y), pose: "front-walk-b", reveal: 1, layer: "sea", moving: true };
+    const y = tip.y + (wy - tip.y) * u * u - 16 * u * (1 - u);
+    sailor = { x: Math.round(between(tip.x, wx, u)), y: Math.round(y), pose: "front-walk-b", reveal: 1, layer: "sea", moving: true };
   } else if (t < CHOMP_AT) {
     // Under the splash, then back up, head and shoulders out, bobbing.
     const since = t - IMPACT_AT;

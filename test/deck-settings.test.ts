@@ -2,8 +2,10 @@
  * The pack linter: every setting pack under `art/settings/` held to what the engine needs of it, whatever the
  * setting — the schema and everything it names (`settingProblems`), its images present at their declared sizes and
  * hashes with nothing else in the folder, every sprite inside its image, every animation's frames one size, every
- * variant lined up with what it lays over, every drifting sprite in exactly its slots' colours, and the whole small
- * enough to send. A new setting is held to all of it by being there.
+ * variant lined up with what it lays over, every drifting sprite in its palette's colours, and the whole small
+ * enough to send — and its floor read against its own backdrop's pixels: every walkable point on the backdrop and
+ * hidden only where a crowd may not spill, every post and mark on open floor, everything reachable from everything
+ * else, and the fit taking in every part, flyby and effect. A new setting is held to all of it by being there.
  */
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -13,6 +15,8 @@ import { describe, expect, it } from "vitest";
 
 import { ENGINE_FORMAT_VERSION, SettingManifestSchema, capabilitiesUsed, settingImageIds, type SettingManifest } from "../shared/deck-setting";
 import { PACK_BYTES_MAX, SETTING_MANIFEST, SETTINGS_DIR } from "../server/deck-settings";
+import { areaAt, findPath, inRects, pathLength, walkable, type Point } from "../client/deck-geometry";
+import { compileStage } from "../client/deck-stage";
 import { decodePng, type Pixels } from "./png";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -20,6 +24,18 @@ const settings = join(root, SETTINGS_DIR);
 const packs = readdirSync(settings).filter((name) => statSync(join(settings, name)).isDirectory());
 
 type Sprite = { image: string; rect?: readonly [number, number, number, number] | undefined };
+
+/** Every point a walk from `from` along `path` passes, a half pixel apart. */
+function walkPoints(from: Point, path: readonly Point[]): Point[] {
+  const points: Point[] = [from];
+  let at = from;
+  for (const next of path) {
+    const steps = Math.max(1, Math.ceil(Math.hypot(next.x - at.x, next.y - at.y) * 2));
+    for (let step = 1; step <= steps; step += 1) points.push({ x: at.x + ((next.x - at.x) * step) / steps, y: at.y + ((next.y - at.y) * step) / steps });
+    at = next;
+  }
+  return points;
+}
 
 /** Every file under `folder`, by its path there with forward slashes. */
 function filesUnder(folder: string): string[] {
@@ -169,6 +185,104 @@ describe.each(packs)("the %s pack", (id) => {
         expect(colours.size, `${element.id} ${sprite.image}`).toBeGreaterThan(0);
       }
     }
+  });
+
+  describe("its floor, read against its backdrop", () => {
+    const stage = compileStage(manifest);
+    const { floor } = stage;
+    /** Whether a sprite has an opaque pixel at (x, y) of itself. */
+    const opaqueIn = (sprite: Sprite, x: number, y: number) => {
+      const [width, height] = size(sprite);
+      const [rx, ry] = sprite.rect ?? [0, 0];
+      const px = Math.floor(x);
+      const py = Math.floor(y);
+      return px >= 0 && py >= 0 && px < width && py < height && image(sprite.image).alpha(rx + px, ry + py) === 255;
+    };
+    const onBackdrop = (point: Point) => opaqueIn(manifest.stage.backdrop.sprite, point.x, point.y);
+    // What stands in front of everything on the floor: a worker's feet behind one of these are hidden.
+    const fronts = manifest.stage.pieces.filter((piece) => piece.baseline === null);
+    const hidden = (point: Point) => fronts.some((piece) => opaqueIn(piece.sprite, point.x - piece.at[0], point.y - piece.at[1]));
+    const posts = [...stage.zones.values()].flatMap((zone) => zone.posts);
+    const queues = [...stage.exits.entries()].flatMap(([exitId, exit]) => (exit.kind === "choreography" ? [{ id: `${exitId} queue`, ...exit.queue.at }] : []));
+    const sinks = [...stage.exits.entries()].flatMap(([exitId, exit]) => (exit.kind === "sink" ? [{ id: exitId, ...exit.at }] : []));
+    const places: Array<Point & { id: string }> = [...posts, { id: "entry", ...stage.entry }, ...sinks, ...queues];
+    const [gridLeft, gridTop, gridWidth, gridHeight] = manifest.floor.grid.bounds;
+
+    it("is all backdrop, and hidden behind what stands in front of everything only where a crowd may not spill", () => {
+      let walkablePoints = 0;
+      for (let y = gridTop; y < gridTop + gridHeight; y += 1) {
+        for (let x = gridLeft; x < gridLeft + gridWidth; x += 1) {
+          if (!walkable(floor, x, y)) continue;
+          walkablePoints += 1;
+          expect(onBackdrop({ x, y }), `${x},${y} on the backdrop`).toBe(true);
+          if (hidden({ x, y })) expect(areaAt(floor, x, y)?.spill, `${x},${y} hidden, on an area a crowd spills onto`).toBe(false);
+        }
+      }
+      expect(walkablePoints).toBeGreaterThan(0);
+    });
+
+    it("puts every post, the entry, every exit and every queue on open floor: walkable, in sight, where a crowd may stand", () => {
+      for (const place of places) {
+        expect(walkable(floor, place.x, place.y), place.id).toBe(true);
+        expect(hidden(place), `${place.id} hidden`).toBe(false);
+        expect(areaAt(floor, place.x, place.y)?.spill, place.id).toBe(true);
+      }
+    });
+
+    it("blocks every obstacle's feet, its props' included", () => {
+      for (const { id: obstacle, rect } of floor.obstacles) expect(walkable(floor, rect[0] + rect[2] / 2, rect[1] + rect[3] / 2), obstacle).toBe(false);
+    });
+
+    it("walks from every post, the entry and every queue to every other, on the floor all the way and never far round", () => {
+      for (const from of places) {
+        for (const to of places) {
+          if (from === to || (from.x === to.x && from.y === to.y)) continue;
+          const path = findPath(floor, from, to);
+          expect(path.at(-1), `${from.id} → ${to.id} ends there`).toEqual({ x: to.x, y: to.y });
+          for (const point of walkPoints(from, path)) expect(walkable(floor, point.x, point.y), `${from.id} → ${to.id} at ${point.x},${point.y}`).toBe(true);
+          expect(pathLength(from, path), `${from.id} → ${to.id} pulled tight`).toBeLessThan(Math.hypot(to.x - from.x, to.y - from.y) * 1.6 + 30);
+        }
+      }
+    });
+
+    it("keeps a packing zone's posts in its overflow areas, apart, and every other zone's out of them", () => {
+      for (const zone of stage.zones.values()) {
+        if (zone.overflow.kind !== "pack") continue;
+        const { areas, spacing } = zone.overflow;
+        for (const post of zone.posts) expect(inRects(areas, post), `${zone.id} ${post.id}`).toBe(true);
+        for (const post of posts.filter((other) => other.place !== zone.id)) expect(inRects(areas, post), `${post.id} in ${zone.id}'s areas`).toBe(false);
+        for (const a of zone.posts) {
+          for (const b of zone.posts) if (a !== b) expect(Math.abs(a.x - b.x) >= spacing[0] || Math.abs(a.y - b.y) >= spacing[1], `${a.id} ${b.id}`).toBe(true);
+        }
+      }
+    });
+
+    it("fits what is drawn: every part, the flyby's whole sprite, and every effect where its choreography puts it", () => {
+      const { fit } = manifest.stage;
+      expect(fit.top).toBeLessThanOrEqual(0);
+      expect(fit.bottom).toBeGreaterThanOrEqual(stage.height);
+      for (const part of manifest.stage.parts) expect(part.at[1], part.id).toBeGreaterThanOrEqual(fit.top);
+      for (const element of manifest.ambience) {
+        const behaviour = element.behaviour;
+        if (behaviour.kind !== "flyby") continue;
+        expect(behaviour.rows[0] - Math.abs(behaviour.wobble.px) - behaviour.anchor[1], element.id).toBeGreaterThanOrEqual(fit.top);
+        expect(behaviour.rows[1] + Math.abs(behaviour.wobble.px) + behaviour.size[1] - behaviour.anchor[1], element.id).toBeLessThanOrEqual(stage.height);
+      }
+      for (const exit of Object.values(manifest.portals.exits)) {
+        if (exit.kind !== "choreography") continue;
+        for (const effect of exit.effects) {
+          const def = manifest.effects[effect.effect]!;
+          for (const key of effect.keys) {
+            const sprite = def.frames[key.frame]!;
+            let lowest = -Infinity;
+            const [width, height] = size(sprite);
+            for (let y = 0; y < height; y += 1) for (let x = 0; x < width; x += 1) if (opaqueIn(sprite, x, y)) lowest = Math.max(lowest, y);
+            const row = exit.marks[key.place.mark]![1] + lowest - def.points.anchor![1];
+            expect(row, `${effect.effect} ${key.frame}`).toBeLessThan(fit.bottom);
+          }
+        }
+      }
+    });
   });
 
   it("says in words what each of its zones is", () => {

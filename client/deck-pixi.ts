@@ -10,7 +10,7 @@
  * `front`). The weather layers lie among them (`client/deck-environment.ts`): the sky's mood overlays over the sky and
  * under the stars, flashes behind the clouds, each variant just over its element, cycles over the foam. The hover label
  * and legend are React, on top. The sail hangs on the tall mast behind the crew.
- * The tall mast reaches into the sky above the hull, and the fit takes in its top (`deckBox`); its own rows
+ * The tall mast reaches into the sky above the hull, and the fit takes in the setting's fit box (`deckBox`); its own rows
  * below the sail are the mast's depth piece, which leaves the cloth alone (`client/deck-extras.ts`).
  *
  * **The plank** (`client/deck-plank.ts`) is the generated board (`art/settings/ship/plank/`), or where it did not
@@ -56,13 +56,14 @@ import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetw
 import { askMarks, badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type AskMark, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
 import type { DeckDrawing, DeckHost } from "./deck-mount";
-import { DECK_PROPS, depthOf, type DeckScene, type DeckState } from "./deck-scene";
+import { depthOf, type DeckScene, type DeckState } from "./deck-scene";
 import { drawnClouds } from "./deck-clouds";
 import { createScenery, type DeckEnvironmentImages } from "./deck-environment";
 import { drawnFlashes } from "./deck-flash";
 import { drawnVariants } from "./deck-variants";
 import { drawnWater } from "./deck-water";
-import { PLANK_SEA_BOTTOM, plankPixels, type SharkFrame, type SplashFrame } from "./deck-plank";
+import { plankPixels, type SharkFrame, type SplashFrame } from "./deck-plank";
+import type { DeckStage } from "./deck-stage";
 import { dominantPhase, localMinute, SKY_REFRESH_MS } from "./deck-sky";
 
 /** Marks the canvas with its renderer, so the live check can read it in the app's DevTools. */
@@ -160,11 +161,12 @@ export interface PixiModule {
 }
 
 /**
- * The deck's art as the mount hands it over: the decoded atlas image, and where everything is in it; the
- * generated sea, sky and gull, or null when they could not be loaded; and the sail and the crew's extra
- * looks, as many of them as decoded, or null.
+ * The deck's art as the mount hands it over: the setting's stage, compiled (`client/deck-stage.ts`); the decoded
+ * atlas image, and where everything is in it; the generated sea, sky and gull, or null when they could not be
+ * loaded; and the sail and the crew's extra looks, as many of them as decoded, or null.
  */
 export interface DeckArtImage {
+  stage: DeckStage;
   image: unknown;
   manifest: DeckArtManifest;
   environment: DeckEnvironmentImages | null;
@@ -370,24 +372,25 @@ function stand(sprite: PixiSprite, standing: { frame: readonly number[]; feet: r
  * makes some art pixels one device pixel wider than others, which at three or more device pixels an
  * art pixel hardly shows; a ship that jumps does.
  *
- * What is fitted is the deck's rows from `top` (0, the hull's top row, unless a tall mast reaches above it)
- * to `height`.
+ * What is fitted is the deck's rows from `top` (0, the stage's top row, unless a part reaches above it) to
+ * `height`, with the setting's `margin` round it.
  */
-export function fitDeck(screen: { width: number; height: number }, deck: { width: number; height: number; top?: number }, resolution: number) {
+export function fitDeck(screen: { width: number; height: number }, deck: { width: number; height: number; top?: number }, resolution: number, margin: number) {
   const top = deck.top ?? 0;
   const rows = deck.height - top;
-  const scale = Math.max(0, Math.min(screen.width / deck.width, screen.height / rows) * 0.96);
+  const scale = Math.max(0, Math.min(screen.width / deck.width, screen.height / rows) * margin);
   const snap = (value: number) => Math.round(value * resolution) / resolution;
   return { scale, x: snap((screen.width - deck.width * scale) / 2), y: snap((screen.height - rows * scale) / 2 - top * scale) };
 }
 
 /**
- * The deck's rows the fit takes in: the hull's, or under the tall mast from its top down to the lowest the
- * plank's shark and splash reach in the near sea, so that the taller fit keeps the whole of the way off
- * the plank in view in a wide pane, as the hull's own did.
+ * The stage's rows the fit takes in: the stage's own, or, once a part drawn reaches above it (`rigTop` below 0:
+ * the ship's tall mast), the setting's fit box — on the ship from the mast's top down to the lowest the plank's
+ * shark and splash reach in the near sea, so the taller fit keeps the whole of the way off the plank in view in a
+ * wide pane, as the hull's own did.
  */
-export function deckBox(deck: { width: number; height: number }, rigTop: number): { width: number; height: number; top?: number } {
-  return rigTop >= 0 ? deck : { width: deck.width, height: Math.max(deck.height, PLANK_SEA_BOTTOM), top: rigTop };
+export function deckBox(stage: Pick<DeckStage, "width" | "height" | "fit">, rigTop: number): { width: number; height: number; top?: number } {
+  return rigTop >= 0 ? { width: stage.width, height: stage.height } : { width: stage.width, height: Math.max(stage.height, stage.fit.bottom), top: stage.fit.top };
 }
 
 /**
@@ -492,10 +495,10 @@ export async function startDeck(
   canvas.setAttribute(DECK_CANVAS_ATTRIBUTE, app.renderer.name);
   host.appendChild(app.canvas);
 
-  const { manifest } = art;
+  const { manifest, stage } = art;
   const textures: Textures = atlasTextures(pixi, art);
   let current = scene;
-  const crew = createCrew(crewLooks(art.extras), textures.exit?.shark.mouth ?? SHARK_MOUTH);
+  const crew = createCrew(stage, crewLooks(art.extras), textures.exit?.shark.mouth ?? SHARK_MOUTH);
 
   const world = new pixi.Container();
   world.label = "world";
@@ -506,7 +509,7 @@ export async function startDeck(
   // Over all of it, the extras' weather layers and flashes as the crew gets busy: the heavy weather (`client/deck-variants.ts`).
   const water = drawnWater(art.extras);
   const layers = { variants: drawnVariants(art.extras, water), flashes: drawnFlashes(art.extras) };
-  const scenery = createScenery(pixi, art.environment, drawnClouds(art.extras), Math.floor(environment.clock().getTime() / 1000), water, layers);
+  const scenery = createScenery(pixi, stage, art.environment, drawnClouds(art.extras), Math.floor(environment.clock().getTime() / 1000), water, layers);
   const skyPhases = art.environment?.manifest.sky.phases ?? [];
 
   // The ship: the hull, the swaying masthead, and the deck's layer of props, pieces, lanterns and crew.
@@ -543,10 +546,10 @@ export async function startDeck(
   deck.label = "deck";
   deck.sortableChildren = true;
   ship.addChild(deck);
-  for (const prop of DECK_PROPS) {
-    const sprite = new pixi.Sprite(textures.props.get(prop.name)!);
-    sprite.label = `prop:${prop.name}`;
-    stand(sprite, manifest.props[prop.name]);
+  for (const prop of stage.props) {
+    const sprite = new pixi.Sprite(textures.props.get(prop.id)!);
+    sprite.label = `prop:${prop.id}`;
+    stand(sprite, (manifest.props as Record<string, { frame: Frame; feet: readonly [number, number] }>)[prop.id]!);
     sprite.position.set(prop.x, prop.y);
     sprite.zIndex = depthOf(prop.y, 0);
     deck.addChild(sprite);
@@ -579,7 +582,7 @@ export async function startDeck(
   } else {
     const board = new pixi.Graphics();
     board.label = "plank";
-    for (const [x, y, width, height, colour, alpha] of plankPixels()) board.rect(x, y, width, height).fill({ color: colour, alpha });
+    for (const [x, y, width, height, colour, alpha] of plankPixels(crew.plank.marks)) board.rect(x, y, width, height).fill({ color: colour, alpha });
     board.zIndex = PLANK_DEPTH;
     deck.addChild(board);
   }
@@ -882,7 +885,7 @@ export async function startDeck(
     hoveredKey = key;
     const speaker = focusKey === null || drawnFit.scale <= 0 ? null : (drawnFigures.find((each) => each.key === focusKey && drawnMarks.has(each.key)) ?? null);
     const shown = figure ?? speaker;
-    const next = shown === null ? null : hoverOf(shown, manifest, drawnFit, drawnBob, app.screen, drawnMarks.get(shown.key));
+    const next = shown === null ? null : hoverOf(shown, manifest, drawnFit, drawnBob, app.screen, stage.zoneOf(shown.state).labelFloor, drawnMarks.get(shown.key));
     if (hoverChanged(reported, next)) {
       reported = next;
       onHover(next);
@@ -924,8 +927,8 @@ export async function startDeck(
 
   /** Fits the world to the canvas through the camera's shot, and lays the scenery and veil out over what shows. */
   function fit(): void {
-    const base = fitDeck(app.screen, deckBox(current, rig.top), app.renderer.resolution);
-    const { scale, x, y } = cameraFit(base, shot, focusLayout(app.screen), app.renderer.resolution);
+    const base = fitDeck(app.screen, deckBox(stage, rig.top), app.renderer.resolution, stage.fit.margin);
+    const { scale, x, y } = cameraFit(base, shot, focusLayout(app.screen), app.renderer.resolution, stage.actorHeight);
     veil.visible = shot.amount > 0;
     veil.alpha = FOCUS_VEIL_ALPHA * Math.max(0, Math.min(1, shot.amount));
     // The scenery and the veil are laid out again only when what shows has changed: the shot, or the canvas.

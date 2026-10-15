@@ -24,7 +24,7 @@ import {
   type Crew,
   type Figure,
 } from "./deck-crew";
-import { ANCHORS, findPath, walkable } from "./deck-geometry";
+import { findPath, walkable } from "./deck-geometry";
 import { sailorAt, showsBadge } from "./deck-hover";
 import { fitDeck } from "./deck-pixi";
 import {
@@ -32,7 +32,6 @@ import {
   exitFor,
   FIN_AT,
   IMPACT_AT,
-  PLANK,
   PLANK_COLOURS,
   PLANK_DEPARTURES,
   PLANK_EXIT_MS,
@@ -42,7 +41,13 @@ import {
   type PlankMoment,
 } from "./deck-plank";
 import type { DeckSailor, DeckState } from "./deck-scene";
-import { shipFile, shipViews } from "../test/ship-pack";
+import { shipFile, shipPlankMarks, shipStage, shipViews } from "../test/ship-pack";
+
+
+// The ship's stage, under the names its constants had in the deck's code.
+const stage = shipStage();
+const ANCHORS = [...stage.zones.values()].flatMap((zone) => zone.posts);
+const PLANK = { ...shipPlankMarks(), water: shipPlankMarks().water.y };
 
 const art = (path: string) => shipFile(path);
 /** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */
@@ -121,7 +126,7 @@ function run(crew: Crew, ms: number, each: (at: number) => void = () => {}): voi
   }
 }
 
-const options = { side: -1 as const, drift: 0, sailorHeight: FRONT_ROWS, mouth: SHARK_MOUTH };
+const options = { side: -1 as const, drift: 0, sailorHeight: FRONT_ROWS, mouth: SHARK_MOUTH, marks: shipPlankMarks() };
 
 describe("which departures take the plank", () => {
   it("is every one, from one set: done, failed, closed and removed alike", () => {
@@ -133,18 +138,21 @@ describe("which departures take the plank", () => {
 
 describe("the plank, read against the hull", () => {
   it("lies on the gunwale amidships, its foot on open deck that every anchor can walk to", () => {
-    expect(walkable(PLANK.foot.x, PLANK.foot.y)).toBe(true);
+    expect(walkable(shipStage().floor, PLANK.foot.x, PLANK.foot.y)).toBe(true);
     expect(underNear(PLANK.foot.x, PLANK.foot.y)).toBe(false);
     // The gunwale's top is the first row of the near rail, and the plank's feet start on it.
     expect(underNear(PLANK.rail.x, PLANK.rail.y)).toBe(true);
     expect(underNear(PLANK.rail.x, PLANK.rail.y - 1)).toBe(false);
     for (const anchor of ANCHORS) {
-      const path = findPath(anchor, PLANK.foot);
+      const path = findPath(shipStage().floor, anchor, PLANK.foot);
       expect(path.at(-1), anchor.id).toEqual(PLANK.foot);
     }
-    // Clear of the mast and the gunwale's bollards.
-    expect(PLANK.left).toBeGreaterThan(224);
-    expect(PLANK.left + PLANK.width).toBeLessThan(269);
+    // The board drawn in code is clear of the mast and the gunwale's bollards.
+    const columns = plankPixels(shipPlankMarks())
+      .filter(([, y]) => y === PLANK.rail.y)
+      .flatMap(([x, , width]) => [x, x + width - 1]);
+    expect(Math.min(...columns)).toBeGreaterThan(224);
+    expect(Math.max(...columns)).toBeLessThan(269);
   });
 
   it("is drawn over the hull in the hull's own colours, from the gunwale to its tip, and its shadow", () => {
@@ -152,7 +160,7 @@ describe("the plank, read against the hull", () => {
     const [sx, sy, sw, sh] = manifest.ship.frame;
     for (let y = sy; y < sy + sh; y += 1) for (let x = sx; x < sx + sw; x += 1) if (atlas.at(x, y).alpha === 255) hull.add(atlas.at(x, y).rgb);
     for (const colour of Object.values(PLANK_COLOURS)) expect(hull.has(colour), colour.toString(16)).toBe(true);
-    const pixels = plankPixels();
+    const pixels = plankPixels(shipPlankMarks());
     const rows = pixels.map(([, y, , height]) => [y, y + height - 1]).flat();
     expect(Math.min(...rows)).toBe(PLANK.rail.y);
     // Above the waterline, on the hull's near side: never out over open sea.
@@ -273,13 +281,13 @@ describe("the crew leaving by the plank", () => {
   const sea = (figures: Figure[]) => figures.filter((figure) => figure.layer === "sea");
 
   it("walks a departing sailor to the plank by the deck's paths, sends it over, and leaves nothing behind", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a"), sailor("b", "idle")], { snap: false });
     applyCrew(crew, [sailor("b", "idle")], { snap: false, departures: { a: "done" } });
     const a = crew.walkers.get("a")!;
     expect(a).toMatchObject({ phase: "leaving", exit: "plank", anchor: null });
     expect(a.path.at(-1)).toEqual(PLANK.foot);
-    for (const point of a.path) expect(walkable(point.x, point.y)).toBe(true);
+    for (const point of a.path) expect(walkable(shipStage().floor, point.x, point.y)).toBe(true);
     // On its way it is no longer one of the crew: no badge, not under the pointer.
     const leaving = crewFigures(crew, 0, { still: false }).find((figure) => figure.key === "a")!;
     expect(leaving.departing).toBe(true);
@@ -301,13 +309,13 @@ describe("the crew leaving by the plank", () => {
   });
 
   it("takes several one at a time: one on the plank, one shark in the water, each with one shark of its own", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     const keys = ["a", "b", "c", "d", "e"];
     applyCrew(crew, keys.map((key) => sailor(key, key === "c" ? "waiting" : "working")), { snap: false });
     applyCrew(crew, [], { snap: false });
     expect(crew.queue).toEqual(keys);
     const waiting = keys.map((key) => crew.walkers.get(key)!.target);
-    for (const spot of waiting) expect(walkable(spot.x, spot.y)).toBe(true);
+    for (const spot of waiting) expect(walkable(shipStage().floor, spot.x, spot.y)).toBe(true);
     expect(new Set(waiting.map((spot) => `${spot.x},${spot.y}`)).size).toBe(keys.length);
 
     const sharkKeys = new Set<string>();
@@ -331,7 +339,7 @@ describe("the crew leaving by the plank", () => {
   });
 
   it("lets the next one up only once the one before is in the water", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a"), sailor("b")], { snap: false });
     applyCrew(crew, [], { snap: false });
     let firstBoard = -1;
@@ -349,7 +357,7 @@ describe("the crew leaving by the plank", () => {
   });
 
   it("turns one still waiting back if its card returns, and brings up a new sailor for one already over the side", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a"), sailor("b")], { snap: false });
     applyCrew(crew, [], { snap: false });
     run(crew, 300);
@@ -370,7 +378,7 @@ describe("the crew leaving by the plank", () => {
   });
 
   it("ends cleanly however fast the cards come and go", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     for (let round = 0; round < 12; round += 1) {
       applyCrew(crew, round % 2 === 0 ? [sailor("a"), sailor("b", "idle")] : [], { snap: false });
       run(crew, 250);
@@ -387,7 +395,7 @@ describe("the crew leaving by the plank", () => {
 
 describe("leaving under reduced motion", () => {
   it("fades out where it stood, with no walk, no plank and no shark", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a"), sailor("b", "idle")], { snap: true });
     const before = crewFigures(crew, 0, { still: true }).find((figure) => figure.key === "a")!;
     applyCrew(crew, [sailor("b", "idle")], { snap: true, departures: { a: "done" } });
@@ -416,7 +424,7 @@ describe("leaving under reduced motion", () => {
   });
 
   it("turned on mid-sequence, fades whoever is still in sight where they are and drops every shark", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a"), sailor("b"), sailor("c")], { snap: false });
     applyCrew(crew, [sailor("c")], { snap: false });
     // Until the first is swimming and the fin is out.
@@ -477,7 +485,7 @@ describe("the shark and splash, as served", () => {
     // The deck's fit does not change for the shark: in a pane wider than this, its lowest rows of ripple are cut.
     for (const width of [400, 800, 1200, 2400]) {
       const height = Math.ceil(width / 2.4);
-      const fit = fitDeck({ width, height }, { width: 426, height: 161 }, 2);
+      const fit = fitDeck({ width, height }, { width: 426, height: 161 }, 2, shipStage().fit.margin);
       const visibleBottom = (height - fit.y) / fit.scale;
       expect(PLANK.water + lowest, `${width}x${height}`).toBeLessThan(visibleBottom);
     }

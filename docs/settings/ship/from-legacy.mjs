@@ -4,7 +4,8 @@
  *
  * Ran once, at step 2 of the deck-settings migration, against the tree it was written in, so every number in the
  * pack came from where the deck had it rather than being typed again. From then on the pack is the source: later
- * steps delete the constants this reads, and this script stays as the record of where each number came from.
+ * steps delete the constants this reads (step 3 took the stage, floor, zones and marks), so it no longer runs; it
+ * stays as the record of where each number came from.
  * `client/ship-pack.test.ts` held the pack equal to those constants while they lasted.
  *
  * `node docs/settings/ship/from-legacy.mjs` (needs `docs/board-list`'s `npm install`, for esbuild).
