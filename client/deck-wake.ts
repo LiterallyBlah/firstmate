@@ -51,9 +51,12 @@ function fleck(cell: number, row: number, lane: number): number {
 
 /**
  * The wake's foam with the sea scrolled `offset` pixels aft, out to `reach` — the right and bottom edges
- * of what the screen shows, in deck pixels — as runs along each row, row by row, left to right.
+ * of what the screen shows, in deck pixels — as runs along each row, row by row, left to right. `strength`
+ * (the deck's weather, `client/deck-atmosphere.ts`) scales how far the churn and the arms run: 1 is all of it.
  */
-export function wakeRuns(offset: number, reach: { right: number; bottom: number }): WakeRun[] {
+export function wakeRuns(offset: number, reach: { right: number; bottom: number }, strength = 1): WakeRun[] {
+  const scale = Math.max(0.2, Math.min(1, Number.isFinite(strength) ? strength : 1));
+  const churn = Math.round(CHURN_LENGTH * scale);
   const pixels = new Map<number, Map<number, WakeTone>>();
   const put = (x: number, y: number, tone: WakeTone) => {
     if (y > reach.bottom || x > reach.right) return;
@@ -68,9 +71,9 @@ export function wakeRuns(offset: number, reach: { right: number; bottom: number 
   const shift = Math.floor(offset);
 
   // The churn: from just under the stern's counter aft, spreading down as it goes.
-  for (let x = STERN.x - 4; x <= Math.min(reach.right, STERN.x + CHURN_LENGTH); x += 1) {
+  for (let x = STERN.x - 4; x <= Math.min(reach.right, STERN.x + churn); x += 1) {
     const aft = Math.max(0, x - STERN.x);
-    const fade = 1 - aft / CHURN_LENGTH;
+    const fade = 1 - aft / churn;
     const bottom = STERN.y + 1 + Math.floor(aft * 0.07);
     const water = x - shift;
     for (let y = STERN.y - 1; y <= bottom; y += 1) {
@@ -84,9 +87,10 @@ export function wakeRuns(offset: number, reach: { right: number; bottom: number 
 
   // The arms: dashed lines angling down and aft, fading as they go.
   WAKE_ARMS.forEach(function (arm, index) {
-    for (let x = arm.from.x; x <= Math.min(reach.right, arm.from.x + arm.length); x += 1) {
+    const length = Math.round(arm.length * scale);
+    for (let x = arm.from.x; x <= Math.min(reach.right, arm.from.x + length); x += 1) {
       const along = x - arm.from.x;
-      const fade = 1 - along / arm.length;
+      const fade = 1 - along / length;
       const y = arm.from.y + 1 + Math.round(along * arm.slope);
       const roll = fleck(Math.floor((x - shift) / 4), 0, 2 + index);
       if (roll < 0.85 * fade) put(x, y, roll < 0.45 * fade ? "crest" : "foam");

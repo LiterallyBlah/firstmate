@@ -24,6 +24,11 @@
  *   arms drawn in code (`client/deck-wake.ts`), scrolling aft with the water, redrawn only when the scroll
  *   moves a whole pixel. Either is still under reduced motion and on a software renderer.
  *
+ * **The weather** (`client/deck-atmosphere.ts`) is handed to `draw` each frame: the water's and the clouds' own
+ * clocks, so a busier crew plays the sea's frames and drifts the sea, foam and clouds faster without a jump; how
+ * much wake there is (the generated wake's opacity, the code wake's length); and the sky's mood, a tint a shade
+ * greyer over the sky and the clouds. Without it, the art's own timing at the scene's clock.
+ *
  * Without the environment (it failed to load, or names an image it did not send) the deck still draws:
  * a flat sea of the hull's navy over the theme's background, no sky, no gull — and the wake, on it.
  *
@@ -32,6 +37,7 @@
  */
 import { environmentImagePaths, GULL_POSES, type DeckEnvironmentManifest, type GullPose } from "../shared/ship-deck";
 import { gullsAt, HORIZON, SEA_FALLBACK, WATERLINE, type MotionPlan } from "./deck-ambient";
+import { deliveredWeather, moodTint, shade, type Weather } from "./deck-atmosphere";
 import { cloudColours, cloudField, cloudX, type CloudImages } from "./deck-clouds";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
 import { DECK_HEIGHT, DECK_WIDTH } from "./deck-scene";
@@ -71,8 +77,11 @@ export interface Scenery {
   readonly generated: boolean;
   /** Covers `visible`; cheap when it has not grown. */
   layout(visible: VisibleWorld): void;
-  /** Draws it at `seconds` on the scene clock and `minute` of the local day; the sky drawn, or null without one. */
-  draw(seconds: number, plan: MotionPlan, minute: number | null): SkyBlend | null;
+  /**
+   * Draws it at `seconds` on the scene clock and `minute` of the local day, in `weather` (the art's own timing at
+   * `seconds` when not given); the sky drawn, or null without one.
+   */
+  draw(seconds: number, plan: MotionPlan, minute: number | null, weather?: Weather): SkyBlend | null;
   /** Lets go of its textures; `back` and `front` go with the stage they are on. */
   destroy(): void;
 }
@@ -101,7 +110,7 @@ export function foamSegments(span: { left: number; right: number }, period: numb
 interface WakeLayer {
   readonly view: PixiContainer;
   layout(visible: VisibleWorld): void;
-  draw(seconds: number, plan: MotionPlan, pixelsPerSecond: number): void;
+  draw(weather: Weather, plan: MotionPlan, pixelsPerSecond: number): void;
 }
 
 /**
@@ -118,13 +127,15 @@ function codeWake(pixi: PixiModule): WakeLayer {
     layout(visible: VisibleWorld) {
       reach = { right: Math.ceil(visible.right), bottom: Math.ceil(visible.bottom) };
     },
-    draw(seconds: number, plan: MotionPlan, pixelsPerSecond: number) {
-      const shift = plan.ambient && Number.isFinite(seconds) ? Math.floor(seconds * pixelsPerSecond) : 0;
-      const key = `${shift}:${reach.right}:${reach.bottom}`;
+    draw(weather: Weather, plan: MotionPlan, pixelsPerSecond: number) {
+      const shift = plan.ambient && Number.isFinite(weather.water.drift) ? Math.floor(weather.water.drift * pixelsPerSecond) : 0;
+      // Its length in twentieths, so an easing weather redraws it a step at a time and not every frame.
+      const strength = Math.round(weather.wake * 20) / 20;
+      const key = `${shift}:${strength}:${reach.right}:${reach.bottom}`;
       if (key === drawn) return;
       drawn = key;
       graphics.clear();
-      for (const run of wakeRuns(shift, reach)) graphics.rect(run.x, run.y, run.width, 1).fill(WAKE_COLOURS[run.tone]);
+      for (const run of wakeRuns(shift, reach, strength)) graphics.rect(run.x, run.y, run.width, 1).fill(WAKE_COLOURS[run.tone]);
     },
   };
 }
@@ -138,8 +149,9 @@ function generatedWake(pixi: PixiModule, wake: WaterManifest["wake"], frames: Pi
   return {
     view: sprite,
     layout() {},
-    draw(seconds, plan) {
-      sprite.texture = frames[waterFrame(seconds, wake, plan.ambient, CALM_WATER)]!;
+    draw(weather, plan) {
+      sprite.texture = frames[waterFrame(weather.water.frames, wake, plan.ambient, CALM_WATER)]!;
+      sprite.alpha = Math.max(0, Math.min(1, weather.wake));
     },
   };
 }
@@ -245,6 +257,7 @@ export function createScenery(
   });
   let skyPlace = { x: 0, y: 0, scale: 1 };
   let cloudTint = "";
+  let skyTint = 0xffffff;
   let cloudDrift = { seconds: 0, drifting: false };
   /** Puts each cloud where its drift has it, in the sky's pixels at the sky's placement: whole sky pixels. */
   function placeClouds(): void {
@@ -361,8 +374,15 @@ export function createScenery(
         for (let y = WATERLINE - nearFirstRow + tileHeight; y < tiled.bottom; y += tileHeight) tile(nearSea, false, x, y);
       }
     },
-    draw(seconds, plan, minute) {
+    draw(seconds, plan, minute, weather = deliveredWeather(seconds)) {
       const blend = skyBlend(minute, manifest.sky.phases);
+      // The sky's mood: the backdrops, and the clouds below, a shade greyer as the crew gets busy.
+      const tint = moodTint(weather.mood);
+      if (tint !== skyTint) {
+        skyTint = tint;
+        skyUnder.tint = tint;
+        skyOver.tint = tint;
+      }
       skyUnder.texture = phases[blend.from]!;
       skyOver.texture = phases[blend.to]!;
       skyOver.alpha = blend.t;
@@ -373,30 +393,30 @@ export function createScenery(
       }
       if (clouds !== null && field.length > 0) {
         // The clouds in the sky's pixels, whole ones, drifting only while the sea scrolls; recoloured when the sky's blend moves them.
-        cloudDrift = { seconds, drifting: plan.ambient };
+        cloudDrift = { seconds: weather.wind, drifting: plan.ambient };
         placeClouds();
-        const colours = cloudColours(clouds.manifest, manifest.sky.phases, blend);
-        const tint = colours.join(":");
-        if (tint !== cloudTint) {
-          cloudTint = tint;
+        const colours = cloudColours(clouds.manifest, manifest.sky.phases, blend).map((colour) => shade(colour, tint));
+        const key = colours.join(":");
+        if (key !== cloudTint) {
+          cloudTint = key;
           for (const { slots } of field) slots.forEach((sprite, slot) => (sprite.tint = colours[slot]!));
         }
       }
 
       // The sea: every tile on the same frame, both bands drifting together.
-      const drift = plan.ambient ? scrollOffset(seconds, seaSpeed, tileWidth) : 0;
+      const drift = plan.ambient ? scrollOffset(weather.water.drift, seaSpeed, tileWidth) : 0;
       farSea.position.set(drift, 0);
       nearSea.position.set(drift, 0);
-      const nextSea = sea === null ? 0 : waterFrame(seconds, sea, plan.ambient, CALM_WATER);
+      const nextSea = sea === null ? 0 : waterFrame(weather.water.frames, sea, plan.ambient, CALM_WATER);
       if (nextSea !== seaFrame) {
         seaFrame = nextSea;
         const frame = seaFrames[seaFrame]!;
         for (const { sprite, atWaterline } of tiles) sprite.texture = atWaterline ? frame.fromWaterline : frame.whole;
       }
-      wake.draw(seconds, plan, seaSpeed);
+      wake.draw(weather, plan, seaSpeed);
 
-      const lap = plan.ambient ? scrollOffset(seconds, foamSpeed, foamPeriod) : 0;
-      const foamFrame = waterFoam === null ? 0 : waterFrame(seconds, waterFoam, plan.ambient, CALM_WATER);
+      const lap = plan.ambient ? scrollOffset(weather.water.drift, foamSpeed, foamPeriod) : 0;
+      const foamFrame = waterFoam === null ? 0 : waterFrame(weather.water.frames, waterFoam, plan.ambient, CALM_WATER);
       if (`${foamFrame}:${lap}` !== foamDrawn) {
         const segments = foamSegments(foamSpan, foamPeriod, lap);
         foamPieces.forEach(function (sprite, index) {
@@ -449,8 +469,8 @@ function flatScenery(pixi: PixiModule, back: PixiContainer, front: PixiContainer
       nearSea.clear().rect(left, WATERLINE, width, bottom - WATERLINE).fill(SEA_FALLBACK);
       wake.layout(visible);
     },
-    draw(seconds, plan) {
-      wake.draw(seconds, plan, WAKE_SPEED);
+    draw(seconds, plan, _minute, weather = deliveredWeather(seconds)) {
+      wake.draw(weather, plan, WAKE_SPEED);
       return null;
     },
     destroy: cutter.destroy,

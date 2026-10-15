@@ -56,6 +56,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-extras.ts`       | The sail and the crew's looks: which looks there are, who wears which (by agent id), the sail's billow, whether it is drawn. Pure. |
 | `client/deck-water.ts`        | The animated water from the extras: which of the sea, foam and wake can be drawn, which frame each shows, the wake's place, and `WaterMotion` — how fast the frames play and the water drifts. Pure. |
 | `client/deck-wake.ts`         | The wake drawn in code, where the generated one did not load: the churn astern and the waves' arms, as runs of foam pixels scrolled with the sea. Pure. |
+| `client/deck-atmosphere.ts`   | The weather by how busy the crew is: working crew → an eased intensity → one table of the sea's, wind's, sail's, bob's and wake's liveliness and the sky's mood; each animation's own clock. Pure. |
 | `client/deck-ambient.ts`      | The bob, the masthead's sway, the lanterns, where the water is and when a gull flies, as functions of the clock; the motion plan. Pure. |
 | `client/deck-sky.ts`          | The sky by the local time of day, its place behind the ship; the sea's and foam's scroll, the gull's pose. Pure. |
 | `client/deck-environment.ts`  | The generated sky, stars, clouds, gull, sea and foam, and the wake, drawn with Pixi, behind and in front of the ship — the extras' animated sea, foam and wake in place of the environment's where they loaded; a plain sea (with its wake) without them. |
@@ -386,6 +387,12 @@ starts.
 - **Ambient life has no shaders**: whole-pixel bob and sway, a sea tile that scrolls, three lanterns, a
   gull now and then, so a software renderer pays only for sprites. The masthead sways because the hull is
   drawn in slices with it cut out (`MASTHEAD`).
+- **The weather follows the work** (`client/deck-atmosphere.ts`, `docs/ship-deck-atmosphere/README.md`). Working
+  crew (waiting a quarter, blocked, idle and greyed not at all; local and remote) make an intensity, eased over a
+  few seconds; `ATMOSPHERE` maps it to multiples of the art's own timing — glassy at idle, the art as delivered
+  with two working, spirited at six. **A speed that changes needs its own clock**: each animation is handed a
+  clock advanced by step × pace, never the scene's clock times a pace, which would jump the sea and the clouds
+  whenever the crew changed. Reduced motion draws exactly as before (`deliveredWeather`).
 
 ### The sea, the sky and the gull are generated art (`docs/ship-deck-environment/README.md` has the evidence)
 
