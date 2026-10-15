@@ -1,7 +1,8 @@
 /**
- * The ship's wake: disturbed water drawn in code, so the ship reads as moving through the sea and not
- * sitting on it. Pure — `wakeRuns` says which pixels are foam; `client/deck-environment.ts` draws them
- * in front of the near sea, under the waterline's foam strip, with a plain sea or the generated one.
+ * The ship's wake drawn in code, where the generated one (`art/ship-deck/water/`, `client/deck-water.ts`) did
+ * not load: disturbed water, so the ship reads as moving through the sea and not sitting on it. Pure —
+ * `wakeRuns` says which pixels are foam; `client/deck-environment.ts` draws them in front of the near sea,
+ * under the waterline's foam strip, with a plain sea or the generated one.
  *
  * The ship sails left, bow first, so the water streams past it to the right. Three parts, seen from a
  * little above and to the side:

@@ -42,7 +42,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`), and each send's receipt. |
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
-| `server/ship-deck.ts`, `shared/ship-deck.ts` | What the ship deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail, the crew's looks, the plank's shark and splash, and the sky's clouds. |
+| `server/ship-deck.ts`, `shared/ship-deck.ts` | What the ship deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail, the crew's looks, the plank's shark and splash, the sky's clouds, and the animated sea, foam and wake. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the focused sailor's panel and keys, the legend of badges and counts. |
 | `client/deck-camera.ts`       | The camera: the exact fit or a shot closed in on a focused sailor, the eased zoom between, where the focus panel goes; what a click or an arrow does to the focus. Pure. |
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z; the reply marker's pixels and bob. Pure. |
@@ -54,15 +54,16 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-crew.ts`         | The crew in motion: anchors reserved, the state shown at once and walked to after, the hatch, the queue for the plank and each departure's clock, idle motion and the at-ease breath, each sailor's look, each frame's poses. Pure. |
 | `client/deck-plank.ts`        | The plank and the way off by it: which departures take it (`PLANK_DEPARTURES`), its pixels, and one departure's walk, jump, splash and shark as a function of time. Pure. |
 | `client/deck-extras.ts`       | The sail and the crew's looks: which looks there are, who wears which (by agent id), the sail's billow, whether it is drawn. Pure. |
-| `client/deck-wake.ts`         | The wake astern and the bow and stern waves' arms, as runs of foam pixels scrolled with the sea. Pure. |
+| `client/deck-water.ts`        | The animated water from the extras: which of the sea, foam and wake can be drawn, which frame each shows, the wake's place, and `WaterMotion` — how fast the frames play and the water drifts. Pure. |
+| `client/deck-wake.ts`         | The wake drawn in code, where the generated one did not load: the churn astern and the waves' arms, as runs of foam pixels scrolled with the sea. Pure. |
 | `client/deck-ambient.ts`      | The bob, the masthead's sway, the lanterns, where the water is and when a gull flies, as functions of the clock; the motion plan. Pure. |
 | `client/deck-sky.ts`          | The sky by the local time of day, its place behind the ship; the sea's and foam's scroll, the gull's pose. Pure. |
-| `client/deck-environment.ts`  | The generated sky, stars, clouds, gull, sea and foam, and the wake, drawn with Pixi, behind and in front of the ship; a plain sea (with its wake) without them. |
+| `client/deck-environment.ts`  | The generated sky, stars, clouds, gull, sea and foam, and the wake, drawn with Pixi, behind and in front of the ship — the extras' animated sea, foam and wake in place of the environment's where they loaded; a plain sea (with its wake) without them. |
 | `client/deck-clouds.ts`       | The sky's clouds: the seeded field in lanes above the horizon, each cloud's whole-pixel drift and off-screen wrap, its colours from the sky's blend, a sprite cut into slot masks. Pure. |
 | `client/deck-loop.ts`         | When the deck draws: 30 fps at most, paused while hidden, still under reduced motion.     |
 | `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated, the atlas, environment and extras decoded; every failure a status. |
 | `client/deck-pixi.ts`         | The deck, its sail, depth pieces, props, plank and sailor sprites, and the sea's layer of sharks and splashes, drawn with Pixi, handed in through a narrow `PixiModule`. |
-| `art/ship-deck/`, `docs/ship-deck-art/build-art.py` | The deck's art: one atlas and its manifest, built mechanically from the approved generated PNGs; the generated environment and `environment.json`; the sail, crew looks, shark and splash and `extras.json`. |
+| `art/ship-deck/`, `docs/ship-deck-art/build-art.py` | The deck's art: one atlas and its manifest, built mechanically from the approved generated PNGs; the generated environment and `environment.json`; the sail, crew looks, shark and splash, the animated water (`water/`) and `extras.json`. |
 | `shared/attachments.ts`       | What the captain can attach: the message's shape, image-or-file by Paseo's rules, the size cap. |
 | `server/uploads.ts`           | An attached file written to `$PASEO_HOME/uploads/`, described as Paseo's `uploaded_file`.     |
 | `server/cli.ts`               | `paseo stop` and `paseo project rename`, for what the SDK does not have.                   |
