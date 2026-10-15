@@ -82,6 +82,8 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/serialize.ts`         | Runs the config update and each home file's save one at a time, per file.                  |
 | `server/host-types.ts`        | Paseo types projected out of `@getpaseo/plugin`; see the root AGENTS.md.                    |
 | `client/fleet.tsx`            | The screen: header, banners, chat/board split, compact tabs, the shared fleet query.       |
+| `client/workspace-panels.tsx`, `shell.ts`, `hub-launcher.tsx` | Home registration, the Deck/Board/Crew workspace destinations and Home's jump-shortcuts. |
+| `client/fleet-query.ts`       | The shared fleet request and cache, used by Home, workspace panels and the sidebar.       |
 | `client/screen.ts`            | The screen's id, and the count of working, ready and idle crewmates on its sidebar row. Pure. |
 | `client/sidebar.tsx`          | The sidebar item: the FirstMate row and its badge.                                         |
 | `client/chat.tsx`             | The first mate's conversation, folded to the words, and the composer.                      |
@@ -119,6 +121,41 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/file-links.ts`        | A reply's inline tokens, and the home files it names that the daemon (`firstmate.files.find`) says exist. Pure. |
 | `client/option-picker.tsx`    | A copy of `herald`'s searchable picker, for the model lists.                               |
 | `client/web.ts`, `resize-handle.tsx` | The chat/board split's drag (a copy of `github-board`'s); the chat's file picker, paste and drop. |
+
+## Home and the workspace tabs (shell phase 1)
+
+The sidebar's `fleet` screen is **Home**: one first-mate chat, a Board overview, Home files and a
+launcher. Crew (the grouped List) and Deck have canonical workspace destinations; Home no longer
+switches into either. `client/workspace-panels.tsx` registers `firstmate-deck`, `firstmate-board` and
+`firstmate-crew` through `addWorkspacePanel`, workspace location only. The older contextual workspace
+and agent panels remain separate. `client/shell.ts` holds the fixed identities and home-workspace rule.
+The callbacks are closed over the contributing installation, never a global navigation singleton.
+
+Paseo owns tab creation/focus/deduplication, closing, splits, ordering and layout persistence. The
+launcher calls `client.openPanel` with that fixed panel id and the configured first mate's home
+workspace. An adopted mate outside the home never lends its workspace to this launcher. Paseo lists
+plugin panels in all workspaces; one opened elsewhere explains that and links to the correct home.
+Until a mate has a verified home workspace, the shortcuts are disabled. No tabs, terminals, browsers
+or agents are created on render, reload or restoration.
+
+`FleetSurface` shares the existing Board, TaskList and SelectedDeckView rather than forking them.
+`client/fleet-query.ts` owns the fleet query/cache. Drawers and Crew's completed-task choice are keyed
+by host, workspace and view. There is no first-mate composer in the workspace views; suggestions
+use the existing per-mate send gate and return to Home's chat. Only a visible Home chat clears
+first-mate attention. Workspace views retain the permission banner. Deck keeps the migrated scene
+engine, installed-setting selection and unavailable state on compact/native clients; leaving it
+unmounts its canvas, and its existing zero-size/document-hidden guard pauses a retained hidden pane.
+
+**Native tools use workspace shortcuts in this no-fork phase.** The captain approved opening the
+home workspace and selecting native tabs there. The public SDK has terminal create/list/keys/capture,
+but no terminal focus-by-ID navigation. `navigation.openBrowser` is Electron-only, always creates a
+new browser, returns `void` and has no existing-browser-ID input. Exact reuse/focus-by-ID of a shared
+native terminal/browser tab, a returned browser ID, and live-pane embedding need an upstream Paseo
+API change and are deferred to the separately fork-gated future phase. Do not use private host stores,
+routes, renderer imports, raw frames, iframe terminals or a copied browser to bridge this gap.
+
+`docs/shell-phase1/` has the fixture render checks, review evidence and bundle/Hermes check. Fixtures
+exercise real views with synthetic host APIs; they are not claims of an installed desktop/device test.
 
 ## The plugin never dispatches a crewmate
 
@@ -1235,9 +1272,9 @@ Checked on a throwaway 0.9.1 daemon with a Haiku first mate: 33,969 of 200,000 t
 4,949 after Compact, and Restart archived it and brought up the same model and mode, with the config
 pointing at the new one.
 
-## Opening the panel marks the first mate seen
+## Showing Home's chat marks the first mate seen
 
-While the surface is mounted, a first mate flagged "finished" or "error" is cleared the way opening
+While Home's chat is visible (not folded or behind another compact choice), a first mate flagged "finished" or "error" is cleared the way opening
 it in Paseo clears it, so its workspace reads as done in the sidebar (`deriveAgentStateBucket`: an
 idle agent without `requiresAttention` is `done`). The effect is keyed by the agent's `updatedAt`, so
 a turn that ends while the panel is open is cleared too, and a failed clear is not retried until

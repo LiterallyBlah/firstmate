@@ -60,6 +60,23 @@ Since the import, this copy has added:
 
 See [CHANGELOG.md](CHANGELOG.md) for details and the retained upstream history.
 
+## Home and workspace tabs
+
+The FirstMate sidebar entry is your Home: chat, a board overview, Home files and shortcuts.
+**Open Deck**, **Open Board** and **Open Crew** open dedicated tabs in the first mate's home workspace,
+beside Paseo's native tabs. Crew is the grouped task list; Deck uses your selected scene setting.
+Return with **FirstMate Home**. Paseo controls closing, ordering and arranging the tabs.
+
+**Terminal & browser** opens the home workspace; select an existing native tab or use Paseo's `+`
+launcher there. Browser needs the desktop app. These native panes are not embedded in FirstMate.
+Paseo's current plugin API cannot focus an existing terminal/browser by ID, and its browser opener
+creates a new browser without returning its ID. Exact shared-tab reuse is deferred to a future
+upstream API change. No Paseo fork is needed for these workspace panels and shortcuts.
+
+Launch a first mate in its home before using the shortcuts. A fleet panel opened from another
+workspace links back to the FirstMate workspace instead of showing fleet work under that workspace.
+On phones, Crew and Board work as workspace panels; Deck explains its wide-web/desktop requirement.
+
 ## Switching the first mate's provider or model
 
 Open **Switch provider/model** in the FirstMate header, choose an available target model and its

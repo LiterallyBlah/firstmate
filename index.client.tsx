@@ -1,6 +1,7 @@
 import type { PluginClientContext, PluginWorkspaceCommandContext } from "@getpaseo/plugin/client";
 
-import { FleetSurface, bindSettingsOpener } from "./client/fleet";
+import { bindSettingsOpener } from "./client/fleet";
+import { registerFleetViews } from "./client/workspace-panels";
 import { AgentPanel, WorkspacePanel } from "./client/panels";
 import { FLEET_SCREEN_ID } from "./client/screen";
 import { SettingsScreen } from "./client/settings-screen";
@@ -28,14 +29,23 @@ async function askFirstMate(rpc: CommandRpc, command: MateCommand, args: string)
 
 export default function contribute(client: PluginClientContext) {
   const stopRemoteSync = startRemoteSync(client);
-  client.addScreen({ id: FLEET_SCREEN_ID, title: "FirstMate", Component: FleetSurface });
+  registerFleetViews(client);
   // The board's gear. A surface is given no way to open a settings screen, so
   // the capability is lent to it from here.
   bindSettingsOpener((id) => {
     client.openSettings(id);
   });
-  client.addSidebarHeaderItem({ id: FLEET_SCREEN_ID, title: "FirstMate", Component: FleetSidebarItem });
-  client.addSettingsScreen({ id: "firstmate", title: "FirstMate", icon: "Ship", Component: SettingsScreen });
+  client.addSidebarHeaderItem({
+    id: FLEET_SCREEN_ID,
+    title: "FirstMate",
+    Component: FleetSidebarItem,
+  });
+  client.addSettingsScreen({
+    id: "firstmate",
+    title: "FirstMate",
+    icon: "Ship",
+    Component: SettingsScreen,
+  });
 
   client.addWorkspacePanel({
     id: "firstmate-workspace",
