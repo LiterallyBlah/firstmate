@@ -22,7 +22,7 @@ import { compileAmbience, type DeckAmbience } from "./deck-ambience";
 import type { SettingManifest } from "../shared/deck-setting";
 import { cloudPeriod, hexColour, type DrifterMasks } from "./deck-clouds";
 import { createScenery, type SceneryArt } from "./deck-environment";
-import { ASK_PAPER, askPixels } from "./deck-badges";
+import { ASK_PAPER, ASK_SIZE, askPixels } from "./deck-badges";
 import { FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout } from "./deck-camera";
 import { toCanvas } from "./deck-hover";
 import type { DeckHover } from "./deck-hover";
@@ -1035,7 +1035,8 @@ describe("attention carriers in the renderer", () => {
     }
   });
   it("fits its missing-art bubble to an arbitrary carrier size and position", async () => {
-    const carrier = { ...attentionCarrier, at: [110, 40] as [number, number], size: [8, 6] as [number, number] };
+    const carrier = { ...attentionCarrier, at: [110, 40] as [number, number], size: [8, 6] as [number, number],
+      frames: attentionCarrier.frames.map(sprite => ({ ...sprite, rect: [0, 0, 8, 6] as [number, number, number, number] })) };
     const deck = await start(environment, { now, scene: scene(), attentionCarrier: carrier, reducedMotion: true,
       without: carrier.frames.map(sprite => sprite.image) });
     const root = one(deck.app.stage, "attention-carrier"), fallback = root.children[1]!;
@@ -1044,6 +1045,8 @@ describe("attention carriers in the renderer", () => {
     expect(fallback.position.x).toBeGreaterThanOrEqual(0);
     expect(fallback.position.y).toBeGreaterThanOrEqual(0);
     expect(fallback.scale.x).toBeLessThan(1);
+    expect(fallback.position.x + ASK_SIZE.width * fallback.scale.x).toBeLessThanOrEqual(8);
+    expect(fallback.position.y + ASK_SIZE.height * fallback.scale.y).toBeLessThanOrEqual(6);
     deck.drawing.destroy();
   });
 });

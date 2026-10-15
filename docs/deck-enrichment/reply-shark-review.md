@@ -33,4 +33,42 @@ Its [results](reply-shark-interactions.json) and [screenshot](reply-shark-still.
 
 Unit/renderer tests additionally cover arbitrary pack ids, invalid data, alpha/palette/borders/registration,
 full animation, calm motion, camera/resize hit geometry, missing images, focus hiding and texture/listener
-cleanup. Full suite, package lint, Hermes and the exact 81-shot review are recorded below when complete.
+cleanup. The missing-art bubble fits arbitrary carrier dimensions, including a target smaller than its glyph.
+
+Local validation: **89 files, 1,082 tests passed, three skipped**; typecheck and all **51 pack-lint checks**
+pass. Paseo's compiler builds both bundles; Hermes parses the client, with no `class`, bundled Pixi or
+embedded PNGs. Client growth is **8,380 bytes**. `npm pack --dry-run` contains **566,196 art bytes**, with only
+the four 64×48 shark PNGs added, and excludes tests, documentation and source art. No checks, timeouts or
+test coverage were relaxed. [Windows and Ubuntu CI for the final runtime](https://github.com/LiterallyBlah/firstmate/actions/runs/38824306663) passes.
+
+The first full capture compares `e1cb4a1` against merged main **`b830b37`**. All **81 shots** have matching
+canvas metadata, no flakes and no browser errors. Fifteen are pixel-identical: the lost-feed frame and
+all fourteen crew-departure/after frames once nobody needs a response. The other 66 were inspected in
+full frames and difference sheets before recording exact main/branch hash pairs in
+[`expected-changes.json`](../deck-settings/expected-changes.json).
+
+| Frames | Reviewed difference |
+| --- | --- |
+| 7 still views | Shark/bubble beside the bow and the footer's selected worker/Converse action. |
+| 8 moving noon, 2 night | The carrier's four generated tail frames and bounded loiter; same footer. |
+| 29 storm views | Same additions; existing creatures, lightning, weather timing and sea remain identical. |
+| 13 crew transition views | Same additions; selected identity stays stable until its response request disappears. |
+| 3 focused views | Footer only; every canvas pixel is identical and the carrier is hidden. |
+| 1 focus return, 3 lite views | Carrier reappears on return; lite holds its first frame at the fixed position. |
+
+An additional [pixel check](check-attention-pixels.mjs) compares the actual PNG pairs named by the gate's
+hashes and finds **zero changed pixels outside the carrier and existing footer regions**. Its
+[per-shot evidence](reply-shark-pixels.json) is separate from acceptance: the gate still compares every
+pixel with no masks, tolerance or skipped scenarios. The later runtime commit `ccfe291` only makes the
+missing-art fallback fit arbitrary pack sizes; the normal scene/art inputs remain the same.
+
+A second independent full capture of **`ccfe291`** passes all **81 shots**, reproducing every main/branch
+PNG hash pair from the first capture: **66 exact reviewed additions, 15 identical**, matching canvas
+metadata, zero flakes and zero browser errors. The pixel-region check passes again. The compiled-browser
+interaction check was rerun against this final runtime and passes as well. Final
+[gate results](../deck-settings/gate-results.json) and [compiler results](../deck-settings/compile-results.json)
+are committed. Run `SAVE=1 RERENDER=0 node docs/deck-settings/gate.mjs` after compiling to reproduce it.
+
+Self-review of the complete code, pack, generated art and screenshot differences is complete. The evidence
+commit changes documentation, captures and test assertions only; runtime and pack inputs stay at `ccfe291`.
+This slice is published as its own READY PR after the final pushed commit's Windows and Ubuntu checks pass.
