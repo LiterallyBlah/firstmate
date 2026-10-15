@@ -6,10 +6,11 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
 
 import { legacyViews, type LegacyViews } from "../client/deck-legacy";
+import { compileAmbience, type Behaviour, type DeckAmbience } from "../client/deck-ambience";
 import { compileCast, type DeckCast } from "../client/deck-cast";
 import { choreography, compileStage, type DeckStage } from "../client/deck-stage";
 import type { PlankMarks } from "../client/deck-plank";
-import { SettingManifestSchema, type SettingManifest } from "../shared/deck-setting";
+import { SettingManifestSchema, type AmbienceBehaviour, type SettingManifest } from "../shared/deck-setting";
 
 /** The pack's folder. */
 export const SHIP_PACK = fileURLToPath(new URL("../art/settings/ship/", import.meta.url));
@@ -57,4 +58,19 @@ let cast: DeckCast | null = null;
 export function shipCast(): DeckCast {
   cast ??= compileCast(shipManifest());
   return cast;
+}
+
+let ambience: DeckAmbience | null = null;
+
+/** The ship's ambience, compiled with every image there: its elements in order, and its day. */
+export function shipAmbience(): DeckAmbience {
+  ambience ??= compileAmbience(shipManifest(), () => true);
+  return ambience;
+}
+
+/** One element of the ship's ambience, by id, as the pack writes it: its behaviour of `kind`. */
+export function shipElement<K extends AmbienceBehaviour["kind"]>(id: string, kind: K): Behaviour<K> {
+  const element = shipManifest().ambience.find((each) => each.id === id);
+  if (element?.behaviour.kind !== kind) throw new Error(`the ship has no ${kind} ${id}`);
+  return element.behaviour as Behaviour<K>;
 }

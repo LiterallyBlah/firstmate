@@ -1,25 +1,21 @@
 /**
- * The deck's day and night, and the rest of the generated environment's arithmetic, as pure functions:
- * which sky shows at a local time of day, where the sky sits behind the ship, how far the sea and the
- * foam have scrolled, and which pose the gull is in. No Pixi and no browser globals; the clock is handed
- * in, so the tests pick any hour (`client/deck-sky.test.ts`). `client/deck-environment.ts` draws it.
+ * The deck's day and night, and the backdrop's and the scroll's arithmetic, as pure functions: which of a
+ * setting's day phases shows at a local time of day, where a backdrop sits behind the stage, and how far a
+ * repeating strip has scrolled. No Pixi and no browser globals; the clock is handed in, so the tests pick any
+ * hour (`client/deck-sky.test.ts`). `client/deck-environment.ts` draws it.
  *
- * **The sky follows the machine's own clock.** The ship pack's `dayCycle` gives each of its six
- * backdrops a local wall-clock minute — dawn 05:30, morning 08:00, midday 12:00, afternoon 16:00, dusk
- * 18:30, night 21:00 — and from that minute that sky shows alone, until the last `SKY_FADE_MINUTES`
- * before the next anchor, when the next is drawn over it, eased in (`skyBlend`); round through midnight
- * from night to dawn. So night holds until 04:00 and is dawn by 05:30, dusk is full at 18:30 and gives way
- * to night from 19:30. (The manifest suggests fading across the whole gap; across the eight and a half
- * hours from night to dawn that would show half a dawn at a quarter past one.) The stars fade with the
- * night's share of what shows. These are the manifest's illustrative hours, not the
- * sun's: no location or season is read. A clock that will not say (an invalid date) shows midday.
+ * **The day follows the machine's own clock.** A pack's `dayCycle` gives each phase a local wall-clock minute —
+ * the ship's: dawn 05:30, morning 08:00, midday 12:00, afternoon 16:00, dusk 18:30, night 21:00 — and from that
+ * minute that phase shows alone, until the last `fadeMinutes` before the next anchor, when the next is drawn over
+ * it, eased in (`dayBlend`); round through midnight from the last phase to the first. So the ship's night holds
+ * until 04:00 and is dawn by 05:30, dusk is full at 18:30 and gives way to night from 19:30. (Fading across the
+ * whole gap would show half a dawn at a quarter past one.) The night's share of what shows is the stars' opacity,
+ * and keeps a flyby home. These are illustrative hours, not the sun's: no location or season is read. A clock that
+ * will not say (an invalid date) shows the cycle's `fallback`.
  */
-import type { DeckEnvironmentManifest, GullPose } from "./deck-legacy";
-import { HORIZON } from "./deck-ambient";
+import type { DayCycle } from "./deck-ambience";
 
 export const MINUTES_PER_DAY = 1440;
-/** How long one sky takes to become the next, ending at the next one's anchor: an hour and a half, or the whole gap if shorter. */
-export const SKY_FADE_MINUTES = 90;
 
 /** The local minute of the day, with seconds as a fraction, or null when the clock gives no real time. */
 export function localMinute(now: Date): number | null {
@@ -28,17 +24,20 @@ export function localMinute(now: Date): number | null {
   return now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
 }
 
-/** Which two skies show and how: `from` drawn whole, `to` over it at opacity `t`, the stars at `stars`. */
-export interface SkyBlend {
-  /** Index into the manifest's phases of the sky drawn whole. */
+/** Which two phases show and how: `from` drawn whole, `to` over it at opacity `t`, and the night's share of it. */
+export interface DayBlend {
+  /** Index into the cycle's phases of the phase drawn whole. */
   from: number;
-  /** Index of the sky drawn over it. */
+  /** Index of the phase drawn over it. */
   to: number;
-  /** The upper sky's opacity, 0 to 1. */
+  /** The upper phase's opacity, 0 to 1. */
   t: number;
-  /** The stars' opacity: the night's share of what shows, 0 to 1. */
-  stars: number;
+  /** The night's share of what shows, 0 to 1: the stars' opacity. */
+  night: number;
 }
+
+/** The blend without a day: the first phase, whole, no night. */
+export const NO_DAY: DayBlend = { from: 0, to: 0, t: 0, night: 0 };
 
 /** Eased so a fade starts and ends gently: the change is slowest at each anchor. */
 function ease(t: number): number {
@@ -46,16 +45,17 @@ function ease(t: number): number {
 }
 
 /**
- * The sky at `minute` past local midnight (null: the clock will not say). One phase alone from its own
- * anchor; over the last `SKY_FADE_MINUTES` before the next, the next over it, eased; after the last
- * anchor, round through midnight to the first. `phases` is the manifest's, in the order of the day.
+ * The day at `minute` past local midnight (null: the clock will not say). One phase alone from its own anchor;
+ * over the last `fadeMinutes` before the next, the next over it, eased; after the last anchor, round through
+ * midnight to the first.
  */
-export function skyBlend(minute: number | null, phases: DeckEnvironmentManifest["sky"]["phases"]): SkyBlend {
+export function dayBlend(minute: number | null, cycle: Pick<DayCycle, "phases" | "fadeMinutes" | "night" | "fallback">): DayBlend {
+  const { phases } = cycle;
   const count = phases.length;
-  const night = phases.findIndex((phase) => phase.id === "night");
-  const fallback = Math.max(0, phases.findIndex((phase) => phase.id === "midday"));
-  if (count === 0) return { from: 0, to: 0, t: 0, stars: 0 };
-  if (minute === null || !Number.isFinite(minute)) return { from: fallback, to: fallback, t: 0, stars: fallback === night ? 1 : 0 };
+  const night = phases.findIndex((phase) => phase.id === cycle.night);
+  const fallback = Math.max(0, phases.findIndex((phase) => phase.id === cycle.fallback));
+  if (count === 0) return NO_DAY;
+  if (minute === null || !Number.isFinite(minute)) return { from: fallback, to: fallback, t: 0, night: fallback === night ? 1 : 0 };
   const at = ((minute % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
   // The last phase at or before `at`, round through midnight: before the first anchor, it is the last.
   let from = count - 1;
@@ -63,47 +63,47 @@ export function skyBlend(minute: number | null, phases: DeckEnvironmentManifest[
   const to = (from + 1) % count;
   const start = phases[from]!.localMinute;
   const span = (phases[to]!.localMinute - start + MINUTES_PER_DAY) % MINUTES_PER_DAY || MINUTES_PER_DAY;
-  const fade = Math.min(span, SKY_FADE_MINUTES);
+  const fade = Math.min(span, cycle.fadeMinutes);
   const elapsed = (at - start + MINUTES_PER_DAY) % MINUTES_PER_DAY;
   const t = ease(Math.max(0, Math.min(1, (elapsed - (span - fade)) / fade)));
-  const stars = (from === night ? 1 - t : 0) + (to === night ? t : 0);
-  return { from, to, t, stars };
+  const share = (from === night ? 1 - t : 0) + (to === night ? t : 0);
+  return { from, to, t, night: share };
 }
 
 /** The phase that shows most at a blend: its id names the deck's sky for the live check. */
-export function dominantPhase(blend: SkyBlend): number {
+export function dominantPhase(blend: DayBlend): number {
   return blend.t < 0.5 ? blend.from : blend.to;
 }
 
 /** How long the sky is left before it is looked at again when nothing else redraws the deck: a minute. */
 export const SKY_REFRESH_MS = 60_000;
 
-/**
- * Where the sky sits in the stage's coordinates: a backdrop of `size`, centred on a stage `stageWidth` wide, its row
- * `horizonRow` on the sea's horizon, at the stage's own pixel scale — larger only when the part of the world on
- * screen, `visible`, would show past its edges. It is never tiled, so its clouds never repeat.
- */
-export function skyPlacement(
-  visible: { left: number; right: number; top: number },
-  size: readonly [number, number],
-  horizonRow: number,
-  stageWidth: number,
-): { x: number; y: number; scale: number } {
-  const [width] = size;
-  const centre = stageWidth / 2;
-  const halfWide = Math.max(centre - visible.left, visible.right - centre, 0);
-  const tall = Math.max(HORIZON - visible.top, 0);
-  const scale = Math.max(1, (halfWide * 2) / width, horizonRow > 0 ? tall / horizonRow : 1);
-  return { x: centre - (width * scale) / 2, y: HORIZON - horizonRow * scale, scale };
+/** A backdrop's place in the stage's coordinates: its upper left, and its scale. */
+export interface Placement {
+  x: number;
+  y: number;
+  scale: number;
 }
 
 /**
- * The sky's row laid on the horizon. The backdrops run to their bottom edge with no horizon of their
- * own; the asset preview puts the sea over their lowest third, so the warm band just above that meets
- * the water, and so does this.
+ * Where a backdrop sits in the stage's coordinates: one of `size`, centred on a stage `stageWidth` wide, its row
+ * `placement.horizonRow` on the stage's row `placement.stageRow`, at the stage's own pixel scale — larger only when
+ * the part of the world on screen, `visible`, would show past its edges. It is never tiled, so what drifts across
+ * it never repeats.
  */
-export function skyHorizonRow(size: readonly [number, number]): number {
-  return Math.round(size[1] * (2 / 3));
+export function backdropPlacement(
+  visible: { left: number; right: number; top: number },
+  size: readonly [number, number],
+  placement: { horizonRow: number; stageRow: number },
+  stageWidth: number,
+): Placement {
+  const [width] = size;
+  const { horizonRow, stageRow } = placement;
+  const centre = stageWidth / 2;
+  const halfWide = Math.max(centre - visible.left, visible.right - centre, 0);
+  const tall = Math.max(stageRow - visible.top, 0);
+  const scale = Math.max(1, (halfWide * 2) / width, horizonRow > 0 ? tall / horizonRow : 1);
+  return { x: centre - (width * scale) / 2, y: stageRow - horizonRow * scale, scale };
 }
 
 /** How far a strip repeating every `period` pixels has scrolled at `seconds`: whole pixels, 0 to period - 1. */
@@ -111,10 +111,4 @@ export function scrollOffset(seconds: number, pixelsPerSecond: number, period: n
   if (period <= 0 || !Number.isFinite(seconds)) return 0;
   const offset = Math.floor(seconds * pixelsPerSecond) % period;
   return offset < 0 ? offset + period : offset;
-}
-
-/** The gull's pose `ageSeconds` into a flap: the manifest's sequence at its frame time, round and round. */
-export function gullPose(ageSeconds: number, gull: Pick<DeckEnvironmentManifest["gull"], "sequence" | "frameMs">): GullPose {
-  const step = Math.floor((Math.max(0, ageSeconds) * 1000) / gull.frameMs);
-  return gull.sequence[step % gull.sequence.length] ?? "mid";
 }

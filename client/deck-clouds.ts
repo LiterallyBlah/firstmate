@@ -1,96 +1,53 @@
 /**
- * The sky's drifting clouds (`docs/ship-deck-art/clouds/README.md`), as pure functions: which clouds there are and
- * where, how far each has drifted, and what colours the showing sky gives them. No Pixi and no browser
- * globals (`client/deck-clouds.test.ts`); `client/deck-environment.ts` draws them, and `client/deck-mount.ts`
- * cuts each sprite into the masks below.
+ * Drifting sprites over a backdrop (`drifters@1`; the ship's clouds, `docs/ship-deck-art/clouds/README.md`), as pure
+ * functions: which there are and where, how far each has drifted, and what colours the showing day gives them. No
+ * Pixi and no browser globals (`client/deck-clouds.test.ts`); `client/deck-environment.ts` draws them, and
+ * `client/deck-mount.ts` cuts each sprite into the masks below.
  *
- * - **In the sky's own pixels.** A cloud's row and its drift are in the sky backdrop's pixels, and it is drawn
- *   with the backdrop's placement and scale (`skyPlacement`), so it moves and grows with the sky through a
- *   resize and the camera's zoom, and never against it. It sits behind the gull and the far sea, and the ship
- *   is in front of all of it, so a cloud can pass behind the masthead but never over the ship, crew or sea.
- * - **Lanes from the horizon up.** One cloud a lane, its bottom a seeded height above the sky's horizon row.
- *   A pane that fits the deck's height shows only the sky's lowest hundred rows or so, so the lowest lanes are
- *   the ones always in view; a taller pane shows the higher ones too. Smaller sprites go lower and the banks
- *   higher, with a little chance either way, and a higher cloud drifts a little faster: a gentle parallax.
- * - **Wrapped whole, off screen.** A cloud drifts right in whole sky pixels, from wholly left of the sky to
- *   wholly right of it and a margin more, then starts again on the left (the manifest's period). The sky is
- *   always at least as wide as what shows (`skyPlacement`), so a cloud never pops in or out in view. Its
- *   sprite and height stay the same on a wrap.
+ * - **In the backdrop's own pixels.** A drifter's row and its drift are in the pixels of the backdrop it drifts over
+ *   (its `space`), and it is drawn with that backdrop's placement and scale (`backdropPlacement`), so it moves and
+ *   grows with it through a resize and the camera's zoom, and never against it. The stage is in front of it, so a
+ *   cloud can pass behind the masthead but never over the ship, crew or sea.
+ * - **Lanes from the horizon up** (the pack's `lanes`). One drifter a lane, its bottom a seeded height within the
+ *   lane above the backdrop's horizon row, its top never above `topMin`. A pane that fits the stage's height shows
+ *   only the backdrop's lowest rows, so the lowest lanes are the ones always in view; a taller pane shows the higher
+ *   ones too. Smaller sprites go lower and the larger higher, with a little chance either way, and a higher one
+ *   drifts a little faster: a gentle parallax.
+ * - **Wrapped whole, off screen.** A drifter moves right in whole pixels, from wholly left of the backdrop to wholly
+ *   right of it and `margin` more, then starts again on the left. The backdrop is always at least as wide as what
+ *   shows, so one never pops in or out in view. Its sprite and height stay the same on a wrap.
  * - **Seeded per opening.** The deck seeds the field from the clock when it starts, so the sky differs from one
  *   opening to the next; the same seed always gives the same sky.
- * - **Tinted per slot.** Each sprite is three exact colours — shadow, body, highlight — and each is recoloured to
- *   the same slot of the sky phase's palette, crossfaded with the sky's own blend (`skyBlend`), so dawn warms
- *   them, night dims them blue. A white mask per slot, tinted, draws that with no shader.
- * - **Still when the deck is.** They drift only while the sea scrolls (`MotionPlan.ambient`): not under reduced
- *   motion, not on a software renderer. Their colours still follow the clock.
- * - **Variants over them** (the pack's `variants` on its drifting sprites, `variantOf: "cloud:<id>"` in the extras view): a second sprite of the same size in
- *   the same container — the same lane, drift and wrap — in its own three colours by sky phase, cross-faded in by the
- *   weather (`client/deck-variants.ts`). The heavy weather's thunderheads are these.
- * - **Faster in a fresher wind.** The deck hands `cloudX` the wind's own clock, not the scene's
- *   (`client/deck-atmosphere.ts`): it runs faster the more of the crew is working, without a jump when it changes.
+ * - **Tinted per slot.** Each sprite is three exact colours — shadow, body, highlight — and each is recoloured to the
+ *   same slot of the day phase's palette (`byPhase`, else `palette`), crossfaded with the day's own blend
+ *   (`dayBlend`), so the ship's dawn warms its clouds and its night dims them blue. A white mask per slot, tinted,
+ *   draws that with no shader.
+ * - **Still when the deck is.** They drift only while their element runs (`elementMotion`), and their colours
+ *   still follow the clock.
+ * - **Variants over them** (a sprite's `variants`): a second sprite of the same size in the same container — the same
+ *   lane, drift and wrap — in its own three colours by phase, cross-faded in by the weather (`client/deck-variants.ts`).
+ *   The ship's heavy weather's thunderheads are these.
+ * - **On their own clock.** The deck hands `cloudX` the drifters' `clock` (`client/deck-atmosphere.ts`), the ship's
+ *   wind: it runs faster the more of the crew is working, without a jump when it changes.
  */
-import type { DeckExtrasManifest, SkyPhaseId } from "./deck-legacy";
+import type { Behaviour } from "./deck-ambience";
 import { hashUnit } from "./deck-ambient";
-import type { DeckExtrasImages } from "./deck-extras";
-import type { Variant } from "./deck-variants";
-import { scrollOffset, type SkyBlend } from "./deck-sky";
+import { scrollOffset, type DayBlend } from "./deck-sky";
 
-export type CloudManifest = NonNullable<DeckExtrasManifest["clouds"]>;
-export type CloudSprite = CloudManifest["sprites"][number];
+export type Drifters = Behaviour<"drifters">;
+export type DrifterSprite = Drifters["sprites"][number];
+export type DrifterVariant = NonNullable<DrifterSprite["variants"]>[number];
+/** A drifter's three white slot masks, as the mount cuts them: shadow, body, highlight. */
+export type DrifterMasks = readonly [unknown, unknown, unknown];
+/** Three colours, shadow to highlight, neutral and by day phase. */
+export type DrifterPalette = Pick<Drifters, "palette" | "byPhase">;
 
-/** The clouds as the deck draws them: the manifest, and each drawable sprite's three slot masks, by texture. */
-export interface CloudImages {
-  manifest: CloudManifest;
-  masks: ReadonlyMap<string, readonly [unknown, unknown, unknown]>;
-  /**
-   * The variants laid over each cloud (`client/deck-variants.ts`), by the cloud's id: each with its own palette and
-   * stages, and its frame's three slot masks. Only a variant of the cloud's size whose masks were cut.
-   */
-  variants?: ReadonlyMap<string, ReadonlyArray<{ variant: Variant; masks: readonly [unknown, unknown, unknown] }>>;
+/** A variant's colours, for `cloudColours`: its own, or its drifters' where it names none. */
+export function variantPalette(variant: Pick<DrifterVariant, "palette" | "byPhase">, drifters: DrifterPalette): DrifterPalette {
+  return { palette: variant.palette ?? drifters.palette, byPhase: variant.byPhase ?? drifters.byPhase };
 }
 
-/** The sprites that can be drawn: those whose masks were cut, and the variants over each that can be. Null when none can. */
-export function drawnClouds(extras: DeckExtrasImages | null): CloudImages | null {
-  const manifest = extras?.manifest.clouds;
-  if (manifest === undefined || extras === null) return null;
-  const masks = new Map<string, readonly [unknown, unknown, unknown]>();
-  for (const sprite of manifest.sprites) {
-    const cut = extras.cloudMasks?.get(sprite.texture);
-    if (cut !== undefined) masks.set(sprite.texture, cut);
-  }
-  if (masks.size === 0) return null;
-  const sprites = manifest.sprites.filter((sprite) => masks.has(sprite.texture));
-  const variants = new Map<string, Array<{ variant: Variant; masks: readonly [unknown, unknown, unknown] }>>();
-  for (const variant of extras.manifest.variants ?? []) {
-    const cloud = sprites.find((sprite) => `cloud:${sprite.id}` === variant.variantOf);
-    const cut = extras.cloudMasks?.get(variant.frames[0]!);
-    if (cloud === undefined || cut === undefined || variant.frames.length !== 1 || cloud.size[0] !== variant.frameSize[0] || cloud.size[1] !== variant.frameSize[1]) continue;
-    variants.set(cloud.id, [...(variants.get(cloud.id) ?? []), { variant, masks: cut }]);
-  }
-  return { manifest: { ...manifest, sprites }, masks, variants };
-}
-
-/** A cloud variant's palette and stages, for `cloudColours`: its own, or the clouds' where it names none. */
-export function variantPalette(variant: Variant, clouds: Pick<CloudManifest, "palette" | "stages">): Pick<CloudManifest, "palette" | "stages"> {
-  return { palette: variant.palette ?? clouds.palette, stages: variant.stages ?? clouds.stages };
-}
-
-/** Where each lane's cloud has its bottom: from and to, in sky pixels above the horizon row, lowest first. */
-export const CLOUD_LANES: ReadonlyArray<readonly [number, number]> = [
-  [30, 42],
-  [46, 60],
-  [64, 80],
-  [88, 108],
-  [116, 136],
-  [144, 164],
-  [170, 188],
-];
-/** How far past the sky's edges a cloud goes before it wraps, in sky pixels. */
-export const CLOUD_MARGIN = 32;
-/** The highest a cloud's top may be: this many rows below the sky's top edge. */
-export const CLOUD_TOP_MIN = 6;
-
-/** One cloud: which sprite, the sky row of its top, where it starts in its lap, and how fast it drifts. */
+/** One drifter: which sprite, the backdrop row of its top, where it starts in its lap, and how fast it drifts. */
 export interface Cloud {
   /** Index into the drawn sprites. */
   sprite: number;
@@ -100,22 +57,28 @@ export interface Cloud {
   pixelsPerSecond: number;
 }
 
-/** A cloud's lap in sky pixels: across the sky, its own width and a margin each side. */
-export function cloudPeriod(skyWidth: number, spriteWidth: number): number {
-  return skyWidth + spriteWidth + CLOUD_MARGIN * 2;
+/** A drifter's lap in backdrop pixels: across the backdrop, its own width and `margin` each side. */
+export function cloudPeriod(skyWidth: number, spriteWidth: number, margin: number): number {
+  return skyWidth + spriteWidth + margin * 2;
 }
 
 /**
- * The clouds for `seed` across a sky of `skyWidth` whose horizon is row `horizonRow`: one a lane, lowest first.
- * Sprites by width, smallest lowest, a lane's pick nudged at random and never the lane below's twin; start
- * points spread round the lap so the clouds never march in a row.
+ * The drifters for `seed` across a backdrop of `skyWidth` whose horizon is row `horizonRow`, in `field`'s lanes: one
+ * a lane, lowest first. Sprites by width, smallest lowest, a lane's pick nudged at random and never the lane below's
+ * twin; start points spread round the lap so they never march in a row.
  */
-export function cloudField(seed: number, sprites: readonly CloudSprite[], skyWidth: number, horizonRow: number): Cloud[] {
+export function cloudField(
+  seed: number,
+  sprites: ReadonlyArray<Pick<DrifterSprite, "size" | "pxPerSecond">>,
+  skyWidth: number,
+  horizonRow: number,
+  field: Pick<Drifters, "lanes" | "margin" | "topMin">,
+): Cloud[] {
   if (sprites.length === 0) return [];
   const base = Number.isFinite(seed) ? Math.floor(Math.abs(seed)) % 1_000_003 : 0;
   const random = (lane: number, salt: number) => hashUnit(base * 131 + lane * 17 + salt);
   const bySize = sprites.map((_, index) => index).sort((a, b) => sprites[a]!.size[0] - sprites[b]!.size[0] || a - b);
-  const lanes = CLOUD_LANES.length;
+  const lanes = field.lanes.length;
   // A shuffled slot round the lap for each lane.
   const slots = Array.from({ length: lanes }, (_, index) => index);
   for (let index = lanes - 1; index > 0; index -= 1) {
@@ -124,7 +87,7 @@ export function cloudField(seed: number, sprites: readonly CloudSprite[], skyWid
   }
   const clouds: Cloud[] = [];
   let below = -1;
-  CLOUD_LANES.forEach(function ([low, high], lane) {
+  field.lanes.forEach(function ([low, high], lane) {
     const share = lanes === 1 ? 0 : lane / (lanes - 1);
     let pick = Math.round(share * (bySize.length - 1) + (random(lane, 2) - 0.5) * 1.6);
     pick = Math.max(0, Math.min(bySize.length - 1, pick));
@@ -134,23 +97,23 @@ export function cloudField(seed: number, sprites: readonly CloudSprite[], skyWid
     const sprite = sprites[index]!;
     const [width, height] = sprite.size;
     const lift = low + random(lane, 3) * (high - low);
-    const row = Math.max(CLOUD_TOP_MIN, Math.round(horizonRow - lift - height));
-    const period = cloudPeriod(skyWidth, width);
+    const row = Math.max(field.topMin, Math.round(horizonRow - lift - height));
+    const period = cloudPeriod(skyWidth, width, field.margin);
     const offset = Math.floor(((slots[lane]! + 0.15 + random(lane, 4) * 0.7) / lanes) * period) % period;
-    const pixelsPerSecond = sprite.pixelsPerSecond * (0.85 + random(lane, 5) * 0.3) * (0.8 + share * 0.4);
+    const pixelsPerSecond = sprite.pxPerSecond * (0.85 + random(lane, 5) * 0.3) * (0.8 + share * 0.4);
     clouds.push({ sprite: index, row, offset, pixelsPerSecond });
   });
   return clouds;
 }
 
 /**
- * The sky column of a cloud's left edge `seconds` into the scene, in whole pixels: wholly left of the sky at
- * the start of its lap, wholly right of it and the margin at the end. Still (at its start) when not drifting.
+ * The backdrop column of a drifter's left edge `seconds` into its clock, in whole pixels: wholly left of the backdrop
+ * at the start of its lap, wholly right of it and the margin at the end. Still (at its start) when not drifting.
  */
-export function cloudX(cloud: Cloud, spriteWidth: number, skyWidth: number, seconds: number, drifting: boolean): number {
-  const period = cloudPeriod(skyWidth, spriteWidth);
+export function cloudX(cloud: Cloud, spriteWidth: number, skyWidth: number, margin: number, seconds: number, drifting: boolean): number {
+  const period = cloudPeriod(skyWidth, spriteWidth, margin);
   const drift = drifting ? scrollOffset(seconds, cloud.pixelsPerSecond, period) : 0;
-  return -spriteWidth - CLOUD_MARGIN + ((cloud.offset + drift) % period);
+  return -spriteWidth - margin + ((cloud.offset + drift) % period);
 }
 
 /** `#RRGGBB` as a number. */
@@ -169,16 +132,12 @@ function mix(from: number, to: number, t: number): number {
 }
 
 /**
- * The clouds' three colours, shadow to highlight, under the sky `blend`: each slot of the earlier phase's
- * palette crossfaded to the later one's by the blend's own `t`. A phase the manifest gives no palette keeps
- * the neutral one.
+ * Drifters' three colours, shadow to highlight, under the day `blend` of `phases`: each slot of the earlier phase's
+ * palette crossfaded to the later one's by the blend's own `t`. A phase the pack gives no palette keeps the neutral
+ * one.
  */
-export function cloudColours(
-  clouds: Pick<CloudManifest, "palette" | "stages">,
-  phases: ReadonlyArray<{ id: SkyPhaseId }>,
-  blend: SkyBlend,
-): [number, number, number] {
-  const of = (index: number) => (clouds.stages[phases[index]?.id as SkyPhaseId] ?? clouds.palette).map(hexColour);
+export function cloudColours(palettes: DrifterPalette, phases: ReadonlyArray<{ id: string }>, blend: DayBlend): [number, number, number] {
+  const of = (index: number) => (palettes.byPhase[phases[index]?.id ?? ""] ?? palettes.palette).map(hexColour);
   const from = of(blend.from);
   const to = of(blend.to);
   const t = blend.to === blend.from ? 0 : Math.max(0, Math.min(1, blend.t));
