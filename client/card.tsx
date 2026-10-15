@@ -14,6 +14,13 @@
  * there needs a brief only the first mate can write. While its host is
  * unreachable, only Watch is on. A session the first mate only follows — the
  * captain's own, not crew — is marked so and is never offered End.
+ *
+ * The ship deck shows the same card beside a focused sailor (`presentation:
+ * "focus"`): always open, with a close button where the chevron was, and only
+ * what a glance needs — its state, where it works, its status line, the
+ * captain's call, an error or a waiting permission, its link — over the same
+ * actions, with the same handlers, guards and End confirmation. The tags, the
+ * plumbing facts and the report's path stay on the board.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
@@ -36,6 +43,7 @@ import {
   orphanText,
   relativeTime,
 } from "./format";
+import { watchKey } from "./host-tabs";
 import { Chip, IconButton, Tag, errorText } from "./ui";
 import { webTitle } from "./web";
 import { cardTags } from "../shared/item-tags";
@@ -53,6 +61,21 @@ export interface CardOpener {
   label: string;
   tooltip: string;
   onPress: () => void;
+}
+
+/** The board's, the list's and the deck's first action: Watch the crewmate within FirstMate, by `watchKey`; null for a card with no worker to watch. */
+export function watchOpener(card: FleetCard, onWatch: (key: string) => void): CardOpener | null {
+  const key = watchKey(card);
+  if (key === null) return null;
+  return {
+    icon: "Eye",
+    label: "Watch",
+    tooltip:
+      card.remote === undefined
+        ? "View this worker's live activity within FirstMate."
+        : "View this remote worker's recent log within FirstMate.",
+    onPress: () => onWatch(key),
+  };
 }
 
 type Draft = { kind: "steer" | "relaunch"; text: string } | { kind: "end" } | null;
@@ -104,6 +127,7 @@ export function CrewCard({
   onChanged,
   startExpanded = false,
   presentation = "card",
+  onClose,
 }: {
   card: FleetCard;
   theme: PluginTheme;
@@ -115,8 +139,10 @@ export function CrewCard({
   /** Called after an action lands, so the board refreshes without waiting for its poll. */
   onChanged: () => void;
   startExpanded?: boolean;
-  /** The list shares this card's memory, details and actions. */
-  presentation?: "card" | "row";
+  /** The list and the deck's focus panel share this card's memory, details and actions. */
+  presentation?: "card" | "row" | "focus";
+  /** The focus panel's close button. */
+  onClose?: () => void;
 }) {
   const steer = useRpc(steerCrew);
   const interrupt = useRpc(interruptCrew);
@@ -127,7 +153,11 @@ export function CrewCard({
   const exitRemote = useRpc(exitRemoteCrew);
   const toast = useToast();
 
-  const { expanded, setExpanded, draft, setDraft } = useCardMemory(card.key, startExpanded, card.column);
+  const memory = useCardMemory(card.key, startExpanded, card.column);
+  const { setExpanded, draft, setDraft } = memory;
+  const focus = presentation === "focus";
+  /** The focus panel is always open, without telling the board's card to open too. */
+  const expanded = memory.expanded || focus;
   const [busy, setBusy] = useState(false);
 
   const agent = card.agent;
@@ -322,6 +352,8 @@ export function CrewCard({
             color: agentStatusTone(theme, status),
           };
 
+  /** Long lines are cut in the focus panel; the board's card has them whole. */
+  const lines = focus ? 3 : undefined;
   const tags = (
     <>
       {card.project === null || card.project === "" ? null : <Tag theme={theme} text={card.project} />}
@@ -351,8 +383,29 @@ export function CrewCard({
       </Text>
     );
 
+  const glance = (
+    <View style={styles.chips}>
+      {stateChip === null ? null : <Chip theme={theme} text={stateChip.text} color={stateChip.color} />}
+      {tags}
+      {when === null || when === "" ? null : <Text style={styles.time}>{when}</Text>}
+    </View>
+  );
+
   return (
     <View style={row ? styles.row : styles.card}>
+      {focus ? (
+        <View style={{ gap: 8 }}>
+          <View style={styles.titleRow}>
+            <Text accessibilityRole="header" style={styles.title} numberOfLines={2} {...webTitle(card.title)}>
+              {card.title}
+            </Text>
+            {onClose === undefined ? null : (
+              <IconButton icon="X" label="Close" tooltip="Back to the whole deck (Esc)." tooltipAlign="end" theme={theme} onPress={onClose} />
+            )}
+          </View>
+          {glance}
+        </View>
+      ) : (
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={[
@@ -404,40 +457,39 @@ export function CrewCard({
               </View>
             </View>
 
-            <View style={styles.chips}>
-              {stateChip === null ? null : <Chip theme={theme} text={stateChip.text} color={stateChip.color} />}
-              {tags}
-              {when === null || when === "" ? null : <Text style={styles.time}>{when}</Text>}
-            </View>
+            {glance}
 
             {expanded ? null : statusLine}
           </>
         )}
       </Pressable>
+      )}
 
-      {cardTags(card).length === 0 ? null : (
+      {focus || cardTags(card).length === 0 ? null : (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
           {cardTags(card).map((tag) => <Tag key={tag} theme={theme} icon="Tag" text={tag} />)}
         </View>
       )}
       {expanded ? (
         <View style={styles.details}>
-          <ItemTagEditor card={card} theme={theme} onChanged={onChanged} />
-          {facts.length === 0 ? null : <Text style={styles.meta}>{facts.join(" · ")}</Text>}
+          {focus ? null : <ItemTagEditor card={card} theme={theme} onChanged={onChanged} />}
+          {focus || facts.length === 0 ? null : <Text style={styles.meta}>{facts.join(" · ")}</Text>}
           {card.report === null ? null : (
-            <Text style={styles.report}>
+            <Text style={styles.report} numberOfLines={lines}>
               <Text style={styles.reportState}>{REPORT_STATES[card.report.state] ?? card.report.state}: </Text>
               {card.report.text}
             </Text>
           )}
           {backlog?.hold === null || backlog?.hold === undefined ? null : (
-            <Text style={styles.report}>
+            <Text style={styles.report} numberOfLines={lines}>
               <Text style={styles.reportState}>Captain's call: </Text>
               {backlog.hold}
             </Text>
           )}
           {agent?.lastError === null || agent?.lastError === undefined ? null : (
-            <Text style={[styles.report, { color: theme.colors.statusDanger }]}>{agent.lastError}</Text>
+            <Text style={[styles.report, { color: theme.colors.statusDanger }]} numberOfLines={lines}>
+              {agent.lastError}
+            </Text>
           )}
           {worker === null
             ? null
@@ -465,7 +517,7 @@ export function CrewCard({
               {card.url.replace(/^https?:\/\/(www\.)?github\.com\//, "")}
             </Text>
           )}
-          {backlog?.reportPath === null || backlog?.reportPath === undefined ? null : (
+          {focus || backlog?.reportPath === null || backlog?.reportPath === undefined ? null : (
             <Text style={styles.meta}>Report: {backlog.reportPath}</Text>
           )}
         </View>
@@ -516,15 +568,17 @@ export function CrewCard({
               disabled={busy || !remote.online || !running}
               onPress={() => run("Interrupted.", () => interruptRemote(target))}
             />
-            <IconButton
-              icon="RotateCcw"
-              label="Relaunch"
-              tooltip="Remote Relaunch is unavailable here. Ask the first mate to write the new brief and launch a worker on that host."
-              showLabel
-              theme={theme}
-              disabled
-              onPress={() => undefined}
-            />
+            {focus ? null : (
+              <IconButton
+                icon="RotateCcw"
+                label="Relaunch"
+                tooltip="Remote Relaunch is unavailable here. Ask the first mate to write the new brief and launch a worker on that host."
+                showLabel
+                theme={theme}
+                disabled
+                onPress={() => undefined}
+              />
+            )}
             <IconButton
               icon="Power"
               label="End"
@@ -554,7 +608,9 @@ export function CrewCard({
               {remote.host} is unreachable; Steer, Interrupt and End wait until it answers.
             </Text>
           )}
-          <Text style={styles.meta}>Relaunch is the first mate's on a remote host: it writes the new brief there.</Text>
+          {focus ? null : (
+            <Text style={styles.meta}>Relaunch is the first mate's on a remote host: it writes the new brief there.</Text>
+          )}
         </View>
       ) : null}
 

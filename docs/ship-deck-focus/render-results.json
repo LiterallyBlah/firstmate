@@ -1,0 +1,129 @@
+{
+  "anchorWide": {
+    "side": "right",
+    "x": 903,
+    "y": 476
+  },
+  "spotWide": {
+    "w": 1496,
+    "h": 1452,
+    "cw": 748,
+    "ch": 726
+  },
+  "focused": {
+    "key": "block-0",
+    "title": "Install the merged board changes and check the live panel",
+    "role": "dialog",
+    "name": "Install the merged board changes and check the live panel: details and actions",
+    "text": "Install the merged board changes and check the live panelBack to the whole deck (Esc).idlefirstmate6d agoNeeds a decision: Waiting for the captain’s callCaptain's call: run the local smoke check when you have a momentWatchView this worker's live activity within FirstMate.SteerSend instructions directly to this worker; the first mate is told about them.InterruptThis worker has no running turn to interrupt.RelaunchGive the first mate a note and ask for a replacement worker in the same local copy.EndConfirm archiving this worker. Its workspace and local copy are kept.",
+    "words": [
+      "Back to the whole deck (Esc).",
+      "idle",
+      "firstmate",
+      "6d ago",
+      "Needs a decision:",
+      "Captain's call:",
+      "Watch",
+      "View this worker's live activity within FirstMate.",
+      "Steer",
+      "Send instructions directly to this worker; the first mate is told about them.",
+      "Interrupt",
+      "This worker has no running turn to interrupt.",
+      "Relaunch",
+      "Give the first mate a note and ask for a replacement worker in the same local copy.",
+      "End",
+      "Confirm archiving this worker. Its workspace and local copy are kept."
+    ],
+    "buttons": [
+      {
+        "label": "Close",
+        "disabled": false
+      },
+      {
+        "label": "Watch",
+        "disabled": false
+      },
+      {
+        "label": "Steer",
+        "disabled": false
+      },
+      {
+        "label": "Interrupt",
+        "disabled": true
+      },
+      {
+        "label": "Relaunch",
+        "disabled": false
+      },
+      {
+        "label": "End",
+        "disabled": false
+      }
+    ],
+    "rect": {
+      "left": 1115,
+      "top": 125,
+      "right": 1415,
+      "bottom": 365
+    },
+    "holdsKeyboard": true,
+    "labelWhileFocused": null
+  },
+  "actions": {
+    "calls": [
+      {
+        "name": "firstmate.crew.steer",
+        "input": {
+          "agentId": "block-0",
+          "text": "Try the smaller fixture first."
+        }
+      }
+    ],
+    "endConfirmation": "End this worker? The agent is archived; its workspace and local copy stay exactly as they are."
+  },
+  "exits": {
+    "escape": {
+      "closed": true,
+      "labelsAgain": true
+    },
+    "open sea": {
+      "closed": true,
+      "labelsAgain": true
+    },
+    "close button": {
+      "closed": true,
+      "labelsAgain": true
+    }
+  },
+  "sleeper": {
+    "key": "rest-1",
+    "title": "Re-run the humour drafts against the new rubric",
+    "deck": {
+      "x": 132,
+      "y": 98
+    },
+    "focused": true
+  },
+  "resize": {
+    "side": "bottom",
+    "panel": {
+      "left": 493,
+      "top": 624,
+      "right": 975,
+      "bottom": 799
+    },
+    "stillFocusedAfterClickOnAnchor": true
+  },
+  "reducedMotion": {
+    "motion": "still",
+    "snapped": true,
+    "panel": true
+  },
+  "keyboard": {
+    "arrowOpens": true,
+    "tabStaysInPanel": true,
+    "escapeCloses": true,
+    "deckHasKeyboardBack": true
+  },
+  "errors": []
+}

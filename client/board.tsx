@@ -6,9 +6,8 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type { ColumnId, FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
-import { CrewCard } from "./card";
+import { CrewCard, watchOpener } from "./card";
 import { COLUMNS, columnTone, DONE_SHOWN, doneCards, groupCards, moveColumn } from "./format";
-import { watchKey } from "./host-tabs";
 
 let allDoneShown = false;
 const COLUMN_WIDTH = 300;
@@ -67,7 +66,6 @@ export function Board(props: BoardProps) {
   };
 
   function renderCard(card: FleetCard) {
-    const key = watchKey(card);
     return (
       <CrewCard
         key={card.key}
@@ -75,19 +73,7 @@ export function Board(props: BoardProps) {
         theme={theme}
         compact={compact}
         density={density}
-        opener={
-          key === null
-            ? null
-            : {
-                icon: "Eye",
-                label: "Watch",
-                tooltip:
-                  card.remote === undefined
-                    ? "View this worker's live activity within FirstMate."
-                    : "View this remote worker's recent log within FirstMate.",
-                onPress: () => props.onWatch(key),
-              }
-        }
+        opener={watchOpener(card, props.onWatch)}
         onChanged={props.onChanged}
       />
     );
