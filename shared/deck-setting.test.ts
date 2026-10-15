@@ -29,7 +29,7 @@ describe("a setting manifest", () => {
   it("is whole for the ship: nothing it names is missing, and it needs exactly what it uses", () => {
     expect(settingProblems(shipManifest())).toEqual([]);
     expect(capabilitiesUsed(shipManifest())).toEqual(shipManifest().requires);
-    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["stable-posts@1", "pose-fidgets@1", "walk-in@1"]);
+    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["stable-posts@1", "pose-fidgets@1", "walk-in@1", "phase-tint@1"]);
   });
 
   it("names every image it draws with once, the backdrop first", () => {
@@ -105,6 +105,40 @@ describe("a setting manifest", () => {
       }),
     ];
     for (const change of changes) expect(SettingManifestSchema.safeParse(broken(change)).success).toBe(false);
+  });
+});
+
+describe("phase tint in the closed catalogue", () => {
+  const tinted = () => {
+    const manifest = structuredClone(shipManifest());
+    manifest.stage.tintByPhase = { night: "#8C94B0" };
+    manifest.requires = capabilitiesUsed(manifest);
+    return manifest;
+  };
+
+  it("accepts a partial table of known phases and requires phase-tint@1", () => {
+    const manifest = tinted();
+    expect(SettingManifestSchema.safeParse(manifest).success).toBe(true);
+    expect(manifest.requires).toContain("phase-tint@1");
+    manifest.requires = manifest.requires.filter((id) => id !== "phase-tint@1");
+    expect(SettingManifestSchema.safeParse(manifest).success).toBe(false);
+  });
+
+  it("rejects unknown phases, absent day cycles, empty tables, expressions and non-RGB colours", () => {
+    const changes: Array<(manifest: SettingManifest) => void> = [
+      (manifest) => { manifest.stage.tintByPhase = { missing: "#FFFFFF" }; },
+      (manifest) => { manifest.dayCycle = undefined; },
+      (manifest) => { manifest.stage.tintByPhase = {}; },
+      (manifest) => { manifest.stage.tintByPhase = { night: "time * 2" }; },
+      (manifest) => { manifest.stage.tintByPhase = { night: "#12345678" }; },
+      (manifest) => { Object.assign(manifest.stage, { tintExpression: "clock()" }); },
+    ];
+    for (const change of changes) {
+      const manifest = tinted();
+      change(manifest);
+      manifest.requires = capabilitiesUsed(manifest);
+      expect(SettingManifestSchema.safeParse(manifest).success).toBe(false);
+    }
   });
 });
 

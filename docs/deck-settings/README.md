@@ -368,3 +368,25 @@ Gate: **81/81 pixel-identical** to main `7842eee`, with no flakes or page errors
 Full suite: 77 files, 1,000 tests passed, three skipped. Typecheck, pack lint (32 tests) and `git diff --check`
 pass. The client grows by 3,301 bytes, parses in Hermes and has no `class`. Package art remains 331,187 bytes;
 the draft, tests and documentation are excluded. Evidence is in `compile-results.json` and `gate-results.json`.
+
+## Step 9c — phase tint capability (office art delivered, pack not installed)
+
+- `phase-tint@1` adds `stage.tintByPhase`: a nonempty map from known day-phase ids to RGB multipliers.
+  Omitted phases use white. `client/deck-phase-tint.ts` compiles the table and samples it with the backdrop's
+  existing eased day blend, including midnight and invalid-clock fallback. No expressions or intensity binding.
+- The renderer tints stage artwork and floor/piece actor bodies, keeping badges, reply indicators and other
+  interaction graphics in their engine colours. Focused bodies retain the tint; stale tint multiplies with it.
+  Ambience and effects-slot actors/effects keep their own colours. Depth and geometry are unchanged.
+- Full/lite frames and the existing still minute refresh use one wall-clock sample for tint and backdrop.
+  Hidden scenes do not redraw; no extra timer or animation loop is added. Calm reduced-motion weather remains intact.
+- Schema/linter checks reject empty tables, missing phases/day cycles, malformed colours and undeclared hooks.
+  Generic tests cover arbitrary phase ids, eased RGB blends, wrap/fallback, separate packs, stale/focus/effect
+  layers, interaction colours and still/hidden refresh. The office draft now validates its phase tint directly.
+
+PR #55 delivered the commissioned art under `docs/settings/office/art/`. Its PNGs and contract remain unchanged
+and outside the package. `phase-frames@1` is the last pending capability before the data/art-only office pack PR.
+
+Gate: **81/81 pixel-identical** to main `0e98ab5`, with no flakes or page errors and matching canvas metadata.
+Full suite: 78 files, 1,010 tests passed, three skipped. Typecheck, pack lint (34 tests) and `git diff --check`
+pass. Client growth is 1,349 bytes; Hermes parses it and the bundle has no `class`. Package art is unchanged
+at 331,187 bytes, with staged office art, tests and documentation excluded. Results are recorded beside this file.
