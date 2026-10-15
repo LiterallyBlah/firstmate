@@ -19,7 +19,8 @@ type TimelineItem = TimelineEntry["item"];
 type ToolCallItem = Extract<TimelineItem, { type: "tool_call" }>;
 
 export type TranscriptRow =
-  | { key: string; kind: "captain"; text: string }
+  /** `messageId` is the message's `clientMessageId`, under which the chat keeps the images it carried. */
+  | { key: string; kind: "captain"; text: string; messageId?: string }
   | { key: string; kind: "mate"; text: string }
   | { key: string; kind: "event"; text: string }
   | { key: string; kind: "tool"; text: string; status: ToolCallItem["status"] }
@@ -162,6 +163,9 @@ export function continuesText(previous: TimelineEntry | undefined, entry: Timeli
   return item.type === "reasoning" && previous.item.type === "reasoning";
 }
 
+/** A captain's row for a message with no words, only attachments. */
+export const ATTACHMENTS_ONLY = "(attachments)";
+
 /** Timeline entries to rows, joining only continuous chunks of one message. */
 export function transcriptRows(entries: readonly TimelineEntry[]): TranscriptRow[] {
   const rows: TranscriptRow[] = [];
@@ -172,8 +176,15 @@ export function transcriptRows(entries: readonly TimelineEntry[]): TranscriptRow
       case "user_message": {
         const summary = injectedSummary(item.text, item.clientMessageId);
         // A message of attachments alone has no words; the row still says the captain sent something.
-        const text = item.text.trim() === "" ? "(attachments)" : item.text;
-        rows.push(summary === null ? { key, kind: "captain", text } : { key, kind: "event", text: summary });
+        const text = item.text.trim() === "" ? ATTACHMENTS_ONLY : item.text;
+        const messageId = item.clientMessageId;
+        rows.push(
+          summary !== null
+            ? { key, kind: "event", text: summary }
+            : messageId === undefined
+              ? { key, kind: "captain", text }
+              : { key, kind: "captain", text, messageId },
+        );
         break;
       }
       case "assistant_message": {

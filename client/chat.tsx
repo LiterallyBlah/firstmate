@@ -8,9 +8,10 @@ import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
 import type { PluginScreenProps } from "@getpaseo/plugin/client";
 import { Icon, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Image, Platform, Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
 
+import type { ImagePart } from "../shared/attachments";
 import { MAX_FILE_CANDIDATES, findHomeFiles } from "../shared/files";
 import type { AgentSummary, MateCommand } from "../shared/fleet";
 import {
@@ -31,7 +32,8 @@ import { MateControls } from "./mate-controls";
 import { useMateSender } from "./mate-send";
 import { Markdown } from "./markdown";
 import { PermissionCard, usePendingRequests } from "./permission-card";
-import { transcriptRows, type TranscriptRow } from "./transcript-rows";
+import { sentImages } from "./sent-images";
+import { ATTACHMENTS_ONLY, transcriptRows, type TranscriptRow } from "./transcript-rows";
 import { IconButton, JumpToEnd, MONOSPACE, Spinner, errorText } from "./ui";
 import { useKeyboardOverlap } from "./keyboard";
 import { useAgentTimeline } from "./use-timeline";
@@ -117,6 +119,8 @@ export function MateChat({
   const { sending, send, command: sendMateCommand } = useMateSender(mate.id);
   const timeline = useAgentTimeline(mate.id, `${mate.updatedAt}:${mate.pendingPermissions}`);
   const rows = useMemo(() => transcriptRows(timeline.entries), [timeline.entries]);
+  // Redraws a captain's row when the images kept for it change; see `./sent-images`.
+  useSyncExternalStore(sentImages.subscribe, sentImages.version);
   const groups = useMemo(() => groupRows(rows), [rows]);
   const files = useHomeFileLinks(rows);
   const follow = useFollowEnd();
@@ -355,14 +359,19 @@ export function MateChat({
     }
     const row = group.row;
     switch (row.kind) {
-      case "captain":
+      case "captain": {
+        const images = sentImages.get(row.messageId);
         return (
           <View key={row.key} style={styles.captain}>
-            <Text selectable style={styles.captainText}>
-              {row.text}
-            </Text>
+            {images.length > 0 && row.text === ATTACHMENTS_ONLY ? null : (
+              <Text selectable style={styles.captainText}>
+                {row.text}
+              </Text>
+            )}
+            {images.length > 0 ? <SentImages images={images} theme={theme} /> : null}
           </View>
         );
+      }
       case "mate":
         return (
           <View key={row.key} style={styles.mate}>
@@ -520,6 +529,57 @@ export function MateChat({
         </View>
       ) : null}
     </View>
+  );
+}
+
+/** A sent image's width in the transcript; its height follows its shape, within these bounds. */
+const SENT_IMAGE_WIDTH = 220;
+const SENT_IMAGE_HEIGHT = { min: 48, max: 280, unknown: 150 };
+
+/** The images a captain's message carried, under its words. */
+function SentImages({ images, theme }: { images: readonly ImagePart[]; theme: PluginTheme }) {
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginVertical: 3 }}>
+      {images.map((image, index) => (
+        <SentImage
+          key={index}
+          image={image}
+          theme={theme}
+          label={images.length === 1 ? "Image you sent" : `Image ${index + 1} of ${images.length} you sent`}
+        />
+      ))}
+    </View>
+  );
+}
+
+/** One sent image, whole: its box takes the image's shape once its size is known. */
+function SentImage({ image, theme, label }: { image: ImagePart; theme: PluginTheme; label: string }) {
+  const uri = `data:${image.mimeType};base64,${image.data}`;
+  const [height, setHeight] = useState(SENT_IMAGE_HEIGHT.unknown);
+  useEffect(() => {
+    let alive = true;
+    Image.getSize(
+      uri,
+      (width, natural) => {
+        if (!alive || width <= 0 || natural <= 0) return;
+        setHeight(Math.min(SENT_IMAGE_HEIGHT.max, Math.max(SENT_IMAGE_HEIGHT.min, (SENT_IMAGE_WIDTH * natural) / width)));
+      },
+      // An image the renderer cannot decode keeps the default box.
+      () => {},
+    );
+    return () => {
+      alive = false;
+    };
+  }, [uri]);
+  return (
+    <Image
+      source={{ uri }}
+      style={{ width: SENT_IMAGE_WIDTH, maxWidth: "100%", height, borderRadius: 6, backgroundColor: theme.colors.surface1 }}
+      resizeMode="contain"
+      accessibilityRole="image"
+      accessibilityLabel={label}
+      accessibilityIgnoresInvertColors
+    />
   );
 }
 
