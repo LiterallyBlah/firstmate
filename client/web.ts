@@ -159,6 +159,21 @@ export function bindWebKeys(target: unknown, onKey: (key: string, shift: boolean
   return () => remove.call(target, "keydown", listener, capture);
 }
 
+/**
+ * Gives keyboard focus back to the element with this id once the next render has drawn it — the
+ * Converse drawer's way back to the 💬 that opened it. Nothing on native, or when it is gone.
+ */
+export function focusWebElement(id: string): void {
+  if (Platform.OS !== "web") return;
+  setTimeout(() => {
+    const document = (globalThis as { document?: { getElementById?: (id: string) => unknown } }).document;
+    const element = document?.getElementById?.(id);
+    if (typeof element !== "object" || element === null) return;
+    const focus: unknown = Reflect.get(element, "focus");
+    if (typeof focus === "function") focus.call(element);
+  }, 0);
+}
+
 /** Convert the responder's page coordinate to the document tracker's client coordinate. */
 export function pointerClientX(pageX: number): number {
   return Platform.OS === "web" ? pageX - ((globalThis as { scrollX?: number }).scrollX ?? 0) : pageX;

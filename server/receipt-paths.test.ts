@@ -1,17 +1,19 @@
 /**
  * Every send path, with the receipt journal off and on: off, exactly the calls the plugin made before it
- * existed and no file; on, the same calls plus a `messageId`, and a receipt for each.
+ * existed and no file — save one, on purpose: a captain's steer always carries its own
+ * `firstmate-crew-steer-` id, so the Converse drawer can label it; on, the same calls plus a `messageId`
+ * on the rest, and a receipt for each.
  */
 import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { CREW_LABELS, WATCH_MESSAGE_ID_PREFIX } from "../shared/fleet";
+import { CAPTAIN_STEER_MESSAGE_ID_PREFIX, CREW_LABELS, WATCH_MESSAGE_ID_PREFIX } from "../shared/fleet";
 import { readFirstmateConfig, updateFirstmateConfig } from "./config";
 import { CaptainSteers, registerSteerRelay, steerCrew } from "./crew";
 import type { PaseoApi } from "./host-types";
-import { adoptMate, askMate, compactMate, flushMateNotes, launchMate, queueMateNote, releaseMate, restartMate } from "./mate";
+import { BURST_QUIET_MS, adoptMate, askMate, compactMate, flushMateNotes, launchMate, queueMateNote, releaseMate, restartMate } from "./mate";
 import { pageTimeline, registerReceiptObservers } from "./receipt-observers";
 import { RECEIPT_JOURNAL_ENV, readReceiptJournal, receiptJournal, receiptJournalRoot, sha256, type ReceiptEntry, type ReceiptEvent } from "./receipts";
 import { deliverToMate } from "./watch-service";
@@ -140,12 +142,13 @@ const events = <K extends ReceiptEvent["kind"]>(entries: ReceiptEntry[], kind: K
 const optionsOf = (send: Sent) => (send.args[1] ?? {}) as Record<string, unknown>;
 
 describe("with the switch off", () => {
-  it("sends exactly what the plugin sent before, and writes no journal", async () => {
+  it("sends exactly what the plugin sent before, the captain's steer tagged as theirs, and writes no journal", async () => {
     const { paseo, sent } = fakePaseo({ "crew-1": crew, mate });
     await everyPath(paseo);
     const noteId = sent[3]!.args[1] as { messageId: string };
     expect(sent.map((send) => ({ agentId: send.agentId, args: send.args.map((arg) => (arg && typeof arg === "object" && "messageId" in arg ? { ...arg, messageId: "<id>" } : arg)) }))).toEqual([
-      { agentId: "crew-1", args: ["use pnpm", { activeTurnBehavior: "steer" }] },
+      // The one change, made on purpose: a steer is tagged as the captain's even with the journal off.
+      { agentId: "crew-1", args: ["use pnpm", { messageId: "<id>", activeTurnBehavior: "steer" }] },
       { agentId: "mate", args: ["what is in flight?", { activeTurnBehavior: "steer" }] },
       { agentId: "mate", args: ["/compact"] },
       { agentId: "mate", args: ["<firstmate-board>note</firstmate-board>", { messageId: "<id>", activeTurnBehavior: "steer" }] },
@@ -154,6 +157,7 @@ describe("with the switch off", () => {
     // The ids that were there before are still the plugin's own, as they were.
     expect(noteId.messageId).toMatch(/^firstmate-note-/);
     expect(optionsOf(sent[4]!).messageId).toMatch(new RegExp(`^${WATCH_MESSAGE_ID_PREFIX}`));
+    expect(optionsOf(sent[0]!).messageId).toMatch(new RegExp(`^${CAPTAIN_STEER_MESSAGE_ID_PREFIX}[0-9a-f-]{36}$`));
     expect(await readdir(join(paseoHome, "plugin-data", "firstmate"))).toEqual(["config.json"]);
   });
 
@@ -258,8 +262,12 @@ describe("with the switch on", () => {
     expect(events(entries, "steer-read")).toEqual([{ kind: "steer-read", messageId: steerId, crewAgentId: "crew-1", turnId: "turn-9", clientMessageIdSeen: true }]);
     const [queued] = events(entries, "note-queued");
     expect(queued).toMatchObject({ source: "steer-relay", relates: [steerId], generation: { agentId: "mate" } });
+    // The note holds for the rest of the burst, then goes once the conversation is quiet.
+    expect(sent).toHaveLength(1);
+    await flushMateNotes(paseo, () => Date.now() + BURST_QUIET_MS + 1);
+    await receiptJournal()!.settled();
     expect(sent[1]).toMatchObject({ agentId: "mate", args: [expect.stringContaining("<firstmate-board>"), { messageId: queued!.noteId }] });
-    expect(events(entries, "send-attempt").map((attempt) => [attempt.channel, attempt.messageId])).toEqual([["crew-steer", steerId], ["mate-note", queued!.noteId]]);
+    expect(events(await journalEntries(), "send-attempt").map((attempt) => [attempt.channel, attempt.messageId])).toEqual([["crew-steer", steerId], ["mate-note", queued!.noteId]]);
   });
 
   it("records a launch and a restart, and the opening each sends under its own id", async () => {

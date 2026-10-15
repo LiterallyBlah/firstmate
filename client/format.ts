@@ -297,7 +297,7 @@ export function cardHeadline(card: FleetCard): CardHeadline | null {
   if ((card.agent?.pendingPermissions ?? worker?.pendingPermissions ?? 0) > 0) {
     return {
       lead: "Waiting on a permission",
-      text: "Open Watch to see the request",
+      text: "Converse to answer it",
       tone: "column",
     };
   }

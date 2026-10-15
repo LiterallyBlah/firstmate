@@ -1,11 +1,15 @@
-/** A single scrolling list, grouped by what needs attention rather than saved column order. */
+/**
+ * A single scrolling list, grouped by what needs attention rather than saved column order. A row with a
+ * worker has its 💬, which opens the worker's conversation beside the list.
+ */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type { FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
-import { CrewCard, watchOpener } from "./card";
+import { CrewCard } from "./card";
+import { watchKey } from "./host-tabs";
 import { doneCards, LIST_GROUPS, listGroups } from "./format";
 
 export function TaskList({
@@ -13,7 +17,8 @@ export function TaskList({
   theme,
   compact,
   density,
-  onWatch,
+  conversing,
+  onConverse,
   onChanged,
   showDone,
   onShowDone,
@@ -22,7 +27,9 @@ export function TaskList({
   theme: PluginTheme;
   compact: boolean;
   density: BoardDensity;
-  onWatch: (key: string) => void;
+  /** The worker whose conversation is open, by `watchKey`. */
+  conversing: string | null;
+  onConverse: (key: string) => void;
   onChanged: () => void;
   showDone: boolean;
   onShowDone: (show: boolean) => void;
@@ -68,18 +75,23 @@ export function TaskList({
             )}
             {id === "done" && !showDone
               ? null
-              : (id === "done" ? doneCards(entries, true).shown : entries).map((card) => (
-                  <CrewCard
-                    key={card.key}
-                    card={card}
-                    theme={theme}
-                    compact={compact}
-                    density={density}
-                    presentation="row"
-                    opener={watchOpener(card, onWatch)}
-                    onChanged={onChanged}
-                  />
-                ))}
+              : (id === "done" ? doneCards(entries, true).shown : entries).map((card) => {
+                  const key = watchKey(card);
+                  return (
+                    <CrewCard
+                      key={card.key}
+                      card={card}
+                      theme={theme}
+                      compact={compact}
+                      density={density}
+                      presentation="row"
+                      opener={null}
+                      onConverse={key === null ? null : () => onConverse(key)}
+                      conversing={key !== null && key === conversing}
+                      onChanged={onChanged}
+                    />
+                  );
+                })}
           </View>
         );
       })}

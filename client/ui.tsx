@@ -144,6 +144,7 @@ export function IconButton({
   tooltip,
   tooltipAlign = "start",
   tooltipSide = "top",
+  nativeID,
 }: {
   icon: string;
   label: string;
@@ -157,6 +158,8 @@ export function IconButton({
   tooltip?: string;
   tooltipAlign?: "start" | "end";
   tooltipSide?: "top" | "bottom";
+  /** The element's id on the web, so focus can be handed back to it (`focusWebElement`). */
+  nativeID?: string;
 }) {
   const colors = theme.colors;
   const color =
@@ -196,6 +199,7 @@ export function IconButton({
           accessibilityState={{ disabled }}
           disabled={disabled}
           onPress={onPress}
+          nativeID={nativeID}
           style={styles.button}
         >
           <Icon name={icon} size={14} color={color} />
