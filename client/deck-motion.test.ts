@@ -22,7 +22,9 @@ import {
   motionPlan,
   shipBob,
 } from "./deck-ambient";
-import { HATCH_MS, PLACES, STATE_POSES, applyCrew, createCrew, crewFigures, idleMotion, stepCrew, type Crew } from "./deck-crew";
+import { BADGE_SIZE } from "./deck-badges";
+import { HATCH_MS, PLACES, STATE_POSES, applyCrew, createCrew, crewFigures, idleMotion, stepCrew, type Crew, type Figure } from "./deck-crew";
+import { badgeTop, figureBox, sailorAt, type DeckBox } from "./deck-hover";
 import { deckAnimator, MAX_STEP_MS, type FrameScheduler, type MotionSignals } from "./deck-loop";
 import { browserMotion } from "./deck-mount";
 import { isSoftwareRenderer } from "./deck-pixi";
@@ -36,7 +38,9 @@ import {
   areaAt,
   clearLine,
   findPath,
+  inRestArea,
   pathLength,
+  REST_SPACING,
   sharedSpot,
   walkable,
   type Point,
@@ -123,7 +127,7 @@ describe("the walkable deck, read against the atlas", () => {
       expect(areaAt(point.x, point.y), point.id).not.toBe("stairs");
     }
     expect(new Set(ANCHORS.map((anchor) => anchor.id)).size).toBe(ANCHORS.length);
-    for (const place of ["station", "rail", "helm", "bow"] as const) expect(anchorsAt(place).length).toBeGreaterThanOrEqual(4);
+    for (const place of ["station", "rest", "helm", "bow"] as const) expect(anchorsAt(place).length).toBeGreaterThanOrEqual(4);
     // The helm is on the quarterdeck; everything else is on the main deck.
     for (const anchor of ANCHORS) expect(areaAt(anchor.x, anchor.y)).toBe(anchor.place === "helm" ? "quarterdeck" : "main deck");
     expect(WALKABLE.map((area) => area.name)).toEqual(["main deck", "stairs", "quarterdeck"]);
@@ -219,7 +223,7 @@ describe("the crew on deck", () => {
       expect(walker.anchor).toBe(anchor?.id);
       expect(walker.facing).toBe(anchor?.facing);
     }
-    expect(PLACES).toEqual({ working: "station", waiting: "helm", blocked: "bow", idle: "rail" });
+    expect(PLACES).toEqual({ working: "station", waiting: "helm", blocked: "bow", idle: "rest" });
     const poses = Object.fromEntries(crewFigures(crew, 0, { still: true }).map((figure) => [figure.state, figure.pose]));
     expect(poses).toEqual(STATE_POSES);
   });
@@ -320,7 +324,7 @@ describe("the crew on deck", () => {
     b = crewFigures(crew, 0, { still: false }).find((figure) => figure.key === "b")!;
     expect(b.reveal).toBeCloseTo(0.5);
     run(crew, 20_000);
-    expect(anchorAt(crew.walkers.get("b")!)?.place).toBe("rail");
+    expect(anchorAt(crew.walkers.get("b")!)?.place).toBe("rest");
 
     applyCrew(crew, [sailor("b", "idle")], { snap: false });
     const a = crew.walkers.get("a")!;
@@ -414,13 +418,121 @@ describe("the crew on deck", () => {
   });
 });
 
+describe("idle crew at rest", () => {
+  /** Every anchor of the other places held, and `idle` sleepers: the most crowded deck there is. */
+  function fullDeck(idle: number): Figure[] {
+    const crew = createCrew();
+    const others = (["working", "waiting", "blocked"] as const).flatMap((state) =>
+      anchorsAt(PLACES[state]).map((_, index) => sailor(`${state}-${index}`, state)),
+    );
+    const sleepers = Array.from({ length: idle }, (_, index) => sailor(`idle-${String(index).padStart(2, "0")}`, "idle"));
+    applyCrew(crew, [...others, ...sleepers], { snap: true });
+    return crewFigures(crew, 0, { still: true });
+  }
+  const overlaps = (a: DeckBox, b: DeckBox) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  /** A deck point on `figure` the pointer finds it at: somewhere in its badge, else nowhere. */
+  function reachable(figures: readonly Figure[], figure: Figure): boolean {
+    const top = badgeTop(figure, manifest);
+    for (let y = top; y < top + BADGE_SIZE.height; y += 1) {
+      for (let x = figure.x - 3; x <= figure.x + 3; x += 1) if (sailorAt(figures, manifest, { x: x + 0.5, y: y + 0.5 })?.key === figure.key) return true;
+    }
+    return false;
+  }
+
+  it("has rest spots of its own, in the rest areas, off every other place", () => {
+    const rest = anchorsAt("rest");
+    expect(rest.length).toBeGreaterThanOrEqual(12);
+    for (const anchor of rest) expect(inRestArea(anchor), anchor.id).toBe(true);
+    for (const anchor of ANCHORS.filter((one) => one.place !== "rest")) expect(inRestArea(anchor), anchor.id).toBe(false);
+    // Among themselves the rest spots keep the sleepers' spacing.
+    for (const a of rest) {
+      for (const b of rest) {
+        if (a === b) continue;
+        expect(Math.abs(a.x - b.x) >= REST_SPACING.x || Math.abs(a.y - b.y) >= REST_SPACING.y, `${a.id} ${b.id}`).toBe(true);
+      }
+    }
+  });
+
+  it("keeps every sleeper in the rest areas, clear of the crew at work, and within the pointer's reach, however many", () => {
+    for (const idle of [1, 3, 6, anchorsAt("rest").length, 16, 20, 24]) {
+      const figures = fullDeck(idle);
+      const sleepers = figures.filter((figure) => figure.state === "idle");
+      const awake = figures.filter((figure) => figure.state !== "idle");
+      expect(sleepers).toHaveLength(idle);
+      expect(new Set(sleepers.map((figure) => `${figure.x},${figure.row}`)).size, `${idle} idle`).toBe(idle);
+      for (const sleeper of sleepers) {
+        expect(inRestArea({ x: sleeper.x, y: sleeper.row }), `${idle} idle: ${sleeper.key}`).toBe(true);
+        expect(walkable(sleeper.x, sleeper.row)).toBe(true);
+        expect(underNear({ x: sleeper.x, y: sleeper.row })).toBe(false);
+        const box = figureBox(sleeper, manifest)!;
+        for (const other of awake) expect(overlaps(box, figureBox(other, manifest)!), `${idle} idle: ${sleeper.key} on ${other.key}`).toBe(false);
+        expect(reachable(figures, sleeper), `${idle} idle: ${sleeper.key}`).toBe(true);
+      }
+      // The crew at work keep their own badges in reach too.
+      for (const other of awake) expect(reachable(figures, other), `${idle} idle: ${other.key}`).toBe(true);
+    }
+  });
+
+  it("past a score of sleepers packs them closer, still in the rest areas, never two on one spot", () => {
+    const sleepers = fullDeck(32).filter((figure) => figure.state === "idle");
+    expect(new Set(sleepers.map((figure) => `${figure.x},${figure.row}`)).size).toBe(32);
+    for (const sleeper of sleepers) expect(inRestArea({ x: sleeper.x, y: sleeper.row }), sleeper.key).toBe(true);
+  });
+
+  it("takes the rest spots in their order wherever a sleeper comes from, and leaves them when given work", () => {
+    const crew = createCrew();
+    applyCrew(crew, [sailor("a", "working"), sailor("b", "waiting"), sailor("c", "blocked")], { snap: false });
+    applyCrew(crew, [sailor("a", "idle"), sailor("b", "idle"), sailor("c", "idle")], { snap: false });
+    const rest = anchorsAt("rest");
+    expect([..."abc"].map((key) => crew.walkers.get(key)!.anchor).sort()).toEqual(rest.slice(0, 3).map((anchor) => anchor.id).sort());
+    run(crew, 30_000);
+    for (const key of "abc") expect(anchorAt(crew.walkers.get(key)!)?.place).toBe("rest");
+    // Back to work: the rest spot is given up, and the walk back is on the deck all the way.
+    const resting = { x: crew.walkers.get("a")!.x, y: crew.walkers.get("a")!.y };
+    applyCrew(crew, [sailor("a", "working"), sailor("b", "idle"), sailor("c", "idle")], { snap: false });
+    const back = crew.walkers.get("a")!;
+    expect(anchorAt(back.target)?.place).toBe("station");
+    for (const point of walkPoints(resting, back.path)) expect(walkable(point.x, point.y)).toBe(true);
+    applyCrew(crew, [sailor("a", "working"), sailor("b", "idle"), sailor("c", "idle"), sailor("d", "idle")], { snap: false });
+    // A newcomer to rest takes the first spot free in the order, the one given up included.
+    const firstFree = rest.find((anchor) => ![..."bc"].some((key) => crew.walkers.get(key)!.anchor === anchor.id))!;
+    expect(crew.walkers.get("d")!.anchor).toBe(firstFree.id);
+  });
+
+  it("walks a sailor that goes idle to its rest spot, and back to a station when work comes, never in a jump", () => {
+    const crew = createCrew();
+    applyCrew(crew, [sailor("a", "working")], { snap: false });
+    const station = { x: crew.walkers.get("a")!.x, y: crew.walkers.get("a")!.y };
+    applyCrew(crew, [sailor("a", "idle")], { snap: false });
+    // Idle at once, in the mark and the legend; the sprite walks.
+    let figure = crewFigures(crew, 0, { still: false })[0]!;
+    expect(figure.state).toBe("idle");
+    expect({ x: figure.x, y: figure.row }).toEqual(station);
+    const seen: Point[] = [];
+    for (let at = 0; at < 20_000; at += 33) {
+      stepCrew(crew, 33);
+      const walker = crew.walkers.get("a")!;
+      const last = seen.at(-1) ?? station;
+      // A walk: never more than a frame's stride at a time.
+      expect(Math.hypot(walker.x - last.x, walker.y - last.y)).toBeLessThanOrEqual(1.1);
+      seen.push({ x: walker.x, y: walker.y });
+    }
+    figure = crewFigures(crew, 0, { still: true })[0]!;
+    expect(anchorAt({ x: figure.x, y: figure.row })?.place).toBe("rest");
+    expect(figure.pose).toBe("side-idle");
+    applyCrew(crew, [sailor("a", "working")], { snap: false });
+    run(crew, 20_000);
+    expect(anchorAt(crew.walkers.get("a")!)?.place).toBe("station");
+  });
+});
+
 describe("depth while walking", () => {
   it("passes behind the mast while its feet are behind the mast's row, and in front once they are not", () => {
     const crew = createCrew();
     applyCrew(crew, [sailor("a", "idle")], { snap: false });
     const walker = crew.walkers.get("a")!;
     expect(walker.y).toBeGreaterThan(110);
-    // From the rail to the station behind the mast.
+    // From the rest area to the station behind the mast.
     walker.path = findPath(walker, { x: 212, y: 94 });
     walker.phase = "walking";
     const sides = new Set<string>();

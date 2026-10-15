@@ -38,7 +38,7 @@ export const DECK_PLACES: Record<DeckState, string> = {
   working: "hauling amidships",
   waiting: "by the helm",
   blocked: "in the bow",
-  idle: "at the rail",
+  idle: "resting off watch",
 };
 
 /** A state's badge, drawn as on deck, `pixel` points an art pixel: the legend's key to the sailors' heads. */

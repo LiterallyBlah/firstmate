@@ -10,6 +10,10 @@
  * - **Anchors are reserved.** A state sends its sailor to a place (`PLACES`), and the sailor takes the
  *   free anchor there nearest to it. When every anchor at a place is taken, it shares the least crowded
  *   one, standing beside whoever is there (`sharedSpot`), never on them.
+ * - **Idle crew rest off the working deck.** An idle sailor walks to the rest areas (`REST_AREAS`) —
+ *   the foredeck by the hatch, the foot of the quarterdeck stairs — and dozes there, so the stations,
+ *   the helm and the bow show only the crew at work, waiting or stuck. Given work, it walks back. The
+ *   rest spots fill in their own order, not the nearest first, so a crowd of sleepers stays tidy.
  * - **The hatch.** A crewmate that joins after the deck opened climbs up through the hatch and walks to
  *   its anchor; one whose card leaves the deck (archived, closed, landed) walks back to the hatch and
  *   climbs down. The crew already aboard when the deck opens is simply there.
@@ -18,13 +22,13 @@
  *   stops its idle motion: it never turns idle on its own.
  * - **Looks.** A sailor wears the look its agent id hashes to (`lookFor` in `client/deck-extras.ts`),
  *   whoever else is aboard.
- * - **At ease.** An idle sailor stands in profile, arms at its sides, looking fore or aft along the rail,
+ * - **At ease.** An idle sailor stands in profile, arms at its sides, looking fore or aft,
  *   and breathes: its head and shoulders settle a pixel and rise again every four seconds or so
  *   (`breathSink`), while its feet stay planted. The drawn badge and the drifting z say the rest.
  */
 import type { SailorOutfit, SailorPose } from "../shared/ship-deck";
 import { ATLAS_LOOKS, lookFor, lookLane } from "./deck-extras";
-import { anchorsAt, findPath, HATCH, sharedSpot, type Anchor, type AnchorPlace, type Facing, type Point } from "./deck-geometry";
+import { anchorsAt, findPath, HATCH, restSpot, sharedSpot, type Anchor, type AnchorPlace, type Facing, type Point } from "./deck-geometry";
 import type { DeckSailor, DeckState } from "./deck-scene";
 
 /** Where each state sends its sailor. */
@@ -32,7 +36,7 @@ export const PLACES: Record<DeckState, AnchorPlace> = {
   working: "station",
   waiting: "helm",
   blocked: "bow",
-  idle: "rail",
+  idle: "rest",
 };
 
 /** Walking pace, in deck pixels a second: the length of the main deck in about nine seconds. */
@@ -88,28 +92,32 @@ function seedOf(key: string): number {
   return hash % 10000;
 }
 
-/** Reserves an anchor for `walker` at its state's place, and says where it will stand. */
+/**
+ * Reserves an anchor for `walker` at its state's place, and says where it will stand. A sleeper always
+ * takes the first free rest spot, wherever it comes from, so the rest areas fill in their tidy order;
+ * once they are all held it packs in beside them (`restSpot`), never in front of another's badge.
+ */
 function reserve(crew: Crew, walker: Walker, byPreference: boolean): void {
-  const anchors = anchorsAt(PLACES[walker.state]);
+  const place = PLACES[walker.state];
+  const anchors = anchorsAt(place);
   const others = [...crew.walkers.values()].filter((other) => other !== walker && other.phase !== "leaving" && other.phase !== "sinking");
   const holders = (anchor: Anchor) => others.filter((other) => other.anchor === anchor.id).length;
   const free = anchors.filter((anchor) => holders(anchor) === 0);
   let chosen: Anchor;
   if (free.length > 0) {
-    chosen = byPreference
-      ? free[0]!
-      : free.reduce((best, anchor) =>
-          Math.hypot(anchor.x - walker.x, anchor.y - walker.y) < Math.hypot(best.x - walker.x, best.y - walker.y) ? anchor : best,
-        );
+    chosen =
+      byPreference || place === "rest"
+        ? free[0]!
+        : free.reduce((best, anchor) =>
+            Math.hypot(anchor.x - walker.x, anchor.y - walker.y) < Math.hypot(best.x - walker.x, best.y - walker.y) ? anchor : best,
+          );
   } else {
     chosen = anchors.reduce((best, anchor) => (holders(anchor) < holders(best) ? anchor : best));
   }
   walker.anchor = chosen.id;
   walker.endFacing = chosen.facing;
-  walker.target = sharedSpot(
-    chosen,
-    others.map((other) => other.target),
-  );
+  const taken = others.map((other) => other.target);
+  walker.target = place === "rest" ? restSpot(chosen, taken) : sharedSpot(chosen, taken);
 }
 
 function walkTo(walker: Walker, target: Point): void {
@@ -309,7 +317,7 @@ export function breathSink(seed: number, nowMs: number): number {
   return t >= BREATH_IN_MS ? 1 : 0;
 }
 
-/** Which way an at-ease sailor looks along the rail: half the crew fore (left), half aft, by its seed. */
+/** Which way an at-ease sailor looks: half the crew fore (left), half aft, by its seed. */
 export function looksFore(seed: number): boolean {
   return seed % 2 === 1;
 }
