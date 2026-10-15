@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { DeckArtManifestSchema, DeckExtrasManifestSchema, SAILOR_POSES, extrasImagePaths } from "../shared/ship-deck";
 import { WATERLINE } from "./deck-ambient";
 import { BREATH_MS, BREATH_ROWS, STATE_POSES, applyCrew, breathSink, createCrew, crewFigures, looksFore } from "./deck-crew";
-import { ATLAS_LOOKS, crewLooks, drawnSail, lookFor, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
+import { ATLAS_LOOKS, crewLooks, drawnPlank, drawnSail, lookFor, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
 import type { DeckSailor, DeckState } from "./deck-scene";
 import { BOW, CHURN_LENGTH, STERN, WAKE_ARMS, wakeRuns } from "./deck-wake";
 
@@ -173,6 +173,17 @@ describe("the sail's billow", () => {
     }
     const { mast: _mast, ...noMast } = deck.pieces;
     expect(drawnSail(extras, noMast)).toBeNull();
+  });
+});
+
+describe("the plank's board", () => {
+  it("is the generated one where its image decoded, and the code board's otherwise", () => {
+    expect(drawnPlank(extras)).toBe(manifest.plank);
+    expect(drawnPlank(null)).toBeNull();
+    const without = { manifest, images: new Map([...extras.images].filter(([each]) => each !== manifest.plank!.texture)) };
+    expect(drawnPlank(without)).toBeNull();
+    const { plank: _plank, ...older } = manifest;
+    expect(drawnPlank({ manifest: older, images: extras.images })).toBeNull();
   });
 });
 

@@ -218,6 +218,12 @@ export const DeckExtrasManifestSchema = z.object({
         .refine((sprites) => new Set(sprites.map((sprite) => sprite.id)).size === sprites.length, "each cloud needs its own id"),
     })
     .optional(),
+  /**
+   * The plank's generated board (`art/ship-deck/plank/README.md`), a `size` image drawn with its upper left
+   * at `position` on the hull in place of the board drawn in code. Without it, or without its image, the
+   * code board stays.
+   */
+  plank: z.object({ texture: ArtPath, size: Size, position: z.tuple([z.number().int(), z.number().int()]) }).optional(),
 });
 export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;
 
@@ -225,7 +231,8 @@ export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;
 export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
   const exit = manifest.exit === undefined ? [] : [...Object.values(manifest.exit.shark.frames), ...Object.values(manifest.exit.splash.frames)];
   const clouds = manifest.clouds?.sprites.map((sprite) => sprite.texture) ?? [];
-  return [...new Set([manifest.sail.texture, manifest.sail.occluder.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds])];
+  const plank = manifest.plank === undefined ? [] : [manifest.plank.texture];
+  return [...new Set([manifest.sail.texture, manifest.sail.occluder.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds, ...plank])];
 }
 
 export const loadDeckExtras = defineRpc({
