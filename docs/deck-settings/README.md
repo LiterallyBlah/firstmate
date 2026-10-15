@@ -413,3 +413,8 @@ at 331,187 bytes, with staged office art, tests and documentation excluded. Resu
 
 After this capability merges, the final office PR can contain the delivered PNGs and `setting.json` with
 real hashes plus documentation, without TypeScript changes. All five accepted migration decisions remain intact.
+
+Gate: **81/81 pixel-identical** to main `f792e8d`, with no flakes or page errors and matching canvas metadata.
+Full suite: 79 files, 1,019 tests passed, three skipped. Typecheck, pack lint (36 tests) and `git diff --check`
+pass. Client growth is 1,230 bytes; Hermes parses it and the bundle has no `class`. Package art remains
+331,187 bytes, with the staged office art, tests and documentation excluded. Evidence is recorded beside this file.
