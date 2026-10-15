@@ -1,0 +1,7104 @@
+{
+  "setting": "office",
+  "pngs": 26,
+  "pngBytes": 168155,
+  "checks": [
+    "26 PNGs byte-identical to commissioned delivery and recorded SHA-256 hashes",
+    "registered props, desk depth and typing pose fidgets",
+    "wall clock changes from hour 10 to 11",
+    "night phase tint on room/props/actors, local clock at hour 2",
+    "focus preserves tint and returns to the stage",
+    "walk-in corridor reaches printer zone",
+    "finite lift half/closed/open frames and completion confetti; departed actor removed",
+    "hidden scenes stop rendering and resume",
+    "41 colleagues including 24 idle, reduced motion pixel-static, hour frame zero and calm intensity",
+    "software renderer uses lite plan, current local hour, at most 12 fps"
+  ],
+  "shots": [
+    {
+      "name": "full-day",
+      "canvas": {
+        "data-firstmate-deck": "webgl",
+        "data-firstmate-deck-setting": "office",
+        "data-firstmate-deck-motion": "full",
+        "data-firstmate-deck-weather": "0.67",
+        "data-firstmate-deck-flash": "",
+        "data-firstmate-deck-sky": "morning"
+      },
+      "renders": 15,
+      "nodes": [
+        {
+          "id": "world",
+          "parent": null,
+          "x": 15,
+          "y": 158,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "scenery:back",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "window-sky:under",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:over",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:city-lights",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "pigeon",
+          "parent": "scenery:back",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            24,
+            0,
+            24,
+            16
+          ]
+        },
+        {
+          "id": "background-team",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "background-team:busy",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "ship",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "hull:0",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            240
+          ]
+        },
+        {
+          "id": "deck",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "prop:printer",
+          "parent": "deck",
+          "x": 352,
+          "y": 84,
+          "z": 168,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            20,
+            24
+          ]
+        },
+        {
+          "id": "work-0",
+          "parent": "deck",
+          "x": 204,
+          "y": 102,
+          "z": 204.0204,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-1",
+          "parent": "deck",
+          "x": 244,
+          "y": 102,
+          "z": 204.0244,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "piece:desk-row-1",
+          "parent": "deck",
+          "x": 24,
+          "y": 96,
+          "z": 217,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "prop:help-desk",
+          "parent": "deck",
+          "x": 310,
+          "y": 112,
+          "z": 224,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            24
+          ]
+        },
+        {
+          "id": "piece:lift-open",
+          "parent": "deck",
+          "x": 388,
+          "y": 64,
+          "z": 225,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            48
+          ]
+        },
+        {
+          "id": "work-2",
+          "parent": "deck",
+          "x": 44,
+          "y": 132,
+          "z": 264.0044,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-3",
+          "parent": "deck",
+          "x": 84,
+          "y": 132,
+          "z": 264.0084,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "prop:coffee-counter",
+          "parent": "deck",
+          "x": 330,
+          "y": 138,
+          "z": 276,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            28
+          ]
+        },
+        {
+          "id": "piece:desk-row-2",
+          "parent": "deck",
+          "x": 24,
+          "y": 126,
+          "z": 277,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "block-0",
+          "parent": "deck",
+          "x": 40,
+          "y": 184,
+          "z": 368.004,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-1",
+          "parent": "deck",
+          "x": 92,
+          "y": 184,
+          "z": 368.0092,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-2",
+          "parent": "deck",
+          "x": 144,
+          "y": 184,
+          "z": 368.0144,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-3",
+          "parent": "deck",
+          "x": 196,
+          "y": 184,
+          "z": 368.0196,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-1",
+          "parent": "deck",
+          "x": 248,
+          "y": 184,
+          "z": 368.0248,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-2",
+          "parent": "deck",
+          "x": 300,
+          "y": 184,
+          "z": 368.03,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-4",
+          "parent": "deck",
+          "x": 352,
+          "y": 184,
+          "z": 368.0352,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-5",
+          "parent": "deck",
+          "x": 376,
+          "y": 228,
+          "z": 456.0376,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "scenery:front",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "wall-clock",
+          "parent": "scenery:front",
+          "x": 278,
+          "y": 70,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            160,
+            0,
+            16,
+            16
+          ]
+        },
+        {
+          "id": "coffee-steam",
+          "parent": "scenery:front",
+          "x": 322,
+          "y": 94,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            16,
+            0,
+            16,
+            20
+          ]
+        },
+        {
+          "id": "overboard",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "veil",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215
+        },
+        {
+          "id": "spot",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        }
+      ]
+    },
+    {
+      "name": "full-night",
+      "canvas": {
+        "data-firstmate-deck": "webgl",
+        "data-firstmate-deck-setting": "office",
+        "data-firstmate-deck-motion": "full",
+        "data-firstmate-deck-weather": "0.67",
+        "data-firstmate-deck-flash": "",
+        "data-firstmate-deck-sky": "night"
+      },
+      "renders": 46,
+      "nodes": [
+        {
+          "id": "world",
+          "parent": null,
+          "x": 15,
+          "y": 158,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "scenery:back",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "window-sky:under",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:over",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:city-lights",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "pigeon",
+          "parent": "scenery:back",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            24,
+            0,
+            24,
+            16
+          ]
+        },
+        {
+          "id": "background-team",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "background-team:busy",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "ship",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "hull:0",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            420,
+            240
+          ]
+        },
+        {
+          "id": "deck",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "prop:printer",
+          "parent": "deck",
+          "x": 352,
+          "y": 84,
+          "z": 168,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            20,
+            24
+          ]
+        },
+        {
+          "id": "work-0",
+          "parent": "deck",
+          "x": 204,
+          "y": 102,
+          "z": 204.0204,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-1",
+          "parent": "deck",
+          "x": 244,
+          "y": 102,
+          "z": 204.0244,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "piece:desk-row-1",
+          "parent": "deck",
+          "x": 24,
+          "y": 96,
+          "z": 217,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "prop:help-desk",
+          "parent": "deck",
+          "x": 310,
+          "y": 112,
+          "z": 224,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            32,
+            24
+          ]
+        },
+        {
+          "id": "piece:lift-open",
+          "parent": "deck",
+          "x": 388,
+          "y": 64,
+          "z": 225,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            32,
+            48
+          ]
+        },
+        {
+          "id": "work-2",
+          "parent": "deck",
+          "x": 44,
+          "y": 132,
+          "z": 264.0044,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-3",
+          "parent": "deck",
+          "x": 84,
+          "y": 132,
+          "z": 264.0084,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "prop:coffee-counter",
+          "parent": "deck",
+          "x": 330,
+          "y": 138,
+          "z": 276,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            32,
+            28
+          ]
+        },
+        {
+          "id": "piece:desk-row-2",
+          "parent": "deck",
+          "x": 24,
+          "y": 126,
+          "z": 277,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "block-0",
+          "parent": "deck",
+          "x": 40,
+          "y": 184,
+          "z": 368.004,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-1",
+          "parent": "deck",
+          "x": 92,
+          "y": 184,
+          "z": 368.0092,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-2",
+          "parent": "deck",
+          "x": 144,
+          "y": 184,
+          "z": 368.0144,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-3",
+          "parent": "deck",
+          "x": 196,
+          "y": 184,
+          "z": 368.0196,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-1",
+          "parent": "deck",
+          "x": 248,
+          "y": 184,
+          "z": 368.0248,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-2",
+          "parent": "deck",
+          "x": 300,
+          "y": 184,
+          "z": 368.03,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-4",
+          "parent": "deck",
+          "x": 352,
+          "y": 184,
+          "z": 368.0352,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-5",
+          "parent": "deck",
+          "x": 376,
+          "y": 228,
+          "z": 456.0376,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "scenery:front",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "wall-clock",
+          "parent": "scenery:front",
+          "x": 278,
+          "y": 70,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            32,
+            0,
+            16,
+            16
+          ]
+        },
+        {
+          "id": "coffee-steam",
+          "parent": "scenery:front",
+          "x": 322,
+          "y": 94,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            32,
+            0,
+            16,
+            20
+          ]
+        },
+        {
+          "id": "overboard",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "veil",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215
+        },
+        {
+          "id": "spot",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        }
+      ]
+    },
+    {
+      "name": "focus-night",
+      "canvas": {
+        "data-firstmate-deck": "webgl",
+        "data-firstmate-deck-setting": "office",
+        "data-firstmate-deck-motion": "full",
+        "data-firstmate-deck-weather": "0.67",
+        "data-firstmate-deck-flash": "",
+        "data-firstmate-deck-sky": "night"
+      },
+      "renders": 93,
+      "nodes": [
+        {
+          "id": "world",
+          "parent": null,
+          "x": -822.5,
+          "y": -55,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "scenery:back",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "window-sky:under",
+          "parent": "scenery:back",
+          "x": 0,
+          "y": -50,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:over",
+          "parent": "scenery:back",
+          "x": 0,
+          "y": -50,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:city-lights",
+          "parent": "scenery:back",
+          "x": 0,
+          "y": -50,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "pigeon",
+          "parent": "scenery:back",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            24,
+            0,
+            24,
+            16
+          ]
+        },
+        {
+          "id": "background-team",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "background-team:busy",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "ship",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "hull:0",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            420,
+            240
+          ]
+        },
+        {
+          "id": "deck",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "prop:printer",
+          "parent": "deck",
+          "x": 352,
+          "y": 84,
+          "z": 168,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            20,
+            24
+          ]
+        },
+        {
+          "id": "work-1",
+          "parent": "deck",
+          "x": 244,
+          "y": 102,
+          "z": 204.0244,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "piece:desk-row-1",
+          "parent": "deck",
+          "x": 24,
+          "y": 96,
+          "z": 217,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "prop:help-desk",
+          "parent": "deck",
+          "x": 310,
+          "y": 112,
+          "z": 224,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            32,
+            24
+          ]
+        },
+        {
+          "id": "piece:lift-open",
+          "parent": "deck",
+          "x": 388,
+          "y": 64,
+          "z": 225,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            32,
+            48
+          ]
+        },
+        {
+          "id": "work-2",
+          "parent": "deck",
+          "x": 44,
+          "y": 132,
+          "z": 264.0044,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-3",
+          "parent": "deck",
+          "x": 84,
+          "y": 132,
+          "z": 264.0084,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "prop:coffee-counter",
+          "parent": "deck",
+          "x": 330,
+          "y": 138,
+          "z": 276,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            32,
+            28
+          ]
+        },
+        {
+          "id": "piece:desk-row-2",
+          "parent": "deck",
+          "x": 24,
+          "y": 126,
+          "z": 277,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "block-0",
+          "parent": "deck",
+          "x": 40,
+          "y": 184,
+          "z": 368.004,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-1",
+          "parent": "deck",
+          "x": 92,
+          "y": 184,
+          "z": 368.0092,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-2",
+          "parent": "deck",
+          "x": 144,
+          "y": 184,
+          "z": 368.0144,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-3",
+          "parent": "deck",
+          "x": 196,
+          "y": 184,
+          "z": 368.0196,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-1",
+          "parent": "deck",
+          "x": 248,
+          "y": 184,
+          "z": 368.0248,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-2",
+          "parent": "deck",
+          "x": 300,
+          "y": 184,
+          "z": 368.03,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-4",
+          "parent": "deck",
+          "x": 352,
+          "y": 184,
+          "z": 368.0352,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-5",
+          "parent": "deck",
+          "x": 376,
+          "y": 228,
+          "z": 456.0376,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "scenery:front",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "wall-clock",
+          "parent": "scenery:front",
+          "x": 278,
+          "y": 70,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            32,
+            0,
+            16,
+            16
+          ]
+        },
+        {
+          "id": "coffee-steam",
+          "parent": "scenery:front",
+          "x": 322,
+          "y": 94,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            16,
+            0,
+            16,
+            20
+          ]
+        },
+        {
+          "id": "overboard",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "veil",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "spot",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "work-0",
+          "parent": "spot",
+          "x": 204,
+          "y": 102,
+          "z": 204.0204,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "name": "walk-in",
+      "canvas": {
+        "data-firstmate-deck": "webgl",
+        "data-firstmate-deck-setting": "office",
+        "data-firstmate-deck-motion": "full",
+        "data-firstmate-deck-weather": "0.67",
+        "data-firstmate-deck-flash": "",
+        "data-firstmate-deck-sky": "midday"
+      },
+      "renders": 148,
+      "nodes": [
+        {
+          "id": "world",
+          "parent": null,
+          "x": 15,
+          "y": 158,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "scenery:back",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "window-sky:under",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:over",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:city-lights",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "pigeon",
+          "parent": "scenery:back",
+          "x": 30,
+          "y": 28,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            24,
+            0,
+            24,
+            16
+          ]
+        },
+        {
+          "id": "background-team",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "background-team:busy",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "ship",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "hull:0",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            240
+          ]
+        },
+        {
+          "id": "deck",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "prop:printer",
+          "parent": "deck",
+          "x": 352,
+          "y": 84,
+          "z": 168,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            20,
+            24
+          ]
+        },
+        {
+          "id": "work-0",
+          "parent": "deck",
+          "x": 204,
+          "y": 102,
+          "z": 204.0204,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-1",
+          "parent": "deck",
+          "x": 244,
+          "y": 102,
+          "z": 204.0244,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "piece:desk-row-1",
+          "parent": "deck",
+          "x": 24,
+          "y": 96,
+          "z": 217,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "prop:help-desk",
+          "parent": "deck",
+          "x": 310,
+          "y": 112,
+          "z": 224,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            24
+          ]
+        },
+        {
+          "id": "review-arrival",
+          "parent": "deck",
+          "x": 400,
+          "y": 112,
+          "z": 224.04,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 72
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-arrival",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-arrival",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            72,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "piece:lift-open",
+          "parent": "deck",
+          "x": 388,
+          "y": 64,
+          "z": 225,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            48
+          ]
+        },
+        {
+          "id": "work-2",
+          "parent": "deck",
+          "x": 44,
+          "y": 132,
+          "z": 264.0044,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-3",
+          "parent": "deck",
+          "x": 84,
+          "y": 132,
+          "z": 264.0084,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "prop:coffee-counter",
+          "parent": "deck",
+          "x": 330,
+          "y": 138,
+          "z": 276,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            28
+          ]
+        },
+        {
+          "id": "piece:desk-row-2",
+          "parent": "deck",
+          "x": 24,
+          "y": 126,
+          "z": 277,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "block-0",
+          "parent": "deck",
+          "x": 40,
+          "y": 184,
+          "z": 368.004,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-1",
+          "parent": "deck",
+          "x": 92,
+          "y": 184,
+          "z": 368.0092,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-2",
+          "parent": "deck",
+          "x": 144,
+          "y": 184,
+          "z": 368.0144,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-3",
+          "parent": "deck",
+          "x": 196,
+          "y": 184,
+          "z": 368.0196,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-1",
+          "parent": "deck",
+          "x": 248,
+          "y": 184,
+          "z": 368.0248,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-2",
+          "parent": "deck",
+          "x": 300,
+          "y": 184,
+          "z": 368.03,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-4",
+          "parent": "deck",
+          "x": 352,
+          "y": 184,
+          "z": 368.0352,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-5",
+          "parent": "deck",
+          "x": 376,
+          "y": 228,
+          "z": 456.0376,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "scenery:front",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "wall-clock",
+          "parent": "scenery:front",
+          "x": 278,
+          "y": 70,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        {
+          "id": "coffee-steam",
+          "parent": "scenery:front",
+          "x": 322,
+          "y": 94,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            16,
+            0,
+            16,
+            20
+          ]
+        },
+        {
+          "id": "overboard",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "veil",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215
+        },
+        {
+          "id": "spot",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        }
+      ]
+    },
+    {
+      "name": "completion-confetti",
+      "canvas": {
+        "data-firstmate-deck": "webgl",
+        "data-firstmate-deck-setting": "office",
+        "data-firstmate-deck-motion": "full",
+        "data-firstmate-deck-weather": "0.69",
+        "data-firstmate-deck-flash": "",
+        "data-firstmate-deck-sky": "midday"
+      },
+      "renders": 371,
+      "nodes": [
+        {
+          "id": "world",
+          "parent": null,
+          "x": 15,
+          "y": 158,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "scenery:back",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "window-sky:under",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:over",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:city-lights",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "pigeon",
+          "parent": "scenery:back",
+          "x": 216,
+          "y": 29,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            24,
+            0,
+            24,
+            16
+          ]
+        },
+        {
+          "id": "background-team",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "background-team:busy",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "ship",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "hull:0",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            240
+          ]
+        },
+        {
+          "id": "deck",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "prop:printer",
+          "parent": "deck",
+          "x": 352,
+          "y": 84,
+          "z": 168,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            20,
+            24
+          ]
+        },
+        {
+          "id": "work-0",
+          "parent": "deck",
+          "x": 204,
+          "y": 102,
+          "z": 204.0204,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-1",
+          "parent": "deck",
+          "x": 244,
+          "y": 102,
+          "z": 204.0244,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "piece:desk-row-1",
+          "parent": "deck",
+          "x": 24,
+          "y": 96,
+          "z": 217,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "prop:help-desk",
+          "parent": "deck",
+          "x": 310,
+          "y": 112,
+          "z": 224,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            24
+          ]
+        },
+        {
+          "id": "piece:lift-open",
+          "parent": "deck",
+          "x": 388,
+          "y": 64,
+          "z": 225,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            48
+          ]
+        },
+        {
+          "id": "work-2",
+          "parent": "deck",
+          "x": 44,
+          "y": 132,
+          "z": 264.0044,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-3",
+          "parent": "deck",
+          "x": 84,
+          "y": 132,
+          "z": 264.0084,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "prop:coffee-counter",
+          "parent": "deck",
+          "x": 330,
+          "y": 138,
+          "z": 276,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            28
+          ]
+        },
+        {
+          "id": "piece:desk-row-2",
+          "parent": "deck",
+          "x": 24,
+          "y": 126,
+          "z": 277,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "block-0",
+          "parent": "deck",
+          "x": 40,
+          "y": 184,
+          "z": 368.004,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-1",
+          "parent": "deck",
+          "x": 92,
+          "y": 184,
+          "z": 368.0092,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-2",
+          "parent": "deck",
+          "x": 144,
+          "y": 184,
+          "z": 368.0144,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-3",
+          "parent": "deck",
+          "x": 196,
+          "y": 184,
+          "z": 368.0196,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-1",
+          "parent": "deck",
+          "x": 248,
+          "y": 184,
+          "z": 368.0248,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-2",
+          "parent": "deck",
+          "x": 300,
+          "y": 184,
+          "z": 368.03,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-4",
+          "parent": "deck",
+          "x": 352,
+          "y": 184,
+          "z": 368.0352,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-5",
+          "parent": "deck",
+          "x": 376,
+          "y": 228,
+          "z": 456.0376,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "scenery:front",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "wall-clock",
+          "parent": "scenery:front",
+          "x": 278,
+          "y": 70,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        {
+          "id": "coffee-steam",
+          "parent": "scenery:front",
+          "x": 322,
+          "y": 94,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            16,
+            20
+          ]
+        },
+        {
+          "id": "overboard",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "lift-doors",
+          "parent": "overboard",
+          "x": 404,
+          "y": 112,
+          "z": 1,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            32,
+            0,
+            32,
+            48
+          ]
+        },
+        {
+          "id": "confetti",
+          "parent": "overboard",
+          "x": 404,
+          "y": 112,
+          "z": 2,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            48,
+            40
+          ]
+        },
+        {
+          "id": "veil",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215
+        },
+        {
+          "id": "spot",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        }
+      ]
+    },
+    {
+      "name": "lift-closed",
+      "canvas": {
+        "data-firstmate-deck": "webgl",
+        "data-firstmate-deck-setting": "office",
+        "data-firstmate-deck-motion": "full",
+        "data-firstmate-deck-weather": "0.69",
+        "data-firstmate-deck-flash": "",
+        "data-firstmate-deck-sky": "midday"
+      },
+      "renders": 377,
+      "nodes": [
+        {
+          "id": "world",
+          "parent": null,
+          "x": 15,
+          "y": 158,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "scenery:back",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "window-sky:under",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:over",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:city-lights",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "pigeon",
+          "parent": "scenery:back",
+          "x": 221,
+          "y": 29,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            24,
+            0,
+            24,
+            16
+          ]
+        },
+        {
+          "id": "background-team",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "background-team:busy",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "ship",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "hull:0",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            240
+          ]
+        },
+        {
+          "id": "deck",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "prop:printer",
+          "parent": "deck",
+          "x": 352,
+          "y": 84,
+          "z": 168,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            20,
+            24
+          ]
+        },
+        {
+          "id": "work-0",
+          "parent": "deck",
+          "x": 204,
+          "y": 102,
+          "z": 204.0204,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-1",
+          "parent": "deck",
+          "x": 244,
+          "y": 102,
+          "z": 204.0244,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "piece:desk-row-1",
+          "parent": "deck",
+          "x": 24,
+          "y": 96,
+          "z": 217,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "prop:help-desk",
+          "parent": "deck",
+          "x": 310,
+          "y": 112,
+          "z": 224,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            24
+          ]
+        },
+        {
+          "id": "piece:lift-open",
+          "parent": "deck",
+          "x": 388,
+          "y": 64,
+          "z": 225,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            48
+          ]
+        },
+        {
+          "id": "work-2",
+          "parent": "deck",
+          "x": 44,
+          "y": 132,
+          "z": 264.0044,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-3",
+          "parent": "deck",
+          "x": 84,
+          "y": 132,
+          "z": 264.0084,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 144
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            144,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "prop:coffee-counter",
+          "parent": "deck",
+          "x": 330,
+          "y": 138,
+          "z": 276,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            28
+          ]
+        },
+        {
+          "id": "piece:desk-row-2",
+          "parent": "deck",
+          "x": 24,
+          "y": 126,
+          "z": 277,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "block-0",
+          "parent": "deck",
+          "x": 40,
+          "y": 184,
+          "z": 368.004,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-1",
+          "parent": "deck",
+          "x": 92,
+          "y": 184,
+          "z": 368.0092,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-2",
+          "parent": "deck",
+          "x": 144,
+          "y": 184,
+          "z": 368.0144,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-3",
+          "parent": "deck",
+          "x": 196,
+          "y": 184,
+          "z": 368.0196,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-1",
+          "parent": "deck",
+          "x": 248,
+          "y": 184,
+          "z": 368.0248,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-2",
+          "parent": "deck",
+          "x": 300,
+          "y": 184,
+          "z": 368.03,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-4",
+          "parent": "deck",
+          "x": 352,
+          "y": 184,
+          "z": 368.0352,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-5",
+          "parent": "deck",
+          "x": 376,
+          "y": 228,
+          "z": 456.0376,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "scenery:front",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "wall-clock",
+          "parent": "scenery:front",
+          "x": 278,
+          "y": 70,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        {
+          "id": "coffee-steam",
+          "parent": "scenery:front",
+          "x": 322,
+          "y": 94,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            16,
+            0,
+            16,
+            20
+          ]
+        },
+        {
+          "id": "overboard",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "lift-doors",
+          "parent": "overboard",
+          "x": 404,
+          "y": 112,
+          "z": 1,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            64,
+            0,
+            32,
+            48
+          ]
+        },
+        {
+          "id": "confetti",
+          "parent": "overboard",
+          "x": 404,
+          "y": 112,
+          "z": 2,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            48,
+            0,
+            48,
+            40
+          ]
+        },
+        {
+          "id": "veil",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215
+        },
+        {
+          "id": "spot",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        }
+      ]
+    },
+    {
+      "name": "still-crowd-night",
+      "canvas": {
+        "data-firstmate-deck": "webgl",
+        "data-firstmate-deck-setting": "office",
+        "data-firstmate-deck-motion": "still",
+        "data-firstmate-deck-weather": "still",
+        "data-firstmate-deck-flash": "",
+        "data-firstmate-deck-sky": "night"
+      },
+      "renders": 5,
+      "nodes": [
+        {
+          "id": "world",
+          "parent": null,
+          "x": 15,
+          "y": 158,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "scenery:back",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "window-sky:under",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:over",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:city-lights",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "pigeon",
+          "parent": "scenery:back",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            24,
+            0,
+            24,
+            16
+          ]
+        },
+        {
+          "id": "background-team",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "background-team:busy",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "ship",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "hull:0",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            420,
+            240
+          ]
+        },
+        {
+          "id": "deck",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "prop:printer",
+          "parent": "deck",
+          "x": 352,
+          "y": 84,
+          "z": 168,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            20,
+            24
+          ]
+        },
+        {
+          "id": "review-ready-0",
+          "parent": "deck",
+          "x": 350,
+          "y": 96,
+          "z": 192.035,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 168
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-ready-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-ready-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            168,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-ready-1",
+          "parent": "deck",
+          "x": 366,
+          "y": 96,
+          "z": 192.0366,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 168
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-ready-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-ready-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            168,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-ready-2",
+          "parent": "deck",
+          "x": 382,
+          "y": 96,
+          "z": 192.0382,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 168
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-ready-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-ready-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            168,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-2",
+          "parent": "deck",
+          "x": 44,
+          "y": 102,
+          "z": 204.0044,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-10",
+          "parent": "deck",
+          "x": 84,
+          "y": 102,
+          "z": 204.0084,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-10",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-10",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-11",
+          "parent": "deck",
+          "x": 124,
+          "y": 102,
+          "z": 204.0124,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-11",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-11",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-5",
+          "parent": "deck",
+          "x": 164,
+          "y": 102,
+          "z": 204.0164,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-6",
+          "parent": "deck",
+          "x": 204,
+          "y": 102,
+          "z": 204.0204,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-6",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-6",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-7",
+          "parent": "deck",
+          "x": 244,
+          "y": 102,
+          "z": 204.0244,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-7",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-7",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "piece:desk-row-1",
+          "parent": "deck",
+          "x": 24,
+          "y": 96,
+          "z": 217,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "prop:help-desk",
+          "parent": "deck",
+          "x": 310,
+          "y": 112,
+          "z": 224,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            32,
+            24
+          ]
+        },
+        {
+          "id": "piece:lift-open",
+          "parent": "deck",
+          "x": 388,
+          "y": 64,
+          "z": 225,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            32,
+            48
+          ]
+        },
+        {
+          "id": "review-blocked-0",
+          "parent": "deck",
+          "x": 286,
+          "y": 114,
+          "z": 228.0286,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 192
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-blocked-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-blocked-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            192,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-blocked-1",
+          "parent": "deck",
+          "x": 286,
+          "y": 126,
+          "z": 252.0286,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 192
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-blocked-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-blocked-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            192,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-8",
+          "parent": "deck",
+          "x": 44,
+          "y": 132,
+          "z": 264.0044,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-8",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-8",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-3",
+          "parent": "deck",
+          "x": 84,
+          "y": 132,
+          "z": 264.0084,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-4",
+          "parent": "deck",
+          "x": 124,
+          "y": 132,
+          "z": 264.0124,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-9",
+          "parent": "deck",
+          "x": 164,
+          "y": 132,
+          "z": 264.0164,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-9",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-9",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-0",
+          "parent": "deck",
+          "x": 204,
+          "y": 132,
+          "z": 264.0204,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-working-1",
+          "parent": "deck",
+          "x": 244,
+          "y": 132,
+          "z": 264.0244,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-working-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-working-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "prop:coffee-counter",
+          "parent": "deck",
+          "x": 330,
+          "y": 138,
+          "z": 276,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            32,
+            28
+          ]
+        },
+        {
+          "id": "piece:desk-row-2",
+          "parent": "deck",
+          "x": 24,
+          "y": 126,
+          "z": 277,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "review-idle-0",
+          "parent": "deck",
+          "x": 40,
+          "y": 184,
+          "z": 368.004,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-16",
+          "parent": "deck",
+          "x": 66,
+          "y": 184,
+          "z": 368.0066,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-16",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-16",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-1",
+          "parent": "deck",
+          "x": 92,
+          "y": 184,
+          "z": 368.0092,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-17",
+          "parent": "deck",
+          "x": 118,
+          "y": 184,
+          "z": 368.0118,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-17",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-17",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-10",
+          "parent": "deck",
+          "x": 144,
+          "y": 184,
+          "z": 368.0144,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-10",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-10",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-18",
+          "parent": "deck",
+          "x": 170,
+          "y": 184,
+          "z": 368.017,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-18",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-18",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-11",
+          "parent": "deck",
+          "x": 196,
+          "y": 184,
+          "z": 368.0196,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-11",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-11",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-19",
+          "parent": "deck",
+          "x": 222,
+          "y": 184,
+          "z": 368.0222,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-19",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-19",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-12",
+          "parent": "deck",
+          "x": 248,
+          "y": 184,
+          "z": 368.0248,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-12",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-12",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-2",
+          "parent": "deck",
+          "x": 274,
+          "y": 184,
+          "z": 368.0274,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-13",
+          "parent": "deck",
+          "x": 300,
+          "y": 184,
+          "z": 368.03,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-13",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-13",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-20",
+          "parent": "deck",
+          "x": 326,
+          "y": 184,
+          "z": 368.0326,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-20",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-20",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-14",
+          "parent": "deck",
+          "x": 352,
+          "y": 184,
+          "z": 368.0352,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-14",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-14",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-21",
+          "parent": "deck",
+          "x": 378,
+          "y": 184,
+          "z": 368.0378,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-21",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-21",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-23",
+          "parent": "deck",
+          "x": 40,
+          "y": 228,
+          "z": 456.004,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-23",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-23",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-3",
+          "parent": "deck",
+          "x": 92,
+          "y": 228,
+          "z": 456.0092,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-4",
+          "parent": "deck",
+          "x": 144,
+          "y": 228,
+          "z": 456.0144,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-5",
+          "parent": "deck",
+          "x": 196,
+          "y": 228,
+          "z": 456.0196,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-9",
+          "parent": "deck",
+          "x": 222,
+          "y": 228,
+          "z": 456.0222,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-9",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-9",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-6",
+          "parent": "deck",
+          "x": 248,
+          "y": 228,
+          "z": 456.0248,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-6",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-6",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-8",
+          "parent": "deck",
+          "x": 274,
+          "y": 228,
+          "z": 456.0274,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-8",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-8",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-7",
+          "parent": "deck",
+          "x": 300,
+          "y": 228,
+          "z": 456.03,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-7",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-7",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-22",
+          "parent": "deck",
+          "x": 350,
+          "y": 228,
+          "z": 456.035,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-22",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-22",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "review-idle-15",
+          "parent": "deck",
+          "x": 376,
+          "y": 228,
+          "z": 456.0376,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 9213104,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "review-idle-15",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "review-idle-15",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 9213104,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "scenery:front",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "wall-clock",
+          "parent": "scenery:front",
+          "x": 278,
+          "y": 70,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        {
+          "id": "coffee-steam",
+          "parent": "scenery:front",
+          "x": 322,
+          "y": 94,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            16,
+            20
+          ]
+        },
+        {
+          "id": "overboard",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "veil",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215
+        },
+        {
+          "id": "spot",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        }
+      ]
+    },
+    {
+      "name": "lite-afternoon",
+      "canvas": {
+        "data-firstmate-deck": "webgl",
+        "data-firstmate-deck-setting": "office",
+        "data-firstmate-deck-motion": "lite",
+        "data-firstmate-deck-weather": "0.67",
+        "data-firstmate-deck-flash": "",
+        "data-firstmate-deck-sky": "midday"
+      },
+      "renders": 5,
+      "nodes": [
+        {
+          "id": "world",
+          "parent": null,
+          "x": 15,
+          "y": 158,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "scenery:back",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "window-sky:under",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:over",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "window-sky:city-lights",
+          "parent": "scenery:back",
+          "x": -74.22292780748671,
+          "y": -92.4131016042781,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            180
+          ]
+        },
+        {
+          "id": "pigeon",
+          "parent": "scenery:back",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215,
+          "frame": [
+            24,
+            0,
+            24,
+            16
+          ]
+        },
+        {
+          "id": "background-team",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "background-team:busy",
+          "parent": "scenery:back",
+          "x": 24,
+          "y": 68,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            248,
+            18
+          ]
+        },
+        {
+          "id": "ship",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "hull:0",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            420,
+            240
+          ]
+        },
+        {
+          "id": "deck",
+          "parent": "ship",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "prop:printer",
+          "parent": "deck",
+          "x": 352,
+          "y": 84,
+          "z": 168,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            20,
+            24
+          ]
+        },
+        {
+          "id": "work-0",
+          "parent": "deck",
+          "x": 204,
+          "y": 102,
+          "z": 204.0204,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-1",
+          "parent": "deck",
+          "x": 244,
+          "y": 102,
+          "z": 204.0244,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "piece:desk-row-1",
+          "parent": "deck",
+          "x": 24,
+          "y": 96,
+          "z": 217,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "prop:help-desk",
+          "parent": "deck",
+          "x": 310,
+          "y": 112,
+          "z": 224,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            24
+          ]
+        },
+        {
+          "id": "piece:lift-open",
+          "parent": "deck",
+          "x": 388,
+          "y": 64,
+          "z": 225,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            48
+          ]
+        },
+        {
+          "id": "work-2",
+          "parent": "deck",
+          "x": 44,
+          "y": 132,
+          "z": 264.0044,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-3",
+          "parent": "deck",
+          "x": 84,
+          "y": 132,
+          "z": 264.0084,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 120
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            120,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "prop:coffee-counter",
+          "parent": "deck",
+          "x": 330,
+          "y": 138,
+          "z": 276,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            32,
+            28
+          ]
+        },
+        {
+          "id": "piece:desk-row-2",
+          "parent": "deck",
+          "x": 24,
+          "y": 126,
+          "z": 277,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            260,
+            22
+          ]
+        },
+        {
+          "id": "block-0",
+          "parent": "deck",
+          "x": 40,
+          "y": 184,
+          "z": 368.004,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-1",
+          "parent": "deck",
+          "x": 92,
+          "y": 184,
+          "z": 368.0092,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-2",
+          "parent": "deck",
+          "x": 144,
+          "y": 184,
+          "z": 368.0144,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "block-3",
+          "parent": "deck",
+          "x": 196,
+          "y": 184,
+          "z": 368.0196,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "block-3",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-1",
+          "parent": "deck",
+          "x": 248,
+          "y": 184,
+          "z": 368.0248,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-1",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "idle-2",
+          "parent": "deck",
+          "x": 300,
+          "y": 184,
+          "z": 368.03,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "idle-2",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-4",
+          "parent": "deck",
+          "x": 352,
+          "y": 184,
+          "z": 368.0352,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-4",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "work-5",
+          "parent": "deck",
+          "x": 376,
+          "y": 228,
+          "z": 456.0376,
+          "visible": true,
+          "tint": 16777215,
+          "actor": true,
+          "bodyTint": 16777215,
+          "pose": 216
+        },
+        {
+          "id": "Graphics",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "Sprite",
+          "parent": "work-5",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            216,
+            0,
+            24,
+            32
+          ]
+        },
+        {
+          "id": "scenery:front",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "wall-clock",
+          "parent": "scenery:front",
+          "x": 278,
+          "y": 70,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            48,
+            0,
+            16,
+            16
+          ]
+        },
+        {
+          "id": "coffee-steam",
+          "parent": "scenery:front",
+          "x": 322,
+          "y": 94,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215,
+          "frame": [
+            0,
+            0,
+            16,
+            20
+          ]
+        },
+        {
+          "id": "overboard",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        },
+        {
+          "id": "veil",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": false,
+          "tint": 16777215
+        },
+        {
+          "id": "spot",
+          "parent": "world",
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "visible": true,
+          "tint": 16777215
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

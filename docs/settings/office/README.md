@@ -93,3 +93,7 @@ it never writes or installs that adapted manifest. `npm run lint:deck-packs` inc
 Step 9e installs the delivered art unchanged and fills real SHA-256 values. The full pack linter checks every
 PNG and the runtime review covers office full/lite/still, entry/exit, focus and crowd views. The ship remains
 subject to the 81-shot pixel gate. Global selection, calm reduced motion and engine-owned intensity are unchanged.
+
+[Runtime review](RUNTIME-REVIEW.md) records the installed pack's browser checks and screenshots. The
+final manifest also supplies full-image prop crops and a static open lift depth piece, using the commissioned
+door strip's existing first frame. No runtime source or commissioned pixel changes are needed to install it.
