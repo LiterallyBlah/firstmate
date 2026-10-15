@@ -18,7 +18,8 @@
  * `art/ship-deck/environment.json` and the ten small PNGs it draws with, about 50 KB together, read once
  * per process and sent as base64 (`readDeckEnvironment`). And the sail, the crew's extra looks, the clouds,
  * the tall mast, the plank's board, shark and splash, and the animated water's ten frames:
- * `art/ship-deck/extras.json` and the thirty PNGs it names, about 85 KB, the same way (`readDeckExtras`).
+ * `art/ship-deck/extras.json` and the forty-nine PNGs it names — nineteen of them the heavy weather's — about 130 KB,
+ * the same way (`readDeckExtras`).
  */
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
