@@ -77,7 +77,7 @@ try {
   const errors = [];
   view.on("pageerror", (error) => errors.push(error.message));
   await view.clock.setFixedTime(new Date("2026-10-14T12:00:00Z"));
-  await view.goto(`http://127.0.0.1:${http.address().port}/?tree=branch&theme=dark&working=4&setting=${encodeURIComponent(setting)}`);
+  await view.goto(`http://127.0.0.1:${http.address().port}/?tree=branch&theme=dark&working=4&setting=${encodeURIComponent(setting)}${process.env.CHECK_SWITCHER === "1" ? "&persistScene=1" : ""}`);
   await view.getByText("Deck", { exact: true }).click();
   await view.waitForSelector("canvas[data-firstmate-deck-motion]");
   await view.waitForTimeout(800);
@@ -97,6 +97,10 @@ try {
     await view.evaluate((id) => window.selectDeckSetting(id), setting);
     await view.waitForFunction((id) => document.querySelector("canvas[data-firstmate-deck]")?.getAttribute("data-firstmate-deck-setting") === id && !document.querySelector('[role="alert"]'), setting);
     if (await view.locator("canvas[data-firstmate-deck]").count() !== 1) throw new Error("selection left more than one deck mounted");
+  }
+  if (process.env.CHECK_SWITCHER === "1") {
+    const { checkSwitcher } = await import("../deck-scene-switcher/check.mjs");
+    await checkSwitcher(view);
   }
   if (errors.length !== 0) throw new Error(errors.join("\n"));
   console.log(JSON.stringify({ setting: actual, overlay: drawn, selectionCheck: process.env.CHECK_SELECTION === "1", errors }));
