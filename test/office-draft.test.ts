@@ -1,5 +1,5 @@
 /** The uninstalled office draft: geometry and the art delivery contract can be checked before pixels exist. */
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { expect, it } from "vitest";
 import { SettingManifestSchema, capabilitiesUsed, incompatibility, type SettingManifest } from "../shared/deck-setting";
@@ -16,22 +16,19 @@ interface Asset { id: string; path: string; size: [number, number]; frameSize: [
 const contract = read("art-contract.json") as { assets: Asset[]; palettes: Record<string, string[]>; delivery: { maxImageBytes: number } };
 const draft = read("setting.draft.json");
 
-// Only the already supported portion is parsed. These explicit test substitutions are never emitted as a pack:
-// zero digests are sentinels. Remaining capabilities get their own PRs.
+// The complete authored behaviour/geometry is parsed. Zero digests are test sentinels, never emitted as a pack.
 function supportedDraft(): SettingManifest {
   const manifest = structuredClone(draft.manifest);
   for (const image of Object.values(manifest.images) as Array<{ sha256: string }>) image.sha256 = "0".repeat(64);
-  manifest.ambience = manifest.ambience.filter((element: { behaviour: { kind: string } }) => element.behaviour.kind !== "phase-frames");
-  manifest.requires = capabilitiesUsed(manifest);
   return SettingManifestSchema.parse(manifest);
 }
 
-it("keeps the office visibly incomplete and outside the installed pack scan", () => {
+it("keeps the historical draft uninstalled while all its capabilities are supported", () => {
   expect(draft.status).toBe("not-installable");
-  expect(existsSync(new URL("../art/settings/office", import.meta.url))).toBe(false);
   expect(SettingManifestSchema.safeParse(draft.manifest).success).toBe(false);
-  expect(incompatibility(draft.manifest)).toContain(draft.pendingCapabilities.join(", "));
-  expect(draft.pendingCapabilities).toEqual(["phase-frames@1"]);
+  expect(incompatibility(draft.manifest)).toBeNull();
+  expect(draft.pendingCapabilities).toEqual([]);
+  expect([...capabilitiesUsed(supportedDraft())].sort()).toEqual([...draft.manifest.requires].sort());
   for (const image of Object.values(draft.manifest.images) as Array<{ sha256: unknown }>) expect(image.sha256).toBeNull();
 });
 

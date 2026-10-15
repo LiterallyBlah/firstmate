@@ -5,7 +5,7 @@
  * variant lined up with what it lays over, every drifting sprite in its palette's colours, and the whole small
  * enough to send — and its floor read against its own backdrop's pixels: every walkable point on the backdrop and
  * hidden only where a crowd may not spill, every post and mark on open floor, everything reachable from everything
- * else, and the fit taking in every part, flyby and effect — and its crowds: two dozen workers packed into a zone,
+ * else without avoidable path corners, and the fit taking in every part, flyby and effect — and its crowds: two dozen workers packed into a zone,
  * each in its areas, in sight, clear of the crew at work and in the pointer's reach. A new setting is held to all of
  * it by being there.
  */
@@ -17,7 +17,7 @@ import { describe, expect, it } from "vitest";
 
 import { ENGINE_FORMAT_VERSION, SettingManifestSchema, capabilitiesUsed, settingImageIds, type SettingManifest } from "../shared/deck-setting";
 import { PACK_BYTES_MAX, SETTING_MANIFEST, SETTINGS_DIR } from "../server/deck-settings";
-import { areaAt, findPath, inRects, pathLength, walkable, type Point } from "../client/deck-geometry";
+import { areaAt, clearLine, findPath, inRects, walkable, type Point } from "../client/deck-geometry";
 import { compileStage } from "../client/deck-stage";
 import { choreographyAt } from "../client/deck-choreography";
 import { compileCast } from "../client/deck-cast";
@@ -134,6 +134,7 @@ describe.each(packs)("the %s pack", (id) => {
       for (const [pose, standing] of Object.entries(manifest.cast.lanes[look.lane]!)) inside({ image: look.image, rect: standing.rect }, `${look.id} ${pose}`);
     }
     for (const element of manifest.ambience) if (element.behaviour.kind === "flyby") for (const sprite of Object.values(element.behaviour.poses)) inside(sprite, element.id);
+    for (const element of manifest.ambience) if (element.behaviour.kind === "phase-frames") for (const sprite of element.behaviour.frames) inside(sprite, element.id);
   });
 
   it("plays every animation's frames at one size, and lays every variant over its element frame for frame", () => {
@@ -150,6 +151,9 @@ describe.each(packs)("the %s pack", (id) => {
     for (const element of manifest.ambience) {
       const behaviour = element.behaviour;
       switch (behaviour.kind) {
+        case "phase-frames":
+          oneSize(behaviour.frames, element.id);
+          break;
         case "tile":
         case "strip":
         case "cycle":
@@ -258,14 +262,19 @@ describe.each(packs)("the %s pack", (id) => {
       for (const { id: obstacle, rect } of floor.obstacles) expect(walkable(floor, rect[0] + rect[2] / 2, rect[1] + rect[3] / 2), obstacle).toBe(false);
     });
 
-    it("walks from every post, the entry and every queue to every other, on the floor all the way and never far round", () => {
+    it("walks from every post, the entry and every queue to every other, on the floor without avoidable corners", () => {
       for (const from of places) {
         for (const to of places) {
           if (from === to || (from.x === to.x && from.y === to.y)) continue;
           const path = findPath(floor, from, to);
           expect(path.at(-1), `${from.id} → ${to.id} ends there`).toEqual({ x: to.x, y: to.y });
           for (const point of walkPoints(from, path)) expect(walkable(floor, point.x, point.y), `${from.id} → ${to.id} at ${point.x},${point.y}`).toBe(true);
-          expect(pathLength(from, path), `${from.id} → ${to.id} pulled tight`).toBeLessThan(Math.hypot(to.x - from.x, to.y - from.y) * 1.6 + 30);
+          // A long obstacle can demand a long detour even between close posts. Test the path against the floor,
+          // not a ship-specific straight-line ratio: no retained corner may be skipped along open floor.
+          const route = [from, ...path];
+          for (let i = 0; i < route.length - 2; i++) {
+            for (let j = i + 2; j < route.length; j++) expect(clearLine(floor, route[i]!, route[j]!), `${from.id} → ${to.id} skips corner ${i + 1}`).toBe(false);
+          }
         }
       }
     });
@@ -329,6 +338,16 @@ describe.each(packs)("the %s pack", (id) => {
       for (const part of manifest.stage.parts) expect(part.at[1], part.id).toBeGreaterThanOrEqual(fit.top);
       for (const element of manifest.ambience) {
         const behaviour = element.behaviour;
+        if (behaviour.kind === "phase-frames") {
+          for (const frame of behaviour.frames) {
+            const [width, height] = size(frame);
+            const x = behaviour.at[0] - behaviour.anchor[0], y = behaviour.at[1] - behaviour.anchor[1];
+            expect(x, element.id).toBeGreaterThanOrEqual(0);
+            expect(x + width, element.id).toBeLessThanOrEqual(stage.width);
+            expect(y, element.id).toBeGreaterThanOrEqual(fit.top);
+            expect(y + height, element.id).toBeLessThanOrEqual(fit.bottom);
+          }
+        }
         if (behaviour.kind !== "flyby") continue;
         expect(behaviour.rows[0] - Math.abs(behaviour.wobble.px) - behaviour.anchor[1], element.id).toBeGreaterThanOrEqual(fit.top);
         expect(behaviour.rows[1] + Math.abs(behaviour.wobble.px) + behaviour.size[1] - behaviour.anchor[1], element.id).toBeLessThanOrEqual(stage.height);

@@ -41,6 +41,7 @@ export const ENGINE_CAPABILITIES = [
   "bob@1",
   "sway@1",
   "cycle@1",
+  "phase-frames@1",
   "flicker@1",
   "backdrop-cycle@1",
   "overlay@1",
@@ -420,12 +421,20 @@ const Tile = z.strictObject({
 const Strip = z.strictObject({ kind: z.literal("strip"), frames: Frames, top: Px, span: z.tuple([Px, Px]), drift: Drift, variants: Variants });
 /** `cycle@1` in the ambience: frames in turn with an anchor on a point. */
 const AmbientCycle = Cycle.extend({ at: Point, anchor: Point });
+/** `phase-frames@1`: a discrete local hour or minute, modulo the frame count; no simulation clock or expression. */
+const PhaseFrames = z.strictObject({
+  kind: z.literal("phase-frames"),
+  frames: z.array(Sprite).min(1),
+  by: z.enum(["local-hour", "local-minute"]),
+  at: Point,
+  anchor: Point,
+});
 
 const AmbienceElement = z.strictObject({
   ...ElementBase,
   slot: z.enum(["back", "front"]),
   order: z.number(),
-  behaviour: z.discriminatedUnion("kind", [BackdropCycle, Overlay, Flash, Drifters, Flyby, Tile, Strip, AmbientCycle]),
+  behaviour: z.discriminatedUnion("kind", [BackdropCycle, Overlay, Flash, Drifters, Flyby, Tile, Strip, AmbientCycle, PhaseFrames]),
 });
 
 const DayCycle = z.strictObject({
@@ -530,6 +539,8 @@ function ambienceSprites(behaviour: AmbienceBehaviour): Array<z.infer<typeof Spr
       return [{ image: behaviour.image }];
     case "flash":
       return behaviour.frames.map((frame) => frame.sprite);
+    case "phase-frames":
+      return behaviour.frames;
     case "drifters":
       return behaviour.sprites.flatMap((sprite) => [{ image: sprite.image }, ...variants(sprite.variants)]);
     case "flyby":
