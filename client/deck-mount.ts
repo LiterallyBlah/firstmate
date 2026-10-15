@@ -38,6 +38,7 @@ import type { DeckExtrasImages } from "./deck-extras";
 import type { DeckHover } from "./deck-hover";
 import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { startDeck, type DeckArtImage, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
+import { compileStage } from "./deck-stage";
 import type { DeckScene } from "./deck-scene";
 
 export type DeckStatus =
@@ -451,7 +452,7 @@ export function packArt(
   const environment = environmentImages(views.environment, image);
   if (environment === null) warn("[firstmate] the deck's sky and sea did not load; drawing a plain sea:", pack.failed.values().next().value);
   return extrasImages(views.extras, image, (path, error) => warn(`[firstmate] the deck's ${path} did not load; drawing without it:`, pack.failed.get(ids.get(path) ?? "") ?? error), cutCloud).then(
-    (extras) => ({ image: atlas, manifest: views.art, environment, extras }),
+    (extras) => ({ stage: compileStage(pack.manifest), image: atlas, manifest: views.art, environment, extras }),
   );
 }
 

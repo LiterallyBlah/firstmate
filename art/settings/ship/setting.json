@@ -1891,7 +1891,11 @@
         },
         "queue": {
           "at": "foot",
-          "release": "impact"
+          "release": "impact",
+          "spacing": [
+            6,
+            3
+          ]
         },
         "alternate": {
           "side": [

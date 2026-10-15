@@ -14,7 +14,7 @@ import { BREATH_MS, BREATH_ROWS, STATE_POSES, applyCrew, breathSink, createCrew,
 import { ATLAS_LOOKS, crewLooks, drawnPlank, drawnSail, lookFor, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
 import type { DeckSailor, DeckState } from "./deck-scene";
 import { BOW, CHURN_LENGTH, STERN, WAKE_ARMS, wakeRuns } from "./deck-wake";
-import { shipFile, shipManifest, shipViews } from "../test/ship-pack";
+import { shipFile, shipManifest, shipStage, shipViews } from "../test/ship-pack";
 
 const art = (path: string) => shipFile(path);
 const deck = shipViews().art;
@@ -130,14 +130,14 @@ describe("who wears which look", () => {
 
   it("keeps a sailor's look by its agent id: from poll to poll, as others come and go, and on any deck it opens on", () => {
     const looks = crewLooks(extras);
-    const crew = createCrew(looks);
+    const crew = createCrew(shipStage(), looks);
     applyCrew(crew, [sailor("a", "working"), sailor("b", "idle")], { snap: true });
     const before = crew.walkers.get("a")!.look;
     expect(before).toBe(lookFor("agent-a", looks));
     applyCrew(crew, [sailor("a", "blocked"), sailor("c"), sailor("d")], { snap: false });
     applyCrew(crew, [sailor("a", "waiting"), sailor("c")], { snap: false });
     expect(crew.walkers.get("a")!.look).toBe(before);
-    const alone = createCrew(looks);
+    const alone = createCrew(shipStage(), looks);
     applyCrew(alone, [sailor("a", "idle")], { snap: true });
     expect(alone.walkers.get("a")!.look).toBe(before);
     const figure = crewFigures(crew, 0, { still: true }).find((each) => each.key === "a")!;
@@ -149,7 +149,7 @@ describe("who wears which look", () => {
   });
 
   it("without any extra look, wears the atlas's two outfits as before", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, ["a", "b", "c"].map((key) => sailor(key)), { snap: true });
     expect([...crew.walkers.values()].every((walker) => walker.look === "base" || walker.look === "outfit")).toBe(true);
   });
@@ -248,7 +248,7 @@ describe("a sailor at ease", () => {
   });
 
   it("looks fore or aft along the rail by its seed, and breathes: head and shoulders settle a pixel and rise, feet planted", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, Array.from({ length: 6 }, (_, index) => sailor(`idle-${index}`)), { snap: true });
     const flips = new Set(crewFigures(crew, 0, { still: true }).map((figure) => figure.flip));
     expect(flips).toEqual(new Set([true, false]));
@@ -269,7 +269,7 @@ describe("a sailor at ease", () => {
     expect(out / (BREATH_MS / 10)).toBeGreaterThan(0.4);
     expect(out / (BREATH_MS / 10)).toBeLessThan(0.6);
     for (let at = 0; at < BREATH_MS; at += 100) expect(crewFigures(crew, at, { still: true }).every((figure) => figure.sink === 0)).toBe(true);
-    const busy = createCrew();
+    const busy = createCrew(shipStage());
     applyCrew(busy, [sailor("w", "working"), sailor("b", "blocked"), sailor("q", "waiting")], { snap: true });
     for (let at = 0; at < BREATH_MS; at += 100) expect(crewFigures(busy, at, { still: false }).every((figure) => figure.sink === 0)).toBe(true);
     expect(BREATH_ROWS).toBeLessThan(deck.crew.base["side-idle"].frame[3] / 2);

@@ -27,8 +27,6 @@ export const FOCUS_SIDE_MIN = 620;
 export const FOCUS_DOCK_SHARE = 0.46;
 /** The share of the free room's height the focused sailor fills, badge to feet. */
 export const FOCUS_FILL = 0.34;
-/** A sailor's height with its badge, in deck pixels, for sizing the shot: the tallest pose and its badge. */
-export const FOCUS_FIGURE_HEIGHT = 40;
 /** How far the camera closes in, as a multiple of the exact fit: never less, never more. */
 export const FOCUS_ZOOM_MIN = 1.6;
 export const FOCUS_ZOOM_MAX = 3;
@@ -84,21 +82,24 @@ export function focusLayout(size: { width: number; height: number }): FocusLayou
   };
 }
 
-/** The scale of a shot closed in on a sailor: it fills `FOCUS_FILL` of the free room's height, within the zoom's bounds. */
-export function focusScale(base: DeckFit, layout: FocusLayout): number {
+/**
+ * The scale of a shot closed in on a sailor `actorHeight` tall with its badge (the setting's `stage.actorHeight`):
+ * it fills `FOCUS_FILL` of the free room's height, within the zoom's bounds.
+ */
+export function focusScale(base: DeckFit, layout: FocusLayout, actorHeight: number): number {
   if (base.scale <= 0) return 0;
-  const wanted = (layout.room.height * FOCUS_FILL) / FOCUS_FIGURE_HEIGHT;
+  const wanted = (layout.room.height * FOCUS_FILL) / actorHeight;
   return Math.max(base.scale * FOCUS_ZOOM_MIN, Math.min(base.scale * FOCUS_ZOOM_MAX, wanted));
 }
 
 /**
- * The world's scale and offset for `shot`, from the exact fit `base` on a canvas laid out as `layout`. The
- * offset is snapped to whole device pixels at `resolution`, like the exact fit's.
+ * The world's scale and offset for `shot`, from the exact fit `base` on a canvas laid out as `layout`, closing in on
+ * a sailor `actorHeight` tall. The offset is snapped to whole device pixels at `resolution`, like the exact fit's.
  */
-export function cameraFit(base: DeckFit, shot: DeckShot, layout: FocusLayout, resolution: number): DeckFit {
+export function cameraFit(base: DeckFit, shot: DeckShot, layout: FocusLayout, resolution: number, actorHeight: number): DeckFit {
   const amount = Math.max(0, Math.min(1, shot.amount));
   if (amount === 0 || base.scale <= 0) return base;
-  const scale = base.scale * Math.pow(focusScale(base, layout) / base.scale, amount);
+  const scale = base.scale * Math.pow(focusScale(base, layout, actorHeight) / base.scale, amount);
   // Where the point is on screen: from where the exact fit draws it to the layout's anchor, in a line.
   const fromX = base.x + shot.point.x * base.scale;
   const fromY = base.y + shot.point.y * base.scale;

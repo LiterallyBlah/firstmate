@@ -12,11 +12,15 @@ import { describe, expect, it } from "vitest";
 import { extrasImagePaths } from "./deck-legacy";
 import { drawnMast, mastLayout, type DeckExtrasImages } from "./deck-extras";
 import { deckBox, fitDeck } from "./deck-pixi";
-import { PLANK, PLANK_SEA_BOTTOM } from "./deck-plank";
-import { DECK_PROPS } from "./deck-scene";
-import { shipFile, shipViews } from "../test/ship-pack";
+import { shipFile, shipPlankMarks, shipStage, shipViews } from "../test/ship-pack";
 
 const art = (path: string) => shipFile(path);
+
+// The ship's stage, under the names its constants had in the deck's code.
+const stage = shipStage();
+const DECK_PROPS = stage.props.map((prop) => ({ name: prop.id, x: prop.x, y: prop.y }));
+const PLANK = { ...shipPlankMarks(), water: shipPlankMarks().water.y };
+
 const deck = shipViews().art;
 const manifest = shipViews().extras;
 const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
@@ -163,14 +167,15 @@ describe("the tall mast's parts", () => {
 
 describe("the deck's fit under the tall mast", () => {
   it("is the hull's own without it", () => {
-    expect(deckBox({ width: 426, height: 161 }, 0)).toEqual({ width: 426, height: 161 });
-    expect(fitDeck({ width: 900, height: 500 }, { width: 426, height: 161, top: 0 }, 2)).toEqual(fitDeck({ width: 900, height: 500 }, { width: 426, height: 161 }, 2));
+    expect(deckBox(shipStage(), 0)).toEqual({ width: 426, height: 161 });
+    expect(fitDeck({ width: 900, height: 500 }, { width: 426, height: 161, top: 0 }, 2, shipStage().fit.margin)).toEqual(fitDeck({ width: 900, height: 500 }, { width: 426, height: 161 }, 2, shipStage().fit.margin));
   });
 
   it("shows the mast's tip, the hull and the shark's lowest row in any pane, wide or tall", () => {
-    const box = deckBox({ width: 426, height: 161 }, mastY);
-    expect(box).toEqual({ width: 426, height: PLANK_SEA_BOTTOM, top: mastY });
-    expect(PLANK_SEA_BOTTOM).toBeGreaterThan(PLANK.water);
+    const box = deckBox(shipStage(), mastY);
+    expect(box).toEqual({ width: 426, height: shipStage().fit.bottom, top: shipStage().fit.top });
+    expect(shipStage().fit.top).toBe(mastY);
+    expect(shipStage().fit.bottom).toBeGreaterThan(PLANK.water);
     for (const [width, height] of [
       [400, 300],
       [800, 400],
@@ -179,11 +184,11 @@ describe("the deck's fit under the tall mast", () => {
       [390, 844],
       [1200, 1200],
     ] as const) {
-      const fit = fitDeck({ width, height }, box, 2);
+      const fit = fitDeck({ width, height }, box, 2, shipStage().fit.margin);
       const visibleTop = -fit.y / fit.scale;
       const visibleBottom = (height - fit.y) / fit.scale;
       expect(visibleTop, `${width}x${height}`).toBeLessThan(mastY);
-      expect(visibleBottom, `${width}x${height}`).toBeGreaterThan(PLANK_SEA_BOTTOM);
+      expect(visibleBottom, `${width}x${height}`).toBeGreaterThan(shipStage().fit.bottom);
       expect(fit.scale * 426, `${width}x${height}`).toBeLessThanOrEqual(width);
     }
   });

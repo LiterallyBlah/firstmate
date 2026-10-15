@@ -22,30 +22,35 @@ import {
   shipBob,
 } from "./deck-ambient";
 import { BADGE_SIZE } from "./deck-badges";
-import { HATCH_MS, PLACES, STATE_POSES, applyCrew, createCrew, crewFigures, idleMotion, stepCrew, type Crew, type Figure } from "./deck-crew";
+import { HATCH_MS, STATE_POSES, applyCrew, createCrew, crewFigures, idleMotion, stepCrew, type Crew, type Figure } from "./deck-crew";
 import { badgeTop, figureBox, sailorAt, type DeckBox } from "./deck-hover";
 import { deckAnimator, MAX_STEP_MS, type FrameScheduler, type MotionSignals } from "./deck-loop";
 import { browserMotion } from "./deck-mount";
 import { isSoftwareRenderer } from "./deck-pixi";
-import { PLANK } from "./deck-plank";
 import { deckLayers, depthOf, type DeckSailor, type DeckState } from "./deck-scene";
-import { shipFile, shipViews } from "../test/ship-pack";
+import { shipFile, shipManifest, shipPlankMarks, shipStage, shipViews } from "../test/ship-pack";
 import {
-  ANCHORS,
-  HATCH,
-  OBSTACLES,
-  WALKABLE,
-  anchorsAt,
   areaAt,
   clearLine,
   findPath,
-  inRestArea,
-  pathLength,
-  REST_SPACING,
+  inRects,
   sharedSpot,
   walkable,
   type Point,
 } from "./deck-geometry";
+
+
+// The ship's stage, under the names its constants had in the deck's code.
+const stage = shipStage();
+const ANCHORS = [...stage.zones.values()].flatMap((zone) => zone.posts);
+const HATCH = stage.entry;
+const WALKABLE = stage.floor.areas;
+const PLACES = Object.fromEntries((Object.keys(shipManifest().zones.byState) as DeckState[]).map((state) => [state, stage.zoneOf(state).id])) as Record<DeckState, string>;
+const anchorsAt = (place: string) => stage.zones.get(place)!.posts;
+const restOverflow = stage.zones.get("rest")!.overflow as { areas: ReadonlyArray<readonly [number, number, number, number]>; spacing: readonly [number, number] };
+const inRestArea = (point: { x: number; y: number }) => inRects(restOverflow.areas, point);
+const REST_SPACING = { x: restOverflow.spacing[0], y: restOverflow.spacing[1] };
+const PLANK = shipPlankMarks();
 
 /** The served atlas, decoded: enough of PNG for the one the build writes (8-bit RGBA, not interlaced). */
 function decodePng(file: Buffer): { width: number; height: number; alpha: (x: number, y: number) => number } {
@@ -106,78 +111,45 @@ function walkPoints(from: Point, path: readonly Point[]): Point[] {
   return points;
 }
 
-describe("the walkable deck, read against the atlas", () => {
-  it("is all hull, and in front of nothing but the stairs' own balustrade", () => {
-    let cells = 0;
-    for (let y = 80; y < 126; y += 1) {
-      for (let x = 40; x < 424; x += 1) {
-        if (!walkable(x, y)) continue;
-        cells += 1;
-        expect(onHull({ x, y }), `${x},${y} on the hull`).toBe(true);
-        // Feet under the near rail are hidden by it: only the stairs may be, where a sailor climbs behind their balustrade.
-        if (underNear({ x, y })) expect(areaAt(x, y), `${x},${y} behind the near rail`).toBe("stairs");
-      }
-    }
-    expect(cells).toBeGreaterThan(5000);
+// Every post, mark and walkable point on the hull, reachable from every other, is the pack linter's
+// (`test/deck-settings.test.ts`), for every setting. What is the ship's own is here.
+describe("the ship's walkable deck", () => {
+  it("is a main deck, its stairs and the quarterdeck, the stairs behind the near rail's balustrade", () => {
+    expect(WALKABLE.map((area) => [area.id, area.spill])).toEqual([
+      ["main-deck", true],
+      ["stairs", false],
+      ["quarterdeck", true],
+    ]);
+    let behind = 0;
+    for (let y = 80; y < 126; y += 1) for (let x = 40; x < 424; x += 1) if (walkable(shipStage().floor, x, y) && underNear({ x, y })) behind += 1;
+    expect(behind).toBeGreaterThan(0);
   });
 
-  it("puts every anchor and the hatch on open deck, off the stairs and clear of every obstacle", () => {
-    for (const point of [...ANCHORS, { ...HATCH, id: "hatch" }]) {
-      expect(walkable(point.x, point.y), point.id).toBe(true);
-      expect(underNear(point), `${point.id} hidden by the near rail`).toBe(false);
-      expect(areaAt(point.x, point.y), point.id).not.toBe("stairs");
-    }
-    expect(new Set(ANCHORS.map((anchor) => anchor.id)).size).toBe(ANCHORS.length);
+  it("puts the helm on the quarterdeck and everything else on the main deck, four posts at least to each place", () => {
     for (const place of ["station", "rest", "helm", "bow"] as const) expect(anchorsAt(place).length).toBeGreaterThanOrEqual(4);
-    // The helm is on the quarterdeck; everything else is on the main deck.
-    for (const anchor of ANCHORS) expect(areaAt(anchor.x, anchor.y)).toBe(anchor.place === "helm" ? "quarterdeck" : "main deck");
-    expect(WALKABLE.map((area) => area.name)).toEqual(["main deck", "stairs", "quarterdeck"]);
-  });
-
-  it("blocks the feet of the mast, the bollards, the props and the wheel", () => {
-    for (const { name, rect } of OBSTACLES) {
-      const [x, y, w, h] = rect;
-      expect(walkable(x + w / 2, y + h / 2), name).toBe(false);
-    }
+    for (const anchor of ANCHORS) expect(areaAt(shipStage().floor, anchor.x, anchor.y)?.id).toBe(anchor.place === "helm" ? "quarterdeck" : "main-deck");
+    expect(onHull(HATCH)).toBe(true);
   });
 });
 
 describe("pathing", () => {
-  const starts: Array<Point & { id: string }> = [...ANCHORS, { ...HATCH, id: "hatch" }];
-
-  it("walks from every anchor and the hatch to every other, on the deck all the way and round every obstacle", () => {
-    let walks = 0;
-    for (const from of starts) {
-      for (const to of starts) {
-        if (from === to) continue;
-        const path = findPath(from, to);
-        expect(path.at(-1), `${from.id} → ${to.id} ends there`).toEqual({ x: to.x, y: to.y });
-        for (const point of walkPoints(from, path)) expect(walkable(point.x, point.y), `${from.id} → ${to.id} at ${point.x},${point.y}`).toBe(true);
-        // Pulled tight: never much longer than the straight line, except round the stairs.
-        expect(pathLength(from, path)).toBeLessThan(Math.hypot(to.x - from.x, to.y - from.y) * 1.6 + 30);
-        walks += 1;
-      }
-    }
-    expect(walks).toBe(starts.length * (starts.length - 1));
-  });
-
   it("climbs the stairs between the main deck and the quarterdeck", () => {
     const helm = ANCHORS.find((anchor) => anchor.id === "helm-1")!;
-    const path = findPath(HATCH, helm);
-    const areas = new Set(walkPoints(HATCH, path).map((point) => areaAt(point.x, point.y)));
-    expect(areas).toEqual(new Set(["main deck", "stairs", "quarterdeck"]));
-    expect(clearLine(HATCH, helm)).toBe(false);
+    const path = findPath(shipStage().floor, HATCH, helm);
+    const areas = new Set(walkPoints(HATCH, path).map((point) => areaAt(shipStage().floor, point.x, point.y)?.id));
+    expect(areas).toEqual(new Set(["main-deck", "stairs", "quarterdeck"]));
+    expect(clearLine(shipStage().floor, HATCH, helm)).toBe(false);
   });
 
   it("goes round the mast rather than through it", () => {
-    const path = findPath({ x: 190, y: 107 }, { x: 234, y: 107 });
+    const path = findPath(shipStage().floor, { x: 190, y: 107 }, { x: 234, y: 107 });
     expect(path.length).toBeGreaterThan(1);
-    for (const point of walkPoints({ x: 190, y: 107 }, path)) expect(walkable(point.x, point.y)).toBe(true);
+    for (const point of walkPoints({ x: 190, y: 107 }, path)) expect(walkable(shipStage().floor, point.x, point.y)).toBe(true);
   });
 
   it("is empty when already there, and starts from the nearest deck when caught off it", () => {
-    expect(findPath(HATCH, HATCH)).toEqual([]);
-    const path = findPath({ x: 211, y: 107 }, HATCH);
+    expect(findPath(shipStage().floor, HATCH, HATCH)).toEqual([]);
+    const path = findPath(shipStage().floor, { x: 211, y: 107 }, HATCH);
     expect(path.at(-1)).toEqual(HATCH);
   });
 
@@ -185,12 +157,12 @@ describe("pathing", () => {
     const anchor = ANCHORS[0]!;
     const taken: Point[] = [{ x: anchor.x, y: anchor.y }];
     for (let share = 0; share < 6; share += 1) {
-      const spot = sharedSpot(anchor, taken);
-      expect(walkable(spot.x, spot.y)).toBe(true);
+      const spot = sharedSpot(shipStage().floor, anchor, taken, [6, 3]);
+      expect(walkable(shipStage().floor, spot.x, spot.y)).toBe(true);
       expect(taken.some((other) => other.x === spot.x && other.y === spot.y)).toBe(false);
       taken.push(spot);
     }
-    expect(sharedSpot(anchor, [])).toEqual({ x: anchor.x, y: anchor.y });
+    expect(sharedSpot(shipStage().floor, anchor, [], [6, 3])).toEqual({ x: anchor.x, y: anchor.y });
   });
 });
 
@@ -216,7 +188,7 @@ function anchorAt(point: Point) {
 
 describe("the crew on deck", () => {
   it("sends each state to its place, one anchor each, facing the way the anchor says", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "working"), sailor("b", "waiting"), sailor("c", "blocked"), sailor("d", "idle")], { snap: false });
     for (const walker of crew.walkers.values()) {
       const anchor = anchorAt(walker);
@@ -232,14 +204,14 @@ describe("the crew on deck", () => {
   it("never stacks two sailors: distinct anchors while they last, then a spot beside a shared one, all on open deck", () => {
     for (const state of ["working", "waiting", "blocked", "idle"] as const) {
       for (const count of [1, 3, anchorsAt(PLACES[state]).length, 12, 30]) {
-        const crew = createCrew();
+        const crew = createCrew(shipStage());
         applyCrew(crew, Array.from({ length: count }, (_, index) => sailor(`${state}-${String(index).padStart(2, "0")}`, state)), { snap: true });
         const walkers = [...crew.walkers.values()];
         expect(new Set(walkers.map((walker) => `${walker.x},${walker.y}`)).size, `${count} ${state}`).toBe(count);
         const free = anchorsAt(PLACES[state]).length;
         expect(new Set(walkers.map((walker) => walker.anchor)).size).toBe(Math.min(count, free));
         for (const walker of walkers) {
-          expect(walkable(walker.x, walker.y), `${walker.key} at ${walker.x},${walker.y}`).toBe(true);
+          expect(walkable(shipStage().floor, walker.x, walker.y), `${walker.key} at ${walker.x},${walker.y}`).toBe(true);
           expect(underNear(walker), `${walker.key} behind the near rail`).toBe(false);
           expect(onHull(walker)).toBe(true);
         }
@@ -250,7 +222,7 @@ describe("the crew on deck", () => {
   it("keeps a sailor's anchor from poll to poll, and frees it for the next when it moves on", () => {
     const stations = anchorsAt("station").length;
     const working = Array.from({ length: stations }, (_, index) => sailor(`w${index}`, "working"));
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, working, { snap: false });
     const held = crew.walkers.get("w0")!.anchor;
     applyCrew(crew, [...working].reverse(), { snap: false });
@@ -264,7 +236,7 @@ describe("the crew on deck", () => {
   });
 
   it("shows a new state at once, and only then walks the sailor there", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "working")], { snap: false });
     const start = { x: crew.walkers.get("a")!.x, y: crew.walkers.get("a")!.y };
     applyCrew(crew, [sailor("a", "waiting")], { snap: false });
@@ -284,20 +256,20 @@ describe("the crew on deck", () => {
   });
 
   it("turns round mid-walk from wherever the sailor is", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "idle")], { snap: false });
     applyCrew(crew, [sailor("a", "waiting")], { snap: false });
     run(crew, 1500);
     const midway = { x: crew.walkers.get("a")!.x, y: crew.walkers.get("a")!.y };
     applyCrew(crew, [sailor("a", "blocked")], { snap: false });
     expect(crew.walkers.get("a")!.path.length).toBeGreaterThan(0);
-    for (const point of walkPoints(midway, crew.walkers.get("a")!.path)) expect(walkable(point.x, point.y)).toBe(true);
+    for (const point of walkPoints(midway, crew.walkers.get("a")!.path)) expect(walkable(shipStage().floor, point.x, point.y)).toBe(true);
     run(crew, 30_000);
     expect(anchorAt(crew.walkers.get("a")!)?.place).toBe("bow");
   });
 
   it("walks with the side frames across the deck, mirrored going forward, and rises a pixel as a leg passes", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "idle")], { snap: false });
     applyCrew(crew, [sailor("a", "blocked")], { snap: false });
     const poses = new Set<string>();
@@ -314,7 +286,7 @@ describe("the crew on deck", () => {
   });
 
   it("brings a new crewmate up through the hatch and sends an archived one off by the plank", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "working")], { snap: false });
     // The crew aboard when the deck opens is simply there.
     expect(crew.walkers.get("a")!.phase).toBe("settled");
@@ -339,7 +311,7 @@ describe("the crew on deck", () => {
   });
 
   it("turns a leaving sailor back if its card returns, and sends one still on the ladder straight back down", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "working")], { snap: false });
     applyCrew(crew, [], { snap: false });
     run(crew, 500);
@@ -357,7 +329,7 @@ describe("the crew on deck", () => {
   });
 
   it("greys a stale sailor where it stands, keeps its last state, and stills its idle motion", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "working"), sailor("b", "blocked")], { snap: false });
     const where = () => [...crew.walkers.values()].map((walker) => ({ key: walker.key, x: walker.x, y: walker.y, state: walker.state }));
     const before = where();
@@ -390,7 +362,7 @@ describe("the crew on deck", () => {
   });
 
   it("under reduced motion jumps every change, with no hatch, no walk and no sway, and still shows the state", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "working")], { snap: true });
     applyCrew(crew, [sailor("a", "waiting"), sailor("b", "idle")], { snap: true });
     for (const walker of crew.walkers.values()) {
@@ -407,7 +379,7 @@ describe("the crew on deck", () => {
     expect([...crew.walkers.keys()]).toEqual(["b"]);
 
     // Turned on mid-walk, with one on the ladder and one leaving: everyone settles at once.
-    const moving = createCrew();
+    const moving = createCrew(shipStage());
     applyCrew(moving, [sailor("a", "working"), sailor("c", "idle")], { snap: false });
     applyCrew(moving, [sailor("a", "waiting"), sailor("d", "blocked")], { snap: false });
     run(moving, 300);
@@ -423,7 +395,7 @@ describe("the crew on deck", () => {
 describe("idle crew at rest", () => {
   /** Every anchor of the other places held, and `idle` sleepers: the most crowded deck there is. */
   function fullDeck(idle: number): Figure[] {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     const others = (["working", "waiting", "blocked"] as const).flatMap((state) =>
       anchorsAt(PLACES[state]).map((_, index) => sailor(`${state}-${index}`, state)),
     );
@@ -464,7 +436,7 @@ describe("idle crew at rest", () => {
       expect(new Set(sleepers.map((figure) => `${figure.x},${figure.row}`)).size, `${idle} idle`).toBe(idle);
       for (const sleeper of sleepers) {
         expect(inRestArea({ x: sleeper.x, y: sleeper.row }), `${idle} idle: ${sleeper.key}`).toBe(true);
-        expect(walkable(sleeper.x, sleeper.row)).toBe(true);
+        expect(walkable(shipStage().floor, sleeper.x, sleeper.row)).toBe(true);
         expect(underNear({ x: sleeper.x, y: sleeper.row })).toBe(false);
         const box = figureBox(sleeper, manifest)!;
         for (const other of awake) expect(overlaps(box, figureBox(other, manifest)!), `${idle} idle: ${sleeper.key} on ${other.key}`).toBe(false);
@@ -482,7 +454,7 @@ describe("idle crew at rest", () => {
   });
 
   it("takes the rest spots in their order wherever a sleeper comes from, and leaves them when given work", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "working"), sailor("b", "waiting"), sailor("c", "blocked")], { snap: false });
     applyCrew(crew, [sailor("a", "idle"), sailor("b", "idle"), sailor("c", "idle")], { snap: false });
     const rest = anchorsAt("rest");
@@ -494,7 +466,7 @@ describe("idle crew at rest", () => {
     applyCrew(crew, [sailor("a", "working"), sailor("b", "idle"), sailor("c", "idle")], { snap: false });
     const back = crew.walkers.get("a")!;
     expect(anchorAt(back.target)?.place).toBe("station");
-    for (const point of walkPoints(resting, back.path)) expect(walkable(point.x, point.y)).toBe(true);
+    for (const point of walkPoints(resting, back.path)) expect(walkable(shipStage().floor, point.x, point.y)).toBe(true);
     applyCrew(crew, [sailor("a", "working"), sailor("b", "idle"), sailor("c", "idle"), sailor("d", "idle")], { snap: false });
     // A newcomer to rest takes the first spot free in the order, the one given up included.
     const firstFree = rest.find((anchor) => ![..."bc"].some((key) => crew.walkers.get(key)!.anchor === anchor.id))!;
@@ -502,7 +474,7 @@ describe("idle crew at rest", () => {
   });
 
   it("walks a sailor that goes idle to its rest spot, and back to a station when work comes, never in a jump", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "working")], { snap: false });
     const station = { x: crew.walkers.get("a")!.x, y: crew.walkers.get("a")!.y };
     applyCrew(crew, [sailor("a", "idle")], { snap: false });
@@ -530,18 +502,18 @@ describe("idle crew at rest", () => {
 
 describe("depth while walking", () => {
   it("passes behind the mast while its feet are behind the mast's row, and in front once they are not", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "idle")], { snap: false });
     const walker = crew.walkers.get("a")!;
     expect(walker.y).toBeGreaterThan(110);
     // From the rest area to the station behind the mast.
-    walker.path = findPath(walker, { x: 212, y: 94 });
+    walker.path = findPath(shipStage().floor, walker, { x: 212, y: 94 });
     walker.phase = "walking";
     const sides = new Set<string>();
     for (let at = 0; at < 4000; at += 33) {
       stepCrew(crew, 33);
       const figures = crewFigures(crew, at, { still: false });
-      const order = deckLayers(figures, manifest.pieces).map((layer) => (layer.kind === "piece" ? layer.name : layer.kind === "sailor" ? "sailor" : layer.kind));
+      const order = deckLayers(figures, manifest.pieces, shipStage().props).map((layer) => (layer.kind === "piece" ? layer.name : layer.kind === "sailor" ? "sailor" : layer.kind));
       const behind = order.indexOf("sailor") < order.indexOf("mast");
       // Feet on the mast's own row are behind it, as for every piece.
       expect(behind, `row ${figures[0]!.row}`).toBe(figures[0]!.row <= 110);
@@ -582,8 +554,8 @@ describe("the ambient clock", () => {
   it("flies the odd gull, the same gulls for the same clock, at the masthead's height and never more than two", () => {
     let seconds = 0;
     for (let t = 0; t < 600; t += 0.25) {
-      const gulls = gullsAt(t);
-      expect(gulls).toEqual(gullsAt(t));
+      const gulls = gullsAt(t, shipStage().width);
+      expect(gulls).toEqual(gullsAt(t, shipStage().width));
       expect(gulls.length).toBeLessThanOrEqual(2);
       for (const gull of gulls) {
         // The generated sprite's raised wing reaches 17 rows over the beak, its lowered one 9 under it:
@@ -597,7 +569,7 @@ describe("the ambient clock", () => {
     // Now and then: some of the time, never most of it.
     expect(seconds).toBeGreaterThan(60);
     expect(seconds).toBeLessThan(400);
-    expect(gullsAt(0)).toEqual([]);
+    expect(gullsAt(0, shipStage().width)).toEqual([]);
     expect(GULL_SLOT_SECONDS).toBeGreaterThan(15);
   });
 

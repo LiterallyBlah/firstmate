@@ -16,7 +16,6 @@
  */
 import type { DeckEnvironmentManifest, GullPose } from "./deck-legacy";
 import { HORIZON } from "./deck-ambient";
-import { DECK_WIDTH } from "./deck-scene";
 
 export const MINUTES_PER_DAY = 1440;
 /** How long one sky takes to become the next, ending at the next one's anchor: an hour and a half, or the whole gap if shorter. */
@@ -80,17 +79,18 @@ export function dominantPhase(blend: SkyBlend): number {
 export const SKY_REFRESH_MS = 60_000;
 
 /**
- * Where the sky sits in the deck's coordinates: a backdrop of `size`, centred on the ship, its row
- * `horizonRow` on the sea's horizon, at the hull's own pixel scale — larger only when the part of the
- * world on screen, `visible`, would show past its edges. It is never tiled, so its clouds never repeat.
+ * Where the sky sits in the stage's coordinates: a backdrop of `size`, centred on a stage `stageWidth` wide, its row
+ * `horizonRow` on the sea's horizon, at the stage's own pixel scale — larger only when the part of the world on
+ * screen, `visible`, would show past its edges. It is never tiled, so its clouds never repeat.
  */
 export function skyPlacement(
   visible: { left: number; right: number; top: number },
   size: readonly [number, number],
   horizonRow: number,
+  stageWidth: number,
 ): { x: number; y: number; scale: number } {
   const [width] = size;
-  const centre = DECK_WIDTH / 2;
+  const centre = stageWidth / 2;
   const halfWide = Math.max(centre - visible.left, visible.right - centre, 0);
   const tall = Math.max(HORIZON - visible.top, 0);
   const scale = Math.max(1, (halfWide * 2) / width, horizonRow > 0 ? tall / horizonRow : 1);

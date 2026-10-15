@@ -9,8 +9,8 @@ import { describe, expect, it } from "vitest";
 
 import type { FleetCard, Suggestion } from "../shared/fleet";
 import { ASK_GLYPH, ASK_LIFT_MS, ASK_SIZE, BADGE_GLYPHS, BADGE_SIZE, askFramePixels, askLift, askPixels } from "./deck-badges";
-import { PLACES, applyCrew, createCrew, crewFigures, type Figure } from "./deck-crew";
-import { anchorsAt, REST_SPACING } from "./deck-geometry";
+import { applyCrew, createCrew, crewFigures, type Figure } from "./deck-crew";
+import { inRects } from "./deck-geometry";
 import { askMarks, badgeBox, boxesOverlap, figureBox, hoverOf, markBox, sailorAt, type DeckHover } from "./deck-hover";
 import {
   BUBBLE_GAP,
@@ -24,7 +24,15 @@ import {
   replyBlockedText,
 } from "./deck-replies";
 import type { DeckSailor, DeckState } from "./deck-scene";
-import { shipViews } from "../test/ship-pack";
+import { shipManifest, shipStage, shipViews } from "../test/ship-pack";
+
+
+// The ship's stage, under the names its constants had in the deck's code.
+const stage = shipStage();
+const restOverflow = stage.zones.get("rest")!.overflow as { areas: ReadonlyArray<readonly [number, number, number, number]>; spacing: readonly [number, number] };
+const REST_SPACING = { x: restOverflow.spacing[0], y: restOverflow.spacing[1] };
+const PLACES = Object.fromEntries((Object.keys(shipManifest().zones.byState) as DeckState[]).map((state) => [state, stage.zoneOf(state).id])) as Record<DeckState, string>;
+const anchorsAt = (place: string) => stage.zones.get(place)!.posts;
 
 const manifest = shipViews().art;
 
@@ -227,7 +235,7 @@ describe("the reply marker", () => {
     caption: { title: key, status: state, project: null, host: "This machine", line: null, stale: null },
   });
   function deck(sailors: DeckSailor[]): Figure[] {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, sailors, { snap: true });
     return crewFigures(crew, 0, { still: true });
   }
@@ -245,7 +253,7 @@ describe("the reply marker", () => {
     expect(sailorAt(figures, manifest, { x: mark.left + 3.5, y: mark.top + 2.5 })).toBeNull();
     // The label and bubble go over the marker, not the badge.
     const fit = { scale: 2, x: 0, y: 0 };
-    expect(hoverOf(a, manifest, fit, { x: 0, y: 0 }, { width: 900, height: 400 }, mark).top).toBe(mark.top * 2);
+    expect(hoverOf(a, manifest, fit, { x: 0, y: 0 }, { width: 900, height: 400 }, shipStage().zoneOf(a.state).labelFloor, mark).top).toBe(mark.top * 2);
   });
 
   it("is never on another sailor, its badge or another marker, however crowded the deck — the badge's frame when nothing round it is clear", () => {
@@ -279,7 +287,7 @@ describe("the reply marker", () => {
   });
 
   it("shows on a stale sailor never, and on one still climbing out of the hatch not yet", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "working")], { snap: true });
     applyCrew(crew, [sailor("a", "working"), sailor("b", "working")], { snap: false });
     const climbing = crewFigures(crew, 0, { still: false });

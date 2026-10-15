@@ -8,10 +8,9 @@ import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { SKY_PHASES, type DeckEnvironmentManifest } from "./deck-legacy";
-import { shipManifest, shipViews } from "../test/ship-pack";
+import { shipManifest, shipStage, shipViews } from "../test/ship-pack";
 import { HORIZON } from "./deck-ambient";
 import { FOAM_HEIGHT, FOAM_SPAN, foamSegments } from "./deck-environment";
-import { DECK_WIDTH } from "./deck-scene";
 import {
   dominantPhase,
   gullPose,
@@ -146,19 +145,19 @@ describe("where the sky sits", () => {
 
   it("lays its lower third under the sea, at the hull's own pixel scale, centred on the ship", () => {
     expect(row).toBe(213);
-    const placed = skyPlacement({ left: -9, right: DECK_WIDTH + 9, top: -4 }, size, row);
+    const placed = skyPlacement({ left: -9, right: shipStage().width + 9, top: -4 }, size, row, shipStage().width);
     expect(placed.scale).toBe(1);
-    expect(placed.x + (size[0] * placed.scale) / 2).toBe(DECK_WIDTH / 2);
+    expect(placed.x + (size[0] * placed.scale) / 2).toBe(shipStage().width / 2);
     expect(placed.y + row * placed.scale).toBe(HORIZON);
   });
 
   it("grows only as much as a wide or tall pane needs, never tiled, never short of an edge", () => {
     for (const visible of [
-      { left: -400, right: DECK_WIDTH + 400, top: -10 },
-      { left: -20, right: DECK_WIDTH + 20, top: -400 },
-      { left: -900, right: DECK_WIDTH + 100, top: -600 },
+      { left: -400, right: shipStage().width + 400, top: -10 },
+      { left: -20, right: shipStage().width + 20, top: -400 },
+      { left: -900, right: shipStage().width + 100, top: -600 },
     ]) {
-      const placed = skyPlacement(visible, size, row);
+      const placed = skyPlacement(visible, size, row, shipStage().width);
       expect(placed.scale).toBeGreaterThan(1);
       expect(placed.x).toBeLessThanOrEqual(visible.left + 1e-9);
       expect(placed.x + size[0] * placed.scale).toBeGreaterThanOrEqual(visible.right - 1e-9);
