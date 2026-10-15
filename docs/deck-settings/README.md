@@ -338,3 +338,9 @@ evidence is in `compile-results.json` and `gate-results.json`.
 The art boundary is reached. The commission must supply the PNGs before opacity, seams, hashes, byte budget,
 depth appearance and real office renders can be verified. Step 9 remains unfinished; the next engine slices
 and the final data/art-only office pack follow reviewed merges and the art delivery.
+
+Gate: **81/81 pixel-identical** to main `84a5aaa`; no page errors and all canvas metadata matches. One transient
+two-pixel storm-frame flake at 65.4 seconds disappeared on the gate's automatic rerender and is recorded in
+`gate-results.json`. Full suite: 76 files, 988 tests passed, three skipped. Typecheck, pack lint (31 tests),
+focused worker-capability tests and `git diff --check` pass. Client bundle +635 bytes; Hermes parses it and
+there is no `class`. The package still serves 331,187 bytes under `art/`, with no office draft or tests included.
