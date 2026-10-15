@@ -151,7 +151,8 @@ export const loadDeckEnvironment = defineRpc({
 export type DeckEnvironment = z.infer<typeof loadDeckEnvironment.output>;
 
 /**
- * `firstmate.deck.extras` — the sail on hull C's mast and the crew's extra looks (`art/ship-deck/assets-2/README.md`),
+ * `firstmate.deck.extras` — the tall mast and its sail (`art/ship-deck/mast/README.md`, `art/ship-deck/sails/README.md`),
+ * the crew's extra looks (`art/ship-deck/assets-2/README.md`), the plank's board (`art/ship-deck/plank/README.md`),
  * the shark and splash that see a sailor off the plank (`art/ship-deck/shark/README.md`), and the clouds that
  * drift across the sky (`art/ship-deck/clouds/README.md`):
  * the parts of `art/ship-deck/extras.json` the deck draws with, and each image it names, base64. Apart from
@@ -162,8 +163,8 @@ export type DeckEnvironment = z.infer<typeof loadDeckEnvironment.output>;
 export const DeckExtrasManifestSchema = z.object({
   /**
    * The sail: `frames` states of `frameSize` side by side in one strip, drawn at `position` on the hull
-   * and alternated every `frameMs`. While it shows, `occluder` stands in for the depth piece it
-   * `replaces`: the mast with its rows behind the sail cleared, so the mast cannot paint over the cloth.
+   * and alternated every `frameMs`. It is fitted to the tall mast (`mast`), its yard on the mast's, and
+   * hangs only on it.
    */
   sail: z.object({
     texture: ArtPath,
@@ -171,12 +172,6 @@ export const DeckExtrasManifestSchema = z.object({
     frames: z.number().int().positive(),
     position: z.tuple([z.number().int(), z.number().int()]),
     frameMs: z.number().positive(),
-    occluder: z.object({
-      texture: ArtPath,
-      replaces: z.string(),
-      position: z.tuple([z.number().int(), z.number().int()]),
-      baseline: z.number().int().nullable(),
-    }),
   }),
   /**
    * The crew's extra looks: each a texture the atlas's size holding every pose at exactly the atlas's
@@ -229,8 +224,8 @@ export const DeckExtrasManifestSchema = z.object({
    * on the hull, reaching above the hull's top row into the sky, in place of the hull's own short rig —
    * its crow's nest, upper mast and stays, all of it within `clears` ([x, y, width, height], open sky
    * besides), which is left out of the hull. Its top `sway` rows (the crow's nest and the topmast) sway as the
-   * masthead did. While it shows, the sail hangs at `sail` on it, and the depth piece it `replaces` is its
-   * own rows from that piece's top down (below the sail's lower edge, should the sail reach that low).
+   * masthead did. The depth piece it `replaces` is its own rows from that piece's top down, and from below
+   * the sail's lower edge while the sail hangs on it.
    */
   mast: z
     .object({
@@ -240,7 +235,6 @@ export const DeckExtrasManifestSchema = z.object({
       sway: z.number().int().nonnegative(),
       clears: z.tuple([z.number().int(), z.number().int(), z.number().int().positive(), z.number().int().positive()]),
       replaces: z.string(),
-      sail: z.tuple([z.number().int(), z.number().int()]),
     })
     .optional(),
 });
@@ -252,7 +246,7 @@ export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
   const clouds = manifest.clouds?.sprites.map((sprite) => sprite.texture) ?? [];
   const plank = manifest.plank === undefined ? [] : [manifest.plank.texture];
   const mast = manifest.mast === undefined ? [] : [manifest.mast.texture];
-  return [...new Set([manifest.sail.texture, manifest.sail.occluder.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds, ...plank, ...mast])];
+  return [...new Set([manifest.sail.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds, ...plank, ...mast])];
 }
 
 export const loadDeckExtras = defineRpc({

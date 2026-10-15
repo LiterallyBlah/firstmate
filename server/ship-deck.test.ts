@@ -198,11 +198,11 @@ describe("the sail and the crew's looks the daemon serves", () => {
     await withEnvironment({ FIRSTMATE_SHIP_DECK: "0" }, () => expect(readDeckExtras(async () => root)).resolves.toBeDefined());
   });
 
-  it("on, is the sail, its occluder, six looks, the tall mast, the plank's board, shark and splash and five clouds, byte for byte, and small enough to send whole", async () => {
+  it("on, is the sail, six looks, the tall mast, the plank's board, shark and splash and five clouds, byte for byte, and small enough to send whole", async () => {
     const extras = await readDeckExtras(async () => root);
     const paths = extrasImagePaths(extras.manifest);
     expect(Object.keys(extras.images)).toEqual(paths);
-    expect(paths).toHaveLength(21);
+    expect(paths).toHaveLength(20);
     for (const path of paths) {
       expect(Buffer.from(extras.images[path]!, "base64").equals(readFileSync(join(root, DECK_ENVIRONMENT_DIR, path))), path).toBe(true);
     }
@@ -212,16 +212,18 @@ describe("the sail and the crew's looks the daemon serves", () => {
     expect(total).toBeLessThan(60_000);
   });
 
-  it("puts the occluder exactly where the mast piece it replaces stands, at its size and on its row", () => {
+  it("stands the tall mast on the mast piece it replaces, at its size, its foot on that piece's last row", () => {
     const extras = JSON.parse(readFileSync(join(root, DECK_EXTRAS_MANIFEST), "utf8")) as {
-      sail: { occluder: { texture: string; replaces: string; position: [number, number]; baseline: number | null } };
+      mast: { texture: string; size: [number, number]; position: [number, number]; replaces: string };
     };
     const deck = DeckArtManifestSchema.parse(JSON.parse(readFileSync(join(root, DECK_MANIFEST), "utf8")));
-    const { occluder } = extras.sail;
-    const mast = deck.pieces[occluder.replaces]!;
-    expect([occluder.position, occluder.baseline]).toEqual([[mast.x, mast.y], mast.baseline]);
-    const png = readFileSync(join(root, DECK_ENVIRONMENT_DIR, occluder.texture));
-    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([mast.frame[2], mast.frame[3]]);
+    const { mast } = extras;
+    const piece = deck.pieces[mast.replaces]!;
+    const png = readFileSync(join(root, DECK_ENVIRONMENT_DIR, mast.texture));
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual(mast.size);
+    expect(mast.position[1] + mast.size[1]).toBe(piece.y + piece.frame[3]);
+    expect(mast.position[0]).toBeLessThanOrEqual(piece.x);
+    expect(mast.position[0] + mast.size[0]).toBeGreaterThanOrEqual(piece.x + piece.frame[2]);
   });
 
   it("refuses a manifest whose images would leave art/ship-deck/, or two looks of one name, and does not keep the failure", async () => {

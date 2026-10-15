@@ -1,12 +1,13 @@
 /**
- * The deck's extras (`art/ship-deck/assets-2/README.md`): the sail on hull C's mast and the crew's six
- * extra looks — bosun, old salt, navigator, carpenter, rigger, deckhand — served by `firstmate.deck.extras`,
- * which also sends the shark (`client/deck-plank.ts`) and the sky's clouds (`client/deck-clouds.ts`).
- * Pure: which looks there are, who wears which, and which of the sail's two states shows. The sprites
+ * The deck's extras (`art/ship-deck/assets-2/README.md`): the tall mast and its sail, the plank's board and the
+ * crew's six extra looks — bosun, old salt, navigator, carpenter, rigger, deckhand — served by
+ * `firstmate.deck.extras`, which also sends the shark (`client/deck-plank.ts`) and the sky's clouds
+ * (`client/deck-clouds.ts`). Pure: which looks there are, who wears which, which of the sail's two states
+ * shows, and how the tall mast is cut. The sprites
  * are `client/deck-pixi.ts`'s.
  *
  * - **Nothing here is needed to draw.** The mount keeps every image that decodes (`decodeExtras` in
- *   `client/deck-mount.ts`): the sail needs its strip and the mast occluder both, or the mast stays bare;
+ *   `client/deck-mount.ts`): the sail needs its strip and the tall mast both, or the short mast stays bare;
  *   a look whose image is missing is simply not handed out. The atlas's own two outfits are always there.
  * - **A look per crewmate, stable by agent id.** A sailor wears the look its agent id hashes to, whoever
  *   else is aboard, from poll to poll and from one opening of the deck to the next. Two crewmates can
@@ -15,14 +16,15 @@
  * - **A look is drawn with the atlas's frames.** Each extra look is a texture the atlas's size with every
  *   pose at exactly the atlas's own crew rectangles and feet, so it is drawn, hit-tested and badged with the
  *   base lane's frames (`lookLane`).
- * - **The sail** alternates its rest and billow states every `frameMs` (850 ms) while the deck moves, and
- *   rests under reduced motion. It rides the ship's bob but not the masthead's sway, and hangs behind the
- *   crew; while it shows, the occluder — the mast with the rows behind the cloth cleared — stands in for
- *   the mast's depth piece, so the mast is still drawn over a sailor behind it without painting through the sail.
  * - **The tall mast** (`art/ship-deck/mast/`) stands in for the hull's own short one where it decoded: the
  *   hull's crow's nest, upper mast and stays are left out (`clears`), the mast is drawn behind the sail and
- *   the crew with its crow's nest and topmast swaying as the masthead did, the sail hangs higher on it, and
- *   its own lower rows are the mast's depth piece (`mastLayout`). Without it, the short rig is drawn as before.
+ *   the crew with its crow's nest and topmast swaying as the masthead did, and its own rows below the sail
+ *   are the mast's depth piece (`mastLayout`), so the mast is still drawn over a sailor behind it without
+ *   painting over the cloth. Without it, the short rig is drawn bare, as before the sail.
+ * - **The sail** (`art/ship-deck/sails/`), fitted to the tall mast, hangs only on it: its yard on the mast's
+ *   lashing point under the crow's nest. It alternates its rest and billow states every `frameMs` (850 ms)
+ *   while the deck moves, and rests under reduced motion. It rides the ship's bob but not the masthead's
+ *   sway, and hangs behind the crew.
  * - **The plank** is the generated board (`art/ship-deck/plank/`) at its placement, where it decoded; the
  *   board drawn in code (`client/deck-plank.ts`) stands in for it otherwise, so a sailor never walks out on nothing.
  */
@@ -65,12 +67,10 @@ export function lookFor(identity: string, looks: readonly string[]): string {
   return looks[hashOf(identity) % looks.length] ?? "base";
 }
 
-/** The sail, when it can be drawn: its strip and the occluder both decoded, and the piece it replaces is the atlas's. Null otherwise. */
-export function drawnSail(extras: DeckExtrasImages | null, pieces: DeckArtManifest["pieces"]): DeckExtrasManifest["sail"] | null {
-  if (extras === null) return null;
-  const { sail } = extras.manifest;
-  if (!extras.images.has(sail.texture) || !extras.images.has(sail.occluder.texture)) return null;
-  return pieces[sail.occluder.replaces] === undefined ? null : sail;
+/** The sail, when it can be drawn: its strip decoded and the tall mast it is fitted to drawn (`drawnMast`). Null otherwise. */
+export function drawnSail(extras: DeckExtrasImages | null, mast: DeckExtrasManifest["mast"] | null): DeckExtrasManifest["sail"] | null {
+  if (extras === null || mast === null || mast === undefined) return null;
+  return extras.images.has(extras.manifest.sail.texture) ? extras.manifest.sail : null;
 }
 
 /** The plank's generated board, when its image decoded; null leaves the board drawn in code (`plankPixels`). */
@@ -101,27 +101,24 @@ export interface MastLayout {
   shaft: Placed;
   /** Its depth piece on the replaced piece's row: its own rows from that piece's top down, and from below the sail's lower edge. */
   depth: Placed & { baseline: number | null };
-  /** Where the sail hangs on it. */
-  sail: readonly [number, number];
   /** Its top row: the world's fit takes it in. */
   top: number;
 }
 
-/** How the tall mast is drawn over `piece`, the depth piece it replaces, with a sail `sailHeight` rows tall (null: no sail). */
+/** How the tall mast is drawn over `piece`, the depth piece it replaces, with `sail` hanging on it (null: no sail). */
 export function mastLayout(
   mast: NonNullable<DeckExtrasManifest["mast"]>,
   piece: { y: number; baseline: number | null },
-  sailHeight: number | null,
+  sail: { position: readonly [number, number]; frameSize: readonly [number, number] } | null,
 ): MastLayout {
   const [width, height] = mast.size;
   const [x, y] = mast.position;
   const sway = Math.min(mast.sway, height);
-  const depthTop = Math.max(piece.y, sailHeight === null ? piece.y : mast.sail[1] + sailHeight, y);
+  const depthTop = Math.max(piece.y, sail === null ? piece.y : sail.position[1] + sail.frameSize[1], y);
   return {
     head: { frame: [0, 0, width, sway], x, y },
     shaft: { frame: [0, sway, width, height - sway], x, y: y + sway },
     depth: { frame: [0, depthTop - y, width, Math.max(0, y + height - depthTop)], x, y: depthTop, baseline: piece.baseline },
-    sail: mast.sail,
     top: Math.min(0, y),
   };
 }

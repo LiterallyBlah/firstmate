@@ -2,8 +2,8 @@
  * The generated environment on the deck, through `startDeck` itself with a stand-in for Pixi that keeps
  * the scene graph: the depth order (sky behind, sea behind and at the hull, ship and crew in front), the
  * sky following an injected clock — once a minute on a still deck — reduced motion's still sea and empty
- * sky, and the plain sea the deck falls back to without its environment. Then the extras: the sail and its
- * occluder, the crew's looks, the at-ease sailor's breath, and the wake. Then the camera closing in on a
+ * sky, and the plain sea the deck falls back to without its environment. Then the extras: the tall mast and
+ * its sail, the crew's looks, the at-ease sailor's breath, and the wake. Then the camera closing in on a
  * focused sailor: the zoom over the deck's clock, the veil and the spotlight, a click read through the camera,
  * the snap under reduced motion, and a resize while focused. Whether WebGL paints it is the browser
  * harnesses' (`docs/ship-deck-environment/`, `docs/ship-deck-tweaks/`, `docs/ship-deck-focus/`).
@@ -495,17 +495,18 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     expect([head.position.y, head.texture.frame.y, head.texture.frame.height]).toEqual([-112, 0, 52]);
     expect(Math.abs(head.position.x - 187)).toBeLessThanOrEqual(1);
     expect([shaft.position.x, shaft.position.y, shaft.texture.frame.y, shaft.texture.frame.height]).toEqual([187, -60, 52, 172]);
+    // The taller sail on it, at its yard's lashing point, one 114 × 84 state of its strip.
     const sail = one(ship, "sail") as FakeSprite;
-    expect([sail.position.x, sail.position.y]).toEqual(extrasManifest.mast!.sail);
+    expect([sail.position.x, sail.position.y]).toEqual([154, -15]);
     expect(texturePath(sail)).toBe("sails/main-sail.png");
-    // Its lower rows, from the mast piece's top, on the mast's row; below the sail's lower edge, so they never paint over it.
+    expect([sail.texture.frame.width, sail.texture.frame.height]).toEqual([114, 84]);
+    // Its rows below the sail's hem, on the mast's row, stand in for the mast piece: never over the cloth.
     expect(byLabel(deck.app.stage, "piece:mast")).toEqual([]);
-    expect(byLabel(deck.app.stage, "piece:mast:occluder")).toEqual([]);
     const depth = one(deck.app.stage, "piece:mast:tall") as FakeSprite;
     expect(texturePath(depth)).toBe("mast/tall-mast.png");
-    expect([depth.position.x, depth.position.y, depth.zIndex]).toEqual([187, 48, depthOf(110, 1)]);
-    expect([depth.texture.frame.y, depth.texture.frame.height]).toEqual([160, 64]);
-    expect(sail.position.y + extrasManifest.sail.frameSize[1]).toBeLessThanOrEqual(depth.position.y);
+    expect([depth.position.x, depth.position.y, depth.zIndex]).toEqual([187, 69, depthOf(110, 1)]);
+    expect([depth.texture.frame.y, depth.texture.frame.height]).toEqual([181, 43]);
+    expect(sail.position.y + sail.texture.frame.height).toBe(depth.position.y);
     expect(byLabel(deck.app.stage, "piece:near")).toHaveLength(1);
     deck.drawing.destroy();
   });
@@ -525,19 +526,16 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     deck.drawing.destroy();
   });
 
-  it("hangs the sail between the masthead and the crew, and stands the occluder in the mast's place on its row, without the tall mast", async () => {
+  it("without the tall mast, draws the hull's short rig bare: no sail fitted to a mast that is not there", async () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: shortRig });
     deck.advance(16);
     const ship = one(deck.app.stage, "ship");
-    expect(ship.children.map((child) => child.label)).toEqual(["hull:0", "hull:1", "hull:2", "masthead", "sail", "deck"]);
-    const sail = one(ship, "sail") as FakeSprite;
-    expect([sail.position.x, sail.position.y]).toEqual(extrasManifest.sail.position);
-    expect(texturePath(sail)).toBe("sails/main-sail.png");
-    expect(byLabel(deck.app.stage, "piece:mast")).toEqual([]);
-    const occluder = one(deck.app.stage, "piece:mast:occluder") as FakeSprite;
-    expect(texturePath(occluder)).toBe("sails/mast-occluder.png");
-    expect([occluder.position.x, occluder.position.y, occluder.zIndex]).toEqual([202, 48, depthOf(110, 1)]);
-    // Every other piece is the atlas's, as before.
+    expect(ship.children.map((child) => child.label)).toEqual(["hull:0", "hull:1", "hull:2", "masthead", "deck"]);
+    const masthead = one(ship, "masthead") as FakeSprite;
+    expect(Math.abs(masthead.position.x - 188)).toBeLessThanOrEqual(1);
+    expect(masthead.position.y).toBe(0);
+    const piece = one(deck.app.stage, "piece:mast") as FakeSprite;
+    expect([piece.position.x, piece.position.y, piece.zIndex]).toEqual([202, 48, depthOf(110, 1)]);
     expect(byLabel(deck.app.stage, "piece:near")).toHaveLength(1);
     deck.drawing.destroy();
   });
@@ -550,7 +548,7 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     for (let frame = 0; frame < 120; frame += 1) {
       deck.advance(34);
       frames.add(sail.texture.frame.x);
-      expect([sail.position.x, sail.position.y]).toEqual(extrasManifest.mast!.sail);
+      expect([sail.position.x, sail.position.y]).toEqual(extrasManifest.sail.position);
     }
     expect(frames).toEqual(new Set([0, 114]));
     deck.drawing.destroy();
@@ -559,19 +557,14 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     still.drawing.destroy();
   });
 
-  it("without the extras, or missing the occluder, keeps the bare mast and its own piece", async () => {
+  it("without the extras keeps the bare mast and its own piece; without the sail, the tall mast stands bare", async () => {
     const bare = await start(environment, { now: new Date(2026, 9, 14, 12, 0) });
     expect(byLabel(bare.app.stage, "sail")).toEqual([]);
     expect(byLabel(bare.app.stage, "mast")).toEqual([]);
     expect(byLabel(bare.app.stage, "piece:mast")).toHaveLength(1);
     bare.drawing.destroy();
-    const partial = { manifest: extrasManifest, images: new Map([...shortRig.images].filter(([path]) => path !== "sails/mast-occluder.png")) };
-    const half = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: partial });
-    expect(byLabel(half.app.stage, "sail")).toEqual([]);
-    expect(byLabel(half.app.stage, "piece:mast")).toHaveLength(1);
-    half.drawing.destroy();
     // The tall mast without its sail still stands, its own rows the depth piece from the mast piece's top.
-    const bareTall = { manifest: extrasManifest, images: new Map([...extras.images].filter(([path]) => path !== "sails/mast-occluder.png")) };
+    const bareTall = { manifest: extrasManifest, images: new Map([...extras.images].filter(([path]) => path !== "sails/main-sail.png")) };
     const tall = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: bareTall });
     expect(byLabel(tall.app.stage, "sail")).toEqual([]);
     expect(byLabel(tall.app.stage, "mast")).toHaveLength(1);
