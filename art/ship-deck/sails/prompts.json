@@ -1,0 +1,27 @@
+{
+  "tool": "image_gen__imagegen",
+  "mode": "built-in",
+  "backendModel": "Not disclosed",
+  "calls": 2,
+  "generatedDate": "2026-10-15",
+  "prompts": [
+    {
+      "frame": "rest",
+      "prompt": "Use case: precise-object-edit. Asset type: transparent pixel-art ship-deck game sprite, single animation frame.\nInput image 1 is the EXISTING SAIL STRIP style/geometry reference (two tiny 114x27 frames); use its LEFT frame as the design. Input image 2 is the deck atlas palette/pixel style reference. Input image 3 is tall mast fit context only.\nGenerate ONE taller unfurled version of this same warm cream square sail WITH its slim horizontal brown wooden yard along the top. Preserve the original yard's width, horizontal orientation, central rope lashing, and short projecting tips. Change the cloth from low reefed to tall gently billowing canvas. Final intended logical frame is 114 pixels wide x84 pixels tall, yard 114x7 at the top, local mast/yard pivot (57,3), cloth starts y6 and reaches about y81. Cloth spans x10..104 at top, subtly narrowing toward rounded lower corners, with gently curved lower edge and four broad vertical sewn panels. The cloth should be about three times as tall as the old short sail, NOT wider. Slight billow, broad warm cream areas, restrained ochre edge/fold shadows, crisp dark brown edge accents matching the reference. No pattern or insignia.\nRender a single fully visible centered sprite on genuine transparent background, ample transparent margin, high resolution clean pixel-art shapes that can be sampled to 114x84. Consistent logical pixel scale: thin 1px outlines, simple clustered shadows, no noisy texture or tiny fake pixel confetti. Keep yard at the very top, horizontal and straight. NO vertical mast, crow's nest, hull, crew, extra rigging, scenery, ground shadow, text, labels, checkerboard or border.\nPalette guidance: canvas #E8CCA6, warm shadows #CE9659 #BF854C #815C43, wood #AD6D3D #624130 #3E2921, darkest edge #271E1D. Match deck reference precisely. This is frame 0, relaxed gentle billow.",
+      "references": [
+        "main-sail.png at baseCommit (old two-frame strip)",
+        "../deck.png",
+        "fm/deck-mast-art:art/ship-deck/mast/fit-preview.png"
+      ],
+      "output": "source/generated-rest.png"
+    },
+    {
+      "frame": "billow",
+      "prompt": "Use case: precise-object-edit. This image is frame 0 of a pixel-art game sail. Generate frame 1 of a very gentle TWO-FRAME billow loop by making a minimal edit to this exact sprite.\nLOCK the entire wooden yard, its height/width/end caps, central rope lashing, canvas top attachment, outer side seams and both bottom corner tie points in exactly the same positions. Keep canvas dimensions, camera, palette and panel identity. Change only the lower inner canvas: slightly shift the soft curve of the central two cream panels and their ochre fold shadows approximately 10-20 source pixels (only 1-2 final logical pixels); lift the middle bottom hem by about 10 source pixels while corners stay still. Keep four broad sewn panels, no extra creases, no big swelling or sway. It should feel like the same canvas gently breathing in a breeze, not a different sail.\nFinal sprite will be sampled to 114x84 logical pixels; the short brown yard stays at the top and centered mast pivot (57,3) is fixed. Preserve warm cream #E8CCA6 and ochre/wood browns matching the original. Genuine transparent background, identical framing/margins. No mast, hull, ropes hanging into empty space, text, checkerboard, shadows outside the sprite or additional objects.",
+      "references": [
+        "source/generated-rest.png"
+      ],
+      "output": "source/generated-billow.png"
+    }
+  ]
+}
