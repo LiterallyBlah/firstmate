@@ -1,0 +1,113 @@
+{
+  "created": "2026-10-15",
+  "generator": "Built-in image_gen__imagegen",
+  "backendModel": "Not disclosed by tool",
+  "calls": 5,
+  "callBudget": 15,
+  "references": "Inspected repository environment-preview.png and atlas-4x.png, environment.json palette, README, ENVIRONMENT.md, and docs/ship-deck-art/build-art.py. Sources generated from the textual specifications below; no image was submitted as an edit target.",
+  "artwork": "Five independently generated cloud shapes; no procedural cloud geometry or hand painting. Source PNGs preserved on generation host, outside the repository.",
+  "sourceDirectoryOnGenerationHost": "C:/Users/micha/.codex/generated_images/01a13e8f-dd16-7bc1-a21f-7d8ceefee3c9",
+  "sources": [
+    {
+      "call": 1,
+      "id": "wisp",
+      "file": "exec-1e096c84-a3d0-4cdb-9efb-be63a0c7636b.png",
+      "sha256": "69fe5d8863934b70f798a55eb8d9c877a0523e782c3b69b9255c6cfc4b67e4a6",
+      "prompt": "Use case: stylized-concept. Generate one game-ready pixel-art cloud sprite: a small low wind-wisp with two unequal soft puffy lobes and a long gently tapering right tail, roughly 4:1 width to height. Transparent background, isolated and fully in frame with generous clear margins. For a restrained nautical pixel-art game with a 426px-wide wooden hull, 32px sailors and 20px gull, final cloud intended visible width 40 logical pixels. Draw enlarged nearest-neighbor pixel art with simple broad stepped clusters, no outline, no dither, no texture noise, no glow, no antialias. Neutral daytime shading only, upper-left light. EXACT colours only: highlight #D9D4BE, body #BECAC6, soft lower shadow #A8B9BD; no other colours. These muted off-white/light-grey colours match the game's existing environment palette. Keep shade regions broad and subtle, a mostly pale soft cloud. No ground shadow, sky, frame, text, watermark or other objects. Actual alpha transparency, no checkerboard drawn in.",
+      "transparent_background": true,
+      "cropXYWH": [
+        228,
+        194,
+        1716,
+        351
+      ],
+      "outputContentSize": [
+        40,
+        8
+      ]
+    },
+    {
+      "call": 2,
+      "id": "puff",
+      "file": "exec-744d98bb-1257-4949-8b5f-154cbecbae0b.png",
+      "sha256": "11541551c39c30cbc0982eaff2bbe25b25e2d942c9cd3283dfc8b6bf3ec05b72",
+      "prompt": "Use case: stylized-concept. Generate one game-ready pixel-art cloud sprite: a small detached oval puff, three uneven rounded lobes with the highest peak at right, compact fluffy silhouette, gently flattened base and tiny tapered left tip, roughly 2.8:1 width to height. Transparent background, isolated and fully in frame with generous clear margins. For a restrained nautical pixel-art game with a 426px-wide wooden hull, 32px sailors and 20px gull, final cloud intended visible width 32 logical pixels. Draw enlarged nearest-neighbor pixel art with simple broad stepped clusters, no outline, no dither, no texture noise, no glow, no antialias. Neutral daytime shading only, upper-left light. EXACT colours only: highlight #D9D4BE, body #BECAC6, soft lower shadow #A8B9BD; no other colours. These muted off-white/light-grey colours match the game's existing environment palette. Keep shade regions broad and subtle, a mostly pale soft cloud. No ground shadow, sky, frame, text, watermark or other objects. Actual alpha transparency, no checkerboard drawn in.",
+      "transparent_background": true,
+      "cropXYWH": [
+        423,
+        167,
+        1290,
+        409
+      ],
+      "outputContentSize": [
+        32,
+        10
+      ]
+    },
+    {
+      "call": 3,
+      "id": "cumulus",
+      "file": "exec-24f330e0-c442-435e-ae33-ad40920ee026.png",
+      "sha256": "357fde2c6c2eb75769dd6922ee43ee3149c6ae3a2d1baddcec3be6c56f6ac53f",
+      "prompt": "Use case: stylized-concept. Generate one game-ready pixel-art cloud sprite: a medium puffy fair-weather cumulus, one broad central dome with two smaller uneven shoulder lobes, a gently scalloped low base, asymmetrical but balanced silhouette, roughly 3:1 width to height. Transparent background, isolated and fully in frame with generous clear margins. For a restrained nautical pixel-art game with a 426px-wide wooden hull, 32px sailors and 20px gull, final cloud intended visible width 58 logical pixels. Draw enlarged nearest-neighbor pixel art with simple broad stepped clusters, no outline, no dither, no texture noise, no glow, no antialias. Neutral daytime shading only, upper-left light. EXACT colours only: highlight #D9D4BE, body #BECAC6, soft lower shadow #A8B9BD; no other colours. These muted off-white/light-grey colours match the game's existing environment palette. Keep shade regions broad and subtle, a mostly pale soft cloud. No ground shadow, sky, frame, text, watermark or other objects. Actual alpha transparency, no checkerboard drawn in.",
+      "transparent_background": true,
+      "cropXYWH": [
+        202,
+        121,
+        1768,
+        504
+      ],
+      "outputContentSize": [
+        58,
+        17
+      ]
+    },
+    {
+      "call": 4,
+      "id": "long-bank",
+      "file": "exec-5f5ccb22-b833-455e-9aac-9467bef863e8.png",
+      "sha256": "b34c1f1686b75b2870b8aa2dd425a023a521fc108ba5c140e4aa012d79991fb6",
+      "prompt": "Use case: stylized-concept. Generate one game-ready pixel-art cloud sprite: a large low horizontal cloud bank with five overlapping uneven low puffy lobes, largest dome left of centre, long low shoulder to right, soft gently scalloped base, roughly 4.7:1 width to height. Transparent background, isolated and fully in frame with generous clear margins. For a restrained nautical pixel-art game with a 426px-wide wooden hull, 32px sailors and 20px gull, final cloud intended visible width 88 logical pixels. Draw enlarged nearest-neighbor pixel art with simple broad stepped clusters, no outline, no dither, no texture noise, no glow, no antialias. Neutral daytime shading only, upper-left light. EXACT colours only: highlight #D9D4BE, body #BECAC6, soft lower shadow #A8B9BD; no other colours. These muted off-white/light-grey colours match the game's existing environment palette. Keep shade regions broad and subtle, a mostly pale soft cloud. No ground shadow, sky, frame, text, watermark or other objects. Actual alpha transparency, no checkerboard drawn in.",
+      "transparent_background": true,
+      "cropXYWH": [
+        82,
+        151,
+        2014,
+        473
+      ],
+      "outputContentSize": [
+        88,
+        21
+      ]
+    },
+    {
+      "call": 5,
+      "id": "twin-bank",
+      "file": "exec-38068665-38c3-4559-94f3-d6cb667056f4.png",
+      "sha256": "fae61444db24cd16d3b92632c8f132660988b7ea546fedb648e227d69774fecf",
+      "prompt": "Use case: stylized-concept. Generate one game-ready pixel-art cloud sprite: a broad airy twin-peak cloud bank, two distinct large rounded puffs separated by a deep saddle but joined at a thin base, shorter left puff and taller right puff, tiny low trailing ledges at both ends, roughly 3.6:1 width to height. Transparent background, isolated and fully in frame with generous clear margins. For a restrained nautical pixel-art game with a 426px-wide wooden hull, 32px sailors and 20px gull, final cloud intended visible width 76 logical pixels. Draw enlarged nearest-neighbor pixel art with simple broad stepped clusters, no outline, no dither, no texture noise, no glow, no antialias. Neutral daytime shading only, upper-left light. EXACT colours only: highlight #D9D4BE, body #BECAC6, soft lower shadow #A8B9BD; no other colours. These muted off-white/light-grey colours match the game's existing environment palette. Keep shade regions broad and subtle, a mostly pale soft cloud. No ground shadow, sky, frame, text, watermark or other objects. Actual alpha transparency, no checkerboard drawn in.",
+      "transparent_background": true,
+      "cropXYWH": [
+        57,
+        152,
+        1920,
+        495
+      ],
+      "outputContentSize": [
+        76,
+        20
+      ]
+    }
+  ],
+  "cleanup": {
+    "implementation": "Mechanical System.Drawing processing on Windows; source shapes preserved.",
+    "sourcePixelAcceptance": "alpha >= 192, minimum RGB channel >= 100, maximum minus minimum RGB channel < 80. This rejects soft halos and coloured generation fringe.",
+    "crop": "Bounding box of accepted pixels, recorded per source as x,y,width,height.",
+    "sampling": "Preserve crop aspect ratio; content width 40,32,58,88,76 respectively, height rounded to nearest integer. Each output cell uses rounded source block boundaries. Opaque iff at least half the block's source pixels are accepted; use independent RGB medians (upper median for even sample counts).",
+    "paletteMapping": "Nearest RGB Euclidean distance to [#A8B9BD,#BECAC6,#D9D4BE], no dithering.",
+    "denoise": "One pass on a snapshot of the quantized image: an opaque pixel with all eight neighbours opaque and at most one neighbour of its colour takes the most frequent neighbour palette colour (ties prefer lower palette index). Silhouette alpha unchanged.",
+    "output": "Two clear pixels of padding on every side. Transparent RGB zero; RGBA PNG with only 0/255 alpha.",
+    "previews": "Mechanical nearest-neighbour compositing at 3x for contact sheet and 1x onto existing environment-preview.png for the six-stage review; palette swaps exactly as manifest."
+  },
+  "license": "Distributed under repository MIT license. AI-generated; no third-party stock or artist artwork used. No claim of exclusive copyright or human authorship."
+}

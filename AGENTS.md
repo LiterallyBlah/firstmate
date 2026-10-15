@@ -42,7 +42,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`), and each send's receipt. |
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
-| `server/ship-deck.ts`, `shared/ship-deck.ts` | What the ship deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail, the crew's looks and the plank's shark and splash. |
+| `server/ship-deck.ts`, `shared/ship-deck.ts` | What the ship deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail, the crew's looks, the plank's shark and splash, and the sky's clouds. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the focused sailor's panel and keys, the legend of badges and counts. |
 | `client/deck-camera.ts`       | The camera: the exact fit or a shot closed in on a focused sailor, the eased zoom between, where the focus panel goes; what a click or an arrow does to the focus. Pure. |
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z. Pure. |
@@ -55,7 +55,8 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-wake.ts`         | The wake astern and the bow and stern waves' arms, as runs of foam pixels scrolled with the sea. Pure. |
 | `client/deck-ambient.ts`      | The bob, the masthead's sway, the lanterns, where the water is and when a gull flies, as functions of the clock; the motion plan. Pure. |
 | `client/deck-sky.ts`          | The sky by the local time of day, its place behind the ship; the sea's and foam's scroll, the gull's pose. Pure. |
-| `client/deck-environment.ts`  | The generated sky, stars, gull, sea and foam, and the wake, drawn with Pixi, behind and in front of the ship; a plain sea (with its wake) without them. |
+| `client/deck-environment.ts`  | The generated sky, stars, clouds, gull, sea and foam, and the wake, drawn with Pixi, behind and in front of the ship; a plain sea (with its wake) without them. |
+| `client/deck-clouds.ts`       | The sky's clouds: the seeded field in lanes above the horizon, each cloud's whole-pixel drift and off-screen wrap, its colours from the sky's blend, a sprite cut into slot masks. Pure. |
 | `client/deck-loop.ts`         | When the deck draws: 30 fps at most, paused while hidden, still under reduced motion.     |
 | `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated, the atlas, environment and extras decoded; every failure a status. |
 | `client/deck-pixi.ts`         | The deck, its sail, depth pieces, props, plank and sailor sprites, and the sea's layer of sharks and splashes, drawn with Pixi, handed in through a narrow `PixiModule`. |
@@ -381,7 +382,7 @@ starts.
   them once a session beside Pixi and the atlas, but apart: when they fail, the deck draws its ship and
   crew on a flat navy sea, warns in the console, and asks again on the next open.
 - **Depth, back to front** (`createScenery`'s `back` and `front`, either side of `ship` in the world):
-  the sky, its stars, the gull, the far sea from the horizon; the ship and everything on deck; the near
+  the sky, its stars, the clouds, the gull, the far sea from the horizon; the ship and everything on deck; the near
   sea from the waterline, cut from the same tiles so they line up, and the foam over the waterline.
   `client/deck-environment.test.ts` drives `startDeck` with a stand-in Pixi and reads the scene graph.
 - **The sky follows the machine's local clock**, read through `DeckMotionEnvironment.clock`. Each of the
@@ -399,6 +400,19 @@ starts.
   at most three crops a frame across the hull's waterline (`FOAM_SPAN`), so it never runs into open sea.
   The gull flies behind the ship, beak-registered and mirrored to fly left, flapping `up mid down mid` at
   125 ms, and not at all while the stars are more than half out.
+- **Clouds drift in the sky's own pixels** (`client/deck-clouds.ts`, art in `art/ship-deck/clouds/`, sent with the
+  extras under `clouds`). Seven, one a lane, each a cloud's bottom a seeded 30–188 sky pixels above the horizon
+  row, drawn with the sky's placement and scale, so a resize or the camera's zoom moves them with the sky and
+  never against it (`layout` re-places them too, since a still deck's camera can lay out without a draw). Not
+  the art manifest's rows 20–110: a pane that fits the deck's height shows only the sky's lowest ~96 rows,
+  so the lowest lanes are what keeps a cloud in view there. Each drifts right ~0.2–0.8 sky px a second in
+  whole pixels and wraps only wholly outside the sky, which `skyPlacement` always makes at least as wide as
+  what shows; still when the sea is (`MotionPlan.ambient`). The field is seeded from the clock's second at
+  start. **The tint is per colour slot, not a multiply**: each sprite holds exactly three colours, so
+  `cutCloudMasks` (`client/deck-mount.ts`) reads it back off a scratch canvas into three white masks
+  (`ImageBitmap`s), each a sprite tinted to its slot of the phase palette, crossfaded by `skyBlend`'s `t`. A
+  multiply cannot brighten, and the afternoon palette is lighter than the source. A cloud that will not cut is
+  left out with a warning, like any extra.
 - **What still wants an artist** is in `art/ship-deck/ENVIRONMENT.md`: the foam's scallops are regular and
   not fitted to hull C's curve, and the gull's wing sweep is approximate. The hull and sea are not tinted
   for night.

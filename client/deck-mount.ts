@@ -21,6 +21,8 @@
  * ship and crew on a flat sea, says so in the console, and asks again the next time it is opened. **The
  * sail and the crew's extra looks** likewise, from `firstmate.deck.extras`, image by image: whatever
  * decodes is drawn, whatever does not is left out with a warning — a bare mast, or fewer looks to go round.
+ * The sky's clouds are among them; each is also cut into three white masks to be tinted (`cutCloudMasks`),
+ * and one that cannot be is left out the same way.
  *
  * **Motion is the browser's too.** `browserMotion` hands the deck `requestAnimationFrame`, the
  * `prefers-reduced-motion` query and `document.hidden`, so `client/deck-loop.ts` can cap, pause and still it;
@@ -30,6 +32,7 @@
  * load, Pixi failing to start. A mount torn down while Pixi is still starting destroys what starts.
  */
 import { environmentImagePaths, extrasImagePaths, type DeckArt, type DeckEngineSource, type DeckEnvironment, type DeckExtras } from "../shared/ship-deck";
+import { cloudSlotMasks } from "./deck-clouds";
 import type { DeckEnvironmentImages } from "./deck-environment";
 import type { DeckExtrasImages } from "./deck-extras";
 import type { DeckHover } from "./deck-hover";
@@ -366,6 +369,7 @@ export function decodeExtras(
   extras: DeckExtras,
   decode: (png: string) => Promise<unknown>,
   onMissing: (path: string, error: unknown) => void = function () {},
+  cutCloud: CutCloud = cutCloudMasks,
 ): Promise<DeckExtrasImages> {
   return Promise.all(
     extrasImagePaths(extras.manifest).map(function (path) {
@@ -380,8 +384,69 @@ export function decodeExtras(
       );
     }),
   ).then(function (decoded) {
-    return { manifest: extras.manifest, images: new Map(decoded.filter((entry) => entry !== null)) };
+    const images = new Map(decoded.filter((entry) => entry !== null));
+    // Each cloud that decoded, cut into its three slot masks; one that will not cut is left out like a missing image.
+    const clouds = extras.manifest.clouds;
+    const sprites = (clouds?.sprites ?? []).filter((sprite) => images.has(sprite.texture));
+    return Promise.all(
+      sprites.map((sprite) =>
+        Promise.resolve()
+          .then(() => cutCloud(images.get(sprite.texture), sprite.size, clouds!.palette))
+          .then(
+            (masks) => [sprite.texture, masks] as const,
+            function (error: unknown) {
+              onMissing(sprite.texture, error);
+              return null;
+            },
+          ),
+      ),
+    ).then(function (cut) {
+      return { manifest: extras.manifest, images, cloudMasks: new Map(cut.filter((entry) => entry !== null)) };
+    });
   });
+}
+
+/** Cuts a decoded cloud of `size` into one white mask per slot of `palette`, each an image Pixi can draw. */
+export type CutCloud = (image: unknown, size: readonly [number, number], palette: readonly string[]) => Promise<readonly [unknown, unknown, unknown]>;
+
+interface PixelCanvas {
+  width: number;
+  height: number;
+  getContext(
+    kind: "2d",
+    options?: { willReadFrequently?: boolean },
+  ): { drawImage(image: unknown, x: number, y: number): void; getImageData(x: number, y: number, width: number, height: number): { data: Uint8ClampedArray } } | null;
+}
+
+type PixelGlobals = {
+  document?: { createElement?: (tag: string) => unknown };
+  ImageData?: new (data: Uint8ClampedArray, width: number, height: number) => unknown;
+  createImageBitmap?: (data: unknown) => Promise<unknown>;
+};
+
+/**
+ * The browser's way: the cloud drawn on a scratch canvas, its pixels read back and cut (`cloudSlotMasks`), and
+ * each mask made an `ImageBitmap`. Refused where the renderer has no canvas or bitmaps; the sky then has no clouds.
+ */
+export function cutCloudMasks(
+  image: unknown,
+  size: readonly [number, number],
+  palette: readonly string[],
+  web: PixelGlobals = globalThis as PixelGlobals,
+): Promise<readonly [unknown, unknown, unknown]> {
+  const [width, height] = size;
+  const canvas = web.document?.createElement?.("canvas") as PixelCanvas | undefined;
+  const { ImageData, createImageBitmap } = web;
+  if (canvas === undefined || typeof canvas.getContext !== "function" || typeof ImageData !== "function" || typeof createImageBitmap !== "function") {
+    return Promise.reject(new Error("this renderer cannot read pixels"));
+  }
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (context === null) return Promise.reject(new Error("this renderer has no 2D canvas"));
+  context.drawImage(image, 0, 0);
+  const masks = cloudSlotMasks(context.getImageData(0, 0, width, height).data, palette);
+  return Promise.all(masks.map((mask) => createImageBitmap(new ImageData(mask, width, height)))).then(([shadow, body, highlight]) => [shadow, body, highlight] as const);
 }
 
 /** Pixi and the art for this app session: fetched once, kept; a failure is not kept, so reopening the deck tries again. */

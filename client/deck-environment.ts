@@ -8,6 +8,8 @@
  *   blend's opacity, never two over transparency (the manifest's rule), so clouds never jump in a fade.
  *   Placed once per layout at the hull's pixel scale, centred on the ship, never tiled.
  * - **Stars** — the overlay, faded with the night's share, above the sky and behind everything else.
+ * - **Clouds** — the extras' sprites, over the stars and behind the gull, in the sky's own placement and
+ *   pixels, drifting right and tinted with the sky's blend (`client/deck-clouds.ts`). Only with a sky.
  * - **Gull** — the three-pose sprite, registered at the beak, mirrored to fly left. Behind the ship, in
  *   daylight only: no gull sets off while the stars are more than half out.
  * - **Sea** — the 256 × 128 tile, repeated both ways from the horizon down, scrolled sideways a whole
@@ -27,6 +29,7 @@
  */
 import { environmentImagePaths, GULL_POSES, type DeckEnvironmentManifest, type GullPose } from "../shared/ship-deck";
 import { gullsAt, HORIZON, SEA_FALLBACK, WATERLINE, type MotionPlan } from "./deck-ambient";
+import { cloudColours, cloudField, cloudX, type CloudImages } from "./deck-clouds";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
 import { DECK_HEIGHT, DECK_WIDTH } from "./deck-scene";
 import { gullPose, scrollOffset, skyBlend, skyHorizonRow, skyPlacement, type SkyBlend } from "./deck-sky";
@@ -56,7 +59,7 @@ export const FOAM_TOP = WATERLINE - 6;
 const GULL_SPRITES = 2;
 
 export interface Scenery {
-  /** Behind the ship: the sky, the stars, the gull and the far sea. */
+  /** Behind the ship: the sky, the stars, the clouds, the gull and the far sea. */
   readonly back: PixiContainer;
   /** In front of the hull from its waterline down: the near sea, the wake and the foam. */
   readonly front: PixiContainer;
@@ -115,7 +118,11 @@ function wakeLayer(pixi: PixiModule) {
   };
 }
 
-export function createScenery(pixi: PixiModule, environment: DeckEnvironmentImages | null): Scenery {
+/**
+ * The scenery behind and in front of the ship. `clouds`, when there are any, drift across the sky, laid out
+ * from `seed`; without the environment's sky there is nowhere for them, and they are not drawn.
+ */
+export function createScenery(pixi: PixiModule, environment: DeckEnvironmentImages | null, clouds: CloudImages | null = null, seed = 0): Scenery {
   const back = new pixi.Container();
   back.label = "scenery:back";
   const front = new pixi.Container();
@@ -149,6 +156,46 @@ export function createScenery(pixi: PixiModule, environment: DeckEnvironmentImag
     sprite.label = "sky:stars";
     return sprite;
   });
+
+  // The clouds: each its three slot masks, one over the other in a container placed in the sky's pixels.
+  const horizonRow = skyHorizonRow(manifest.sky.size);
+  const cloudSprites = clouds?.manifest.sprites ?? [];
+  const cloudLayer = new pixi.Container();
+  cloudLayer.label = "clouds";
+  const cloudSlots = cloudSprites.map(function (sprite) {
+    const masks = clouds!.masks.get(sprite.texture)!;
+    return masks.map(function (mask, slot) {
+      const source = new pixi.ImageSource({ resource: mask });
+      source.scaleMode = "nearest";
+      sources.set(`${sprite.texture}#${slot}`, source);
+      const texture = new pixi.Texture({ source, frame: new pixi.Rectangle(0, 0, sprite.size[0], sprite.size[1]) });
+      made.push(texture);
+      return texture;
+    });
+  });
+  const field = cloudField(seed, cloudSprites, skyWidth, horizonRow).map(function (cloud) {
+    const container = new pixi.Container();
+    container.label = `cloud:${cloudSprites[cloud.sprite]!.id}`;
+    const slots = cloudSlots[cloud.sprite]!.map(function (texture, slot) {
+      const sprite = new pixi.Sprite(texture);
+      sprite.label = `cloud:${["shadow", "body", "highlight"][slot]}`;
+      container.addChild(sprite);
+      return sprite;
+    });
+    cloudLayer.addChild(container);
+    return { cloud, width: cloudSprites[cloud.sprite]!.size[0], container, slots };
+  });
+  let skyPlace = { x: 0, y: 0, scale: 1 };
+  let cloudTint = "";
+  let cloudDrift = { seconds: 0, drifting: false };
+  /** Puts each cloud where its drift has it, in the sky's pixels at the sky's placement: whole sky pixels. */
+  function placeClouds(): void {
+    for (const { cloud, width, container } of field) {
+      const x = cloudX(cloud, width, skyWidth, cloudDrift.seconds, cloudDrift.drifting);
+      container.position.set(skyPlace.x + x * skyPlace.scale, skyPlace.y + cloud.row * skyPlace.scale);
+      container.scale.set(skyPlace.scale);
+    }
+  }
 
   // The gull: its three poses, registered at the beak.
   const [gullWidth, gullHeight] = manifest.gull.frameSize;
@@ -201,7 +248,7 @@ export function createScenery(pixi: PixiModule, environment: DeckEnvironmentImag
 
   const wake = wakeLayer(pixi);
 
-  back.addChild(skyUnder, skyOver, ...overlays, ...gulls, farSea);
+  back.addChild(skyUnder, skyOver, ...overlays, ...(field.length > 0 ? [cloudLayer] : []), ...gulls, farSea);
   front.addChild(nearSea, wake.graphics, foam);
 
   function tile(parent: PixiContainer, texture: PixiTexture, x: number, y: number): void {
@@ -216,11 +263,14 @@ export function createScenery(pixi: PixiModule, environment: DeckEnvironmentImag
     front,
     generated: true,
     layout(visible) {
-      const place = skyPlacement(visible, manifest.sky.size, skyHorizonRow(manifest.sky.size));
+      const place = skyPlacement(visible, manifest.sky.size, horizonRow);
       for (const sprite of [skyUnder, skyOver, ...overlays]) {
         sprite.position.set(place.x, place.y);
         sprite.scale.set(place.scale);
       }
+      skyPlace = place;
+      // Again here, not only in `draw`: a still deck's camera can lay the sky out anew without a draw after.
+      placeClouds();
       wake.layout(visible);
       if (tiles.length > 0 && visible.left >= tiled.left && visible.right <= tiled.right && visible.bottom <= tiled.bottom) return;
       // A tile's width of slack either side, so a scroll of up to a tile never shows an edge.
@@ -246,6 +296,17 @@ export function createScenery(pixi: PixiModule, environment: DeckEnvironmentImag
       for (const sprite of overlays) {
         sprite.alpha = blend.stars;
         sprite.visible = blend.stars > 0;
+      }
+      if (clouds !== null && field.length > 0) {
+        // The clouds in the sky's pixels, whole ones, drifting only while the sea scrolls; recoloured when the sky's blend moves them.
+        cloudDrift = { seconds, drifting: plan.ambient };
+        placeClouds();
+        const colours = cloudColours(clouds.manifest, manifest.sky.phases, blend);
+        const tint = colours.join(":");
+        if (tint !== cloudTint) {
+          cloudTint = tint;
+          for (const { slots } of field) slots.forEach((sprite, slot) => (sprite.tint = colours[slot]!));
+        }
       }
 
       const drift = plan.ambient ? scrollOffset(seconds, manifest.sea.animation.xPixelsPerSecond, tileWidth) : 0;
