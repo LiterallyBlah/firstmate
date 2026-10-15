@@ -264,6 +264,7 @@ const ambienceImages = new Set(
  */
 function packImages(options: { extras?: Extras | null; without?: readonly string[] }, art: StillWater, atlas: unknown = { atlas: true }) {
   const handles = new Set(shipManifest().zones.zones.flatMap((zone) => zone.appearance === undefined ? [] : [zone.appearance.sprite.image]));
+  for (const sprite of shipManifest().attentionCarrier?.frames ?? []) handles.add(sprite.image);
   const images = new Map(
     [...shipViews().paths].flatMap(([id, path]): Array<[string, unknown]> => {
       if (options.without?.includes(id)) return [];
@@ -360,7 +361,8 @@ async function start(
     stage?: DeckStage;
     ambience?: DeckAmbience;
     onHover?: (hover: DeckHover | null) => void;
-    onSelect?: (key: string | null) => void;
+    onSelect?: (key: string | null, action?: "converse") => void;
+    attentionCarrier?: SettingManifest["attentionCarrier"];
   },
 ) {
   const w = world(options);
@@ -370,7 +372,7 @@ async function start(
   const { images, masks, ambience, parts } = packImages(options, art, atlas);
   const drawing = await startDeck(
     pixi,
-    { stage: options.stage ?? shipStage(), cast: shipCast(), parts, ambience: options.ambience ?? ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, effects: shipManifest().effects, presentation: deckPresentation(shipManifest()) },
+    { stage: options.stage ?? shipStage(), cast: shipCast(), parts, ambience: options.ambience ?? ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, effects: shipManifest().effects, attentionCarrier: options.attentionCarrier, presentation: deckPresentation(shipManifest()) },
     host,
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
@@ -486,7 +488,7 @@ describe("the generated environment on the deck", () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0) });
     deck.advance(16);
     const worldLayer = one(deck.app.stage, "world");
-    expect(worldLayer.children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot"]);
+    expect(worldLayer.children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot", "attention-carrier"]);
     // Nobody focused: no veil, an empty spotlight.
     expect(one(worldLayer, "veil").visible).toBe(false);
     expect(one(worldLayer, "spot").children).toHaveLength(0);
@@ -603,7 +605,7 @@ describe("the generated environment on the deck", () => {
   it("without its still sea, draws a plain sea at the horizon and the waterline, under the sky as ever", async () => {
     const deck = await start(null, { now: new Date(2026, 9, 14, 12, 0) });
     deck.advance(16);
-    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot"]);
+    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot", "attention-carrier"]);
     expect(one(deck.app.stage, "scenery:back").children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:overcast", "sky:stars", "gull", "gull", "sea:back"]);
     expect(deck.app.canvas.attributes.get(DECK_SKY_ATTRIBUTE)).toBe("midday");
     const far = one(deck.app.stage, "sea:back") as FakeGraphics;
@@ -973,6 +975,67 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
   });
 });
 
+describe("attention carriers in the renderer", () => {
+  const now = new Date(2026, 9, 14, 12, 0), attentionCarrier = shipManifest().attentionCarrier!;
+  const scene = () => {
+    const value = crewScene([["a", "working"], ["remote:b", "idle"]]);
+    value.sailors.forEach(sailor => { sailor.asks = true; });
+    value.attentionKey = "remote:b";
+    return value;
+  };
+  const at = (deck: Awaited<ReturnType<typeof start>>, x = 32, y = 34) => {
+    const carrier = one(deck.app.stage, "attention-carrier"), world = one(deck.app.stage, "world");
+    return { offsetX: world.position.x + (carrier.position.x + x) * world.scale.x, offsetY: world.position.y + (carrier.position.y + y) * world.scale.y };
+  };
+  it("draws one independently loitering target, suppresses per-worker markers, and routes body and bubble through the camera without the stage bob", async () => {
+    const selected: unknown[] = [], hovers: Array<DeckHover | null> = [];
+    const deck = await start(environment, { now, extras, scene: scene(), attentionCarrier, onSelect: (key, action) => selected.push([key, action]), onHover: hover => hovers.push(hover) });
+    const carrier = one(deck.app.stage, "attention-carrier");
+    const frames = new Set<string>();
+    for (let i = 0; i < 120; i++) { deck.advance(34); frames.add(texturePath(carrier.children[0]!)); }
+    expect(frames.size).toBe(4);
+    expect(one(deck.app.stage, "ship").children).not.toContain(carrier);
+    for (const key of ["a", "remote:b"]) expect(one(one(deck.app.stage, key), "ask").visible).toBe(false);
+    deck.app.canvas.listeners.get("pointermove")?.(at(deck));
+    expect(hovers.at(-1)).toMatchObject({ key: "remote:b", action: "converse" });
+    deck.app.canvas.listeners.get("click")?.(at(deck));
+    deck.drawing.resize(1200, 600);
+    deck.advance(34);
+    deck.app.canvas.listeners.get("click")?.(at(deck, 32, 10));
+    expect(selected).toEqual([["remote:b", "converse"], ["remote:b", "converse"]]);
+    deck.drawing.focus("a"); deck.advance(34);
+    expect(carrier.visible).toBe(false);
+    const sprite = carrier.children[0] as FakeSprite;
+    deck.drawing.destroy();
+    expect(sprite.texture.destroyed && sprite.texture.source.destroyed).toBe(true);
+    expect(deck.app.canvas.listeners.size).toBe(0);
+  });
+
+  it("holds the first frame without a loop, clears stale/removed targets immediately, and keeps a bubble if all carrier art is missing", async () => {
+    for (const missing of [false, true]) {
+      const selected: unknown[] = [];
+      const deck = await start(environment, { now, extras, scene: scene(), attentionCarrier, reducedMotion: true,
+        without: missing ? attentionCarrier.frames.map(sprite => sprite.image) : [], onSelect: (key, action) => selected.push([key, action]) });
+      const carrier = one(deck.app.stage, "attention-carrier");
+      expect(deck.pending()).toBe(0);
+      expect(carrier.position).toMatchObject({ x: 4, y: 122 });
+      expect(carrier.children[0]!.visible).toBe(!missing);
+      expect(carrier.children[1]!.visible).toBe(missing);
+      deck.app.canvas.listeners.get("click")?.(at(deck, 30, 6));
+      expect(selected).toEqual([["remote:b", "converse"]]);
+      const stale = scene(); stale.sailors.forEach(sailor => { sailor.stale = true; });
+      deck.drawing.update(stale);
+      expect(carrier.visible).toBe(false);
+      deck.app.canvas.listeners.get("click")?.(at(deck));
+      expect(selected.at(-1)).toEqual([null, undefined]);
+      deck.drawing.update(scene()); expect(carrier.visible).toBe(true);
+      deck.drawing.update(crewScene([])); expect(carrier.visible).toBe(false);
+      deck.drawing.destroy();
+      expect(deck.timers.every(timer => timer.stopped)).toBe(true);
+    }
+  });
+});
+
 describe("settled zone handles in the renderer", () => {
   const now = new Date(2026, 9, 14, 12, 0);
   const point = (deck: Awaited<ReturnType<typeof start>>, key: string, aboveFeet: number) => {
@@ -1158,7 +1221,7 @@ describe("the plank and the shark on the deck", () => {
     expect([plank.position.x, plank.position.y]).toEqual(plankPiece.at);
     expect([plank.texture.frame.width, plank.texture.frame.height]).toEqual(shipManifest().images[plankPiece.sprite.image]!.size);
     expect(plank.zIndex).toBeGreaterThan(one(deck.app.stage, "piece:near").zIndex);
-    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot"]);
+    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot", "attention-carrier"]);
     deck.drawing.destroy();
     // Without the board's image, no board: the one drawn in code is retired.
     const images = new Map([...extras.images].filter(([path]) => path !== "plank/plank.png"));
@@ -1460,7 +1523,7 @@ describe("the animated water on the deck", () => {
   it("draws the generated sea, its wake and foam in the environment's places: far sea behind the ship, the rest in front", async () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
     deck.advance(16);
-    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot"]);
+    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot", "attention-carrier"]);
     // The far sea last behind the ship, its variant over it; in front, each part with its variants over it, and the cycles over all.
     expect(one(deck.app.stage, "scenery:back").children.slice(-2).map((child) => child.label)).toEqual(["sea:back", "sea:back:rough-sea"]);
     expect(one(deck.app.stage, "scenery:front").children.map((child) => child.label)).toEqual([

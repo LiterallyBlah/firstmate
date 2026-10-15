@@ -18,12 +18,13 @@ export function resolveDeckSetting(display: Pick<DisplaySettings, "deckSetting">
 /** Pack-owned words sent alongside a started drawing; counts, state labels and interaction stay engine-owned. */
 export interface DeckPresentation {
   id: string;
+  attentionCarrier?: boolean;
   copy: SettingManifest["copy"];
   places: Record<ActivityState, string>;
 }
 export function deckPresentation(manifest: SettingManifest): DeckPresentation {
   const place = (state: ActivityState) => manifest.copy.zones[manifest.zones.byState[state]]!;
-  return { id: manifest.id, copy: manifest.copy, places: { working: place("working"), waiting: place("waiting"), blocked: place("blocked"), idle: place("idle") } };
+  return { id: manifest.id, ...(manifest.attentionCarrier === undefined ? {} : { attentionCarrier: true }), copy: manifest.copy, places: { working: place("working"), waiting: place("waiting"), blocked: place("blocked"), idle: place("idle") } };
 }
 
 /** Neutral words until a pack has loaded, and on platforms where the engine cannot start. */

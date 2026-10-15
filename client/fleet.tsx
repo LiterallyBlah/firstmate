@@ -919,6 +919,10 @@ function FleetViewBody({
               theme={theme}
               stale={fleet.error !== null}
               suggestions={data.suggestions}
+              onConverse={(key) => {
+                const card = data.cards.find(card => card.key === key);
+                if (card !== undefined) setWatching(converseKey(card));
+              }}
               replyBlocked={replyBlockedText({
                 mate: mate !== null,
                 sending: mateSender.sending,
