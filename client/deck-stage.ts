@@ -8,6 +8,7 @@ import type { ActivityState, SettingManifest } from "../shared/deck-setting";
 import { walkInChoreography } from "../shared/deck-portals";
 import { compileChoreography, type Choreography, type DeckDeparture } from "./deck-choreography";
 import { createFloor, type Anchor, type Floor, type Point } from "./deck-geometry";
+import { compilePhaseTint, type PhaseTint } from "./deck-phase-tint";
 
 type Rect = readonly [number, number, number, number];
 
@@ -35,6 +36,8 @@ export interface DeckStage {
   fit: { top: number; bottom: number; margin: number };
   /** A worker's height with its badge, for the focus shot. */
   actorHeight: number;
+  /** Colour multiplication for stage art and actor bodies, independent of intensity and motion. */
+  phaseTint: PhaseTint | null;
   floor: Floor;
   zones: ReadonlyMap<string, Zone>;
   /** Where each activity state sends its worker. */
@@ -89,6 +92,7 @@ export function compileStage(manifest: SettingManifest): DeckStage {
     height: stage.size[1],
     fit: stage.fit,
     actorHeight: stage.actorHeight,
+    phaseTint: compilePhaseTint(manifest),
     floor: createFloor({
       areas: floor.areas,
       obstacles: [...floor.obstacles, ...stage.props.map((prop) => ({ id: prop.id, rect: prop.obstacle }))],

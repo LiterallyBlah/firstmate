@@ -21,7 +21,6 @@ const draft = read("setting.draft.json");
 function supportedDraft(): SettingManifest {
   const manifest = structuredClone(draft.manifest);
   for (const image of Object.values(manifest.images) as Array<{ sha256: string }>) image.sha256 = "0".repeat(64);
-  delete manifest.stage.tintByPhase;
   manifest.ambience = manifest.ambience.filter((element: { behaviour: { kind: string } }) => element.behaviour.kind !== "phase-frames");
   manifest.requires = capabilitiesUsed(manifest);
   return SettingManifestSchema.parse(manifest);
@@ -32,7 +31,7 @@ it("keeps the office visibly incomplete and outside the installed pack scan", ()
   expect(existsSync(new URL("../art/settings/office", import.meta.url))).toBe(false);
   expect(SettingManifestSchema.safeParse(draft.manifest).success).toBe(false);
   expect(incompatibility(draft.manifest)).toContain(draft.pendingCapabilities.join(", "));
-  expect(draft.pendingCapabilities).toEqual(["phase-tint@1", "phase-frames@1"]);
+  expect(draft.pendingCapabilities).toEqual(["phase-frames@1"]);
   for (const image of Object.values(draft.manifest.images) as Array<{ sha256: unknown }>) expect(image.sha256).toBeNull();
 });
 

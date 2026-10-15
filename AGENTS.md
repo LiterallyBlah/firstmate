@@ -355,6 +355,9 @@ what those look like and where they are. The ship is the first pack, `art/settin
   with optional finite effects using only `from`/`at` marks and `start`/`entered` events. `shared/deck-portals.ts`
   lowers it to the existing choreography machinery; the crew reverses entry progress continuously and snaps
   to posts in still mode. `portalEffects` supplies both entry and exit tracks. No persistent door-state hooks.
+  Step 9c adds `phase-tint@1`: `stage.tintByPhase` multiplies stage art/body colours using the existing day blend
+  (`client/deck-phase-tint.ts`). Badges and interaction graphics stay untinted; focused bodies keep their tint.
+  The existing wall-clock refresh also applies in still mode, without restoring weather variants or animation.
   The office's commissioning contract and uninstalled draft live in `docs/settings/office/`. Never move its
   null image digests or proposed unsupported fields into `art/settings/`; art and the remaining capabilities
   must land first. `test/office-draft.test.ts` checks its geometry and registrations without manufacturing art.
