@@ -41,11 +41,12 @@ import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { startDeck, type DeckArtImage, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
 import { compileCast } from "./deck-cast";
 import { compileStage } from "./deck-stage";
+import { deckPresentation, type DeckPresentation } from "./deck-setting";
 import type { DeckScene } from "./deck-scene";
 
 export type DeckStatus =
   | { kind: "starting" }
-  | { kind: "drawing"; renderer: string }
+  | { kind: "drawing"; renderer: string; presentation?: DeckPresentation }
   | { kind: "unsupported"; reason: "native" | "no-host" | "no-webgl" }
   | { kind: "failed"; message: string };
 
@@ -60,6 +61,7 @@ export interface DeckHost {
 export interface DeckDrawing {
   /** Pixi's renderer: `webgl`, or whatever it fell back to. */
   readonly renderer: string;
+  readonly presentation?: DeckPresentation;
   update(scene: DeckScene): void;
   /** Closes the camera in on the sailor with this key, or pulls it back to the whole deck for null. */
   focus(key: string | null): void;
@@ -174,7 +176,7 @@ export function mountDeck(
       stopObserving = engine.observeSize(host, function (width, height) {
         drawing?.resize(width, height);
       });
-      onStatus({ kind: "drawing", renderer: started.renderer });
+      onStatus({ kind: "drawing", renderer: started.renderer, ...(started.presentation === undefined ? {} : { presentation: started.presentation }) });
     })
     .catch(function (error: unknown) {
       if (!gone) onStatus({ kind: "failed", message: message(error) });
@@ -452,7 +454,7 @@ export function packArt(
       const failed = pack.failed.get(look.image);
       if (failed !== undefined) warn(`[firstmate] the deck's ${pathOf(look.image)} did not load; drawing without it:`, failed);
     }
-    return { stage: compileStage(pack.manifest), cast, parts, ambience, atmosphere: compileAtmosphere(pack.manifest), images: pack.images, masks, image: atlas, effects: pack.manifest.effects };
+    return { stage: compileStage(pack.manifest), cast, parts, ambience, atmosphere: compileAtmosphere(pack.manifest), images: pack.images, masks, image: atlas, effects: pack.manifest.effects, presentation: deckPresentation(pack.manifest) };
   });
 }
 

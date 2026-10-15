@@ -7,6 +7,7 @@
 import { defineSettings } from "@getpaseo/plugin";
 import { z } from "zod";
 
+import { DEFAULT_DECK_SETTING } from "./deck-rpc";
 import { COLUMN_IDS } from "./fleet";
 
 export const POLL_SECONDS = [3, 5, 10, 30] as const;
@@ -23,6 +24,8 @@ export const displaySettings = defineSettings({
   scope: "host",
   version: 1,
   schema: z.object({
+    /** Global setting for the fleet scene; per-project selection is a future resolver concern. */
+    deckSetting: z.string().regex(/^[a-z0-9-]+$/).default(DEFAULT_DECK_SETTING),
     /** Grouped task rows by default; the wide board remains available. */
     crewView: z.enum(CREW_VIEWS).default("list"),
     /** Board columns, in the order the captain arranged them. Unknown ids are dropped when read. */

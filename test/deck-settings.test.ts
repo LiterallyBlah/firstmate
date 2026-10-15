@@ -19,6 +19,7 @@ import { ENGINE_FORMAT_VERSION, SettingManifestSchema, capabilitiesUsed, setting
 import { PACK_BYTES_MAX, SETTING_MANIFEST, SETTINGS_DIR } from "../server/deck-settings";
 import { areaAt, findPath, inRects, pathLength, walkable, type Point } from "../client/deck-geometry";
 import { compileStage } from "../client/deck-stage";
+import { choreographyAt } from "../client/deck-choreography";
 import { compileCast } from "../client/deck-cast";
 import { applyCrew, createCrew, crewFigures, type Figure } from "../client/deck-crew";
 import { badgeTop, figureBox, sailorAt, type DeckBox } from "../client/deck-hover";
@@ -322,17 +323,32 @@ describe.each(packs)("the %s pack", (id) => {
         expect(behaviour.rows[0] - Math.abs(behaviour.wobble.px) - behaviour.anchor[1], element.id).toBeGreaterThanOrEqual(fit.top);
         expect(behaviour.rows[1] + Math.abs(behaviour.wobble.px) + behaviour.size[1] - behaviour.anchor[1], element.id).toBeLessThanOrEqual(stage.height);
       }
-      for (const exit of Object.values(manifest.portals.exits)) {
+      const cast = compileCast(manifest);
+      const lane = cast.looks[0]!.lane;
+      for (const [id, exit] of stage.exits) {
         if (exit.kind !== "choreography") continue;
-        for (const effect of exit.effects) {
-          const def = manifest.effects[effect.effect]!;
-          for (const key of effect.keys) {
-            const sprite = def.frames[key.frame]!;
-            let lowest = -Infinity;
+        for (const [drift, timeline] of exit.timelines) for (const side of new Set(exit.alternate.side)) {
+          for (const track of timeline.effects) for (const { start, key } of track.keys) {
+            const sprite = track.definition.frames[key.frame]!;
             const [width, height] = size(sprite);
-            for (let y = 0; y < height; y += 1) for (let x = 0; x < width; x += 1) if (opaqueIn(sprite, x, y)) lowest = Math.max(lowest, y);
-            const row = exit.marks[key.place.mark]![1] + lowest - def.points.anchor![1];
-            expect(row, `${effect.effect} ${key.frame}`).toBeLessThan(fit.bottom);
+            let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+            for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (opaqueIn(sprite, x, y)) {
+              left = Math.min(left, x); right = Math.max(right, x); top = Math.min(top, y); bottom = Math.max(bottom, y);
+            }
+            if (left === Infinity) continue;
+            const anchor = track.definition.points.anchor!;
+            // Effect approach is linear; its endpoints bound the whole key. Sample both and the midpoint
+            // through the actual engine, including drift, named-point alignment and mirroring.
+            for (const at of [start, start + key.ms / 2, start + key.ms * (1 - 1e-9)]) {
+              const shown = choreographyAt(exit, at, { drift, side, cast, lane }).effects.find((effect) => effect.track === track.track)!;
+              const x1 = shown.x + (shown.flip ? anchor[0] - right - 1 : left - anchor[0]);
+              const x2 = shown.x + (shown.flip ? anchor[0] - left : right + 1 - anchor[0]);
+              const label = `${id}/${track.effect}/${key.frame} side=${side} drift=${drift}`;
+              expect(x1, label).toBeGreaterThanOrEqual(0);
+              expect(x2, label).toBeLessThanOrEqual(stage.width);
+              expect(shown.y + top - anchor[1], label).toBeGreaterThanOrEqual(fit.top);
+              expect(shown.y + bottom + 1 - anchor[1], label).toBeLessThanOrEqual(fit.bottom);
+            }
           }
         }
       }

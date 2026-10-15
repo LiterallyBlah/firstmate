@@ -71,7 +71,7 @@ export const PackPath = z.string().regex(/^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.png$/i, 
 
 /**
  * A value over the weather's intensity (0 an idle fleet, 1 a busy one): [intensity, value] points, intensity rising,
- * eased between them and held past either end. The only "expression" a pack can write.
+ * eased between them and held past either end. This is a numeric lookup table, never an expression.
  */
 const Curve = z
   .array(z.tuple([z.number().min(0).max(1), z.number().nonnegative()]))
@@ -80,13 +80,13 @@ const Curve = z
 const Opacity = Curve.refine((points) => points.every((point) => point[1] <= 1), "an opacity is at most 1");
 
 /** A number fixed by the pack, read from an atmosphere channel (times `scale`), or read off a curve over intensity. */
-const Level = z.union([z.number(), z.object({ channel: Id, scale: z.number().optional() }), z.object({ curve: Curve })]);
+const Level = z.union([z.number(), z.strictObject({ channel: Id, scale: z.number().optional() }), z.strictObject({ curve: Curve })]);
 
 /** A sprite: a whole image, or a rectangle of one. */
-const Sprite = z.object({ image: Id, rect: Rect.optional() });
+const Sprite = z.strictObject({ image: Id, rect: Rect.optional() });
 /** Frames played in order, `frameMs` each, on a clock (`atmosphere.clocks`); the scene's own clock without one. */
-const Frames = z.object({ sprites: z.array(Sprite).min(1), frameMs: Ms, clock: Id.optional() });
-const Drift = z.object({ pxPerSecond: z.number().nonnegative(), clock: Id.optional() });
+const Frames = z.strictObject({ sprites: z.array(Sprite).min(1), frameMs: Ms, clock: Id.optional() });
+const Drift = z.strictObject({ pxPerSecond: z.number().nonnegative(), clock: Id.optional() });
 
 /**
  * What every drawn element says about itself. `optional` (the default) means a failed image drops only this element.
@@ -104,7 +104,7 @@ const ElementBase = {
 };
 
 /** A second set of frames over an element, on its clock and frame index, faded in along `opacity` (`variants@1`). */
-const Variant = z.object({
+const Variant = z.strictObject({
   id: Id,
   frames: z.array(Sprite).min(1),
   /** `over` hides the element once the variant is whole (opaque art); `crossfade` fades the element out as it comes in. */
@@ -117,20 +117,20 @@ const Variant = z.object({
 const Variants = z.array(Variant).optional();
 
 /** `sway@1`: whole pixels each way on a clock, `phase` radians behind the stage's bob, clamped to `limit`. */
-const Sway = z.object({ kind: z.literal("sway"), amplitude: Level, periodS: z.number().positive(), phase: z.number(), limit: Positive, clock: Id });
+const Sway = z.strictObject({ kind: z.literal("sway"), amplitude: Level, periodS: z.number().positive(), phase: z.number(), limit: Positive, clock: Id });
 /** `cycle@1`: frames in turn. `duty` is the share of each cycle past the first frame; `opacity` is clamped to 0–1. */
-const Cycle = z.object({ kind: z.literal("cycle"), frames: Frames, duty: Level.optional(), opacity: Level.optional(), variants: Variants });
+const Cycle = z.strictObject({ kind: z.literal("cycle"), frames: Frames, duty: Level.optional(), opacity: Level.optional(), variants: Variants });
 
 /**
  * A part: a sprite fixed to the stage, over the backdrop and under the floor, drawn in the order listed. `cutout` is
  * the rectangle of the backdrop it leaves out; `replacesPiece` draws its own rows in a piece's place.
  */
-const Part = z.object({
+const Part = z.strictObject({
   ...ElementBase,
   sprite: Sprite,
   at: Point,
   cutout: Rect.optional(),
-  replacesPiece: z.object({ piece: Id, sprite: Sprite, at: Point }).optional(),
+  replacesPiece: z.strictObject({ piece: Id, sprite: Sprite, at: Point }).optional(),
   behaviour: z.discriminatedUnion("kind", [Sway, Cycle]).optional(),
 });
 
@@ -138,22 +138,22 @@ const Part = z.object({
  * Part of the backdrop drawn again in front, at the row it stands on (`baseline`): a worker whose feet are on or
  * above that row is behind it. `null` is in front of everything on the floor; `{ over }` just in front of a piece.
  */
-const Piece = z.object({
+const Piece = z.strictObject({
   id: Id,
   optional: z.boolean().optional(),
   sprite: Sprite,
   at: Point,
-  baseline: z.union([Px, z.null(), z.object({ over: Id })]),
+  baseline: z.union([Px, z.null(), z.strictObject({ over: Id })]),
 });
 
 /** A prop: a sprite standing on the floor, its feet at `at`, and the footprint nobody walks through. */
-const Prop = z.object({ id: Id, sprite: Sprite, feet: Point, at: Point, obstacle: Rect });
+const Prop = z.strictObject({ id: Id, sprite: Sprite, feet: Point, at: Point, obstacle: Rect });
 
 /**
  * `flicker@1`: a lamp drawn from a pixel glyph, its glow and glass flickering on out-of-step sines. Level =
  * `base` + Σ amplitude · sin(seconds · rate + seed · offset), clamped to 0–1; `still` under reduced motion.
  */
-const LightStyle = z.object({
+const LightStyle = z.strictObject({
   /** Rows of the lamp, one character a pixel: `.` is nothing, any other is a key of `inks`. */
   glyph: z.array(z.string().min(1)).min(1),
   /** The glyph's pixel that sits on the lamp's point. */
@@ -162,22 +162,22 @@ const LightStyle = z.object({
   /** The ink whose pixels are glass, tinted by the level: the first tint whose threshold the level is over, else the last. */
   glass: z.string().length(1),
   tints: z.array(z.tuple([z.number(), Hex])).min(1),
-  glow: z.array(z.object({ at: Point, radius: Positive, colour: Hex, alpha: z.number().min(0).max(1) })),
+  glow: z.array(z.strictObject({ at: Point, radius: Positive, colour: Hex, alpha: z.number().min(0).max(1) })),
   /** The glow's alpha: `base` + `gain` × level. */
-  glowAlpha: z.object({ base: z.number(), gain: z.number() }),
-  flicker: z.object({ base: z.number(), waves: z.array(z.tuple([z.number(), z.number(), z.number()])), still: z.number().min(0).max(1) }),
+  glowAlpha: z.strictObject({ base: z.number(), gain: z.number() }),
+  flicker: z.strictObject({ base: z.number(), waves: z.array(z.tuple([z.number(), z.number(), z.number()])), still: z.number().min(0).max(1) }),
 });
-const Light = z.object({ id: Id, style: Id, at: Point, row: Px, seed: z.number(), lite: ElementBase.lite, still: ElementBase.still });
+const Light = z.strictObject({ id: Id, style: Id, at: Point, row: Px, seed: z.number(), lite: ElementBase.lite, still: ElementBase.still });
 
-const Stage = z.object({
+const Stage = z.strictObject({
   size: Size,
   /** The rows the exact fit takes in, top (0 or above it) to bottom, and its margin. */
-  fit: z.object({ top: Px.max(0), bottom: Px, margin: z.number().positive().max(1) }),
+  fit: z.strictObject({ top: Px.max(0), bottom: Px, margin: z.number().positive().max(1) }),
   /** A worker's height with its badge, for the focus shot. */
   actorHeight: Positive,
   /** `bob@1`: the stage rides a whole-pixel sine. */
-  motion: z.object({ bob: z.object({ periodS: z.number().positive(), amplitude: Level, clock: Id }) }).optional(),
-  backdrop: z.object({ sprite: Sprite }),
+  motion: z.strictObject({ bob: z.strictObject({ periodS: z.number().positive(), amplitude: Level, clock: Id }) }).optional(),
+  backdrop: z.strictObject({ sprite: Sprite }),
   parts: z.array(Part),
   pieces: z.array(Piece),
   props: z.array(Prop),
@@ -185,24 +185,24 @@ const Stage = z.object({
   lights: z.array(Light),
 });
 
-const Floor = z.object({
+const Floor = z.strictObject({
   /** Walkable polygons, as feet. `spill: false` keeps an overflowing crowd off this area (the stairs). */
-  areas: z.array(z.object({ id: Id, polygon: z.array(Point).min(3), spill: z.boolean().optional() })).min(1),
-  obstacles: z.array(z.object({ id: Id, rect: Rect })),
+  areas: z.array(z.strictObject({ id: Id, polygon: z.array(Point).min(3), spill: z.boolean().optional() })).min(1),
+  obstacles: z.array(z.strictObject({ id: Id, rect: Rect })),
   /** The pathing grid: cell size, and the rectangle it covers. */
-  grid: z.object({ cell: Positive, bounds: Rect }),
+  grid: z.strictObject({ cell: Positive, bounds: Rect }),
   /** Walking pace, stage pixels a second. */
   walkSpeed: z.number().positive(),
 });
 
 const Spacing = z.tuple([Positive, Positive]);
-const Zones = z.object({
+const Zones = z.strictObject({
   /** Where each activity state sends its worker. */
-  byState: z.object({ working: Id, waiting: Id, blocked: Id, idle: Id }),
+  byState: z.strictObject({ working: Id, waiting: Id, blocked: Id, idle: Id }),
   zones: z.array(
-    z.object({
+    z.strictObject({
       id: Id,
-      posts: z.array(z.object({ id: Id, at: Point, facing: z.enum(["left", "right", "front"]) })).min(1),
+      posts: z.array(z.strictObject({ id: Id, at: Point, facing: z.enum(["left", "right", "front"]) })).min(1),
       /** `nearest`: the free post nearest the worker (the first, when it is placed at once); `ordered`: always the first free. */
       assign: z.enum(["nearest", "ordered"]),
       /**
@@ -210,8 +210,8 @@ const Zones = z.object({
        * it into `areas`, `spacing` apart, then closer (`fallback`) when they are full.
        */
       overflow: z.discriminatedUnion("kind", [
-        z.object({ kind: z.literal("beside"), spacing: Spacing }),
-        z.object({ kind: z.literal("pack"), areas: z.array(Rect).min(1), spacing: Spacing, fallback: Spacing }),
+        z.strictObject({ kind: z.literal("beside"), spacing: Spacing }),
+        z.strictObject({ kind: z.literal("pack"), areas: z.array(Rect).min(1), spacing: Spacing, fallback: Spacing }),
       ]),
       /** Hover labels for workers here hang from this row, below the floor, instead of over their heads. */
       labelFloor: Px.optional(),
@@ -219,21 +219,21 @@ const Zones = z.object({
   ),
 });
 
-const Standing = z.object({ rect: Rect, feet: Point });
-const Fidget = z.object({
+const Standing = z.strictObject({ rect: Rect, feet: Point });
+const Fidget = z.strictObject({
   periodMs: Ms,
   /** The worker's seed shifts its fidget by this much, so a crowd is out of step. */
   seedMs: z.number().nonnegative(),
   /** Whole-pixel offsets from each key's time on; `towardFacing` turns `dx` the way the worker faces. */
-  keys: z.array(z.object({ fromMs: z.number().nonnegative(), dx: Px, dy: Px, towardFacing: z.boolean().optional() })).min(1),
+  keys: z.array(z.strictObject({ fromMs: z.number().nonnegative(), dx: Px, dy: Px, towardFacing: z.boolean().optional() })).min(1),
 });
-const Settled = z.object({ pose: Id, mirror: z.enum(["facing", "seed", "none"]) });
-const Cast = z.object({
+const Settled = z.strictObject({ pose: Id, mirror: z.enum(["facing", "seed", "none"]) });
+const Cast = z.strictObject({
   /** Pose frames, by lane and pose id. Every look is drawn with its lane's frames. */
   lanes: z.record(Id, z.record(Id, Standing)),
   /** The looks, in the order identities hash into; an `optional: false` look must draw. */
-  looks: z.array(z.object({ id: Id, image: Id, lane: Id, optional: z.boolean().optional() })).min(1),
-  roles: z.object({
+  looks: z.array(z.strictObject({ id: Id, image: Id, lane: Id, optional: z.boolean().optional() })).min(1),
+  roles: z.strictObject({
     /** Entering, queueing, waiting to leave. */
     stand: Id,
     walkFront: z.array(Id).min(1),
@@ -243,110 +243,110 @@ const Cast = z.object({
     rise: Px,
     stepMs: Ms,
     /** The pose once there, and when it is mirrored: by facing (left), by the worker's seed, or never. */
-    settled: z.object({ working: Settled, waiting: Settled, blocked: Settled, idle: Settled }),
+    settled: z.strictObject({ working: Settled, waiting: Settled, blocked: Settled, idle: Settled }),
   }),
-  fidgets: z.object({ working: Fidget.nullable(), waiting: Fidget.nullable(), blocked: Fidget.nullable(), idle: Fidget.nullable() }),
+  fidgets: z.strictObject({ working: Fidget.nullable(), waiting: Fidget.nullable(), blocked: Fidget.nullable(), idle: Fidget.nullable() }),
   /** At ease: the top `rows` of a settled worker in `state` sink a pixel for the out-breath, `inMs` into each `periodMs`. */
-  breath: z.object({ state: z.enum(ACTIVITY_STATES), rows: Positive, periodMs: Ms, inMs: Ms, seedMs: z.number().nonnegative() }).optional(),
+  breath: z.strictObject({ state: z.enum(ACTIVITY_STATES), rows: Positive, periodMs: Ms, inMs: Ms, seedMs: z.number().nonnegative() }).optional(),
 });
 
 /** Where an effect (a shark, a splash) is put: a mark, shifted by the departure's drift, its anchor there, or the x of a named point. */
-const EffectPlace = z.object({ mark: Id, drift: z.boolean().optional(), alignX: Id.optional() });
+const EffectPlace = z.strictObject({ mark: Id, drift: z.boolean().optional(), alignX: Id.optional() });
 /** A moment of a choreography: from the start, or so long after a named event. */
-const Moment = z.object({ event: Id, plusMs: z.number().nonnegative() });
-const Segment = z.object({
+const Moment = z.strictObject({ event: Id, plusMs: z.number().nonnegative() });
+const Segment = z.strictObject({
   /** How long it lasts: milliseconds, or `walk` — its distance at the floor's walking pace. */
   ms: z.union([Ms, z.literal("walk")]),
   /** Names the moment it ends. */
   event: Id.optional(),
   /** Where it ends: a mark, and whether the departure's drift moves it across. It starts where the last one ended. */
-  to: z.object({ mark: Id, drift: z.boolean().optional() }).optional(),
+  to: z.strictObject({ mark: Id, drift: z.boolean().optional() }).optional(),
   /** How it gets there: a straight line, a hop `arc` pixels high, or a jump `ballistic` pixels up then down. */
-  path: z.union([z.literal("line"), z.object({ arc: Positive }), z.object({ ballistic: Positive })]).optional(),
+  path: z.union([z.literal("line"), z.strictObject({ arc: Positive }), z.strictObject({ ballistic: Positive })]).optional(),
   /** A pose, or a walk cycle (with its rise). */
-  pose: z.union([Id, z.object({ cycle: z.enum(["walkFront", "walkSide"]) })]),
+  pose: z.union([Id, z.strictObject({ cycle: z.enum(["walkFront", "walkSide"]) })]),
   /** Rocking in place: a whole-pixel `dx` every `stepMs`. */
-  jiggle: z.object({ dx: z.array(Px).min(1), stepMs: Ms }).optional(),
+  jiggle: z.strictObject({ dx: z.array(Px).min(1), stepMs: Ms }).optional(),
   /** How much of the worker shows, cut at its feet: a share of its rows, or so many rows. */
-  reveal: z.tuple([z.union([z.number().min(0).max(1), z.object({ rows: Positive })]), z.union([z.number().min(0).max(1), z.object({ rows: Positive })])]).optional(),
+  reveal: z.tuple([z.union([z.number().min(0).max(1), z.strictObject({ rows: Positive })]), z.union([z.number().min(0).max(1), z.strictObject({ rows: Positive })])]).optional(),
   /** A pixel down every other `everyMs`, counted from an event. */
-  bob: z.object({ dy: Px, everyMs: Ms, since: Id }).optional(),
+  bob: z.strictObject({ dy: Px, everyMs: Ms, since: Id }).optional(),
   /** Where it is drawn: among the floor by its row, just in front of a piece, or in the effects layer; switched `layerAt` (0–1) in. */
-  layer: z.union([z.literal("floor"), z.object({ front: Id }), z.literal("effects")]),
+  layer: z.union([z.literal("floor"), z.strictObject({ front: Id }), z.literal("effects")]),
   layerAt: z.number().min(0).max(1).optional(),
   moving: z.boolean(),
   /** The worker is no longer drawn. */
   gone: z.literal(true).optional(),
 });
 /** `choreography@1`: one departure as a timeline, its worker and its effects. */
-const Choreography = z.object({
+const Choreography = z.strictObject({
   kind: z.literal("choreography"),
   marks: z.record(Id, Point),
   /** Departures wait their turn at `at`, `spacing` apart; the next goes once the one before has reached `release`. */
-  queue: z.object({ at: Id, release: Id, spacing: Spacing }),
+  queue: z.strictObject({ at: Id, release: Id, spacing: Spacing }),
   /** By departure serial: which side effects come from, and how far across the worker lands. */
-  alternate: z.object({ side: z.array(z.union([z.literal(-1), z.literal(1)])).min(1), drift: z.array(Px).min(1) }),
+  alternate: z.strictObject({ side: z.array(z.union([z.literal(-1), z.literal(1)])).min(1), drift: z.array(Px).min(1) }),
   actor: z.array(Segment).min(1),
   effects: z.array(
-    z.object({
+    z.strictObject({
       effect: Id,
       /** Depth above actors in the effects slot. */
       order: Positive,
       /** `side`: mirrored when it comes from the right. */
       mirror: z.literal("side").optional(),
       keys: z.array(
-        z.object({
+        z.strictObject({
           frame: Id,
           at: Moment,
           /** How long it shows. */
           ms: Ms,
           place: EffectPlace,
           /** Slides in from `px` off, on its side, over the key. */
-          approach: z.object({ px: Positive }).optional(),
+          approach: z.strictObject({ px: Positive }).optional(),
         }),
       ),
     }),
   ),
 });
-const Portals = z.object({
+const Portals = z.strictObject({
   /** `rise@1`: up through a hatch at `at`, cropped, over `ms`. */
-  entry: z.object({ kind: z.literal("rise"), at: Point, ms: Ms }),
+  entry: z.strictObject({ kind: z.literal("rise"), at: Point, ms: Ms }),
   /** `sink@1` back down, or `choreography@1`. */
-  exits: z.record(Id, z.union([z.object({ kind: z.literal("sink"), at: Point, ms: Ms }), Choreography])),
-  byDeparture: z.object({ done: Id, failed: Id, closed: Id, removed: Id }),
+  exits: z.record(Id, z.union([z.strictObject({ kind: z.literal("sink"), at: Point, ms: Ms }), Choreography])),
+  byDeparture: z.strictObject({ done: Id, failed: Id, closed: Id, removed: Id }),
   /** Under reduced motion a departure fades where it stands. */
-  still: z.object({ fadeMs: Ms }),
+  still: z.strictObject({ fadeMs: Ms }),
 });
 
-const EffectDef = z.object({ size: Size, points: z.record(Id, Point).refine((points) => points.anchor !== undefined, "an effect needs its anchor"), frames: z.record(Id, Sprite) });
+const EffectDef = z.strictObject({ size: Size, points: z.record(Id, Point).refine((points) => points.anchor !== undefined, "an effect needs its anchor"), frames: z.record(Id, Sprite) });
 
 /** `backdrop-cycle@1`: a backdrop per day phase, cross-faded, its `horizonRow` on the stage's `stageRow`, centred, never tiled. */
-const BackdropCycle = z.object({
+const BackdropCycle = z.strictObject({
   kind: z.literal("backdrop-cycle"),
   size: Size,
   phases: z.record(Id, Id),
-  placement: z.object({ horizonRow: Px, stageRow: Px }),
+  placement: z.strictObject({ horizonRow: Px, stageRow: Px }),
   /** Tinted towards `to` by `amount` (0 the art, 1 the tint). */
-  tint: z.object({ to: Hex, amount: Level }).optional(),
+  tint: z.strictObject({ to: Hex, amount: Level }).optional(),
 });
 /**
  * `overlay@1`: a sprite in a backdrop's placement. Its alpha is the night's share, or a curve over intensity faded out
  * at night (`dayOnly`); `tint: "space"` takes the backdrop's tint; `hiddenBy` overlays cover it as far as they show by day.
  */
-const Overlay = z.object({
+const Overlay = z.strictObject({
   kind: z.literal("overlay"),
   image: Id,
   space: Id,
-  alpha: z.union([z.literal("night"), z.object({ curve: Opacity })]),
+  alpha: z.union([z.literal("night"), z.strictObject({ curve: Opacity })]),
   dayOnly: z.boolean().optional(),
   tint: z.literal("space").optional(),
   hiddenBy: z.array(Id).optional(),
 });
 /** `flash@1`: a moment now and then, `perMinute` at an intensity (capped by the engine), under a drifting sprite in view. */
-const Flash = z.object({
+const Flash = z.strictObject({
   kind: z.literal("flash"),
   frames: z
-    .array(z.object({ sprite: Sprite, ms: Ms, alpha: z.number().min(0).max(1) }))
+    .array(z.strictObject({ sprite: Sprite, ms: Ms, alpha: z.number().min(0).max(1) }))
     .min(1)
     .max(2)
     .refine((frames) => frames.reduce((sum, frame) => sum + frame.ms, 0) <= 3500, "a flash lasts at most 3500 ms"),
@@ -360,7 +360,7 @@ const Flash = z.object({
  * `drifters@1`: a seeded field of sprites, one a lane above a backdrop's horizon, drifting right in whole pixels on a
  * clock and wrapped wholly off screen, each in `slots` colours recoloured by the day.
  */
-const Drifters = z.object({
+const Drifters = z.strictObject({
   kind: z.literal("drifters"),
   space: Id,
   clock: Id,
@@ -371,10 +371,10 @@ const Drifters = z.object({
   lanes: z.array(z.tuple([Px, Px])).min(1),
   palette: z.tuple([Hex, Hex, Hex]),
   byPhase: z.record(Id, z.tuple([Hex, Hex, Hex])),
-  sprites: z.array(z.object({ id: Id, image: Id, size: Size, pxPerSecond: z.number().positive().max(4), variants: Variants })).min(1),
+  sprites: z.array(z.strictObject({ id: Id, image: Id, size: Size, pxPerSecond: z.number().positive().max(4), variants: Variants })).min(1),
 });
 /** `flyby@1`: now and then one crosses the stage in a time slot, flapping in bursts, mirrored by direction. */
-const Flyby = z.object({
+const Flyby = z.strictObject({
   kind: z.literal("flyby"),
   poses: z.record(Id, Sprite),
   sequence: z.array(Id).min(1),
@@ -391,36 +391,36 @@ const Flyby = z.object({
   margin: Px,
   /** Its lowest and highest row, before its wobble. */
   rows: z.tuple([Px, Px]),
-  wobble: z.object({ px: z.number(), rate: z.number() }),
-  flap: z.object({ everyS: z.number().positive(), forS: z.number().positive() }),
+  wobble: z.strictObject({ px: z.number(), rate: z.number() }),
+  flap: z.strictObject({ everyS: z.number().positive(), forS: z.number().positive() }),
   /** Not while the night's share is this much or more. */
   nightBelow: z.number().min(0).max(1),
   most: Positive,
 });
 /** `tile@1`: frames repeated both ways in bands sharing one origin row, drifting sideways in whole pixels. */
-const Tile = z.object({
+const Tile = z.strictObject({
   kind: z.literal("tile"),
   frames: Frames,
   drift: Drift,
   origin: Px,
-  bands: z.array(z.object({ slot: z.enum(["back", "front"]), fromRow: Px })).min(1),
+  bands: z.array(z.strictObject({ slot: z.enum(["back", "front"]), fromRow: Px })).min(1),
   variants: Variants,
 });
 /** `strip@1`: frames repeated sideways within a span from a row, drifting, cut into crops a frame. */
-const Strip = z.object({ kind: z.literal("strip"), frames: Frames, top: Px, span: z.tuple([Px, Px]), drift: Drift, variants: Variants });
+const Strip = z.strictObject({ kind: z.literal("strip"), frames: Frames, top: Px, span: z.tuple([Px, Px]), drift: Drift, variants: Variants });
 /** `cycle@1` in the ambience: frames in turn with an anchor on a point. */
 const AmbientCycle = Cycle.extend({ at: Point, anchor: Point });
 
-const AmbienceElement = z.object({
+const AmbienceElement = z.strictObject({
   ...ElementBase,
   slot: z.enum(["back", "front"]),
   order: z.number(),
   behaviour: z.discriminatedUnion("kind", [BackdropCycle, Overlay, Flash, Drifters, Flyby, Tile, Strip, AmbientCycle]),
 });
 
-const DayCycle = z.object({
+const DayCycle = z.strictObject({
   phases: z
-    .array(z.object({ id: Id, localMinute: z.number().int().min(0).max(1439) }))
+    .array(z.strictObject({ id: Id, localMinute: z.number().int().min(0).max(1439) }))
     .min(1)
     .refine((phases) => phases.every((phase, index) => index === 0 || phase.localMinute > phases[index - 1]!.localMinute), "the phases must be in the order of the day"),
   fadeMinutes: Positive,
@@ -430,10 +430,10 @@ const DayCycle = z.object({
   fallback: Id,
 });
 
-const Atmosphere = z.object({
+const Atmosphere = z.strictObject({
   /** Rows lowest first, interpolated; every channel in every row. */
   table: z
-    .array(z.object({ at: z.number().min(0).max(1) }).catchall(z.number()))
+    .array(z.strictObject({ at: z.number().min(0).max(1) }).catchall(z.number()))
     .min(1)
     .refine((rows) => rows.every((row, index) => index === 0 || row.at > rows[index - 1]!.at), "atmosphere intensities must rise"),
   /** What the art was made for: a still deck's weather. */
@@ -442,7 +442,7 @@ const Atmosphere = z.object({
   clocks: z.record(Id, Id),
 });
 
-const Copy = z.object({
+const Copy = z.strictObject({
   /** The pane switch's word, and its tooltip. */
   pane: z.string().min(1),
   tooltip: z.string().min(1),
@@ -452,14 +452,14 @@ const Copy = z.object({
   /** While it starts, and where the crew is: "10 on deck". */
   starting: z.string().min(1),
   aboard: z.string().min(1),
-  actor: z.object({ one: z.string().min(1), many: z.string().min(1) }),
+  actor: z.strictObject({ one: z.string().min(1), many: z.string().min(1) }),
   /** The legend's words for each zone. */
   zones: z.record(Id, z.string().min(1)),
 });
 
-const Images = z.record(Id, z.object({ path: PackPath, size: Size, sha256: z.string().regex(/^[0-9a-f]{64}$/) }));
+const Images = z.record(Id, z.strictObject({ path: PackPath, size: Size, sha256: z.string().regex(/^[0-9a-f]{64}$/) }));
 
-const ManifestShape = z.object({
+const ManifestShape = z.strictObject({
   format: z.literal(SETTING_FORMAT),
   formatVersion: z.number().int().positive(),
   id: Id,
@@ -479,7 +479,7 @@ const ManifestShape = z.object({
   ambience: z.array(AmbienceElement),
   dayCycle: DayCycle.optional(),
   atmosphere: Atmosphere.optional(),
-  palette: z.object({ fallbackFill: Hex, veil: Hex, staleTint: Hex, staleAlpha: z.number().min(0).max(1) }),
+  palette: z.strictObject({ fallbackFill: Hex, veil: Hex, staleTint: Hex, staleAlpha: z.number().min(0).max(1) }),
 });
 
 export type SettingManifest = z.infer<typeof ManifestShape>;
