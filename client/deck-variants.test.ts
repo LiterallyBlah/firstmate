@@ -7,13 +7,14 @@ import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { DeckExtrasManifestSchema, extrasImagePaths } from "../shared/ship-deck";
+import { extrasImagePaths } from "./deck-legacy";
 import { BUSY_CREW, crewIntensity } from "./deck-atmosphere";
 import type { DeckExtrasImages } from "./deck-extras";
 import { curveAt, curvePeak, cycleFrame, drawnVariants, opacityAt, variantBlend, variantsOf } from "./deck-variants";
 import { drawnWater } from "./deck-water";
+import { shipViews } from "../test/ship-pack";
 
-const manifest = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(new URL("../art/ship-deck/extras.json", import.meta.url), "utf8")));
+const manifest = shipViews().extras;
 const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
 const without = (...paths: string[]): DeckExtrasImages => ({ manifest, images: new Map([...extras.images].filter(([path]) => !paths.includes(path))) });
 const working = (count: number) => crewIntensity(Array.from({ length: count }, () => ({ state: "working" as const, stale: false })));

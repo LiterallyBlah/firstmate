@@ -1,6 +1,6 @@
 /**
  * The deck's animated water (`docs/ship-deck-art/water/README.md`): the generated sea, the foam at the hull's
- * waterline and the wake astern, served with the extras (`extras.json`'s `water`, `firstmate.deck.extras`).
+ * waterline and the wake astern, served with the extras (the pack's sea, foam and wake elements, `firstmate.deck.setting`).
  * Pure: which parts can be drawn, which frame each shows, how far the water has drifted, and where the wake
  * sits. The sprites are `client/deck-environment.ts`'s.
  *
@@ -22,7 +22,7 @@
  * weather (`client/deck-atmosphere.ts`) picks one by how busy the crew is and runs the water on its own
  * `WaterClock`, advanced at that motion (`advanceWater`), so a change of pace never jumps a frame or the drift.
  */
-import type { DeckExtrasManifest } from "../shared/ship-deck";
+import type { DeckExtrasManifest } from "./deck-legacy";
 import type { DeckExtrasImages } from "./deck-extras";
 
 export type WaterManifest = NonNullable<DeckExtrasManifest["water"]>;

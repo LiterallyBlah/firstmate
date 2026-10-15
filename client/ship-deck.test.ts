@@ -2,7 +2,7 @@
  * The ship deck: the scene from a fixture fleet, the mount's every way to
  * start or not, the vendored Pixi build evaluated as the client evaluates it, and the view mounted
  * through react-test-renderer with WebGL stood in for. Whether a real WebGL canvas paints is
- * `docs/ship-deck-motion/render.mjs`, in a real browser. The deck's motion is `deck-motion.test.ts`.
+ * `docs/deck-settings/gate.mjs`, in a real browser, against main's. The deck's motion is `deck-motion.test.ts`.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
@@ -22,14 +22,15 @@ vi.mock("@getpaseo/plugin/client", () => ({
 }));
 
 import type { AgentStatus, ColumnId, FleetCard, RemoteCard } from "../shared/fleet";
-import { deckEngineSource, readDeckEnvironment, readDeckExtras } from "../server/ship-deck";
-import { DeckArtManifestSchema, environmentImagePaths, type DeckArt } from "../shared/ship-deck";
+import { deckEngineSource } from "../server/deck-settings";
+import { environmentImagePaths, extrasImagePaths } from "./deck-legacy";
 import { environmentComplete } from "./deck-environment";
 import {
   browserDeckEngine,
   decodeAtlas,
-  decodeEnvironment,
-  decodeExtras,
+  decodePack,
+  extrasImages,
+  packArt,
   evaluatePixi,
   isDeckHost,
   mountDeck,
@@ -47,6 +48,7 @@ import {
   CAPTION_LINE_MAX,
   DECK_HEIGHT,
   DECK_PROPS,
+  DECK_STATES,
   DECK_WIDTH,
   deckLayers,
   deckOffered,
@@ -58,8 +60,9 @@ import {
   type DeckScene,
 } from "./deck-scene";
 import { answeredReplies } from "./deck-replies";
-import { BUBBLE_LINGER_MS, ShipDeckView, deckKeyAction, deckStatusText } from "./ship-deck";
+import { BUBBLE_LINGER_MS, DECK_PLACES, ShipDeckView, deckKeyAction, deckStatusText } from "./ship-deck";
 import { focusLayout } from "./deck-camera";
+import { shipFile, shipImages, shipManifest, shipViews } from "../test/ship-pack";
 
 const theme = {
   colors: {
@@ -298,8 +301,8 @@ function decodePng(file: Buffer): { width: number; height: number; alpha: (x: nu
 }
 
 describe("the deck's art", () => {
-  const manifest = DeckArtManifestSchema.parse(JSON.parse(readFileSync(new URL("../art/ship-deck/deck.json", import.meta.url), "utf8")));
-  const atlas = decodePng(readFileSync(new URL("../art/ship-deck/deck.png", import.meta.url)));
+  const manifest = shipViews().art;
+  const atlas = decodePng(readFileSync(shipFile("deck.png")));
   const opaque = (frame: readonly number[], x: number, y: number) => {
     const [fx = 0, fy = 0, fw = 0, fh = 0] = frame;
     return x >= 0 && y >= 0 && x < fw && y < fh && atlas.alpha(fx + x, fy + y) === 255;
@@ -307,8 +310,7 @@ describe("the deck's art", () => {
 
   it("is the hull the scene's coordinates are, in an atlas the manifest describes", () => {
     expect(manifest.ship.frame).toEqual([0, 0, DECK_WIDTH, DECK_HEIGHT]);
-    expect([atlas.width, atlas.height]).toEqual([manifest.atlas.width, manifest.atlas.height]);
-    expect(manifest.atlas.colours).toBeLessThanOrEqual(48);
+    expect([atlas.width, atlas.height]).toEqual(shipManifest().images[shipManifest().stage.backdrop.sprite.image]!.size);
     expect(Object.keys(manifest.pieces).sort()).toEqual([
       "bollard-bow-aft",
       "bollard-bow-fore",
@@ -660,81 +662,89 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     expect(() => evaluatePixi(stub(`var PIXI = { VERSION: '7.0.0', ${FAKE_PIXI_PARTS} };`))).toThrow("says 7.0.0, not 8.22.0");
   });
 
-  it("fetches Pixi and the art once a session, decodes the atlas, and tries again after a failure", async () => {
+  it("fetches Pixi and each setting once a session, decodes every image of it, and tries again after a failure", async () => {
     let sources = 0;
-    let arts = 0;
-    let environments = 0;
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    // The environment never loads here: the deck is drawn without it, and asks again on the next open.
-    const noEnvironment = () => {
-      environments += 1;
-      return Promise.reject(new Error("sea away"));
-    };
-    // Nor do the sail and the crew's looks: a bare mast and the atlas's two outfits, asked for again likewise.
-    let extras = 0;
-    const noExtras = () => {
-      extras += 1;
-      return Promise.reject(new Error("rig away"));
-    };
+    let settings = 0;
+    const asked: string[] = [];
     const decoded: string[] = [];
     const good = { version: "1.2.3", source: `var PIXI = { VERSION: '1.2.3', ${FAKE_PIXI_PARTS} };` };
-    const art = { png: "iVBOR", manifest: {} } as unknown as DeckArt;
+    const setting = { manifest: shipManifest(), images: shipImages() };
     const decode = (png: string) => {
       decoded.push(png);
       return Promise.resolve({ decoded: png });
     };
+    const source = () => {
+      sources += 1;
+      return Promise.resolve(good);
+    };
     const failing = browserDeckEngine(
-      () => {
-        sources += 1;
-        return Promise.resolve(good);
+      source,
+      (id) => {
+        settings += 1;
+        asked.push(id);
+        return Promise.reject(new Error("pack away"));
       },
-      () => {
-        arts += 1;
-        return Promise.reject(new Error("art away"));
-      },
-      noEnvironment,
-      noExtras,
+      "mount-test",
       decode,
     );
-    await expect(failing.load()).rejects.toThrow("art away");
+    await expect(failing.load()).rejects.toThrow("pack away");
     const engine = browserDeckEngine(
-      () => {
-        sources += 1;
-        return Promise.resolve(good);
+      source,
+      (id) => {
+        settings += 1;
+        asked.push(id);
+        return Promise.resolve(setting);
       },
-      () => {
-        arts += 1;
-        return Promise.resolve(art);
-      },
-      noEnvironment,
-      noExtras,
+      "mount-test",
       decode,
     );
     const [first, second] = await Promise.all([engine.load(), engine.load()]);
     expect(typeof first).toBe("function");
     expect(typeof second).toBe("function");
     await engine.load();
-    expect([sources, arts]).toEqual([2, 2]);
-    expect(decoded).toEqual(["iVBOR"]);
-    // Once for the failing open, once for the two at once, once more for the last.
-    expect(environments).toBe(3);
-    expect(extras).toBe(3);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("drawing a plain sea"), expect.any(Error));
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("drawing a bare mast"), expect.any(Error));
-    warn.mockRestore();
+    // Pixi once, kept from the failing open; the setting once more after its failure, then kept.
+    expect([sources, settings]).toEqual([1, 2]);
+    expect(asked).toEqual(["mount-test", "mount-test"]);
+    expect(decoded).toHaveLength(Object.keys(setting.images).length);
   });
 
-  it("decodes every image the environment names, and refuses one it did not send", async () => {
-    const root = fileURLToPath(new URL("..", import.meta.url));
-    const environment = await readDeckEnvironment(async () => root);
-    const decoded = await decodeEnvironment(environment, (png) => Promise.resolve({ png }));
-    expect([...decoded.images.keys()]).toEqual(environmentImagePaths(environment.manifest));
-    expect(decoded.images.get("sky/night.png")).toEqual({ png: environment.images["sky/night.png"] });
-    expect(environmentComplete(decoded)).toBe(true);
-    const { "sky/dusk.png": _dusk, ...missing } = environment.images;
-    await expect(decodeEnvironment({ ...environment, images: missing }, (png) => Promise.resolve(png))).rejects.toThrow("no sky/dusk.png");
-    expect(environmentComplete({ manifest: environment.manifest, images: new Map() })).toBe(false);
-    expect(environmentComplete(null)).toBe(false);
+  it("decodes each image of a setting on its own, and says which did not", async () => {
+    const setting = { manifest: shipManifest(), images: shipImages() };
+    const { "sky-dusk": dusk, ...missing } = setting.images;
+    const pack = await decodePack({ ...setting, images: missing }, (png) => (png === setting.images["sails-main-sail"] ? Promise.reject(new Error("bad png")) : Promise.resolve({ png })));
+    expect(pack.images.get("deck")).toEqual({ png: setting.images.deck });
+    expect([...pack.failed.keys()].sort()).toEqual(["sails-main-sail", "sky-dusk"]);
+    expect(String(pack.failed.get("sky-dusk"))).toContain("sent no sky-dusk");
+    expect(pack.images.size + pack.failed.size).toBe(Object.keys(setting.images).length);
+    expect(dusk).toBeDefined();
+  });
+
+  it("draws what decoded: nothing without the backdrop, a plain sea without the whole sky, each extra on its own", async () => {
+    const setting = { manifest: shipManifest(), images: shipImages() };
+    const cut = (image: unknown, size: readonly [number, number]) => Promise.resolve([image, size, "mask"] as const);
+    const failing = (ids: readonly string[]) =>
+      decodePack(setting, (png) => (ids.some((id) => setting.images[id] === png) ? Promise.reject(new Error("bad png")) : Promise.resolve({ png })));
+    const warnings: string[] = [];
+    const warn = (message: string) => warnings.push(message);
+
+    const whole = await packArt(await failing([]), warn, cut);
+    expect(whole.image).toEqual({ png: setting.images.deck });
+    expect(whole.manifest).toEqual(shipViews().art);
+    expect([...whole.environment!.images.keys()]).toEqual(environmentImagePaths(shipViews().environment));
+    expect(environmentComplete(whole.environment)).toBe(true);
+    expect([...whole.extras!.images.keys()]).toEqual(extrasImagePaths(shipViews().extras));
+    expect(warnings).toEqual([]);
+
+    const partial = await packArt(await failing(["sky-dusk", "crew-variants-03-navigator"]), warn, cut);
+    expect(partial.environment).toBeNull();
+    expect(partial.extras!.images.has("crew-variants/03-navigator.png")).toBe(false);
+    expect(partial.extras!.images.has("crew-variants/01-bosun.png")).toBe(true);
+    expect(warnings).toEqual([
+      "[firstmate] the deck's sky and sea did not load; drawing a plain sea:",
+      "[firstmate] the deck's crew-variants/03-navigator.png did not load; drawing without it:",
+    ]);
+
+    await expect(packArt(await failing(["deck"]), warn, cut)).rejects.toThrow("bad png");
   });
 
   it("decodes the atlas as a PNG data URL, and says so where there is no image decoder", async () => {
@@ -1187,6 +1197,11 @@ describe("the ship deck view", () => {
     expect(deckKeyAction("a", { focused: false, onCanvas: true })).toBeNull();
   });
 
+  it("says where each state stands in the ship pack's own words", () => {
+    const { copy, zones } = shipManifest();
+    for (const state of DECK_STATES) expect(DECK_PLACES[state], state).toBe(copy.zones[zones.byState[state]]);
+  });
+
   it("words every status", () => {
     expect(deckStatusText({ kind: "drawing", renderer: "webgl" })).toBeNull();
     expect(deckStatusText({ kind: "starting" })).toBe("Raising the deck…");
@@ -1196,24 +1211,26 @@ describe("the ship deck view", () => {
 });
 
 describe("the sail and the crew's looks, decoded", () => {
-  it("keeps every image that decodes and leaves out, by name, one that is missing or will not decode", async () => {
-    const root = fileURLToPath(new URL("..", import.meta.url));
-    const extras = await readDeckExtras(async () => root);
+  it("keeps every image that decoded and leaves out, by name, one that did not or will not cut", async () => {
+    const extras = shipViews().extras;
+    const images = shipImages();
+    const ids = new Map([...shipViews().paths].map(([id, path]) => [path, id]));
+    const image = (path: string) => ({ png: images[ids.get(path)!] });
     const cut = (image: unknown, size: readonly [number, number], palette?: readonly string[]) => Promise.resolve([image, size, palette?.[0] ?? "mask"] as const);
-    const all = await decodeExtras(extras, (png) => Promise.resolve({ png }), undefined, cut);
+    const all = await extrasImages(extras, image, undefined, cut);
     expect([...all.images.keys()]).toHaveLength(49);
     // Every cloud cut into its masks, from its own decoded image, at its manifest size; each thunderhead by its own palette.
     expect([...all.cloudMasks!.keys()]).toEqual([
-      ...extras.manifest.clouds!.sprites.map((cloud) => cloud.texture),
-      ...extras.manifest.variants!.filter((variant) => variant.variantOf.startsWith("cloud:")).map((variant) => variant.frames[0]),
+      ...extras.clouds!.sprites.map((cloud) => cloud.texture),
+      ...extras.variants!.filter((variant) => variant.variantOf.startsWith("cloud:")).map((variant) => variant.frames[0]),
     ]);
-    expect(all.cloudMasks!.get("clouds/puff.png")).toEqual([{ png: extras.images["clouds/puff.png"] }, [36, 14], "#A8B9BD"]);
-    expect(all.cloudMasks!.get("storm/clouds/puff.png")).toEqual([{ png: extras.images["storm/clouds/puff.png"] }, [36, 14], "#1D314E"]);
+    expect(all.cloudMasks!.get("clouds/puff.png")).toEqual([{ png: images["clouds-puff"] }, [36, 14], "#A8B9BD"]);
+    expect(all.cloudMasks!.get("storm/clouds/puff.png")).toEqual([{ png: images["storm-clouds-puff"] }, [36, 14], "#1D314E"]);
     const missing: string[] = [];
-    const { ["crew-variants/03-navigator.png"]: _navigator, ["clouds/wisp.png"]: _wisp, ...without } = extras.images;
-    const some = await decodeExtras(
-      { manifest: extras.manifest, images: without },
-      (png) => (png === extras.images["sails/main-sail.png"] ? Promise.reject(new Error("bad png")) : Promise.resolve({ png })),
+    const gone = new Set(["crew-variants/03-navigator.png", "clouds/wisp.png", "sails/main-sail.png"]);
+    const some = await extrasImages(
+      extras,
+      (path) => (gone.has(path) ? undefined : image(path)),
       (path) => missing.push(path),
       (image, size) => (size[0] === 62 ? Promise.reject(new Error("no canvas")) : cut(image, size)),
     );
@@ -1229,6 +1246,6 @@ describe("the sail and the crew's looks, decoded", () => {
       "storm/clouds/long-bank.png",
       "storm/clouds/twin-bank.png",
     ]);
-    expect(some.manifest).toBe(extras.manifest);
+    expect(some.manifest).toBe(extras);
   });
 });

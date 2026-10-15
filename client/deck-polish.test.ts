@@ -6,15 +6,15 @@ import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { DeckArtManifestSchema } from "../shared/ship-deck";
 import { BADGE_GLYPHS, BADGE_SIZE, badgeInk, badgePixels, dozeAt, DOZE_PERIOD_MS, DOZE_RISE_MS, INK_DARK, INK_LIGHT } from "./deck-badges";
 import { applyCrew, createCrew, crewFigures, type Figure } from "./deck-crew";
 import { walkable } from "./deck-geometry";
 import { figureBox, hoverChanged, hoverOf, labelPlacement, LABEL_GAP, LABEL_MARGIN, LABEL_ROOM, REST_LABEL_ROW, sailorAt, toCanvas, toDeck, type DeckHover } from "./deck-hover";
 import { fitDeck } from "./deck-pixi";
 import { DECK_HEIGHT, DECK_STATES, DECK_WIDTH, type DeckSailor, type DeckState } from "./deck-scene";
+import { shipViews } from "../test/ship-pack";
 
-const manifest = DeckArtManifestSchema.parse(JSON.parse(readFileSync(new URL("../art/ship-deck/deck.json", import.meta.url), "utf8")));
+const manifest = shipViews().art;
 const deck = { width: DECK_WIDTH, height: DECK_HEIGHT };
 
 describe("resizing the pane", () => {

@@ -39,7 +39,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactN
 import { Platform, ScrollView, Text, View } from "react-native";
 
 import type { FleetCard, Suggestion } from "../shared/fleet";
-import { loadDeckArt, loadDeckEngine, loadDeckEnvironment, loadDeckExtras } from "../shared/ship-deck";
+import { DEFAULT_DECK_SETTING, loadDeckEngine, loadDeckSetting } from "../shared/deck-rpc";
 import { badgeInk, badgePixels, BADGE_SIZE } from "./deck-badges";
 import { focusLayout, nextFocus, stepFocus } from "./deck-camera";
 import { labelPlacement, type DeckHover } from "./deck-hover";
@@ -210,6 +210,7 @@ export function ShipDeckView({
   suggestions = NO_SUGGESTIONS,
   onReply,
   replyBlocked = null,
+  setting = DEFAULT_DECK_SETTING,
 }: {
   cards: readonly FleetCard[];
   theme: PluginTheme;
@@ -227,9 +228,11 @@ export function ShipDeckView({
   replyBlocked?: string | null;
   /** The fleet load is failing: the deck shows the last crew it saw, greyed. */
   stale?: boolean;
-  /** Stood in for by the tests; the browser's WebGL, and Pixi, the art, the environment and the extras from the daemon, otherwise. */
+  /** Stood in for by the tests; the browser's WebGL, and Pixi and the setting's pack from the daemon, otherwise. */
   engine?: DeckEngine;
   os?: string;
+  /** The setting pack drawn, by id (`shared/deck-setting.ts`). */
+  setting?: string;
 }) {
   const answered = useSyncExternalStore(answeredReplies.subscribe, answeredReplies.version);
   const offers = onReply !== undefined;
@@ -244,17 +247,14 @@ export function ShipDeckView({
   const scene = useMemo(() => deckScene(cards, theme, { feedStale: stale, asking }), [cards, theme, stale, asking]);
   // One engine for the view's life, so a new `useRpc` function on a re-render never restarts the canvas.
   const loadEngine = useRpc(loadDeckEngine);
-  const loadArt = useRpc(loadDeckArt);
-  const loadEnvironment = useRpc(loadDeckEnvironment);
-  const loadExtras = useRpc(loadDeckExtras);
-  const loadRef = useRef({ loadEngine, loadArt, loadEnvironment, loadExtras });
-  loadRef.current = { loadEngine, loadArt, loadEnvironment, loadExtras };
+  const loadSetting = useRpc(loadDeckSetting);
+  const loadRef = useRef({ loadEngine, loadSetting });
+  loadRef.current = { loadEngine, loadSetting };
   const [browser] = useState(() =>
     browserDeckEngine(
       () => loadRef.current.loadEngine({}),
-      () => loadRef.current.loadArt({}),
-      () => loadRef.current.loadEnvironment({}),
-      () => loadRef.current.loadExtras({}),
+      (id) => loadRef.current.loadSetting({ id }),
+      setting,
     ),
   );
   const used = engine ?? browser;

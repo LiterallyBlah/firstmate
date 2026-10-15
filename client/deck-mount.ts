@@ -14,15 +14,13 @@
  * once the host and WebGL have both been found, `firstmate.deck.engine` sends its browser build as text
  * and `evaluatePixi` runs it with `new Function` — the same permission the app itself uses to evaluate
  * every plugin bundle, `globalThis.eval` — keeping its names out of the page's globals. **So does the
- * art**, alongside it: `firstmate.deck.art` sends the atlas as base64, and `decodeAtlas` turns it into
- * an image the browser has decoded. Both are fetched once per app session and kept; a renderer without
- * a host or WebGL never asks for either. **The generated sea, sky and gull** come the same way, from
- * `firstmate.deck.environment`, but are not needed to draw: when they fail to load the deck draws its
- * ship and crew on a flat sea, says so in the console, and asks again the next time it is opened. **The
- * sail and the crew's extra looks** likewise, from `firstmate.deck.extras`, image by image: whatever
- * decodes is drawn, whatever does not is left out with a warning — a bare mast, or fewer looks to go round.
- * The sky's clouds are among them; each is also cut into three white masks to be tinted (`cutCloudMasks`),
- * and one that cannot be is left out the same way.
+ * setting**, alongside it: `firstmate.deck.setting` sends the pack (`shared/deck-setting.ts`) — its manifest
+ * and every image, base64 — and `decodePack` decodes each image on its own with `decodeAtlas`. Pixi once per
+ * app session, each pack once per session by id, kept; a failure is not kept, and a renderer without a host or
+ * WebGL never asks for either. An image that does not decode costs only what draws with it (`packArt`): the
+ * backdrop is needed to draw at all; without the whole sky and sea the deck draws its ship and crew on a flat
+ * sea; the rest — the sail, a crew look, a cloud — is left out with a warning. The sky's clouds are each cut
+ * into three white masks to be tinted (`cutCloudMasks`), and one that cannot be is left out the same way.
  *
  * **Motion is the browser's too.** `browserMotion` hands the deck `requestAnimationFrame`, the
  * `prefers-reduced-motion` query and `document.hidden`, so `client/deck-loop.ts` can cap, pause and still it;
@@ -31,7 +29,9 @@
  * Every way it can fail ends in a status, never a throw: no host, no WebGL, Pixi or the art failing to
  * load, Pixi failing to start. A mount torn down while Pixi is still starting destroys what starts.
  */
-import { environmentImagePaths, extrasImagePaths, type DeckArt, type DeckEngineSource, type DeckEnvironment, type DeckExtras } from "../shared/ship-deck";
+import type { DeckEngineSource, DeckSetting } from "../shared/deck-rpc";
+import type { SettingManifest } from "../shared/deck-setting";
+import { environmentImagePaths, extrasImagePaths, legacyViews, type DeckEnvironmentManifest, type DeckExtrasManifest } from "./deck-legacy";
 import { cloudSlotMasks } from "./deck-clouds";
 import type { DeckEnvironmentImages } from "./deck-environment";
 import type { DeckExtrasImages } from "./deck-extras";
@@ -344,71 +344,115 @@ export function browserMotion(web: MotionGlobals = globalThis as MotionGlobals):
   };
 }
 
+/** A setting pack with its images decoded: each image that decoded, by id, and why each that did not, did not. */
+export interface DecodedPack {
+  manifest: SettingManifest;
+  images: ReadonlyMap<string, unknown>;
+  failed: ReadonlyMap<string, unknown>;
+}
+
 /**
- * The environment with every image it names decoded; refused when one is missing or will not decode.
- * `browserDeckEngine` turns a refusal into no environment, so the deck draws without it rather than not at all.
+ * Decodes every image a pack sent, each on its own: one that will not decode is only that one. The server sends every
+ * image the manifest draws with; one it did not is missing from what is drawn, as one that failed would be.
  */
-export function decodeEnvironment(environment: DeckEnvironment, decode: (png: string) => Promise<unknown>): Promise<DeckEnvironmentImages> {
-  const paths = environmentImagePaths(environment.manifest);
+export function decodePack(setting: DeckSetting, decode: (png: string) => Promise<unknown>): Promise<DecodedPack> {
+  const ids = [...new Set([...Object.keys(setting.manifest.images), ...Object.keys(setting.images)])];
   return Promise.all(
-    paths.map(function (path) {
-      const png = environment.images[path];
-      if (png === undefined) return Promise.reject(new Error(`the environment has no ${path}`));
-      return decode(png).then((image) => [path, image] as const);
+    ids.map(function (id) {
+      const png = setting.images[id];
+      const decoded = png === undefined ? Promise.reject(new Error(`the setting sent no ${id}`)) : decode(png);
+      return decoded.then(
+        (image) => ({ id, image, error: null }),
+        (error: unknown) => ({ id, image: undefined, error }),
+      );
     }),
-  ).then(function (decoded) {
-    return { manifest: environment.manifest, images: new Map(decoded) };
+  ).then(function (results) {
+    const images = new Map<string, unknown>();
+    const failed = new Map<string, unknown>();
+    for (const result of results) {
+      if (result.error === null) images.set(result.id, result.image);
+      else failed.set(result.id, result.error);
+    }
+    return { manifest: setting.manifest, images, failed };
   });
 }
 
 /**
- * The extras with every image that decodes; one that is missing or will not decode is left out, and
- * `onMissing` hears which. Never refused: the deck draws whatever arrived (`client/deck-extras.ts`).
+ * The environment with every image it names, or null when one did not decode: the deck then draws its ship and crew
+ * on a plain sea rather than a partial sky.
  */
-export function decodeExtras(
-  extras: DeckExtras,
-  decode: (png: string) => Promise<unknown>,
+export function environmentImages(manifest: DeckEnvironmentManifest, image: (path: string) => unknown): DeckEnvironmentImages | null {
+  const images = new Map<string, unknown>();
+  for (const path of environmentImagePaths(manifest)) {
+    const decoded = image(path);
+    if (decoded === undefined) return null;
+    images.set(path, decoded);
+  }
+  return { manifest, images };
+}
+
+/**
+ * The extras with every image that decoded; one that did not is left out, and `onMissing` hears which. Never refused:
+ * the deck draws whatever arrived (`client/deck-extras.ts`).
+ */
+export function extrasImages(
+  manifest: DeckExtrasManifest,
+  image: (path: string) => unknown,
   onMissing: (path: string, error: unknown) => void = function () {},
   cutCloud: CutCloud = cutCloudMasks,
 ): Promise<DeckExtrasImages> {
+  const images = new Map<string, unknown>();
+  for (const path of extrasImagePaths(manifest)) {
+    const decoded = image(path);
+    if (decoded === undefined) onMissing(path, new Error(`${path} did not decode`));
+    else images.set(path, decoded);
+  }
+  // Each cloud that decoded, cut into its three slot masks; one that will not cut is left out like a missing image.
+  // A cloud's variant likewise (`client/deck-variants.ts`), by its own palette, only where there are clouds to lay it over.
+  const clouds = manifest.clouds;
+  const variants = clouds === undefined ? [] : (manifest.variants ?? []).filter((variant) => variant.variantOf.startsWith("cloud:"));
+  const sprites = [
+    ...(clouds?.sprites ?? []).map((sprite) => ({ texture: sprite.texture, size: sprite.size, palette: clouds!.palette })),
+    ...variants.map((variant) => ({ texture: variant.frames[0]!, size: variant.frameSize, palette: variant.palette ?? clouds!.palette })),
+  ].filter((sprite) => images.has(sprite.texture));
   return Promise.all(
-    extrasImagePaths(extras.manifest).map(function (path) {
-      const png = extras.images[path];
-      const decoded = png === undefined ? Promise.reject(new Error(`the extras have no ${path}`)) : decode(png);
-      return decoded.then(
-        (image) => [path, image] as const,
-        function (error: unknown) {
-          onMissing(path, error);
-          return null;
-        },
-      );
-    }),
-  ).then(function (decoded) {
-    const images = new Map(decoded.filter((entry) => entry !== null));
-    // Each cloud that decoded, cut into its three slot masks; one that will not cut is left out like a missing image.
-    // A cloud's variant likewise (`client/deck-variants.ts`), by its own palette, only where there are clouds to lay it over.
-    const clouds = extras.manifest.clouds;
-    const variants = clouds === undefined ? [] : (extras.manifest.variants ?? []).filter((variant) => variant.variantOf.startsWith("cloud:"));
-    const sprites = [
-      ...(clouds?.sprites ?? []).map((sprite) => ({ texture: sprite.texture, size: sprite.size, palette: clouds!.palette })),
-      ...variants.map((variant) => ({ texture: variant.frames[0]!, size: variant.frameSize, palette: variant.palette ?? clouds!.palette })),
-    ].filter((sprite) => images.has(sprite.texture));
-    return Promise.all(
-      sprites.map((sprite) =>
-        Promise.resolve()
-          .then(() => cutCloud(images.get(sprite.texture), sprite.size, sprite.palette))
-          .then(
-            (masks) => [sprite.texture, masks] as const,
-            function (error: unknown) {
-              onMissing(sprite.texture, error);
-              return null;
-            },
-          ),
-      ),
-    ).then(function (cut) {
-      return { manifest: extras.manifest, images, cloudMasks: new Map(cut.filter((entry) => entry !== null)) };
-    });
+    sprites.map((sprite) =>
+      Promise.resolve()
+        .then(() => cutCloud(images.get(sprite.texture), sprite.size, sprite.palette))
+        .then(
+          (masks) => [sprite.texture, masks] as const,
+          function (error: unknown) {
+            onMissing(sprite.texture, error);
+            return null;
+          },
+        ),
+    ),
+  ).then(function (cut) {
+    return { manifest, images, cloudMasks: new Map(cut.filter((entry) => entry !== null)) };
   });
+}
+
+/**
+ * The art the engine draws from a decoded pack, read as the manifests it drew from before packs (`legacyViews`): the
+ * backdrop's image, which it cannot draw without; the environment, whole or not at all; and whatever of the extras
+ * decoded. `warn` hears what is missing.
+ */
+export function packArt(
+  pack: DecodedPack,
+  warn: (message: string, error: unknown) => void = function () {},
+  cutCloud: CutCloud = cutCloudMasks,
+): Promise<DeckArtImage> {
+  const views = legacyViews(pack.manifest);
+  const ids = new Map([...views.paths].map(([id, path]) => [path, id]));
+  const image = (path: string) => pack.images.get(ids.get(path) ?? "");
+  const backdrop = pack.manifest.stage.backdrop.sprite.image;
+  const atlas = pack.images.get(backdrop);
+  if (atlas === undefined) return Promise.reject(pack.failed.get(backdrop) ?? new Error(`the setting's ${backdrop} did not load`));
+  const environment = environmentImages(views.environment, image);
+  if (environment === null) warn("[firstmate] the deck's sky and sea did not load; drawing a plain sea:", pack.failed.values().next().value);
+  return extrasImages(views.extras, image, (path, error) => warn(`[firstmate] the deck's ${path} did not load; drawing without it:`, pack.failed.get(ids.get(path) ?? "") ?? error), cutCloud).then(
+    (extras) => ({ image: atlas, manifest: views.art, environment, extras }),
+  );
 }
 
 /** Cuts a decoded cloud of `size` into one white mask per slot of `palette`, each an image Pixi can draw. */
@@ -454,61 +498,39 @@ export function cutCloudMasks(
   return Promise.all(masks.map((mask) => createImageBitmap(new ImageData(mask, width, height)))).then(([shadow, body, highlight]) => [shadow, body, highlight] as const);
 }
 
-/** Pixi and the art for this app session: fetched once, kept; a failure is not kept, so reopening the deck tries again. */
-let engineOnce: Promise<{ pixi: PixiModule; art: Omit<DeckArtImage, "environment" | "extras"> }> | null = null;
-/** The generated environment likewise, apart: its failure is a deck without a sky, not no deck. */
-let environmentOnce: Promise<DeckEnvironmentImages | null> | null = null;
-/** The sail and the crew's looks likewise, apart: their failure is a bare mast and the atlas's two outfits. */
-let extrasOnce: Promise<DeckExtrasImages | null> | null = null;
+/** Pixi for this app session: fetched once, kept; a failure is not kept, so reopening the deck tries again. */
+let engineOnce: Promise<PixiModule> | null = null;
+/** Each setting's art for this app session, by id, likewise. */
+const packOnce = new Map<string, Promise<DeckArtImage>>();
 
-/** The real thing: the browser's WebGL, and Pixi, the art, the environment and the extras fetched from the daemon on first use. */
+/** The real thing: the browser's WebGL, and Pixi and the setting `setting` fetched from the daemon on first use. */
 export function browserDeckEngine(
   loadSource: () => Promise<DeckEngineSource>,
-  loadArt: () => Promise<DeckArt>,
-  loadEnvironment: () => Promise<DeckEnvironment>,
-  loadExtras: () => Promise<DeckExtras>,
+  loadSetting: (id: string) => Promise<DeckSetting>,
+  setting: string,
   decode: (png: string) => Promise<unknown> = decodeAtlas,
   motion: () => DeckMotionEnvironment = browserMotion,
 ): DeckEngine {
   return {
     probe: () => probeWebGL(),
     load() {
-      engineOnce ??= Promise.all([
-        loadSource().then(evaluatePixi),
-        loadArt().then(function (art) {
-          return decode(art.png).then(function (image) {
-            return { image, manifest: art.manifest };
-          });
-        }),
-      ])
-        .then(function ([pixi, art]) {
-          return { pixi, art };
-        })
+      engineOnce ??= loadSource()
+        .then(evaluatePixi)
         .catch(function (error: unknown) {
           engineOnce = null;
           throw error;
         });
-      environmentOnce ??= loadEnvironment()
-        .then((environment) => decodeEnvironment(environment, decode))
-        .catch(function (error: unknown) {
-          console.warn("[firstmate] the ship deck's sea and sky did not load; drawing a plain sea:", error);
-          environmentOnce = null;
-          return null;
-        });
-      extrasOnce ??= loadExtras()
-        .then((extras) =>
-          decodeExtras(extras, decode, function (path, error) {
-            console.warn(`[firstmate] the ship deck's ${path} did not load; drawing without it:`, error);
-          }),
-        )
-        .catch(function (error: unknown) {
-          console.warn("[firstmate] the ship deck's sail and crew looks did not load; drawing a bare mast and the atlas's two outfits:", error);
-          extrasOnce = null;
-          return null;
-        });
-      return Promise.all([engineOnce, environmentOnce, extrasOnce]).then(function ([{ pixi, art }, environment, extras]): StartDeck {
+      let art = packOnce.get(setting);
+      if (art === undefined) {
+        art = loadSetting(setting)
+          .then((loaded) => decodePack(loaded, decode))
+          .then((pack) => packArt(pack, (message, error) => console.warn(message, error)));
+        packOnce.set(setting, art);
+        art.catch(() => packOnce.delete(setting));
+      }
+      return Promise.all([engineOnce, art]).then(function ([pixi, drawn]): StartDeck {
         return function (host, scene, size, onHover, onSelect) {
-          return startDeck(pixi, { ...art, environment, extras }, host, scene, size, motion(), onHover, onSelect);
+          return startDeck(pixi, drawn, host, scene, size, motion(), onHover, onSelect);
         };
       });
     },

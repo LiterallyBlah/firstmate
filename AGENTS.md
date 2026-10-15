@@ -42,7 +42,9 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`), and each send's receipt. |
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
-| `server/ship-deck.ts`, `shared/ship-deck.ts` | What the ship deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail, the crew's looks, the plank's shark and splash, the sky's clouds, and the animated sea, foam and wake. |
+| `shared/deck-setting.ts`      | A deck setting pack's format, `firstmate.deck-setting` 1: the manifest's schema, every reference it must resolve (`settingProblems`), the closed, versioned behaviour catalogue (`ENGINE_CAPABILITIES`) and what a pack uses. Server and tests only. |
+| `shared/deck-rpc.ts`, `server/deck-settings.ts` | What the Deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.settings` listing the packs under `art/settings/` (and which this engine can draw), `firstmate.deck.setting` serving one whole — manifest and images — confined to its folder and capped. |
+| `client/deck-legacy.ts`, `client/deck-legacy-schema.ts` | The pack read as the three manifests the engine drew from before packs (`legacyViews`), while the move to a scene engine takes them apart; the old manifests' zod shapes, for the tests. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the focused sailor's panel and keys, the legend of badges and counts. |
 | `client/deck-camera.ts`       | The camera: the exact fit or a shot closed in on a focused sailor, the eased zoom between, where the focus panel goes; what a click or an arrow does to the focus. Pure. |
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z; the reply marker's pixels and bob. Pure. |
@@ -66,7 +68,8 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-loop.ts`         | When the deck draws: 30 fps at most, paused while hidden, still under reduced motion.     |
 | `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated, the atlas, environment and extras decoded; every failure a status. |
 | `client/deck-pixi.ts`         | The deck, its sail, depth pieces, props, plank and sailor sprites, and the sea's layer of sharks and splashes, drawn with Pixi, handed in through a narrow `PixiModule`. |
-| `art/ship-deck/`, `docs/ship-deck-art/` | The deck's art as shipped — only the frames it serves and the manifests that name them: the atlas and `deck.json`, the environment and `environment.json`, the sail, crew looks, shark and splash, the animated water and the weather and `extras.json` — and, unshipped, everything that made them: sources, prompts, provenance, reviews, `build-art.py`. |
+| `art/settings/<id>/`, `docs/ship-deck-art/`, `docs/settings/` | The setting packs as shipped — each a `setting.json` and only the PNGs it names; the ship is `art/settings/ship/` — and, unshipped, everything that made the ship's art (sources, prompts, provenance, reviews, `build-art.py`, the old manifests in `legacy/`) and its pack (`docs/settings/ship/from-legacy.mjs`). |
+| `test/deck-settings.test.ts`, `test/ship-pack.ts`, `test/png.ts` | The pack linter, run over every pack under `art/settings/`; the ship's pack read for the tests; enough of PNG for both. |
 | `shared/attachments.ts`       | What the captain can attach: the message's shape, image-or-file by Paseo's rules, the size cap. |
 | `server/uploads.ts`           | An attached file written to `$PASEO_HOME/uploads/`, described as Paseo's `uploaded_file`.     |
 | `server/cli.ts`               | `paseo stop` and `paseo project rename`, for what the SDK does not have.                   |
@@ -290,24 +293,62 @@ client code:
   the narrow shape it draws with. The test holds that shape to the real build's prototypes, and the
   harness draws with it in Edge.
 
-- **The art is served the same way.** `art/ship-deck/deck.png` (one atlas, about 84 KB) and `deck.json`
-  (its manifest, checked against `DeckArtManifestSchema`) go through `firstmate.deck.art`. They are fetched and decoded once a session alongside Pixi, never bundled.
-  `docs/ship-deck-art/build-art.py` rebuilds them from the generated sources; `docs/ship-deck-art/README.md`
-  says where those came from and what still needs a pixel artist.
+- **The art is served the same way**, as a setting pack (see *The Deck is a scene engine drawing setting packs*
+  below): `firstmate.deck.setting` sends the ship's `setting.json` and every image it names, about 300 KB, fetched
+  and decoded once a session alongside Pixi, never bundled. `docs/ship-deck-art/build-art.py` rebuilds the atlas
+  from the generated sources; `docs/ship-deck-art/README.md` says where those came from and what still needs a
+  pixel artist.
 - **`art/` ships only what the deck draws.** `package.json`'s `files` names all of `art/`, so a generation
   source or a review render left there goes to every install: before they moved, about 11 MB of them did,
   against about 300 KB served. Sources, prompts, provenance, verification records and review renders go
-  in `docs/ship-deck-art/`, under the same relative path; `server/ship-deck.test.ts` fails on any file under
-  `art/` that no served manifest names, or on a name with no file.
+  in `docs/ship-deck-art/`, under the same relative path; the pack linter (`test/deck-settings.test.ts`) fails
+  on any file in a pack that its manifest does not name, on a name with no file, and on anything in `art/` but
+  packs.
 - **Depth is the deck row.** Scene coordinates are the hull's own pixels, and a sailor's `x, y` is its
   feet. The hull is the backdrop (in slices, so the masthead can sway). Its mast, bollards and near rail
   are cut out again as pieces, each with the row it stands on, and `depthOf` orders props, sailors and
   pieces by row. A new place on deck must keep its feet on the hull's deck and off the near rail:
-  `deck-motion.test.ts` reads the atlas to check every anchor, however crowded. `docs/ship-deck-motion/render.mjs` compares the still (reduced-motion)
-  WebGL canvas to an independent 2D composite, art pixel by art pixel.
+  `deck-motion.test.ts` reads the atlas to check every anchor, however crowded. `docs/deck-settings/gate.mjs`
+  renders main's compiled bundle and the branch's, still and moving, and compares them pixel for pixel.
 
 Leaving the Deck destroys the application and its canvas. A mount torn down mid-start destroys whatever
 starts.
+
+## The Deck is a scene engine drawing setting packs
+
+The Deck is moving, in nine reviewed steps (`docs/deck-settings/README.md`, from the design in the first mate's
+`data/deck-settings-architecture/report.md`), from code written for one ship to a **scene engine** that knows
+workers, states, places, portals, layers, behaviours, the day and intensity, drawing a **setting pack** that knows
+what those look like and where they are. The ship is the first pack, `art/settings/ship/`.
+
+- **A pack is pure data**: `setting.json`, format `firstmate.deck-setting` 1 (`shared/deck-setting.ts`), and the
+  PNGs it names, nothing else. **No pack code, ever**, and **no expressions**: numbers, ids, sprites, fixed path
+  shapes, named events and piecewise-linear curves over intensity. Anything derived (the tall mast's depth rows,
+  the walk out along the plank) is computed offline when the pack is built and checked by the linter.
+- **The behaviour catalogue is closed and versioned** (`ENGINE_CAPABILITIES`: `drifters@1`, `choreography@1` …). A
+  pack lists what it uses in `requires`, which must equal what it uses (`capabilitiesUsed`). A new behaviour is an
+  engine change, setting-agnostic, added only when a shipped setting uses it — never `if (setting.id === …)`.
+  `choreography@1` is the one most likely to grow: hold it to segments, events and effect keys.
+- **The engine keeps what must read the same everywhere**: cards → workers and their four states, badges, marks,
+  legend, hover label, focus panel, reply bubble, the motion plan (full, lite, still; paused when hidden), reduced
+  motion staying calm, flash caps, and intensity — how busy the fleet is (`ACTIVITY_WEIGHTS`, `BUSY_CREW`). A pack
+  says how intensity looks, never what it means.
+- **Served by id**: `firstmate.deck.settings` lists the packs, `firstmate.deck.setting` sends one whole. The server
+  checks every manifest whole (`SettingManifestSchema`: shape and references) before it serves it, confines its
+  paths to its folder, caps it at 1 MB, and lists a pack this engine cannot draw — a newer format, a capability it
+  lacks — as incompatible, with why, without parsing the rest. The client's contracts (`shared/deck-rpc.ts`) carry
+  none of the format's rules, so the schema costs the phone's bundle nothing.
+- **The pack linter** (`test/deck-settings.test.ts`) runs over every pack: the schema and its references, images
+  at their declared sizes and hashes with nothing else in the folder, sprites inside their images, animations one
+  size, variants lined up with their elements, drifting sprites in their palette's colours, the whole under the cap.
+- **No module-level "the setting"**: caches are keyed by id (`packOnce` in `client/deck-mount.ts`), and the view
+  takes the id as a prop (`setting`, the default `DEFAULT_DECK_SETTING`), so choosing one globally now and per
+  project later changes neither the engine nor the format.
+- **While the move is under way** the engine still draws from the three manifests it was once served in, read off
+  the pack by `legacyViews` (`client/deck-legacy.ts`), and the ship's constants are still in code;
+  `client/ship-pack.test.ts` holds the pack equal to both. Each step moves a part of the engine onto the pack and
+  deletes those constants and their checks. **Every step is held to the gate**: the ship pixel-identical to main's,
+  still and moving (`docs/deck-settings/gate.mjs`).
 
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
 
@@ -401,8 +442,8 @@ starts.
   clock advanced by step × pace, never the scene's clock times a pace, which would jump the sea and the clouds
   whenever the crew changed. Reduced motion draws exactly as before (`deliveredWeather`).
 - **Weather layers are data, not code** (`client/deck-variants.ts`, `client/deck-flash.ts`,
-  `docs/ship-deck-weather/README.md`). `extras.json` lists `variants` (a second frame set over the `sea`, `foam`,
-  `wake`, a `cycle:<id>` or a `cloud:<id>`), `cycles`, the sky's `mood` overlays and `flashes`, each with an
+  `docs/ship-deck-weather/README.md`). The pack gives its tile, strip, cycle and drifting elements `variants` (a
+  second frame set over each), `cycle` elements, `overlay`s on the sky and `flash`es, each with an
   `opacity` curve of `[intensity, value]` points (flashes also `perMinute`). The heavy weather is the first set; a new
   setting adds entries, not code. A variant rides its element's own clock and frame index, so it must have as many
   frames of the same size — one that does not line up, or did not decode, is dropped alone and the element stands.
@@ -412,12 +453,10 @@ starts.
 
 ### The sea, the sky and the gull are generated art (`docs/ship-deck-environment/README.md` has the evidence)
 
-- **Served, not bundled, and not needed to draw.** `art/ship-deck/environment.json` and the ten PNGs it
-  names (about 50 KB: the water tile, the foam strip, six skies, the stars, the gull's flap strip) go
-  through `firstmate.deck.environment`. The manifest is checked against
-  `DeckEnvironmentManifestSchema`, whose paths cannot leave `art/ship-deck/`. The mount fetches and decodes
-  them once a session beside Pixi and the atlas, but apart: when they fail, the deck draws its ship and
-  crew on a flat navy sea, warns in the console, and asks again on the next open.
+- **In the pack, and not needed to draw.** The ten images of the sky, still sea and gull (about 50 KB: the water
+  tile, the foam strip, six skies, the stars, the gull's flap strip) come with the rest of the ship's pack and are
+  decoded one by one; when any of them does not, the deck draws its ship and crew on a flat navy sea and warns
+  in the console (`packArt`).
 - **Depth, back to front** (`createScenery`'s `back` and `front`, either side of `ship` in the world):
   the sky, its stars, the clouds, the gull, the far sea from the horizon; the ship and everything on deck; the near
   sea from the waterline, cut from the same tiles so they line up, and the foam over the waterline.
@@ -437,8 +476,8 @@ starts.
   at most three crops a frame across the hull's waterline (`FOAM_SPAN`), so it never runs into open sea.
   The gull flies behind the ship, beak-registered and mirrored to fly left, flapping `up mid down mid` at
   125 ms, and not at all while the stars are more than half out.
-- **Clouds drift in the sky's own pixels** (`client/deck-clouds.ts`, art in `art/ship-deck/clouds/`, sent with the
-  extras under `clouds`). Seven, one a lane, each a cloud's bottom a seeded 30–188 sky pixels above the horizon
+- **Clouds drift in the sky's own pixels** (`client/deck-clouds.ts`, art in the ship pack's `clouds/`, its
+  `drifters` element). Seven, one a lane, each a cloud's bottom a seeded 30–188 sky pixels above the horizon
   row, drawn with the sky's placement and scale, so a resize or the camera's zoom moves them with the sky and
   never against it (`layout` re-places them too, since a still deck's camera can lay out without a draw). Not
   the art manifest's rows 20–110: a pane that fits the deck's height shows only the sky's lowest ~96 rows,
@@ -456,11 +495,9 @@ starts.
 
 ### The sail, the wake, the crew's looks and the sailor at ease (`docs/ship-deck-tweaks/README.md` has the evidence)
 
-- **Served apart, and kept image by image.** `art/ship-deck/extras.json` names the sail's two-state strip,
-  the mast occluder, six crew looks, and the plank's four shark keys and two splashes (about 35 KB); `firstmate.deck.extras` sends them, checked against
-  `DeckExtrasManifestSchema`, whose paths cannot leave `art/ship-deck/`.
-  `decodeExtras` keeps whatever decodes: no sail without both its strip and the occluder, and a look that
-  failed is not handed out. A whole failure is a bare mast and the atlas's two outfits, with a warning.
+- **In the pack, and kept image by image.** The sail's two-state strip, the tall mast, six crew looks, and the
+  plank's four shark keys and two splashes come with the ship's pack. `packArt` keeps whatever decodes: no sail
+  without both its strip and the tall mast, and a look that failed is not handed out, with a warning.
 - **The sail hangs behind the crew** (`ship`'s children: hull, masthead, sail, deck). It rides the bob but
   not the masthead's sway, and alternates rest and billow every 850 ms, resting under reduced motion.
   While it shows, the mast's depth piece is the occluder — the mast with the rows behind the cloth

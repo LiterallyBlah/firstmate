@@ -1,5 +1,5 @@
 /**
- * The tall mast (`art/ship-deck/mast/`), read against the hull it stands on, without Pixi: its foot is the
+ * The tall mast (`art/settings/ship/mast/`), read against the hull it stands on, without Pixi: its foot is the
  * hull's own, what it leaves out of the hull is only the short rig, its parts and depth piece are cut where
  * `mastLayout` says, and the deck's fit takes in its top and still the whole of the way off the plank. The
  * sprites themselves are `deck-environment.test.ts`'s, through `startDeck` with a stand-in Pixi.
@@ -9,15 +9,16 @@ import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
-import { DeckArtManifestSchema, DeckExtrasManifestSchema, extrasImagePaths } from "../shared/ship-deck";
+import { extrasImagePaths } from "./deck-legacy";
 import { drawnMast, mastLayout, type DeckExtrasImages } from "./deck-extras";
 import { deckBox, fitDeck } from "./deck-pixi";
 import { PLANK, PLANK_SEA_BOTTOM } from "./deck-plank";
 import { DECK_PROPS } from "./deck-scene";
+import { shipFile, shipViews } from "../test/ship-pack";
 
-const art = (path: string) => new URL(`../art/ship-deck/${path}`, import.meta.url);
-const deck = DeckArtManifestSchema.parse(JSON.parse(readFileSync(art("deck.json"), "utf8")));
-const manifest = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(art("extras.json"), "utf8")));
+const art = (path: string) => shipFile(path);
+const deck = shipViews().art;
+const manifest = shipViews().extras;
 const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
 const mast = manifest.mast!;
 

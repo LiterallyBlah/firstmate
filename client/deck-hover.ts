@@ -14,7 +14,7 @@
  * rest areas pack sleepers close, and a label over one would cover the others' badges and the crew at
  * work beside them.
  */
-import type { DeckArtManifest } from "../shared/ship-deck";
+import type { DeckArtManifest } from "./deck-legacy";
 import { ASK_GAP, ASK_SIZE, BADGE_GAP, BADGE_SIZE } from "./deck-badges";
 import type { Figure } from "./deck-crew";
 import { depthOf } from "./deck-scene";
