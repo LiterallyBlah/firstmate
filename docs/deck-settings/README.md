@@ -385,3 +385,8 @@ the draft, tests and documentation are excluded. Evidence is in `compile-results
 
 PR #55 delivered the commissioned art under `docs/settings/office/art/`. Its PNGs and contract remain unchanged
 and outside the package. `phase-frames@1` is the last pending capability before the data/art-only office pack PR.
+
+Gate: **81/81 pixel-identical** to main `0e98ab5`, with no flakes or page errors and matching canvas metadata.
+Full suite: 78 files, 1,010 tests passed, three skipped. Typecheck, pack lint (34 tests) and `git diff --check`
+pass. Client growth is 1,349 bytes; Hermes parses it and the bundle has no `class`. Package art is unchanged
+at 331,187 bytes, with staged office art, tests and documentation excluded. Results are recorded beside this file.
