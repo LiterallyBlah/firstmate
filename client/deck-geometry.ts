@@ -12,6 +12,9 @@
  *   wheel. A path never crosses one.
  * - **Anchors** are the named places a state sends a sailor to, each with the way it faces there.
  *   `client/deck-crew.ts` reserves them, one sailor each.
+ * - **The rest areas** are where idle crew go, off the working deck: the foredeck by the hatch, between
+ *   the bow and the stations, and the foot of the quarterdeck stairs. Their anchors are spaced so every
+ *   sleeper's badge stays in sight, and past them `restSpot` packs more in without covering one.
  * - **Paths** are A* over a 2-pixel grid of the walkable deck, then pulled tight: a corner is kept only
  *   where the straight line past it would leave the deck.
  *
@@ -28,7 +31,7 @@ export interface Point {
 export type Facing = "left" | "right" | "front";
 
 /** The places on deck an application state sends a sailor to. */
-export type AnchorPlace = "station" | "rail" | "helm" | "bow";
+export type AnchorPlace = "station" | "rest" | "helm" | "bow";
 
 export interface Anchor extends Point {
   id: string;
@@ -67,8 +70,11 @@ export const OBSTACLES: ReadonlyArray<{ name: string; rect: readonly [number, nu
 
 /**
  * The anchors, in order of preference within each place. The stations surround the mast and the
- * deck's stores; the rail spots stand clear of the gunwale's bollards; the helm spots are on the
- * quarterdeck around the wheel; the bow spots are forward of the hatch, round the bow's bollard.
+ * deck's stores; the helm spots are on the quarterdeck around the wheel; the bow spots are forward of
+ * the hatch, round the bow's bollard. The rest spots are in the rest areas, filled in this order so a
+ * few sleepers stand apart and a crowd stays tidy: the foredeck's front row along the near rail, its
+ * back row nineteen rows behind (head and badge clear of the front row), the foot of the stairs, and
+ * only then the gaps between the foredeck's rows.
  */
 export const ANCHORS: readonly Anchor[] = [
   { id: "mast-fore", place: "station", x: 194, y: 106, facing: "right" },
@@ -78,13 +84,19 @@ export const ANCHORS: readonly Anchor[] = [
   { id: "rope", place: "station", x: 164, y: 116, facing: "right" },
   { id: "hatch-side", place: "station", x: 166, y: 97, facing: "left" },
   { id: "mast-far", place: "station", x: 212, y: 94, facing: "front" },
-  { id: "rail-1", place: "rail", x: 196, y: 118, facing: "front" },
-  { id: "rail-2", place: "rail", x: 228, y: 118, facing: "front" },
-  { id: "rail-3", place: "rail", x: 252, y: 118, facing: "front" },
-  { id: "rail-4", place: "rail", x: 285, y: 118, facing: "front" },
-  { id: "rail-5", place: "rail", x: 310, y: 117, facing: "front" },
-  { id: "rail-6", place: "rail", x: 128, y: 118, facing: "front" },
-  { id: "rail-7", place: "rail", x: 152, y: 118, facing: "front" },
+  { id: "rest-1", place: "rest", x: 132, y: 117, facing: "front" },
+  { id: "rest-2", place: "rest", x: 120, y: 117, facing: "front" },
+  { id: "rest-3", place: "rest", x: 144, y: 117, facing: "front" },
+  { id: "rest-4", place: "rest", x: 132, y: 98, facing: "front" },
+  { id: "rest-5", place: "rest", x: 120, y: 98, facing: "front" },
+  { id: "rest-6", place: "rest", x: 144, y: 98, facing: "front" },
+  { id: "rest-7", place: "rest", x: 312, y: 117, facing: "front" },
+  { id: "rest-8", place: "rest", x: 312, y: 98, facing: "front" },
+  { id: "rest-9", place: "rest", x: 316, y: 107, facing: "front" },
+  { id: "rest-10", place: "rest", x: 126, y: 107, facing: "front" },
+  { id: "rest-11", place: "rest", x: 138, y: 107, facing: "front" },
+  { id: "rest-12", place: "rest", x: 126, y: 89, facing: "front" },
+  { id: "rest-13", place: "rest", x: 138, y: 89, facing: "front" },
   { id: "helm-1", place: "helm", x: 386, y: 92, facing: "front" },
   { id: "helm-2", place: "helm", x: 366, y: 94, facing: "front" },
   { id: "helm-3", place: "helm", x: 397, y: 94, facing: "front" },
@@ -346,4 +358,49 @@ export function sharedSpot(anchor: Point, taken: readonly Point[]): Point {
     }
   }
   return best === null ? { x: anchor.x, y: anchor.y } : { x: best.x, y: best.y };
+}
+
+/**
+ * The rest areas, as feet-space rectangles [x, y, width, height]: the foredeck between the bow's spots
+ * and the stations by the hatch, and the main deck's aft end between the crate's station and the
+ * stairs. A sleeper standing anywhere in them covers no anchor of another place.
+ */
+export const REST_AREAS: ReadonlyArray<readonly [number, number, number, number]> = [
+  [120, 86, 29, 34],
+  [310, 95, 9, 25],
+];
+
+/**
+ * How far apart sleepers stand: a badge's width across or its height (tail and gap included) down,
+ * so no sleeper's badge is covered by another sleeper. The rest anchors keep it among themselves.
+ */
+export const REST_SPACING = { x: 8, y: 9 } as const;
+
+/** Whether a point is in a rest area. */
+export function inRestArea(point: Point): boolean {
+  return REST_AREAS.some(([x, y, width, height]) => point.x >= x && point.x < x + width && point.y >= y && point.y < y + height);
+}
+
+/**
+ * Where a sleeper stands at a rest anchor: the anchor itself while it stands `REST_SPACING` clear of
+ * every taken spot, else the open spot in the rest areas nearest it that does. Only when the rest areas
+ * hold no such spot does it settle for `sharedSpot`'s closer spacing, still in
+ * the rest areas; the anchor itself when even that is gone. Never on the working deck.
+ */
+export function restSpot(anchor: Point, taken: readonly Point[]): Point {
+  for (const spacing of [REST_SPACING, { x: 6, y: 3 }]) {
+    const crowded = (spot: Point) => taken.some((other) => Math.abs(other.x - spot.x) < spacing.x && Math.abs(other.y - spot.y) < spacing.y);
+    let best: Point | null = null;
+    let bestCost = Number.POSITIVE_INFINITY;
+    for (const spot of openDeckPoints()) {
+      if (!inRestArea(spot)) continue;
+      const cost = Math.hypot(spot.x - anchor.x, spot.y - anchor.y);
+      if (cost < bestCost && !crowded(spot)) {
+        best = spot;
+        bestCost = cost;
+      }
+    }
+    if (best !== null) return { x: best.x, y: best.y };
+  }
+  return { x: anchor.x, y: anchor.y };
 }

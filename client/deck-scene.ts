@@ -12,7 +12,8 @@
  * - **waiting** — Ready (finished, waiting on the first mate) and Working with the `waiting` note (a
  *   wait on a job outside the worker), arms folded by the helm on the quarterdeck;
  * - **blocked** — Blocked and Failed, fretting in the bow;
- * - **idle** — Idle and Parked, at ease at the near rail.
+ * - **idle** — Idle and Parked, resting off the working deck: on the foredeck by the hatch, and from
+ *   the seventh sleeper at the foot of the quarterdeck stairs too.
  *
  * Only live crew stand on deck: a local crewmate Paseo has not closed, or a remote worker that is
  * crew, not a followed session. Queued and Done cards, and cards with no worker, are left off.
