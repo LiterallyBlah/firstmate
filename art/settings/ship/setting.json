@@ -3,12 +3,13 @@
   "formatVersion": 1,
   "id": "ship",
   "name": "Ship's deck",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "requires": [
     "stage@1",
     "floor@1",
     "zones@1",
     "zone-appearance@1",
+    "attention-carrier@1",
     "cast@1",
     "rise@1",
     "sink@1",
@@ -662,6 +663,38 @@
         16
       ],
       "sha256": "59173b872e2221f70ffbecc3e643c1e5fc2eaf7e9fc6cd25c167ab38dc93bd51"
+    },
+    "reply-shark-0": {
+      "path": "reply/shark-0.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "66ca1f5fd8a96adf96ac2785dd8d93efaf0bee38e8aff317bf169f7c27e2b6a2"
+    },
+    "reply-shark-1": {
+      "path": "reply/shark-1.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "c7e9ccfc94f20204e0eaed79cf22c11d6af15fddd728c15f630868968d790489"
+    },
+    "reply-shark-2": {
+      "path": "reply/shark-2.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "71b03398458ea8006e4ac75e3e3591e8678253ead01a1ca75656e3ac588793fa"
+    },
+    "reply-shark-3": {
+      "path": "reply/shark-3.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "e23e5c428fe1e601baaa5f0c4117aef360e104e9705cdf32b4d250d947355ce4"
     }
   },
   "stage": {
@@ -3499,5 +3532,37 @@
     "veil": "#050B14",
     "staleTint": "#8A9096",
     "staleAlpha": 0.6
+  },
+  "attentionCarrier": {
+    "at": [
+      4,
+      122
+    ],
+    "size": [
+      64,
+      48
+    ],
+    "frames": [
+      {
+        "image": "reply-shark-0"
+      },
+      {
+        "image": "reply-shark-1"
+      },
+      {
+        "image": "reply-shark-2"
+      },
+      {
+        "image": "reply-shark-3"
+      }
+    ],
+    "frameMs": 450,
+    "loiter": {
+      "amplitude": [
+        2,
+        1
+      ],
+      "periodMs": 4800
+    }
   }
 }

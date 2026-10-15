@@ -159,3 +159,24 @@ Full motion follows the wall clock. Lite honors `run`, `freeze` (frame zero) or 
 elapsed time. Hidden scenes do not redraw. The renderer shares its existing local-time sample with the backdrop
 and phase tint; this behaviour adds no timer and reads neither simulation clocks nor intensity. All frames must
 load or the element falls back under the usual ambience rules. Ambience keeps its own colours, outside stage tint.
+
+## Attention carrier
+
+Optional top-level `attentionCarrier` requires **`attention-carrier@1`**. It describes one independently
+placed Converse target: `at` (top left), `size`, nonempty sprite `frames`, positive `frameMs`, and
+`loiter: { amplitude: [dx,dy], periodMs }`. Amplitudes are nonnegative integer pixels. Every frame must
+match `size`, fit its source image, and the entire target plus loiter must fit the stage's horizontal
+bounds and `stage.fit` vertically. The strict schema validates these rules and all image references.
+
+The engine owns eligibility: live workers in Blocked, with pending permissions, or named by unanswered
+first-mate suggestions. Stale feeds and unreachable remote workers are excluded. One selected identity
+persists across polls; the engine's legend selects among multiple workers and provides keyboard Converse.
+Clicking the carrier opens that worker's existing conversation, never sends a message. Packs cannot
+choose a callback, action, attention condition or text expression. Without this capability, existing
+per-worker suggestion markers and bubbles are retained.
+
+The carrier draws above the foreground, outside stage bob/tint. It hides during ordinary worker focus.
+On full motion its frames cycle and its position follows whole-pixel sines (`x = dx·sin(phase)`,
+`y = dy·sin(2·phase)`) on the existing simulation clock. Lite and reduced motion hold frame zero at `at`;
+hidden scenes pause. A missing frame uses the first loaded frame; if none load, the engine draws its own
+reply bubble at the same target. The keyboard action remains available. No extra timer or pack scripting.

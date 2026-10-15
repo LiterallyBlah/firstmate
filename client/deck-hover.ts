@@ -42,6 +42,7 @@ export interface DeckBox {
 /** What the canvas reports while the pointer is over a sailor: its key, and where it is on the canvas. */
 export interface DeckHover {
   key: string;
+  action?: "converse";
   /** The sailor's middle, across. */
   x: number;
   /** The top of its badge, or of its head while it has none. */
@@ -231,7 +232,7 @@ export function hoverOf(
  */
 export function hoverChanged(previous: DeckHover | null, next: DeckHover | null): boolean {
   if (previous === null || next === null) return previous !== next;
-  if (previous.key !== next.key || previous.width !== next.width || previous.height !== next.height) return true;
+  if (previous.key !== next.key || previous.action !== next.action || previous.width !== next.width || previous.height !== next.height) return true;
   if ((previous.floor === null) !== (next.floor === null)) return true;
   return (
     Math.abs(previous.x - next.x) > 2 ||

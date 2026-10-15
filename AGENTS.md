@@ -493,6 +493,13 @@ is recorded in `docs/deck-settings/README.md`. The two built-in packs are `art/s
   hover and focus. Posts fill in order; packing fits two dozen at regular spacing, with closer overflow and
   a gap round the plank. Active overflow stays upstairs. The linter checks every handle is visible, clear of
   active workers and reachable by the pointer. Its label hangs below the hull when there is room.
+- **The reply shark** (`docs/deck-enrichment/reply-shark-review.md`) uses generic `attention-carrier@1`:
+  one generated carrier in the near sea for a selected worker needing the captain. The legend selects among
+  blocked workers, pending permissions and linked suggestions, retaining identity across polls. Body, bubble
+  and keyboard action open that worker's Converse via the existing card-to-conversation key conversion.
+  No send occurs. Stale, closed and removed workers have no signal; ordinary sailor focus is unchanged.
+  Packs without the capability retain their per-worker suggestion markers. Lite/reduced motion hold frame
+  zero; hidden scenes pause on the existing clock. Missing art leaves an engine bubble and keyboard action.
 - **Walking is A* over a 2 px grid** of the pack's polygons (main deck, stairs, quarterdeck and the
   below-deck room with its single access corridor) minus obstacle footprints, pulled tight. The only way to the helm is the stairs, which belong to the `near`
   piece, so a climbing sailor passes behind their balustrade.
