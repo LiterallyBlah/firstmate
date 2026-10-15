@@ -95,7 +95,7 @@ describe("the sail and the crew's looks, as served", () => {
     expect([strip.width, strip.height]).toEqual([sail.frameSize[0] * sail.frames, sail.frameSize[1]]);
     expect([sail.frames, sail.frameSize[0], sail.frameSize[1]]).toEqual([2, 114, 84]);
     const [x, y] = sail.position;
-    // The yard's lashing (the strip's (57, 3)) on the tall mast's (its own (24, 68), art/ship-deck/mast/README.md).
+    // The yard's lashing (the strip's (57, 3)) on the tall mast's (its own (24, 68), docs/ship-deck-art/mast/README.md).
     expect([x + 57, y + 3]).toEqual([mast.position[0] + 24, mast.position[1] + 68]);
     // Across the mast's shaft, below the crow's nest (its floor is the mast's row 44), and its hem above the
     // open deck (the far bulwark is about row 86) and the mast's foot.

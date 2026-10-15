@@ -27,12 +27,14 @@ import { skyBlend, skyHorizonRow, skyPlacement } from "./deck-sky";
 import { DECK_WIDTH } from "./deck-scene";
 
 const art = (path: string) => new URL(`../art/ship-deck/${path}`, import.meta.url);
+/** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */
+const sources = (path: string) => new URL(`../docs/ship-deck-art/${path}`, import.meta.url);
 const extras = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(art("extras.json"), "utf8")));
 const clouds = extras.clouds!;
 const environment = DeckEnvironmentManifestSchema.parse(JSON.parse(readFileSync(art("environment.json"), "utf8")));
 const [skyWidth] = environment.sky.size;
 const horizonRow = skyHorizonRow(environment.sky.size);
-const artManifest = JSON.parse(readFileSync(art("clouds/manifest.json"), "utf8")) as {
+const artManifest = JSON.parse(readFileSync(sources("clouds/manifest.json"), "utf8")) as {
   palette: { colours: string[] };
   tint: { stagePalettes: Record<string, string[]> };
   assets: Array<{ id: string; path: string; size: [number, number] }>;

@@ -8,7 +8,7 @@ const {PNG}=require('../../../.local/storm-tools/node_modules/pngjs');
 const root='art/ship-deck/storm',docs='docs/ship-deck-art/storm';
 const env=JSON.parse(fs.readFileSync('art/ship-deck/environment.json','utf8'));
 const palette=[...env.palette.deckColours,...env.palette.environmentExtension];
-const manifest=JSON.parse(fs.readFileSync(`${root}/manifest.json`,'utf8'));
+const manifest=JSON.parse(fs.readFileSync(`${docs}/manifest.json`,'utf8'));
 const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 const read=p=>PNG.sync.read(fs.readFileSync(p));
 const hex=c=>'#'+[...c].map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();

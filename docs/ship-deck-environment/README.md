@@ -4,7 +4,7 @@
 > (`docs/ship-deck-default/README.md`). What follows is the evidence as it stood when it was written, behind the switch.
 
 The Deck (still behind `FIRSTMATE_SHIP_DECK`, still desktop only) now draws the generated environment from
-`art/ship-deck/ENVIRONMENT.md` in place of its code-drawn sea and gull, and has a sky that follows the
+`docs/ship-deck-art/ENVIRONMENT.md` in place of its code-drawn sea and gull, and has a sky that follows the
 machine's local time of day.
 
 ## What is wired

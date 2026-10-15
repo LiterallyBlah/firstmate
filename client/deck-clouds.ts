@@ -1,5 +1,5 @@
 /**
- * The sky's drifting clouds (`art/ship-deck/clouds/README.md`), as pure functions: which clouds there are and
+ * The sky's drifting clouds (`docs/ship-deck-art/clouds/README.md`), as pure functions: which clouds there are and
  * where, how far each has drifted, and what colours the showing sky gives them. No Pixi and no browser
  * globals (`client/deck-clouds.test.ts`); `client/deck-environment.ts` draws them, and `client/deck-mount.ts`
  * cuts each sprite into the masks below.

@@ -1,14 +1,20 @@
-# art/ship-deck/
+# The ship deck's art: where it comes from
+
+The frames the Deck draws, and the three manifests that name them, are in `art/ship-deck/` and ship with
+the plugin: about 300 KB, nothing else. Everything that made them, and everything that shows they are
+right, is here, under the same relative paths, and is not shipped: generation sources, prompts, provenance,
+verification records, contact sheets, fit previews and review renders. `server/ship-deck.test.ts` fails if a
+file under `art/` is not one the daemon serves.
 
 An [animated water upgrade](water/README.md) adds four sea frames, three foam frames,
 and a three-frame stern wake, with palette/seam checks, placement anchors and generated sources.
-The Deck draws them through [`extras.json`](extras.json)'s `water`, placed as its companion manifest says,
+The Deck draws them through [`extras.json`](../../art/ship-deck/extras.json)'s `water`, placed as its companion manifest says,
 in place of the environment's still sea tile, its foam strip and the wake once drawn in code
 (`client/deck-water.ts`); `docs/ship-deck-water/` shows them in place.
 
 An expansion adds [fitted Hull C sails and six crew variants](assets-2/README.md), with two sail states,
 exact existing crew frame layouts, provenance and per-asset quality verdicts. The Deck draws them through
-[`extras.json`](extras.json), served by `firstmate.deck.extras` (`client/deck-extras.ts`); without them it
+[`extras.json`](../../art/ship-deck/extras.json), served by `firstmate.deck.extras` (`client/deck-extras.ts`); without them it
 draws a bare mast and the atlas's two outfits.
 
 A [generated tall mast](mast/README.md) and a [generated plank](plank/README.md) are drawn through
@@ -18,7 +24,7 @@ it; the sail is fitted to the tall mast and hangs on nothing else; the board in 
 Without the mast the Deck draws the short rig bare; without the board, the code board. `docs/ship-deck-mast/` shows both in place.
 
 Generated environment assets (sea, six sky phases, stars and a gull flap cycle) are documented in
-[ENVIRONMENT.md](ENVIRONMENT.md), with their own [manifest](environment.json). The Deck draws them in
+[ENVIRONMENT.md](ENVIRONMENT.md), with their own [manifest](../../art/ship-deck/environment.json). The Deck draws them in
 place of its old code-drawn sea and gull, served by `firstmate.deck.environment` (`client/deck-environment.ts`);
 they do not change `deck.json`.
 
