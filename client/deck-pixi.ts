@@ -54,7 +54,7 @@ import type { SettingManifest } from "../shared/deck-setting";
 import { availableLooks, laneOf, standing, type DeckCast } from "./deck-cast";
 import type { MotionPlan } from "./deck-ambient";
 import { clockOf, crewIntensity, deliveredWeather, levelAt, openingAtmosphere, shade, stepAtmosphere, weatherOf, type DeckAtmosphere } from "./deck-atmosphere";
-import { ASK_PAPER, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
+import { ASK_PAPER, ASK_SIZE, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, createCrew, crewFigures, fading, figureStanding, portalEffects, stepCrew, stepDepartures, type Figure } from "./deck-crew";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
 import { askMarks, badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type AskMark, type DeckFit, type DeckHover } from "./deck-hover";
@@ -600,7 +600,11 @@ export async function startDeck(
   const attentionSprite = new pixi.Sprite(textures.attention.find(texture => texture !== null) ?? textures.hull[0]!.texture);
   const attentionFallback = new pixi.Graphics();
   // Image failure retains an engine-owned bubble in the same target, and the keyboard Converse action.
-  attentionFallback.position.set(26, 4);
+  if (carrier !== undefined) {
+    const scale = Math.min(1, carrier.size[0] / ASK_SIZE.width, carrier.size[1] / ASK_SIZE.height);
+    attentionFallback.scale.set(scale);
+    attentionFallback.position.set(Math.floor((carrier.size[0] - ASK_SIZE.width * scale) / 2), Math.floor((carrier.size[1] - ASK_SIZE.height * scale) / 2));
+  }
   attention.addChild(attentionSprite, attentionFallback);
   world.addChild(attention);
   let carrierKey: string | null = null;
