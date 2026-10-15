@@ -1,0 +1,343 @@
+{
+  "schemaVersion": 1,
+  "kind": "ship-deck-plank-art",
+  "pathBase": "art/ship-deck/plank",
+  "verdict": "usable",
+  "asset": {
+    "path": "plank.png",
+    "sha256": "6f1310cc40ed17d1660509e808546567dbc94aeb1bfc9eb9dc8db40faa2ed7f9",
+    "size": [
+      18,
+      22
+    ],
+    "format": "RGBA PNG",
+    "alpha": "binary",
+    "transparentBackgroundConfirmed": true,
+    "palette": [
+      "#1f3554",
+      "#22395a",
+      "#31211d",
+      "#3e2921",
+      "#492d22",
+      "#5d3626",
+      "#613a28",
+      "#624130",
+      "#72412a",
+      "#7e472d",
+      "#7f422b",
+      "#815c43",
+      "#915230",
+      "#9b5a33",
+      "#9e6139",
+      "#a56235",
+      "#ad6d3d",
+      "#b16f3d",
+      "#b57642",
+      "#bb7b44",
+      "#c17f46",
+      "#c5864b",
+      "#cd8f50",
+      "#d39151",
+      "#dca35b",
+      "#dd9954"
+    ],
+    "pixelScale": "1 texture pixel = 1 hull C logical pixel",
+    "sampling": "nearest"
+  },
+  "reference": {
+    "baseCommit": "92e1e4c72e1ad15e238513c2b9042e0a86704e73",
+    "deck": "../deck.png",
+    "deckSha256": "557209a06bb266fa79b09ff985cf9558145b95382d0842bb55717a43980cff9b",
+    "hullSize": [
+      426,
+      161
+    ],
+    "palette": [
+      "#0e121e",
+      "#151e2d",
+      "#182b47",
+      "#1a1417",
+      "#1d314e",
+      "#1f3554",
+      "#22395a",
+      "#271e1d",
+      "#2c4869",
+      "#2d2b30",
+      "#31211d",
+      "#3e2921",
+      "#492d22",
+      "#4f3427",
+      "#5d3626",
+      "#613a28",
+      "#624130",
+      "#72412a",
+      "#7e472d",
+      "#7f422b",
+      "#815c43",
+      "#834c2d",
+      "#834d31",
+      "#8b4f2f",
+      "#915230",
+      "#9b5a33",
+      "#9e6139",
+      "#a56235",
+      "#a86636",
+      "#a8693b",
+      "#ad6938",
+      "#ad6d3d",
+      "#b16f3d",
+      "#b57642",
+      "#bb7b44",
+      "#bf854c",
+      "#c17f46",
+      "#c5864b",
+      "#c6884c",
+      "#c7894c",
+      "#c88c50",
+      "#c9894c",
+      "#cd8f50",
+      "#ce9659",
+      "#d39151",
+      "#dca35b",
+      "#dd9954",
+      "#e8cca6"
+    ],
+    "paletteRule": "Every opaque runtime RGB is an exact member of the 48-color shipped deck atlas palette",
+    "crewHeight": 32,
+    "geometry": "client/deck-plank.ts"
+  },
+  "placement": {
+    "coordinateConvention": "Integer pixel coordinates, upper-left origin; positive Y down. Bounds XYXY are exclusive at right and bottom; surface rows use inclusive X endpoints.",
+    "topLeftHull": [
+      241,
+      120
+    ],
+    "localRailAnchor": [
+      9,
+      1
+    ],
+    "hullRailAnchor": [
+      250,
+      121
+    ],
+    "localApproach": [
+      9,
+      -2
+    ],
+    "hullApproach": [
+      250,
+      118
+    ],
+    "localTipAnchor": [
+      9,
+      18
+    ],
+    "hullTipAnchor": [
+      250,
+      138
+    ],
+    "hullWaterAnchorBeforeDrift": [
+      250,
+      168
+    ],
+    "rotation": 0,
+    "scale": 1,
+    "mirror": false,
+    "transform": "ship bob, same as near rail; water anchor uses existing sea-layer transform",
+    "depth": "PLANK_DEPTH = depthOf(null, 0) + 1; above near rail, below rail-layer sailor at PLANK_DEPTH + 1",
+    "orientation": "Physically horizontal; projects screen-down toward viewer from inboard/top to outboard/bottom",
+    "silhouetteHullBoundsXYXY": [
+      241,
+      120,
+      259,
+      142
+    ],
+    "differenceFromOldBoard": "Inboard width 10 px, outboard width 18 px; old board 12..16 px. Walking anchors unchanged. No separate soft cast shadow."
+  },
+  "walkableSurface": {
+    "safeFootRegionLocalInclusive": [
+      5,
+      1,
+      12,
+      18
+    ],
+    "centerlineLocal": [
+      [
+        9,
+        1
+      ],
+      [
+        9,
+        18
+      ]
+    ],
+    "centerlineHull": [
+      [
+        250,
+        121
+      ],
+      [
+        250,
+        138
+      ]
+    ],
+    "supportRowsLocal": [
+      {
+        "localY": 1,
+        "minX": 4,
+        "maxXInclusive": 13
+      },
+      {
+        "localY": 2,
+        "minX": 4,
+        "maxXInclusive": 13
+      },
+      {
+        "localY": 3,
+        "minX": 3,
+        "maxXInclusive": 14
+      },
+      {
+        "localY": 4,
+        "minX": 3,
+        "maxXInclusive": 14
+      },
+      {
+        "localY": 5,
+        "minX": 3,
+        "maxXInclusive": 14
+      },
+      {
+        "localY": 6,
+        "minX": 3,
+        "maxXInclusive": 14
+      },
+      {
+        "localY": 7,
+        "minX": 3,
+        "maxXInclusive": 14
+      },
+      {
+        "localY": 8,
+        "minX": 2,
+        "maxXInclusive": 15
+      },
+      {
+        "localY": 9,
+        "minX": 2,
+        "maxXInclusive": 15
+      },
+      {
+        "localY": 10,
+        "minX": 2,
+        "maxXInclusive": 15
+      },
+      {
+        "localY": 11,
+        "minX": 2,
+        "maxXInclusive": 15
+      },
+      {
+        "localY": 12,
+        "minX": 1,
+        "maxXInclusive": 16
+      },
+      {
+        "localY": 13,
+        "minX": 1,
+        "maxXInclusive": 16
+      },
+      {
+        "localY": 14,
+        "minX": 1,
+        "maxXInclusive": 16
+      },
+      {
+        "localY": 15,
+        "minX": 1,
+        "maxXInclusive": 16
+      },
+      {
+        "localY": 16,
+        "minX": 1,
+        "maxXInclusive": 16
+      },
+      {
+        "localY": 17,
+        "minX": 1,
+        "maxXInclusive": 16
+      },
+      {
+        "localY": 18,
+        "minX": 0,
+        "maxXInclusive": 17
+      }
+    ],
+    "topFaceFrontBoundaryLocalY": 19,
+    "frontThicknessLocalRowsInclusive": [
+      19,
+      21
+    ],
+    "inboardHardware": "Low navy iron strap at local row 1, traversable",
+    "outboardEnd": "Standing feet at local (9,18); jump begins from hull (250,138). Dark end face is not a standing surface."
+  },
+  "provenance": {
+    "tool": "image_gen__imagegen (built-in)",
+    "backendModel": "not disclosed by tool",
+    "date": "2026-10-15",
+    "generationCalls": 2,
+    "generationCallCap": 10,
+    "prompts": "prompts.json",
+    "selectedCall": 2,
+    "selectedSource": "source-generated.png",
+    "selectedSourceSha256": "91d5d602153ac7d281efd36b533f0a6f013512bb5ca092403893c967a5d67319",
+    "selectedSourceSize": [
+      1070,
+      1470
+    ],
+    "discardedFirstSourceSha256": "d26a56cfbecd2fc7241a459145e1d669f2d882ea1978f91fd01fb4977d174135",
+    "styleReference": "Existing generated hull C atlas inspected in conversation; source image 1 was input to call 2",
+    "thirdPartyArtAdded": false,
+    "license": "Repository MIT license",
+    "cleanup": {
+      "artwork": "Generated; no manually or procedurally drawn replacement pixels",
+      "cropXYXYExclusive": [
+        61,
+        203,
+        1011,
+        1302
+      ],
+      "targetSize": [
+        18,
+        22
+      ],
+      "blockEdges": "round(cropStart + cellIndex * cropSpan / outputDimension), independently for X and Y",
+      "sourceAlphaThreshold": 192,
+      "coverageThreshold": 0.5,
+      "rgb": "Per-channel median of qualifying source pixels: sorted channel at floor(count / 2)",
+      "alpha": "255 if at least half of all pixels in source block have alpha >=192; otherwise 0",
+      "palette": "Nearest squared RGB distance among all 48 atlas opaque colors, sorted ascending hexadecimal; first wins ties",
+      "dithering": false,
+      "transparentRGB": [
+        0,
+        0,
+        0
+      ],
+      "samplingNotes": "Approximately 52.78 source px per output X cell and 49.95 per output Y cell; only proportional resampling, no silhouette repainting"
+    }
+  },
+  "evidence": {
+    "verification": "verification.json",
+    "native": "hull-fit-native.png",
+    "hull": "hull-fit-3x.png",
+    "walking": "walk-fit-6x.png",
+    "sprite": "plank-16x.png",
+    "detail": "detail-8x.png",
+    "method": "Offline PNG composites with shipped hull, water tile and front-idle sailor; three walking anchor positions. Not live renderer screenshots."
+  },
+  "limitations": [
+    "At 18 pixels wide, generated knot and rivets reduce to small clusters.",
+    "Existing projection puts tip above the hull waterline in screen space; near-sea jump anchor remains Y=168.",
+    "Asset-only delivery; runtime integration not performed."
+  ]
+}
