@@ -306,14 +306,14 @@
       "count": 3,
       "alpha": "binary",
       "tiling": [],
-      "verdict": "usable-with-cleanup",
-      "limitation": "Clear connected stern V and disturbed-water interior; generated eddies morph between key poses rather than travelling in an expertly drawn flow cycle. Far tips have slight silhouette variation. No extra bow-wave sprite is included.",
+      "verdict": "usable",
+      "limitation": "Generated local foam details differ from the old trail. Narrower disturbed-water wedge and slightly finer foam; subtle shimmer rather than physically advected fluid. Offline composite uses bare Hull C, no live-app claim.",
       "strip": "wake/strip.png",
       "stripSize": [
         720,
         96
       ],
-      "stripSha256": "bca9f03a0990ca43bd8beb7534e44aae05ea12ba9d7c541eb8cf8586836c6931",
+      "stripSha256": "3e22422c9782d038253e27e6710b862e91a7a3fe3017c749286cdce2ba350f49",
       "frameOrder": [
         0,
         1,
@@ -332,7 +332,7 @@
             240,
             96
           ],
-          "sha256": "dbc7cda85d15ef7a3a36117b02acca219a52840bcd237d1bd0ce36f90b653a79",
+          "sha256": "9635a23a9be1bf8c4db1ad4604b923114798dfbf2ab752cf3892445388c724b9",
           "palette": [
             "#182B47",
             "#1D314E",
@@ -358,7 +358,7 @@
             240,
             96
           ],
-          "sha256": "1acfe22e96985d9b11a3b3f6ff532533330c6a90592782a7aa3f263bacbeb750",
+          "sha256": "187f23082f2340297d7f09e9172fc1ded7850b2f550a92b772bc40eef203893b",
           "palette": [
             "#182B47",
             "#1D314E",
@@ -384,7 +384,7 @@
             240,
             96
           ],
-          "sha256": "4d457e01f15f137cf9dcd16fa0ebf3faf9c1a692d77122be1180054e333bd0c4",
+          "sha256": "bebe32f7bf6f1844b00f5f47f56f3249cfd990d016ee7c9be2b1d7308f8eadb7",
           "palette": [
             "#182B47",
             "#1D314E",
@@ -402,7 +402,25 @@
           ]
         }
       ],
-      "seamlessConfirmed": "Not a tiling asset; all four outside borders transparent."
+      "seamlessConfirmed": "Not a tiling asset; all four outside borders transparent.",
+      "angleRevision": {
+        "date": "2026-10-15",
+        "note": "Regenerated steeper down-right flow, unchanged 3 frames, 240x96 canvas, names, anchor, placement and 240ms timing.",
+        "measurement": {
+          "method": "Mean angle from fixed anchor (8,8) to first opaque pixel in columns 160..195; positive is down-right on screen.",
+          "before": [
+            6.57,
+            6.48,
+            6.76
+          ],
+          "after": [
+            15.95,
+            15.96,
+            15.94
+          ]
+        },
+        "provenance": "../wake-angle/provenance.json"
+      }
     }
   },
   "placement": {
@@ -453,12 +471,12 @@
         240,
         96
       ],
-      "direction": "V opens right and down, aft of left-moving hull",
+      "direction": "Steeper V opens right and down aft of left-moving hull; far ridge approximately 16 degrees down-right, previously approximately 7 degrees.",
       "layer": "above near sea, below waterline foam",
       "tiling": false,
       "scrollWholeSprite": false,
       "placement": "Keep fixed at stern. Cycle textures in place; do not apply sea drift to the entire sprite. Existing world camera transforms apply.",
-      "contactOverlap": "The foam knot extends 4 pixels above the nominal waterline, deliberately overlapping stern contact; the widening arms are below it. Do not hard-clip the knot at y=151.",
+      "contactOverlap": "Compact fixed contact knot overlaps the nominal waterline; first 20 columns are identical across phases. Keep the unchanged anchor (8,8), world (392,151).",
       "replace": "Replace the Graphics output of wakeRuns / wakeLayer with this sprite; do not render both. This stern trail intentionally omits the existing code bow-wave arm."
     },
     "layerOrder": [
@@ -536,50 +554,39 @@
       "seamCorrection": "Same opposing-edge rule over 5 columns, including alpha threshold 128 during seam blend. No vertical tiling."
     },
     "wake": {
-      "source": "source/wake-fitted-generated.png",
-      "crops": [
-        [
-          28,
-          188,
-          960,
-          384
-        ],
-        [
-          28,
-          720,
-          960,
-          384
-        ],
-        [
-          28,
-          1244,
-          960,
-          384
-        ]
+      "sources": [
+        "../wake-angle/source/04-contact.png",
+        "../wake-angle/source/07-phase1-quiet.png",
+        "../wake-angle/source/08-phase2-quiet.png"
       ],
+      "cropOrigin": [
+        8,
+        40
+      ],
+      "uniformSourcePixelsPerOutputPixel": 8.2,
       "output": [
         240,
         96
       ],
-      "registration": "Fixed source-to-output 4:1 sample scale and x crop; y crops register foam knot at the same stern anchor. Third crop moved up 4 source pixels (one output pixel down). Out-of-image samples are transparent. No rotations, shears or drawn geometry."
+      "registration": "Same crop and uniform sample scale for all three frames; generated frame-zero first 20 columns held fixed. No rotations, shears or drawn geometry.",
+      "preparation": "../wake-angle/prepare.ps1"
     }
   },
-  "verification": "verification.json",
-  "provenance": "provenance.json",
+  "verification": "../wake-angle/verification.json",
+  "provenance": "../wake-angle/provenance.json",
   "documentation": "README.md",
   "review": {
     "static": [
-      "review/contact.png",
+      "../wake-angle/review/before-after-3x.png",
       "review/sea-repeat-2x2.png",
-      "review/hull-fit-native.png",
-      "review/hull-fit-2x.png"
+      "../wake-angle/review/hull-fit-2x.png"
     ],
     "animated": [
       "review/sea-cycle.png",
       "review/foam-cycle.png",
-      "review/wake-cycle.png",
+      "../wake-angle/review/wake-cycle.png",
       "review/sea-repeat-cycle.png",
-      "review/hull-fit-cycle.png"
+      "../wake-angle/review/hull-fit-cycle.png"
     ],
     "format": "Animated PNG (APNG), loops forever. These are review artifacts, not runtime sprites. Hull composite uses the original bare hull C atlas to isolate water fit; it is not a screenshot of the live plugin."
   }

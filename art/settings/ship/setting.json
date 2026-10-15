@@ -508,7 +508,7 @@
         240,
         96
       ],
-      "sha256": "dbc7cda85d15ef7a3a36117b02acca219a52840bcd237d1bd0ce36f90b653a79"
+      "sha256": "9635a23a9be1bf8c4db1ad4604b923114798dfbf2ab752cf3892445388c724b9"
     },
     "water-wake-frame-1": {
       "path": "water/wake/frame-1.png",
@@ -516,7 +516,7 @@
         240,
         96
       ],
-      "sha256": "1acfe22e96985d9b11a3b3f6ff532533330c6a90592782a7aa3f263bacbeb750"
+      "sha256": "187f23082f2340297d7f09e9172fc1ded7850b2f550a92b772bc40eef203893b"
     },
     "water-wake-frame-2": {
       "path": "water/wake/frame-2.png",
@@ -524,7 +524,7 @@
         240,
         96
       ],
-      "sha256": "4d457e01f15f137cf9dcd16fa0ebf3faf9c1a692d77122be1180054e333bd0c4"
+      "sha256": "bebe32f7bf6f1844b00f5f47f56f3249cfd990d016ee7c9be2b1d7308f8eadb7"
     }
   },
   "stage": {
