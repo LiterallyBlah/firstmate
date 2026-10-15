@@ -10,7 +10,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import type { ColumnId, FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
 import { CrewCard } from "./card";
-import { watchKey } from "./host-tabs";
+import { converseKey, conversingWith } from "./converse-layout";
 import { COLUMNS, columnTone, DONE_SHOWN, doneCards, groupCards, moveColumn } from "./format";
 
 let allDoneShown = false;
@@ -72,7 +72,7 @@ export function Board(props: BoardProps) {
   };
 
   function renderCard(card: FleetCard) {
-    const key = watchKey(card);
+    const key = converseKey(card);
     return (
       <CrewCard
         key={card.key}
@@ -81,8 +81,8 @@ export function Board(props: BoardProps) {
         compact={compact}
         density={density}
         opener={null}
-        onConverse={key === null ? null : () => props.onConverse(key)}
-        conversing={key !== null && key === props.conversing}
+        onConverse={() => props.onConverse(key)}
+        conversing={conversingWith(card, props.conversing)}
         onChanged={props.onChanged}
       />
     );

@@ -48,7 +48,7 @@ import { FilesView, type FilesRequest } from "./files";
 import { MateChat } from "./chat";
 import { captainMessage } from "./attachments";
 import { ConverseDrawer } from "./converse";
-import { DRAWER_WIDTH, converseTarget, drawerDocks } from "./converse-layout";
+import { DRAWER_WIDTH, converseKey, conversingWith, converseTarget, drawerDocks } from "./converse-layout";
 import { answeredReplies, replyBlockedText } from "./deck-replies";
 import { deckOffered } from "./deck-scene";
 import { agentStatusLabel, agentStatusTone, groupCards, orderedColumns, revealFilesPatch, shortPath } from "./format";
@@ -57,7 +57,7 @@ import { MigrationControl } from "./migration-control";
 import { useMateSender } from "./mate-send";
 import { ResizeHandle } from "./resize-handle";
 import { clampShare, MIN_SPLIT_WIDTH } from "./resize-layout";
-import { hostTabs, onTab, shownHostTab, watchKey } from "./host-tabs";
+import { hostTabs, onTab, shownHostTab } from "./host-tabs";
 import { HostTabRow } from "./host-tab-row";
 import { HostHealthCard, useRemotes } from "./remotes";
 import { SelectedDeckView } from "./deck-setting-view";
@@ -249,7 +249,10 @@ function FleetViewBody({
     const previous = watching;
     viewState.set(stateKey, { watching: next, showDone });
     setWatchingState(next);
-    if (next === null && previous !== null) focusWebElement(converseButtonId(previous));
+    if (next === null && previous !== null) {
+      const card = data?.cards.find((entry) => conversingWith(entry, previous));
+      focusWebElement(converseButtonId(card === undefined ? previous : converseKey(card)));
+    }
   }
 
   const order = orderedColumns(values.columnOrder);
@@ -838,8 +841,9 @@ function FleetViewBody({
       navigation={navigation}
     />
   );
-  const watchedCard = watching === null ? null : (data.cards.find((card) => watchKey(card) === watching) ?? null);
+  const watchedCard = watching === null ? null : (data.cards.find((card) => conversingWith(card, watching)) ?? null);
   const watchedTarget = watching === null ? null : converseTarget(watching);
+  const watchedLocalId = watchedCard?.agent?.id ?? (watchedTarget?.kind === "local" ? watchedTarget.agentId : null);
   /** Over the crew rather than beside it: a phone, or a pane too narrow for both. */
   const covered = watching !== null && !docked;
   // The list or board stays mounted under a drawer that covers it, so closing the drawer finds it scrolled where it was.
@@ -856,9 +860,9 @@ function FleetViewBody({
           backLabel={view === "deck" ? "Deck" : crewView === "list" ? "Crew" : "Board"}
           onClose={() => setWatching(null)}
           onOpen={
-            navigation === undefined || watchedTarget.kind !== "local"
+            navigation === undefined || watchedLocalId === null
               ? null
-              : () => navigation.openAgent({ agentId: watchedTarget.agentId })
+              : () => navigation.openAgent({ agentId: watchedLocalId })
           }
           onChanged={refresh}
         />

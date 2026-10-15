@@ -52,6 +52,7 @@ import {
   relativeTime,
 } from "./format";
 import { watchKey } from "./host-tabs";
+import { converseKey } from "./converse-layout";
 import { Chip, IconButton, Tag, errorText } from "./ui";
 import { webTitle } from "./web";
 import { cardTags } from "../shared/item-tags";
@@ -76,6 +77,7 @@ export const CONVERSE_ICON = "MessagesSquare";
 
 /** What the 💬 says it does, on hover and to a screen reader. */
 export function converseTooltip(card: FleetCard): string {
+  if (watchKey(card) === null) return "Discuss this item with the first mate. Work starts only when you request it.";
   return card.remote === undefined
     ? "Read and reply to this worker, within FirstMate."
     : "Read this remote worker's recent log and reply to it, within FirstMate.";
@@ -86,10 +88,9 @@ export function converseButtonId(key: string): string {
   return `firstmate-converse-${key}`;
 }
 
-/** The deck's first action, and an open card's: Converse with the worker, by `watchKey`; null for a card with no worker. */
+/** Converse with a worker, or discuss a worker-less item with the first mate. */
 export function watchOpener(card: FleetCard, onWatch: (key: string) => void): CardOpener | null {
-  const key = watchKey(card);
-  if (key === null) return null;
+  const key = converseKey(card);
   return { icon: CONVERSE_ICON, label: "Converse", tooltip: converseTooltip(card), onPress: () => onWatch(key) };
 }
 
@@ -163,7 +164,7 @@ export function CrewCard({
   onClose?: () => void;
   /** The focus panel's replies for the captain to pick (`client/reply-bubble.tsx`), under its glance. */
   replies?: ReactNode;
-  /** Opens the worker's conversation: the 💬 at rest on a board card or list row. Null for a card with no worker. */
+  /** Opens Converse: a worker's conversation or a light item discussion. */
   onConverse?: (() => void) | null;
   /** This card's conversation is the one open in the drawer: its 💬 is lit. */
   conversing?: boolean;
@@ -414,10 +415,10 @@ export function CrewCard({
       </Text>
     );
 
-  const key = watchKey(card);
+  const key = converseKey(card);
   /** The 💬, a sibling of the card's toggle so pressing it never folds or unfolds the card. */
   const converseButton =
-    onConverse === null || key === null ? null : (
+    onConverse === null ? null : (
       <IconButton
         icon={CONVERSE_ICON}
         label={`Converse with ${card.title}`}
@@ -782,7 +783,7 @@ export function CrewCard({
       {expanded && agent === null && target === null ? (
         <View style={styles.actions}>
           <Icon name="Info" size={12} color={theme.colors.foregroundMuted} />
-          <Text style={styles.meta}>Ask the first mate to act on backlog items.</Text>
+          <Text style={styles.meta}>Use Converse to discuss this item with the first mate, then Start work when ready.</Text>
         </View>
       ) : null}
     </View>
