@@ -1,0 +1,14 @@
+[
+  {
+    "call": 1,
+    "intent": "generate",
+    "prompt": "Use case: stylized-concept. Asset type: isolated pixel-art game sprite, one wooden walk-the-plank board for the ship atlas visible in conversation. The ship atlas is STYLE REFERENCE ONLY, do not reproduce the ship. Generate just ONE stout flat wooden plank projecting toward the viewer, physically horizontal but its long axis VERTICAL DOWN THE IMAGE because it projects out of the near side of a side-on ship viewed slightly from above. Far/inboard end at TOP, near/outboard tip at BOTTOM. Symmetrical shallow-perspective trapezoid: top width 12 logical pixels, bottom width 16 logical pixels, visible top-face length 19 logical pixels; a dark 2-pixel-thick front end and 1-pixel dark lower edge at bottom. Match the reference warm ochre wood, dark brown outline, tiny navy iron bracket wrapped across only the far/top inboard end. Single solid board, no middle seam; visible uneven lengthwise wood grain, one restrained knot, warm upper-left highlights, shadow on right edge and under bottom tip. Render as a deliberately tiny 18x24 logical pixel sprite greatly enlarged with crisp square pixel cells on a transparent canvas. Colors only #dca35b #ce9659 #c17f46 #a56235 #72412a #3e2921 #0e121e #182b47 #2c4869. Flat pixel clusters, no antialiasing, no blur, no gradients, no painted backdrop or checkerboard. True transparent background. No scene, sea, rail, ship, sailor, lettering, spare objects or multiple variants. Board level, not a ramp or ladder, no posts or handrails. Entire board visible with small clear margin.",
+    "selected": false
+  },
+  {
+    "call": 2,
+    "intent": "edit",
+    "prompt": "Use case: precise-object-edit. Edit the generated plank image. Preserve single solid wood board, crisp pixel-art, longitudinal irregular grain, small knot, navy iron strap at TOP inboard end, dark bottom end-grain thickness, actual transparent background. Change only its proportions and perspective to fit the game: MUCH SHORTER AND BROADER, with very mild taper, top edge width exactly 75 percent of bottom edge width. Total visible silhouette width:height ratio 16:22. A compact foreshortened board seen from a side-on ship towards the viewer, like a small tongue sticking out over the side. Face length 19 units and end thickness 3 units. NOT a long narrow taper. Fine wood grain that survives downsampling. Logical grid 16 wide by 22 high. Top is flat and horizontal, bottom is flat and horizontal, left/right edges nearly parallel with just two pixels of widening per side. Keep only one metal strap near top, make strap thin and muted. Palette warm #dca35b #ce9659 #c17f46 #a56235 #72412a #3e2921, metal #182b47 #2c4869. No objects except board. No checkerboard, no added shadow outside silhouette, no text. Do not include ship or context.",
+    "selected": true
+  }
+]

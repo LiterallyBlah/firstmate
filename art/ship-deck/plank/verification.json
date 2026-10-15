@@ -1,0 +1,69 @@
+{
+  "checkedAt": "2026-10-15",
+  "result": "pass",
+  "assetSha256": "6f1310cc40ed17d1660509e808546567dbc94aeb1bfc9eb9dc8db40faa2ed7f9",
+  "size": [
+    18,
+    22
+  ],
+  "alphaValues": [
+    0,
+    255
+  ],
+  "opaquePixelCount": 314,
+  "transparentPixelCount": 82,
+  "transparentRgbZero": true,
+  "opaqueBoundsXYXY": [
+    0,
+    0,
+    18,
+    22
+  ],
+  "palette": [
+    "#1f3554",
+    "#22395a",
+    "#31211d",
+    "#3e2921",
+    "#492d22",
+    "#5d3626",
+    "#613a28",
+    "#624130",
+    "#72412a",
+    "#7e472d",
+    "#7f422b",
+    "#815c43",
+    "#915230",
+    "#9b5a33",
+    "#9e6139",
+    "#a56235",
+    "#ad6d3d",
+    "#b16f3d",
+    "#b57642",
+    "#bb7b44",
+    "#c17f46",
+    "#c5864b",
+    "#cd8f50",
+    "#d39151",
+    "#dca35b",
+    "#dd9954"
+  ],
+  "opaqueColorsAllInDeckPalette": true,
+  "connectedOpaqueComponents": 1,
+  "walkFootRegionSupported": true,
+  "walkAnchorContractMatchesClient": true,
+  "checks": [
+    "18x22 RGBA PNG decodes",
+    "Binary alpha with real transparent pixels and zero transparent RGB",
+    "All 26 opaque RGB values are exact shipped deck palette members",
+    "One four-connected opaque component, no detached noise",
+    "Each standing footprint X=5..12 at Y=1..18 lies on opaque surface",
+    "Existing approach, rail, tip and sea anchors match inspected client source"
+  ],
+  "visualInspection": [
+    "Native-scale hull fit",
+    "3x hull composite",
+    "16x sprite detail",
+    "6x rail, midpoint and tip sailor composites"
+  ],
+  "runtimeVerification": false
+}

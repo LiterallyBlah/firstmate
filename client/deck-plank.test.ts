@@ -160,6 +160,39 @@ describe("the plank, read against the hull", () => {
     }
   });
 
+  it("draws the generated board on the same anchors: its walking face from the rail to the tip, centred on the walk", () => {
+    const plank = extras.plank!;
+    expect(plank.texture).toBe("plank/plank.png");
+    const board = decodePng(readFileSync(art(plank.texture)));
+    expect([board.width, board.height]).toEqual(plank.size);
+    const [left, top] = plank.position;
+    const opaque = (x: number, y: number) => {
+      const [bx, by] = [x - left, y - top];
+      return bx >= 0 && by >= 0 && bx < board.width && by < board.height && board.at(bx, by).alpha === 255;
+    };
+    // Something to stand on under the walk's every foot, from the rail to the tip, and nothing above the gunwale.
+    for (let y = PLANK.rail.y; y <= PLANK.tip.y; y += 1) {
+      for (let dx = -3; dx <= 3; dx += 1) expect(opaque(PLANK.rail.x + dx, y), `${PLANK.rail.x + dx},${y}`).toBe(true);
+    }
+    for (let x = left; x < left + board.width; x += 1) expect(opaque(x, top - 1)).toBe(false);
+    expect(top).toBe(PLANK.rail.y - 1);
+    // Clear of the mast and the gunwale's bollards, and above the waterline.
+    expect(left).toBeGreaterThan(224);
+    expect(left + board.width).toBeLessThan(269);
+    expect(top + board.height).toBeLessThan(WATERLINE);
+    // Binary alpha, in the hull's own colours.
+    const hull = new Set<number>();
+    const [sx, sy, sw, sh] = manifest.ship.frame;
+    for (let y = sy; y < sy + sh; y += 1) for (let x = sx; x < sx + sw; x += 1) if (atlas.at(x, y).alpha === 255) hull.add(atlas.at(x, y).rgb);
+    for (let y = 0; y < board.height; y += 1) {
+      for (let x = 0; x < board.width; x += 1) {
+        const { rgb, alpha } = board.at(x, y);
+        expect([0, 255]).toContain(alpha);
+        if (alpha === 255) expect(hull.has(rgb), `${x},${y}`).toBe(true);
+      }
+    }
+  });
+
   it("puts the water below the tip as far before the waterline as the tip is before the rail", () => {
     expect(PLANK.water - WATERLINE).toBe(PLANK.tip.y - PLANK.rail.y);
   });
