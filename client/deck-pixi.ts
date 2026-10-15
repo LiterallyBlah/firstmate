@@ -10,6 +10,11 @@
  * `front`). The hover label and legend are React, on top. The sail hangs behind the crew; while it shows, the
  * mast's depth piece is the occluder, which leaves the cloth alone (`client/deck-extras.ts`).
  *
+ * **The plank** (`client/deck-plank.ts`) is drawn in code on the deck's layer, just in front of the near
+ * rail, and a sailor walking it is drawn in front of the plank. Off its end the sailor goes into the
+ * `overboard` layer over the near sea — outside the ship's bob, as the shark's art asks — and the shark and
+ * the splash are drawn there after it, at their water anchors.
+ *
  * Who moves where is `client/deck-crew.ts`; the ambient motion is `client/deck-ambient.ts`; the sea, the
  * sky and the gull are `client/deck-environment.ts`, from the generated art; the sail and the crew's looks
  * are `client/deck-extras.ts`; when a frame
@@ -39,7 +44,7 @@
 import type { DeckArtManifest, SailorPose } from "../shared/ship-deck";
 import { LANTERNS, lanternFlicker, MASTHEAD, mastSway, shipBob, type MotionPlan } from "./deck-ambient";
 import { BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
-import { applyCrew, BREATH_ROWS, createCrew, crewFigures, stepCrew, type Figure } from "./deck-crew";
+import { applyCrew, BREATH_ROWS, createCrew, crewFigures, fading, plankEffects, SHARK_MOUTH, stepCrew, stepDepartures, type Figure } from "./deck-crew";
 import { ATLAS_LOOKS, crewLooks, drawnSail, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
 import { badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type DeckFit, type DeckHover } from "./deck-hover";
@@ -47,6 +52,7 @@ import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-lo
 import type { DeckDrawing, DeckHost } from "./deck-mount";
 import { DECK_PROPS, depthOf, type DeckScene, type DeckState } from "./deck-scene";
 import { createScenery, type DeckEnvironmentImages } from "./deck-environment";
+import { plankPixels, type SharkFrame, type SplashFrame } from "./deck-plank";
 import { dominantPhase, localMinute, SKY_REFRESH_MS } from "./deck-sky";
 
 /** Marks the canvas with its renderer, so the live check can read it in the app's DevTools. */
@@ -250,9 +256,31 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
     sail = { states, occluder };
   }
 
+  // The shark's keys and the splash's, each its own image, whichever decoded.
+  const exitManifest = extras?.manifest.exit ?? null;
+  const whole = (path: string, size: readonly [number, number]) => {
+    const image = extras?.images.get(path);
+    return image === undefined ? null : frame([0, 0, size[0], size[1]], sourceOf(image));
+  };
+  const shark = new Map<SharkFrame, PixiTexture>();
+  const splash = new Map<SplashFrame, PixiTexture>();
+  if (exitManifest !== null) {
+    for (const [id, path] of Object.entries(exitManifest.shark.frames) as Array<[SharkFrame, string]>) {
+      const texture = whole(path, exitManifest.shark.size);
+      if (texture !== null) shark.set(id, texture);
+    }
+    for (const [id, path] of Object.entries(exitManifest.splash.frames) as Array<[SplashFrame, string]>) {
+      const texture = whole(path, exitManifest.splash.size);
+      if (texture !== null) splash.set(id, texture);
+    }
+  }
+
   const crops = new Map<string, PixiTexture>();
   return {
     hull,
+    exit: exitManifest,
+    shark,
+    splash,
     masthead,
     pieces,
     props,
@@ -320,8 +348,14 @@ interface SailorSprites {
   doze: PixiGraphics;
   /** What the mark and badge were last drawn as, so they are redrawn only when the state, the feed or the hover changes. */
   marked: string;
-  /** Whether it stands in the spotlight, over the veil, rather than among the deck's pieces. */
-  spotlit: boolean;
+  /** Which layer holds it: the deck's, the spotlight over the veil, or the sea's off the plank. */
+  parent: PixiContainer;
+}
+
+/** A departure's shark and splash sprites, made when first shown and destroyed when it is over. */
+interface EffectSprites {
+  shark: PixiSprite | null;
+  splash: PixiSprite | null;
 }
 
 /** Draws `state`'s badge (`client/deck-badges.ts`) into `graphics`, its top left at the origin. */
@@ -331,6 +365,11 @@ function drawBadge(graphics: PixiGraphics, state: DeckState, colour: string): vo
   graphics.clear();
   for (const pixel of badgePixels(state)) graphics.rect(pixel.x, pixel.y, 1, 1).fill(pixel.kind === "sign" ? sign : ink);
 }
+
+/** The plank's depth on the deck's layer: just in front of the near rail (`depthOf(null)`); whoever walks it is in front of it. */
+const PLANK_DEPTH = depthOf(null, 0) + 1;
+/** How often a still deck is drawn again while someone fades out. */
+const FADE_STEP_MS = 50;
 
 /** The veil over the deck behind a focused sailor: the night sea's navy, faded in with the zoom. */
 const VEIL_COLOUR = 0x050b14;
@@ -389,7 +428,7 @@ export async function startDeck(
   const { manifest } = art;
   const textures: Textures = atlasTextures(pixi, art);
   let current = scene;
-  const crew = createCrew(crewLooks(art.extras));
+  const crew = createCrew(crewLooks(art.extras), textures.exit?.shark.mouth ?? SHARK_MOUTH);
 
   const world = new pixi.Container();
   world.label = "world";
@@ -445,6 +484,12 @@ export async function startDeck(
     sprite.zIndex = depthOf(occluder !== null ? occluder.baseline : piece.baseline, 1);
     deck.addChild(sprite);
   }
+  // The plank over the near rail, in front of it, and behind whoever walks it.
+  const plank = new pixi.Graphics();
+  plank.label = "plank";
+  for (const [x, y, width, height, colour, alpha] of plankPixels()) plank.rect(x, y, width, height).fill({ color: colour, alpha });
+  plank.zIndex = PLANK_DEPTH;
+  deck.addChild(plank);
   const lanterns = LANTERNS.map(function (lantern) {
     const root = new pixi.Container();
     root.label = "lantern";
@@ -491,7 +536,12 @@ export async function startDeck(
   veil.visible = false;
   const spot = new pixi.Container();
   spot.label = "spot";
-  world.addChild(scenery.back, ship, scenery.front, veil, spot);
+  // Over the near sea, outside the bob: a sailor off the plank, then the sharks, then the splashes.
+  const overboard = new pixi.Container();
+  overboard.label = "overboard";
+  overboard.sortableChildren = true;
+  const effects = new Map<string, EffectSprites>();
+  world.addChild(scenery.back, ship, scenery.front, overboard, veil, spot);
 
   function sailorSprites(figure: Figure): SailorSprites {
     let sprites = sailors.get(figure.key);
@@ -509,7 +559,7 @@ export async function startDeck(
       doze.label = "doze";
       root.addChild(mark, sprite, upper, badge, doze);
       deck.addChild(root);
-      sprites = { root, mark, sprite, upper, badge, doze, marked: "", spotlit: false };
+      sprites = { root, mark, sprite, upper, badge, doze, marked: "", parent: deck };
       sailors.set(figure.key, sprites);
     }
     return sprites;
@@ -551,23 +601,24 @@ export async function startDeck(
       for (const part of [sprites.sprite, sprites.upper]) {
         part.scale.set(figure.flip ? -1 : 1, 1);
         part.tint = figure.stale ? 0x8a9096 : 0xffffff;
-        part.alpha = figure.stale ? 0.6 : 1;
+        part.alpha = (figure.stale ? 0.6 : 1) * figure.alpha;
       }
       const hovered = figure.key === hoveredKey || figure.key === focusKey;
-      // The focused sailor stands over the veil; it goes back among the pieces once the camera is out.
-      const spotlit = figure.key === spotKey;
-      if (sprites.spotlit !== spotlit) {
-        (spotlit ? deck : spot).removeChild(sprites.root);
-        (spotlit ? spot : deck).addChild(sprites.root);
-        sprites.spotlit = spotlit;
+      // The focused sailor stands over the veil; it goes back among the pieces once the camera is out. One off
+      // the plank is in the sea.
+      const parent = figure.layer === "sea" ? overboard : figure.key === spotKey ? spot : deck;
+      if (sprites.parent !== parent) {
+        sprites.parent.removeChild(sprites.root);
+        parent.addChild(sprites.root);
+        sprites.parent = parent;
       }
-      const marked = `${figure.state}:${figure.stale ? "stale" : "live"}:${rows < height ? "hatch" : "deck"}:${hovered ? "hover" : ""}`;
+      const marked = `${figure.state}:${figure.stale ? "stale" : "live"}:${rows < height ? "hatch" : "deck"}:${hovered ? "hover" : ""}:${figure.departing ? "gone" : ""}`;
       const stateColour = current.palette.states[figure.state];
       if (sprites.marked !== marked) {
         sprites.mark.clear();
         const colour = hexColour(stateColour);
-        if (rows < height) {
-          // Nothing under the feet while still on the ladder.
+        if (rows < height || figure.departing) {
+          // Nothing under the feet while still on the ladder, or once its card has gone.
         } else if (figure.stale) {
           // A lost feed: the last state's colour, hollow — greyed, never idle.
           sprites.mark.ellipse(0, 0, 6, 2).stroke({ color: colour, width: 1, alpha: 0.7 });
@@ -586,7 +637,7 @@ export async function startDeck(
       // The mark stays on the deck row; the figure above it rises and leans with its motion.
       sprites.root.position.set(figure.x, figure.row);
       if (!breathing) sprites.sprite.position.set(0, figure.y - figure.row);
-      sprites.root.zIndex = depthOf(figure.row, 0) + figure.x / 10000;
+      sprites.root.zIndex = (figure.layer === "rail" ? PLANK_DEPTH + 1 : figure.layer === "sea" ? 0 : depthOf(figure.row, 0)) + figure.x / 10000;
       // The badge rides over the head, with it: greyed with a stale sailor, not shown on the ladder.
       const badgeY = badgeTop(figure, manifest) - figure.row;
       sprites.badge.visible = showsBadge(figure);
@@ -602,10 +653,64 @@ export async function startDeck(
     }
     for (const [key, sprites] of [...sailors.entries()]) {
       if (present.has(key)) continue;
-      (sprites.spotlit ? spot : deck).removeChild(sprites.root);
+      sprites.parent.removeChild(sprites.root);
       sprites.root.destroy({ children: true });
       sailors.delete(key);
     }
+  }
+
+  /** Draws each departure's shark and splash at its water anchor, and lets go of those that are over. */
+  function drawEffects(): void {
+    const exit = textures.exit;
+    const present = new Set<string>();
+    for (const effect of plankEffects(crew)) {
+      present.add(effect.key);
+      let sprites = effects.get(effect.key);
+      if (sprites === undefined) {
+        sprites = { shark: null, splash: null };
+        effects.set(effect.key, sprites);
+      }
+      sprites.shark = shown(sprites.shark, effect.shark === null ? undefined : textures.shark.get(effect.shark.frame), 1, "shark");
+      if (sprites.shark !== null && effect.shark !== null && exit !== null) {
+        const [width, height] = exit.shark.size;
+        sprites.shark.anchor.set(exit.shark.anchor[0] / width, exit.shark.anchor[1] / height);
+        // Mirrored about its water anchor when it comes from the right.
+        sprites.shark.scale.set(effect.shark.flip ? -1 : 1, 1);
+        sprites.shark.position.set(effect.shark.x, effect.shark.y);
+      }
+      sprites.splash = shown(sprites.splash, effect.splash === null ? undefined : textures.splash.get(effect.splash.frame), 2, "splash");
+      if (sprites.splash !== null && effect.splash !== null && exit !== null) {
+        const [width, height] = exit.splash.size;
+        sprites.splash.anchor.set(exit.splash.anchor[0] / width, exit.splash.anchor[1] / height);
+        sprites.splash.position.set(effect.splash.x, effect.splash.y);
+      }
+    }
+    for (const [key, sprites] of [...effects.entries()]) {
+      if (present.has(key)) continue;
+      for (const sprite of [sprites.shark, sprites.splash]) {
+        if (sprite === null) continue;
+        overboard.removeChild(sprite);
+        sprite.destroy();
+      }
+      effects.delete(key);
+    }
+  }
+
+  /** A sprite in the sea's layer at `depth` showing `texture`, made on first use; hidden while there is none. */
+  function shown(sprite: PixiSprite | null, texture: PixiTexture | undefined, depth: number, label: string): PixiSprite | null {
+    if (texture === undefined) {
+      if (sprite !== null) sprite.visible = false;
+      return sprite;
+    }
+    if (sprite === null) {
+      sprite = new pixi.Sprite(texture);
+      sprite.label = label;
+      sprite.zIndex = depth;
+      overboard.addChild(sprite);
+    }
+    sprite.texture = texture;
+    sprite.visible = true;
+    return sprite;
   }
 
   /** Draws the deck as it is at `elapsedMs` on the scene clock. */
@@ -613,8 +718,9 @@ export async function startDeck(
     const seconds = elapsedMs / 1000;
     const moving = plan.level !== "still";
     if (stepMs > 0) stepCrew(crew, stepMs);
-    // Reduced motion turned on mid-walk: everyone to their anchor, nobody frozen on the way or on the ladder.
-    if (!moving) applyCrew(crew, current.sailors, { snap: true });
+    // Reduced motion turned on mid-walk: everyone to their anchor, nobody frozen on the way or on the ladder,
+    // and anyone on the way out fading where they are.
+    if (!moving) applyCrew(crew, current.sailors, { snap: true, departures: current.departures });
     const bob = moving ? shipBob(seconds) : { x: 0, y: 0 };
     ship.position.set(bob.x, bob.y);
     masthead.position.set(MASTHEAD.x + (moving ? mastSway(seconds) : 0), MASTHEAD.y);
@@ -631,6 +737,8 @@ export async function startDeck(
     aim(elapsedMs, moving);
     findHover();
     drawSailors(drawnFigures, elapsedMs, !moving);
+    drawEffects();
+    watchFades();
     canvas.setAttribute(DECK_MOTION_ATTRIBUTE, plan.level);
     canvas.setAttribute(DECK_SKY_ATTRIBUTE, sky === null ? "none" : (skyPhases[dominantPhase(sky)]?.id ?? "none"));
     app.render();
@@ -707,7 +815,24 @@ export async function startDeck(
     veil.clear().rect(visible.left - 1, visible.top - 1, visible.right - visible.left + 2, visible.bottom - visible.top + 2).fill(VEIL_COLOUR);
   }
 
-  applyCrew(crew, scene.sailors, { snap: true });
+  /**
+   * A still deck draws only when something changes, so while anyone fades out it is drawn again every
+   * `FADE_STEP_MS`, the fade stepped on as much, until nobody is fading. Stepped but not drawn while hidden.
+   */
+  let stopFades: (() => void) | null = null;
+  function watchFades(): void {
+    if (stopFades !== null || !fading(crew)) return;
+    stopFades = environment.every(FADE_STEP_MS, function () {
+      if (animator.plan().level === "still") stepDepartures(crew, FADE_STEP_MS);
+      if (!fading(crew)) {
+        stopFades?.();
+        stopFades = null;
+      }
+      if (!environment.signals.documentHidden()) animator.invalidate();
+    });
+  }
+
+  applyCrew(crew, scene.sailors, { snap: true, departures: scene.departures });
   fit();
   const animator = deckAnimator({ scheduler: environment.scheduler, signals: environment.signals, software, size, frame: draw });
   // A running loop reads the clock every frame; a still deck is drawn again once a minute, so its sky keeps up.
@@ -744,7 +869,7 @@ export async function startDeck(
         for (const sprites of sailors.values()) sprites.marked = "";
       }
       current = next;
-      applyCrew(crew, next.sailors, { snap: animator.plan().level === "still" });
+      applyCrew(crew, next.sailors, { snap: animator.plan().level === "still", departures: next.departures });
       animator.invalidate();
     },
     focus(key) {
@@ -772,6 +897,8 @@ export async function startDeck(
       if (reported !== null) onHover(null);
       reported = null;
       stopSky();
+      stopFades?.();
+      stopFades = null;
       animator.destroy();
       app.destroy({ removeView: true }, { children: true });
       textures.destroy();

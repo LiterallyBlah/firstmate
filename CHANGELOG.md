@@ -10,6 +10,14 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- Crewmates leaving the ship deck walk the plank. A plank now sticks out over the gunwale amidships, and a
+  crewmate whose card leaves the deck — done, failed, closed or archived — walks to it, out along it, teeters
+  at the end, jumps, and splashes into the sea, where a shark's fin closes in, the shark surfaces, and with
+  one chomp it is gone. Several leaving at once wait their turn by the plank, one on it and one shark in the
+  water at a time. A sailor on its way out has no badge and cannot be clicked; one that was focused lets go of
+  the camera first. Under reduced motion there is no walk and no shark: the sailor fades out where it stood.
+  A lost feed still greys the crew where they stand rather than sending anyone overboard.
+
 - Work from the ship deck. Clicking a sailor zooms the camera in on it and dims the rest of the deck, and a
   small panel beside it shows that crewmate's card — its state, project and host, status line, anything
   waiting on you — with the card's own Watch, Steer, Interrupt, Relaunch and End, which behave exactly as on

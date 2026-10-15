@@ -8,7 +8,7 @@
  *   plugin's folder; built by `docs/ship-deck-art/build-art.py`.
  * - `firstmate.deck.environment` — the generated sea, sky and gull: each image, base64, and what
  *   `art/ship-deck/environment.json` says about drawing them. See below.
- * - `firstmate.deck.extras` — the sail and the crew's extra looks: each image, base64, and what
+ * - `firstmate.deck.extras` — the sail, the crew's extra looks, the shark and the splash: each image, base64, and what
  *   `art/ship-deck/extras.json` says about drawing them. See the last note.
  */
 import { defineRpc } from "@getpaseo/plugin";
@@ -80,6 +80,7 @@ const ArtPath = z
   .string()
   .regex(/^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.png$/i, "an environment image must be a relative .png path inside art/ship-deck/");
 const Size = z.tuple([z.number().int().positive(), z.number().int().positive()]);
+const Point = z.tuple([z.number().int(), z.number().int()]);
 
 /** The six sky phases, in the order of the day. */
 export const SKY_PHASES = ["dawn", "morning", "midday", "afternoon", "dusk", "night"] as const;
@@ -147,7 +148,8 @@ export const loadDeckEnvironment = defineRpc({
 export type DeckEnvironment = z.infer<typeof loadDeckEnvironment.output>;
 
 /**
- * `firstmate.deck.extras` — the sail on hull C's mast and the crew's extra looks (`art/ship-deck/assets-2/README.md`):
+ * `firstmate.deck.extras` — the sail on hull C's mast and the crew's extra looks (`art/ship-deck/assets-2/README.md`),
+ * and the shark and splash that see a sailor off the plank (`art/ship-deck/shark/README.md`):
  * the parts of `art/ship-deck/extras.json` the deck draws with, and each image it names, base64. Apart from
  * the atlas and the environment, and not needed to
  * draw: the client keeps whatever of it decodes, so a missing sail is the bare mast and a missing look is
@@ -179,12 +181,30 @@ export const DeckExtrasManifestSchema = z.object({
   crew: z
     .array(z.object({ id: z.string().regex(/^[a-z0-9-]+$/), texture: ArtPath }))
     .refine((looks) => new Set(looks.map((look) => look.id)).size === looks.length, "each crew look needs its own id"),
+  /**
+   * The way off by the plank (`art/ship-deck/shark/README.md`): the shark's four keys and the splash's two,
+   * each a `size` image whose `anchor` is where it meets the water. `mouth` is the shark's open mouth from
+   * that anchor, drawn facing right. Without it, or without an image of it, a sailor still walks the plank
+   * and drops into the sea, and the shark or the splash is simply not drawn.
+   */
+  exit: z
+    .object({
+      shark: z.object({
+        size: Size,
+        anchor: Point,
+        mouth: Point,
+        frames: z.object({ fin: ArtPath, surface: ArtPath, chomp: ArtPath, submerge: ArtPath }),
+      }),
+      splash: z.object({ size: Size, anchor: Point, frames: z.object({ impact: ArtPath, burst: ArtPath }) }),
+    })
+    .optional(),
 });
 export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;
 
 /** Every image the extras manifest names, once each, in a stable order. */
 export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
-  return [...new Set([manifest.sail.texture, manifest.sail.occluder.texture, ...manifest.crew.map((look) => look.texture)])];
+  const exit = manifest.exit === undefined ? [] : [...Object.values(manifest.exit.shark.frames), ...Object.values(manifest.exit.splash.frames)];
+  return [...new Set([manifest.sail.texture, manifest.sail.occluder.texture, ...manifest.crew.map((look) => look.texture), ...exit])];
 }
 
 export const loadDeckExtras = defineRpc({

@@ -1,9 +1,10 @@
 # Shark exit and splash art
 
-Generated shark and water-impact keys for the near sea in front of hull C. This is an asset-only
-handoff; nothing is wired into the Deck, and no existing runtime manifest is changed.
+Generated shark and water-impact keys for the near sea in front of hull C. They see a crewmate off the
+plank (`client/deck-plank.ts`, `docs/ship-deck-plank/README.md`): `extras.json`'s `exit` names the six runtime
+PNGs with their sizes, water anchors and the shark's mouth, and `firstmate.deck.extras` serves them.
 All paths in [manifest.json](manifest.json) are relative to `art/ship-deck/`, including its sibling
-`splash/` directory. The manifest is a new integration contract, not an existing RPC schema.
+`splash/` directory. That manifest is the art's own record, not read at run time.
 
 | Asset | Frame / sheet size | Verdict | Limitation |
 | --- | --- | --- | --- |
