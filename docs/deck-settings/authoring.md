@@ -62,7 +62,11 @@ seconds dark, hidden in lite and still).
    zone posts with ids and facing, overflow areas, label floors, portal marks and fit bounds.
    `CHECK_SELECTION=1` also checks missing-pack fallback and restoring the saved choice through the live UI.
 5. Run typecheck and the full suite, inspect full/lite/still motion and depth order, and run
-   `node docs/deck-settings/gate.mjs`: the ship must remain 81/81 pixel-identical to main. Record results,
+   `node docs/deck-settings/gate.mjs`: the ship must remain 81/81 pixel-identical to main, except explicitly
+   documented visual additions. For an intentional addition, inspect its before/after/difference images,
+   record both exact screenshot hashes and a reason in `expected-changes.json`, then independently rerun
+   all 81 shots. A changed baseline, unexpected screenshot or canvas metadata still fails; never accept
+   a scenario by name alone or update hashes without review. Record results,
    review the PR and wait for CI. New capabilities need their own generic tests and reviewed engine PRs;
    the subsequent setting-pack PR contains data and art only, no TypeScript.
 
