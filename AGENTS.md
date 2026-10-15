@@ -335,10 +335,10 @@ starts.
 
 ## The Deck is a scene engine drawing setting packs
 
-The Deck is moving, in nine reviewed steps (`docs/deck-settings/README.md`, from the design in the first mate's
-`data/deck-settings-architecture/report.md`), from code written for one ship to a **scene engine** that knows
-workers, states, places, portals, layers, behaviours, the day and intensity, drawing a **setting pack** that knows
-what those look like and where they are. The ship is the first pack, `art/settings/ship/`.
+The Deck is a **scene engine** that knows workers, states, places, portals, layers, behaviours, the day and
+intensity, drawing a **setting pack** that knows what those look like and where they are. The nine-step migration
+is recorded in `docs/deck-settings/README.md`. The two built-in packs are `art/settings/ship/` and
+`art/settings/office/`; the office pack required no engine changes when installed.
 
 - **A pack is pure data**: `setting.json`, format `firstmate.deck-setting` 1 (`shared/deck-setting.ts`), and the
   PNGs it names, nothing else. **No pack code, ever**, and **no expressions**: numbers, ids, sprites, fixed path
@@ -360,9 +360,10 @@ what those look like and where they are. The ship is the first pack, `art/settin
   Step 9d adds `phase-frames@1`: an ambience sprite selected by local hour/minute, modulo its frame count
   (`client/deck-phase-frames.ts`). It shares the renderer's wall clock, honors lite/still policies and adds no timer.
   The existing wall-clock refresh also applies in still mode, without restoring weather variants or animation.
-  The office's commissioning contract and uninstalled draft live in `docs/settings/office/`. Never move its
-  null image digests or proposed unsupported fields into `art/settings/`; art and the remaining capabilities
-  must land first. `test/office-draft.test.ts` checks its geometry and registrations without manufacturing art.
+  The office's commissioning contract, historical draft, provenance and runtime review live in
+  `docs/settings/office/`. Its installed manifest has real image digests and copies of the verified PNGs.
+  `test/office-draft.test.ts` preserves the original geometry/registration checks; generic pack lint checks
+  the installed files. Author new settings via `docs/deck-settings/authoring.md`; new art is commissioned separately.
 - **Atmosphere is compiled per pack** (`compileAtmosphere`, `client/deck-atmosphere.ts`): `atmosphere.table`
   interpolates any named channels, `clocks` binds animation names to pace channels, and `delivered` supplies every
   channel's calm value. Tables have strictly increasing intensities and the same channels in every row. Clocks advance
@@ -403,8 +404,9 @@ what those look like and where they are. The ship is the first pack, `art/settin
   and effect tracks; `portals.byDeparture` routes departures, queues release on named events, and rise/sink/fade
   durations belong to the pack. No runtime reads the old art manifests. Historical adapters and frozen timeline
   expectations live under `test/` and are excluded from the package. Every step is held to the 81-shot
-  pixel-identical gate in `docs/deck-settings/gate.mjs`. Step 8 adds global selection; step 9's second setting
-  requires commissioned art and separately reviewed generic capabilities before its data-only pack can land.
+  pixel-identical gate in `docs/deck-settings/gate.mjs`. Step 8 adds global selection; step 9 installs the office
+  as data and commissioned art, after its generic capabilities landed in separate reviews. Per-project selection
+  and external pack installation remain deferred. The code-drawn plank/wake remain retired.
 
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
 
