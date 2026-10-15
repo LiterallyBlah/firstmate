@@ -12,9 +12,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { FADE_MS, HATCH_MS, SHARK_MOUTH } from "./deck-crew";
-import { extrasImagePaths } from "./deck-legacy";
-import { DeckArtManifestSchema, DeckExtrasManifestSchema } from "./deck-legacy-schema";
+import { FADE_MS, HATCH_MS, SHARK_MOUTH } from "../test/ship-choreography";
+import { extrasImagePaths } from "../test/deck-legacy";
+import { DeckArtManifestSchema, DeckExtrasManifestSchema } from "../test/deck-legacy-schema";
 import {
   BOB_UP_MS,
   CHOMP_AT,
@@ -34,7 +34,7 @@ import {
   SURFACE_MS,
   SWIM_ROWS,
   TEETER_MS,
-} from "./deck-plank";
+} from "../test/ship-choreography";
 import { shipAmbience, shipManifest, shipViews } from "../test/ship-pack";
 import type { AmbienceBehaviour } from "../shared/deck-setting";
 

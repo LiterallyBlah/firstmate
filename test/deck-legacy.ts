@@ -1,13 +1,4 @@
-/**
- * The last of the deck's art as it was once served — the extras' shark and splash (`DeckExtrasManifest`), which the
- * plank's way off draws — now read off a setting pack (`shared/deck-setting.ts`) by `legacyViews`, so the engine draws
- * them exactly as it did until step 7 of the move to a scene engine makes the plank's choreography and its effects the
- * pack's own; then this file goes. The manifests as they were last served are kept as records in
- * `docs/ship-deck-art/legacy/`, and `client/ship-pack.test.ts` holds this view to them. The atlas's view went in step
- * 5c, the environment's in 5b: the stage's parts, pieces and lights and all of the ambience are the pack's own now.
- *
- * Image paths in the view are paths inside the pack's folder, as they once were inside `art/ship-deck/`.
- */
+/** Historical manifest adapters for regression tests only. Never imported by the runtime or shipped in the package. */
 import type { SettingManifest } from "../shared/deck-setting";
 import type { DeckExtrasManifest } from "./deck-legacy-schema";
 

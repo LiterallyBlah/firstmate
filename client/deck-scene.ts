@@ -18,7 +18,7 @@
  * Only live crew stand on deck: a local crewmate Paseo has not closed, or a remote worker that is
  * crew, not a followed session. Queued and Done cards, and cards with no worker, are left off. A card
  * that leaves the deck says why (`departureOf`: done, failed or closed; a card gone from the board is
- * removed), and `client/deck-plank.ts` decides from that how its sailor goes.
+ * removed), and `client/deck-choreography.ts` decides from that how its sailor goes.
  *
  * The scene says only what each sailor is doing, and who it is: its `caption`, what the deck shows
  * when the pointer is over it (`sailorCaption`). Where it stands, and its walk there, are
@@ -34,7 +34,7 @@ import type { PluginTheme } from "@getpaseo/plugin";
 
 import type { FleetCard } from "../shared/fleet";
 import type { Figure } from "./deck-crew";
-import type { DeckDeparture } from "./deck-plank";
+import type { DeckDeparture } from "./deck-choreography";
 import { cardHeadline } from "./format";
 
 export const DECK_STATES = ["working", "waiting", "blocked", "idle"] as const;

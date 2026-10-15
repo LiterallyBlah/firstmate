@@ -23,13 +23,11 @@ vi.mock("@getpaseo/plugin/client", () => ({
 
 import type { AgentStatus, ColumnId, FleetCard, RemoteCard } from "../shared/fleet";
 import { deckEngineSource } from "../server/deck-settings";
-import { extrasImagePaths } from "./deck-legacy";
 import {
   browserDeckEngine,
   decodeAtlas,
   decodePack,
   drifterMasks,
-  extrasImages,
   packArt,
   evaluatePixi,
   isDeckHost,
@@ -344,7 +342,7 @@ describe("the deck's art", () => {
       seed: 0,
       sink: 0,
       departing: false,
-      layer: "deck",
+      layer: "floor",
       alpha: 1,
     });
     const figures = [at(211, 111, "before-mast"), at(211, 100, "behind-mast"), at(80, 94, "behind-bollard"), at(80, 95, "before-bollard")];
@@ -739,7 +737,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
       ["bollard-gunwale-aft", null],
       ["plank", null],
     ]);
-    expect([...whole.extras!.images.keys()]).toEqual(extrasImagePaths(shipViews().extras));
+    expect(whole.effects).toEqual(shipManifest().effects);
     expect(whole.ambience.elements.map((element) => element.id)).toEqual(["sky", "overcast", "stars", "lightning", "clouds", "gull", "sea", "wake", "foam", "spindrift"]);
     expect(whole.ambience.flats).toEqual([]);
     expect(whole.masks.size).toBe(10);
@@ -777,6 +775,17 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     ]);
 
     await expect(packArt(await failing(["deck"]), warn, cut)).rejects.toThrow("bad png");
+  });
+
+  it("warns once for a missing effect image shared by keys, while retaining other decoded frames", async () => {
+    const manifest = structuredClone(shipManifest());
+    manifest.effects.doors = { size: [64, 64], points: { anchor: [32, 50] }, frames: { closed: { image: "shark-fin" }, open: { image: "shark-chomp" }, again: { image: "shark-fin" } } };
+    const images = new Map(Object.keys(manifest.images).filter((id) => id !== "shark-fin").map((id) => [id, { image: id }]));
+    const warnings: string[] = [];
+    const art = await packArt({ manifest, images, failed: new Map([["shark-fin", new Error("bad png")]]) }, (message) => warnings.push(message), async () => ["a", "b", "c"]);
+    expect(warnings).toEqual(["[firstmate] the deck's shark/fin.png did not load; drawing without it:"]);
+    expect(art.effects.doors).toEqual(manifest.effects.doors);
+    expect(art.images.has("shark-chomp")).toBe(true);
   });
 
   it("decodes the atlas as a PNG data URL, and says so where there is no image decoder", async () => {
@@ -1239,26 +1248,6 @@ describe("the ship deck view", () => {
     expect(deckStatusText({ kind: "starting" })).toBe("Raising the deck…");
     expect(deckStatusText({ kind: "failed", message: "boom" })).toBe("The ship deck could not start: boom");
     expect(deckStatusText({ kind: "unsupported", reason: "no-host" })).toContain("desktop app");
-  });
-});
-
-describe("the shark and the splash, decoded", () => {
-  it("keeps every image that decoded and leaves out, by name, one that did not", () => {
-    const extras = shipViews().extras;
-    const images = shipImages();
-    const ids = new Map([...shipViews().paths].map(([id, path]) => [path, id]));
-    const image = (path: string) => ({ png: images[ids.get(path)!] });
-    const all = extrasImages(extras, image);
-    expect([...all.images.keys()]).toHaveLength(6);
-    const missing: string[] = [];
-    const some = extrasImages(
-      extras,
-      (path) => (path === "shark/fin.png" ? undefined : image(path)),
-      (path) => missing.push(path),
-    );
-    expect(missing).toEqual(["shark/fin.png"]);
-    expect([...some.images.keys()]).toHaveLength(5);
-    expect(some.manifest).toBe(extras);
   });
 });
 

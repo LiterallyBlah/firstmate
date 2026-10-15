@@ -16,7 +16,7 @@
  * in the setting's fit box (`deckBox`); its own rows below the sail stand in for the mast's depth piece, which leaves
  * the cloth alone.
  *
- * **The plank** (`client/deck-plank.ts`) is a piece of the pack, drawn just in front of the near rail it stands over,
+ * **The plank** (`client/deck-choreography.ts`) is a piece of the pack, drawn just in front of the near rail it stands over,
  * and a sailor walking it is drawn in front of the plank; where its image did not load, there is no board. Off its end
  * the sailor goes into the
  * `overboard` layer over the near sea — outside the ship's bob, as the shark's art asks — and the shark and
@@ -49,12 +49,12 @@
  * prop, piece and lantern once and for every sailor on every frame, so a sailor walking aft passes
  * behind the mast, the bollards and the stairs' balustrade, and in front of them on its way back.
  */
-import type { DeckExtrasImages } from "./deck-legacy";
+import type { SettingManifest } from "../shared/deck-setting";
 import { availableLooks, laneOf, standing, type DeckCast } from "./deck-cast";
 import type { MotionPlan } from "./deck-ambient";
 import { clockOf, crewIntensity, deliveredWeather, levelAt, openingAtmosphere, stepAtmosphere, weatherOf, type DeckAtmosphere } from "./deck-atmosphere";
 import { ASK_PAPER, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
-import { applyCrew, createCrew, crewFigures, fading, plankEffects, SHARK_MOUTH, stepCrew, stepDepartures, type Figure } from "./deck-crew";
+import { applyCrew, createCrew, crewFigures, fading, departureEffects, stepCrew, stepDepartures, type Figure } from "./deck-crew";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
 import { askMarks, badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type AskMark, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
@@ -64,7 +64,6 @@ import { elementMotion, type DeckAmbience } from "./deck-ambience";
 import type { DrifterMasks } from "./deck-clouds";
 import { createScenery } from "./deck-environment";
 import { bobAt, dutyFrame, flickerAt, glassTint, glyphRects, swayAt, type Cut, type DeckParts } from "./deck-parts";
-import type { SharkFrame, SplashFrame } from "./deck-plank";
 import type { DeckStage } from "./deck-stage";
 import { localMinute, SKY_REFRESH_MS } from "./deck-sky";
 
@@ -165,8 +164,7 @@ export interface PixiModule {
 /**
  * The deck's art as the mount hands it over: the setting's stage, cast, parts and ambience, compiled
  * (`client/deck-stage.ts`, `client/deck-cast.ts`, `client/deck-parts.ts`, `client/deck-ambience.ts`); every image of
- * the pack that decoded, by id, and each drifter's slot masks by image id; the decoded backdrop image; and the shark
- * and splash the plank's way off draws, as many of them as decoded, or null (until step 7 makes them the pack's own).
+ * the pack that decoded, by id, and each drifter's slot masks by image id; the decoded backdrop image; and the effect definitions.
  */
 export interface DeckArtImage {
   stage: DeckStage;
@@ -177,7 +175,7 @@ export interface DeckArtImage {
   images: ReadonlyMap<string, unknown>;
   masks: ReadonlyMap<string, DrifterMasks>;
   image: unknown;
-  extras: DeckExtrasImages | null;
+  effects: SettingManifest["effects"];
 }
 
 /** What the deck needs to decide when to move: a frame scheduler and the motion signals; and what time it is. */
@@ -251,7 +249,7 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
   };
   /** A cut of the pack's: its rectangle of its own image's source. */
   const cutOf = (cut: Cut) => frame(cut.rect, sourceFor(art.images.get(cut.image)));
-  const { extras, parts } = art;
+  const { parts } = art;
   const [shipX, shipY, shipWidth, shipHeight] = parts.backdrop.rect;
   // The backdrop in slices round what is cut out of it for the parts drawn in its place: the ship's masthead, to sway;
   // or, under the tall mast, the hull's whole short rig, which is not drawn at all.
@@ -292,31 +290,16 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
   );
   const firstLook = cast.looks[0]!.id;
 
-  // The shark's keys and the splash's, each its own image, whichever decoded.
-  const exitManifest = extras?.manifest.exit ?? null;
-  const whole = (path: string, size: readonly [number, number]) => {
-    const image = extras?.images.get(path);
-    return image === undefined ? null : frame([0, 0, size[0], size[1]], sourceOf(image));
-  };
-  const shark = new Map<SharkFrame, PixiTexture>();
-  const splash = new Map<SplashFrame, PixiTexture>();
-  if (exitManifest !== null) {
-    for (const [id, path] of Object.entries(exitManifest.shark.frames) as Array<[SharkFrame, string]>) {
-      const texture = whole(path, exitManifest.shark.size);
-      if (texture !== null) shark.set(id, texture);
-    }
-    for (const [id, path] of Object.entries(exitManifest.splash.frames) as Array<[SplashFrame, string]>) {
-      const texture = whole(path, exitManifest.splash.size);
-      if (texture !== null) splash.set(id, texture);
-    }
-  }
+  // Effects use their own frame rectangles (or whole images); a missing frame costs only that key.
+  const effects = new Map(Object.entries(art.effects).map(([id, effect]) => [id, new Map(
+    Object.entries(effect.frames).flatMap(([name, sprite]) => art.images.has(sprite.image)
+      ? [[name, cutOf({ image: sprite.image, rect: sprite.rect ?? [0, 0, ...effect.size] })] as const] : []),
+  )]));
 
   const crops = new Map<string, PixiTexture>();
   return {
     hull,
-    exit: exitManifest,
-    shark,
-    splash,
+    effects,
     rig,
     pieces,
     props,
@@ -405,12 +388,6 @@ interface SailorSprites {
   parent: PixiContainer;
 }
 
-/** A departure's shark and splash sprites, made when first shown and destroyed when it is over. */
-interface EffectSprites {
-  shark: PixiSprite | null;
-  splash: PixiSprite | null;
-}
-
 /** Draws `state`'s badge (`client/deck-badges.ts`) into `graphics`, its top left at the origin. */
 function drawBadge(graphics: PixiGraphics, state: DeckState, colour: string): void {
   const sign = hexColour(colour);
@@ -481,19 +458,9 @@ export async function startDeck(
   host.appendChild(app.canvas);
 
   const { stage, cast, parts } = art;
-  /**
-   * The depth just in front of the piece the plank stands over, which whoever walks it is in front of: the
-   * choreography's rail layer, until step 7 makes that the pack's own.
-   */
-  const railDepth = parts.overDepth ?? depthOf(null, 0) + 1;
   const textures: Textures = atlasTextures(pixi, art);
   let current = scene;
-  const crew = createCrew(
-    stage,
-    cast,
-    availableLooks(cast, (image) => art.images.has(image)),
-    textures.exit?.shark.mouth ?? SHARK_MOUTH,
-  );
+  const crew = createCrew(stage, cast, availableLooks(cast, (image) => art.images.has(image)));
   const breathRows = cast.breath?.rows ?? 0;
 
   const world = new pixi.Container();
@@ -603,7 +570,7 @@ export async function startDeck(
   const overboard = new pixi.Container();
   overboard.label = "overboard";
   overboard.sortableChildren = true;
-  const effects = new Map<string, EffectSprites>();
+  const effects = new Map<string, PixiSprite>();
   world.addChild(scenery.back, ship, scenery.front, overboard, veil, spot);
 
   function sailorSprites(figure: Figure): SailorSprites {
@@ -672,7 +639,7 @@ export async function startDeck(
       const hovered = figure.key === hoveredKey || figure.key === focusKey;
       // The focused sailor stands over the veil; it goes back among the pieces once the camera is out. One off
       // the plank is in the sea.
-      const parent = figure.layer === "sea" ? overboard : figure.key === spotKey ? spot : deck;
+      const parent = figure.layer === "effects" ? overboard : figure.key === spotKey ? spot : deck;
       if (sprites.parent !== parent) {
         sprites.parent.removeChild(sprites.root);
         parent.addChild(sprites.root);
@@ -703,7 +670,7 @@ export async function startDeck(
       // The mark stays on the deck row; the figure above it rises and leans with its motion.
       sprites.root.position.set(figure.x, figure.row);
       if (!breathing) sprites.sprite.position.set(0, figure.y - figure.row);
-      sprites.root.zIndex = (figure.layer === "rail" ? railDepth + 1 : figure.layer === "sea" ? 0 : depthOf(figure.row, 0)) + figure.x / 10000;
+      sprites.root.zIndex = (typeof figure.layer === "object" ? parts.pieceDepths.get(figure.layer.front)! + 1 : figure.layer === "effects" ? 0 : depthOf(figure.row, 0)) + figure.x / 10000;
       // The badge rides over the head, with it: greyed with a stale sailor, not shown on the ladder.
       const badgeY = badgeTop(figure, cast) - figure.row;
       sprites.badge.visible = showsBadge(figure);
@@ -739,39 +706,23 @@ export async function startDeck(
     }
   }
 
-  /** Draws each departure's shark and splash at its water anchor, and lets go of those that are over. */
+  /** Draw each track in its pack-defined order, anchored and mirrored about the effect's named anchor. */
   function drawEffects(): void {
-    const exit = textures.exit;
     const present = new Set<string>();
-    for (const effect of plankEffects(crew)) {
+    for (const effect of departureEffects(crew)) {
       present.add(effect.key);
-      let sprites = effects.get(effect.key);
-      if (sprites === undefined) {
-        sprites = { shark: null, splash: null };
-        effects.set(effect.key, sprites);
-      }
-      sprites.shark = shown(sprites.shark, effect.shark === null ? undefined : textures.shark.get(effect.shark.frame), 1, "shark");
-      if (sprites.shark !== null && effect.shark !== null && exit !== null) {
-        const [width, height] = exit.shark.size;
-        sprites.shark.anchor.set(exit.shark.anchor[0] / width, exit.shark.anchor[1] / height);
-        // Mirrored about its water anchor when it comes from the right.
-        sprites.shark.scale.set(effect.shark.flip ? -1 : 1, 1);
-        sprites.shark.position.set(effect.shark.x, effect.shark.y);
-      }
-      sprites.splash = shown(sprites.splash, effect.splash === null ? undefined : textures.splash.get(effect.splash.frame), 2, "splash");
-      if (sprites.splash !== null && effect.splash !== null && exit !== null) {
-        const [width, height] = exit.splash.size;
-        sprites.splash.anchor.set(exit.splash.anchor[0] / width, exit.splash.anchor[1] / height);
-        sprites.splash.position.set(effect.splash.x, effect.splash.y);
-      }
+      const sprite = shown(effects.get(effect.key) ?? null, textures.effects.get(effect.effect)?.get(effect.frame), effect.order, effect.effect);
+      if (sprite === null) continue;
+      effects.set(effect.key, sprite);
+      const definition = art.effects[effect.effect]!;
+      sprite.anchor.set(definition.points.anchor![0] / definition.size[0], definition.points.anchor![1] / definition.size[1]);
+      sprite.scale.set(effect.flip ? -1 : 1, 1);
+      sprite.position.set(effect.x, effect.y);
     }
-    for (const [key, sprites] of [...effects.entries()]) {
+    for (const [key, sprite] of effects) {
       if (present.has(key)) continue;
-      for (const sprite of [sprites.shark, sprites.splash]) {
-        if (sprite === null) continue;
-        overboard.removeChild(sprite);
-        sprite.destroy();
-      }
+      overboard.removeChild(sprite);
+      sprite.destroy();
       effects.delete(key);
     }
   }

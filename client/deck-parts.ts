@@ -80,8 +80,8 @@ export interface DeckParts {
   top: number;
   /** The stage's bob, or null when it does not. */
   bob: NonNullable<Stage["motion"]>["bob"] | null;
-  /** The depth just in front of the piece a piece stands `over` (the ship's plank's), whether its image arrived or not. */
-  overDepth: number | null;
+  /** Every piece's depth, including pieces whose optional image did not arrive. */
+  pieceDepths: ReadonlyMap<string, number>;
   /** Every image something was left out for lacking, once each, in the pack's order. */
   missing: readonly string[];
   /** The images a part or piece that is not optional lacked: the stage cannot be drawn without them. */
@@ -150,14 +150,26 @@ export function compileParts(manifest: SettingManifest, has: (image: string) => 
   // The pieces: each at its row, or a drawn part's own rows in its place; one `over` another just in front of it.
   const depthById = new Map<string, number>();
   for (const piece of stage.pieces) if (typeof piece.baseline !== "object" || piece.baseline === null) depthById.set(piece.id, depthOf(piece.baseline, 1));
-  const overDepth = (over: string) => (depthById.get(over) ?? depthOf(null, 1)) + 1;
+  const resolving = new Set<string>();
+  const pieceDepth = (id: string): number => {
+    const found = depthById.get(id);
+    if (found !== undefined) return found;
+    if (resolving.has(id)) throw new Error(`cyclic piece depth at ${id}`);
+    const piece = stage.pieces.find((piece) => piece.id === id);
+    if (piece === undefined || typeof piece.baseline !== "object" || piece.baseline === null) throw new Error(`missing piece depth for ${id}`);
+    resolving.add(id);
+    const depth = pieceDepth(piece.baseline.over) + 1;
+    resolving.delete(id);
+    depthById.set(id, depth);
+    return depth;
+  };
+  for (const piece of stage.pieces) pieceDepth(piece.id);
   const pieces = stage.pieces.flatMap(function (piece): DrawnPiece[] {
-    const depth = typeof piece.baseline === "object" && piece.baseline !== null ? overDepth(piece.baseline.over) : depthById.get(piece.id)!;
+    const depth = depthById.get(piece.id)!;
     const by = stage.parts.find((part) => drawn.has(part.id) && part.replacesPiece?.piece === piece.id);
     if (by !== undefined) return [{ id: piece.id, cut: cut(by.replacesPiece!.sprite), at: by.replacesPiece!.at, depth, by: by.id }];
     return arrived([piece.sprite.image], piece.optional === true) ? [{ id: piece.id, cut: cut(piece.sprite), at: piece.at, depth, by: null }] : [];
   });
-  const over = stage.pieces.find((piece) => typeof piece.baseline === "object" && piece.baseline !== null);
 
   const lights = stage.lights.map(
     (light): DrawnLight => ({
@@ -181,7 +193,7 @@ export function compileParts(manifest: SettingManifest, has: (image: string) => 
     lights,
     top: Math.min(0, ...parts.map((part) => part.at[1])),
     bob: stage.motion?.bob ?? null,
-    overDepth: over === undefined || typeof over.baseline !== "object" || over.baseline === null ? null : overDepth(over.baseline.over),
+    pieceDepths: depthById,
     missing: inOrder(missing),
     required: inOrder(required),
   };

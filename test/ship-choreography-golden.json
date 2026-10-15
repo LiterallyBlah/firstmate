@@ -1,0 +1,35 @@
+{
+  "source": "8cba678 client/deck-plank.ts; every millisecond 0..2631, 32 actor rows",
+  "samples": [
+    {
+      "side": -1,
+      "drift": 0,
+      "sha256": "b3f9aa025ebdd02da4ee5ab5f5c3fa66b54a2d967599a95951d8290f493beea6"
+    },
+    {
+      "side": -1,
+      "drift": -3,
+      "sha256": "3726861436ba97c283406018bc69e1b0730dea26b789b42eb51e753706627794"
+    },
+    {
+      "side": -1,
+      "drift": 3,
+      "sha256": "df74dbf1ffcd837176dfacc3341f4cfff8965b8c7e5fac15f084fa304cae2b60"
+    },
+    {
+      "side": 1,
+      "drift": 0,
+      "sha256": "7a1d704e5a7f291ec377c45a42eac9204346b378afee84bd324d09d027d7d2e1"
+    },
+    {
+      "side": 1,
+      "drift": -3,
+      "sha256": "68d03f48500b40238c7b0c1721184578a2f1fbf14606a7596a21630bd6d6d7c9"
+    },
+    {
+      "side": 1,
+      "drift": 3,
+      "sha256": "47c2947766ac54a74f996d64d760d88f1f15db4bd99d8f4ece1a2089eace4ad7"
+    }
+  ]
+}

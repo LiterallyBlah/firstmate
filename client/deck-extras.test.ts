@@ -8,9 +8,9 @@ import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
-import { extrasImagePaths } from "./deck-legacy";
+import { extrasImagePaths } from "../test/deck-legacy";
 import { applyCrew, createCrew, crewFigures } from "./deck-crew";
-import type { DeckExtrasImages } from "./deck-legacy";
+import type { DeckExtrasImages } from "../test/deck-legacy";
 import { compileParts, dutyFrame } from "./deck-parts";
 import type { DeckSailor, DeckState } from "./deck-scene";
 import { shipCast, shipFile, shipManifest, shipStage, shipViews } from "../test/ship-pack";

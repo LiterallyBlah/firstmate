@@ -1,15 +1,12 @@
-/**
- * The ship's setting pack for the tests: its folder, its manifest checked whole, and the manifests the engine still
- * draws from (`legacyViews`), read once.
- */
+/** Ship pack fixtures and historical manifest views for regression tests. */
 import { readFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
 
-import { legacyViews, type LegacyViews } from "../client/deck-legacy";
+import { legacyViews, type LegacyViews } from "./deck-legacy";
 import { compileAmbience, type Behaviour, type DeckAmbience } from "../client/deck-ambience";
 import { compileCast, type DeckCast } from "../client/deck-cast";
 import { choreography, compileStage, type DeckStage } from "../client/deck-stage";
-import type { PlankMarks } from "../client/deck-plank";
+import type { PlankMarks } from "./ship-choreography";
 import { SettingManifestSchema, type AmbienceBehaviour, type SettingManifest } from "../shared/deck-setting";
 
 /** The pack's folder. */
@@ -29,7 +26,7 @@ export function shipManifest(): SettingManifest {
   return manifest;
 }
 
-/** The atlas's, the environment's and the extras' manifests, as the engine draws them. */
+/** Historical extras shape for art regression tests; the engine reads only the pack. */
 export function shipViews(): LegacyViews {
   views ??= legacyViews(shipManifest());
   return views;

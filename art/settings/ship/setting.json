@@ -2022,6 +2022,7 @@
         "effects": [
           {
             "effect": "splash",
+          "order": 2,
             "keys": [
               {
                 "frame": "impact",
@@ -2063,6 +2064,7 @@
           },
           {
             "effect": "shark",
+          "order": 1,
             "mirror": "side",
             "keys": [
               {

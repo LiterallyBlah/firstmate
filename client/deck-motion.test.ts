@@ -10,7 +10,8 @@ import { describe, expect, it } from "vitest";
 
 import { DECK_FPS, flybysAt, LITE_FPS, motionPlan } from "./deck-ambient";
 import { bobAt, flickerAt, swayAt } from "./deck-parts";
-import { HATCH_MS, applyCrew, createCrew, crewFigures, stepCrew, type Crew, type Figure } from "./deck-crew";
+import { HATCH_MS } from "../test/ship-choreography";
+import { applyCrew, createCrew, crewFigures, stepCrew, type Crew, type Figure } from "./deck-crew";
 import { deckAnimator, MAX_STEP_MS, type FrameScheduler, type MotionSignals } from "./deck-loop";
 import { browserMotion } from "./deck-mount";
 import { isSoftwareRenderer } from "./deck-pixi";

@@ -14,7 +14,7 @@ import { URL } from "node:url";
 import type { PluginTheme } from "@getpaseo/plugin";
 import { describe, expect, it } from "vitest";
 
-import { extrasImagePaths, type DeckExtrasImages } from "./deck-legacy";
+import { extrasImagePaths, type DeckExtrasImages } from "../test/deck-legacy";
 import { compileParts } from "./deck-parts";
 import { BUSY_CREW, compileAtmosphere, deliveredWeather, shade } from "./deck-atmosphere";
 import { compileAmbience } from "./deck-ambience";
@@ -357,7 +357,7 @@ async function start(
   const { images, masks, ambience, parts } = packImages(options, art, atlas);
   const drawing = await startDeck(
     pixi,
-    { stage: shipStage(), cast: shipCast(), parts, ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, extras: options.extras ?? null },
+    { stage: shipStage(), cast: shipCast(), parts, ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, effects: shipManifest().effects },
     host,
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
@@ -928,6 +928,26 @@ describe("the plank and the shark on the deck", () => {
     expect(overboard.children).toEqual([]);
     expect(byLabel(deck.app.stage, "a")).toEqual([]);
     expect(byLabel(deck.app.stage, "b")).toHaveLength(1);
+    deck.drawing.destroy();
+  });
+
+  it("leaves out a failed effect frame alone and preserves its track's later frames and depth", async () => {
+    const plain = { manifest: extrasManifest, images: new Map([...extras.images].filter(([path]) => path !== "shark/surface.png")) };
+    const deck = await start(environment, { now, extras: plain, scene: crewScene([["a", "working"]]) });
+    deck.advance(0);
+    deck.drawing.update(crewScene([]));
+    const overboard = one(deck.app.stage, "overboard");
+    const drawn = new Set<string>();
+    for (let frame = 0; frame < 900; frame += 1) {
+      deck.advance(34);
+      for (const child of overboard.children) {
+        if (!child.visible || !["shark", "splash"].includes(child.label)) continue;
+        drawn.add(texturePath(child));
+        expect(child.zIndex).toBe(child.label === "shark" ? 1 : 2);
+      }
+    }
+    expect(drawn).toEqual(new Set(["shark/fin.png", "shark/chomp.png", "shark/submerge.png", "splash/impact.png", "splash/burst.png"]));
+    expect(overboard.children).toEqual([]);
     deck.drawing.destroy();
   });
 
