@@ -20,6 +20,13 @@ imports neither checkout's deck code — so the two can differ in every module a
 compared. Each scenario is rendered for both at the same moments and the screenshots, the whole window, are
 compared pixel for pixel:
 
+The host now follows **Open Deck** into its registered workspace panel; older bundles with the internal
+Deck tab still work in the gate. For an intentional toolbar change, `MASK_TOOLBAR=1` masks only the Deck
+toolbar on both sides, retaining every pixel below it (canvas, caption, focus panels and legend) and the
+same viewport coordinates. A toolbar height change still fails. This option is recorded in the results;
+the default remains an unmasked whole-window comparison. The scene switcher's functional checks and
+unmasked captures are in [deck-scene-switcher](../deck-scene-switcher/README.md).
+
 | Scenario | What it covers |
 | --- | --- |
 | `still-*` (reduced motion) | noon dark at 2× and light, night, dawn, dusk into night, eight working (still calm), all idle (the rest area's crowd), the feed lost (grey) |

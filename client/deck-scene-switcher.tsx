@@ -16,8 +16,13 @@ export function DeckSceneSwitcher({ theme }: { theme: PluginTheme }) {
   const [busy, setBusy] = useState(false);
 
   async function select(deckSetting: string): Promise<void> {
-    if (display.status !== "ready" || saving.current || deckSetting === display.values.deckSetting ||
-        !installed.data?.some((pack) => pack.id === deckSetting && pack.compatible)) return;
+    if (
+      display.status !== "ready" ||
+      saving.current ||
+      deckSetting === display.values.deckSetting ||
+      !installed.data?.some((pack) => pack.id === deckSetting && pack.compatible)
+    )
+      return;
     saving.current = true;
     setBusy(true);
     try {
@@ -36,17 +41,25 @@ export function DeckSceneSwitcher({ theme }: { theme: PluginTheme }) {
       inline
       label="Scene"
       title="Deck scene"
-      hint={installed.isError ? "The installed scenes could not be refreshed. This choice applies to the whole fleet." : "Choose a scene for the whole fleet. Your choice is saved across sessions."}
+      hint={
+        installed.isError
+          ? "The installed scenes could not be refreshed. This choice applies to the whole fleet."
+          : "Choose a scene for the whole fleet. Your choice is saved across sessions."
+      }
       value={display.status === "ready" ? display.values.deckSetting : DEFAULT_DECK_SETTING}
       options={(installed.data ?? []).map((pack) => ({
-        label: pack.name, value: pack.id, disabled: !pack.compatible,
-        detail: pack.compatible ? pack.version : pack.reason ?? "Needs a newer FirstMate",
+        label: pack.name,
+        value: pack.id,
+        disabled: !pack.compatible,
+        detail: pack.compatible ? pack.version : (pack.reason ?? "Needs a newer FirstMate"),
         ...(pack.preview === null ? {} : { preview: `data:image/png;base64,${pack.preview}` }),
       }))}
       disabled={busy || display.status !== "ready" || installed.data === undefined}
       theme={theme}
       compact={false}
-      onSelect={(id) => { void select(id); }}
+      onSelect={(id) => {
+        void select(id);
+      }}
     />
   );
 }

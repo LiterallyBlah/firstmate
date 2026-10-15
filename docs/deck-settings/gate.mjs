@@ -274,11 +274,13 @@ async function open(browser, tree, { theme = "dark", working = null, reducedMoti
   if (fakeClock) await view.clock.install({ time });
   else await view.clock.setFixedTime(time);
   await view.goto(`${origin}/?tree=${tree}&theme=${theme}${working === null ? "" : `&working=${working}`}`);
-  await realWait(view, () => [...document.querySelectorAll("div")].some((node) => node.textContent === "Deck"));
+  await realWait(view, () => [...document.querySelectorAll("div")].some((node) => node.textContent === "Deck" || node.textContent === "Open Deck"));
   // Paused at a fixed moment, so the deck starts at the same instant in both checkouts, and nothing moves on
   // until a scenario says how far.
   if (fakeClock) await view.clock.pauseAt(time + 20_000);
-  await view.getByText("Deck", { exact: true }).click();
+  const openDeck = view.getByRole("button", { name: "Open Deck", exact: true });
+  if (await openDeck.count()) await openDeck.click();
+  else await view.getByText("Deck", { exact: true }).click();
   // In real time: the fake clock stays where it is while the art loads and decodes and Pixi starts. The canvas
   // is put in once all of that is done; its first frame waits for the clock (a moving deck) or follows at once.
   await realWait(view, () => document.querySelector("canvas[data-firstmate-deck]") !== null);
@@ -323,7 +325,7 @@ async function steps(view, take, prefix, moments, from = 0) {
 }
 
 const shot = (view) => view.screenshot(MASK_TOOLBAR ? {
-  mask: [view.getByText("FirstMate", { exact: true }).locator("..").locator("..")],
+  mask: [view.getByText("Deck", { exact: true }).locator("..").locator("..")],
 } : {});
 const canvasFacts = (view) =>
   view.evaluate(() => {

@@ -81,11 +81,16 @@ window.mountPlugin = function mountPlugin(source, params) {
   const factory = (0, globalThis.eval)(source);
   const plugin = factory(hostRequire);
   const screens = [];
+  const panels = new Map();
+  let navigate;
   const client = new Proxy(
     {},
     {
       get(_target, name) {
         if (name === "addScreen") return (screen) => (screens.push(screen), () => {});
+        if (name === "addWorkspacePanel") return (panel) => (panels.set(panel.id, panel), () => {});
+        if (name === "openPanel") return (id, options) => navigate({ id, ...options });
+        if (name === "openScreen") return (input) => navigate({ id: input.screenId, params: input.params });
         if (name === "rpc") return () => new Promise(() => {});
         if (typeof name === "string" && name.startsWith("add")) return () => () => {};
         return () => {};
@@ -93,12 +98,19 @@ window.mountPlugin = function mountPlugin(source, params) {
     },
   );
   plugin.default(client);
-  const Screen = screens[0].Component;
+  function Surface() {
+    const [route, setRoute] = React.useState({ id: screens[0].id });
+    navigate = setRoute;
+    const Component = (panels.get(route.id) ?? screens.find((screen) => screen.id === route.id)).Component;
+    return <Component key={route.id} theme={theme} layout={{ compact: innerWidth < 600 }}
+      workspaceId={route.workspaceId} params={route.params ?? {}} context="workspace"
+      host={{ id: "fixture-host", label: "Fixture" }} navigation={{ openAgent() {}, openWorkspace() {} }} />;
+  }
   const queryClient = new reactQuery.QueryClient({ defaultOptions: { queries: { retry: false } } });
   createRoot(document.getElementById("root")).render(
     <reactQuery.QueryClientProvider client={queryClient}>
       <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-        <Screen theme={theme} layout={{ compact: innerWidth < 600 }} navigation={{ openAgent() {} }} />
+        <Surface />
       </div>
     </reactQuery.QueryClientProvider>,
   );
