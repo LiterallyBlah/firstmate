@@ -41,7 +41,8 @@ import { LANTERNS, lanternFlicker, MASTHEAD, mastSway, shipBob, type MotionPlan 
 import { BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, BREATH_ROWS, createCrew, crewFigures, stepCrew, type Figure } from "./deck-crew";
 import { ATLAS_LOOKS, crewLooks, drawnSail, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
-import { badgeTop, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type DeckFit, type DeckHover } from "./deck-hover";
+import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
+import { badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
 import type { DeckDrawing, DeckHost } from "./deck-mount";
 import { DECK_PROPS, depthOf, type DeckScene, type DeckState } from "./deck-scene";
@@ -319,6 +320,8 @@ interface SailorSprites {
   doze: PixiGraphics;
   /** What the mark and badge were last drawn as, so they are redrawn only when the state, the feed or the hover changes. */
   marked: string;
+  /** Whether it stands in the spotlight, over the veil, rather than among the deck's pieces. */
+  spotlit: boolean;
 }
 
 /** Draws `state`'s badge (`client/deck-badges.ts`) into `graphics`, its top left at the origin. */
@@ -328,6 +331,9 @@ function drawBadge(graphics: PixiGraphics, state: DeckState, colour: string): vo
   graphics.clear();
   for (const pixel of badgePixels(state)) graphics.rect(pixel.x, pixel.y, 1, 1).fill(pixel.kind === "sign" ? sign : ink);
 }
+
+/** The veil over the deck behind a focused sailor: the night sea's navy, faded in with the zoom. */
+const VEIL_COLOUR = 0x050b14;
 
 /** Pointer events as the deck reads them off the canvas: CSS pixels from its top left. */
 interface CanvasPointerEvent {
@@ -345,7 +351,8 @@ interface DeckCanvas {
 
 /**
  * Starts Pixi on `host`, draws `scene` at `size`, and hands back what updates and tears it down.
- * `onHover` hears which sailor the pointer is over, and where it is on the canvas (`client/deck-hover.ts`).
+ * `onHover` hears which sailor the pointer is over, and where it is on the canvas (`client/deck-hover.ts`);
+ * `onSelect` hears which sailor a click landed on, or null for anywhere else (`client/deck-camera.ts`).
  */
 export async function startDeck(
   pixi: PixiModule,
@@ -355,6 +362,7 @@ export async function startDeck(
   size: { width: number; height: number },
   environment: DeckMotionEnvironment,
   onHover: (hover: DeckHover | null) => void = function () {},
+  onSelect: (key: string | null) => void = function () {},
 ): Promise<DeckDrawing> {
   const app = new pixi.Application();
   await app.init({
@@ -465,10 +473,25 @@ export async function startDeck(
   let drawnFigures: Figure[] = [];
   let drawnBob = { x: 0, y: 0 };
   let drawnFit: DeckFit = { scale: 0, x: 0, y: 0 };
+  let drawnLayout = "";
   let pointer: { x: number; y: number } | null = null;
   let hoveredKey: string | null = null;
   let reported: DeckHover | null = null;
-  world.addChild(scenery.back, ship, scenery.front);
+  // The camera: the sailor focused, the shot last drawn, and the zoom under way (`client/deck-camera.ts`).
+  let focusKey: string | null = null;
+  /** The sailor in the spotlight: the one focused, or the one the camera is pulling back from. */
+  let spotKey: string | null = null;
+  let shot: DeckShot = WHOLE_DECK;
+  /** Where the focused sailor was last seen, for a shot whose sailor has left the deck. */
+  let focusPoint = WHOLE_DECK.point;
+  let zoom: { from: DeckShot; start: number } | null = null;
+  // Over the deck while a sailor is focused: a veil that dims the rest, and the spotlight it stands in, which rides the bob.
+  const veil = new pixi.Graphics();
+  veil.label = "veil";
+  veil.visible = false;
+  const spot = new pixi.Container();
+  spot.label = "spot";
+  world.addChild(scenery.back, ship, scenery.front, veil, spot);
 
   function sailorSprites(figure: Figure): SailorSprites {
     let sprites = sailors.get(figure.key);
@@ -486,7 +509,7 @@ export async function startDeck(
       doze.label = "doze";
       root.addChild(mark, sprite, upper, badge, doze);
       deck.addChild(root);
-      sprites = { root, mark, sprite, upper, badge, doze, marked: "" };
+      sprites = { root, mark, sprite, upper, badge, doze, marked: "", spotlit: false };
       sailors.set(figure.key, sprites);
     }
     return sprites;
@@ -530,7 +553,14 @@ export async function startDeck(
         part.tint = figure.stale ? 0x8a9096 : 0xffffff;
         part.alpha = figure.stale ? 0.6 : 1;
       }
-      const hovered = figure.key === hoveredKey;
+      const hovered = figure.key === hoveredKey || figure.key === focusKey;
+      // The focused sailor stands over the veil; it goes back among the pieces once the camera is out.
+      const spotlit = figure.key === spotKey;
+      if (sprites.spotlit !== spotlit) {
+        (spotlit ? deck : spot).removeChild(sprites.root);
+        (spotlit ? spot : deck).addChild(sprites.root);
+        sprites.spotlit = spotlit;
+      }
       const marked = `${figure.state}:${figure.stale ? "stale" : "live"}:${rows < height ? "hatch" : "deck"}:${hovered ? "hover" : ""}`;
       const stateColour = current.palette.states[figure.state];
       if (sprites.marked !== marked) {
@@ -572,7 +602,7 @@ export async function startDeck(
     }
     for (const [key, sprites] of [...sailors.entries()]) {
       if (present.has(key)) continue;
-      deck.removeChild(sprites.root);
+      (sprites.spotlit ? spot : deck).removeChild(sprites.root);
       sprites.root.destroy({ children: true });
       sailors.delete(key);
     }
@@ -597,6 +627,8 @@ export async function startDeck(
     }
     drawnFigures = crewFigures(crew, elapsedMs, { still: !moving });
     drawnBob = bob;
+    spot.position.set(bob.x, bob.y);
+    aim(elapsedMs, moving);
     findHover();
     drawSailors(drawnFigures, elapsedMs, !moving);
     canvas.setAttribute(DECK_MOTION_ATTRIBUTE, plan.level);
@@ -609,7 +641,10 @@ export async function startDeck(
    * its place on the canvas, changes. Says whether the sailor changed, so its ring is redrawn.
    */
   function findHover(): boolean {
-    const figure = pointer === null || drawnFit.scale <= 0 ? null : sailorAt(drawnFigures, manifest, toDeck(pointer, drawnFit, drawnBob));
+    // While a sailor is focused its panel says who it is: no label, no ring, for anyone else.
+    const figure =
+      pointer === null || drawnFit.scale <= 0 || focusKey !== null ? null : sailorAt(drawnFigures, manifest, toDeck(pointer, drawnFit, drawnBob));
+    canvas.style.cursor = figure === null ? "default" : "pointer";
     const key = figure?.key ?? null;
     const changed = key !== hoveredKey;
     hoveredKey = key;
@@ -630,12 +665,46 @@ export async function startDeck(
     }
   }
 
+  /**
+   * Moves the camera on to `elapsedMs`: follows the focused sailor wherever it walks, eases a zoom in or out
+   * under way, and snaps when the deck is still (reduced motion), then fits the world to the shot.
+   */
+  function aim(elapsedMs: number, moving: boolean): void {
+    if (focusKey !== null) {
+      const figure = drawnFigures.find((each) => each.key === focusKey);
+      const box = figure === undefined ? null : figureBox(figure, manifest);
+      if (box !== null) focusPoint = boxMiddle(box);
+    }
+    const target: DeckShot = { amount: focusKey === null ? 0 : 1, point: focusPoint };
+    if (zoom !== null && moving) {
+      const t = (elapsedMs - zoom.start) / FOCUS_MS;
+      shot = shotBetween(zoom.from, target, t);
+      if (t >= 1) zoom = null;
+    } else {
+      zoom = null;
+      shot = target;
+    }
+    if (focusKey === null && shot.amount <= 0) spotKey = null;
+    fit();
+  }
+
+  /** Fits the world to the canvas through the camera's shot, and lays the scenery and veil out over what shows. */
   function fit(): void {
-    const { scale, x, y } = fitDeck(app.screen, current, app.renderer.resolution);
+    const base = fitDeck(app.screen, current, app.renderer.resolution);
+    const { scale, x, y } = cameraFit(base, shot, focusLayout(app.screen), app.renderer.resolution);
+    veil.visible = shot.amount > 0;
+    veil.alpha = FOCUS_VEIL_ALPHA * Math.max(0, Math.min(1, shot.amount));
+    // The scenery and the veil are laid out again only when what shows has changed: the shot, or the canvas.
+    const laid = `${scale}:${x}:${y}:${app.screen.width}:${app.screen.height}`;
+    if (laid === drawnLayout) return;
+    drawnLayout = laid;
     world.scale.set(scale);
     world.position.set(x, y);
     drawnFit = { scale, x, y };
-    if (scale > 0) scenery.layout({ left: -x / scale, right: (app.screen.width - x) / scale, top: -y / scale, bottom: (app.screen.height - y) / scale });
+    if (scale <= 0) return;
+    const visible = visibleWorld(drawnFit, app.screen);
+    scenery.layout(visible);
+    veil.clear().rect(visible.left - 1, visible.top - 1, visible.right - visible.left + 2, visible.bottom - visible.top + 2).fill(VEIL_COLOUR);
   }
 
   applyCrew(crew, scene.sailors, { snap: true });
@@ -657,9 +726,15 @@ export async function startDeck(
     pointer = null;
     if (findHover()) animator.invalidate();
   }
+  // A click names the sailor under it, found through the camera as drawn, or nobody; the pane decides what it does.
+  function onClick(event: CanvasPointerEvent): void {
+    const figure = drawnFit.scale <= 0 ? null : sailorAt(drawnFigures, manifest, toDeck({ x: event.offsetX, y: event.offsetY }, drawnFit, drawnBob));
+    onSelect(figure?.key ?? null);
+  }
   canvas.addEventListener?.("pointermove", onPointer);
   canvas.addEventListener?.("pointerdown", onPointer);
   canvas.addEventListener?.("pointerleave", onLeave);
+  canvas.addEventListener?.("click", onClick);
 
   return {
     renderer: app.renderer.name,
@@ -670,6 +745,15 @@ export async function startDeck(
       }
       current = next;
       applyCrew(crew, next.sailors, { snap: animator.plan().level === "still" });
+      animator.invalidate();
+    },
+    focus(key) {
+      if (key === focusKey) return;
+      // From wherever the camera is now, mid-zoom included, so a change of mind never jumps.
+      zoom = { from: shot, start: animator.elapsed() };
+      focusKey = key;
+      if (key !== null) spotKey = key;
+      findHover();
       animator.invalidate();
     },
     resize(width, height) {
@@ -684,6 +768,7 @@ export async function startDeck(
       canvas.removeEventListener?.("pointermove", onPointer);
       canvas.removeEventListener?.("pointerdown", onPointer);
       canvas.removeEventListener?.("pointerleave", onLeave);
+      canvas.removeEventListener?.("click", onClick);
       if (reported !== null) onHover(null);
       reported = null;
       stopSky();

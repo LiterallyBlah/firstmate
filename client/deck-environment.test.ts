@@ -3,8 +3,10 @@
  * the scene graph: the depth order (sky behind, sea behind and at the hull, ship and crew in front), the
  * sky following an injected clock — once a minute on a still deck — reduced motion's still sea and empty
  * sky, and the plain sea the deck falls back to without its environment. Then the extras: the sail and its
- * occluder, the crew's looks, the at-ease sailor's breath, and the wake. Whether WebGL paints it is the
- * browser harnesses' (`docs/ship-deck-environment/`, `docs/ship-deck-tweaks/`).
+ * occluder, the crew's looks, the at-ease sailor's breath, and the wake. Then the camera closing in on a
+ * focused sailor: the zoom over the deck's clock, the veil and the spotlight, a click read through the camera,
+ * the snap under reduced motion, and a resize while focused. Whether WebGL paints it is the browser
+ * harnesses' (`docs/ship-deck-environment/`, `docs/ship-deck-tweaks/`, `docs/ship-deck-focus/`).
  */
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
@@ -14,10 +16,13 @@ import { describe, expect, it } from "vitest";
 import { DeckArtManifestSchema, DeckEnvironmentManifestSchema, DeckExtrasManifestSchema, environmentImagePaths, extrasImagePaths } from "../shared/ship-deck";
 import { HORIZON, WATERLINE } from "./deck-ambient";
 import { FOAM_SPAN, FOAM_TOP, type DeckEnvironmentImages } from "./deck-environment";
+import { FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout } from "./deck-camera";
 import { BREATH_ROWS } from "./deck-crew";
+import { toCanvas } from "./deck-hover";
 import type { DeckExtrasImages } from "./deck-extras";
+import type { DeckHover } from "./deck-hover";
 import type { FrameScheduler, MotionSignals } from "./deck-loop";
-import { DECK_MOTION_ATTRIBUTE, DECK_SKY_ATTRIBUTE, startDeck, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
+import { DECK_MOTION_ATTRIBUTE, DECK_SKY_ATTRIBUTE, fitDeck, startDeck, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
 import { SKY_REFRESH_MS } from "./deck-sky";
 import { deckScene, depthOf, type DeckScene, type DeckSailor, type DeckState } from "./deck-scene";
 
@@ -138,8 +143,15 @@ class FakeSprite extends FakeContainer {
 class FakeCanvas {
   style: Record<string, string> = {};
   attributes = new Map<string, string>();
+  listeners = new Map<string, (event: { offsetX: number; offsetY: number; pointerType?: string }) => void>();
   setAttribute(name: string, value: string): void {
     this.attributes.set(name, value);
+  }
+  addEventListener(type: string, listener: (event: { offsetX: number; offsetY: number }) => void): void {
+    this.listeners.set(type, listener);
+  }
+  removeEventListener(type: string): void {
+    this.listeners.delete(type);
   }
 }
 let renders = 0;
@@ -234,7 +246,15 @@ function world(options: { reducedMotion?: boolean; hidden?: boolean; now: Date }
 
 async function start(
   art: DeckEnvironmentImages | null,
-  options: { reducedMotion?: boolean; hidden?: boolean; now: Date; extras?: DeckExtrasImages | null; scene?: DeckScene },
+  options: {
+    reducedMotion?: boolean;
+    hidden?: boolean;
+    now: Date;
+    extras?: DeckExtrasImages | null;
+    scene?: DeckScene;
+    onHover?: (hover: DeckHover | null) => void;
+    onSelect?: (key: string | null) => void;
+  },
 ) {
   const w = world(options);
   const host = { appendChild() {}, clientWidth: 800, clientHeight: 400 };
@@ -245,6 +265,8 @@ async function start(
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
     w.motion,
+    options.onHover,
+    options.onSelect,
   );
   if (lastApp === null) throw new Error("no application");
   return { ...w, drawing, app: lastApp };
@@ -271,7 +293,10 @@ describe("the generated environment on the deck", () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0) });
     deck.advance(16);
     const worldLayer = one(deck.app.stage, "world");
-    expect(worldLayer.children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front"]);
+    expect(worldLayer.children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "veil", "spot"]);
+    // Nobody focused: no veil, an empty spotlight.
+    expect(one(worldLayer, "veil").visible).toBe(false);
+    expect(one(worldLayer, "spot").children).toHaveLength(0);
     const back = one(deck.app.stage, "scenery:back");
     expect(back.children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:stars", "gull", "gull", "sea:far"]);
     expect(one(deck.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:near", "wake", "foam"]);
@@ -383,7 +408,7 @@ describe("the generated environment on the deck", () => {
   it("without its environment, draws a plain sea at the horizon and the waterline, and no sky or gull", async () => {
     const deck = await start(null, { now: new Date(2026, 9, 14, 12, 0) });
     deck.advance(16);
-    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front"]);
+    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "veil", "spot"]);
     expect(byLabel(deck.app.stage, "sky:under")).toEqual([]);
     expect(byLabel(deck.app.stage, "gull")).toEqual([]);
     expect(deck.app.canvas.attributes.get(DECK_SKY_ATTRIBUTE)).toBe("none");
@@ -581,5 +606,111 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     const sprites = [one(deck.app.stage, "sail"), one(deck.app.stage, "piece:mast:occluder"), sailorSprites(deck.app.stage, "a").sprite] as FakeSprite[];
     deck.drawing.destroy();
     expect(sprites.every((sprite) => sprite.texture.destroyed && sprite.texture.source.destroyed)).toBe(true);
+  });
+});
+
+describe("the camera closing in on a focused sailor", () => {
+  const scene = () => crewScene([["a", "working"], ["b", "idle"], ["c", "blocked"]]);
+  const worldFit = (deck: Awaited<ReturnType<typeof start>>) => {
+    const layer = one(deck.app.stage, "world");
+    return { scale: layer.scale.x, x: layer.position.x, y: layer.position.y };
+  };
+  /** Where a sailor stands on the canvas: its feet's column, a little above its feet. */
+  const onCanvas = (deck: Awaited<ReturnType<typeof start>>, key: string) => {
+    const root = one(deck.app.stage, key);
+    const ship = one(deck.app.stage, "ship");
+    return toCanvas({ x: root.position.x, y: root.position.y - 8 }, worldFit(deck), { x: ship.position.x, y: ship.position.y });
+  };
+
+  it("zooms in over the deck's clock, dims the rest behind a veil, and stands the sailor in the spotlight at the panel's side", async () => {
+    const hovers: Array<DeckHover | null> = [];
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: scene(), onHover: (hover) => hovers.push(hover) });
+    deck.advance(16);
+    const base = fitDeck({ width: 800, height: 400 }, { width: 426, height: 161 }, 1);
+    expect(worldFit(deck)).toEqual(base);
+    deck.drawing.focus("b");
+    const veil = one(deck.app.stage, "veil");
+    const scales: number[] = [];
+    for (let elapsed = 0; elapsed <= FOCUS_MS + 100; elapsed += 34) {
+      deck.advance(34);
+      scales.push(worldFit(deck).scale);
+    }
+    // One move: the scale only grows, from the exact fit to the shot's, and stops there.
+    expect(scales.every((scale, index) => index === 0 || scale >= scales[index - 1]!)).toBe(true);
+    expect(scales[0]).toBeLessThan(scales.at(-1)!);
+    expect(scales.at(-1)!).toBeGreaterThan(base.scale * 1.5);
+    expect([veil.visible, veil.alpha]).toEqual([true, FOCUS_VEIL_ALPHA]);
+    // The focused sailor stands over the veil; the others stay among the deck's pieces, behind it.
+    expect(one(deck.app.stage, "spot").children.map((child) => child.label)).toEqual(["b"]);
+    expect(one(deck.app.stage, "deck").children.some((child) => child.label === "a")).toBe(true);
+    // Resting off the working deck, and still brought to the room beside the panel.
+    const layout = focusLayout({ width: 800, height: 400 });
+    expect(Math.abs(onCanvas(deck, "b").x - layout.anchor.x)).toBeLessThan(worldFit(deck).scale * 8);
+    // While focused, the pointer labels no one: the panel says who it is.
+    const hoversBefore = hovers.length;
+    const at = onCanvas(deck, "b");
+    deck.app.canvas.listeners.get("pointermove")?.({ offsetX: at.x, offsetY: at.y });
+    deck.advance(34);
+    expect(hovers.slice(hoversBefore).every((hover) => hover === null)).toBe(true);
+    deck.drawing.destroy();
+  });
+
+  it("reads a click through the camera: the sailor under it, at the whole deck or zoomed in, or nobody", async () => {
+    const selected: Array<string | null> = [];
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: scene(), onSelect: (key) => selected.push(key) });
+    deck.advance(16);
+    const click = (point: { x: number; y: number }) => deck.app.canvas.listeners.get("click")?.({ offsetX: point.x, offsetY: point.y });
+    click(onCanvas(deck, "a"));
+    click({ x: 4, y: 4 });
+    deck.drawing.focus("a");
+    for (let elapsed = 0; elapsed <= FOCUS_MS + 100; elapsed += 34) deck.advance(34);
+    click(onCanvas(deck, "a"));
+    click({ x: 4, y: 4 });
+    expect(selected).toEqual(["a", null, "a", null]);
+    deck.drawing.destroy();
+    expect(deck.app.canvas.listeners.size).toBe(0);
+  });
+
+  it("pulls back out to the exact fit, the veil gone and the sailor back among the pieces", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: scene() });
+    deck.advance(16);
+    const base = worldFit(deck);
+    deck.drawing.focus("c");
+    for (let elapsed = 0; elapsed <= FOCUS_MS + 100; elapsed += 34) deck.advance(34);
+    deck.drawing.focus(null);
+    deck.advance(34);
+    deck.advance(34);
+    // Mid-way out the sailor stays in the spotlight, so the veil never dims it.
+    expect(one(deck.app.stage, "spot").children.map((child) => child.label)).toEqual(["c"]);
+    for (let elapsed = 0; elapsed <= FOCUS_MS + 100; elapsed += 34) deck.advance(34);
+    expect(worldFit(deck)).toEqual(base);
+    expect(one(deck.app.stage, "veil").visible).toBe(false);
+    expect(one(deck.app.stage, "spot").children).toHaveLength(0);
+    expect(one(deck.app.stage, "deck").children.some((child) => child.label === "c")).toBe(true);
+    deck.drawing.destroy();
+  });
+
+  it("snaps under reduced motion, with no loop, and holds the focus through a resize", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: scene(), reducedMotion: true });
+    expect(deck.pending()).toBe(0);
+    const base = worldFit(deck);
+    deck.drawing.focus("a");
+    // Drawn at once, closed in all the way: no frames requested, no zoom to watch.
+    expect(deck.pending()).toBe(0);
+    expect(worldFit(deck).scale).toBeGreaterThan(base.scale * 1.5);
+    expect(one(deck.app.stage, "veil").alpha).toBe(FOCUS_VEIL_ALPHA);
+    const wide = focusLayout({ width: 800, height: 400 });
+    const box = onCanvas(deck, "a");
+    expect(Math.abs(box.x - wide.anchor.x)).toBeLessThan(worldFit(deck).scale * 8);
+    // A narrow, tall pane: the panel docks under the sailor, and the sailor follows to the room above it.
+    deck.drawing.resize(480, 600);
+    const narrow = focusLayout({ width: 480, height: 600 });
+    expect(narrow.side).toBe("bottom");
+    const at = onCanvas(deck, "a");
+    expect(Math.abs(at.x - narrow.anchor.x)).toBeLessThan(worldFit(deck).scale * 8);
+    expect(Math.abs(at.y - narrow.anchor.y)).toBeLessThan(worldFit(deck).scale * 16);
+    deck.drawing.focus(null);
+    expect(worldFit(deck)).toEqual(fitDeck({ width: 480, height: 600 }, { width: 426, height: 161 }, 1));
+    deck.drawing.destroy();
   });
 });

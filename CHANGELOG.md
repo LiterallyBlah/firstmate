@@ -10,6 +10,13 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- Work from the ship deck. Clicking a sailor zooms the camera in on it and dims the rest of the deck, and a
+  small panel beside it shows that crewmate's card — its state, project and host, status line, anything
+  waiting on you — with the card's own Watch, Steer, Interrupt, Relaunch and End, which behave exactly as on
+  the board (End still asks first). Esc, the panel's ✕, or a click anywhere else on the deck zooms back out.
+  From the keyboard, Tab to the deck and press an arrow key or Enter; Tab stays in the panel until Esc. Under
+  reduced motion the camera snaps instead of zooming, and a narrow pane docks the panel under the sailor.
+
 - Idle crew go off watch on the ship deck. An idle or parked crewmate walks off the working deck to a rest
   area — the foredeck by the hatch, and past six sleepers the foot of the quarterdeck stairs — and dozes there
   with its z, instead of standing at the near rail in front of the crew at work. Given work, it walks back

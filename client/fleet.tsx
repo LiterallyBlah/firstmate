@@ -38,6 +38,7 @@ import {
 } from "../shared/fleet";
 import { displaySettings, type DisplaySettings } from "../shared/settings";
 import { Board } from "./board";
+import { CrewCard, watchOpener } from "./card";
 import { FilesView, type FilesRequest } from "./files";
 import { MateChat } from "./chat";
 import { captainMessage } from "./attachments";
@@ -857,7 +858,26 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             {pane === "board" ? (
               crew
             ) : pane === "deck" ? (
-              <ShipDeckView cards={data.cards} theme={theme} stale={fleet.error !== null} />
+              <ShipDeckView
+                cards={data.cards}
+                theme={theme}
+                stale={fleet.error !== null}
+                renderFocus={(card, close) => (
+                  <CrewCard
+                    card={card}
+                    theme={theme}
+                    compact={false}
+                    presentation="focus"
+                    onClose={close}
+                    // Watch leaves the deck for the crew pane, where the board's Watch shows it.
+                    opener={watchOpener(card, (key) => {
+                      setWatching(key);
+                      setRightPane("board");
+                    })}
+                    onChanged={refresh}
+                  />
+                )}
+              />
             ) : (
               <FilesView theme={theme} compact={false} request={filesRequest} />
             )}
