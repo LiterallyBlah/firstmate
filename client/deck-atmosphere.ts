@@ -1,72 +1,39 @@
 /**
- * The deck's weather follows the work: the more crewmates are working, the livelier the sea, the wind and the
- * sail. Pure — no Pixi and no browser globals (`client/deck-atmosphere.test.ts`); `client/deck-pixi.ts` steps it
- * every frame and `client/deck-environment.ts` draws the sea, the clouds and the wake with it.
- *
- * - **Intensity is work in progress.** Each sailor on deck counts by its state (`ACTIVITY_WEIGHTS`): a working one
- *   fully, one waiting on a job a little, a blocked or idle one not at all, and a greyed one (its feed lost) not
- *   at all either. Local and remote crew alike, since the scene holds both. `BUSY_CREW` of them is the top of the
- *   dial; more change nothing, so a crowded fleet stays readable.
- * - **Eased, never snapped.** The intensity drawn moves towards the crew's over `EASE_SECONDS` or so, so a crewmate
- *   starting or finishing turns the weather gradually. The deck opens in the crew's weather, as the crew already
- *   aboard is simply there.
- * - **One table** (`ATMOSPHERE`): what each part does at a few intensities, interpolated between. Every value is a
- *   multiple of the art's own timing, or an amplitude, so a stormier top end is one row's change.
- * - **Speeds change, phases do not jump.** Each animation runs on its own clock, advanced by the frame's step times
- *   its current pace, and the pure frame functions (`cycleFrame`, `cloudX`, `dutyFrame`, `bobAt`) are handed
- *   that clock instead of the scene's. Multiplying the scene's clock by a pace that changes would jump the sea,
- *   the clouds and the sail forwards or back as the crew changed.
- * - **Reduced motion is calm.** A still deck draws as it always has — the parts' first frames, no drift, the whole
- *   wake, the sky untinted (`deliveredWeather`) — and no ramp: its intensity follows the crew's at once, unseen, and
- *   its clocks stand, so motion resumes in the right weather. And no weather layers (`Weather.intensity` is null).
- * - **The top end can be a storm, in data.** The scenery is handed the eased intensity itself (`Weather.intensity`),
- *   and the setting's weather layers — variants over the sea, wake and clouds, cycles, the sky's overcast, flashes —
- *   each fade in along their own curve over it (`client/deck-variants.ts`, `client/deck-ambience.ts`). Their thresholds
- *   are in the setting pack (`art/settings/ship/setting.json`), beside the art, not here; this table only paces and sizes the calm scene.
+ * Intensity is engine-owned: weighted work in progress, eased over a few seconds. The pack owns its appearance:
+ * named channels interpolated from a table, calm values, and clocks advanced by step times their channel's pace.
+ * Compiled once at mount; no setting-specific names. Reduced motion holds the live clocks and disables layers
+ * driven by intensity. Every animation keeps its phase when its speed changes.
  */
+import type { SettingManifest } from "../shared/deck-setting";
 import { curveAt, type Curve } from "./deck-variants";
-import { advanceWater, type WaterClock, type WaterMotion } from "./deck-water";
 import type { DeckSailor, DeckState } from "./deck-scene";
 
-/** How much a sailor in each state stirs the weather: it is about work in progress. */
 export const ACTIVITY_WEIGHTS: Record<DeckState, number> = { working: 1, waiting: 0.25, blocked: 0, idle: 0 };
-/** The weighted crew at which the weather is at its liveliest. */
+/** The weighted crew at the top of the intensity dial. */
 export const BUSY_CREW = 6;
-/** How long the drawn intensity takes to get most of the way (63%) to the crew's: a few seconds. */
+/** Seconds to get most of the way (63%) to the crew's intensity. */
 export const EASE_SECONDS = 3;
 
-/** What the weather does at one intensity. */
-export interface AtmosphereParams {
-  /** The sea's, the foam's and the wake's frames (`pace`), and the sea's and foam's drift (`drift`), against the art's own timing. */
-  water: WaterMotion;
-  /** How fast the clouds drift, against their own speed. */
-  wind: number;
-  /** How fast the sail alternates its rest and billow, against its `frameMs`. */
-  sail: number;
-  /** The share of the sail's cycle it spends billowed: 0.5 is the art's even alternation. */
-  billow: number;
-  /** How fast the ship bobs and the masthead sways, against their six-second swell. */
-  swell: number;
-  /** How far the ship bobs, art pixels each way before rounding: 1.2 is the bob as it was. */
-  heave: number;
-  /** How much wake there is: the generated wake's opacity, and how far the code wake runs. 1 is all of it. */
-  wake: number;
-  /** How far the sky is shaded towards its tint (the pack's backdrop `tint`), 0 to 1. */
-  mood: number;
+/** The pack's channels and clock bindings, with table values in channel order. */
+export interface DeckAtmosphere {
+  readonly channels: readonly string[];
+  readonly table: ReadonlyArray<{ at: number; values: readonly number[] }>;
+  readonly clocks: ReadonlyArray<readonly [clock: string, channel: string]>;
+  readonly delivered: Readonly<Record<string, number>>;
 }
 
-/**
- * The weather at a few intensities, lowest first, interpolated between — the one place to tune it. Idle is
- * glassy: slower than the art's own timing, a short wake. Two crewmates working is the art as delivered. A busy fleet is spirited: a quick choppy sea, a fresh breeze, the sail snapping, a full wake and
- * a slightly moodier sky. Energetic, never a storm on its own: the heavy weather over the top end is the setting pack's.
- */
-export const ATMOSPHERE: ReadonlyArray<{ at: number } & AtmosphereParams> = [
-  { at: 0, water: { pace: 0.5, drift: 0.5 }, wind: 0.5, sail: 0.55, billow: 0.4, swell: 0.8, heave: 1, wake: 0.55, mood: 0 },
-  { at: 2 / BUSY_CREW, water: { pace: 1, drift: 1 }, wind: 1, sail: 1, billow: 0.5, swell: 1, heave: 1.2, wake: 0.85, mood: 0 },
-  { at: 1, water: { pace: 1.9, drift: 2.2 }, wind: 3, sail: 2.4, billow: 0.65, swell: 1.35, heave: 1.6, wake: 1, mood: 1 },
-];
+export function compileAtmosphere(manifest: Pick<SettingManifest, "atmosphere">): DeckAtmosphere {
+  const definition = manifest.atmosphere;
+  const channels = Object.keys(definition?.table[0] ?? {}).filter((key) => key !== "at");
+  return {
+    channels,
+    table: (definition?.table ?? []).map((row) => ({ at: row.at, values: channels.map((channel) => row[channel]!) })),
+    clocks: Object.entries(definition?.clocks ?? {}),
+    delivered: { ...definition?.delivered },
+  };
+}
 
-/** How busy the crew on deck is, 0 to 1. */
+/** How busy the crew is, 0 to 1; a lost feed never counts. */
 export function crewIntensity(sailors: ReadonlyArray<Pick<DeckSailor, "state" | "stale">>): number {
   let activity = 0;
   for (const sailor of sailors) if (!sailor.stale) activity += ACTIVITY_WEIGHTS[sailor.state] ?? 0;
@@ -77,111 +44,73 @@ function lerp(from: number, to: number, t: number): number {
   return from + (to - from) * t;
 }
 
-/** The weather at `intensity`, interpolated between the table's rows; clamped to its ends. */
-export function atmosphereAt(intensity: number, table: ReadonlyArray<{ at: number } & AtmosphereParams> = ATMOSPHERE): AtmosphereParams {
+/** Channels at this intensity, clamped to the table's ends; no channels without a table. */
+export function atmosphereAt(definition: DeckAtmosphere, intensity: number): Record<string, number> {
+  const { table, channels } = definition;
+  if (table.length === 0) return {};
   const at = Number.isFinite(intensity) ? Math.max(table[0]!.at, Math.min(table[table.length - 1]!.at, intensity)) : table[0]!.at;
   let index = 1;
   while (index < table.length - 1 && table[index]!.at < at) index += 1;
   const low = table[index - 1] ?? table[0]!;
   const high = table[index] ?? low;
   const t = high.at === low.at ? 0 : (at - low.at) / (high.at - low.at);
+  return Object.fromEntries(channels.map((channel, i) => [channel, lerp(low.values[i]!, high.values[i]!, t)]));
+}
+
+/** Eased intensity and animation clocks in seconds of their art's timing. Per mount. */
+export interface Atmosphere {
+  intensity: number;
+  clocks: Readonly<Record<string, number>>;
+}
+
+export function openingAtmosphere(definition: DeckAtmosphere, intensity = 0): Atmosphere {
   return {
-    water: { pace: lerp(low.water.pace, high.water.pace, t), drift: lerp(low.water.drift, high.water.drift, t) },
-    wind: lerp(low.wind, high.wind, t),
-    sail: lerp(low.sail, high.sail, t),
-    billow: lerp(low.billow, high.billow, t),
-    swell: lerp(low.swell, high.swell, t),
-    heave: lerp(low.heave, high.heave, t),
-    wake: lerp(low.wake, high.wake, t),
-    mood: lerp(low.mood, high.mood, t),
+    intensity: Math.max(0, Math.min(1, Number.isFinite(intensity) ? intensity : 0)),
+    clocks: Object.fromEntries(definition.clocks.map(([clock]) => [clock, 0])),
   };
 }
 
-/** The weather as it is drawn: the eased intensity, and each animation's own clock, in seconds of its art's timing. */
-export interface Atmosphere {
-  intensity: number;
-  water: WaterClock;
-  /** The clouds' clock. */
-  wind: number;
-  /** The sail's clock. */
-  sail: number;
-  /** The bob's and the sway's clock. */
-  swell: number;
-}
-
-/** The weather at the scene's start, every clock at 0: at `intensity`, the crew's as the deck opens. */
-export function openingAtmosphere(intensity = 0): Atmosphere {
-  return { intensity: Math.max(0, Math.min(1, Number.isFinite(intensity) ? intensity : 0)), water: { frames: 0, drift: 0 }, wind: 0, sail: 0, swell: 0 };
-}
-
-/**
- * The weather `stepMs` on: the intensity eased towards `target`, then every clock advanced at the eased intensity's
- * pace. A still deck (not `moving`) takes `target` at once and its clocks stand.
- */
-export function stepAtmosphere(state: Atmosphere, stepMs: number, target: number, moving: boolean): Atmosphere {
+/** Ease towards the target, then advance clocks at their channel's pace, never backwards. Still holds all clocks. */
+export function stepAtmosphere(definition: DeckAtmosphere, state: Atmosphere, stepMs: number, target: number, moving: boolean): Atmosphere {
   const goal = Math.max(0, Math.min(1, Number.isFinite(target) ? target : 0));
   if (!moving) return { ...state, intensity: goal };
   const seconds = Number.isFinite(stepMs) && stepMs > 0 ? stepMs / 1000 : 0;
   const intensity = seconds === 0 ? state.intensity : goal + (state.intensity - goal) * Math.exp(-seconds / EASE_SECONDS);
-  const params = atmosphereAt(intensity);
+  const channels = atmosphereAt(definition, intensity);
   return {
     intensity,
-    water: advanceWater(state.water, seconds, params.water),
-    wind: state.wind + seconds * Math.max(0, params.wind),
-    sail: state.sail + seconds * Math.max(0, params.sail),
-    swell: state.swell + seconds * Math.max(0, params.swell),
+    clocks: Object.fromEntries(definition.clocks.map(([clock, channel]) => [clock, state.clocks[clock]! + seconds * Math.max(0, channels[channel]!)])),
   };
 }
 
-/**
- * What the deck is drawn with this frame: the water's, the clouds', the sail's and the swell's clocks; the wake's
- * strength, the sky's mood, the sail's billow and the swell's heave; and the eased intensity the weather layers follow —
- * null for none of them, as on a still deck.
- */
+/** Null intensity disables curves, variants and flashes on a still deck. */
 export interface Weather {
-  water: WaterClock;
-  wind: number;
-  sail: number;
-  swell: number;
-  wake: number;
-  mood: number;
-  billow: number;
-  heave: number;
+  clocks: Readonly<Record<string, number>>;
+  channels: Readonly<Record<string, number>>;
   intensity: number | null;
 }
 
-/**
- * The weather the art was made for at the scene's clock: every part at its own timing, a full wake, no mood, the sail's
- * even billow and the bob's own heave (the table's row for two working), no weather layers.
- */
-export function deliveredWeather(seconds: number): Weather {
-  return { water: { frames: seconds, drift: seconds }, wind: seconds, sail: seconds, swell: seconds, wake: 1, mood: 0, billow: 0.5, heave: 1.2, intensity: null };
-}
-
-/** The deck's weather from the atmosphere as it stands. */
-export function weatherOf(atmosphere: Atmosphere): Weather {
-  const params = atmosphereAt(atmosphere.intensity);
+/** The pack's calm values at their delivered pace on the scene clock, without intensity-driven layers. */
+export function deliveredWeather(definition: DeckAtmosphere, seconds: number): Weather {
   return {
-    water: atmosphere.water,
-    wind: atmosphere.wind,
-    sail: atmosphere.sail,
-    swell: atmosphere.swell,
-    wake: params.wake,
-    mood: params.mood,
-    billow: params.billow,
-    heave: params.heave,
-    intensity: atmosphere.intensity,
+    clocks: Object.fromEntries(definition.clocks.map(([clock, channel]) => [clock, seconds * Math.max(0, definition.delivered[channel]!)])),
+    channels: definition.delivered,
+    intensity: null,
   };
 }
 
-/** `colour` shaded by a tint, channel by channel, as Pixi's tint multiplies. */
+export function weatherOf(definition: DeckAtmosphere, atmosphere: Atmosphere): Weather {
+  return { clocks: atmosphere.clocks, channels: atmosphereAt(definition, atmosphere.intensity), intensity: atmosphere.intensity };
+}
+
+/** A colour shaded by a tint, channel by channel, as Pixi's tint multiplies. */
 export function shade(colour: number, tint: number): number {
   let shaded = 0;
   for (const shift of [16, 8, 0]) shaded |= Math.round((((colour >> shift) & 0xff) * ((tint >> shift) & 0xff)) / 255) << shift;
   return shaded;
 }
 
-/** A tint `amount` of the way from white (the art as it is) at 0 to `to` at 1, as Pixi's tint multiplies. */
+/** A tint from white (the art as it is) at 0 to the target at 1. */
 export function tintToward(to: number, amount: number): number {
   const t = Math.max(0, Math.min(1, Number.isFinite(amount) ? amount : 0));
   let tint = 0;
@@ -189,51 +118,22 @@ export function tintToward(to: number, amount: number): number {
   return tint;
 }
 
-/** A pack's `Level`: a number of its own, an atmosphere channel's (times `scale`), or a curve over the intensity. */
+/** A fixed number, a channel times its scale, or a curve over intensity. */
 export type Level = number | { channel: string; scale?: number | undefined } | { curve: Curve };
 
-/**
- * A weather channel by the pack's name for it, of those the deck is handed (`Weather`'s `wake`, `mood`, `billow`
- * and `heave`); any other reads 0. Until step 6 of the migration makes the weather the pack's table, every channel by
- * name.
- */
+/** Any channel named by the pack; an unknown one reads zero. */
 export function channelOf(weather: Weather, channel: string): number {
-  switch (channel) {
-    case "wake":
-      return weather.wake;
-    case "mood":
-      return weather.mood;
-    case "billow":
-      return weather.billow;
-    case "heave":
-      return weather.heave;
-    default:
-      return 0;
-  }
+  const value = weather.channels[channel];
+  return typeof value === "number" ? value : 0;
 }
 
-/**
- * A weather clock by the pack's name for it (`atmosphere.clocks`): the water's frames and drift, the wind, the sail and
- * the swell. Any other is the scene's own, `seconds` — until step 6 makes every clock the pack's.
- */
+/** A named animation clock, or the scene clock when none was supplied. */
 export function clockOf(weather: Weather, clock: string | undefined, seconds: number): number {
-  switch (clock) {
-    case "water-frames":
-      return weather.water.frames;
-    case "water-drift":
-      return weather.water.drift;
-    case "wind":
-      return weather.wind;
-    case "sail":
-      return weather.sail;
-    case "swell":
-      return weather.swell;
-    default:
-      return seconds;
-  }
+  const value = clock === undefined ? undefined : weather.clocks[clock];
+  return typeof value === "number" ? value : seconds;
 }
 
-/** `level` in `weather`. A curve reads nothing on a still deck, which has no intensity (`Weather.intensity`). */
+/** A curve reads nothing on a still deck, which has no intensity. */
 export function levelAt(level: Level, weather: Weather): number {
   if (typeof level === "number") return level;
   if ("channel" in level) return channelOf(weather, level.channel) * (level.scale ?? 1);

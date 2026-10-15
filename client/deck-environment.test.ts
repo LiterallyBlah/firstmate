@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
 
 import { extrasImagePaths, type DeckExtrasImages } from "./deck-legacy";
 import { compileParts } from "./deck-parts";
-import { BUSY_CREW, deliveredWeather, shade } from "./deck-atmosphere";
+import { BUSY_CREW, compileAtmosphere, deliveredWeather, shade } from "./deck-atmosphere";
 import { compileAmbience } from "./deck-ambience";
 import { cloudPeriod, hexColour, type DrifterMasks } from "./deck-clouds";
 import { createScenery, type SceneryArt } from "./deck-environment";
@@ -284,7 +284,7 @@ function packImages(options: { extras?: Extras | null; without?: readonly string
 /** What the scenery is drawn from, for a test that draws it alone: the still sea and foam where `art` has them. */
 function sceneryArt(options: { extras?: Extras | null; without?: readonly string[]; art?: StillWater }): SceneryArt {
   const { images, masks, ambience } = packImages(options, options.art ?? null);
-  return { ambience, images, masks };
+  return { ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks };
 }
 
 /** A hand-wound world: the clock, the frames, the minute timer, the motion signals. */
@@ -357,7 +357,7 @@ async function start(
   const { images, masks, ambience, parts } = packImages(options, art, atlas);
   const drawing = await startDeck(
     pixi,
-    { stage: shipStage(), cast: shipCast(), parts, ambience, images, masks, image: atlas, extras: options.extras ?? null },
+    { stage: shipStage(), cast: shipCast(), parts, ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, extras: options.extras ?? null },
     host,
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
@@ -1556,7 +1556,7 @@ describe("the heavy weather on the deck, at the top of the dial", () => {
     scenery.layout({ left: 0, right: 426, top: -80, bottom: 240 });
     const lite = { level: "lite", animate: true, fps: 12, ambient: false } as const;
     for (let seconds = 0; seconds < 120; seconds += 0.1) {
-      scenery.draw(seconds, lite, 720, { ...deliveredWeather(seconds), intensity: 1 });
+      scenery.draw(seconds, lite, 720, { ...deliveredWeather(compileAtmosphere(shipManifest()), seconds), intensity: 1 });
       const [front, back] = [scenery.front as unknown as FakeContainer, scenery.back as unknown as FakeContainer];
       expect(one(back, "flash:lightning").visible).toBe(false);
       expect(new Set((one(front, "sea:front:rough-sea").children as FakeSprite[]).map(texturePath))).toEqual(new Set(["storm/sea/frame-0.png"]));
@@ -1564,6 +1564,32 @@ describe("the heavy weather on the deck, at the top of the dial", () => {
       expect(texturePath(one(front, "spindrift"))).toBe("storm/spray/frame-0.png");
       expect(one(front, "sea:front:rough-sea").alpha).toBe(1);
     }
+    scenery.destroy();
+  });
+
+  it("enforces flash opacity and motion caps even when unchecked data requests otherwise", () => {
+    const art = sceneryArt({ extras: stormy, art: environment });
+    art.ambience = {
+      ...art.ambience,
+      elements: art.ambience.elements.map((element) => element.behaviour.kind !== "flash" ? element : {
+        ...element, lite: "run", still: "first-frame",
+        behaviour: { ...element.behaviour, opacity: [[0, 1]], perMinute: [[0, 600]] },
+      }),
+    };
+    const scenery = createScenery(pixi, shipStage(), art, 0);
+    scenery.layout({ left: 0, right: 426, top: -80, bottom: 240 });
+    const flash = one(scenery.back as unknown as FakeContainer, "flash:lightning");
+    let visible = 0;
+    for (let seconds = 0; seconds < 120; seconds += 0.05) {
+      const weather = { ...deliveredWeather(art.atmosphere, seconds), intensity: 1 };
+      scenery.draw(seconds, { level: "full", animate: true, fps: 30, ambient: true }, 720, weather);
+      if (flash.visible) { visible += 1; expect(flash.alpha).toBeLessThanOrEqual(0.6); }
+      for (const level of ["lite", "still"] as const) {
+        scenery.draw(seconds, { level, animate: level === "lite", fps: 12, ambient: false }, 720, weather);
+        expect(flash.visible).toBe(false);
+      }
+    }
+    expect(visible).toBeGreaterThan(0);
     scenery.destroy();
   });
 

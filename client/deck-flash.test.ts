@@ -53,13 +53,31 @@ describe("a flash now and then", () => {
     expect(flashAt(start + 0.25, lightning, 1, salt)).toBeNull();
   });
 
-  it("ends each frame where the times up to it add up to, however many frames", () => {
+  it("ends frames at their cumulative times and never shows more than two, even with unchecked data", () => {
     const three = { ...lightning, frames: [10, 20, 40].map((ms, index) => ({ ...lightning.frames[0]!, ms, alpha: [1, 0.5, 0.25][index]! })) };
     // Its first moment, to the tenth of a millisecond.
     let start = watch(three, 1, 10).starts[0]!;
     while (flashAt(start - 0.0001, three, 1, salt) !== null) start -= 0.0001;
     const frameAt = (ms: number) => flashAt(start + ms / 1000, three, 1, salt)?.frame ?? null;
-    expect([5, 25, 45, 65, 75].map(frameAt)).toEqual([0, 1, 2, 2, null]);
+    expect([5, 25, 45, 65, 75].map(frameAt)).toEqual([0, 1, null, null, null]);
+  });
+
+  it("leaves four seconds dark between flashes, even when unchecked data requests very long frames", () => {
+    const long = { ...lightning, perMinute: [[0, 600]] as Array<[number, number]>, frames: [{ ms: 60000, alpha: 1 }] };
+    let lastShown: number | null = null;
+    let showing = false;
+    let starts = 0;
+    for (let tick = 0; tick < 60000; tick += 1) {
+      const seconds = tick / 100;
+      const visible = flashAt(seconds, long, 1, salt) !== null;
+      if (visible && !showing) {
+        starts += 1;
+        if (lastShown !== null) expect(seconds - lastShown).toBeGreaterThanOrEqual(4);
+      }
+      if (visible) lastShown = seconds;
+      showing = visible;
+    }
+    expect(starts).toBe(40);
   });
 });
 

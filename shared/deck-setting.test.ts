@@ -74,6 +74,39 @@ describe("a setting manifest", () => {
     const payload = { manifest: shipManifest(), images: shipImages() };
     expect(loadDeckSetting.output.parse(payload)).toEqual(payload);
   });
+
+  it("rejects atmosphere tables that cannot interpolate or provide complete calm values", () => {
+    const changes: Array<(manifest: SettingManifest) => void> = [
+      (manifest) => manifest.atmosphere!.table.reverse(),
+      (manifest) => (manifest.atmosphere!.table[1]!.at = manifest.atmosphere!.table[0]!.at),
+      (manifest) => delete manifest.atmosphere!.table[1]!.pace,
+      (manifest) => delete manifest.atmosphere!.delivered.mood,
+      (manifest) => (manifest.atmosphere!.delivered.unknown = 1),
+      (manifest) => (manifest.atmosphere!.clocks.wind = "unknown"),
+      (manifest) => { for (const row of manifest.atmosphere!.table) row["invalid channel"] = 1; },
+      (manifest) => { for (const row of manifest.atmosphere!.table) row["constructor"] = 1; },
+    ];
+    for (const change of changes) expect(SettingManifestSchema.safeParse(broken(change)).success).toBe(false);
+    const single = broken((manifest) => { manifest.atmosphere!.table = [manifest.atmosphere!.table[0]!]; });
+    expect(SettingManifestSchema.safeParse(single).success).toBe(true);
+  });
+
+  it("keeps flash caps in the engine, including the interval across the whole setting", () => {
+    const changes: Array<(manifest: SettingManifest) => void> = [
+      (manifest) => {
+        const element = manifest.ambience.find((each) => each.behaviour.kind === "flash")!;
+        manifest.ambience.push({ ...element, id: "another-flash" });
+      },
+      ...["frames", "duration", "opacity"].map((change) => (manifest: SettingManifest) => {
+        const flash = manifest.ambience.find((each) => each.behaviour.kind === "flash")!.behaviour;
+        if (flash.kind !== "flash") throw new Error("expected flash");
+        if (change === "frames") flash.frames.push(flash.frames[0]!);
+        if (change === "duration") flash.frames[0]!.ms = 3501;
+        if (change === "opacity") flash.opacity = [[0, 0.61]];
+      }),
+    ];
+    for (const change of changes) expect(SettingManifestSchema.safeParse(broken(change)).success).toBe(false);
+  });
 });
 
 describe("whether this engine can draw a setting", () => {
