@@ -1,9 +1,12 @@
 /**
  * One card on the board: a crewmate, a backlog item, or both.
  *
- * Pressing the card opens its actions. The first one is the caller's: the
- * board watches the crewmate without leaving FirstMate, a panel beside a
- * workspace opens it in Paseo. Steering, interrupting and ending go to the
+ * Pressing the card opens its actions. A card with a worker on the board and
+ * the list also has a 💬 at rest, beside the toggle and never inside it, that
+ * opens the Converse drawer (`client/converse.tsx`): the worker's conversation,
+ * read and answered in place. The first action of an open card is the
+ * caller's: Converse again on the deck's focus panel, Open in Paseo on a panel
+ * beside a workspace. Steering, interrupting and ending go to the
  * crewmate directly; relaunching goes through the first mate, because it
  * owns the brief the new crewmate starts from. Ending archives the agent and
  * leaves its workspace and worktree exactly as they are.
@@ -12,7 +15,7 @@
  * Interrupt and End go to it through the plugin's remote request path
  * (`shared/remote-crew.ts`); Relaunch is shown but off, since a new worker
  * there needs a brief only the first mate can write. While its host is
- * unreachable, only Watch is on. A session the first mate only follows — the
+ * unreachable, only Converse is on, to read. A session the first mate only follows — the
  * captain's own, not crew — is marked so and is never offered End.
  *
  * The ship deck shows the same card beside a focused sailor (`presentation:
@@ -22,6 +25,10 @@
  * it (`replies`, from the deck) — over the same
  * actions, with the same handlers, guards and End confirmation. The tags, the
  * plumbing facts and the report's path stay on the board.
+ *
+ * The Converse drawer shows it as its details (`presentation: "drawer"`):
+ * always open, with no title or glance of its own, since the drawer's header
+ * has them, and no Steer, since the drawer's composer is the steer.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
@@ -64,19 +71,26 @@ export interface CardOpener {
   onPress: () => void;
 }
 
-/** The board's, the list's and the deck's first action: Watch the crewmate within FirstMate, by `watchKey`; null for a card with no worker to watch. */
+/** The 💬's icon, everywhere a worker's conversation opens. */
+export const CONVERSE_ICON = "MessagesSquare";
+
+/** What the 💬 says it does, on hover and to a screen reader. */
+export function converseTooltip(card: FleetCard): string {
+  return card.remote === undefined
+    ? "Read and reply to this worker, within FirstMate."
+    : "Read this remote worker's recent log and reply to it, within FirstMate.";
+}
+
+/** The web id of a card's 💬, so closing the drawer can hand focus back to it. */
+export function converseButtonId(key: string): string {
+  return `firstmate-converse-${key}`;
+}
+
+/** The deck's first action, and an open card's: Converse with the worker, by `watchKey`; null for a card with no worker. */
 export function watchOpener(card: FleetCard, onWatch: (key: string) => void): CardOpener | null {
   const key = watchKey(card);
   if (key === null) return null;
-  return {
-    icon: "Eye",
-    label: "Watch",
-    tooltip:
-      card.remote === undefined
-        ? "View this worker's live activity within FirstMate."
-        : "View this remote worker's recent log within FirstMate.",
-    onPress: () => onWatch(key),
-  };
+  return { icon: CONVERSE_ICON, label: "Converse", tooltip: converseTooltip(card), onPress: () => onWatch(key) };
 }
 
 type Draft = { kind: "steer" | "relaunch"; text: string } | { kind: "end" } | null;
@@ -130,6 +144,8 @@ export function CrewCard({
   presentation = "card",
   onClose,
   replies = null,
+  onConverse = null,
+  conversing = false,
 }: {
   card: FleetCard;
   theme: PluginTheme;
@@ -141,12 +157,16 @@ export function CrewCard({
   /** Called after an action lands, so the board refreshes without waiting for its poll. */
   onChanged: () => void;
   startExpanded?: boolean;
-  /** The list and the deck's focus panel share this card's memory, details and actions. */
-  presentation?: "card" | "row" | "focus";
+  /** The list, the deck's focus panel and the Converse drawer share this card's memory, details and actions. */
+  presentation?: "card" | "row" | "focus" | "drawer";
   /** The focus panel's close button. */
   onClose?: () => void;
   /** The focus panel's replies for the captain to pick (`client/reply-bubble.tsx`), under its glance. */
   replies?: ReactNode;
+  /** Opens the worker's conversation: the 💬 at rest on a board card or list row. Null for a card with no worker. */
+  onConverse?: (() => void) | null;
+  /** This card's conversation is the one open in the drawer: its 💬 is lit. */
+  conversing?: boolean;
 }) {
   const steer = useRpc(steerCrew);
   const interrupt = useRpc(interruptCrew);
@@ -160,8 +180,9 @@ export function CrewCard({
   const memory = useCardMemory(card.key, startExpanded, card.column);
   const { setExpanded, draft, setDraft } = memory;
   const focus = presentation === "focus";
-  /** The focus panel is always open, without telling the board's card to open too. */
-  const expanded = memory.expanded || focus;
+  const drawer = presentation === "drawer";
+  /** The focus panel and the drawer are always open, without telling the board's card to open too. */
+  const expanded = memory.expanded || focus || drawer;
   const [busy, setBusy] = useState(false);
 
   const agent = card.agent;
@@ -204,6 +225,12 @@ export function CrewCard({
         paddingVertical: dense ? 8 : 10,
         paddingHorizontal: 4,
         gap: 8,
+      },
+      head: {
+        flexDirection: "row" as const,
+        alignItems: "flex-start" as const,
+        gap: 8,
+        minWidth: 0,
       },
       rowHead: {
         flexDirection: "row" as const,
@@ -387,6 +414,22 @@ export function CrewCard({
       </Text>
     );
 
+  const key = watchKey(card);
+  /** The 💬, a sibling of the card's toggle so pressing it never folds or unfolds the card. */
+  const converseButton =
+    onConverse === null || key === null ? null : (
+      <IconButton
+        icon={CONVERSE_ICON}
+        label={`Converse with ${card.title}`}
+        tooltip={conversing ? "This conversation is open beside the crew." : converseTooltip(card)}
+        tooltipAlign="end"
+        tone={conversing ? "accent" : "default"}
+        theme={theme}
+        nativeID={converseButtonId(key)}
+        onPress={onConverse}
+      />
+    );
+
   const glance = (
     <View style={styles.chips}>
       {stateChip === null ? null : <Chip theme={theme} text={stateChip.text} color={stateChip.color} />}
@@ -410,7 +453,8 @@ export function CrewCard({
           {glance}
           {replies}
         </View>
-      ) : (
+      ) : drawer ? null : (
+      <View style={styles.head}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={[
@@ -429,7 +473,7 @@ export function CrewCard({
         aria-expanded={expanded}
         onPress={() => setExpanded(!expanded)}
         {...webTitle(card.title)}
-        style={{ gap: 8 }}
+        style={{ gap: 8, flex: 1, minWidth: 0 }}
       >
         {row ? (
           <>
@@ -468,6 +512,8 @@ export function CrewCard({
           </>
         )}
       </Pressable>
+      {converseButton}
+      </View>
       )}
 
       {focus || cardTags(card).length === 0 ? null : (
@@ -541,21 +587,23 @@ export function CrewCard({
                 onPress={opener.onPress}
               />
             )}
-            <IconButton
-              icon="MessageSquare"
-              label="Steer"
-              tooltip={
-                busy
-                  ? actionPending
-                  : !remote.online
-                    ? unreachable
-                    : "Send instructions directly to this worker; the first mate is told about them."
-              }
-              showLabel
-              theme={theme}
-              disabled={busy || !remote.online}
-              onPress={() => setDraft({ kind: "steer", text: "" })}
-            />
+            {drawer ? null : (
+              <IconButton
+                icon="MessageSquare"
+                label="Steer"
+                tooltip={
+                  busy
+                    ? actionPending
+                    : !remote.online
+                      ? unreachable
+                      : "Send instructions directly to this worker; the first mate is told about them."
+                }
+                showLabel
+                theme={theme}
+                disabled={busy || !remote.online}
+                onPress={() => setDraft({ kind: "steer", text: "" })}
+              />
+            )}
             <IconButton
               icon="Square"
               label="Interrupt"
@@ -631,19 +679,21 @@ export function CrewCard({
               onPress={opener.onPress}
             />
           )}
-          <IconButton
-            icon="MessageSquare"
-            label="Steer"
-            tooltip={
-              busy
-                ? actionPending
-                : "Send instructions directly to this worker; the first mate is told about them."
-            }
-            showLabel
-            theme={theme}
-            disabled={busy}
-            onPress={() => setDraft({ kind: "steer", text: "" })}
-          />
+          {drawer ? null : (
+            <IconButton
+              icon="MessageSquare"
+              label="Steer"
+              tooltip={
+                busy
+                  ? actionPending
+                  : "Send instructions directly to this worker; the first mate is told about them."
+              }
+              showLabel
+              theme={theme}
+              disabled={busy}
+              onPress={() => setDraft({ kind: "steer", text: "" })}
+            />
+          )}
           <IconButton
             icon="Square"
             label="Interrupt"

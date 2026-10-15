@@ -14,8 +14,14 @@
  * this machine, then each host — and filters them to that host's cards; a
  * host's tab shows that host's health first. The choice is a display setting.
  *
+ * A card's 💬 opens that worker's conversation in the Converse drawer
+ * (`client/converse.tsx`): docked beside the list or board where the pane has
+ * room for both, over it where it does not, and filling the Crew tab on a
+ * phone. The surface underneath stays mounted, so closing the drawer returns
+ * to it exactly as it was, and focus goes back to the 💬 that opened it.
+ *
  * A surface is unmounted whenever the captain opens a workspace, so the last
- * fleet, the compact tab and the crewmate being watched live in module scope
+ * fleet, the compact tab and the open conversation live in module scope
  * and the board comes back drawn rather than empty.
  */
 import type { PluginScreenProps } from "@getpaseo/plugin/client";
@@ -38,11 +44,12 @@ import {
 } from "../shared/fleet";
 import { displaySettings, type DisplaySettings } from "../shared/settings";
 import { Board } from "./board";
-import { CrewCard, watchOpener } from "./card";
+import { CrewCard, converseButtonId, watchOpener } from "./card";
 import { FilesView, type FilesRequest } from "./files";
 import { MateChat } from "./chat";
 import { captainMessage } from "./attachments";
-import { CrewmateView } from "./crewmate";
+import { ConverseDrawer } from "./converse";
+import { DRAWER_WIDTH, converseTarget, drawerDocks } from "./converse-layout";
 import { answeredReplies, replyBlockedText } from "./deck-replies";
 import { deckOffered } from "./deck-scene";
 import { agentStatusLabel, agentStatusTone, groupCards, orderedColumns, revealFilesPatch, shortPath } from "./format";
@@ -53,7 +60,6 @@ import { ResizeHandle } from "./resize-handle";
 import { clampShare, MIN_SPLIT_WIDTH } from "./resize-layout";
 import { hostTabs, onTab, shownHostTab, watchKey } from "./host-tabs";
 import { HostTabRow } from "./host-tab-row";
-import { RemoteWorkerView } from "./remote-worker";
 import { HostHealthCard, useRemotes } from "./remotes";
 import { ShipDeckView } from "./ship-deck";
 import { SuggestionStrip } from "./suggestions";
@@ -63,6 +69,7 @@ import { matchesTags, tagScopeCards } from "../shared/item-tags";
 import { WatchButton } from "./watches";
 import { UpdateButton } from "./update-button";
 import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
+import { focusWebElement } from "./web";
 
 export const FLEET_QUERY_KEY = ["firstmate", "fleet"] as const;
 
@@ -72,7 +79,7 @@ let cachedTab: Tab = "chat";
 /** What the right-hand pane shows on a wide layout: the crew, the home's files, or — switched on — the ship deck. */
 type RightPane = "board" | "files" | "deck";
 let cachedRightPane: RightPane = "board";
-/** The crewmate shown in the board's place — card and transcript — by `watchKey`: its agent id, or `remote:<serverId>:<id>`. */
+/** The worker whose conversation is open in the Converse drawer, by `watchKey`: its agent id, or `remote:<serverId>:<id>`. */
 let cachedWatching: string | null = null;
 /** List's completed-task choice survives view switches and surface remounts. */
 let cachedShowDone = false;
@@ -132,6 +139,8 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   const [tab, setTabState] = useState<Tab>(cachedTab);
   const [rightPane, setRightPaneState] = useState(cachedRightPane);
   const [watching, setWatchingState] = useState(cachedWatching);
+  /** The right-hand pane's width, which decides whether the drawer docks beside the crew or covers it. */
+  const [paneWidth, setPaneWidth] = useState(0);
   const [showDone, setShowDone] = useState(cachedShowDone);
   const [enabling, setEnabling] = useState(false);
   const [charterBusy, setCharterBusy] = useState(false);
@@ -151,6 +160,8 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   /** The ship deck, offered in the desktop app's wide layout. A pane left on it falls back to Crew where it is not. */
   const deck = deckOffered(Platform.OS, compact);
   const pane: RightPane = rightPane === "deck" && !deck ? "board" : rightPane;
+  /** The drawer sits beside the list or board, rather than over it, on a wide pane with room for both. */
+  const docked = !compact && drawerDocks(paneWidth);
 
   /**
    * Layout changes are drawn at once and saved behind, batched: a save is
@@ -219,9 +230,12 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     setRightPaneState(next);
   }
 
+  /** Opens a worker's conversation, or closes it (`null`) and gives focus back to the 💬 that opened it. */
   function setWatching(next: string | null): void {
+    const previous = cachedWatching;
     cachedWatching = next;
     setWatchingState(next);
+    if (next === null && previous !== null) focusWebElement(converseButtonId(previous));
   }
 
   const order = orderedColumns(values.columnOrder);
@@ -524,7 +538,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         />
         {mate !== null &&
         (compact ? shownTab === "board" : pane === "board" && !values.boardCollapsed) &&
-        watching === null ? (
+        (watching === null || docked) ? (
           <Segmented
             theme={theme}
             value={values.crewView}
@@ -557,7 +571,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
                 tooltip:
                   watching === null
                     ? "Show crew and backlog tasks."
-                    : "Return to crew tasks from the worker's activity.",
+                    : "Close the conversation and show the crew tasks.",
               },
               {
                 value: "files",
@@ -723,7 +737,8 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           theme={theme}
           compact={compact}
           density={values.density}
-          onWatch={setWatching}
+          conversing={watching}
+          onConverse={setWatching}
           onChanged={refresh}
           showDone={showDone}
           onShowDone={(next) => {
@@ -739,7 +754,8 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           theme={theme}
           compact={compact}
           density={values.density}
-          onWatch={setWatching}
+          conversing={watching}
+          onConverse={setWatching}
           onChanged={refresh}
           onToggleColumn={(id: ColumnId) =>
             save({
@@ -757,33 +773,35 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     <MateChat key={mate.id} mate={mate} theme={theme} compact={compact} onChanged={refresh} onOpenFile={openFile} navigation={navigation} />
   );
   const watchedCard = watching === null ? null : (data.cards.find((card) => watchKey(card) === watching) ?? null);
-  const watchedRemote = watching === null ? null : /^remote:(.+):([^:]+)$/.exec(watching);
-  const crew =
-    watching === null ? (
-      board
-    ) : watchedRemote !== null ? (
-      <RemoteWorkerView
-        key={watching}
-        serverId={watchedRemote[1] ?? ""}
-        agentId={watchedRemote[2] ?? ""}
-        card={watchedCard}
-        theme={theme}
-        compact={compact}
-        onBack={() => setWatching(null)}
-        onChanged={refresh}
-      />
-    ) : (
-      <CrewmateView
-        key={watching}
-        agentId={watching}
-        card={watchedCard}
-        theme={theme}
-        compact={compact}
-        onBack={() => setWatching(null)}
-        onOpen={navigation === undefined ? null : () => navigation.openAgent({ agentId: watching })}
-        onChanged={refresh}
-      />
-    );
+  const watchedTarget = watching === null ? null : converseTarget(watching);
+  /** Over the crew rather than beside it: a phone, or a pane too narrow for both. */
+  const covered = watching !== null && !docked;
+  // The list or board stays mounted under a drawer that covers it, so closing the drawer finds it scrolled where it was.
+  const crew = (
+    <View style={{ flex: 1, minHeight: 0, flexDirection: "row" }}>
+      <View style={[{ flex: 1, minWidth: 0 }, covered ? { display: "none" } : null]}>{board}</View>
+      {watching === null || watchedTarget === null ? null : (
+        <View style={docked ? { width: DRAWER_WIDTH, flexShrink: 0 } : { flex: 1, minWidth: 0 }}>
+          <ConverseDrawer
+            key={watching}
+            watchKey={watching}
+            card={watchedCard}
+            theme={theme}
+            compact={compact}
+            docked={docked}
+            backLabel={compact ? "Crew" : values.crewView === "list" ? "List" : "Board"}
+            onClose={() => setWatching(null)}
+            onOpen={
+              navigation === undefined || watchedTarget.kind !== "local"
+                ? null
+                : () => navigation.openAgent({ agentId: watchedTarget.agentId })
+            }
+            onChanged={refresh}
+          />
+        </View>
+      )}
+    </View>
+  );
 
   if (compact) {
     const tabs: readonly Tab[] = ["chat", "board", "files"];
@@ -861,7 +879,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             />
           </View>
         ) : (
-          <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flex: 1, minWidth: 0 }} onLayout={(event) => setPaneWidth(event.nativeEvent.layout.width)}>
             {pane === "board" ? (
               crew
             ) : pane === "deck" ? (

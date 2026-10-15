@@ -1019,7 +1019,7 @@ describe("a card at rest", () => {
     const failing = { ...held, agent: { ...card.agent!, lastError: "provider crashed" } };
     expect(cardHeadline(failing)).toEqual({ lead: null, text: "provider crashed", tone: "danger" });
     expect(cardHeadline({ ...failing, agent: { ...failing.agent, pendingPermissions: 1 } })).toEqual({
-      lead: "Waiting on a permission", text: "Open Watch to see the request", tone: "column",
+      lead: "Waiting on a permission", text: "Converse to answer it", tone: "column",
     });
 
     const worker = {
