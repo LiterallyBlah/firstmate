@@ -422,8 +422,10 @@ FirstMate's has changed. The first mate adds or changes a watch only when you sa
 
 A ship's-deck view of the crew: one sailor per live crewmate on the deck of a pixel-art ship, drawn by PixiJS on a WebGL canvas, standing where its card's column puts it. **Working** sailors
 haul at the stations amidships. **Waiting** (Ready, or waiting on a job) stand by the helm.
-**Blocked** (Blocked, Failed) are in the bow, and **idle** (Idle, Parked) stand at ease at the rail,
-breathing. Each crewmate wears one of eight looks, chosen by its agent, so the same crewmate always looks the same. When a
+**Blocked** (Blocked, Failed) are in the bow, and **idle** (Idle, Parked) go off watch: they walk to a
+rest area on the foredeck by the hatch (and, past six, at the foot of the quarterdeck stairs) and doze there,
+so the working deck shows only the crew at work. Pointing at a sleeper labels it below the deck's rail, where
+the label covers no one. Each crewmate wears one of eight looks, chosen by its agent, so the same crewmate always looks the same. When a
 crewmate's state changes, its mark changes at once and the sailor walks to its new place; a new crewmate
 climbs up through the hatch and one that leaves climbs back down. The ship sails: it bobs on a moving
 sea with its wake trailing astern, its sail billows, the masthead sways, the lanterns flicker and a gull

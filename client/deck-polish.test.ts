@@ -9,7 +9,8 @@ import { describe, expect, it } from "vitest";
 import { DeckArtManifestSchema } from "../shared/ship-deck";
 import { BADGE_GLYPHS, BADGE_SIZE, badgeInk, badgePixels, dozeAt, DOZE_PERIOD_MS, DOZE_RISE_MS, INK_DARK, INK_LIGHT } from "./deck-badges";
 import { applyCrew, createCrew, crewFigures, type Figure } from "./deck-crew";
-import { figureBox, hoverChanged, hoverOf, labelPlacement, LABEL_MARGIN, sailorAt, toCanvas, toDeck, type DeckHover } from "./deck-hover";
+import { walkable } from "./deck-geometry";
+import { figureBox, hoverChanged, hoverOf, labelPlacement, LABEL_GAP, LABEL_MARGIN, LABEL_ROOM, REST_LABEL_ROW, sailorAt, toCanvas, toDeck, type DeckHover } from "./deck-hover";
 import { fitDeck } from "./deck-pixi";
 import { DECK_HEIGHT, DECK_STATES, DECK_WIDTH, type DeckSailor, type DeckState } from "./deck-scene";
 
@@ -149,7 +150,7 @@ describe("the sailor under the pointer", () => {
   });
 
   it("is reported again only when it changes, or moves by more than idle motion", () => {
-    const at: DeckHover = { key: "a", x: 100, top: 50, bottom: 90, width: 600, height: 300 };
+    const at: DeckHover = { key: "a", x: 100, top: 50, bottom: 90, width: 600, height: 300, floor: null };
     expect(hoverChanged(null, null)).toBe(false);
     expect(hoverChanged(null, at)).toBe(true);
     expect(hoverChanged(at, null)).toBe(true);
@@ -157,18 +158,58 @@ describe("the sailor under the pointer", () => {
     expect(hoverChanged(at, { ...at, x: 103 })).toBe(true);
     expect(hoverChanged(at, { ...at, key: "b" })).toBe(true);
     expect(hoverChanged(at, { ...at, width: 601 })).toBe(true);
+    // A sailor that wakes, or nods off, under the pointer moves its label.
+    expect(hoverChanged(at, { ...at, floor: 280 })).toBe(true);
+    expect(hoverChanged({ ...at, floor: 280 }, { ...at, floor: 281.5 })).toBe(false);
+    expect(hoverChanged({ ...at, floor: 280 }, { ...at, floor: 283 })).toBe(true);
+  });
+
+  it("gives a sleeper a floor under the near rail to hang its label from, and the crew at work none", () => {
+    const fit = fitDeck({ width: 1200, height: 900 }, deck, 1);
+    const bob = { x: 0, y: 1 };
+    const canvas = { width: 1200, height: 900 };
+    const asleep = hoverOf(figure("a", 132, 117, { pose: "side-idle" }), manifest, fit, bob, canvas);
+    expect(asleep.floor).toBeCloseTo(toCanvas({ x: 132, y: REST_LABEL_ROW }, fit, bob).y);
+    expect(asleep.floor!).toBeGreaterThan(asleep.bottom);
+    expect(hoverOf(figure("w", 194, 106, { state: "working", pose: "hauling" }), manifest, fit, bob, canvas).floor).toBeNull();
+  });
+
+  it("hangs a sleeper's label under every sailor on deck: no sailor stands, or is drawn, that low", () => {
+    for (let y = REST_LABEL_ROW - 2; y < DECK_HEIGHT; y += 1) {
+      for (let x = 0; x < DECK_WIDTH; x += 1) expect(walkable(x, y), `${x},${y}`).toBe(false);
+    }
+    const crew = createCrew();
+    const states: DeckState[] = ["working", "waiting", "blocked"];
+    applyCrew(
+      crew,
+      [...states.flatMap((state) => Array.from({ length: 8 }, (_, index) => sailor(`${state}${index}`, state))), ...Array.from({ length: 20 }, (_, index) => sailor(`i${index}`, "idle"))],
+      { snap: true },
+    );
+    for (const one of crewFigures(crew, 0, { still: false })) expect(figureBox(one, manifest)!.bottom, one.key).toBeLessThanOrEqual(REST_LABEL_ROW);
   });
 });
 
 describe("where the label goes", () => {
   it("above the sailor with room, else below its feet, and always inside the canvas", () => {
-    expect(labelPlacement({ key: "a", x: 300, top: 200, bottom: 260, width: 640, height: 300 })).toEqual({ left: 170, width: 260, bottom: 106 });
-    expect(labelPlacement({ key: "a", x: 300, top: 60, bottom: 120, width: 640, height: 300 })).toEqual({ left: 170, width: 260, top: 126 });
+    expect(labelPlacement({ key: "a", x: 300, top: 200, bottom: 260, width: 640, height: 300, floor: null })).toEqual({ left: 170, width: 260, bottom: 106 });
+    expect(labelPlacement({ key: "a", x: 300, top: 60, bottom: 120, width: 640, height: 300, floor: null })).toEqual({ left: 170, width: 260, top: 126 });
     // At the edges, held inside.
-    expect(labelPlacement({ key: "a", x: 5, top: 200, bottom: 260, width: 640, height: 300 }).left).toBe(LABEL_MARGIN);
-    expect(labelPlacement({ key: "a", x: 635, top: 200, bottom: 260, width: 640, height: 300 }).left).toBe(640 - 260 - LABEL_MARGIN);
+    expect(labelPlacement({ key: "a", x: 5, top: 200, bottom: 260, width: 640, height: 300, floor: null }).left).toBe(LABEL_MARGIN);
+    expect(labelPlacement({ key: "a", x: 635, top: 200, bottom: 260, width: 640, height: 300, floor: null }).left).toBe(640 - 260 - LABEL_MARGIN);
     // A narrow canvas narrows the label.
-    expect(labelPlacement({ key: "a", x: 100, top: 200, bottom: 260, width: 200, height: 300 })).toMatchObject({ left: LABEL_MARGIN, width: 200 - LABEL_MARGIN * 2 });
+    expect(labelPlacement({ key: "a", x: 100, top: 200, bottom: 260, width: 200, height: 300, floor: null })).toMatchObject({ left: LABEL_MARGIN, width: 200 - LABEL_MARGIN * 2 });
+  });
+
+  it("for a sleeper, under the near rail when there is room, over nobody; else where any label goes", () => {
+    const asleep: DeckHover = { key: "a", x: 300, top: 200, bottom: 260, width: 640, height: 500, floor: 280 };
+    expect(labelPlacement(asleep)).toEqual({ left: 170, width: 260, top: 280 + LABEL_GAP });
+    // Held inside the canvas across, at either edge.
+    expect(labelPlacement({ ...asleep, x: 5 }).left).toBe(LABEL_MARGIN);
+    expect(labelPlacement({ ...asleep, x: 635 }).left).toBe(640 - 260 - LABEL_MARGIN);
+    // A short canvas, with no room under the rail: above the sailor, as for any.
+    expect(labelPlacement({ ...asleep, height: 300 })).toEqual({ left: 170, width: 260, bottom: 106 });
+    expect(labelPlacement({ ...asleep, height: 280 + LABEL_GAP + LABEL_MARGIN + LABEL_ROOM })).toMatchObject({ top: 280 + LABEL_GAP });
+    expect(labelPlacement({ ...asleep, height: 280 + LABEL_GAP + LABEL_MARGIN + LABEL_ROOM - 1 })).toMatchObject({ bottom: expect.any(Number) });
   });
 });
 

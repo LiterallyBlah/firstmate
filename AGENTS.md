@@ -302,10 +302,18 @@ starts.
   the poll; the sprite then walks to the state's anchor at 32 px a second, re-planning from wherever it
   is. A test holds the state ahead of the position.
 - **Anchors are named and reserved** (`ANCHORS` in `client/deck-geometry.ts`): stations round the mast
-  and the stores, rail spots, helm spots on the quarterdeck, bow spots. A sailor takes the nearest free
+  and the stores, rest spots, helm spots on the quarterdeck, bow spots. A sailor takes the nearest free
   one; when a place is full it stands beside a taken one (`sharedSpot`), never on it and never on the
   stairs. A new anchor must stand on open deck: `deck-motion.test.ts` reads the atlas for every anchor,
   every walkable cell and every path between any two anchors.
+- **Idle crew rest off the working deck** (`docs/ship-deck-rest/README.md`). They once stood along the
+  near rail amidships, in front of the stations, and a crowd of them hid the crew at work. Now idle sends a
+  sailor to `REST_AREAS` — the foredeck between the bow's spots and the stations, and the foot of the
+  quarterdeck stairs — whose rest spots fill in their listed order, not nearest first, so a crowd stays
+  tidy; past them `restSpot` packs sleepers a badge apart (`REST_SPACING`), still inside the areas. A
+  test fills every other place's anchors and adds up to two dozen sleepers: each stays in a rest area,
+  overlaps no working, waiting or blocked sailor, and is found by the pointer somewhere in its badge. A
+  sleeper's label hangs below `REST_LABEL_ROW`, under every sailor's feet, when the canvas has room there.
 - **Walking is A* over a 2 px grid** of three hand-drawn polygons (main deck, stairs, quarterdeck) minus
   obstacle footprints, pulled tight. The only way to the helm is the stairs, which belong to the `near`
   piece, so a climbing sailor passes behind their balustrade.

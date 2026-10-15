@@ -1,0 +1,358 @@
+{
+  "crowd": {
+    "counts": {
+      "working": 5,
+      "waiting": 1,
+      "blocked": 4,
+      "idle": 11
+    },
+    "sleepersAt": [
+      "132,117",
+      "120,117",
+      "144,117",
+      "132,98",
+      "120,98",
+      "144,98",
+      "312,117",
+      "312,98",
+      "316,107",
+      "126,107",
+      "138,107"
+    ],
+    "sleepersOverAwake": [],
+    "legend": true
+  },
+  "hover": [
+    {
+      "key": "block-0",
+      "state": "blocked",
+      "found": true,
+      "label": {
+        "left": 722,
+        "top": 306,
+        "right": 982,
+        "bottom": 431
+      },
+      "insideCanvas": true,
+      "covers": [
+        "block-1"
+      ]
+    },
+    {
+      "key": "block-1",
+      "state": "blocked",
+      "found": true,
+      "label": {
+        "left": 687,
+        "top": 299,
+        "right": 947,
+        "bottom": 424
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "block-2",
+      "state": "blocked",
+      "found": true,
+      "label": {
+        "left": 743,
+        "top": 322,
+        "right": 1003,
+        "bottom": 447
+      },
+      "insideCanvas": true,
+      "covers": [
+        "block-0",
+        "block-1",
+        "block-3",
+        "rest-1",
+        "rest-2",
+        "rest-3"
+      ]
+    },
+    {
+      "key": "block-3",
+      "state": "blocked",
+      "found": true,
+      "label": {
+        "left": 706,
+        "top": 314,
+        "right": 966,
+        "bottom": 439
+      },
+      "insideCanvas": true,
+      "covers": [
+        "block-0",
+        "block-1",
+        "rest-1",
+        "rest-2",
+        "rest-3"
+      ]
+    },
+    {
+      "key": "idle-1",
+      "state": "idle",
+      "found": true,
+      "label": {
+        "left": 787,
+        "top": 552,
+        "right": 1047,
+        "bottom": 677
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "idle-2",
+      "state": "idle",
+      "found": true,
+      "label": {
+        "left": 766,
+        "top": 552,
+        "right": 1026,
+        "bottom": 642
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "rest-0",
+      "state": "idle",
+      "found": true,
+      "label": {
+        "left": 807,
+        "top": 552,
+        "right": 1067,
+        "bottom": 642
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "rest-1",
+      "state": "idle",
+      "found": true,
+      "label": {
+        "left": 787,
+        "top": 552,
+        "right": 1047,
+        "bottom": 642
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "rest-2",
+      "state": "idle",
+      "found": true,
+      "label": {
+        "left": 766,
+        "top": 552,
+        "right": 1026,
+        "bottom": 642
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "rest-3",
+      "state": "idle",
+      "found": true,
+      "label": {
+        "left": 807,
+        "top": 552,
+        "right": 1067,
+        "bottom": 642
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "rest-4",
+      "state": "idle",
+      "found": true,
+      "label": {
+        "left": 1090,
+        "top": 552,
+        "right": 1350,
+        "bottom": 642
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "rest-5",
+      "state": "idle",
+      "found": true,
+      "label": {
+        "left": 1090,
+        "top": 552,
+        "right": 1350,
+        "bottom": 625
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "rest-6",
+      "state": "idle",
+      "found": true,
+      "label": {
+        "left": 1097,
+        "top": 552,
+        "right": 1357,
+        "bottom": 642
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "rest-7",
+      "state": "idle",
+      "found": true,
+      "label": {
+        "left": 776,
+        "top": 552,
+        "right": 1036,
+        "bottom": 642
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "rest-8",
+      "state": "idle",
+      "found": true,
+      "label": {
+        "left": 797,
+        "top": 552,
+        "right": 1057,
+        "bottom": 642
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "work-0",
+      "state": "working",
+      "found": true,
+      "label": {
+        "left": 891,
+        "top": 322,
+        "right": 1151,
+        "bottom": 447
+      },
+      "insideCanvas": true,
+      "covers": [
+        "rest-1",
+        "rest-2",
+        "rest-3",
+        "work-2"
+      ]
+    },
+    {
+      "key": "work-1",
+      "state": "working",
+      "found": true,
+      "label": {
+        "left": 952,
+        "top": 322,
+        "right": 1212,
+        "bottom": 447
+      },
+      "insideCanvas": true,
+      "covers": [
+        "rest-5",
+        "work-2",
+        "work-3"
+      ]
+    },
+    {
+      "key": "work-2",
+      "state": "working",
+      "found": true,
+      "label": {
+        "left": 965,
+        "top": 297,
+        "right": 1225,
+        "bottom": 422
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "work-3",
+      "state": "working",
+      "found": true,
+      "label": {
+        "left": 1053,
+        "top": 318,
+        "right": 1313,
+        "bottom": 427
+      },
+      "insideCanvas": true,
+      "covers": []
+    },
+    {
+      "key": "work-4",
+      "state": "working",
+      "found": true,
+      "label": {
+        "left": 840,
+        "top": 339,
+        "right": 1100,
+        "bottom": 464
+      },
+      "insideCanvas": true,
+      "covers": [
+        "block-0",
+        "block-2",
+        "block-3",
+        "rest-1",
+        "rest-2",
+        "rest-3",
+        "rest-7",
+        "rest-8",
+        "work-0",
+        "work-1",
+        "work-2"
+      ]
+    },
+    {
+      "key": "work-5",
+      "state": "waiting",
+      "found": true,
+      "label": {
+        "left": 1159,
+        "top": 295,
+        "right": 1419,
+        "bottom": 420
+      },
+      "insideCanvas": true,
+      "covers": []
+    }
+  ],
+  "walk": {
+    "toRest": "work-0",
+    "from": {
+      "x": 194,
+      "y": 106
+    },
+    "restedAt": {
+      "x": 144,
+      "y": 117
+    },
+    "restedLabelOverNoOne": true,
+    "toWork": "rest-0",
+    "wokeFrom": {
+      "x": 144,
+      "y": 117
+    },
+    "wokenAt": {
+      "x": 166,
+      "y": 97
+    }
+  },
+  "errors": []
+}
