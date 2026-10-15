@@ -3,6 +3,7 @@ import { useToast } from "@getpaseo/plugin/client/react-native";
 import { Text, View } from "react-native";
 import { FLEET_PANELS, type FleetShell, type FleetView } from "./shell";
 import { errorText, IconButton } from "./ui";
+import { NativeToolButtons } from "./native-tools";
 
 /** Shortcuts leave the hub for Paseo's own workspace tab shell. */
 export function HubLauncher({
@@ -49,6 +50,12 @@ export function HubLauncher({
             }}
           />
         ))}
+        <NativeToolButtons
+          key={workspaceId ?? "unavailable"}
+          theme={theme}
+          navigation={navigation}
+          workspaceId={workspaceId}
+        />
         {navigation === undefined ? null : (
           <IconButton
             theme={theme}
@@ -66,7 +73,7 @@ export function HubLauncher({
       <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
         {workspaceId === null
           ? "Launch a first mate in its home to open the workspace tabs."
-          : "Views open as workspace tabs. Select or add Terminal and Browser from the workspace; Browser needs the desktop app."}
+          : "Shared tools live in the workspace. Reopen existing tabs with Terminal & browser; New browser creates a separate tab."}
       </Text>
     </View>
   );
