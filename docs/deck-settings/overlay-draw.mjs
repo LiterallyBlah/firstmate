@@ -12,6 +12,7 @@ const ZONE_COLOURS = ["#3ddc84", "#ffb020", "#ff5a5a", "#5ab0ff", "#c77dff", "#f
 window.drawOverlay = function drawOverlay(manifest) {
   const stage = compileStage(manifest);
   const deck = document.querySelector("canvas[data-firstmate-deck]");
+  if (deck?.getAttribute("data-firstmate-deck-setting") !== manifest.id) throw new Error("overlay pack does not match the drawn setting");
   const box = deck.getBoundingClientRect();
   const resolution = window.devicePixelRatio;
   // As the deck draws it: a part reaching above the stage (the ship's tall mast) brings in the fit box.

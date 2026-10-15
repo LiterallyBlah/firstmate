@@ -23,6 +23,8 @@ import { ScrollView, Text } from "react-native";
 
 import { enableAgentTools, readConfig, releaseMate, writeConfig, type FirstmateConfig } from "../shared/fleet";
 import { BOARD_DENSITIES, POLL_SECONDS, displaySettings } from "../shared/settings";
+import { DEFAULT_DECK_SETTING } from "../shared/deck-rpc";
+import { useDeckSettings } from "./deck-setting-query";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet";
 import { agentStatusLabel, modelLabel } from "./format";
 import { useModeOptions, useModelOptions, withCurrent } from "./models";
@@ -40,6 +42,7 @@ export function SettingsScreen({ theme, layout }: PluginSurfaceProps) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const display = useSettings(displaySettings);
+  const settings = useDeckSettings();
   const fleet = useFleet(display.status === "ready" ? display.values.pollSeconds : 5);
 
   const config = useQuery({ queryKey: CONFIG_QUERY_KEY, queryFn: () => read({}) });
@@ -221,6 +224,26 @@ export function SettingsScreen({ theme, layout }: PluginSurfaceProps) {
               if (display.status !== "ready") return;
               void display.save({ ...display.values, pollSeconds: Number(value) }, display.revision).then((ok) => {
                 if (!ok) toast.error(display.saveError ?? "The interval was not saved.");
+              });
+            }}
+          />
+          <OptionPicker
+            label="Deck setting"
+            title="Deck setting"
+            hint={settings.isError ? "The installed settings could not be loaded." : "The scene used for the whole fleet."}
+            value={display.status === "ready" ? display.values.deckSetting : DEFAULT_DECK_SETTING}
+            options={(settings.data ?? []).map((pack) => ({
+              label: pack.name, value: pack.id, disabled: !pack.compatible,
+              detail: pack.compatible ? pack.version : pack.reason ?? "Needs a newer FirstMate",
+              ...(pack.preview === null ? {} : { preview: `data:image/png;base64,${pack.preview}` }),
+            }))}
+            disabled={display.status !== "ready" || settings.data === undefined}
+            theme={theme}
+            compact={layout.compact}
+            onSelect={(deckSetting) => {
+              if (display.status !== "ready" || !settings.data?.some((pack) => pack.id === deckSetting && pack.compatible)) return;
+              void display.save({ ...display.values, deckSetting }, display.revision).then((ok) => {
+                if (!ok) toast.error(display.saveError ?? "The deck setting was not saved.");
               });
             }}
           />
