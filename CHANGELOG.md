@@ -11,8 +11,8 @@ Git repository or local directory; it is marked private to prevent accidental np
 ### Changed
 
 - The ship deck's mast is twice as tall. A generated tall mast stands in place of the old short one, its
-  crow's nest high in the sky above the crew and swaying as before, with the sail raised up it and still
-  billowing; crew walking behind its foot are still hidden by it. The deck fits the taller mast and the
+  crow's nest high in the sky above the crew and swaying as before, and a generated sail three times as
+  tall hangs from its yard and still billows; crew walking behind its foot are still hidden by it. The deck fits the taller mast and the
   plank's shark into the pane at every size, so in a wide, short pane the ship is drawn smaller. The old
   stays went with the short mast. The plank is now a generated board in place of the one drawn in code.
 
