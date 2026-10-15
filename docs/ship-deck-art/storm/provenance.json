@@ -1,0 +1,85 @@
+{
+  "tool": "image_gen__imagegen (built-in)",
+  "backendModel": "not disclosed by tool",
+  "date": "2026-10-15",
+  "calls": 10,
+  "sourceRoot": "docs/ship-deck-art/storm",
+  "sourceImages": [
+    {
+      "id": "sea",
+      "path": "source/sea.png",
+      "sha256": "4856a5caff36a399e3992ba7d2d3987e3cff3cab973191c898e01152d5ac9c49"
+    },
+    {
+      "id": "long-bank",
+      "path": "source/long-bank.png",
+      "sha256": "ebe5ca28e474e8ecfa017a8f425addf964bc8dee847dbd3adb69dd7d58c52950"
+    },
+    {
+      "id": "twin-bank",
+      "path": "source/twin-bank.png",
+      "sha256": "e2300eea84150581af9a42cf805cc6096ea6273892a53b5cfc3971dd9b38f0ba"
+    },
+    {
+      "id": "cumulus",
+      "path": "source/cumulus.png",
+      "sha256": "7fa1051ff570978928c5cb27486ae9466a4dd578b4ff2fb38278ab67d378db75"
+    },
+    {
+      "id": "puff",
+      "path": "source/puff.png",
+      "sha256": "5c3e63b25caedd22e74e584cc81b4af74a94afd0add91d467508b6f9f5af8cb6"
+    },
+    {
+      "id": "wisp",
+      "path": "source/wisp.png",
+      "sha256": "73aa3d20ead9226d310f758bd0d159d6ff2198a4a9b171ee2dcbf3546a02829b"
+    },
+    {
+      "id": "wake",
+      "path": "source/wake.png",
+      "sha256": "fbd9cc1262c3128f719a6cb4f28119fd720f3d7f70f38dd89fb8000ea1afaa84"
+    },
+    {
+      "id": "spray",
+      "path": "source/spray.png",
+      "sha256": "80c5109a2c19ee5962956a8b8ab56fe2b143f08b4ab834842beb1e231e3f71f2"
+    },
+    {
+      "id": "lightning",
+      "path": "source/lightning.png",
+      "sha256": "5942a8ff3d0fb69a90ce9edfd98c99b0231753fa2bfca8b624c0628ad8ebc0c3"
+    },
+    {
+      "id": "sky",
+      "path": "source/sky.png",
+      "sha256": "767282a3fbbfb1108c6e70a7be33264f74c428861f79b01a6a54ae5ee57112b6"
+    }
+  ],
+  "prompts": "prompts.json",
+  "cleanup": "cleanup.json",
+  "references": [
+    {
+      "path": "art/ship-deck/deck.png",
+      "sha256": "557209a06bb266fa79b09ff985cf9558145b95382d0842bb55717a43980cff9b"
+    },
+    {
+      "path": "art/ship-deck/environment.json",
+      "sha256": "42659d89d664de1ff5eda0a0d1225b4e1ae27686e4098a2b70151cd735ed5c0a"
+    },
+    {
+      "path": "art/ship-deck/water/review/contact.png",
+      "sha256": "adf5dd60bedce0b96a32fdb3393d3e1604c2b886108b3e9a60a90a435a2f5b06"
+    },
+    {
+      "path": "art/ship-deck/clouds/review/contact-3x.png",
+      "sha256": "27485918b416ceaebd185cd0f5da0fe1d5caf689d2654e1839fd05b9832940b2"
+    },
+    {
+      "path": "art/ship-deck/sky/midday.png",
+      "sha256": "c130554c8c944987a788fb1d122336303be8f1c349569db1b5a96c5a7c94cc97"
+    }
+  ],
+  "authorship": "Generated artwork; mechanical crop, registration, block sampling, alpha cleanup, fixed palette mapping, seam reconciliation and sky colour-region registration. No shapes drawn in code.",
+  "license": "Repository MIT; AI-generated, no claim of human authorship or exclusive copyright; no third-party reference art."
+}

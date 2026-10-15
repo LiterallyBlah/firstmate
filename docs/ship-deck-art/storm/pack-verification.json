@@ -1,0 +1,27 @@
+{
+  "runtimeCount": 20,
+  "runtimeBytes": 55242,
+  "runtimePaths": [
+    "art/ship-deck/storm/clouds/cumulus.png",
+    "art/ship-deck/storm/clouds/long-bank.png",
+    "art/ship-deck/storm/clouds/puff.png",
+    "art/ship-deck/storm/clouds/twin-bank.png",
+    "art/ship-deck/storm/clouds/wisp.png",
+    "art/ship-deck/storm/lightning/frame-0.png",
+    "art/ship-deck/storm/lightning/frame-1.png",
+    "art/ship-deck/storm/manifest.json",
+    "art/ship-deck/storm/sea/frame-0.png",
+    "art/ship-deck/storm/sea/frame-1.png",
+    "art/ship-deck/storm/sea/frame-2.png",
+    "art/ship-deck/storm/sea/frame-3.png",
+    "art/ship-deck/storm/sky/overcast.png",
+    "art/ship-deck/storm/spray/frame-0.png",
+    "art/ship-deck/storm/spray/frame-1.png",
+    "art/ship-deck/storm/spray/frame-2.png",
+    "art/ship-deck/storm/spray/frame-3.png",
+    "art/ship-deck/storm/wake/frame-0.png",
+    "art/ship-deck/storm/wake/frame-1.png",
+    "art/ship-deck/storm/wake/frame-2.png"
+  ],
+  "stormDocsPacked": 0
+}
