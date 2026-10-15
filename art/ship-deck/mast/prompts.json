@@ -1,18 +1,154 @@
 {
   "tool": "image_gen__imagegen",
   "mode": "built-in",
-  "backendModel": "Not disclosed by tool",
-  "generationCalls": 1,
+  "backendModel": "Not disclosed",
+  "generationCalls": 8,
   "transparent_background": true,
   "reference": {
-    "path": "../deck.png",
-    "crop": [
-      0,
-      0,
-      426,
-      161
-    ],
-    "role": "Shipped hull C style and proportion reference"
+    "path": "source/previous-tall-mast.png",
+    "role": "Edit target: current shipped tall mast; preserve nest and lower shaft"
   },
-  "prompt": "Use case: stylized-concept. Asset type: transparent pixel-art game sprite.\nReference image 1 is Hull C, the SHIPPED GAME STYLE reference only. Generate ONE standalone MUCH TALLER wooden mainmast with its crow's nest, WITHOUT the ship, deck, sail, yard, crew, flags, or long ropes. Genuine transparent background.\n\nThe new mast must look like the SAME wooden mast from the reference, extended UP into the sky to twice its original height, not a thicker mast. Pixel-art camera: ship side elevation viewed slightly down onto elliptical crow's nest, exactly like the reference. Warm ochre wood highlight on left, chestnut shading on right, darkest brown/navy outlines, navy blue metal bands. Keep its simple understated detail and small chunky pixel clusters. Not realistic painting.\n\nPrecise sprite proportions on an imagined 48 wide by 224 high LOGICAL PIXEL grid, presented at large nearest-neighbor scale for clean sampling:\n- vertical centerline x=24;\n- top cap y=2, mast foot y=222;\n- main shaft 9 logical pixels wide, straight and continuous; upper tip can taper to 6 pixels;\n- crow's nest is a modest 34-pixel wide elliptical wooden barrel basket around the shaft, top rail at y=28, bottom at y=53. Perspective/size like reference, warm wooden staves with slim navy hoop, dark open interior. Pole continues visibly above the basket to y=2;\n- two small rope attachment lugs just under basket at y=57. NO trailing ropes;\n- uninterrupted straight pole from y=62 down to foot, with generous clear area at y=100 for the EXISTING 114-pixel yard and sail to be added later. Do NOT draw that yard or sail;\n- simple navy foot socket at the bottom, maximum 19 logical pixels wide, like reference.\nFrame the entire sprite uncropped with transparent padding. The basket is only about four shaft widths across, and the entire mast is about 24 shaft widths tall. This long narrow silhouette is essential. All added height must be in the long shaft BELOW the nest. No ladder, no crossbars, no decoration.\n\nPalette: use only the reference's dark navy #0E121E #151E2D #182B47 #1F3554 #22395A #2C4869; dark brown #1A1417 #31211D #4F3427 #613A28 #72412A #834C2D; warm wood #A56235 #B16F3D #BB7B44 #C17F46 #C9894C #CD8F50 #DCA35B #DD9954. No white backdrop or ground shadow, no text, no watermark."
+  "selection": {
+    "candidate": 6,
+    "reason": "Muted chestnut join and restrained grain read cleanly beneath the original nest at native deck scale."
+  },
+  "calls": [
+    {
+      "candidate": 1,
+      "prompt": "Use case: precise-object-edit. Edit target: image 1, the shipped pixel-art wooden mast. Regenerate this same mast with ONLY its bare pole between the crow's nest and sail attachment shortened by 32 logical pixels. Preserve the SAME crow's nest, masthead, lower shaft and navy foot, exact warm wood/navy palette, same 9px shaft width, same 19px base width. Transparent background. No sail, yard, ship, rigging ropes, text or extra objects.\nTarget logical canvas 48 wide by 192 high, shown at large nearest-neighbor scale. Centerline x24. Top y2. Nest bounds x6 y22 width37 height23. Small existing lugs below nest y46. Invisible sail yard attachment at y68 (do NOT draw yard). Foot anchor x24 y190. The clear shaft between nest bottom y45 and imaginary yard y68 is only 23 pixels, about one nest height. Everything from yard down to foot must preserve the current reference proportions exactly. The current reference is 48x224 with yard at y100; remove 32px ABOVE yard only, preserving lower portion. This is still a tall slender mast, not a stubby mast. Reuse existing wood grain, dark edges and left-side warm highlights. Flat pixel sprite, hard edges, genuine alpha transparency, no shadows outside sprite. No redesign of nest or foot.\nCandidate 1: clean continuous upper-shaft grain, faithful to reference.",
+      "sourceSha256": "63895287ba0199f7eef86b1135a10e719f9a4bcb2827e6d6e8fd4888555d2a86",
+      "sourceSize": [
+        1024,
+        1536
+      ],
+      "sampleCropXYWH": [
+        486,
+        384,
+        51,
+        153
+      ],
+      "retainedSource": null,
+      "review": "Alternative grain candidate; compared in candidates-3x.png, not selected."
+    },
+    {
+      "candidate": 2,
+      "prompt": "Use case: precise-object-edit. Edit target: image 1, the shipped pixel-art wooden mast. Regenerate this same mast with ONLY its bare pole between the crow's nest and sail attachment shortened by 32 logical pixels. Preserve the SAME crow's nest, masthead, lower shaft and navy foot, exact warm wood/navy palette, same 9px shaft width, same 19px base width. Transparent background. No sail, yard, ship, rigging ropes, text or extra objects.\nTarget logical canvas 48 wide by 192 high, shown at large nearest-neighbor scale. Centerline x24. Top y2. Nest bounds x6 y22 width37 height23. Small existing lugs below nest y46. Invisible sail yard attachment at y68 (do NOT draw yard). Foot anchor x24 y190. The clear shaft between nest bottom y45 and imaginary yard y68 is only 23 pixels, about one nest height. Everything from yard down to foot must preserve the current reference proportions exactly. The current reference is 48x224 with yard at y100; remove 32px ABOVE yard only, preserving lower portion. This is still a tall slender mast, not a stubby mast. Reuse existing wood grain, dark edges and left-side warm highlights. Flat pixel sprite, hard edges, genuine alpha transparency, no shadows outside sprite. No redesign of nest or foot.\nCandidate 2: preserve understated dark amber wood, minimal grain. Critical: fully transparent outside the crisp mast silhouette, NO glow, NO halo, NO atmospheric lighting.",
+      "sourceSha256": "a43b2b143199e8d2d2ace9f071ff8805783fea943abbd3f25c66770e1b8d2c16",
+      "sourceSize": [
+        1024,
+        1536
+      ],
+      "sampleCropXYWH": [
+        486,
+        384,
+        53,
+        153
+      ],
+      "retainedSource": null,
+      "review": "Alternative grain candidate; compared in candidates-3x.png, not selected."
+    },
+    {
+      "candidate": 3,
+      "prompt": "Use case: precise-object-edit. Edit target: image 1, the shipped pixel-art wooden mast. Regenerate this same mast with ONLY its bare pole between the crow's nest and sail attachment shortened by 32 logical pixels. Preserve the SAME crow's nest, masthead, lower shaft and navy foot, exact warm wood/navy palette, same 9px shaft width, same 19px base width. Transparent background. No sail, yard, ship, rigging ropes, text or extra objects.\nTarget logical canvas 48 wide by 192 high, shown at large nearest-neighbor scale. Centerline x24. Top y2. Nest bounds x6 y22 width37 height23. Small existing lugs below nest y46. Invisible sail yard attachment at y68 (do NOT draw yard). Foot anchor x24 y190. The clear shaft between nest bottom y45 and imaginary yard y68 is only 23 pixels, about one nest height. Everything from yard down to foot must preserve the current reference proportions exactly. The current reference is 48x224 with yard at y100; remove 32px ABOVE yard only, preserving lower portion. This is still a tall slender mast, not a stubby mast. Reuse existing wood grain, dark edges and left-side warm highlights. Flat pixel sprite, hard edges, genuine alpha transparency, no shadows outside sprite. No redesign of nest or foot.\nCandidate 3: sparse vertical grain through the shortened upper join, matching the reference's quiet brown wood. Fully transparent outside silhouette.",
+      "sourceSha256": "b659b064f78e85a017f12ceb7261b6ec8378ace8d05d13feb1e211710c2f26b6",
+      "sourceSize": [
+        1024,
+        1536
+      ],
+      "sampleCropXYWH": [
+        486,
+        384,
+        52,
+        153
+      ],
+      "retainedSource": null,
+      "review": "Alternative grain candidate; compared in candidates-3x.png, not selected."
+    },
+    {
+      "candidate": 4,
+      "prompt": "Use case: precise-object-edit. Edit target: image 1, the shipped pixel-art wooden mast. Regenerate this same mast with ONLY its bare pole between the crow's nest and sail attachment shortened by 32 logical pixels. Preserve the SAME crow's nest, masthead, lower shaft and navy foot, exact warm wood/navy palette, same 9px shaft width, same 19px base width. Transparent background. No sail, yard, ship, rigging ropes, text or extra objects.\nTarget logical canvas 48 wide by 192 high, shown at large nearest-neighbor scale. Centerline x24. Top y2. Nest bounds x6 y22 width37 height23. Small existing lugs below nest y46. Invisible sail yard attachment at y68 (do NOT draw yard). Foot anchor x24 y190. The clear shaft between nest bottom y45 and imaginary yard y68 is only 23 pixels, about one nest height. Everything from yard down to foot must preserve the current reference proportions exactly. The current reference is 48x224 with yard at y100; remove 32px ABOVE yard only, preserving lower portion. This is still a tall slender mast, not a stubby mast. Reuse existing wood grain, dark edges and left-side warm highlights. Flat pixel sprite, hard edges, genuine alpha transparency, no shadows outside sprite. No redesign of nest or foot.\nCandidate 4: preserve dark brown edges with a narrow amber left highlight; shortened join has subtle irregular vertical grain.",
+      "sourceSha256": "ae47a7ff3e8b78afad5492f8cb96370018e775ce9b14dab644d849fcbad2de8c",
+      "sourceSize": [
+        916,
+        1717
+      ],
+      "sampleCropXYWH": [
+        428,
+        429,
+        59,
+        171
+      ],
+      "retainedSource": null,
+      "review": "Alternative grain candidate; compared in candidates-3x.png, not selected."
+    },
+    {
+      "candidate": 5,
+      "prompt": "Use case: precise-object-edit. Edit target: image 1, the shipped pixel-art wooden mast. Regenerate this same mast with ONLY its bare pole between the crow's nest and sail attachment shortened by 32 logical pixels. Preserve the SAME crow's nest, masthead, lower shaft and navy foot, exact warm wood/navy palette, same 9px shaft width, same 19px base width. Transparent background. No sail, yard, ship, rigging ropes, text or extra objects.\nTarget logical canvas 48 wide by 192 high, shown at large nearest-neighbor scale. Centerline x24. Top y2. Nest bounds x6 y22 width37 height23. Small existing lugs below nest y46. Invisible sail yard attachment at y68 (do NOT draw yard). Foot anchor x24 y190. The clear shaft between nest bottom y45 and imaginary yard y68 is only 23 pixels, about one nest height. Everything from yard down to foot must preserve the current reference proportions exactly. The current reference is 48x224 with yard at y100; remove 32px ABOVE yard only, preserving lower portion. This is still a tall slender mast, not a stubby mast. Reuse existing wood grain, dark edges and left-side warm highlights. Flat pixel sprite, hard edges, genuine alpha transparency, no shadows outside sprite. No redesign of nest or foot.\nCandidate 5: exceptionally quiet straight vertical upper pole, sparse dark grain without bright knots. Match the source's muted ochre, not saturated orange.",
+      "sourceSha256": "d03b9c37ecc1843c5456c001e536ac54601899fccec9a88c0edafa3bb7ec938e",
+      "sourceSize": [
+        916,
+        1717
+      ],
+      "sampleCropXYWH": [
+        431,
+        429,
+        54,
+        171
+      ],
+      "retainedSource": null,
+      "review": "Alternative grain candidate; compared in candidates-3x.png, not selected."
+    },
+    {
+      "candidate": 6,
+      "prompt": "Use case: precise-object-edit. Edit target: image 1, the shipped pixel-art wooden mast. Regenerate this same mast with ONLY its bare pole between the crow's nest and sail attachment shortened by 32 logical pixels. Preserve the SAME crow's nest, masthead, lower shaft and navy foot, exact warm wood/navy palette, same 9px shaft width, same 19px base width. Transparent background. No sail, yard, ship, rigging ropes, text or extra objects.\nTarget logical canvas 48 wide by 192 high, shown at large nearest-neighbor scale. Centerline x24. Top y2. Nest bounds x6 y22 width37 height23. Small existing lugs below nest y46. Invisible sail yard attachment at y68 (do NOT draw yard). Foot anchor x24 y190. The clear shaft between nest bottom y45 and imaginary yard y68 is only 23 pixels, about one nest height. Everything from yard down to foot must preserve the current reference proportions exactly. The current reference is 48x224 with yard at y100; remove 32px ABOVE yard only, preserving lower portion. This is still a tall slender mast, not a stubby mast. Reuse existing wood grain, dark edges and left-side warm highlights. Flat pixel sprite, hard edges, genuine alpha transparency, no shadows outside sprite. No redesign of nest or foot.\nCandidate 6: very low-contrast warm chestnut wood through the shortened upper join, retaining the source's asymmetric left light and right dark edge.",
+      "sourceSha256": "435b52caf04efb87423127dbd9c9e0d5bf7bfdcdbacee88a3d8024624070a4ba",
+      "sourceSize": [
+        887,
+        1774
+      ],
+      "sampleCropXYWH": [
+        414,
+        443,
+        59,
+        177
+      ],
+      "retainedSource": "source/generated-trim-06.png",
+      "review": "Selected: quiet chestnut join."
+    },
+    {
+      "candidate": 7,
+      "prompt": "Use case: precise-object-edit. Edit target: image 1, the shipped pixel-art wooden mast. Regenerate this same mast with ONLY its bare pole between the crow's nest and sail attachment shortened by 32 logical pixels. Preserve the SAME crow's nest, masthead, lower shaft and navy foot, exact warm wood/navy palette, same 9px shaft width, same 19px base width. Transparent background. No sail, yard, ship, rigging ropes, text or extra objects.\nTarget logical canvas 48 wide by 192 high, shown at large nearest-neighbor scale. Centerline x24. Top y2. Nest bounds x6 y22 width37 height23. Small existing lugs below nest y46. Invisible sail yard attachment at y68 (do NOT draw yard). Foot anchor x24 y190. The clear shaft between nest bottom y45 and imaginary yard y68 is only 23 pixels, about one nest height. Everything from yard down to foot must preserve the current reference proportions exactly. The current reference is 48x224 with yard at y100; remove 32px ABOVE yard only, preserving lower portion. This is still a tall slender mast, not a stubby mast. Reuse existing wood grain, dark edges and left-side warm highlights. Flat pixel sprite, hard edges, genuine alpha transparency, no shadows outside sprite. No redesign of nest or foot.\nCandidate 7: understated smooth wood join, broad muted ochre face and thin darkest brown edges, minimal crossgrain seams above the invisible yard.",
+      "sourceSha256": "a8bfc17ec44f249738494baa42299e6525f38abb1179c15e2c61dcd67dca3eee",
+      "sourceSize": [
+        1024,
+        1536
+      ],
+      "sampleCropXYWH": [
+        486,
+        384,
+        53,
+        153
+      ],
+      "retainedSource": null,
+      "review": "Alternative grain candidate; compared in candidates-3x.png, not selected."
+    },
+    {
+      "candidate": 8,
+      "prompt": "Use case: precise-object-edit. Edit target: image 1, the shipped pixel-art wooden mast. Regenerate this same mast with ONLY its bare pole between the crow's nest and sail attachment shortened by 32 logical pixels. Preserve the SAME crow's nest, masthead, lower shaft and navy foot, exact warm wood/navy palette, same 9px shaft width, same 19px base width. Transparent background. No sail, yard, ship, rigging ropes, text or extra objects.\nTarget logical canvas 48 wide by 192 high, shown at large nearest-neighbor scale. Centerline x24. Top y2. Nest bounds x6 y22 width37 height23. Small existing lugs below nest y46. Invisible sail yard attachment at y68 (do NOT draw yard). Foot anchor x24 y190. The clear shaft between nest bottom y45 and imaginary yard y68 is only 23 pixels, about one nest height. Everything from yard down to foot must preserve the current reference proportions exactly. The current reference is 48x224 with yard at y100; remove 32px ABOVE yard only, preserving lower portion. This is still a tall slender mast, not a stubby mast. Reuse existing wood grain, dark edges and left-side warm highlights. Flat pixel sprite, hard edges, genuine alpha transparency, no shadows outside sprite. No redesign of nest or foot.\nCandidate 8: reference-faithful medium brown upper join with restrained vertical grain clusters; avoid extra horizontal metal bands or dark scars on pole.",
+      "sourceSha256": "f1989028ce260e3b4466896510ad38edec539303c59df03c031d2a6aee713bc2",
+      "sourceSize": [
+        1024,
+        1536
+      ],
+      "sampleCropXYWH": [
+        486,
+        384,
+        52,
+        153
+      ],
+      "retainedSource": null,
+      "review": "Alternative grain candidate; compared in candidates-3x.png, not selected."
+    }
+  ],
+  "note": "Eight full-mast edits were generated. Only the selected upper pole join is used; exact original top assembly and yard-to-foot pixels are retained mechanically. Nonselected full-resolution outputs are not shipped."
 }
