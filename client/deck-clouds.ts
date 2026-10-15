@@ -23,6 +23,8 @@
  *   them, night dims them blue. A white mask per slot, tinted, draws that with no shader.
  * - **Still when the deck is.** They drift only while the sea scrolls (`MotionPlan.ambient`): not under reduced
  *   motion, not on a software renderer. Their colours still follow the clock.
+ * - **Faster in a fresher wind.** The deck hands `cloudX` the wind's own clock, not the scene's
+ *   (`client/deck-atmosphere.ts`): it runs faster the more of the crew is working, without a jump when it changes.
  */
 import type { DeckExtrasManifest, SkyPhaseId } from "../shared/ship-deck";
 import { hashUnit } from "./deck-ambient";

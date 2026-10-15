@@ -18,7 +18,9 @@
  *   the moving, the sprite never drifts. It opens aft and down, in front of the near sea and under the foam.
  *
  * **How lively the water is lives here**, in `WaterMotion`: how fast the frames play and how fast the sea
- * and foam drift, each a multiple of the art's own timing. The deck draws `CALM_WATER`, the art as delivered.
+ * and foam drift, each a multiple of the art's own timing (`CALM_WATER` is the art as delivered). The deck's
+ * weather (`client/deck-atmosphere.ts`) picks one by how busy the crew is and runs the water on its own
+ * `WaterClock`, advanced at that motion (`advanceWater`), so a change of pace never jumps a frame or the drift.
  */
 import type { DeckExtrasManifest } from "../shared/ship-deck";
 import type { DeckExtrasImages } from "./deck-extras";
@@ -53,6 +55,21 @@ export interface WaterMotion {
 
 /** The water as the art delivers it. */
 export const CALM_WATER: WaterMotion = { pace: 1, drift: 1 };
+
+/**
+ * The water's own clock, in seconds of the art's timing: how far its frames have played (`frames`) and how far
+ * the sea and the foam have drifted (`drift`). At `CALM_WATER` both keep step with the scene's clock.
+ */
+export interface WaterClock {
+  frames: number;
+  drift: number;
+}
+
+/** The water's clock `seconds` on at `motion`. */
+export function advanceWater(clock: WaterClock, seconds: number, motion: WaterMotion): WaterClock {
+  const step = Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+  return { frames: clock.frames + step * Math.max(0, motion.pace), drift: clock.drift + step * Math.max(0, motion.drift) };
+}
 
 /** Which of a part's frames shows `seconds` into the scene: in order while the water `moving`, the first while it is still. */
 export function waterFrame(seconds: number, part: { frames: readonly unknown[]; frameMs: number }, moving: boolean, motion: WaterMotion = CALM_WATER): number {

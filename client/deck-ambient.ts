@@ -55,14 +55,20 @@ export function motionPlan(options: { reducedMotion: boolean; software: boolean;
 
 const TAU = Math.PI * 2;
 
-/** The ship's bob, in whole pixels: up and down a pixel over about six seconds. */
-export function shipBob(seconds: number): { x: number; y: number } {
-  return { x: 0, y: Math.round(Math.sin((seconds * TAU) / 6.2) * 1.2) };
+/** How far the ship bobs, in art pixels each way before rounding: a pixel, most of the time. */
+export const HEAVE = 1.2;
+
+/**
+ * The ship's bob, in whole pixels: up and down a pixel over about six seconds. A livelier sea (`heave`, from the
+ * deck's weather in `client/deck-atmosphere.ts`) lifts it a pixel more at the top of each swell.
+ */
+export function shipBob(seconds: number, heave = HEAVE): { x: number; y: number } {
+  return { x: 0, y: Math.round(Math.sin((seconds * TAU) / 6.2) * heave) };
 }
 
-/** The masthead's sway, in whole pixels, a beat behind the bob: -1, 0 or 1. */
-export function mastSway(seconds: number): number {
-  return Math.max(-1, Math.min(1, Math.round(Math.sin((seconds * TAU) / 6.2 - 1.0) * 1.3)));
+/** The masthead's sway, in whole pixels, a beat behind the bob: -1, 0 or 1, held longer at the ends in a livelier sea. */
+export function mastSway(seconds: number, heave = HEAVE): number {
+  return Math.max(-1, Math.min(1, Math.round(Math.sin((seconds * TAU) / 6.2 - 1.0) * 1.3 * (heave / HEAVE))));
 }
 
 /** The masthead cut from the hull to sway: the short rig's crow's nest and topmast, above the mast piece. */
