@@ -15,7 +15,8 @@ const all = () => true;
 const shipElementBands = (id: string) => shipElement(id, "tile").bands;
 /** What is drawn of the sky, the elements before the sea. */
 const SKY = ["sky", "overcast", "stars", "lightning", "clouds", "gull"];
-const WATER = ["sea", "wake", "foam", "spindrift"];
+const CREATURES = ["weather-serpent", "weather-kraken"];
+const WATER = ["sea", "wake", "foam", "spindrift", ...CREATURES];
 const ids = (manifest: SettingManifest, has: (image: string) => boolean = all, masked: (image: string) => boolean = all) =>
   compileAmbience(manifest, has, masked).elements.map((element) => element.id);
 /** The sky's part of what is drawn. */
@@ -40,6 +41,8 @@ describe("the ship's ambience, compiled", () => {
       ["wake", "front", 7],
       ["foam", "front", 8],
       ["spindrift", "front", 9],
+      ["weather-serpent", "front", 10],
+      ["weather-kraken", "front", 10],
     ]);
     expect(ambience.elements.every((element) => element.place === element.id)).toBe(true);
     expect([ambience.flats, ambience.fallbackFill]).toEqual([[], 0x15304a]);
@@ -54,7 +57,7 @@ describe("the ship's ambience, compiled", () => {
     expect(skyless.elements.map((element) => element.id)).toEqual(["gull", ...WATER]);
     expect(skyless.missing).toEqual(["sky-dawn"]);
     expect(sky(ship, without("sky-stars"))).toEqual(["sky", "overcast", "lightning", "clouds", "gull"]);
-    expect(sky(ship, without("storm-lightning-frame-1"))).toEqual(["sky", "overcast", "stars", "clouds", "gull"]);
+    expect(sky(ship, without("enrichment-lightning-1"))).toEqual(["sky", "overcast", "stars", "clouds", "gull"]);
     expect(sky(ship, without("gull-flap-strip"))).toEqual(["sky", "overcast", "stars", "lightning", "clouds"]);
   });
 
@@ -104,6 +107,16 @@ describe("wall-clock frames, compiled", () => {
 });
 
 describe("the ship's water, compiled", () => {
+  it("drops a creature or its surface variant independently when one image fails", () => {
+    const missingBody = compileAmbience(ship, without("enrichment-serpent-loom-2"));
+    expect(missingBody.elements.map((element) => element.id)).not.toContain("weather-serpent");
+    expect(missingBody.elements.map((element) => element.id)).toContain("weather-kraken");
+    const missingSurface = compileAmbience(ship, without("enrichment-serpent-2"));
+    const serpent = elementsOf(missingSurface, "cycle").find((element) => element.id === "weather-serpent")!;
+    expect(serpent.behaviour.variants).toEqual([]);
+    expect(missingSurface.elements.map((element) => element.id)).toContain("sea");
+  });
+
   it("draws the still sea and foam only in place of the animated ones, under their names, and the sea flat with neither", () => {
     const stillSea = compileAmbience(ship, without("water-sea-frame-2"));
     expect(stillSea.elements.filter((element) => !SKY.includes(element.id)).map((element) => [element.id, element.place])).toEqual([
@@ -111,11 +124,12 @@ describe("the ship's water, compiled", () => {
       ["wake", "wake"],
       ["foam", "foam"],
       ["spindrift", "spindrift"],
+      ...CREATURES.map((id) => [id, id]),
     ]);
     expect(stillSea.flats).toEqual([]);
-    expect(ids(ship, without("water-foam-frame-1"))).toEqual([...SKY, "sea", "wake", "foam-still", "spindrift"]);
+    expect(ids(ship, without("water-foam-frame-1"))).toEqual([...SKY, "sea", "wake", "foam-still", "spindrift", ...CREATURES]);
     const flat = compileAmbience(ship, without("water-sea-frame-2", "sea-water-tile"));
-    expect(flat.elements.map((element) => element.id)).toEqual([...SKY, "wake", "foam", "spindrift"]);
+    expect(flat.elements.map((element) => element.id)).toEqual([...SKY, "wake", "foam", "spindrift", ...CREATURES]);
     expect(flat.flats.map((element) => [element.id, element.place, element.behaviour.bands])).toEqual([["sea", "sea", shipElementBands("sea")]]);
     expect(flat.missing).toEqual(["sea-water-tile", "water-sea-frame-2"]);
     // Neither foam: no foam, and nothing filled flat for it; a strip is not ground the stage stands on.
@@ -139,7 +153,7 @@ describe("the ship's water, compiled", () => {
     const resized: SettingManifest = { ...ship, images: { ...ship.images, "storm-sea-frame-0": { ...ship.images["storm-sea-frame-0"]!, size: [128, 128] } } };
     expect(variantsOf("sea", all, resized)).toEqual([]);
     // The spray stands alone: without a frame of it, it is not drawn, and nothing else goes with it.
-    expect(ids(ship, without("storm-spray-frame-0"))).toEqual([...SKY, "sea", "wake", "foam"]);
+    expect(ids(ship, without("storm-spray-frame-0"))).toEqual([...SKY, "sea", "wake", "foam", ...CREATURES]);
   });
 });
 
