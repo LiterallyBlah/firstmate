@@ -8,8 +8,8 @@
  *   plugin's folder; built by `docs/ship-deck-art/build-art.py`.
  * - `firstmate.deck.environment` — the generated sea, sky and gull: each image, base64, and what
  *   `art/ship-deck/environment.json` says about drawing them. See below.
- * - `firstmate.deck.extras` — the sail, the crew's extra looks, the shark, the splash and the sky's clouds: each image, base64, and what
- *   `art/ship-deck/extras.json` says about drawing them. See the last note.
+ * - `firstmate.deck.extras` — the sail, the crew's extra looks, the shark, the splash, the sky's clouds and the animated water: each
+ *   image, base64, and what `art/ship-deck/extras.json` says about drawing them. See the last note.
  */
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
@@ -153,8 +153,9 @@ export type DeckEnvironment = z.infer<typeof loadDeckEnvironment.output>;
 /**
  * `firstmate.deck.extras` — the tall mast and its sail (`art/ship-deck/mast/README.md`, `art/ship-deck/sails/README.md`),
  * the crew's extra looks (`art/ship-deck/assets-2/README.md`), the plank's board (`art/ship-deck/plank/README.md`),
- * the shark and splash that see a sailor off the plank (`art/ship-deck/shark/README.md`), and the clouds that
- * drift across the sky (`art/ship-deck/clouds/README.md`):
+ * the shark and splash that see a sailor off the plank (`art/ship-deck/shark/README.md`), the clouds that
+ * drift across the sky (`art/ship-deck/clouds/README.md`), and the animated sea, foam and wake
+ * (`art/ship-deck/water/README.md`):
  * the parts of `art/ship-deck/extras.json` the deck draws with, and each image it names, base64. Apart from
  * the atlas and the environment, and not needed to
  * draw: the client keeps whatever of it decodes, so a missing sail is the bare mast and a missing look is
@@ -237,6 +238,28 @@ export const DeckExtrasManifestSchema = z.object({
       replaces: z.string(),
     })
     .optional(),
+  /**
+   * The animated water (`art/ship-deck/water/README.md`): each part `frames`, images of `frameSize` played in
+   * order every `frameMs` and looped, the first held while the deck is still. The `sea` tiles both ways from
+   * the horizon and drifts right; the `foam` lies across the waterline from `top`, repeating sideways
+   * within `span` ([left, right)) and drifting; the `wake` is one sprite, its `anchor` on `position` at the
+   * stern, never drifting. Each part stands in for the environment's tile, its foam strip and the wake drawn
+   * in code; a part with a frame missing is not drawn, and the one it would replace is (`client/deck-water.ts`).
+   */
+  water: z
+    .object({
+      sea: z.object({ frames: z.array(ArtPath).min(1), frameSize: Size, frameMs: z.number().positive(), xPixelsPerSecond: z.number().nonnegative() }),
+      foam: z.object({
+        frames: z.array(ArtPath).min(1),
+        frameSize: Size,
+        frameMs: z.number().positive(),
+        top: z.number().int(),
+        span: z.tuple([z.number().int(), z.number().int()]),
+        xPixelsPerSecond: z.number().nonnegative(),
+      }),
+      wake: z.object({ frames: z.array(ArtPath).min(1), frameSize: Size, frameMs: z.number().positive(), anchor: Point, position: Point }),
+    })
+    .optional(),
 });
 export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;
 
@@ -246,7 +269,8 @@ export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
   const clouds = manifest.clouds?.sprites.map((sprite) => sprite.texture) ?? [];
   const plank = manifest.plank === undefined ? [] : [manifest.plank.texture];
   const mast = manifest.mast === undefined ? [] : [manifest.mast.texture];
-  return [...new Set([manifest.sail.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds, ...plank, ...mast])];
+  const water = manifest.water === undefined ? [] : [...manifest.water.sea.frames, ...manifest.water.foam.frames, ...manifest.water.wake.frames];
+  return [...new Set([manifest.sail.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds, ...plank, ...mast, ...water])];
 }
 
 export const loadDeckExtras = defineRpc({

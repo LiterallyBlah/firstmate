@@ -53,5 +53,28 @@
     "sway": 52,
     "clears": [117, 0, 149, 71],
     "replaces": "mast"
+  },
+  "water": {
+    "sea": {
+      "frames": ["water/sea/frame-0.png", "water/sea/frame-1.png", "water/sea/frame-2.png", "water/sea/frame-3.png"],
+      "frameSize": [256, 128],
+      "frameMs": 240,
+      "xPixelsPerSecond": 10
+    },
+    "foam": {
+      "frames": ["water/foam/frame-0.png", "water/foam/frame-1.png", "water/foam/frame-2.png"],
+      "frameSize": [256, 16],
+      "frameMs": 240,
+      "top": 142,
+      "span": [68, 392],
+      "xPixelsPerSecond": 6.25
+    },
+    "wake": {
+      "frames": ["water/wake/frame-0.png", "water/wake/frame-1.png", "water/wake/frame-2.png"],
+      "frameSize": [240, 96],
+      "frameMs": 240,
+      "anchor": [8, 8],
+      "position": [392, 151]
+    }
   }
 }

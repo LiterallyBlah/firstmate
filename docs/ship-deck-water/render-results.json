@@ -1,0 +1,138 @@
+{
+  "water": {
+    "sea": {
+      "frames": [
+        "water/sea/frame-0.png",
+        "water/sea/frame-1.png",
+        "water/sea/frame-2.png",
+        "water/sea/frame-3.png"
+      ],
+      "frameSize": [
+        256,
+        128
+      ],
+      "frameMs": 240,
+      "xPixelsPerSecond": 10
+    },
+    "foam": {
+      "frames": [
+        "water/foam/frame-0.png",
+        "water/foam/frame-1.png",
+        "water/foam/frame-2.png"
+      ],
+      "frameSize": [
+        256,
+        16
+      ],
+      "frameMs": 240,
+      "top": 142,
+      "span": [
+        68,
+        392
+      ],
+      "xPixelsPerSecond": 6.25
+    },
+    "wake": {
+      "frames": [
+        "water/wake/frame-0.png",
+        "water/wake/frame-1.png",
+        "water/wake/frame-2.png"
+      ],
+      "frameSize": [
+        240,
+        96
+      ],
+      "frameMs": 240,
+      "anchor": [
+        8,
+        8
+      ],
+      "position": [
+        392,
+        151
+      ]
+    }
+  },
+  "before": {
+    "visible": {
+      "top": -169.96574197860963,
+      "bottom": 260.73278743315507,
+      "left": -8.898729946524064,
+      "right": 434.85127005347596,
+      "scale": 1.6856338028169013
+    },
+    "motion": "full"
+  },
+  "after": {
+    "visible": {
+      "top": -169.96574197860963,
+      "bottom": 260.73278743315507,
+      "left": -8.898729946524064,
+      "right": 434.85127005347596,
+      "scale": 1.6856338028169013
+    },
+    "motion": "full"
+  },
+  "cycle": {
+    "before": {
+      "distinctFrames": 4,
+      "motion": "full"
+    },
+    "after": {
+      "distinctFrames": 4,
+      "motion": "full"
+    }
+  },
+  "animation": {
+    "before": {
+      "frames": 25,
+      "delayMs": 120
+    },
+    "after": {
+      "frames": 25,
+      "delayMs": 120
+    }
+  },
+  "panes": {
+    "after-pane-wide-short.png": {
+      "top": -85.34650259067358,
+      "bottom": 176.11183074265978,
+      "left": -200.4965457685665,
+      "right": 626.5517055267703,
+      "scale": 1.4763346613545816
+    },
+    "after-pane-narrow-tall.png": {
+      "top": -348.1595849802372,
+      "bottom": 439.3651185770751,
+      "left": -8.769762845849803,
+      "right": 434.98023715415025,
+      "scale": 1.140281690140845
+    },
+    "after-pane-fractional.png": {
+      "top": -208.96177072542133,
+      "bottom": 299.6627144553655,
+      "left": -8.611061980443187,
+      "right": 435.1389380195568,
+      "scale": 1.393556338028169
+    }
+  },
+  "plank": {
+    "key": "work-1",
+    "boardsAfterMs": 759,
+    "beats": {
+      "plank-1-on-the-board": 1184.5,
+      "plank-2-splash": 2290,
+      "plank-3-chomp": 3100
+    },
+    "motion": "full"
+  },
+  "focus": {
+    "panel": "Build the chapter-craft plan: chapter styles, pacing and introductions: details and actions",
+    "after": null
+  },
+  "reducedMotion": {
+    "motion": "still",
+    "held": true
+  },
+  "errors": []
+}

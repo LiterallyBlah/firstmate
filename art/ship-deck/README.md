@@ -1,8 +1,10 @@
 # art/ship-deck/
 
-An assets-only [animated water upgrade](water/README.md) adds four sea frames, three foam frames,
+An [animated water upgrade](water/README.md) adds four sea frames, three foam frames,
 and a three-frame stern wake, with palette/seam checks, placement anchors and generated sources.
-It has a companion manifest and is not yet wired into the live environment.
+The Deck draws them through [`extras.json`](extras.json)'s `water`, placed as its companion manifest says,
+in place of the environment's still sea tile, its foam strip and the wake once drawn in code
+(`client/deck-water.ts`); `docs/ship-deck-water/` shows them in place.
 
 An expansion adds [fitted Hull C sails and six crew variants](assets-2/README.md), with two sail states,
 exact existing crew frame layouts, provenance and per-asset quality verdicts. The Deck draws them through
