@@ -29,27 +29,23 @@
  *   departing sailor fades where it stands (`FADE_MS`) instead of taking the plank.
  * - **Stale.** A sailor whose feed is lost keeps its last state and place, greyed by the renderer, and
  *   stops its idle motion: it never turns idle on its own.
- * - **Looks.** A sailor wears the look its agent id hashes to (`lookFor` in `client/deck-extras.ts`),
+ * - **Looks.** A sailor wears the look its agent id hashes to (`lookFor` in `client/deck-cast.ts`),
  *   whoever else is aboard.
- * - **At ease.** An idle sailor stands in profile, arms at its sides, looking fore or aft,
- *   and breathes: its head and shoulders settle a pixel and rise again every four seconds or so
- *   (`breathSink`), while its feet stay planted. The drawn badge and the drifting z say the rest.
+ * - **Poses are the cast's** (`client/deck-cast.ts`): standing, the walk cycles, each state's settled pose and
+ *   fidget, and the at-ease breath — on the ship an idle sailor stands in profile, looking fore or aft, and
+ *   breathes: its head and shoulders settle a pixel and rise again every four seconds or so, while its feet stay
+ *   planted. The drawn badge and the drifting z say the rest.
  */
-import type { SailorOutfit, SailorPose } from "./deck-legacy";
-import { ATLAS_LOOKS, lookFor, lookLane } from "./deck-extras";
+import { breathSink, fidgetAt, laneOf, lookFor, settledPose, walkPose, type DeckCast } from "./deck-cast";
 import { findPath, restSpot, sharedSpot, type Anchor, type Facing, type Point } from "./deck-geometry";
 import { exitFor, IMPACT_AT, PLANK_EXIT_MS, plankExit, type DeckDeparture, type PlankLayer, type PlankMarks, type SharkFrame, type SplashFrame } from "./deck-plank";
 import { choreography, type DeckStage } from "./deck-stage";
 import type { DeckSailor, DeckState } from "./deck-scene";
 
-/** How long one step of the walk cycle shows. */
-export const STEP_MS = 150;
 /** Climbing up out of the hatch, and back down it. */
 export const HATCH_MS = 700;
 /** A departing sailor's fade under reduced motion. */
 export const FADE_MS = 600;
-/** The rows of the front poses (the pack's lanes), which the plank's sequence crops at the water. */
-export const FRONT_ROWS = 32;
 /** The shark's mouth from its water anchor, facing right (`docs/ship-deck-art/shark/manifest.json`'s `bite`), until the extras say otherwise. */
 export const SHARK_MOUTH: readonly [number, number] = [13, -22];
 
@@ -99,7 +95,7 @@ export interface Departure {
   side: -1 | 1;
   drift: number;
   /** A fade: what shows of the sailor as it goes. */
-  pose: SailorPose;
+  pose: string;
   reveal: number;
   layer: PlankLayer;
   flip: boolean;
@@ -108,6 +104,8 @@ export interface Departure {
 export interface Crew {
   /** Where it all happens: the setting's floor, zones and portals. */
   stage: DeckStage;
+  /** Who it is: the setting's poses, looks, fidgets and breath. */
+  cast: DeckCast;
   /** The plank's marks, from the setting's `plank` exit, and where and how far apart its queue waits. */
   plank: { marks: PlankMarks; foot: Point; spacing: readonly [number, number] };
   /** Where a sailor going back down the hatch makes for. */
@@ -123,15 +121,17 @@ export interface Crew {
   mouth: readonly [number, number];
   /** Whether a scene has been applied: the first one places the crew already aboard. */
   started: boolean;
-  /** The looks there are to hand out (`crewLooks`): the atlas's two, and each extra look that loaded. */
+  /** The looks there are to hand out (`availableLooks`): those that must draw, and each other one that loaded. */
   looks: readonly string[];
 }
 
-export function createCrew(stage: DeckStage, looks: readonly string[] = ATLAS_LOOKS, mouth: readonly [number, number] = SHARK_MOUTH): Crew {
+export function createCrew(stage: DeckStage, cast: DeckCast, looks?: readonly string[], mouth: readonly [number, number] = SHARK_MOUTH): Crew {
+  const mustDraw = cast.looks.filter((look) => !look.optional).map((look) => look.id);
   const { marks, queue } = choreography(stage, "plank");
   const hatch = stage.exits.get("hatch");
   return {
     stage,
+    cast,
     plank: { marks: { foot: marks.foot!, rail: marks.rail!, tip: marks.tip!, water: marks.water! }, foot: queue.at, spacing: queue.spacing },
     hatch: hatch?.kind === "sink" ? hatch.at : stage.entry,
     walkers: new Map(),
@@ -140,7 +140,7 @@ export function createCrew(stage: DeckStage, looks: readonly string[] = ATLAS_LO
     serial: 0,
     mouth,
     started: false,
-    looks: looks.length > 0 ? looks : ATLAS_LOOKS,
+    looks: looks !== undefined && looks.length > 0 ? looks : mustDraw.length > 0 ? mustDraw : [cast.looks[0]!.id],
   };
 }
 
@@ -214,7 +214,7 @@ function board(crew: Crew, walker: Walker): void {
     // The sharks come from either side by turns, and the sailors land a little apart.
     side: crew.serial % 2 === 1 ? -1 : 1,
     drift: [0, -3, 3][crew.serial % 3] ?? 0,
-    pose: "front-idle",
+    pose: crew.cast.stand,
     reveal: 1,
     layer: "rail",
     flip: false,
@@ -222,7 +222,7 @@ function board(crew: Crew, walker: Walker): void {
 }
 
 /** Fades a sailor out where it is shown, off the crew: a departure under reduced motion. */
-function fadeOut(crew: Crew, walker: Walker, shown: { pose: SailorPose; reveal: number; layer: PlankLayer; flip: boolean }): void {
+function fadeOut(crew: Crew, walker: Walker, shown: { pose: string; reveal: number; layer: PlankLayer; flip: boolean }): void {
   crew.serial += 1;
   crew.departures.push({ key: `${walker.key}~${crew.serial}`, kind: "fade", walker, ms: 0, side: -1, drift: 0, ...shown });
 }
@@ -235,9 +235,9 @@ function depart(crew: Crew, walker: Walker, departure: DeckDeparture, snap: bool
   if (snap) {
     crew.walkers.delete(walker.key);
     crew.queue = crew.queue.filter((key) => key !== walker.key);
-    const settled = walker.phase === "settled";
-    const pose = settled ? STATE_POSES[walker.state] : "front-idle";
-    const flip = settled && (pose === "hauling" ? walker.facing === "left" : pose === "side-idle" && looksFore(walker.seed));
+    const settled = walker.phase === "settled" ? settledPose(crew.cast, walker.state, walker.facing, walker.seed) : null;
+    const pose = settled?.pose ?? crew.cast.stand;
+    const flip = settled?.flip ?? false;
     const onLadder = walker.phase === "arriving" || walker.phase === "sinking";
     if (!onLadder) fadeOut(crew, walker, { pose, reveal: 1, layer: "deck", flip });
     return;
@@ -362,7 +362,7 @@ function facingFor(dx: number, dy: number, current: Facing): Facing {
 }
 
 function plankOptions(crew: Crew, departure: Departure) {
-  return { side: departure.side, drift: departure.drift, sailorHeight: FRONT_ROWS, mouth: crew.mouth, marks: crew.plank.marks };
+  return { side: departure.side, drift: departure.drift, sailorHeight: crew.cast.standRows, mouth: crew.mouth, marks: crew.plank.marks };
 }
 
 /** Moves the departures on by `dtMs`, and lets go of those that have finished. */
@@ -446,14 +446,14 @@ export interface Figure {
   asks?: boolean;
   /** What it wears (`client/deck-extras.ts`). */
   look: string;
-  /** Whose frames it is drawn, hit-tested and badged with: the look's lane of the atlas (`lookLane`). */
-  outfit: SailorOutfit;
+  /** Whose frames it is drawn, hit-tested and badged with: the look's lane (`laneOf`). */
+  lane: string;
   /** Feet, in whole deck pixels, idle motion and the walk's rise included. */
   x: number;
   y: number;
   /** The row the feet stand on, without that motion: the sailor's depth. */
   row: number;
-  pose: SailorPose;
+  pose: string;
   /** Mirrored: the side poses are drawn facing right. */
   flip: boolean;
   /** How much of the sailor is out of the hatch, 0 to 1. */
@@ -461,7 +461,7 @@ export interface Figure {
   moving: boolean;
   /** Its idle motion's offset, so the crew does not breathe in step. */
   seed: number;
-  /** How far its head and shoulders (the top `BREATH_ROWS` rows) have settled: 1 on an at-ease sailor's out-breath, else 0. */
+  /** How far its top rows (the cast's breath rows) have settled: 1 on an at-ease sailor's out-breath, else 0. */
   sink: number;
   /** Its card gone, on its way off the deck: no mark, no badge, never under the pointer. */
   departing: boolean;
@@ -478,98 +478,40 @@ export interface PlankEffect {
   splash: { frame: SplashFrame; x: number; y: number } | null;
 }
 
-const WALK_SIDE: readonly SailorPose[] = ["side-walk-a", "side-idle", "side-walk-b", "side-idle"];
-const WALK_FRONT: readonly SailorPose[] = ["front-walk-a", "front-idle", "front-walk-b", "front-idle"];
-
-/**
- * Each state's pose once its sailor has arrived. Idle is the side view standing at rest — not `leaning`,
- * whose arm reaching forward read as someone about to do something.
- */
-export const STATE_POSES: Record<DeckState, SailorPose> = {
-  working: "hauling",
-  waiting: "waiting",
-  blocked: "front-idle",
-  idle: "side-idle",
-};
-
-/** The rows from the top of a sailor that settle on an at-ease out-breath: its head and shoulders. */
-export const BREATH_ROWS = 12;
-/** One breath at ease: in for 2.2 s, out — settled a pixel — for 2 s. */
-export const BREATH_MS = 4200;
-const BREATH_IN_MS = 2200;
-
-/** Whether an at-ease sailor is on its out-breath, its head and shoulders a pixel lower: 1 or 0. */
-export function breathSink(seed: number, nowMs: number): number {
-  const t = (((nowMs + seed * 53) % BREATH_MS) + BREATH_MS) % BREATH_MS;
-  return t >= BREATH_IN_MS ? 1 : 0;
-}
-
-/** Which way an at-ease sailor looks: half the crew fore (left), half aft, by its seed. */
-export function looksFore(seed: number): boolean {
-  return seed % 2 === 1;
-}
-
-/**
- * Idle motion at an anchor, in whole pixels: hauling leans into the line and back, the waiting
- * breathe, the blocked fret from foot to foot now and then. A sailor at ease does not move its feet at
- * all; it breathes in place (`breathSink`). A pure function of the clock.
- */
-export function idleMotion(state: DeckState, facing: Facing, seed: number, nowMs: number): { dx: number; dy: number } {
-  const t = nowMs + seed * 37;
-  switch (state) {
-    case "working": {
-      // Hand over hand: a pull every 0.9 s, a beat leaning in.
-      const pull = Math.floor(t / 450) % 2 === 0;
-      return { dx: pull ? (facing === "left" ? -1 : 1) : 0, dy: pull ? 0 : -1 };
-    }
-    case "waiting":
-      return { dx: 0, dy: t % 2600 < 900 ? -1 : 0 };
-    case "idle":
-      return { dx: 0, dy: 0 };
-    case "blocked": {
-      // A 1.2 s fret every 4 s: left, centre, right, centre.
-      const at = t % 4000;
-      if (at >= 1200) return { dx: 0, dy: 0 };
-      return { dx: [-1, 0, 1, 0][Math.floor(at / 300)] ?? 0, dy: 0 };
-    }
-  }
-}
-
 /** The crew as the renderer draws it now. `still` drops the idle motion (reduced motion). */
 export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean }): Figure[] {
   const figures: Figure[] = [];
   for (const walker of crew.walkers.values()) {
     const moving = (walker.phase === "walking" || walker.phase === "leaving") && walker.path.length > 0;
-    let pose: SailorPose;
+    const { cast } = crew;
+    let pose: string;
     let flip = false;
     let dx = 0;
     let dy = 0;
     let reveal = 1;
     let sink = 0;
     if (walker.phase === "arriving") {
-      pose = "front-idle";
+      pose = cast.stand;
       reveal = Math.min(1, walker.phaseMs / HATCH_MS);
     } else if (walker.phase === "sinking") {
-      pose = "front-idle";
+      pose = cast.stand;
       reveal = Math.max(0, 1 - walker.phaseMs / HATCH_MS);
     } else if (walker.phase === "leaving" && !moving) {
       // Waiting its turn for the plank, facing out.
-      pose = "front-idle";
+      pose = cast.stand;
     } else if (moving) {
-      const step = Math.floor(walker.walkedMs / STEP_MS) % 4;
-      const side = walker.facing !== "front";
-      pose = (side ? WALK_SIDE : WALK_FRONT)[step]!;
-      flip = walker.facing === "left";
-      // The body rises a pixel as one leg passes the other.
-      dy = step % 2 === 1 ? -1 : 0;
+      // The body rises as one leg passes the other.
+      const step = walkPose(cast, walker.facing, walker.walkedMs);
+      pose = step.pose;
+      flip = step.flip;
+      dy = step.rise === 0 ? 0 : -step.rise;
     } else {
-      pose = STATE_POSES[walker.state];
-      flip = pose === "hauling" ? walker.facing === "left" : pose === "side-idle" && looksFore(walker.seed);
+      ({ pose, flip } = settledPose(cast, walker.state, walker.facing, walker.seed));
       if (!options.still && !walker.stale) {
-        const motion = idleMotion(walker.state, walker.facing, walker.seed, nowMs);
+        const motion = fidgetAt(cast, walker.state, walker.facing, walker.seed, nowMs);
         dx = motion.dx;
         dy = motion.dy;
-        if (walker.state === "idle") sink = breathSink(walker.seed, nowMs);
+        if (walker.state === cast.breath?.state) sink = breathSink(cast, walker.seed, nowMs);
       }
     }
     figures.push({
@@ -579,7 +521,7 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
       stale: walker.stale,
       asks: walker.asks,
       look: walker.look,
-      outfit: lookLane(walker.look),
+      lane: laneOf(cast, walker.look),
       x: Math.round(walker.x) + dx,
       y: Math.round(walker.y) + dy,
       row: Math.round(walker.y),
@@ -608,7 +550,7 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
       state: walker.state,
       stale: walker.stale,
       look: walker.look,
-      outfit: lookLane(walker.look),
+      lane: laneOf(crew.cast, walker.look),
       x: Math.round(shown.x),
       y: Math.round(shown.y),
       row: Math.round(shown.y),

@@ -24,7 +24,7 @@ import {
   replyBlockedText,
 } from "./deck-replies";
 import type { DeckSailor, DeckState } from "./deck-scene";
-import { shipManifest, shipStage, shipViews } from "../test/ship-pack";
+import { shipCast, shipManifest, shipStage, shipViews } from "../test/ship-pack";
 
 
 // The ship's stage, under the names its constants had in the deck's code.
@@ -235,25 +235,25 @@ describe("the reply marker", () => {
     caption: { title: key, status: state, project: null, host: "This machine", line: null, stale: null },
   });
   function deck(sailors: DeckSailor[]): Figure[] {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, sailors, { snap: true });
     return crewFigures(crew, 0, { still: true });
   }
 
   it("hangs over the badge on an open deck, and the pointer finds the sailor on it", () => {
     const figures = deck([sailor("a", "blocked"), sailor("b", "working", false)]);
-    const marks = askMarks(figures, manifest);
+    const marks = askMarks(figures, shipCast());
     expect([...marks.keys()]).toEqual(["a"]);
     const a = figures.find((figure) => figure.key === "a")!;
     const mark = marks.get("a")!;
-    const badge = badgeBox(a, manifest);
+    const badge = badgeBox(a, shipCast());
     expect(mark).toMatchObject({ framed: false, flip: false });
     expect(markBox(mark).bottom).toBeLessThan(badge.top);
-    expect(sailorAt(figures, manifest, { x: mark.left + 3.5, y: mark.top + 2.5 }, marks)?.key).toBe("a");
-    expect(sailorAt(figures, manifest, { x: mark.left + 3.5, y: mark.top + 2.5 })).toBeNull();
+    expect(sailorAt(figures, shipCast(), { x: mark.left + 3.5, y: mark.top + 2.5 }, marks)?.key).toBe("a");
+    expect(sailorAt(figures, shipCast(), { x: mark.left + 3.5, y: mark.top + 2.5 })).toBeNull();
     // The label and bubble go over the marker, not the badge.
     const fit = { scale: 2, x: 0, y: 0 };
-    expect(hoverOf(a, manifest, fit, { x: 0, y: 0 }, { width: 900, height: 400 }, shipStage().zoneOf(a.state).labelFloor, mark).top).toBe(mark.top * 2);
+    expect(hoverOf(a, shipCast(), fit, { x: 0, y: 0 }, { width: 900, height: 400 }, shipStage().zoneOf(a.state).labelFloor, mark).top).toBe(mark.top * 2);
   });
 
   it("is never on another sailor, its badge or another marker, however crowded the deck — the badge's frame when nothing round it is clear", () => {
@@ -264,19 +264,19 @@ describe("the reply marker", () => {
         );
         const sleepers = Array.from({ length: idle }, (_, index) => sailor(`idle-${String(index).padStart(2, "0")}`, "idle"));
         const figures = deck([...others, ...sleepers]);
-        const marks = askMarks(figures, manifest);
+        const marks = askMarks(figures, shipCast());
         expect(marks.size).toBe(figures.length);
         const placed = [...marks.entries()];
         for (const [key, mark] of placed) {
           const box = markBox(mark);
           const own = figures.find((figure) => figure.key === key)!;
           if (mark.framed) {
-            expect(box).toEqual(badgeBox(own, manifest));
+            expect(box).toEqual(badgeBox(own, shipCast()));
             continue;
           }
           for (const other of figures) {
             if (other.key === key) continue;
-            expect(boxesOverlap(box, figureBox(other, manifest)!), `${extra}/${idle}: ${key} on ${other.key}`).toBe(false);
+            expect(boxesOverlap(box, figureBox(other, shipCast())!), `${extra}/${idle}: ${key} on ${other.key}`).toBe(false);
           }
           for (const [otherKey, other] of placed) {
             if (otherKey !== key) expect(boxesOverlap(box, markBox(other)), `${extra}/${idle}: ${key} on ${otherKey}'s marker`).toBe(false);
@@ -287,12 +287,12 @@ describe("the reply marker", () => {
   });
 
   it("shows on a stale sailor never, and on one still climbing out of the hatch not yet", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a", "working")], { snap: true });
     applyCrew(crew, [sailor("a", "working"), sailor("b", "working")], { snap: false });
     const climbing = crewFigures(crew, 0, { still: false });
-    expect(askMarks(climbing, manifest).has("b")).toBe(false);
-    expect(askMarks(climbing, manifest).has("a")).toBe(true);
-    expect(askMarks(deck([{ ...sailor("c", "working"), stale: true }]), manifest).size).toBe(0);
+    expect(askMarks(climbing, shipCast()).has("b")).toBe(false);
+    expect(askMarks(climbing, shipCast()).has("a")).toBe(true);
+    expect(askMarks(deck([{ ...sailor("c", "working"), stale: true }]), shipCast()).size).toBe(0);
   });
 });

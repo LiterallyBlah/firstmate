@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
 
 import { legacyViews, type LegacyViews } from "../client/deck-legacy";
+import { compileCast, type DeckCast } from "../client/deck-cast";
 import { choreography, compileStage, type DeckStage } from "../client/deck-stage";
 import type { PlankMarks } from "../client/deck-plank";
 import { SettingManifestSchema, type SettingManifest } from "../shared/deck-setting";
@@ -48,4 +49,12 @@ export function shipPlankMarks(): PlankMarks {
 /** Every image the pack serves, base64 by id, as `firstmate.deck.setting` sends them. */
 export function shipImages(): Record<string, string> {
   return Object.fromEntries(Object.entries(shipManifest().images).map(([id, image]) => [id, readFileSync(shipFile(image.path)).toString("base64")]));
+}
+
+let cast: DeckCast | null = null;
+
+/** The ship's cast, compiled: its lanes, looks, roles, fidgets and breath, as the engine draws them. */
+export function shipCast(): DeckCast {
+  cast ??= compileCast(shipManifest());
+  return cast;
 }

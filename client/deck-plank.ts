@@ -28,7 +28,6 @@
  *   (`docs/ship-deck-art/shark/README.md`); its mouth is placed over the sailor, and it comes from the left or
  *   the right by turns (`side`), mirrored about its anchor.
  */
-import type { SailorPose } from "./deck-legacy";
 
 /**
  * Why a sailor left the deck: its card's work is done, it failed, its worker was closed (cancelled,
@@ -159,7 +158,7 @@ export type PlankLayer = "deck" | "rail" | "sea";
 /** What shows of one departure at a moment of its sequence. */
 export interface PlankMoment {
   /** The sailor, or null once the shark has it. `reveal` is the share of its rows drawn, cut at its feet. */
-  sailor: { x: number; y: number; pose: SailorPose; reveal: number; layer: PlankLayer; moving: boolean } | null;
+  sailor: { x: number; y: number; pose: string; reveal: number; layer: PlankLayer; moving: boolean } | null;
   /** The shark, its water anchor and which key; `flip` when it comes from the right, facing left. */
   shark: { frame: SharkFrame; x: number; y: number; flip: boolean } | null;
   /** The splash, its water anchor and which key. */
@@ -167,7 +166,7 @@ export interface PlankMoment {
   done: boolean;
 }
 
-const WALK_FRONT: readonly SailorPose[] = ["front-walk-a", "front-idle", "front-walk-b", "front-idle"];
+const WALK_FRONT: readonly string[] = ["front-walk-a", "front-idle", "front-walk-b", "front-idle"];
 const STEP_MS = 150;
 
 function between(from: number, to: number, t: number): number {

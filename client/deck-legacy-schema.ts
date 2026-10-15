@@ -5,14 +5,10 @@
  */
 import { z } from "zod";
 
-import { DECK_PROP_NAMES, GULL_POSES, SAILOR_POSES, SKY_PHASES, type DeckPropName, type SailorPose, type SkyPhaseId } from "./deck-legacy";
+import { GULL_POSES, SKY_PHASES, type SkyPhaseId } from "./deck-legacy";
 
 /** A rectangle in the atlas: x, y, width, height, in atlas pixels. */
 const Frame = z.tuple([z.number().int(), z.number().int(), z.number().int().positive(), z.number().int().positive()]);
-/** A sprite's frame and where it stands: its feet, in whole pixels from the frame's top left. */
-const Standing = z.object({ frame: Frame, feet: z.tuple([z.number().int(), z.number().int()]) });
-
-const Poses = z.object(Object.fromEntries(SAILOR_POSES.map((pose) => [pose, Standing])) as Record<SailorPose, typeof Standing>);
 
 export const DeckArtManifestSchema = z.object({
   /** The whole hull: the backdrop every sailor stands on. Its size is the deck's coordinate space. */
@@ -23,8 +19,6 @@ export const DeckArtManifestSchema = z.object({
    * `null` is in front of everything on deck — the near rail, the stairs and the hull below them.
    */
   pieces: z.record(z.string(), z.object({ frame: Frame, x: z.number().int(), y: z.number().int(), baseline: z.number().int().nullable() })),
-  crew: z.object({ base: Poses, outfit: Poses }),
-  props: z.object(Object.fromEntries(DECK_PROP_NAMES.map((name) => [name, Standing])) as Record<DeckPropName, typeof Standing>),
 });
 export type DeckArtManifest = z.infer<typeof DeckArtManifestSchema>;
 
@@ -83,7 +77,7 @@ export type DeckEnvironmentManifest = z.infer<typeof DeckEnvironmentManifestSche
 
 /**
  * The extras: the tall mast and its sail (`docs/ship-deck-art/mast/README.md`, `docs/ship-deck-art/sails/README.md`),
- * the crew's extra looks (`docs/ship-deck-art/assets-2/README.md`), the plank's board (`docs/ship-deck-art/plank/README.md`),
+ * the plank's board (`docs/ship-deck-art/plank/README.md`),
  * the shark and splash that see a sailor off the plank (`docs/ship-deck-art/shark/README.md`), the clouds that
  * drift across the sky (`docs/ship-deck-art/clouds/README.md`), and the animated sea, foam and wake
  * (`docs/ship-deck-art/water/README.md`):
@@ -118,13 +112,6 @@ export const DeckExtrasManifestSchema = z.object({
     position: z.tuple([z.number().int(), z.number().int()]),
     frameMs: z.number().positive(),
   }),
-  /**
-   * The crew's extra looks: each a texture the atlas's size holding every pose at exactly the atlas's
-   * own crew rectangles and feet (the pack's lanes), so a look is drawn with the base lane's frames.
-   */
-  crew: z
-    .array(z.object({ id: z.string().regex(/^[a-z0-9-]+$/), texture: ArtPath }))
-    .refine((looks) => new Set(looks.map((look) => look.id)).size === looks.length, "each crew look needs its own id"),
   /**
    * The way off by the plank (`docs/ship-deck-art/shark/README.md`): the shark's four keys and the splash's two,
    * each a `size` image whose `anchor` is where it meets the water. `mouth` is the shark's open mouth from

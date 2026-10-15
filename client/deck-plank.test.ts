@@ -11,7 +11,6 @@ import { describe, expect, it } from "vitest";
 import { WATERLINE } from "./deck-ambient";
 import {
   FADE_MS,
-  FRONT_ROWS,
   SHARK_MOUTH,
   applyCrew,
   createCrew,
@@ -41,7 +40,10 @@ import {
   type PlankMoment,
 } from "./deck-plank";
 import type { DeckSailor, DeckState } from "./deck-scene";
-import { shipFile, shipPlankMarks, shipStage, shipViews } from "../test/ship-pack";
+import { shipCast, shipFile, shipPlankMarks, shipStage, shipViews } from "../test/ship-pack";
+
+// The ship's cast, under the names its constants had in the deck's code.
+const FRONT_ROWS = shipCast().standRows;
 
 
 // The ship's stage, under the names its constants had in the deck's code.
@@ -281,7 +283,7 @@ describe("the crew leaving by the plank", () => {
   const sea = (figures: Figure[]) => figures.filter((figure) => figure.layer === "sea");
 
   it("walks a departing sailor to the plank by the deck's paths, sends it over, and leaves nothing behind", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a"), sailor("b", "idle")], { snap: false });
     applyCrew(crew, [sailor("b", "idle")], { snap: false, departures: { a: "done" } });
     const a = crew.walkers.get("a")!;
@@ -292,7 +294,7 @@ describe("the crew leaving by the plank", () => {
     const leaving = crewFigures(crew, 0, { still: false }).find((figure) => figure.key === "a")!;
     expect(leaving.departing).toBe(true);
     expect(showsBadge(leaving)).toBe(false);
-    expect(sailorAt([leaving], manifest, { x: leaving.x, y: leaving.y - 10 })).toBeNull();
+    expect(sailorAt([leaving], shipCast(), { x: leaving.x, y: leaving.y - 10 })).toBeNull();
 
     const layers = new Set<string>();
     let sharks = 0;
@@ -309,7 +311,7 @@ describe("the crew leaving by the plank", () => {
   });
 
   it("takes several one at a time: one on the plank, one shark in the water, each with one shark of its own", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     const keys = ["a", "b", "c", "d", "e"];
     applyCrew(crew, keys.map((key) => sailor(key, key === "c" ? "waiting" : "working")), { snap: false });
     applyCrew(crew, [], { snap: false });
@@ -339,7 +341,7 @@ describe("the crew leaving by the plank", () => {
   });
 
   it("lets the next one up only once the one before is in the water", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a"), sailor("b")], { snap: false });
     applyCrew(crew, [], { snap: false });
     let firstBoard = -1;
@@ -357,7 +359,7 @@ describe("the crew leaving by the plank", () => {
   });
 
   it("turns one still waiting back if its card returns, and brings up a new sailor for one already over the side", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a"), sailor("b")], { snap: false });
     applyCrew(crew, [], { snap: false });
     run(crew, 300);
@@ -378,7 +380,7 @@ describe("the crew leaving by the plank", () => {
   });
 
   it("ends cleanly however fast the cards come and go", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     for (let round = 0; round < 12; round += 1) {
       applyCrew(crew, round % 2 === 0 ? [sailor("a"), sailor("b", "idle")] : [], { snap: false });
       run(crew, 250);
@@ -395,7 +397,7 @@ describe("the crew leaving by the plank", () => {
 
 describe("leaving under reduced motion", () => {
   it("fades out where it stood, with no walk, no plank and no shark", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a"), sailor("b", "idle")], { snap: true });
     const before = crewFigures(crew, 0, { still: true }).find((figure) => figure.key === "a")!;
     applyCrew(crew, [sailor("b", "idle")], { snap: true, departures: { a: "done" } });
@@ -424,7 +426,7 @@ describe("leaving under reduced motion", () => {
   });
 
   it("turned on mid-sequence, fades whoever is still in sight where they are and drops every shark", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a"), sailor("b"), sailor("c")], { snap: false });
     applyCrew(crew, [sailor("c")], { snap: false });
     // Until the first is swimming and the fin is out.

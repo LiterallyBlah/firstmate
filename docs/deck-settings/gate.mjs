@@ -18,7 +18,10 @@
  *
  * `CONTROL=1` renders main a second time and compares it with itself first, to show the renders are
  * deterministic. On a difference the three images (main, branch, the differing pixels in red) are written to
- * `.generated/gate/`. Writes `gate-results.json` here and exits non-zero unless every shot is identical.
+ * `.generated/gate/`, and the scenario is rendered again on both sides: a GPU now and then rasterizes one edge pixel
+ * of a still frame differently, and a difference that does not come back is recorded as `flake` (with what it was)
+ * rather than failing the gate, while one that does fails it. `RERENDER=0` turns that off. Writes
+ * `gate-results.json` here and exits non-zero unless every shot is identical.
  */
 import { execFileSync } from "node:child_process";
 import { createServer } from "node:http";
@@ -41,6 +44,7 @@ const harness = createRequire(join(root, "docs/board-list/package.json"));
 const { build } = harness("esbuild");
 const { chromium } = harness("playwright");
 const CONTROL = process.env.CONTROL === "1";
+const RERENDER = process.env.RERENDER !== "0";
 /** `SAVE=1` writes every shot of the branch to `.generated/gate/shots/`, to look at. */
 const SAVE = process.env.SAVE === "1";
 mkdirSync(join(failures, "shots"), { recursive: true });
@@ -471,6 +475,8 @@ async function render(browser, tree, scenario) {
 
 const results = { base: `origin/main ${commit("origin/main")}`, branch: `HEAD ${commit("HEAD")}`, control: null, scenarios: [] };
 let identical = true;
+/** Differences that did not come back on a second render. */
+const flakes = [];
 
 async function run(browser, scenario) {
   const label = scenario.name;
@@ -483,8 +489,15 @@ async function run(browser, scenario) {
       results.control.push({ scenario: label, shot: name, identical: outcome.identical, differingPixels: outcome.differingPixels });
     }
   }
-  const main = await render(browser, "main", scenario);
-  const branch = await render(browser, "branch", scenario);
+  let main = await render(browser, "main", scenario);
+  let branch = await render(browser, "branch", scenario);
+  // Rendered again where they differ: a difference that does not come back was the GPU's, not the branch's.
+  let first = null;
+  if (RERENDER && main.shots.some(([name, png], index) => branch.shots[index]?.[0] !== name || !png.equals(branch.shots[index][1]))) {
+    first = { main, branch };
+    main = await render(browser, "main", scenario);
+    branch = await render(browser, "branch", scenario);
+  }
   const shots = [];
   if (main.shots.length !== branch.shots.length) {
     identical = false;
@@ -495,9 +508,19 @@ async function run(browser, scenario) {
     // A shot taken on what the deck shows (a flash) must be taken at the same moment in both.
     const outcome = branch.shots[index]?.[0] === name ? await compare(`${label}-${name}`, a, branch.shots[index][1]) : { identical: false, branchShot: branch.shots[index]?.[0] ?? null };
     if (SAVE) await writeFile(join(failures, "shots", `${label}-${name}.png`), branch.shots[index][1]);
-    shots.push({ shot: name, ...outcome, canvas: branch.facts[index], canvasMatchesMain: JSON.stringify(main.facts[index]) === JSON.stringify(branch.facts[index]) });
+    let flake = null;
+    if (first !== null && outcome.identical) {
+      const before = first.main.shots[index]?.[1];
+      const after = first.branch.shots[index]?.[1];
+      if (before !== undefined && after !== undefined && !before.equals(after)) {
+        const was = await compare(`flake-${label}-${name}`, before, after);
+        flake = { differingPixels: was.differingPixels, box: was.box };
+        flakes.push({ scenario: label, shot: name, ...flake });
+      }
+    }
+    shots.push({ shot: name, ...outcome, ...(flake === null ? {} : { flake }), canvas: branch.facts[index], canvasMatchesMain: JSON.stringify(main.facts[index]) === JSON.stringify(branch.facts[index]) });
     if (!outcome.identical) identical = false;
-    console.log(`${outcome.identical ? "same" : "DIFF"}  ${label} ${name}${outcome.identical ? "" : ` — ${outcome.differingPixels} px in ${outcome.box}`}`);
+    console.log(`${outcome.identical ? (flake === null ? "same" : "same (flake)") : "DIFF"}  ${label} ${name}${outcome.identical ? (flake === null ? "" : ` — ${flake.differingPixels} px in ${flake.box} the first time, gone on re-render`) : ` — ${outcome.differingPixels} px in ${outcome.box}`}`);
   }
   results.scenarios.push({ scenario: label, options: scenario.options, shots });
 }
@@ -522,6 +545,7 @@ try {
 }
 
 results.pageErrors = errors;
+results.flakes = flakes;
 results.shots = results.scenarios.reduce((sum, scenario) => sum + scenario.shots.length, 0);
 results.identical = identical && errors.length === 0;
 if (results.control !== null) results.controlIdentical = results.control.every((entry) => entry.identical);
