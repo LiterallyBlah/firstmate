@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 
 import { DeckArtManifestSchema, DeckEnvironmentManifestSchema, DeckExtrasManifestSchema, environmentImagePaths, extrasImagePaths } from "../shared/ship-deck";
 import { HORIZON, WATERLINE } from "./deck-ambient";
+import { cloudPeriod } from "./deck-clouds";
 import { FOAM_SPAN, FOAM_TOP, type DeckEnvironmentImages } from "./deck-environment";
 import { FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout } from "./deck-camera";
 import { BREATH_ROWS } from "./deck-crew";
@@ -855,10 +856,14 @@ describe("the clouds in the sky", () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy });
     deck.advance(0);
     const before = inSky(deck);
-    // A minute of frames: each cloud a few dozen sky pixels on at most, never back.
+    // A minute of frames: each cloud a few dozen sky pixels on at most, never back — counted round its lap, for one that wraps.
     for (let frame = 0; frame < 1800; frame += 1) deck.advance(34);
     const after = inSky(deck);
-    const moved = after.map((place, index) => place.x - before[index]!.x);
+    const moved = after.map(function (place, index) {
+      const id = cloudsOf(deck)[index]!.label.replace("cloud:", "");
+      const period = cloudPeriod(environmentManifest.sky.size[0], extrasManifest.clouds!.sprites.find((sprite) => sprite.id === id)!.size[0]);
+      return (((place.x - before[index]!.x) % period) + period) % period;
+    });
     expect(moved.every((step) => step >= 0 && step <= 50)).toBe(true);
     expect(moved.filter((step) => step >= 10)).toHaveLength(7);
     expect(after.map((place) => place.y)).toEqual(before.map((place) => place.y));
