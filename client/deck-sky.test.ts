@@ -1,39 +1,28 @@
 /**
- * The deck's day and night: which of the generated skies shows at a local time of day, with the clock
- * handed in; how smoothly one becomes the next; where the sky sits behind the ship; and the sea's,
- * foam's and gull's timing — all against the ship pack's own (`art/settings/ship/setting.json`).
+ * The deck's day and night: which of a setting's day phases shows at a local time of day, with the clock handed in;
+ * how smoothly one becomes the next; where a backdrop sits behind the stage; and the sea's, foam's and flyby's timing
+ * — all against the ship pack's own (`art/settings/ship/setting.json`).
  */
-import { readFileSync } from "node:fs";
-import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { SKY_PHASES, type DeckEnvironmentManifest } from "./deck-legacy";
-import { shipManifest, shipStage, shipViews } from "../test/ship-pack";
-import { HORIZON } from "./deck-ambient";
+import type { DeckEnvironmentManifest } from "./deck-legacy";
+import { shipElement, shipManifest, shipStage, shipViews } from "../test/ship-pack";
+import { flybyPose, HORIZON } from "./deck-ambient";
 import { FOAM_HEIGHT, FOAM_SPAN, foamSegments } from "./deck-environment";
-import {
-  dominantPhase,
-  gullPose,
-  localMinute,
-  MINUTES_PER_DAY,
-  scrollOffset,
-  SKY_FADE_MINUTES,
-  skyBlend,
-  skyHorizonRow,
-  skyPlacement,
-  type SkyBlend,
-} from "./deck-sky";
+import { backdropPlacement, dayBlend, dominantPhase, localMinute, MINUTES_PER_DAY, scrollOffset, type DayBlend } from "./deck-sky";
 
 const manifest: DeckEnvironmentManifest = shipViews().environment;
-const phases = manifest.sky.phases;
-const phaseId = (blend: SkyBlend) => phases[dominantPhase(blend)]!.id;
+const cycle = shipManifest().dayCycle!;
+const { phases, fadeMinutes } = cycle;
+const phaseId = (blend: DayBlend) => phases[dominantPhase(blend)]!.id;
+const skyBlend = (minute: number | null) => dayBlend(minute, cycle);
 
 /** A local wall-clock time on an ordinary day, whatever the machine's time zone. */
 const at = (hours: number, minutes = 0, seconds = 0) => new Date(2026, 9, 14, hours, minutes, seconds);
-const skyAt = (date: Date) => skyBlend(localMinute(date), phases);
+const skyAt = (date: Date) => skyBlend(localMinute(date));
 
 /** How much of each phase shows in a blend: the lower whole, less what the upper covers. */
-function weights(blend: SkyBlend): number[] {
+function weights(blend: DayBlend): number[] {
   const shown = phases.map(() => 0);
   shown[blend.from]! += 1 - blend.t;
   shown[blend.to]! += blend.t;
@@ -49,7 +38,8 @@ describe("the sky by the local time of day", () => {
   });
 
   it("shows each phase alone at its anchor: dawn 05:30, morning 08:00, midday 12:00, afternoon 16:00, dusk 18:30, night 21:00", () => {
-    expect(phases.map((phase) => phase.id)).toEqual([...SKY_PHASES]);
+    expect(phases.map((phase) => phase.id)).toEqual(["dawn", "morning", "midday", "afternoon", "dusk", "night"]);
+    expect([cycle.night, cycle.fallback]).toEqual(["night", "midday"]);
     const anchors: Array<[Date, string]> = [
       [at(5, 30), "dawn"],
       [at(8, 0), "morning"],
@@ -94,10 +84,10 @@ describe("the sky by the local time of day", () => {
   it("holds each sky after its anchor, and fades to the next over the hour and a half before that one's", () => {
     for (const [index, phase] of phases.entries()) {
       const next = phases[(index + 1) % phases.length]!;
-      const fadeFrom = (next.localMinute - SKY_FADE_MINUTES + MINUTES_PER_DAY) % MINUTES_PER_DAY;
-      const held = skyBlend(fadeFrom, phases);
+      const fadeFrom = (next.localMinute - fadeMinutes + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+      const held = skyBlend(fadeFrom);
       expect([phases[held.from]!.id, held.t], phase.id).toEqual([phase.id, 0]);
-      const halfway = skyBlend((fadeFrom + SKY_FADE_MINUTES / 2) % MINUTES_PER_DAY, phases);
+      const halfway = skyBlend((fadeFrom + fadeMinutes / 2) % MINUTES_PER_DAY);
       expect([phases[halfway.from]!.id, phases[halfway.to]!.id], phase.id).toEqual([phase.id, next.id]);
       expect(halfway.t).toBeCloseTo(0.5);
     }
@@ -106,7 +96,7 @@ describe("the sky by the local time of day", () => {
   it("blends between two neighbours only, eased, and never jumps as the minutes pass", () => {
     let previous = weights(skyAt(at(0, 0)));
     for (let minute = 1; minute <= MINUTES_PER_DAY; minute += 1) {
-      const blend = skyBlend(minute, phases);
+      const blend = skyBlend(minute);
       expect(blend.to).toBe((blend.from + 1) % phases.length);
       expect(blend.t).toBeGreaterThanOrEqual(0);
       expect(blend.t).toBeLessThan(1);
@@ -116,36 +106,44 @@ describe("the sky by the local time of day", () => {
       previous = now;
     }
     // Eased: halfway through the fade to midday (10:30 to 12:00) is half of each; a quarter of the way, under a quarter.
-    expect(skyBlend(675, phases).t).toBeCloseTo(0.5);
-    expect(skyBlend(652.5, phases).t).toBeLessThan(0.25);
-    expect(skyBlend(600, phases).t).toBe(0);
+    expect(skyBlend(675).t).toBeCloseTo(0.5);
+    expect(skyBlend(652.5).t).toBeLessThan(0.25);
+    expect(skyBlend(600).t).toBe(0);
   });
 
-  it("brings the stars out with the night, and none by day", () => {
-    expect(skyAt(at(21, 0)).stars).toBe(1);
-    expect(skyAt(at(2, 0)).stars).toBe(1);
-    expect(skyAt(at(5, 30)).stars).toBe(0);
-    for (let hour = 6; hour < 19; hour += 1) expect(skyAt(at(hour, 0)).stars, `${hour}:00`).toBe(0);
+  it("brings the night out, and none of it by day", () => {
+    expect(skyAt(at(21, 0)).night).toBe(1);
+    expect(skyAt(at(2, 0)).night).toBe(1);
+    expect(skyAt(at(5, 30)).night).toBe(0);
+    for (let hour = 6; hour < 19; hour += 1) expect(skyAt(at(hour, 0)).night, `${hour}:00`).toBe(0);
     const evening = skyAt(at(20, 0));
-    expect(evening.stars).toBeGreaterThan(0);
-    expect(evening.stars).toBeLessThan(1);
+    expect(evening.night).toBeGreaterThan(0);
+    expect(evening.night).toBeLessThan(1);
   });
 
-  it("shows midday, starless, when the clock will not say", () => {
-    const blend = skyBlend(null, phases);
+  it("shows its fallback, midday, with no night, when the clock will not say", () => {
+    const blend = skyBlend(null);
     expect(phaseId(blend)).toBe("midday");
-    expect([blend.t, blend.stars]).toEqual([0, 0]);
-    expect(skyBlend(Number.NaN, phases)).toEqual(blend);
+    expect([blend.t, blend.night]).toEqual([0, 0]);
+    expect(skyBlend(Number.NaN)).toEqual(blend);
+  });
+
+  it("fades over the whole gap when it is shorter than the fade, and holds a day of one phase", () => {
+    const short = { ...cycle, phases: [{ id: "early", localMinute: 0 }, { id: "late", localMinute: 30 }, { id: "night", localMinute: 720 }] };
+    expect(dayBlend(15, short)).toMatchObject({ from: 0, to: 1, t: 0.5 });
+    expect(dayBlend(600, { ...cycle, phases: [{ id: "night", localMinute: 0 }] })).toEqual({ from: 0, to: 0, t: 0, night: 1 });
   });
 });
 
-describe("where the sky sits", () => {
-  const size = manifest.sky.size;
-  const row = skyHorizonRow(size);
+describe("where a backdrop sits", () => {
+  const sky = shipElement("sky", "backdrop-cycle");
+  const { size, placement } = sky;
+  const row = placement.horizonRow;
 
-  it("lays its lower third under the sea, at the hull's own pixel scale, centred on the ship", () => {
-    expect(row).toBe(213);
-    const placed = skyPlacement({ left: -9, right: shipStage().width + 9, top: -4 }, size, row, shipStage().width);
+  it("lays the ship's sky's lower third under the sea, at the hull's own pixel scale, centred on the ship", () => {
+    expect(placement).toEqual({ horizonRow: 213, stageRow: HORIZON });
+    expect(row).toBe(Math.round(size[1] * (2 / 3)));
+    const placed = backdropPlacement({ left: -9, right: shipStage().width + 9, top: -4 }, size, placement, shipStage().width);
     expect(placed.scale).toBe(1);
     expect(placed.x + (size[0] * placed.scale) / 2).toBe(shipStage().width / 2);
     expect(placed.y + row * placed.scale).toBe(HORIZON);
@@ -157,7 +155,7 @@ describe("where the sky sits", () => {
       { left: -20, right: shipStage().width + 20, top: -400 },
       { left: -900, right: shipStage().width + 100, top: -600 },
     ]) {
-      const placed = skyPlacement(visible, size, row, shipStage().width);
+      const placed = backdropPlacement(visible, size, placement, shipStage().width);
       expect(placed.scale).toBeGreaterThan(1);
       expect(placed.x).toBeLessThanOrEqual(visible.left + 1e-9);
       expect(placed.x + size[0] * placed.scale).toBeGreaterThanOrEqual(visible.right - 1e-9);
@@ -167,7 +165,7 @@ describe("where the sky sits", () => {
   });
 });
 
-describe("the sea, the foam and the gull, by the manifest", () => {
+describe("the sea, the foam and the gull, by the pack", () => {
   it("scrolls the water a whole pixel at a time, round one tile, still at the scene clock's start", () => {
     const [width] = manifest.sea.period;
     expect(manifest.sea.animation.xPixelsPerSecond).toBe(10);
@@ -199,8 +197,10 @@ describe("the sea, the foam and the gull, by the manifest", () => {
   });
 
   it("flaps up, mid, down, mid at 125 ms a pose", () => {
-    expect(manifest.gull.sequence).toEqual(["up", "mid", "down", "mid"]);
-    expect([0, 0.125, 0.25, 0.375, 0.5, 0.6].map((age) => gullPose(age, manifest.gull))).toEqual(["up", "mid", "down", "mid", "up", "up"]);
-    expect(manifest.gull.anchor).toEqual([26, 20]);
+    const gull = shipElement("gull", "flyby");
+    expect(gull.sequence).toEqual(["up", "mid", "down", "mid"]);
+    expect([0, 0.125, 0.25, 0.375, 0.5, 0.6].map((age) => flybyPose(age, gull))).toEqual(["up", "mid", "down", "mid", "up", "up"]);
+    expect(gull.anchor).toEqual([26, 20]);
+    expect(flybyPose(0, { ...gull, sequence: [] })).toBe(gull.glide);
   });
 });

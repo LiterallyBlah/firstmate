@@ -1,7 +1,8 @@
 /**
- * The deck's weather layers (the setting pack's `variants`, `cycle`s and sky `overlay`s, served by `firstmate.deck.setting`), as
- * pure functions: a curve's value at an intensity, and which layers can be drawn over what. The sprites are
- * `client/deck-environment.ts`'s; the moments of weather — lightning — are `client/deck-flash.ts`'s.
+ * The deck's weather layers (the setting pack's `variants` and `cycle`s, served by `firstmate.deck.setting`), as pure
+ * functions: a curve's value at an intensity, and which layers can be drawn over what. The sprites are
+ * `client/deck-environment.ts`'s; the moments of weather — lightning — are `client/deck-flash.ts`'s, and the sky's
+ * overlays and drifters are compiled with the rest of the ambience (`client/deck-ambience.ts`).
  *
  * Nothing here is about a storm. A setting's weather is data: each layer names what it lays over and an `opacity`
  * curve over the weather's intensity (`client/deck-atmosphere.ts`), and this draws whatever the data says. The heavy
@@ -9,12 +10,12 @@
  * thunderheads over the clouds, an overcast in the sky's mood, and spindrift at the bow.
  *
  * - **A variant rides its element's clock.** It is a second set of frames over a scene element — the animated water's
- *   sea tile, foam strip or wake, a cycle, or a cloud — drawn on that element's own frame index, drift and place, so a
+ *   sea tile, foam strip or wake, a cycle, or a drifter — drawn on that element's own frame index, drift and place, so a
  *   cross-fade never shimmers out of step and there is no new clock. So it must have as many frames as the element and
  *   the element's frame size; one that does not line up is left out, and the element stands as it was (`drawnVariants`).
  * - **`over` or `crossfade`.** Opaque art (the sea) is drawn over the whole element, which is not drawn at all once the
  *   variant is; transparent art (a wake, a cloud) cross-fades, the element fading out as the variant comes in.
- * - **Each layer stands alone.** A variant, a cycle or an overlay whose image did not decode is left out by itself.
+ * - **Each layer stands alone.** A variant or a cycle whose image did not decode is left out by itself.
  * - **Never under reduced motion.** The scenery is handed no intensity on a still deck (`Weather.intensity`), and draws
  *   none of these. On a software renderer they show, each on its element's first frame, at their opacity.
  */
@@ -24,7 +25,6 @@ import type { DrawnWater } from "./deck-water";
 
 export type Variant = NonNullable<DeckExtrasManifest["variants"]>[number];
 export type Cycle = NonNullable<DeckExtrasManifest["cycles"]>[number];
-export type MoodOverlay = NonNullable<DeckExtrasManifest["mood"]>["overlays"][number];
 
 /** A curve over the weather's intensity: [intensity, value] points, intensity rising. */
 export type Curve = ReadonlyArray<readonly [number, number]>;
@@ -57,10 +57,9 @@ export function curvePeak(curve: Curve): number {
 
 /** The weather layers that can be drawn, each with every image it needs decoded; variants only where they line up. */
 export interface DrawnVariants {
-  /** By what they lay over: `sea`, `foam`, `wake`, `cycle:<id>`, `cloud:<id>`, in the manifest's order. */
+  /** By what they lay over: `sea`, `foam`, `wake`, `cycle:<id>`, in the manifest's order. */
   variants: ReadonlyMap<string, readonly Variant[]>;
   cycles: readonly Cycle[];
-  overlays: readonly MoodOverlay[];
   images: ReadonlyMap<string, unknown>;
 }
 
@@ -74,28 +73,25 @@ const sameSize = (a: readonly number[], b: readonly number[]) => a.length === b.
 
 /**
  * The extras' weather layers that can be drawn over `water`, the animated water drawn: each whose images decoded, and
- * each variant only over an element that is drawn, with as many frames of the same size. A cloud's variant needs its
- * masks cut too, which is `drawnClouds`'s to say; here it needs only its element. Null when there are none.
+ * each variant only over an element that is drawn, with as many frames of the same size. Null when there are none.
  */
 export function drawnVariants(extras: DeckExtrasImages | null, water: DrawnWater | null): DrawnVariants | null {
   if (extras === null) return null;
   const { manifest, images } = extras;
   const has = (paths: readonly string[]) => paths.every((path) => images.has(path));
   const cycles = (manifest.cycles ?? []).filter((cycle) => has(cycle.frames));
-  const overlays = (manifest.mood?.overlays ?? []).filter((overlay) => has([overlay.texture]));
   const elements = new Map<string, Element>();
   if (water?.sea) elements.set("sea", { frames: water.sea.frames.length, frameSize: water.sea.frameSize });
   if (water?.foam) elements.set("foam", { frames: water.foam.frames.length, frameSize: water.foam.frameSize });
   if (water?.wake) elements.set("wake", { frames: water.wake.frames.length, frameSize: water.wake.frameSize });
   for (const cycle of cycles) elements.set(`cycle:${cycle.id}`, { frames: cycle.frames.length, frameSize: cycle.frameSize });
-  for (const cloud of manifest.clouds?.sprites ?? []) elements.set(`cloud:${cloud.id}`, { frames: 1, frameSize: cloud.size });
   const variants = new Map<string, Variant[]>();
   for (const variant of manifest.variants ?? []) {
     const element = elements.get(variant.variantOf);
     if (element === undefined || !has(variant.frames) || variant.frames.length !== element.frames || !sameSize(variant.frameSize, element.frameSize)) continue;
     variants.set(variant.variantOf, [...(variants.get(variant.variantOf) ?? []), variant]);
   }
-  return variants.size === 0 && cycles.length === 0 && overlays.length === 0 ? null : { variants, cycles, overlays, images };
+  return variants.size === 0 && cycles.length === 0 ? null : { variants, cycles, images };
 }
 
 /** The variants laid over `element`, none if it has none. */

@@ -1,8 +1,9 @@
 /**
- * The generated environment on the deck, through `startDeck` itself with a stand-in for Pixi that keeps
+ * The setting's scenery on the deck, through `startDeck` itself with a stand-in for Pixi that keeps
  * the scene graph: the depth order (sky behind, sea behind and at the hull, ship and crew in front), the
  * sky following an injected clock — once a minute on a still deck — reduced motion's still sea and empty
- * sky, and the plain sea the deck falls back to without its environment. Then the extras: the tall mast and
+ * sky, and the plain sea the deck falls back to without its still sea, each ambience element left out on its own
+ * when its image did not arrive. Then the extras: the tall mast and
  * its sail, the crew's looks, the at-ease sailor's breath, and the wake. Then the camera closing in on a
  * focused sailor: the zoom over the deck's clock, the veil and the spotlight, a click read through the camera,
  * the snap under reduced motion, and a resize while focused. And the weather, livelier as more of the crew works. Whether WebGL paints it is the browser
@@ -15,10 +16,10 @@ import { describe, expect, it } from "vitest";
 
 import { environmentImagePaths, extrasImagePaths } from "./deck-legacy";
 import { HORIZON, WATERLINE } from "./deck-ambient";
-import { BUSY_CREW, deliveredWeather, shade, STORM_SHADE } from "./deck-atmosphere";
-import { cloudPeriod, drawnClouds } from "./deck-clouds";
-import { createScenery, FOAM_SPAN, FOAM_TOP, type DeckEnvironmentImages } from "./deck-environment";
-import { drawnFlashes } from "./deck-flash";
+import { BUSY_CREW, deliveredWeather, shade } from "./deck-atmosphere";
+import { compileAmbience } from "./deck-ambience";
+import { cloudPeriod, hexColour, type DrifterMasks } from "./deck-clouds";
+import { createScenery, FOAM_SPAN, FOAM_TOP, type DeckEnvironmentImages, type SceneryArt } from "./deck-environment";
 import { drawnVariants } from "./deck-variants";
 import { drawnWater } from "./deck-water";
 import { ASK_PAPER, askPixels } from "./deck-badges";
@@ -30,11 +31,14 @@ import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { DECK_FLASH_ATTRIBUTE, DECK_MOTION_ATTRIBUTE, DECK_SKY_ATTRIBUTE, DECK_WEATHER_ATTRIBUTE, deckBox, fitDeck, startDeck, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
 import { SKY_REFRESH_MS } from "./deck-sky";
 import { deckScene, depthOf, type DeckScene, type DeckSailor, type DeckState } from "./deck-scene";
-import { shipCast, shipStage, shipViews } from "../test/ship-pack";
+import { shipCast, shipElement, shipManifest, shipStage, shipViews } from "../test/ship-pack";
 import { standing } from "./deck-cast";
 
 // The ship's cast, under the names its constants had in the deck's code.
 const BREATH_ROWS = shipCast().breath!.rows;
+/** The ship's sky at its moodiest: the tint its backdrop goes to with a busy crew. */
+const SKY_SHADE = hexColour(shipElement("sky", "backdrop-cycle").tint!.to);
+const clouds = shipElement("clouds", "drifters");
 
 const theme = {
   colors: {
@@ -197,11 +201,67 @@ const pixi = {
   Rectangle: FakeRectangle,
 } as unknown as PixiModule;
 
-/** The environment as the mount decodes it: each image a token naming its path. */
+/** The still sea and foam as the mount decodes them: each image a token naming its path. */
 const environment: DeckEnvironmentImages = {
   manifest: environmentManifest,
   images: new Map(environmentImagePaths(environmentManifest).map((path) => [path, { image: path }])),
 };
+
+/** The extras as a test hands them over, and which drifters were cut into their masks: the clouds, or their variants too. */
+type Extras = DeckExtrasImages & { masks?: "clouds" | "all" };
+
+/** The images the ambience draws with, by id. */
+const ambienceImages = new Set(
+  shipManifest().ambience.flatMap(function ({ behaviour }) {
+    switch (behaviour.kind) {
+      case "backdrop-cycle":
+        return Object.values(behaviour.phases);
+      case "overlay":
+        return [behaviour.image];
+      case "flash":
+        return behaviour.frames.map((frame) => frame.sprite.image);
+      case "drifters":
+        return behaviour.sprites.flatMap((sprite) => [sprite.image, ...(sprite.variants ?? []).map((variant) => variant.frames[0]!.image)]);
+      case "flyby":
+        return Object.values(behaviour.poses).map((sprite) => sprite.image);
+      default:
+        return [];
+    }
+  }),
+);
+
+/**
+ * The pack's images by id, as the mount hands them over, each a token naming its path: the atlas; the ambience's,
+ * but those `without`; and whatever of the extras arrived. With `masks`, each drifter's three slot masks, tokens too.
+ */
+function packImages(options: { extras?: Extras | null; without?: readonly string[] }, atlas: unknown = { atlas: true }) {
+  const images = new Map(
+    [...shipViews().paths].flatMap(([id, path]): Array<[string, unknown]> => {
+      if (options.without?.includes(id)) return [];
+      const image = path === "deck.png" ? atlas : ambienceImages.has(id) ? { image: path } : options.extras?.images.get(path);
+      return image === undefined ? [] : [[id, image]];
+    }),
+  );
+  const masks = new Map<string, DrifterMasks>(
+    options.extras?.masks !== undefined
+      ? [...ambienceImages]
+          .filter((id) => images.has(id) && (shipViews().paths.get(id)!.startsWith("clouds/") || (options.extras?.masks === "all" && shipViews().paths.get(id)!.startsWith("storm/clouds/"))))
+          .map((id) => [id, [0, 1, 2].map((slot) => ({ image: `${shipViews().paths.get(id)}#${slot}` })) as unknown as DrifterMasks])
+      : [],
+  );
+  const ambience = compileAmbience(
+    shipManifest(),
+    (id) => images.has(id),
+    (id) => masks.has(id),
+  );
+  return { images, masks, ambience };
+}
+
+/** What the scenery is drawn from, for a test that draws it alone. */
+function sceneryArt(options: { extras?: Extras | null; without?: readonly string[] } & Partial<SceneryArt>): SceneryArt {
+  const { images, masks, ambience } = packImages(options);
+  return { ambience, images, masks, environment: null, water: null, layers: null, ...options };
+}
 
 /** A hand-wound world: the clock, the frames, the minute timer, the motion signals. */
 function world(options: { reducedMotion?: boolean; hidden?: boolean; now: Date }) {
@@ -258,7 +318,9 @@ async function start(
     reducedMotion?: boolean;
     hidden?: boolean;
     now: Date;
-    extras?: DeckExtrasImages | null;
+    extras?: Extras | null;
+    /** Pack images that did not arrive, by id. */
+    without?: readonly string[];
     scene?: DeckScene;
     onHover?: (hover: DeckHover | null) => void;
     onSelect?: (key: string | null) => void;
@@ -266,17 +328,12 @@ async function start(
 ) {
   const w = world(options);
   const host = { appendChild() {}, clientWidth: 800, clientHeight: 400 };
-  // The pack's images by id, as the mount hands them over: the atlas, and whatever of the extras arrived.
+  // The pack's images by id, as the mount hands them over: the atlas, the ambience's, and whatever of the extras arrived.
   const atlas = { atlas: true };
-  const images = new Map(
-    [...shipViews().paths].flatMap(([id, path]): Array<[string, unknown]> => {
-      const image = path === "deck.png" ? atlas : options.extras?.images.get(path);
-      return image === undefined ? [] : [[id, image]];
-    }),
-  );
+  const { images, masks, ambience } = packImages(options, atlas);
   const drawing = await startDeck(
     pixi,
-    { stage: shipStage(), cast: shipCast(), images, image: atlas, manifest: deckManifest, environment: art, extras: options.extras ?? null },
+    { stage: shipStage(), cast: shipCast(), ambience, images, masks, image: atlas, manifest: deckManifest, environment: art, extras: options.extras ?? null },
     host,
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
@@ -305,7 +362,7 @@ const one = (root: FakeContainer, label: string) => {
 const texturePath = (sprite: FakeContainer) => ((sprite as FakeSprite).texture.source.resource as { image: string }).image;
 
 describe("the generated environment on the deck", () => {
-  it("draws back to front: sky, stars, gull, far sea; then the ship and its crew; then the near sea and the foam", async () => {
+  it("draws back to front: sky, overcast, stars, gull, far sea; then the ship and its crew; then the near sea and the foam", async () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0) });
     deck.advance(16);
     const worldLayer = one(deck.app.stage, "world");
@@ -314,7 +371,8 @@ describe("the generated environment on the deck", () => {
     expect(one(worldLayer, "veil").visible).toBe(false);
     expect(one(worldLayer, "spot").children).toHaveLength(0);
     const back = one(deck.app.stage, "scenery:back");
-    expect(back.children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:stars", "gull", "gull", "sea:far"]);
+    // No clouds without their masks, and no lightning without clouds to stand under.
+    expect(back.children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:overcast", "sky:stars", "gull", "gull", "sea:far"]);
     expect(one(deck.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:near", "wake", "foam"]);
     // The crew's deck is inside the ship, so every sailor is in front of the sky and the far sea.
     expect(one(one(deck.app.stage, "ship"), "deck")).toBeDefined();
@@ -421,26 +479,39 @@ describe("the generated environment on the deck", () => {
     deck.drawing.destroy();
   });
 
-  it("without its environment, draws a plain sea at the horizon and the waterline, and no sky or gull", async () => {
+  it("without its still sea, draws a plain sea at the horizon and the waterline, under the sky as ever", async () => {
     const deck = await start(null, { now: new Date(2026, 9, 14, 12, 0) });
     deck.advance(16);
     expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot"]);
-    expect(byLabel(deck.app.stage, "sky:under")).toEqual([]);
-    expect(byLabel(deck.app.stage, "gull")).toEqual([]);
-    expect(deck.app.canvas.attributes.get(DECK_SKY_ATTRIBUTE)).toBe("none");
+    expect(one(deck.app.stage, "scenery:back").children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:overcast", "sky:stars", "gull", "gull", "sea:far"]);
+    expect(deck.app.canvas.attributes.get(DECK_SKY_ATTRIBUTE)).toBe("midday");
     const far = one(deck.app.stage, "sea:far") as FakeGraphics;
     const near = one(deck.app.stage, "sea:near") as FakeGraphics;
     expect(far.shapes[0]?.[2]).toBe(HORIZON);
     expect(near.shapes[0]?.[2]).toBe(WATERLINE);
+    expect(far.shapes[0]?.[5]).toBe(Number.parseInt(shipManifest().palette.fallbackFill.slice(1), 16));
     deck.drawing.destroy();
   });
 
-  it("falls back the same way when the environment is missing an image it names", async () => {
-    const partial: DeckEnvironmentImages = { manifest: environmentManifest, images: new Map([...environment.images].filter(([path]) => path !== "sky/dawn.png")) };
+  it("falls back the same way when the still sea is missing an image it names", async () => {
+    const partial: DeckEnvironmentImages = { manifest: environmentManifest, images: new Map([...environment.images].filter(([path]) => path !== "sea/water-tile.png")) };
     const deck = await start(partial, { now: new Date(2026, 9, 14, 12, 0) });
     deck.advance(16);
-    expect(deck.app.canvas.attributes.get(DECK_SKY_ATTRIBUTE)).toBe("none");
+    expect(one(deck.app.stage, "sea:far")).toBeInstanceOf(FakeGraphics);
+    expect(deck.app.canvas.attributes.get(DECK_SKY_ATTRIBUTE)).toBe("midday");
     deck.drawing.destroy();
+  });
+
+  it("leaves out each element of the ambience on its own: no sky without a phase of it, nor what is drawn in it; the gull flies on", async () => {
+    const skyless = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: { ...extras, masks: "all" }, without: ["sky-dawn"] });
+    skyless.advance(16);
+    expect(one(skyless.app.stage, "scenery:back").children.map((child) => child.label)).toEqual(["gull", "gull", "sea:far", "sea:far:rough-sea"]);
+    expect(skyless.app.canvas.attributes.get(DECK_SKY_ATTRIBUTE)).toBe("none");
+    skyless.drawing.destroy();
+    const starless = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: { ...extras, masks: "all" }, without: ["sky-stars", "gull-flap-strip"] });
+    starless.advance(16);
+    expect(one(starless.app.stage, "scenery:back").children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:overcast", "flash:lightning", "clouds", "sea:far", "sea:far:rough-sea"]);
+    starless.drawing.destroy();
   });
 
   it("lets go of the sky's textures and sources when torn down, and stops its minute timer", async () => {
@@ -900,13 +971,8 @@ describe("the plank and the shark on the deck", () => {
 });
 
 describe("the clouds in the sky", () => {
-  /** The extras with every cloud cut into its masks: each a token naming its sprite and slot. */
-  const cloudy: DeckExtrasImages = {
-    ...extras,
-    cloudMasks: new Map(
-      extrasManifest.clouds!.sprites.map((sprite) => [sprite.texture, [0, 1, 2].map((slot) => ({ image: `${sprite.texture}#${slot}` })) as [unknown, unknown, unknown]]),
-    ),
-  };
+  /** The extras, with every cloud cut into its masks: each a token naming its sprite and slot. */
+  const cloudy: Extras = { ...extras, masks: "clouds" };
   const cloudsOf = (deck: Awaited<ReturnType<typeof start>>) => one(deck.app.stage, "clouds").children;
   /** Each cloud's place in the sky's own pixels, read back through the sky's sprite: whole pixels, at the sky's scale. */
   const inSky = (deck: Awaited<ReturnType<typeof start>>) => {
@@ -937,8 +1003,8 @@ describe("the clouds in the sky", () => {
     const clouds = cloudsOf(deck);
     expect(clouds).toHaveLength(7);
     for (const cloud of clouds) {
-      expect(cloud.children.map((child) => child.label)).toEqual(["cloud:shadow", "cloud:body", "cloud:highlight"]);
-      const id = cloud.label.replace("cloud:", "");
+      expect(cloud.children.map((child) => child.label)).toEqual(["clouds:shadow", "clouds:body", "clouds:highlight"]);
+      const id = cloud.label.replace("clouds:", "");
       expect(cloud.children.map(texturePath)).toEqual([0, 1, 2].map((slot) => `clouds/${id}.png#${slot}`));
       expect(cloud.children.every((mask) => (mask as FakeSprite).texture.source.scaleMode === "nearest")).toBe(true);
     }
@@ -962,8 +1028,8 @@ describe("the clouds in the sky", () => {
     for (let frame = 0; frame < 1800; frame += 1) deck.advance(34);
     const after = inSky(deck);
     const moved = after.map(function (place, index) {
-      const id = cloudsOf(deck)[index]!.label.replace("cloud:", "");
-      const period = cloudPeriod(environmentManifest.sky.size[0], extrasManifest.clouds!.sprites.find((sprite) => sprite.id === id)!.size[0]);
+      const id = cloudsOf(deck)[index]!.label.replace("clouds:", "");
+      const period = cloudPeriod(shipElement("sky", "backdrop-cycle").size[0], clouds.sprites.find((sprite) => sprite.id === id)!.size[0], clouds.margin);
       return (((place.x - before[index]!.x) % period) + period) % period;
     });
     expect(moved.every((step) => step >= 0 && step <= 50)).toBe(true);
@@ -1020,10 +1086,10 @@ describe("the clouds in the sky", () => {
   });
 
   it("draws none without a sky, or with no cloud cut into masks; lets go of their textures when torn down", async () => {
-    const flat = await start(null, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy });
-    flat.advance(16);
-    expect(byLabel(flat.app.stage, "clouds")).toEqual([]);
-    flat.drawing.destroy();
+    const skyless = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy, without: ["sky-night"] });
+    skyless.advance(16);
+    expect(byLabel(skyless.app.stage, "clouds")).toEqual([]);
+    skyless.drawing.destroy();
     const uncut = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
     uncut.advance(16);
     expect(byLabel(uncut.app.stage, "clouds")).toEqual([]);
@@ -1190,7 +1256,7 @@ describe("the animated water on the deck", () => {
   });
 
   it("holds them on a software renderer's lite plan too, where the sea does not drift", () => {
-    const scenery = createScenery(pixi, shipStage(), environment, null, 0, drawnWater(extras));
+    const scenery = createScenery(pixi, shipStage(), sceneryArt({ environment, water: drawnWater(extras) }), 0);
     scenery.layout({ left: 0, right: 426, top: -80, bottom: 240 });
     const lite = { level: "lite", animate: true, fps: 12, ambient: false } as const;
     for (const seconds of [0, 0.25, 0.5, 0.75, 1]) {
@@ -1246,12 +1312,7 @@ describe("the animated water on the deck", () => {
 describe("the weather on the deck, by how busy the crew is", () => {
   const busy = () => crewScene(Array.from({ length: BUSY_CREW }, (_, index): [string, DeckState] => [`hand-${index}`, "working"]));
   const idle = () => crewScene([["dozing", "idle"]]);
-  const cloudy: DeckExtrasImages = {
-    ...extras,
-    cloudMasks: new Map(
-      extrasManifest.clouds!.sprites.map((sprite) => [sprite.texture, [0, 1, 2].map((slot) => ({ image: `${sprite.texture}#${slot}` })) as [unknown, unknown, unknown]]),
-    ),
-  };
+  const cloudy: Extras = { ...extras, masks: "clouds" };
   const seaFrame = (deck: Awaited<ReturnType<typeof start>>) => texturePath(one(deck.app.stage, "sea:far").children[0]!);
   /** Over `seconds` at 30 frames a second: how often the sea's frame and the sail's state changed, how far the sea and the first cloud went. */
   function watch(deck: Awaited<ReturnType<typeof start>>, seconds: number) {
@@ -1296,11 +1357,11 @@ describe("the weather on the deck, by how busy the crew is", () => {
     expect(one(lively.app.stage, "wake").visible).toBe(false);
     expect(one(calm.app.stage, "wake:heavy-wake").visible).toBe(false);
     expect([one(calm.app.stage, "sky:under").tint, one(calm.app.stage, "sky:over").tint]).toEqual([0xffffff, 0xffffff]);
-    expect([one(lively.app.stage, "sky:under").tint, one(lively.app.stage, "sky:over").tint]).toEqual([STORM_SHADE, STORM_SHADE]);
+    expect([one(lively.app.stage, "sky:under").tint, one(lively.app.stage, "sky:over").tint]).toEqual([SKY_SHADE, SKY_SHADE]);
     // The clouds take the same shade over the sky's own colours.
     const clouds = (deck: Awaited<ReturnType<typeof start>>) => one(deck.app.stage, "clouds").children[0]!.children.map((mask) => mask.tint);
     expect(clouds(calm)).toEqual([0xa8b9bd, 0xbecac6, 0xd9d4be]);
-    expect(clouds(lively)).toEqual([0xa8b9bd, 0xbecac6, 0xd9d4be].map((colour) => shade(colour, STORM_SHADE)));
+    expect(clouds(lively)).toEqual([0xa8b9bd, 0xbecac6, 0xd9d4be].map((colour) => shade(colour, SKY_SHADE)));
     for (const deck of [calm, lively]) deck.drawing.destroy();
   });
 
@@ -1345,18 +1406,9 @@ describe("the weather on the deck, by how busy the crew is", () => {
 
 describe("the heavy weather on the deck, at the top of the dial", () => {
   const working = (count: number) => crewScene(Array.from({ length: count }, (_, index): [string, DeckState] => [`hand-${index}`, "working"]));
-  const cloudVariants = extrasManifest.variants!.filter((variant) => variant.variantOf.startsWith("cloud:"));
-  /** The extras with every cloud and every cloud variant cut into its masks. */
-  const stormy: DeckExtrasImages = {
-    ...extras,
-    cloudMasks: new Map(
-      [...extrasManifest.clouds!.sprites.map((sprite) => sprite.texture), ...cloudVariants.map((variant) => variant.frames[0]!)].map((texture) => [
-        texture,
-        [0, 1, 2].map((slot) => ({ image: `${texture}#${slot}` })) as [unknown, unknown, unknown],
-      ]),
-    ),
-  };
-  const LAYERS = ["sky:overcast", "flash:lightning", "sea:far:rough-sea", "sea:near:rough-sea", "wake:heavy-wake", "cycle:spindrift", "cloud:storm-puff:shadow"];
+  /** The extras, with every cloud and every cloud variant cut into its masks. */
+  const stormy: Extras = { ...extras, masks: "all" };
+  const LAYERS = ["sky:overcast", "flash:lightning", "sea:far:rough-sea", "sea:near:rough-sea", "wake:heavy-wake", "cycle:spindrift", "clouds:storm-puff:shadow"];
   const shown = (stage: FakeContainer, label: string) => byLabel(stage, label).filter((node) => node.visible);
   const frameOf = (path: string) => path.replace(/^.*frame-(\d)\.png$/, "$1");
 
@@ -1397,23 +1449,23 @@ describe("the heavy weather on the deck, at the top of the dial", () => {
     }
     expect(sprayFrames.size).toBe(4);
     for (const cloud of one(deck.app.stage, "clouds").children) {
-      const id = cloud.label.replace("cloud:", "");
+      const id = cloud.label.replace("clouds:", "");
       expect(cloud.children.map((mask) => mask.label)).toEqual([
-        "cloud:shadow",
-        "cloud:body",
-        "cloud:highlight",
-        `cloud:storm-${id}:shadow`,
-        `cloud:storm-${id}:body`,
-        `cloud:storm-${id}:highlight`,
+        "clouds:shadow",
+        "clouds:body",
+        "clouds:highlight",
+        `clouds:storm-${id}:shadow`,
+        `clouds:storm-${id}:body`,
+        `clouds:storm-${id}:highlight`,
       ]);
       expect(cloud.children.slice(0, 3).every((mask) => !mask.visible)).toBe(true);
       expect(cloud.children.slice(3).every((mask) => mask.visible && mask.alpha === 1)).toBe(true);
       expect(cloud.children.slice(3).map(texturePath)).toEqual([0, 1, 2].map((slot) => `storm/clouds/${id}.png#${slot}`));
-      expect(cloud.children.slice(3).map((mask) => mask.tint)).toEqual([0x1d314e, 0x45617a, 0x7795a5].map((colour) => shade(colour, STORM_SHADE)));
+      expect(cloud.children.slice(3).map((mask) => mask.tint)).toEqual([0x1d314e, 0x45617a, 0x7795a5].map((colour) => shade(colour, SKY_SHADE)));
     }
     const overcast = one(deck.app.stage, "sky:overcast");
     const sky = one(deck.app.stage, "sky:under");
-    expect([overcast.visible, overcast.alpha, overcast.tint]).toEqual([true, 0.7, STORM_SHADE]);
+    expect([overcast.visible, overcast.alpha, overcast.tint]).toEqual([true, 0.7, SKY_SHADE]);
     expect([overcast.position.x, overcast.position.y, overcast.scale.x]).toEqual([sky.position.x, sky.position.y, sky.scale.x]);
     deck.drawing.destroy();
   });
@@ -1424,7 +1476,7 @@ describe("the heavy weather on the deck, at the top of the dial", () => {
     expect(shown(deck.app.stage, "sky:overcast")).toEqual([]);
     expect(shown(deck.app.stage, "sky:stars")).toEqual([]);
     expect(one(deck.app.stage, "clouds").children[0]!.children.slice(3).map((mask) => mask.tint)).toEqual(
-      [0x151e2d, 0x1d314e, 0x2c4869].map((colour) => shade(colour, STORM_SHADE)),
+      [0x151e2d, 0x1d314e, 0x2c4869].map((colour) => shade(colour, SKY_SHADE)),
     );
     const calm = await start(environment, { now: new Date(2026, 9, 15, 1, 0), extras: stormy, scene: working(2) });
     calm.advance(34);
@@ -1492,7 +1544,7 @@ describe("the heavy weather on the deck, at the top of the dial", () => {
 
   it("on a software renderer's lite plan shows the variants still, on their elements' first frames, and never flashes", () => {
     const water = drawnWater(stormy);
-    const scenery = createScenery(pixi, shipStage(), environment, drawnClouds(stormy), 0, water, { variants: drawnVariants(stormy, water), flashes: drawnFlashes(stormy) });
+    const scenery = createScenery(pixi, shipStage(), sceneryArt({ extras: stormy, environment, water, layers: { variants: drawnVariants(stormy, water) } }), 0);
     scenery.layout({ left: 0, right: 426, top: -80, bottom: 240 });
     const lite = { level: "lite", animate: true, fps: 12, ambient: false } as const;
     for (let seconds = 0; seconds < 120; seconds += 0.1) {
@@ -1508,7 +1560,7 @@ describe("the heavy weather on the deck, at the top of the dial", () => {
   });
 
   it("drops only the layer whose image failed: a missing rough-sea frame leaves the calm sea and the rest of the storm", async () => {
-    const missing: DeckExtrasImages = { ...stormy, images: new Map([...stormy.images].filter(([path]) => path !== "storm/sea/frame-1.png")) };
+    const missing: Extras = { ...stormy, images: new Map([...stormy.images].filter(([path]) => path !== "storm/sea/frame-1.png")) };
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: missing, scene: working(BUSY_CREW) });
     deck.advance(34);
     expect(byLabel(deck.app.stage, "sea:far:rough-sea")).toEqual([]);

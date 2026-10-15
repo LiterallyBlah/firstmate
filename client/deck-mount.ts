@@ -18,9 +18,10 @@
  * and every image, base64 — and `decodePack` decodes each image on its own with `decodeAtlas`. Pixi once per
  * app session, each pack once per session by id, kept; a failure is not kept, and a renderer without a host or
  * WebGL never asks for either. An image that does not decode costs only what draws with it (`packArt`): the
- * backdrop is needed to draw at all; without the whole sky and sea the deck draws its ship and crew on a flat
- * sea; the rest — the sail, a crew look, a cloud — is left out with a warning. The sky's clouds are each cut
- * into three white masks to be tinted (`cutCloudMasks`), and one that cannot be is left out the same way.
+ * backdrop is needed to draw at all; without the still sea the deck draws its stage and crew on a flat sea; the
+ * rest — an ambience element (`client/deck-ambience.ts`), the sail, a crew look, a cloud — is left out with a
+ * warning. Each drifter is cut into three white masks to be tinted (`cutCloudMasks`), and one that cannot be is
+ * left out the same way.
  *
  * **Motion is the browser's too.** `browserMotion` hands the deck `requestAnimationFrame`, the
  * `prefers-reduced-motion` query and `document.hidden`, so `client/deck-loop.ts` can cap, pause and still it;
@@ -32,7 +33,8 @@
 import type { DeckEngineSource, DeckSetting } from "../shared/deck-rpc";
 import type { SettingManifest } from "../shared/deck-setting";
 import { environmentImagePaths, extrasImagePaths, legacyViews, type DeckEnvironmentManifest, type DeckExtrasManifest } from "./deck-legacy";
-import { cloudSlotMasks } from "./deck-clouds";
+import { compileAmbience } from "./deck-ambience";
+import { cloudSlotMasks, type DrifterMasks } from "./deck-clouds";
 import type { DeckEnvironmentImages } from "./deck-environment";
 import type { DeckExtrasImages } from "./deck-extras";
 import type { DeckHover } from "./deck-hover";
@@ -380,8 +382,8 @@ export function decodePack(setting: DeckSetting, decode: (png: string) => Promis
 }
 
 /**
- * The environment with every image it names, or null when one did not decode: the deck then draws its ship and crew
- * on a plain sea rather than a partial sky.
+ * The still sea and foam with every image they name, or null when one did not decode: the deck then draws its stage
+ * and crew on a plain sea.
  */
 export function environmentImages(manifest: DeckEnvironmentManifest, image: (path: string) => unknown): DeckEnvironmentImages | null {
   const images = new Map<string, unknown>();
@@ -397,47 +399,57 @@ export function environmentImages(manifest: DeckEnvironmentManifest, image: (pat
  * The extras with every image that decoded; one that did not is left out, and `onMissing` hears which. Never refused:
  * the deck draws whatever arrived (`client/deck-extras.ts`).
  */
-export function extrasImages(
-  manifest: DeckExtrasManifest,
-  image: (path: string) => unknown,
-  onMissing: (path: string, error: unknown) => void = function () {},
-  cutCloud: CutCloud = cutCloudMasks,
-): Promise<DeckExtrasImages> {
+export function extrasImages(manifest: DeckExtrasManifest, image: (path: string) => unknown, onMissing: (path: string, error: unknown) => void = function () {}): DeckExtrasImages {
   const images = new Map<string, unknown>();
   for (const path of extrasImagePaths(manifest)) {
     const decoded = image(path);
     if (decoded === undefined) onMissing(path, new Error(`${path} did not decode`));
     else images.set(path, decoded);
   }
-  // Each cloud that decoded, cut into its three slot masks; one that will not cut is left out like a missing image.
-  // A cloud's variant likewise (`client/deck-variants.ts`), by its own palette, only where there are clouds to lay it over.
-  const clouds = manifest.clouds;
-  const variants = clouds === undefined ? [] : (manifest.variants ?? []).filter((variant) => variant.variantOf.startsWith("cloud:"));
-  const sprites = [
-    ...(clouds?.sprites ?? []).map((sprite) => ({ texture: sprite.texture, size: sprite.size, palette: clouds!.palette })),
-    ...variants.map((variant) => ({ texture: variant.frames[0]!, size: variant.frameSize, palette: variant.palette ?? clouds!.palette })),
-  ].filter((sprite) => images.has(sprite.texture));
+  return { manifest, images };
+}
+
+/**
+ * Every drifter's image that decoded, and each of its variants', cut into its three slot masks by its palette, by
+ * image id (`client/deck-clouds.ts`). One that will not cut is left out like a missing image, and `onFailed` hears it.
+ */
+export function drifterMasks(
+  pack: Pick<DecodedPack, "manifest" | "images">,
+  cutCloud: CutCloud = cutCloudMasks,
+  onFailed: (image: string, error: unknown) => void = function () {},
+): Promise<Map<string, DrifterMasks>> {
+  const sprites: Array<{ image: string; size: readonly [number, number]; palette: readonly string[] }> = [];
+  for (const element of pack.manifest.ambience) {
+    if (element.behaviour.kind !== "drifters") continue;
+    const { palette } = element.behaviour;
+    for (const sprite of element.behaviour.sprites) sprites.push({ image: sprite.image, size: sprite.size, palette });
+    for (const sprite of element.behaviour.sprites)
+      for (const variant of sprite.variants ?? []) {
+        const frame = variant.frames[0]!.image;
+        sprites.push({ image: frame, size: pack.manifest.images[frame]?.size ?? sprite.size, palette: variant.palette ?? palette });
+      }
+  }
+  const once = sprites.filter((sprite, index) => pack.images.has(sprite.image) && sprites.findIndex((other) => other.image === sprite.image) === index);
   return Promise.all(
-    sprites.map((sprite) =>
+    once.map((sprite) =>
       Promise.resolve()
-        .then(() => cutCloud(images.get(sprite.texture), sprite.size, sprite.palette))
+        .then(() => cutCloud(pack.images.get(sprite.image), sprite.size, sprite.palette))
         .then(
-          (masks) => [sprite.texture, masks] as const,
+          (masks) => [sprite.image, masks] as const,
           function (error: unknown) {
-            onMissing(sprite.texture, error);
+            onFailed(sprite.image, error);
             return null;
           },
         ),
     ),
-  ).then(function (cut) {
-    return { manifest, images, cloudMasks: new Map(cut.filter((entry) => entry !== null)) };
-  });
+  ).then((cut) => new Map(cut.filter((entry) => entry !== null)));
 }
 
 /**
- * The art the engine draws from a decoded pack, read as the manifests it drew from before packs (`legacyViews`): the
- * backdrop's image, which it cannot draw without; the environment, whole or not at all; and whatever of the extras
- * decoded. `warn` hears what is missing.
+ * The art the engine draws from a decoded pack: its stage, cast and ambience compiled, each drifter cut into its masks,
+ * and the parts not yet drawn from the pack itself read as the manifests they were drawn from before packs
+ * (`legacyViews`). The backdrop's image it cannot draw without; the still sea is whole or not at all; an ambience
+ * element, a look and an extra are each left out on their own. `warn` hears what is missing.
  */
 export function packArt(
   pack: DecodedPack,
@@ -447,22 +459,30 @@ export function packArt(
   const views = legacyViews(pack.manifest);
   const ids = new Map([...views.paths].map(([id, path]) => [path, id]));
   const image = (path: string) => pack.images.get(ids.get(path) ?? "");
+  const pathOf = (id: string) => views.paths.get(id) ?? id;
   const backdrop = pack.manifest.stage.backdrop.sprite.image;
   const atlas = pack.images.get(backdrop);
   if (atlas === undefined) return Promise.reject(pack.failed.get(backdrop) ?? new Error(`the setting's ${backdrop} did not load`));
   const environment = environmentImages(views.environment, image);
-  if (environment === null) warn("[firstmate] the deck's sky and sea did not load; drawing a plain sea:", pack.failed.values().next().value);
+  if (environment === null) warn("[firstmate] the deck's sea did not load; drawing a plain sea:", pack.failed.values().next().value);
   const cast = compileCast(pack.manifest);
-  return extrasImages(views.extras, image, (path, error) => warn(`[firstmate] the deck's ${path} did not load; drawing without it:`, pack.failed.get(ids.get(path) ?? "") ?? error), cutCloud).then(
-    function (extras) {
-      // A look whose image did not decode is not handed out.
-      for (const look of cast.looks) {
-        const failed = pack.failed.get(look.image);
-        if (failed !== undefined) warn(`[firstmate] the deck's ${views.paths.get(look.image) ?? look.image} did not load; drawing without it:`, failed);
-      }
-      return { stage: compileStage(pack.manifest), cast, images: pack.images, image: atlas, manifest: views.art, environment, extras };
-    },
-  );
+  const extras = extrasImages(views.extras, image, (path, error) => warn(`[firstmate] the deck's ${path} did not load; drawing without it:`, pack.failed.get(ids.get(path) ?? "") ?? error));
+  const uncut = new Map<string, unknown>();
+  return drifterMasks(pack, cutCloud, (id, error) => uncut.set(id, error)).then(function (masks) {
+    const ambience = compileAmbience(
+      pack.manifest,
+      (id) => pack.images.has(id),
+      (id) => masks.has(id),
+    );
+    // An element, or a drifter, whose image did not decode or would not cut is not drawn.
+    for (const id of ambience.missing) warn(`[firstmate] the deck's ${pathOf(id)} did not load; drawing without it:`, pack.failed.get(id) ?? uncut.get(id));
+    // A look whose image did not decode is not handed out.
+    for (const look of cast.looks) {
+      const failed = pack.failed.get(look.image);
+      if (failed !== undefined) warn(`[firstmate] the deck's ${pathOf(look.image)} did not load; drawing without it:`, failed);
+    }
+    return { stage: compileStage(pack.manifest), cast, ambience, images: pack.images, masks, image: atlas, manifest: views.art, environment, extras };
+  });
 }
 
 /** Cuts a decoded cloud of `size` into one white mask per slot of `palette`, each an image Pixi can draw. */

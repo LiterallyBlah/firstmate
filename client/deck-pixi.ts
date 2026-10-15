@@ -4,11 +4,12 @@
  * walking to where its state sends it, the hull's depth pieces drawn back over any sailor behind them, and
  * the deck's ambient life — the bob, the masthead's sway, the sail's billow, the lanterns, a gull now and then.
  *
- * **Depth, back to front:** the sky, its stars and the gull, then the far sea (the `back` of
+ * **Depth, back to front:** the setting's ambience behind the stage — the ship's sky, its overcast and stars, the
+ * lightning, the clouds and the gull, in the pack's order — then the far sea (the `back` of
  * `client/deck-environment.ts`); the ship — the hull, the mast and its masthead, the sail — with its deck of
  * props, pieces, lanterns and crew; then the near sea, the wake and the foam over the hull's waterline (its
- * `front`). The weather layers lie among them (`client/deck-environment.ts`): the sky's mood overlays over the sky and
- * under the stars, flashes behind the clouds, each variant just over its element, cycles over the foam. The hover label
+ * `front`). The weather layers lie among them (`client/deck-environment.ts`): each variant just over its element,
+ * cycles over the foam. The hover label
  * and legend are React, on top. The sail hangs on the tall mast behind the crew.
  * The tall mast reaches into the sky above the hull, and the fit takes in the setting's fit box (`deckBox`); its own rows
  * below the sail are the mast's depth piece, which leaves the cloth alone (`client/deck-extras.ts`).
@@ -21,8 +22,8 @@
  *
  * Who moves where is `client/deck-crew.ts`; the ambient motion is `client/deck-ambient.ts`, and how lively it is —
  * the sea, the wind, the sail, the bob — `client/deck-atmosphere.ts`, by how many of the crew are working; the sea, the
- * sky and the gull are `client/deck-environment.ts`, from the generated art; the sail and the crew's looks
- * are `client/deck-extras.ts`; when a frame
+ * sky and the gull are `client/deck-environment.ts`, from the setting's ambience (`client/deck-ambience.ts`); the sail
+ * and the tall mast are `client/deck-extras.ts`; when a frame
  * is drawn at all is `client/deck-loop.ts`; each state's badge is `client/deck-badges.ts`; which sailor the
  * pointer is over is `client/deck-hover.ts`, reported to the pane, which draws its label. This file only
  * turns those into sprites and reads the pointer off the canvas.
@@ -34,7 +35,7 @@
  * `firstmate.deck.engine`, and `client/deck-mount.ts` evaluates it in a web renderer and passes the
  * namespace here. `PixiModule` is the narrow shape of it this file uses; `client/ship-deck.test.ts` holds
  * it to Pixi's own build. **So is the art**: the setting pack from `firstmate.deck.setting`, decoded once a session
- * by the mount and handed in as an image with its manifest — and the environment's images beside it.
+ * by the mount and handed in compiled — its stage, cast and ambience — with every image of it that decoded.
  *
  * It is pixel art, so it is sampled `nearest` and every position is a whole art pixel; the deck is
  * scaled to fit the pane exactly, so it follows a resize smoothly (`fitDeck` says why not by whole
@@ -58,20 +59,20 @@ import { askMarks, badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBa
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
 import type { DeckDrawing, DeckHost } from "./deck-mount";
 import { depthOf, type DeckScene, type DeckState } from "./deck-scene";
-import { drawnClouds } from "./deck-clouds";
+import type { DeckAmbience } from "./deck-ambience";
+import type { DrifterMasks } from "./deck-clouds";
 import { createScenery, type DeckEnvironmentImages } from "./deck-environment";
-import { drawnFlashes } from "./deck-flash";
 import { drawnVariants } from "./deck-variants";
 import { drawnWater } from "./deck-water";
 import { plankPixels, type SharkFrame, type SplashFrame } from "./deck-plank";
 import type { DeckStage } from "./deck-stage";
-import { dominantPhase, localMinute, SKY_REFRESH_MS } from "./deck-sky";
+import { localMinute, SKY_REFRESH_MS } from "./deck-sky";
 
 /** Marks the canvas with its renderer, so the live check can read it in the app's DevTools. */
 export const DECK_CANVAS_ATTRIBUTE = "data-firstmate-deck";
 /** Marks the canvas with the motion in force: `full`, `lite` or `still`. */
 export const DECK_MOTION_ATTRIBUTE = "data-firstmate-deck-motion";
-/** Marks the canvas with the sky that shows most (`dawn` … `night`), or `none` without the environment. */
+/** Marks the canvas with the day phase whose backdrop shows most (`dawn` … `night`), or `none` without a backdrop. */
 export const DECK_SKY_ATTRIBUTE = "data-firstmate-deck-sky";
 /** Marks the canvas with the weather's intensity as drawn, `0.00` to `1.00` (`client/deck-atmosphere.ts`). */
 export const DECK_WEATHER_ATTRIBUTE = "data-firstmate-deck-weather";
@@ -162,15 +163,18 @@ export interface PixiModule {
 }
 
 /**
- * The deck's art as the mount hands it over: the setting's stage and cast, compiled (`client/deck-stage.ts`,
- * `client/deck-cast.ts`); every image of the pack that decoded, by id; the decoded backdrop image, and where its
- * pieces are in it; the generated sea, sky and gull, or null when they could not be loaded; and the sail, the tall
- * mast and the rest of the extras, as many of them as decoded, or null.
+ * The deck's art as the mount hands it over: the setting's stage, cast and ambience, compiled (`client/deck-stage.ts`,
+ * `client/deck-cast.ts`, `client/deck-ambience.ts`); every image of the pack that decoded, by id, and each drifter's
+ * slot masks by image id; the decoded backdrop image, and where its pieces are in it; the still sea and foam, or null
+ * when they could not be loaded; and the sail, the tall mast and the rest of the extras, as many of them as decoded,
+ * or null.
  */
 export interface DeckArtImage {
   stage: DeckStage;
   cast: DeckCast;
+  ambience: DeckAmbience;
   images: ReadonlyMap<string, unknown>;
+  masks: ReadonlyMap<string, DrifterMasks>;
   image: unknown;
   manifest: DeckArtManifest;
   environment: DeckEnvironmentImages | null;
@@ -531,13 +535,16 @@ export async function startDeck(
   world.label = "world";
   app.stage.addChild(world);
 
-  // The sky, its clouds, the gull and the far sea behind the hull; the near sea and the foam in front of its waterline.
-  // The clouds are laid out from the clock's second the deck opens at, so each opening has its own sky.
-  // Over all of it, the extras' weather layers and flashes as the crew gets busy: the heavy weather (`client/deck-variants.ts`).
+  // The ambience and the far sea behind the hull; the near sea and the foam in front of its waterline. The drifters are
+  // laid out from the clock's second the deck opens at, so each opening has its own sky. Over the water, the extras'
+  // weather layers as the crew gets busy: the heavy weather (`client/deck-variants.ts`).
   const water = drawnWater(art.extras);
-  const layers = { variants: drawnVariants(art.extras, water), flashes: drawnFlashes(art.extras) };
-  const scenery = createScenery(pixi, stage, art.environment, drawnClouds(art.extras), Math.floor(environment.clock().getTime() / 1000), water, layers);
-  const skyPhases = art.environment?.manifest.sky.phases ?? [];
+  const scenery = createScenery(
+    pixi,
+    stage,
+    { ambience: art.ambience, images: art.images, masks: art.masks, environment: art.environment, water, layers: { variants: drawnVariants(art.extras, water) } },
+    Math.floor(environment.clock().getTime() / 1000),
+  );
 
   // The ship: the hull, the swaying masthead, and the deck's layer of props, pieces, lanterns and crew.
   const ship = new pixi.Container();
@@ -893,7 +900,7 @@ export async function startDeck(
     canvas.setAttribute(DECK_MOTION_ATTRIBUTE, plan.level);
     canvas.setAttribute(DECK_WEATHER_ATTRIBUTE, moving ? atmosphere.intensity.toFixed(2) : "still");
     canvas.setAttribute(DECK_FLASH_ATTRIBUTE, scenery.flashing().join(" "));
-    canvas.setAttribute(DECK_SKY_ATTRIBUTE, sky === null ? "none" : (skyPhases[dominantPhase(sky)]?.id ?? "none"));
+    canvas.setAttribute(DECK_SKY_ATTRIBUTE, sky ?? "none");
     app.render();
   }
 
