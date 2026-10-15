@@ -1,0 +1,97 @@
+{
+  "checkedAtUtc": "2026-10-15T09:04:18.1868821Z",
+  "method": "Independent System.Drawing reload and exhaustive pixel checks",
+  "passed": true,
+  "deckPaletteSize": 48,
+  "deckSha256": "557209a06bb266fa79b09ff985cf9558145b95382d0842bb55717a43980cff9b",
+  "sourceSha256": "956a1ac57e1a1d2e17baf801f6fcd27f92d81e5de50dde6121ab524ee76ba06c",
+  "assets": [
+    {
+      "file": "tall-mast.png",
+      "size": [
+        48,
+        224
+      ],
+      "sha256": "9d6941ec15d65610bfafdf44d4d106b05428243b7d4e1b81a363e769ead00739",
+      "opaquePixels": 2623,
+      "transparentPixels": 8129,
+      "partialAlphaPixels": 0,
+      "coloursUsed": 43,
+      "outsideDeckPalettePixels": 0,
+      "opaqueBoundsXYWH": [
+        6,
+        2,
+        37,
+        222
+      ]
+    },
+    {
+      "file": "mast-occluder.png",
+      "size": [
+        19,
+        64
+      ],
+      "sha256": "ef5fbe0c1114f1897f7e20f0a9e4533770300ff75c3fb3541b71a9986c00e190",
+      "opaquePixels": 464,
+      "transparentPixels": 752,
+      "partialAlphaPixels": 0,
+      "coloursUsed": 38,
+      "outsideDeckPalettePixels": 0,
+      "opaqueBoundsXYWH": [
+        0,
+        25,
+        19,
+        39
+      ]
+    }
+  ],
+  "originalLowerMastMismatchPixels": 0,
+  "originalSailOccluderMismatchPixels": 0,
+  "shaftWidthMismatchPixels": 0,
+  "shaftCheck": "Every row 49..209 contains exactly local x20..28; maps to hull x207..215",
+  "baseAnchorCheck": {
+    "position": [
+      187,
+      -112
+    ],
+    "sprite": [
+      24,
+      222
+    ],
+    "baseline": 110,
+    "hull": [
+      211,
+      110
+    ]
+  },
+  "heightCheck": {
+    "oldTipHullY": 1,
+    "oldTipToBaseline": 109,
+    "newTipHullY": -110,
+    "newTipToBaseline": 220,
+    "addedUpwardPixels": 111
+  },
+  "sailPivotCheck": {
+    "mastLocalPivot": [
+      24,
+      100
+    ],
+    "frameSize": [
+      114,
+      27
+    ],
+    "localPivot": [
+      57,
+      3
+    ],
+    "hullPivot": [
+      211,
+      -12
+    ],
+    "framePositionHull": [
+      154,
+      -15
+    ]
+  },
+  "visualReview": "Inspected the normalized 4x mast and 2x side-by-side hull fit with identical 32px crew and existing sail. Preview only; runtime integration not performed."
+}
