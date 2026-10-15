@@ -5,6 +5,11 @@ exact existing crew frame layouts, provenance and per-asset quality verdicts. Th
 [`extras.json`](extras.json), served by `firstmate.deck.extras` (`client/deck-extras.ts`); without them it
 draws a bare mast and the atlas's two outfits.
 
+A [generated tall mast](mast/README.md) and a [generated plank](plank/README.md) are drawn through
+`extras.json` too (its `mast` and `plank`): the mast in place of hull C's own short rig, which the Deck leaves
+out of the hull (`clears`), with the sail raised up it; the board in place of the plank once drawn in code.
+Without them the Deck draws the short rig and the code board. `docs/ship-deck-mast/` shows both in place.
+
 Generated environment assets (sea, six sky phases, stars and a gull flap cycle) are documented in
 [ENVIRONMENT.md](ENVIRONMENT.md), with their own [manifest](environment.json). The Deck draws them in
 place of its old code-drawn sea and gull, served by `firstmate.deck.environment` (`client/deck-environment.ts`);

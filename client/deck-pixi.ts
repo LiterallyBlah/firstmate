@@ -5,15 +5,16 @@
  * the deck's ambient life — the bob, the masthead's sway, the sail's billow, the lanterns, a gull now and then.
  *
  * **Depth, back to front:** the sky, its stars and the gull, then the far sea (the `back` of
- * `client/deck-environment.ts`); the ship — the hull, the mast and its masthead, the sail — with its deck of props,
- * pieces, lanterns and crew; then the near sea, the wake and the foam over the hull's waterline (its
+ * `client/deck-environment.ts`); the ship — the hull, the mast and its masthead, the sail — with its deck of
+ * props, pieces, lanterns and crew; then the near sea, the wake and the foam over the hull's waterline (its
  * `front`). The hover label and legend are React, on top. The sail hangs behind the crew; while it shows, the
  * mast's depth piece is the occluder, which leaves the cloth alone (`client/deck-extras.ts`). Under the tall
  * mast, which reaches into the sky above the hull, its own lower rows are that depth piece, and the fit
  * takes in its top (`deckBox`).
  *
  * **The plank** (`client/deck-plank.ts`) is the generated board (`art/ship-deck/plank/`), or where it did not
- * load the board drawn in code, on the deck's layer just in front of the near rail, and a sailor walking it is drawn in front of the plank. Off its end the sailor goes into the
+ * load the board drawn in code, on the deck's layer just in front of the near rail, and a sailor walking it
+ * is drawn in front of the plank. Off its end the sailor goes into the
  * `overboard` layer over the near sea — outside the ship's bob, as the shark's art asks — and the shark and
  * the splash are drawn there after it, at their water anchors.
  *
@@ -201,8 +202,8 @@ function glRendererName(renderer: unknown): string | null {
 
 /**
  * One texture per frame of the atlas, all on one `nearest`-sampled source, and crops made on demand; and
- * the same for the extras: the tall mast cut in its parts, the sail's states, the mast occluder, and every pose of each extra look, cut
- * from its own image at the atlas's base-lane rectangles.
+ * the same for the extras: the tall mast cut in its parts, the sail's states, the mast occluder, and every
+ * pose of each extra look, cut from its own image at the atlas's base-lane rectangles.
  */
 function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
   const sources: PixiTextureSource[] = [];
