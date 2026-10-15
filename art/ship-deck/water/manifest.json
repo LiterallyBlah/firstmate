@@ -1,0 +1,586 @@
+{
+  "schemaVersion": 1,
+  "id": "hull-c-animated-water",
+  "created": "2026-10-15",
+  "baseCommit": "961e672",
+  "pathBase": "This manifest directory: art/ship-deck/water/",
+  "status": "Assets only. A companion handoff manifest, not the runtime DeckEnvironmentManifestSchema. Existing environment.json and client are unchanged.",
+  "logicalPixelScale": {
+    "pixel": "1 art pixel = 1 deck world unit",
+    "hullSize": [
+      426,
+      161
+    ],
+    "crewStandingHeight": 32,
+    "sampling": "nearest-neighbour",
+    "filtering": "no bilinear filtering, no mipmaps",
+    "camera": "Use existing world/camera scale for all layers; do not independently scale wake or foam."
+  },
+  "palette": {
+    "source": "../environment.json",
+    "sha256": "42659d89d664de1ff5eda0a0d1225b4e1ae27686e4098a2b70151cd735ed5c0a",
+    "colours": [
+      "#0E121E",
+      "#151E2D",
+      "#182B47",
+      "#1A1417",
+      "#1D314E",
+      "#1F3554",
+      "#22395A",
+      "#271E1D",
+      "#2C4869",
+      "#2D2B30",
+      "#31211D",
+      "#3E2921",
+      "#492D22",
+      "#4F3427",
+      "#5D3626",
+      "#613A28",
+      "#624130",
+      "#72412A",
+      "#7E472D",
+      "#7F422B",
+      "#815C43",
+      "#834C2D",
+      "#834D31",
+      "#8B4F2F",
+      "#915230",
+      "#9B5A33",
+      "#9E6139",
+      "#A56235",
+      "#A86636",
+      "#A8693B",
+      "#AD6938",
+      "#AD6D3D",
+      "#B16F3D",
+      "#B57642",
+      "#BB7B44",
+      "#BF854C",
+      "#C17F46",
+      "#C5864B",
+      "#C6884C",
+      "#C7894C",
+      "#C88C50",
+      "#C9894C",
+      "#CD8F50",
+      "#CE9659",
+      "#D39151",
+      "#DCA35B",
+      "#DD9954",
+      "#E8CCA6",
+      "#45617A",
+      "#536E87",
+      "#64849A",
+      "#7795A5",
+      "#8FA8B4",
+      "#A8B9BD",
+      "#BECAC6",
+      "#D9D4BE",
+      "#F1DEC0",
+      "#675E78",
+      "#7C7183",
+      "#927F8B",
+      "#B38B88",
+      "#C7987D",
+      "#D2AD86",
+      "#DFBB96"
+    ],
+    "newColours": 0,
+    "policy": "Every nontransparent runtime pixel is an exact member of the shipped 64-colour palette. No dithering. Transparent RGB is zero."
+  },
+  "assets": {
+    "sea": {
+      "size": [
+        256,
+        128
+      ],
+      "count": 4,
+      "alpha": "opaque",
+      "tiling": [
+        "x",
+        "y"
+      ],
+      "verdict": "usable",
+      "limitation": "Quiet four-pose shimmer with modest crest deformation, not a physically advected fluid simulation. The repeated larger wavelets are recognizable over wide expanses.",
+      "strip": "sea/strip.png",
+      "stripSize": [
+        1024,
+        128
+      ],
+      "stripSha256": "2271fa64913cfdba8678011461a36c0c2ef028e4867965863908e6e6d6a543af",
+      "frameOrder": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "frameMs": 240,
+      "loopMs": 960,
+      "stillFrame": 0,
+      "frames": [
+        {
+          "id": 0,
+          "path": "sea/frame-0.png",
+          "rect": [
+            0,
+            0,
+            256,
+            128
+          ],
+          "sha256": "50ad57414c16c509dfd7b1c833940f509570d176bb7f49e099eaee6743070748",
+          "palette": [
+            "#182B47",
+            "#1D314E",
+            "#1F3554",
+            "#22395A",
+            "#2C4869",
+            "#45617A",
+            "#536E87",
+            "#64849A"
+          ]
+        },
+        {
+          "id": 1,
+          "path": "sea/frame-1.png",
+          "rect": [
+            256,
+            0,
+            256,
+            128
+          ],
+          "sha256": "79e6fe374bb4b791336997514b622d96caa87b1d16bb9603c6e6a83623ab9792",
+          "palette": [
+            "#182B47",
+            "#1D314E",
+            "#1F3554",
+            "#22395A",
+            "#2C4869",
+            "#45617A",
+            "#536E87",
+            "#64849A"
+          ]
+        },
+        {
+          "id": 2,
+          "path": "sea/frame-2.png",
+          "rect": [
+            512,
+            0,
+            256,
+            128
+          ],
+          "sha256": "1582b6553d532838d9291076e0e3cb5cce56fd7c6ab58d4972efc1a55fd3b2ad",
+          "palette": [
+            "#182B47",
+            "#1D314E",
+            "#1F3554",
+            "#22395A",
+            "#2C4869",
+            "#45617A",
+            "#536E87",
+            "#64849A"
+          ]
+        },
+        {
+          "id": 3,
+          "path": "sea/frame-3.png",
+          "rect": [
+            768,
+            0,
+            256,
+            128
+          ],
+          "sha256": "8863ae4f4078a15200c96c2c514a3c91c9b19887c403f0c86dc3bafd17d6468c",
+          "palette": [
+            "#182B47",
+            "#1D314E",
+            "#1F3554",
+            "#22395A",
+            "#2C4869",
+            "#45617A",
+            "#536E87",
+            "#64849A"
+          ]
+        }
+      ],
+      "seamlessConfirmed": "Exact opposite RGBA edge rows and columns, every frame; 2x2 visual composite inspected."
+    },
+    "foam": {
+      "size": [
+        256,
+        16
+      ],
+      "count": 3,
+      "alpha": "binary",
+      "tiling": [
+        "x"
+      ],
+      "verdict": "usable-with-cleanup",
+      "limitation": "Ready to place and animate; crest clusters still breathe unevenly, and the broad baseline can read as a narrow ribbon at some frames. A human pixel artist could refine the breakup.",
+      "strip": "foam/strip.png",
+      "stripSize": [
+        768,
+        16
+      ],
+      "stripSha256": "9b83f8ec35dabb805b9b8c76d5cc8da3b5c544260e9cc8d0f2ac01bcdec0cac5",
+      "frameOrder": [
+        0,
+        1,
+        2
+      ],
+      "frameMs": 240,
+      "loopMs": 720,
+      "stillFrame": 0,
+      "frames": [
+        {
+          "id": 0,
+          "path": "foam/frame-0.png",
+          "rect": [
+            0,
+            0,
+            256,
+            16
+          ],
+          "sha256": "13ed086bedfcd0c699fa149593f5073f8051212f84d3cec1f6199a13780b9722",
+          "palette": [
+            "#2C4869",
+            "#45617A",
+            "#536E87",
+            "#64849A",
+            "#8FA8B4",
+            "#A8B9BD",
+            "#BECAC6",
+            "#D9D4BE"
+          ]
+        },
+        {
+          "id": 1,
+          "path": "foam/frame-1.png",
+          "rect": [
+            256,
+            0,
+            256,
+            16
+          ],
+          "sha256": "ef862b8e2ad35e22faece685ca5d300792fa9263ea5da33b2ed89560237e1461",
+          "palette": [
+            "#2C4869",
+            "#45617A",
+            "#536E87",
+            "#64849A",
+            "#8FA8B4",
+            "#A8B9BD",
+            "#BECAC6",
+            "#D9D4BE"
+          ]
+        },
+        {
+          "id": 2,
+          "path": "foam/frame-2.png",
+          "rect": [
+            512,
+            0,
+            256,
+            16
+          ],
+          "sha256": "514662a41953f3a4dede58a8dd30b04268220d145dc9e72911fbe6469b4c7716",
+          "palette": [
+            "#2C4869",
+            "#45617A",
+            "#536E87",
+            "#64849A",
+            "#8FA8B4",
+            "#A8B9BD",
+            "#BECAC6",
+            "#D9D4BE"
+          ]
+        }
+      ],
+      "seamlessConfirmed": "Exact opposite RGBA columns, every frame; top/bottom transparent."
+    },
+    "wake": {
+      "size": [
+        240,
+        96
+      ],
+      "count": 3,
+      "alpha": "binary",
+      "tiling": [],
+      "verdict": "usable-with-cleanup",
+      "limitation": "Clear connected stern V and disturbed-water interior; generated eddies morph between key poses rather than travelling in an expertly drawn flow cycle. Far tips have slight silhouette variation. No extra bow-wave sprite is included.",
+      "strip": "wake/strip.png",
+      "stripSize": [
+        720,
+        96
+      ],
+      "stripSha256": "bca9f03a0990ca43bd8beb7534e44aae05ea12ba9d7c541eb8cf8586836c6931",
+      "frameOrder": [
+        0,
+        1,
+        2
+      ],
+      "frameMs": 240,
+      "loopMs": 720,
+      "stillFrame": 0,
+      "frames": [
+        {
+          "id": 0,
+          "path": "wake/frame-0.png",
+          "rect": [
+            0,
+            0,
+            240,
+            96
+          ],
+          "sha256": "dbc7cda85d15ef7a3a36117b02acca219a52840bcd237d1bd0ce36f90b653a79",
+          "palette": [
+            "#182B47",
+            "#1D314E",
+            "#1F3554",
+            "#22395A",
+            "#2C4869",
+            "#45617A",
+            "#536E87",
+            "#64849A",
+            "#7795A5",
+            "#8FA8B4",
+            "#A8B9BD",
+            "#BECAC6",
+            "#D9D4BE"
+          ]
+        },
+        {
+          "id": 1,
+          "path": "wake/frame-1.png",
+          "rect": [
+            240,
+            0,
+            240,
+            96
+          ],
+          "sha256": "1acfe22e96985d9b11a3b3f6ff532533330c6a90592782a7aa3f263bacbeb750",
+          "palette": [
+            "#182B47",
+            "#1D314E",
+            "#1F3554",
+            "#22395A",
+            "#2C4869",
+            "#45617A",
+            "#536E87",
+            "#64849A",
+            "#7795A5",
+            "#8FA8B4",
+            "#A8B9BD",
+            "#BECAC6",
+            "#D9D4BE"
+          ]
+        },
+        {
+          "id": 2,
+          "path": "wake/frame-2.png",
+          "rect": [
+            480,
+            0,
+            240,
+            96
+          ],
+          "sha256": "4d457e01f15f137cf9dcd16fa0ebf3faf9c1a692d77122be1180054e333bd0c4",
+          "palette": [
+            "#182B47",
+            "#1D314E",
+            "#1F3554",
+            "#22395A",
+            "#2C4869",
+            "#45617A",
+            "#536E87",
+            "#64849A",
+            "#7795A5",
+            "#8FA8B4",
+            "#A8B9BD",
+            "#BECAC6",
+            "#D9D4BE"
+          ]
+        }
+      ],
+      "seamlessConfirmed": "Not a tiling asset; all four outside borders transparent."
+    }
+  },
+  "placement": {
+    "coordinateSystem": "Hull C local/deck world pixels, x right, y down; hull at (0,0). Ship sails left.",
+    "horizonY": 96,
+    "waterlineY": 151,
+    "sea": {
+      "far": "Behind ship from y=96 down; repeat one selected 256x128 frame on both axes.",
+      "near": "In front of hull from y=151 down; use the SAME frame, drift and tile phase as far sea.",
+      "sampleFormula": "texture x = positiveModulo(worldX - driftX, 256); texture y = positiveModulo(worldY - 96, 128)",
+      "nearFirstSourceRow": 55,
+      "restartTextureAtWaterline": false,
+      "optionalDrift": {
+        "direction": "right",
+        "pixelsPerSecond": 10,
+        "wholePixels": true
+      },
+      "animation": "Frame cycling supplies wave-shape motion even when drift is zero."
+    },
+    "foam": {
+      "topLeftY": 142,
+      "waterlineSourceRow": 9,
+      "clipX": [
+        68,
+        392
+      ],
+      "repeatWidth": 256,
+      "sampleX": "positiveModulo(worldX - optionalFoamDrift, 256)",
+      "layer": "above wake and near sea",
+      "bob": "Keep in world coordinates as current environment foam; its 4-9 px crest height bridges the small hull bob.",
+      "repeatY": false
+    },
+    "wake": {
+      "anchor": [
+        8,
+        8
+      ],
+      "anchorMeaning": "stern water-contact registration",
+      "worldAnchor": [
+        392,
+        151
+      ],
+      "topLeft": [
+        384,
+        143
+      ],
+      "frameSize": [
+        240,
+        96
+      ],
+      "direction": "V opens right and down, aft of left-moving hull",
+      "layer": "above near sea, below waterline foam",
+      "tiling": false,
+      "scrollWholeSprite": false,
+      "placement": "Keep fixed at stern. Cycle textures in place; do not apply sea drift to the entire sprite. Existing world camera transforms apply.",
+      "contactOverlap": "The foam knot extends 4 pixels above the nominal waterline, deliberately overlapping stern contact; the widening arms are below it. Do not hard-clip the knot at y=151.",
+      "replace": "Replace the Graphics output of wakeRuns / wakeLayer with this sprite; do not render both. This stern trail intentionally omits the existing code bow-wave arm."
+    },
+    "layerOrder": [
+      "sky/clouds/gull",
+      "far sea",
+      "hull and crew",
+      "near sea",
+      "wake",
+      "waterline foam"
+    ]
+  },
+  "cleanup": {
+    "sourceSampling": "For each output pixel, collect source samples in its proportional crop block, retaining alpha >=192. Require at least half the block to qualify, take per-channel median, then nearest RGB Euclidean palette colour without dithering. Opaque sea source retains every sample. Transparent output is [0,0,0,0].",
+    "sea": {
+      "source": "source/sea-generated.png",
+      "crops": [
+        [
+          0,
+          0,
+          887,
+          444
+        ],
+        [
+          0,
+          444,
+          887,
+          443
+        ],
+        [
+          0,
+          887,
+          887,
+          444
+        ],
+        [
+          0,
+          1331,
+          887,
+          443
+        ]
+      ],
+      "output": [
+        256,
+        128
+      ],
+      "seamCorrection": "After quantization, pair opposing edge pixels. At distance k from either edge, blend toward its opposing partner by 0.5*(1-k/n), re-quantize. n=8 columns, then n=6 rows. k=0 is their shared average: opposite edges exactly equal."
+    },
+    "foam": {
+      "source": "source/foam-generated.png",
+      "crops": [
+        [
+          0,
+          52,
+          2172,
+          136
+        ],
+        [
+          0,
+          293,
+          2172,
+          136
+        ],
+        [
+          0,
+          526.5,
+          2172,
+          136
+        ]
+      ],
+      "output": [
+        256,
+        16
+      ],
+      "registration": "Third crop is 8.5 source pixels higher (one output pixel down) to register the common foam baseline.",
+      "seamCorrection": "Same opposing-edge rule over 5 columns, including alpha threshold 128 during seam blend. No vertical tiling."
+    },
+    "wake": {
+      "source": "source/wake-fitted-generated.png",
+      "crops": [
+        [
+          28,
+          188,
+          960,
+          384
+        ],
+        [
+          28,
+          720,
+          960,
+          384
+        ],
+        [
+          28,
+          1244,
+          960,
+          384
+        ]
+      ],
+      "output": [
+        240,
+        96
+      ],
+      "registration": "Fixed source-to-output 4:1 sample scale and x crop; y crops register foam knot at the same stern anchor. Third crop moved up 4 source pixels (one output pixel down). Out-of-image samples are transparent. No rotations, shears or drawn geometry."
+    }
+  },
+  "verification": "verification.json",
+  "provenance": "provenance.json",
+  "documentation": "README.md",
+  "review": {
+    "static": [
+      "review/contact.png",
+      "review/sea-repeat-2x2.png",
+      "review/hull-fit-native.png",
+      "review/hull-fit-2x.png"
+    ],
+    "animated": [
+      "review/sea-cycle.png",
+      "review/foam-cycle.png",
+      "review/wake-cycle.png",
+      "review/sea-repeat-cycle.png",
+      "review/hull-fit-cycle.png"
+    ],
+    "format": "Animated PNG (APNG), loops forever. These are review artifacts, not runtime sprites. Hull composite uses the original bare hull C atlas to isolate water fit; it is not a screenshot of the live plugin."
+  }
+}

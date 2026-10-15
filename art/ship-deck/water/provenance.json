@@ -1,0 +1,93 @@
+{
+  "tool": "image_gen__imagegen",
+  "date": "2026-10-15",
+  "backendModel": "not disclosed by built-in tool",
+  "calls": 4,
+  "prompts": [
+    {
+      "asset": "sea",
+      "prompt": "Use case: style-transfer. Asset: four-frame looping pixel-art sea sprite sheet for the provided ship deck. Image 1 (existing sea tile) is the asset to upgrade; image 2 (ship atlas) is style/scale reference only. Repaint the sea with attractive gentle overlapping long wavelets, small scalloped swells, subtle dark troughs and restrained cool blue crests, calm enough behind the ship. More organic connected wave shapes than scattered short dashes. No white caps, no objects, no sky, no horizon, no gradients.\nOUTPUT: 1024 x 2048 opaque sprite sheet, EXACTLY FOUR frames stacked vertically, each 1024 x 512, edge-to-edge, no gaps/borders/text. Each frame is a 256 x 128 logical-pixel texture enlarged exactly 4x with nearest neighbour. Every mark snaps to this same grid; flat solid colours; hard pixels.\nFrame order top-to-bottom: rest, rising, crest, falling. All four depict the SAME water with identical major wave positions and silhouettes changing only 1–2 logical pixels in height/crest shape; the crests break and reform so it undulates, not just horizontal scroll. Fourth naturally cycles to first. Keep animation restrained; don't redraw a different random field per frame.\nEach individual frame must tile seamlessly horizontally AND vertically. Continuous wavelets crossing any edge must emerge at exactly matching position and colour on opposing edge. No margins.\nUse ONLY these exact colours: #182B47 #1D314E #1F3554 #22395A #2C4869 #45617A #536E87 #64849A. Mostly #1D314E and #22395A water, crests #2C4869 and #45617A, very sparse #536E87 accents; no bright white. Match the 426-pixel hull's single-pixel logical grid. The output is WATER ONLY, not the ship.",
+      "references": [
+        "../sea/water-tile.png",
+        "../deck.png"
+      ]
+    },
+    {
+      "asset": "foam",
+      "prompt": "Use case: stylized-concept. Asset: animated foam waterline sprite sheet for a small pixel-art sailing ship seen side-on from slightly above. WATER FOAM ONLY on actual transparent background, no hull, no sea rectangle, no checkerboard painted into image.\nCreate exactly THREE long horizontal foam bands stacked vertically, each identical in placement and length, evenly spaced. Output 1536x512. Three frame cells each 1536 wide x approximately 170 high. Within each cell the foam extends completely from left edge to right edge, with transparent space above and below. Band centre y at 85,255,425. Foam thickness about 30 source pixels = 5 logical pixels. Logical grid 6x6 source pixels. Each will become 256x16 logical pixels.\nAnimation top to bottom: settled gentle foam; same crests breaking into thin curls; same crests reforming. Keep all large shapes registered, only tiny local changes. A natural thin frothy lace, elongated pale ribbons and open gaps, soft-looking through stepped pale blue shadows, not a thick rope or repeated white triangular blobs. Sparse cream highlights. Irregular long low crests, broken scallops with small enclosed dark/transparent holes. Calm wave contact along a wooden hull. Horizontally seamless repeat: matching height and colour on left and right edges of each band.\nOnly flat colours from this exact palette: #2C4869 #45617A #536E87 #64849A #8FA8B4 #A8B9BD #BECAC6 #D9D4BE. Predominantly blue-grey #64849A and #8FA8B4, pale #BECAC6 thin rims, tiny #D9D4BE accents. Hard pixel edges, no antialiasing, no gradients, no blur, no realistic spray, no white background, no text. Fits 426-pixel-long hull, 32-pixel sailors."
+    },
+    {
+      "asset": "wake",
+      "prompt": "Use case: stylized-concept. Asset type: three-frame animated ship stern WAKE, transparent pixel-art game sprite sheet. A proper cohesive foamy V-shaped trail of churned blue water for a wooden ship traveling LEFT, viewed from slightly above and from the side. No ship in the output, only its wake.\nOUTPUT 1536x1728, three identical-sized frame cells stacked vertically, each 1536x576. Each cell represents 256x96 logical pixels at 6x. All three wake tips have the SAME local anchor (48,48) source pixels = logical (8,8), toward UPPER LEFT of each cell. From that narrow source, wake widens and trails RIGHTWARD AND DOWNWARD: top far arm almost horizontal, lower near arm diagonal down-right. This is a foreshortened V lying on a horizontal sea plane, not a symmetrical top-down V. Strongest compact churn at left tip, two long connected sinuous foam ridges spreading right, a broad disturbed dark-blue field with blue-grey eddies between them, fading gradually into separated thin curl tips at the far right. Stop before right/bottom canvas edges. Wake total footprint about 230x78 logical pixels. Upper arm ~y12 at right, lower arm ~y78 at right. Transparent outside the organically ragged V footprint and through holes in its dissipating end. The foam must read as flowing, connected wash, not scattered white dashes.\nAnimation: three successive subtle phases of SAME wake. Fixed tip and outer footprint in all frames. Eddies move a few logical pixels right and foam rims subtly break/reform. Do not move or resize entire object. Top frame gathering, middle frame rolling, bottom frame settling, loop. No explosive splash, no tall waves, no ship, no shoreline, no letters or borders.\nStyle: carefully clustered old-school pixel art, one logical pixel grid, flat colour areas, crisp hard edges, no blur/antialiasing/gradients. Calm restrained saturated navy-blue sea base with cool blue-grey foam, tiny warm cream glints. EXACT palette only #182B47 #1D314E #1F3554 #22395A #2C4869 #45617A #536E87 #64849A #7795A5 #8FA8B4 #A8B9BD #BECAC6 #D9D4BE. Cream must occupy less than 5 percent, avoid stark white. Broad underlying disturbed water is essential, don't show only a foam outline. This will sit next to a 426 logical pixel wooden hull. Real transparent alpha background."
+    },
+    {
+      "asset": "wake-fit",
+      "prompt": "Use case: precise-object-edit. Edit this three-frame transparent pixel-art wake sheet. Keep the three registered frames, palette, flowing V, blue disturbed water, pixel texture and overall width. Correct ONLY its orientation and height to fit a side-view ship's WATERLINE.\nIn each cell, the LEFTMOST wake tip must be its TOPMOST point. Make the upper far arm slope gently DOWN to the right, never above the left tip. The tip is at (60,120) in each approximately 965x543 cell; far arm ends around (920,180), lower arm ends around (920,440). All water and foam are BELOW the horizontal line through the left tip. The sheet has three cells stacked vertically, so tips at y120,663,1206. Flatten the tall crests into low thin frothy ribbons: calm churn, not surf. Keep a compact bright foam knot at each left tip and broader blue eddies in the V, fading toward right. Keep animations subtle, tip and footprint identical in all three frames, internal eddies moving and foam breaking/reforming. Clear transparent outside each wake, no bounding boxes, no checkerboard, no lettering. Keep the hard single-pixel aesthetic and navy/desaturated blue-grey/cream palette. The wake opens to RIGHT AND DOWN because ship sails LEFT. The source image has a far arm that sits above the tip: fix that, this is critical.",
+      "references": [
+        "source/wake-generated.png"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "path": "source/sea-generated.png",
+      "sha256": "c8219dc6158ded601e0401f460d00c96f86fab85dfcd3fdc40042afb18511f7f",
+      "size": [
+        887,
+        1774
+      ],
+      "promptIndex": 0,
+      "usedForRuntime": true,
+      "disposition": "Selected generated source"
+    },
+    {
+      "path": "source/foam-generated.png",
+      "sha256": "85752e672c6ce64d7273ff57666fc1a4727980f2837b4f0f822637a25603eceb",
+      "size": [
+        2172,
+        724
+      ],
+      "promptIndex": 1,
+      "usedForRuntime": true,
+      "disposition": "Selected generated source"
+    },
+    {
+      "path": "source/wake-generated.png",
+      "sha256": "c7aeaedaabff4f45b1bc0cb0194b1c812441646a8bc03dcdf157d0a376a0828e",
+      "size": [
+        965,
+        1629
+      ],
+      "promptIndex": 2,
+      "usedForRuntime": false,
+      "disposition": "Superseded: upper arm rose above stern contact; retained as input to fit correction."
+    },
+    {
+      "path": "source/wake-fitted-generated.png",
+      "sha256": "f4b33fd9a89f46aef73caec8450097819fa766a56fc7c845672427ebc85a1996",
+      "size": [
+        965,
+        1630
+      ],
+      "promptIndex": 3,
+      "usedForRuntime": true,
+      "disposition": "Selected generated source"
+    }
+  ],
+  "references": [
+    {
+      "path": "../deck.png",
+      "sha256": "557209a06bb266fa79b09ff985cf9558145b95382d0842bb55717a43980cff9b"
+    },
+    {
+      "path": "../sea/water-tile.png",
+      "sha256": "bba28137ac6a6eca95276fe33d0b098806715a8d64529a63b60fc0fee81d5111"
+    },
+    {
+      "path": "../environment.json",
+      "sha256": "42659d89d664de1ff5eda0a0d1225b4e1ae27686e4098a2b70151cd735ed5c0a"
+    }
+  ],
+  "authorship": "All wave, foam and wake artwork generated by the built-in image generator. Mechanical extraction, registration, block-median sampling, fixed-palette quantization, alpha cleanup and repeat-edge correction only; no procedural wave drawing or painted replacement shapes.",
+  "license": "Distributed under the repository MIT license; AI-generated art, no claim of human authorship or exclusive copyright. No third-party art used."
+}
