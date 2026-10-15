@@ -74,7 +74,7 @@ export type StartDeck = (
   scene: DeckScene,
   size: { width: number; height: number },
   onHover: (hover: DeckHover | null) => void,
-  onSelect: (key: string | null) => void,
+  onSelect: (key: string | null, action?: "converse") => void,
 ) => Promise<DeckDrawing>;
 
 /** Everything the mount does that touches the browser or Pixi, so the tests can stand in for it. */
@@ -118,7 +118,7 @@ export function mountDeck(
   engine: DeckEngine,
   onStatus: (status: DeckStatus) => void,
   onHover: (hover: DeckHover | null) => void = function () {},
-  onSelect: (key: string | null) => void = function () {},
+  onSelect: (key: string | null, action?: "converse") => void = function () {},
 ): DeckMount {
   const idle: DeckMount = { update() {}, focus() {}, destroy() {} };
   if (!isDeckHost(node)) {
@@ -156,8 +156,8 @@ export function mountDeck(
         function (hover) {
           if (!gone) onHover(hover);
         },
-        function (key) {
-          if (!gone) onSelect(key);
+        function (key, action) {
+          if (!gone) onSelect(key, action);
         },
       ).then(function (started) {
         return { started, drawn };
@@ -454,7 +454,7 @@ export function packArt(
       const failed = pack.failed.get(look.image);
       if (failed !== undefined) warn(`[firstmate] the deck's ${pathOf(look.image)} did not load; drawing without it:`, failed);
     }
-    return { stage: compileStage(pack.manifest), cast, parts, ambience, atmosphere: compileAtmosphere(pack.manifest), images: pack.images, masks, image: atlas, effects: pack.manifest.effects, presentation: deckPresentation(pack.manifest) };
+    return { stage: compileStage(pack.manifest), cast, parts, ambience, atmosphere: compileAtmosphere(pack.manifest), images: pack.images, masks, image: atlas, effects: pack.manifest.effects, attentionCarrier: pack.manifest.attentionCarrier, presentation: deckPresentation(pack.manifest) };
   });
 }
 

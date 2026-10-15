@@ -106,6 +106,10 @@ try {
     const { checkIdle } = await import("../deck-enrichment/check-idle.mjs");
     await checkIdle(view, manifest);
   }
+  if (process.env.CHECK_ATTENTION === "1") {
+    const { checkAttention } = await import("../deck-enrichment/check-attention.mjs");
+    await checkAttention(view, manifest);
+  }
   if (errors.length !== 0) throw new Error(errors.join("\n"));
   console.log(JSON.stringify({ setting: actual, overlay: drawn, selectionCheck: process.env.CHECK_SELECTION === "1", errors }));
 } finally {

@@ -25,10 +25,11 @@
  * the keyboard, Tab reaches the deck, an arrow key or Enter focuses a sailor, and Tab stays inside the panel
  * until Esc. Under reduced motion the camera snaps instead of zooming.
  *
- * **A sailor can have replies for the captain** (`client/deck-replies.ts`): the first mate's suggestions that
- * name its crewmate. It wears a speech-bubble marker, and pointing at it, or focusing it, opens a speech bubble
- * over it with each reply as a chip (`client/reply-bubble.tsx`); the focused sailor's panel lists them too.
- * Picking one goes through `onReply`, the screen's own suggestion send.
+ * **Attention**: a pack with `attention-carrier@1` replaces per-worker reply markers with one independent
+ * target for the selected worker. Blocked workers, pending permissions and linked first-mate suggestions
+ * qualify; stale workers never do. The legend selects among them and offers keyboard Converse. The carrier
+ * opens the existing drawer through `onConverse`, sending nothing. Packs without it retain the suggestion
+ * bubbles (`client/deck-replies.ts`); focused cards still offer their suggestions through `onReply`.
  *
  * The canvas lives in a childless `View` (`client/deck-mount.ts` explains the escape hatch). A renderer
  * that cannot draw — native, no WebGL, Pixi failing to start — gets a plain message in its place.
@@ -36,7 +37,7 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Platform, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import type { FleetCard, Suggestion } from "../shared/fleet";
 import { DEFAULT_DECK_SETTING, loadDeckEngine, loadDeckSetting } from "../shared/deck-rpc";
@@ -48,6 +49,7 @@ import { browserDeckEngine, mountDeck, type DeckEngine, type DeckMount, type Dec
 import { answeredReplies, bubblePlacement, repliesByCard, type DeckRegion } from "./deck-replies";
 import { DECK_STATES, deckScene, type DeckSailor, type DeckState } from "./deck-scene";
 import { DeckAskMarker, ReplyBubble, ReplyOptions } from "./reply-bubble";
+import { attentionWorker, needsResponse } from "./deck-attention";
 
 
 /** A state's badge, drawn as on deck, `pixel` points an art pixel: the legend's key to the sailors' heads. */
@@ -111,6 +113,7 @@ export function SailorLabel({ sailor, hover, theme, colour }: { sailor: DeckSail
         </Text>
       )}
       {caption.stale === null ? null : <Text style={{ color: colors.statusWarning, fontSize: 12 }}>{caption.stale}</Text>}
+      {hover.action === "converse" ? <Text style={{ color: colors.foreground, fontSize: 12 }}>Click to open Converse</Text> : null}
     </View>
   );
 }
@@ -210,6 +213,7 @@ function DeckView({
   renderFocus,
   suggestions = NO_SUGGESTIONS,
   onReply,
+  onConverse,
   replyBlocked = null,
   setting = DEFAULT_DECK_SETTING,
   onFailure,
@@ -226,6 +230,8 @@ function DeckView({
   suggestions?: readonly Suggestion[];
   /** Sends a reply the way the strip sends a suggestion. Without it, the deck offers no replies. */
   onReply?: (reply: Suggestion) => void;
+  /** Opens the worker's existing Converse drawer, by card key; never sends a message. */
+  onConverse?: (key: string) => void;
   /** Why a reply cannot be sent just now (`replyBlockedText`), or null. */
   replyBlocked?: string | null;
   /** The fleet load is failing: the deck shows the last crew it saw, greyed. */
@@ -239,6 +245,9 @@ function DeckView({
   onFailure?: () => void;
 }) {
   const answered = useSyncExternalStore(answeredReplies.subscribe, answeredReplies.version);
+  const [carrierMode, setCarrierMode] = useState(false);
+  const usesCarrier = carrierMode && onConverse !== undefined;
+  const [selectedAttention, setSelectedAttention] = useState<string | null>(null);
   const offers = onReply !== undefined;
   // `answered` is the store's version: a pick, or a send that failed, changes what is still waiting.
   const replies = useMemo(
@@ -247,8 +256,17 @@ function DeckView({
   );
   // A reply the file has dropped is forgotten, so one that comes back later is offered again.
   useEffect(() => answeredReplies.keepOnly(suggestions), [suggestions]);
-  const asking = useMemo(() => new Set(replies.keys()), [replies]);
-  const scene = useMemo(() => deckScene(cards, theme, { feedStale: stale, asking }), [cards, theme, stale, asking]);
+  const asking = useMemo(() => new Set([...replies.keys(), ...(usesCarrier ? cards.filter(needsResponse).map(card => card.key) : [])]), [replies, usesCarrier, cards]);
+  const scene = useMemo(() => ({ ...deckScene(cards, theme, { feedStale: stale, asking }), attentionKey: selectedAttention }), [cards, theme, stale, asking, selectedAttention]);
+  const attentionKey = attentionWorker(scene, selectedAttention);
+  const attentionKeys = scene.sailors.filter(sailor => sailor.asks).map(sailor => sailor.key).sort();
+  const attentionSailor = scene.sailors.find(sailor => sailor.key === attentionKey);
+  const stepAttention = (delta: number) => {
+    if (attentionKey === null || attentionKeys.length === 0) return;
+    setSelectedAttention(attentionKeys[(attentionKeys.indexOf(attentionKey) + attentionKeys.length + delta) % attentionKeys.length]!);
+  };
+  // Once selected, a new earlier-sorting request must not silently change the shark's worker.
+  useEffect(() => { if (usesCarrier) setSelectedAttention(attentionKey); }, [attentionKey, usesCarrier]);
   // One engine for the view's life, so a new `useRpc` function on a re-render never restarts the canvas.
   const loadEngine = useRpc(loadDeckEngine);
   const loadSetting = useRpc(loadDeckSetting);
@@ -277,6 +295,11 @@ function DeckView({
   const mount = useRef<DeckMount | null>(null);
   const sceneRef = useRef(scene);
   sceneRef.current = scene;
+  const converseRef = useRef(onConverse);
+  converseRef.current = onConverse;
+  const converse = (key: string) => {
+    if (sceneRef.current.sailors.some(sailor => sailor.key === key && sailor.asks && !sailor.stale)) converseRef.current?.(key);
+  };
   const focusedRef = useRef(focused);
   focusedRef.current = focused;
   const focusableRef = useRef(focusable);
@@ -286,7 +309,11 @@ function DeckView({
 
   useEffect(() => {
     if (!web) return;
-    const started = mountDeck(host.current, sceneRef.current, used, setStatus, setHover, (key) => {
+    const started = mountDeck(host.current, sceneRef.current, used, (next) => {
+      setStatus(next);
+      setCarrierMode(next.kind === "drawing" && next.presentation?.attentionCarrier === true);
+    }, setHover, (key, action) => {
+      if (action === "converse" && key !== null && converseRef.current !== undefined) { converse(key); return; }
       if (focusableRef.current) setFocused((now) => nextFocus(now, key));
     });
     started.focus(focusedRef.current);
@@ -423,17 +450,17 @@ function DeckView({
   const { colors } = theme;
   const crew = scene.sailors.length;
   const lost = scene.stale === 0 ? "" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
-  const asked = speakers.size === 0 ? "" : `, ${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you to pick`;
+  const asked = speakers.size === 0 ? "" : usesCarrier ? `, ${speakers.size} need your response; use Converse below` : `, ${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you to pick`;
   const summary = `${DECK_STATES.map((state) => `${scene.counts[state]} ${state}`).join(", ")}${asked}${lost}`;
   const note = deckStatusText(status, presentation);
   // A sailor with replies waiting speaks in its bubble instead of wearing the label.
   const hovered =
-    hover === null || status.kind !== "drawing" || open || speakers.has(hover.key)
+    hover === null || status.kind !== "drawing" || open || (!usesCarrier && speakers.has(hover.key))
       ? null
       : (scene.sailors.find((sailor) => sailor.key === hover.key) ?? null);
   const layout = focusLayout(size);
   // While focused, the canvas reports where the focused sailor stands, and only while it has replies waiting.
-  const speaking = status.kind !== "drawing" ? null : open ? (hover !== null && hover.key === focused ? hover : null) : held;
+  const speaking = status.kind !== "drawing" || usesCarrier ? null : open ? (hover !== null && hover.key === focused ? hover : null) : held;
   const speaker = speaking === null || !speakers.has(speaking.key) ? null : (scene.sailors.find((sailor) => sailor.key === speaking.key) ?? null);
   const speakerReplies = speaker === null ? undefined : replies.get(speaker.key);
   const focusedReplies = open && focused !== null && speakers.has(focused) ? replies.get(focused) : undefined;
@@ -530,7 +557,7 @@ function DeckView({
             <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{places[state]}</Text>
           </View>
         ))}
-        {speakers.size === 0 ? null : (
+        {speakers.size === 0 || usesCarrier ? null : (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <DeckAskMarker accent={scene.palette.ask} />
             <Text style={{ color: colors.foreground, fontSize: 12 }}>{`${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you`}</Text>
@@ -545,11 +572,32 @@ function DeckView({
         )}
       </View>
       {status.kind === "drawing" && crew > 0 ? (
-        <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
-          {focusable
-            ? `Point at a ${copy.actor.one} to see who it is; click one to focus it and act on it.`
-            : `Point at a ${copy.actor.one} to see who it is and what it is on.`}
-        </Text>
+        <View>
+          <Text aria-hidden={usesCarrier && attentionSailor !== undefined} style={{ color: colors.foregroundMuted, fontSize: 12, opacity: usesCarrier && attentionSailor !== undefined ? 0 : 1 }}>
+            {focusable
+              ? `Point at a ${copy.actor.one} to see who it is; click one to focus it and act on it.`
+              : `Point at a ${copy.actor.one} to see who it is and what it is on.`}
+          </Text>
+          {!usesCarrier || attentionSailor === undefined ? null : (
+            <View testID="firstmate-deck-attention" style={{ position: "absolute", left: 0, right: 0, top: -4, bottom: -4, flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <DeckAskMarker accent={scene.palette.ask} />
+              <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{`${speakers.size} need your response`}</Text>
+              {attentionKeys.length < 2 ? null : (
+                <Pressable accessibilityRole="button" accessibilityLabel="Previous worker needing a response" onPress={() => stepAttention(-1)} style={{ padding: 6 }}>
+                  <Text style={{ color: colors.foreground }}>‹</Text>
+                </Pressable>
+              )}
+              <Pressable accessibilityRole="button" accessibilityLabel={`Converse with ${attentionSailor.caption.title}`} onPress={() => converse(attentionSailor.key)} style={{ flexShrink: 1, paddingVertical: 4 }}>
+                <Text numberOfLines={1} style={{ color: colors.foreground, textDecorationLine: "underline", fontSize: 12 }}>{`Converse · ${attentionSailor.caption.title}`}</Text>
+              </Pressable>
+              {attentionKeys.length < 2 ? null : (
+                <Pressable accessibilityRole="button" accessibilityLabel="Next worker needing a response" onPress={() => stepAttention(1)} style={{ padding: 6 }}>
+                  <Text style={{ color: colors.foreground }}>›</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+        </View>
       ) : null}
     </View>
   );

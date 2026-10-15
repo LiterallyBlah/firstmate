@@ -398,7 +398,7 @@ interface FakeEngine extends DeckEngine {
   stops: number;
   resize?: (width: number, height: number) => void;
   hover?: (hover: DeckHover | null) => void;
-  select?: (key: string | null) => void;
+  select?: (key: string | null, action?: "converse") => void;
 }
 
 function deferred<T>() {
@@ -1125,6 +1125,40 @@ describe("the ship deck view", () => {
   });
 
   describe("replies on deck", () => {
+    it("routes carrier and keyboard actions to the selected worker, preserving selection and rejecting stale or removed targets", async () => {
+      const engine = viewEngine();
+      const opened: string[] = [];
+      let cards = [card("b", "blocked"), card("c", "blocked")];
+      cards[1]!.taskId = "task-c";
+      const props = () => ({ cards, theme, engine, os: "web", suggestions: [{ label: "Discuss task-c", prompt: "Discuss task-c" }], onReply() {}, onConverse: (key: string) => opened.push(key), renderFocus: () => createElement("FocusCard") });
+      await act(async () => { renderer = create(createElement(ShipDeckView, props()), { createNodeMock: () => fakeHost() }); });
+      await act(flush);
+      const root = renderer!;
+      const button = (label: string) => root.root.find(node => (node.type as unknown) === "Pressable" && node.props.accessibilityLabel === label);
+      expect(text(root)).toContain("2 need your response");
+      expect(engine.drawings[0]!.updates.at(-1)?.attentionKey).toBe("b");
+      await act(async () => engine.select?.("b", "converse"));
+      expect(opened).toEqual(["b"]);
+      expect(root.root.findAllByProps({ testID: "firstmate-deck-focus" })).toEqual([]);
+      await act(async () => button("Next worker needing a response").props.onPress());
+      await act(async () => button("Converse with Task c").props.onPress());
+      expect(opened).toEqual(["b", "c"]);
+      cards = [card("a", "blocked"), ...cards.reverse()];
+      await act(async () => root.update(createElement(ShipDeckView, props())));
+      expect(engine.drawings[0]!.updates.at(-1)?.attentionKey).toBe("c");
+      await act(async () => engine.hover?.({ key: "c", action: "converse", x: 50, top: 200, bottom: 240, width: 800, height: 400, floor: null }));
+      expect(text(root)).toContain("Click to open Converse");
+      expect(root.root.findAllByProps({ testID: "firstmate-deck-bubble" })).toEqual([]);
+      cards = cards.filter(card => card.key !== "c");
+      await act(async () => root.update(createElement(ShipDeckView, props())));
+      await act(async () => engine.select?.("c", "converse"));
+      expect(opened).toEqual(["b", "c"]);
+      expect(engine.drawings[0]!.updates.at(-1)?.attentionKey).toBe("a");
+      await act(async () => root.update(createElement(ShipDeckView, { ...props(), stale: true })));
+      await act(async () => engine.select?.("a", "converse"));
+      expect(opened).toEqual(["b", "c"]);
+      expect(root.root.findAllByProps({ testID: "firstmate-deck-attention" })).toEqual([]);
+    });
     /** One suggestion names b1's crewmate by its agent id; the other names no one. */
     const land = { label: "Land b1", prompt: "Merge agent-b1's branch, captain's word." };
     const coffee = { label: "Coffee", prompt: "Make coffee." };

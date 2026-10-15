@@ -1,0 +1,89 @@
+{
+  "tool": "built-in image_gen__imagegen",
+  "mode": "generate",
+  "source": {
+    "size": [
+      1448,
+      1086
+    ],
+    "sha256": "a1fd9cf758a7e522378303d09b252cea4a19a3e95e96d2ed60feb9978eab3448"
+  },
+  "crops": [
+    [
+      36,
+      47,
+      640,
+      480
+    ],
+    [
+      760,
+      47,
+      640,
+      480
+    ],
+    [
+      36,
+      582,
+      640,
+      480
+    ],
+    [
+      760,
+      582,
+      640,
+      480
+    ]
+  ],
+  "scale": 10,
+  "bubble": "generated frame 0, rows 0..23 reused unchanged in all frames",
+  "palette": [
+    "#151E2D",
+    "#1D314E",
+    "#2C4869",
+    "#45617A",
+    "#64849A",
+    "#8FA8B4",
+    "#BECAC6",
+    "#D9D4BE"
+  ],
+  "alpha": "binary; majority coverage alpha >= 192",
+  "clearBorder": 2,
+  "outputs": [
+    {
+      "id": "reply-shark-0",
+      "path": "reply/shark-0.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "66ca1f5fd8a96adf96ac2785dd8d93efaf0bee38e8aff317bf169f7c27e2b6a2"
+    },
+    {
+      "id": "reply-shark-1",
+      "path": "reply/shark-1.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "c7e9ccfc94f20204e0eaed79cf22c11d6af15fddd728c15f630868968d790489"
+    },
+    {
+      "id": "reply-shark-2",
+      "path": "reply/shark-2.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "71b03398458ea8006e4ac75e3e3591e8678253ead01a1ca75656e3ac588793fa"
+    },
+    {
+      "id": "reply-shark-3",
+      "path": "reply/shark-3.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "e23e5c428fe1e601baaa5f0c4117aef360e104e9705cdf32b4d250d947355ce4"
+    }
+  ]
+}

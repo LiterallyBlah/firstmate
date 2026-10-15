@@ -31,6 +31,7 @@ export const ENGINE_CAPABILITIES = [
   "floor@1",
   "zones@1",
   "zone-appearance@1",
+  "attention-carrier@1",
   "stable-posts@1",
   "cast@1",
   "pose-fidgets@1",
@@ -481,6 +482,15 @@ const Copy = z.strictObject({
 
 const Images = z.record(Id, z.strictObject({ path: PackPath, size: Size, sha256: z.string().regex(/^[0-9a-f]{64}$/) }));
 
+/** One persistent, engine-selected worker's Converse target, independent of the stage's motion. */
+const AttentionCarrier = z.strictObject({
+  at: Point,
+  size: Size,
+  frames: z.array(Sprite).min(1),
+  frameMs: Ms,
+  loiter: z.strictObject({ amplitude: z.tuple([Px.nonnegative(), Px.nonnegative()]), periodMs: Ms }),
+});
+
 const ManifestShape = z.strictObject({
   format: z.literal(SETTING_FORMAT),
   formatVersion: z.number().int().positive(),
@@ -501,6 +511,7 @@ const ManifestShape = z.strictObject({
   ambience: z.array(AmbienceElement),
   dayCycle: DayCycle.optional(),
   atmosphere: Atmosphere.optional(),
+  attentionCarrier: AttentionCarrier.optional(),
   palette: z.strictObject({ fallbackFill: Hex, veil: Hex, staleTint: Hex, staleAlpha: z.number().min(0).max(1) }),
 });
 
@@ -526,6 +537,7 @@ function spritesOf(manifest: SettingManifest): Array<{ where: string; sprite: z.
   for (const piece of stage.pieces) add(`piece ${piece.id}`, piece.sprite);
   for (const prop of stage.props) add(`prop ${prop.id}`, prop.sprite);
   for (const zone of manifest.zones.zones) if (zone.appearance !== undefined) add(`zone ${zone.id}`, zone.appearance.sprite);
+  for (const sprite of manifest.attentionCarrier?.frames ?? []) add("attentionCarrier", sprite);
   for (const [id, effect] of Object.entries(manifest.effects)) for (const sprite of Object.values(effect.frames)) add(`effect ${id}`, sprite);
   for (const element of manifest.ambience) {
     const where = `ambience ${element.id}`;
@@ -570,6 +582,7 @@ export function settingImageIds(manifest: SettingManifest): string[] {
 export function capabilitiesUsed(manifest: SettingManifest): string[] {
   const used = new Set<string>(["stage@1", "floor@1", "zones@1", "cast@1"]);
   if (manifest.zones.zones.some((zone) => zone.appearance !== undefined)) used.add("zone-appearance@1");
+  if (manifest.attentionCarrier !== undefined) used.add("attention-carrier@1");
   if (manifest.zones.zones.some((zone) => zone.assign === "stable")) used.add("stable-posts@1");
   if (Object.values(manifest.cast.fidgets).some((fidget) => fidget?.keys.some((key) => key.pose !== undefined))) used.add("pose-fidgets@1");
   used.add(`${manifest.portals.entry.kind}@1`);
@@ -619,6 +632,19 @@ export function settingProblems(manifest: SettingManifest): string[] {
   };
 
   for (const { where, sprite } of spritesOf(manifest)) if (manifest.images[sprite.image] === undefined) missing("image", sprite.image, where);
+  const carrier = manifest.attentionCarrier;
+  if (carrier !== undefined) {
+    const [x, y] = carrier.at, [width, height] = carrier.size, [dx, dy] = carrier.loiter.amplitude;
+    if (x - dx < 0 || x + width + dx > manifest.stage.size[0] || y - dy < manifest.stage.fit.top || y + height + dy > manifest.stage.fit.bottom)
+      problems.push("attentionCarrier and its loiter must stay inside the stage fit");
+    for (const sprite of carrier.frames) {
+      const image = manifest.images[sprite.image];
+      if (image === undefined) continue;
+      const [sx, sy, sw, sh] = sprite.rect ?? [0, 0, ...image.size];
+      if (sw !== width || sh !== height || sx < 0 || sy < 0 || sx + sw > image.size[0] || sy + sh > image.size[1])
+        problems.push("attentionCarrier frames must match its size and stay inside their images");
+    }
+  }
   for (const look of manifest.cast.looks) {
     if (manifest.images[look.image] === undefined) missing("image", look.image, `look ${look.id}`);
     if (manifest.cast.lanes[look.lane] === undefined) missing("lane", look.lane, `look ${look.id}`);

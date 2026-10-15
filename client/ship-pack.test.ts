@@ -115,6 +115,7 @@ describe("the ship's pack, read as the manifests the deck drew from", () => {
       ...ship.stage.parts.flatMap((each) => [each.sprite.image, ...(each.replacesPiece === undefined ? [] : [each.replacesPiece.sprite.image]), ...(each.behaviour?.kind === "cycle" ? each.behaviour.frames.sprites.map((sprite) => sprite.image) : [])]),
       ...ship.stage.pieces.map((piece) => piece.sprite.image),
       ...ship.zones.zones.flatMap((zone) => zone.appearance === undefined ? [] : [zone.appearance.sprite.image]),
+      ...(ship.attentionCarrier?.frames.map(sprite => sprite.image) ?? []),
     ].map(pathOf);
     const paths = new Set(["deck.png", ...extrasImagePaths(extras), ...looks, ...elements, ...stage]);
     expect(new Set(Object.values(ship.images).map((image) => image.path))).toEqual(paths);
