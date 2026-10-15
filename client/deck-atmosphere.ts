@@ -20,10 +20,11 @@
  *   wake, the sky untinted (`deliveredWeather`) — and no ramp: its intensity follows the crew's at once, unseen, and
  *   its clocks stand, so motion resumes in the right weather. And no weather layers (`Weather.intensity` is null).
  * - **The top end can be a storm, in data.** The scenery is handed the eased intensity itself (`Weather.intensity`),
- *   and the extras' weather layers — variants over the sea, wake and clouds, cycles, the sky's mood overlays, flashes —
- *   each fade in along their own curve over it (`client/deck-variants.ts`, `client/deck-flash.ts`). Their thresholds
+ *   and the setting's weather layers — variants over the sea, wake and clouds, cycles, the sky's overcast, flashes —
+ *   each fade in along their own curve over it (`client/deck-variants.ts`, `client/deck-ambience.ts`). Their thresholds
  *   are in the setting pack (`art/settings/ship/setting.json`), beside the art, not here; this table only paces and sizes the calm scene.
  */
+import { curveAt, type Curve } from "./deck-variants";
 import { advanceWater, type WaterClock, type WaterMotion } from "./deck-water";
 import type { DeckSailor, DeckState } from "./deck-scene";
 
@@ -50,7 +51,7 @@ export interface AtmosphereParams {
   heave: number;
   /** How much wake there is: the generated wake's opacity, and how far the code wake runs. 1 is all of it. */
   wake: number;
-  /** How far the sky is shaded towards `STORM_SHADE`, 0 to 1. */
+  /** How far the sky is shaded towards its tint (the pack's backdrop `tint`), 0 to 1. */
   mood: number;
 }
 
@@ -64,9 +65,6 @@ export const ATMOSPHERE: ReadonlyArray<{ at: number } & AtmosphereParams> = [
   { at: 2 / BUSY_CREW, water: { pace: 1, drift: 1 }, wind: 1, sail: 1, billow: 0.5, swell: 1, heave: 1.2, wake: 0.85, mood: 0 },
   { at: 1, water: { pace: 1.9, drift: 2.2 }, wind: 3, sail: 2.4, billow: 0.65, swell: 1.35, heave: 1.6, wake: 1, mood: 1 },
 ];
-
-/** The sky's colour at full mood, as a tint: a shade greyer and bluer, never dark. */
-export const STORM_SHADE = 0xdde1e8;
 
 /** How busy the crew on deck is, 0 to 1. */
 export function crewIntensity(sailors: ReadonlyArray<Pick<DeckSailor, "state" | "stale">>): number {
@@ -165,10 +163,36 @@ export function shade(colour: number, tint: number): number {
   return shaded;
 }
 
-/** The sky's tint at `mood`: white (the art as it is) at 0, `STORM_SHADE` at 1. */
-export function moodTint(mood: number): number {
-  const t = Math.max(0, Math.min(1, Number.isFinite(mood) ? mood : 0));
+/** A tint `amount` of the way from white (the art as it is) at 0 to `to` at 1, as Pixi's tint multiplies. */
+export function tintToward(to: number, amount: number): number {
+  const t = Math.max(0, Math.min(1, Number.isFinite(amount) ? amount : 0));
   let tint = 0;
-  for (const shift of [16, 8, 0]) tint |= Math.round(lerp(0xff, (STORM_SHADE >> shift) & 0xff, t)) << shift;
+  for (const shift of [16, 8, 0]) tint |= Math.round(lerp(0xff, (to >> shift) & 0xff, t)) << shift;
   return tint;
+}
+
+/** A pack's `Level`: a number of its own, an atmosphere channel's (times `scale`), or a curve over the intensity. */
+export type Level = number | { channel: string; scale?: number | undefined } | { curve: Curve };
+
+/**
+ * A weather channel by the pack's name for it, of those the scenery is handed (`Weather`'s `wake` and `mood`); any
+ * other reads 0. Until step 6 of the migration makes the weather the pack's table, every channel by name.
+ */
+export function channelOf(weather: Weather, channel: string): number {
+  return channel === "wake" ? weather.wake : channel === "mood" ? weather.mood : 0;
+}
+
+/**
+ * A weather clock by the pack's name for it (`atmosphere.clocks`): the water's frames and drift, and the wind. Any other
+ * is the scene's own, `seconds` — until step 6 makes every clock the pack's.
+ */
+export function clockOf(weather: Weather, clock: string, seconds: number): number {
+  return clock === "water-frames" ? weather.water.frames : clock === "water-drift" ? weather.water.drift : clock === "wind" ? weather.wind : seconds;
+}
+
+/** `level` in `weather`. A curve reads nothing on a still deck, which has no intensity (`Weather.intensity`). */
+export function levelAt(level: Level, weather: Weather): number {
+  if (typeof level === "number") return level;
+  if ("channel" in level) return channelOf(weather, level.channel) * (level.scale ?? 1);
+  return weather.intensity === null ? 0 : curveAt(level.curve, weather.intensity);
 }

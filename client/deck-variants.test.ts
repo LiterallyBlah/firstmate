@@ -1,7 +1,7 @@
 /**
  * The deck's weather layers without Pixi (`client/deck-variants.ts`): curves over the weather's intensity, which
- * variants, cycles and mood overlays can be drawn and over what, how an element shares its place with its variants,
- * and the heavy weather as `extras.json` tunes it — calm up to three crewmates working, a storm with a busy fleet.
+ * variants and cycles can be drawn and over what, how an element shares its place with its variants, and the heavy
+ * weather as the ship pack tunes it — calm up to three crewmates working, a storm with a busy fleet.
  */
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
@@ -12,7 +12,7 @@ import { BUSY_CREW, crewIntensity } from "./deck-atmosphere";
 import type { DeckExtrasImages } from "./deck-extras";
 import { curveAt, curvePeak, cycleFrame, drawnVariants, opacityAt, variantBlend, variantsOf } from "./deck-variants";
 import { drawnWater } from "./deck-water";
-import { shipViews } from "../test/ship-pack";
+import { shipElement, shipViews } from "../test/ship-pack";
 
 const manifest = shipViews().extras;
 const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
@@ -52,19 +52,18 @@ describe("a curve over the weather's intensity", () => {
 describe("which weather layers can be drawn", () => {
   it("draws every layer the extras send, each variant over the element it names", () => {
     const drawn = drawnVariants(extras, drawnWater(extras))!;
-    expect([...drawn.variants.keys()]).toEqual(["sea", "wake", "cloud:wisp", "cloud:puff", "cloud:cumulus", "cloud:long-bank", "cloud:twin-bank"]);
+    expect([...drawn.variants.keys()]).toEqual(["sea", "wake"]);
     expect(variantsOf(drawn, "sea").map((variant) => variant.id)).toEqual(["rough-sea"]);
     expect(variantsOf(drawn, "foam")).toEqual([]);
     expect(drawn.cycles.map((cycle) => cycle.id)).toEqual(["spindrift"]);
-    expect(drawn.overlays.map((overlay) => overlay.id)).toEqual(["overcast"]);
     expect(drawnVariants(null, null)).toBeNull();
   });
 
   it("leaves out only the layer whose image did not decode", () => {
-    const drawn = drawnVariants(without("storm/sea/frame-2.png", "storm/spray/frame-0.png", "storm/sky/overcast.png"), drawnWater(extras))!;
+    const drawn = drawnVariants(without("storm/sea/frame-2.png", "storm/spray/frame-0.png"), drawnWater(extras))!;
     expect(variantsOf(drawn, "sea")).toEqual([]);
     expect(variantsOf(drawn, "wake").map((variant) => variant.id)).toEqual(["heavy-wake"]);
-    expect([drawn.cycles, drawn.overlays]).toEqual([[], []]);
+    expect(drawn.cycles).toEqual([]);
   });
 
   it("leaves out a variant that would not line up with its element, or whose element is not drawn, and keeps the element", () => {
@@ -81,7 +80,6 @@ describe("which weather layers can be drawn", () => {
     const drawn = drawnVariants(misfit, water)!;
     expect([variantsOf(drawn, "sea"), variantsOf(drawn, "wake")]).toEqual([[], []]);
     expect(variantsOf(drawnVariants(extras, { ...water, sea: null }), "sea")).toEqual([]);
-    expect(variantsOf(drawnVariants(extras, null), "cloud:puff")).toHaveLength(1);
   });
 });
 
@@ -103,17 +101,20 @@ describe("an element under its variants", () => {
   });
 });
 
-describe("the heavy weather, as extras.json tunes it", () => {
+describe("the heavy weather, as the ship pack tunes it", () => {
+  const puff = shipElement("clouds", "drifters").sprites.find((sprite) => sprite.id === "puff")!;
+  const overcast = shipElement("overcast", "overlay").alpha;
+  const lightning = shipElement("lightning", "flash");
   const opacities = (intensity: number) => {
     const drawn = drawnVariants(extras, drawnWater(extras))!;
     return {
       sea: opacityAt(variantsOf(drawn, "sea")[0]!.opacity, intensity),
       wake: opacityAt(variantsOf(drawn, "wake")[0]!.opacity, intensity),
-      clouds: opacityAt(variantsOf(drawn, "cloud:puff")[0]!.opacity, intensity),
+      clouds: opacityAt(puff.variants![0]!.opacity, intensity),
       spray: opacityAt(drawn.cycles[0]!.opacity, intensity),
-      overcast: opacityAt(drawn.overlays[0]!.opacity, intensity),
-      lightning: opacityAt(manifest.flashes![0]!.opacity, intensity),
-      flashes: curveAt(manifest.flashes![0]!.perMinute, intensity),
+      overcast: overcast === "night" ? 0 : opacityAt(overcast.curve, intensity),
+      lightning: opacityAt(lightning.opacity, intensity),
+      flashes: curveAt(lightning.perMinute, intensity),
     };
   };
 

@@ -13,38 +13,22 @@ import type { DeckArtManifest, DeckEnvironmentManifest, DeckExtrasManifest } fro
 
 export type { DeckArtManifest, DeckEnvironmentManifest, DeckExtrasManifest } from "./deck-legacy-schema";
 
-/** The six sky phases, in the order of the day. */
-export const SKY_PHASES = ["dawn", "morning", "midday", "afternoon", "dusk", "night"] as const;
-export type SkyPhaseId = (typeof SKY_PHASES)[number];
-export const GULL_POSES = ["up", "mid", "down"] as const;
-export type GullPose = (typeof GULL_POSES)[number];
-
 /** Every image the manifest names, once each, in a stable order. */
 export function environmentImagePaths(manifest: DeckEnvironmentManifest): string[] {
-  const paths = [
-    manifest.sea.texture,
-    manifest.foam.texture,
-    ...manifest.sky.phases.map((phase) => phase.path),
-    ...manifest.sky.overlays.map((overlay) => overlay.path),
-    manifest.gull.sheet,
-  ];
-  return [...new Set(paths)];
+  return [...new Set([manifest.sea.texture, manifest.foam.texture])];
 }
 
 /** Every image the extras manifest names, once each, in a stable order. */
 export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
   const exit = manifest.exit === undefined ? [] : [...Object.values(manifest.exit.shark.frames), ...Object.values(manifest.exit.splash.frames)];
-  const clouds = manifest.clouds?.sprites.map((sprite) => sprite.texture) ?? [];
   const plank = manifest.plank === undefined ? [] : [manifest.plank.texture];
   const mast = manifest.mast === undefined ? [] : [manifest.mast.texture];
   const water = manifest.water === undefined ? [] : [...manifest.water.sea.frames, ...manifest.water.foam.frames, ...manifest.water.wake.frames];
   const weather = [
     ...(manifest.variants ?? []).flatMap((variant) => variant.frames),
     ...(manifest.cycles ?? []).flatMap((cycle) => cycle.frames),
-    ...(manifest.mood?.overlays ?? []).map((overlay) => overlay.texture),
-    ...(manifest.flashes ?? []).flatMap((flash) => flash.frames),
   ];
-  return [...new Set([manifest.sail.texture, ...exit, ...clouds, ...plank, ...mast, ...water, ...weather])];
+  return [...new Set([manifest.sail.texture, ...exit, ...plank, ...mast, ...water, ...weather])];
 }
 
 /** The three manifests a pack is read as, and each of its images' path by id. */
@@ -62,10 +46,11 @@ type Rect = readonly [number, number, number, number];
 type Points = ReadonlyArray<readonly [number, number]>;
 
 /**
- * A pack read as the three manifests the engine drew from before packs: the atlas's frames, the environment's sky,
- * still sea, foam and gull, and the extras' tall mast, sail, looks, shark and splash, clouds, plank, animated water and
- * weather. Each part is found by what it is — the tile with a still fallback is the sea, the overlay at night the
- * stars — and a part the pack has none of is an error: these views exist only for the ship's own pack.
+ * A pack read as the three manifests the engine drew from before packs: the atlas's frames, the environment's still
+ * sea and foam, and the extras' tall mast, sail, shark and splash, plank, animated water and the weather over it. Each
+ * part is found by what it is — the tile with a still fallback is the sea — and a part the pack has none of is an
+ * error: these views exist only for the ship's own pack. The sky, its overlays, flash and drifters, and the flyby are
+ * the pack's own now (`client/deck-ambience.ts`).
  */
 export function legacyViews(manifest: SettingManifest): LegacyViews {
   const paths = new Map(Object.entries(manifest.images).map(([id, image]) => [id, image.path]));
@@ -107,7 +92,7 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
       blend: variant.blend,
       opacity: curve(variant.opacity),
       ...(variant.palette === undefined ? {} : { palette: variant.palette }),
-      ...(variant.byPhase === undefined ? {} : { stages: variant.byPhase as Record<SkyPhaseId, [string, string, string]> }),
+      ...(variant.byPhase === undefined ? {} : { stages: variant.byPhase }),
     }));
   const frames = (behaviour: { frames: { sprites: ReadonlyArray<{ image: string }> } }) => behaviour.frames.sprites.map((sprite) => path(sprite.image));
   const frameSize = (behaviour: { frames: { sprites: ReadonlyArray<{ image: string }> } }) => size(behaviour.frames.sprites[0]!.image);
@@ -125,30 +110,14 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
     ),
   };
 
-  // The environment: the sky and its stars, the still sea and foam the animated ones fall back to, the gull.
-  const sky = one("backdrop-cycle");
+  // The environment: the still sea and foam the animated ones fall back to.
   const sea = one("tile", (_behaviour, element) => element.fallback !== undefined);
   const foam = one("strip", (_behaviour, element) => element.fallback !== undefined);
   const seaStill = byId(sea.element.fallback)!.behaviour as Of<"tile">;
   const foamStill = byId(foam.element.fallback)!.behaviour as Of<"strip">;
-  const gull = one("flyby").behaviour;
-  const stars = one("overlay", (behaviour) => behaviour.alpha === "night").behaviour;
   const environment: DeckEnvironmentManifest = {
     sea: { texture: path(seaStill.frames.sprites[0]!.image), period: size(seaStill.frames.sprites[0]!.image), animation: { xPixelsPerSecond: seaStill.drift.pxPerSecond } },
     foam: { texture: path(foamStill.frames.sprites[0]!.image), period: size(foamStill.frames.sprites[0]!.image)[0], xPixelsPerSecond: foamStill.drift.pxPerSecond },
-    sky: {
-      size: pair(sky.behaviour.size),
-      phases: (manifest.dayCycle?.phases ?? []).map((phase) => ({ id: phase.id as SkyPhaseId, path: path(sky.behaviour.phases[phase.id]!), localMinute: phase.localMinute })),
-      overlays: [{ path: path(stars.image), size: size(stars.image) }],
-    },
-    gull: {
-      sheet: path(Object.values(gull.poses)[0]!.image),
-      frameSize: pair(gull.size),
-      anchor: pair(gull.anchor),
-      frames: Object.entries(gull.poses).map(([id, sprite]) => ({ id: id as GullPose, rect: rect(sprite) })),
-      sequence: gull.sequence as GullPose[],
-      frameMs: gull.frameMs,
-    },
   };
 
   // The extras.
@@ -160,11 +129,8 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
   const plank = stage.pieces.find((piece) => piece.baseline !== null && typeof piece.baseline === "object");
   const shark = manifest.effects.shark;
   const splash = manifest.effects.splash;
-  const clouds = one("drifters").behaviour;
   const wake = one("cycle", (behaviour) => typeof behaviour.opacity === "object" && "channel" in behaviour.opacity);
   const cycles = all("cycle", (behaviour) => curveOf(behaviour.opacity) !== null);
-  const moods = all("overlay", (behaviour) => behaviour.alpha !== "night");
-  const flashes = all("flash", () => true);
   const point = (effect: { points: Record<string, readonly [number, number]> }, name: string): [number, number] => pair(effect.points[name] ?? [0, 0]);
   const frameOf = (effect: { frames: Record<string, { image: string }> }, name: string) => path(effect.frames[name]?.image ?? "");
   const extras: DeckExtrasManifest = {
@@ -188,11 +154,6 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
             splash: { size: pair(splash.size), anchor: point(splash, "anchor"), frames: { impact: frameOf(splash, "impact"), burst: frameOf(splash, "burst") } },
           },
         }),
-    clouds: {
-      palette: clouds.palette,
-      stages: clouds.byPhase as Record<SkyPhaseId, [string, string, string]>,
-      sprites: clouds.sprites.map((sprite) => ({ id: sprite.id, texture: path(sprite.image), size: pair(sprite.size), pixelsPerSecond: sprite.pxPerSecond })),
-    },
     ...(plank === undefined ? {} : { plank: { texture: path(plank.sprite.image), size: size(plank.sprite.image), position: pair(plank.at) } }),
     mast: {
       texture: path(tallMast.sprite.image),
@@ -225,7 +186,6 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
       ...variantsOf("foam", foam.behaviour.variants),
       ...variantsOf("wake", wake.behaviour.variants),
       ...cycles.flatMap((cycle) => variantsOf(`cycle:${cycle.element.id}`, cycle.behaviour.variants)),
-      ...clouds.sprites.flatMap((sprite) => variantsOf(`cloud:${sprite.id}`, sprite.variants)),
     ],
     cycles: cycles.map((cycle) => ({
       id: cycle.element.id,
@@ -235,25 +195,6 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
       anchor: pair(cycle.behaviour.anchor),
       position: pair(cycle.behaviour.at),
       opacity: curve(curveOf(cycle.behaviour.opacity) ?? []),
-    })),
-    mood: {
-      overlays: moods.map((mood) => ({
-        id: mood.element.id,
-        texture: path(mood.behaviour.image),
-        size: size(mood.behaviour.image),
-        opacity: curve(curveOf(mood.behaviour.alpha) ?? []),
-      })),
-    },
-    flashes: flashes.map((flash) => ({
-      id: flash.element.id,
-      frames: flash.behaviour.frames.map((frame) => path(frame.sprite.image)),
-      frameSize: pair(flash.behaviour.size),
-      frameMs: flash.behaviour.frames.map((frame) => frame.ms),
-      frameAlpha: flash.behaviour.frames.map((frame) => frame.alpha),
-      anchor: pair(flash.behaviour.anchor),
-      place: "under-cloud" as const,
-      opacity: curve(flash.behaviour.opacity),
-      perMinute: curve(flash.behaviour.perMinute),
     })),
   };
   return { art, environment, extras, paths };

@@ -1,6 +1,6 @@
 {
-  "base": "origin/main 7ba827f",
-  "branch": "HEAD 7ba827f",
+  "base": "origin/main ba91b62",
+  "branch": "HEAD ba91b62",
   "control": null,
   "scenarios": [
     {
@@ -561,15 +561,6 @@
           "identical": true,
           "differingPixels": 0,
           "sha": "de0d04bd57907b58",
-          "flake": {
-            "differingPixels": 1,
-            "box": [
-              938,
-              538,
-              938,
-              538
-            ]
-          },
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -1276,19 +1267,7 @@
     }
   ],
   "pageErrors": [],
-  "flakes": [
-    {
-      "scenario": "moving-storm",
-      "shot": "65.4s",
-      "differingPixels": 1,
-      "box": [
-        938,
-        538,
-        938,
-        538
-      ]
-    }
-  ],
+  "flakes": [],
   "shots": 81,
   "identical": true
 }

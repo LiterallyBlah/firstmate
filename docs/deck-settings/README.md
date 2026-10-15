@@ -141,3 +141,36 @@ Gate: every shot pixel-identical to main. Client bundle +115 bytes; Hermes parse
 
 Gate: every shot pixel-identical to main (which has the re-angled wake). Client bundle +1,424 bytes; Hermes parses
 it; no `class`.
+
+## Step 5a — the sky, its overlays, the lightning, the clouds and the gull from the pack
+
+- **`client/deck-ambience.ts`** compiles a pack's ambience once (`compileAmbience`, in `packArt`): which elements are
+  drawn and in what order, from which images. **Each element stands alone**: one whose images did not all arrive is
+  left out by itself, and so is what is drawn in it or under it — an overlay or drifters in a backdrop's space, a
+  flash under drifters — or what `needs` it; a `fallback` is drawn only in place of the element it stands in for.
+  Drifters lose a sprite at a time (its image, or its slot masks, did not arrive), and a sprite's variant on its own.
+  `missing` names what was lacked, and the mount warns once per image. So a sky without its dawn is no sky, no stars,
+  overcast, clouds or lightning — and the gull still flies; before, any of the sky, the still sea and the gull missing
+  was a plain sea and nothing else.
+- **Motion by the element's own word** (`elementMotion`): full motion runs everything; on a software renderer and
+  under reduced motion an element runs, holds still or is not drawn as its `lite` and `still` say. The ship's were
+  set to what the deck did (`MotionPlan.ambient`), so nothing moves differently.
+- **The behaviours read the pack**: `backdrop-cycle@1` — the day's blend from `dayCycle` (`dayBlend`: its phases,
+  `fadeMinutes`, `night` and `fallback`), placed by its `placement` (`backdropPlacement`), tinted towards its `tint`
+  by its level (`tintToward`, `levelAt`; the ship's is the `mood` channel); `overlay@1` — `night`, or a curve, by day
+  only, in its space's tint, hidden by others as far as they show; `drifters@1` — lanes, margin, top, palettes,
+  sprites and speeds, on its clock (`clockOf`); `flash@1` — frames with their times and alphas, size and anchor, under
+  its drifters; `flyby@1` — slot, chance, start, speed, margin, rows, wobble, flap, poses, glide, night limit and
+  how many at once (`flybysAt`, `flybyPose`). A flyby that takes longer than a slot to cross is followed for as many
+  slots as it needs.
+- **Deleted from code**: `SKY_FADE_MINUTES`, `skyHorizonRow`, `skyBlend`, `skyPlacement`, `gullPose`, `gullsAt`,
+  `GULL_SLOT_SECONDS`, `GULL_SPEED`, `GULL_MARGIN`, `GULL_LOWEST`, `CLOUD_LANES`, `CLOUD_MARGIN`, `CLOUD_TOP_MIN`,
+  `drawnClouds`, `drawnFlashes`, `STORM_SHADE`, `moodTint`, `SKY_PHASES` and `GULL_POSES`; the legacy views lose
+  the environment's sky and gull and the extras' clouds, mood overlays, flashes and cloud variants. Labels in the
+  scene graph come from element ids (`sky:under`, `sky:overcast`, `flash:lightning`, `clouds:wisp`, `gull`).
+- **Fixed on the way**: in a flash of three or more frames, each frame from the second on ended at the wrong time (the
+  loop added the time of the frame after next); the ship's lightning has two frames, so nothing it draws changes.
+- Until 5b moves the sea, the foam and the wake onto the pack, the still sea is still the legacy view's, and the
+  ambience's back slot is drawn behind all of the sea and its front slot in front of it.
+
+Gate: every shot pixel-identical to main. Client bundle +5,045 bytes; Hermes parses it; no `class`.

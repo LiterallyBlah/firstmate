@@ -26,8 +26,6 @@ import type { DeckArtManifest, DeckExtrasManifest } from "./deck-legacy";
 export interface DeckExtrasImages {
   manifest: DeckExtrasManifest;
   images: ReadonlyMap<string, unknown>;
-  /** Each cloud sprite cut into its three slot masks, by texture, for those that could be cut (`client/deck-clouds.ts`). */
-  cloudMasks?: ReadonlyMap<string, readonly [unknown, unknown, unknown]>;
 }
 
 /** The sail, when it can be drawn: its strip decoded and the tall mast it is fitted to drawn (`drawnMast`). Null otherwise. */

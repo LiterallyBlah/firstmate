@@ -1,20 +1,15 @@
 /**
  * Moments of weather without Pixi (`client/deck-flash.ts`): how often a flash comes at an intensity, never more than
- * the cap however the data is tuned, each frame for its time, and where one stands under a cloud.
+ * the cap however the data is tuned, each frame for its time, and where one stands under a cloud. Whether one is drawn
+ * at all is `client/deck-ambience.test.ts`'s.
  */
-import { readFileSync } from "node:fs";
-import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { extrasImagePaths } from "./deck-legacy";
-import type { DeckExtrasImages } from "./deck-extras";
-import { CLOUD_TUCK, drawnFlashes, FLASH_CAP_PER_MINUTE, flashAt, flashSalt, underCloud } from "./deck-flash";
-import { shipViews } from "../test/ship-pack";
+import { CLOUD_TUCK, FLASH_CAP_PER_MINUTE, flashAt, flashSalt, underCloud } from "./deck-flash";
+import { shipElement } from "../test/ship-pack";
 
-const manifest = shipViews().extras;
-const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
-const lightning = manifest.flashes![0]!;
-const salt = flashSalt(lightning.id);
+const lightning = shipElement("lightning", "flash");
+const salt = flashSalt("lightning");
 
 /** Every flash's start, and how many frames showed each frame index, over `minutes` at 30 frames a second. */
 function watch(flash: Parameters<typeof flashAt>[1], intensity: number, minutes: number) {
@@ -32,12 +27,6 @@ function watch(flash: Parameters<typeof flashAt>[1], intensity: number, minutes:
 }
 
 describe("a flash now and then", () => {
-  it("is drawn only with every frame decoded", () => {
-    expect(drawnFlashes(extras).map((flash) => flash.id)).toEqual(["lightning"]);
-    expect(drawnFlashes({ manifest, images: new Map([...extras.images].filter(([path]) => path !== "storm/lightning/frame-1.png")) })).toEqual([]);
-    expect(drawnFlashes(null)).toEqual([]);
-  });
-
   it("comes about as often a minute as its curve says at the intensity, and never below its threshold", () => {
     expect(watch(lightning, 0.9, 10).starts).toEqual([]);
     const peak = watch(lightning, 1, 20).starts;
@@ -63,10 +52,19 @@ describe("a flash now and then", () => {
     expect(flashAt(start + 0.1, lightning, 1, salt)).toMatchObject({ frame: 1, share: 0.45 });
     expect(flashAt(start + 0.25, lightning, 1, salt)).toBeNull();
   });
+
+  it("ends each frame where the times up to it add up to, however many frames", () => {
+    const three = { ...lightning, frames: [10, 20, 40].map((ms, index) => ({ ...lightning.frames[0]!, ms, alpha: [1, 0.5, 0.25][index]! })) };
+    // Its first moment, to the tenth of a millisecond.
+    let start = watch(three, 1, 10).starts[0]!;
+    while (flashAt(start - 0.0001, three, 1, salt) !== null) start -= 0.0001;
+    const frameAt = (ms: number) => flashAt(start + ms / 1000, three, 1, salt)?.frame ?? null;
+    expect([5, 25, 45, 65, 75].map(frameAt)).toEqual([0, 1, 2, 2, null]);
+  });
 });
 
 describe("a flash under a cloud", () => {
-  const flash = { frameSize: [32, 48] as [number, number], anchor: [16, 4] as [number, number] };
+  const flash = { size: [32, 48] as [number, number], anchor: [16, 4] as [number, number] };
   const horizon = 213;
 
   it("tucks its anchor under the underside of a cloud in view, along its middle, its lower edge above the horizon", () => {
@@ -74,7 +72,7 @@ describe("a flash under a cloud", () => {
     for (let slot = 0; slot < 40; slot += 1) {
       const spot = underCloud([bank], slot, flash, horizon, { left: 0, right: 512 })!;
       expect(spot.y + flash.anchor[1]).toBe(bank.row + bank.height - CLOUD_TUCK);
-      expect(spot.y + flash.frameSize[1]).toBeLessThanOrEqual(horizon);
+      expect(spot.y + flash.size[1]).toBeLessThanOrEqual(horizon);
       expect(spot.x + flash.anchor[0]).toBeGreaterThanOrEqual(bank.x + bank.width * 0.3 - 1);
       expect(spot.x + flash.anchor[0]).toBeLessThanOrEqual(bank.x + bank.width * 0.7 + 1);
     }

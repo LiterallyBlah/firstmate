@@ -5,8 +5,6 @@
  */
 import { z } from "zod";
 
-import { GULL_POSES, SKY_PHASES, type SkyPhaseId } from "./deck-legacy";
-
 /** A rectangle in the atlas: x, y, width, height, in atlas pixels. */
 const Frame = z.tuple([z.number().int(), z.number().int(), z.number().int().positive(), z.number().int().positive()]);
 
@@ -23,8 +21,9 @@ export const DeckArtManifestSchema = z.object({
 export type DeckArtManifest = z.infer<typeof DeckArtManifestSchema>;
 
 /**
- * The generated sea, sky and gull (`docs/ship-deck-art/ENVIRONMENT.md`). Apart from the atlas so a deck whose
- * environment fails to load still draws its ship and crew, on a plain sea (`client/deck-mount.ts`).
+ * The generated still sea and foam (`docs/ship-deck-art/ENVIRONMENT.md`). Apart from the atlas so a deck whose
+ * environment fails to load still draws its ship and crew, on a plain sea (`client/deck-mount.ts`). The record has the
+ * sky and the gull too, which the pack draws itself now: parsing it leaves them out.
  */
 /** A file inside the pack: a relative path to a PNG, never climbing out. */
 const ArtPath = z
@@ -36,8 +35,6 @@ const HexColour = z.string().regex(/^#[0-9a-f]{6}$/i, "a colour must be #RRGGBB"
 /** A cloud's three colours, shadow to highlight. */
 const CloudPalette = z.tuple([HexColour, HexColour, HexColour]);
 
-const MINUTES_PER_DAY = 1440;
-
 export const DeckEnvironmentManifestSchema = z.object({
   /** The water: one opaque tile repeating both ways, scrolled sideways in whole pixels. */
   sea: z.object({
@@ -47,47 +44,22 @@ export const DeckEnvironmentManifestSchema = z.object({
   }),
   /** The foam at the hull's waterline: a transparent strip repeating sideways. */
   foam: z.object({ texture: ArtPath, period: z.number().int().positive(), xPixelsPerSecond: z.number().positive() }),
-  /**
-   * The sky: six registered backdrops, each with the local wall-clock minute it is shown alone at, and
-   * overlays (the stars) faded with the night. The phases are listed in the order of the day.
-   */
-  sky: z.object({
-    size: Size,
-    phases: z
-      .array(z.object({ id: z.enum(SKY_PHASES), path: ArtPath, localMinute: z.number().int().min(0).max(MINUTES_PER_DAY - 1) }))
-      .length(SKY_PHASES.length)
-      .refine((phases) => phases.every((phase, index) => phase.id === SKY_PHASES[index]), "the sky's phases must be dawn to night, in order")
-      .refine((phases) => phases.every((phase, index) => index === 0 || phase.localMinute > phases[index - 1]!.localMinute), "the sky's phases must be in the order of the day"),
-    overlays: z.array(z.object({ path: ArtPath, size: Size })),
-  }),
-  /** The gull: three poses in one strip, drawn flying right, registered at the beak. */
-  gull: z.object({
-    sheet: ArtPath,
-    frameSize: Size,
-    anchor: z.tuple([z.number().int(), z.number().int()]),
-    frames: z
-      .array(z.object({ id: z.enum(GULL_POSES), rect: Frame }))
-      .length(GULL_POSES.length)
-      .refine((frames) => frames.every((frame, index) => frame.id === GULL_POSES[index]), "the gull's frames must be up, mid and down"),
-    sequence: z.array(z.enum(GULL_POSES)).min(1),
-    frameMs: z.number().positive(),
-  }),
 });
 export type DeckEnvironmentManifest = z.infer<typeof DeckEnvironmentManifestSchema>;
 
 /**
  * The extras: the tall mast and its sail (`docs/ship-deck-art/mast/README.md`, `docs/ship-deck-art/sails/README.md`),
  * the plank's board (`docs/ship-deck-art/plank/README.md`),
- * the shark and splash that see a sailor off the plank (`docs/ship-deck-art/shark/README.md`), the clouds that
- * drift across the sky (`docs/ship-deck-art/clouds/README.md`), and the animated sea, foam and wake
- * (`docs/ship-deck-art/water/README.md`):
- * not needed to draw: the client keeps whatever of it decodes, so a missing sail is the bare mast and a missing look is
- * one fewer to hand out (`client/deck-mount.ts`).
+ * the shark and splash that see a sailor off the plank (`docs/ship-deck-art/shark/README.md`), and the animated sea,
+ * foam and wake (`docs/ship-deck-art/water/README.md`):
+ * not needed to draw: the client keeps whatever of it decodes, so a missing sail is the bare mast (`client/deck-mount.ts`).
+ * The record has the clouds, the sky's mood and the flashes too, which the pack draws itself now: parsing it leaves
+ * them out, but for the clouds' variants among the rest.
  */
 const Id = z.string().regex(/^[a-z0-9-]+$/);
 const uniqueIds = (items: ReadonlyArray<{ id: string }>) => new Set(items.map((item) => item.id)).size === items.length;
 /** A cloud's colours under each sky phase. */
-const CloudStages = z.object(Object.fromEntries(SKY_PHASES.map((phase) => [phase, CloudPalette])) as Record<SkyPhaseId, typeof CloudPalette>);
+const CloudStages = z.record(z.string(), CloudPalette);
 /**
  * A value over the weather's intensity: points [intensity, value], intensity rising, eased between them and held
  * past either end (`curveAt` in `client/deck-variants.ts`).
@@ -127,22 +99,6 @@ export const DeckExtrasManifestSchema = z.object({
         frames: z.object({ fin: ArtPath, surface: ArtPath, chomp: ArtPath, submerge: ArtPath }),
       }),
       splash: z.object({ size: Size, anchor: Point, frames: z.object({ impact: ArtPath, burst: ArtPath }) }),
-    })
-    .optional(),
-  /**
-   * The sky's drifting clouds (`docs/ship-deck-art/clouds/README.md`): neutral sprites in three colours,
-   * `palette` — shadow, body, highlight — each recoloured to the same slot of the showing sky phase's
-   * entry in `stages`, and drifted right at about `pixelsPerSecond` sky pixels a second. Without it, or
-   * without a sprite's image, the sky has fewer clouds or none (`client/deck-clouds.ts`).
-   */
-  clouds: z
-    .object({
-      palette: CloudPalette,
-      stages: CloudStages,
-      sprites: z
-        .array(z.object({ id: z.string().regex(/^[a-z0-9-]+$/), texture: ArtPath, size: Size, pixelsPerSecond: z.number().positive().max(4) }))
-        .min(1)
-        .refine((sprites) => new Set(sprites.map((sprite) => sprite.id)).size === sprites.length, "each cloud needs its own id"),
     })
     .optional(),
   /**
@@ -192,7 +148,7 @@ export const DeckExtrasManifestSchema = z.object({
     })
     .optional(),
   /**
-   * Layers over the scene that follow the deck's weather (`client/deck-variants.ts`, `client/deck-flash.ts`): each
+   * Layers over the scene that follow the deck's weather (`client/deck-variants.ts`): each
    * fades in and out along its own `opacity` curve over the weather's intensity (`client/deck-atmosphere.ts`, 0 an
    * idle crew, 1 a busy fleet), so how and when a setting's weather comes in is data, here, and not code. None of them
    * is drawn under reduced motion. The heavy weather (the ship pack's `storm/`) is the first set of them.
@@ -203,10 +159,6 @@ export const DeckExtrasManifestSchema = z.object({
    *   `over` draws it over the whole element (opaque art); `crossfade` fades the element out as it comes in. A cloud's
    *   variant is three slot colours like the clouds, so it names its own `palette` and `stages`.
    * - `cycles` — a sprite whose frames loop on the water's clock, its `anchor` on `position`, in front of the hull's waterline.
-   * - `mood` — the sky's mood: `overlays` over the time of day's sky, at its size, faded out by the night's share.
-   * - `flashes` — a moment now and then, `perMinute` of them at an intensity (capped in code), each frame for its
-   *   `frameMs` at its share of the opacity (`frameAlpha`), stood where `place` says: `under-cloud` tucks its
-   *   `anchor` under the underside of a cloud in view, its lower edge above the sky's horizon.
    */
   variants: z
     .array(
@@ -228,25 +180,6 @@ export const DeckExtrasManifestSchema = z.object({
   cycles: z
     .array(z.object({ id: Id, frames: z.array(ArtPath).min(1), frameSize: Size, frameMs: z.number().positive(), anchor: Point, position: Point, opacity: Opacity }))
     .refine(uniqueIds, "each cycle needs its own id")
-    .optional(),
-  mood: z.object({ overlays: z.array(z.object({ id: Id, texture: ArtPath, size: Size, opacity: Opacity })).refine(uniqueIds, "each overlay needs its own id") }).optional(),
-  flashes: z
-    .array(
-      z
-        .object({
-          id: Id,
-          frames: z.array(ArtPath).min(1),
-          frameSize: Size,
-          frameMs: z.array(z.number().positive()).min(1),
-          frameAlpha: z.array(z.number().min(0).max(1)).min(1),
-          anchor: Point,
-          place: z.literal("under-cloud"),
-          opacity: Opacity,
-          perMinute: Curve,
-        })
-        .refine((flash) => flash.frameMs.length === flash.frames.length && flash.frameAlpha.length === flash.frames.length, "a flash needs a time and an opacity per frame"),
-    )
-    .refine(uniqueIds, "each flash needs its own id")
     .optional(),
 });
 export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;

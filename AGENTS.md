@@ -44,7 +44,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
 | `shared/deck-setting.ts`      | A deck setting pack's format, `firstmate.deck-setting` 1: the manifest's schema, every reference it must resolve (`settingProblems`), the closed, versioned behaviour catalogue (`ENGINE_CAPABILITIES`) and what a pack uses. Server and tests only. |
 | `shared/deck-rpc.ts`, `server/deck-settings.ts` | What the Deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.settings` listing the packs under `art/settings/` (and which this engine can draw), `firstmate.deck.setting` serving one whole — manifest and images — confined to its folder and capped. |
-| `client/deck-legacy.ts`, `client/deck-legacy-schema.ts` | The pack read as the three manifests the engine drew from before packs (`legacyViews`), while the move to a scene engine takes them apart; the old manifests' zod shapes, for the tests. |
+| `client/deck-legacy.ts`, `client/deck-legacy-schema.ts` | The pack read as the three manifests the engine drew from before packs (`legacyViews`) — what is left of them: the atlas's pieces, the still sea and foam, the extras — while the move to a scene engine takes them apart; the old manifests' zod shapes, for the tests. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the focused sailor's panel and keys, the legend of badges and counts. |
 | `client/deck-camera.ts`       | The camera: the exact fit or a shot closed in on a focused sailor, the eased zoom between, where the focus panel goes; what a click or an arrow does to the focus. Pure. |
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z; the reply marker's pixels and bob. Pure. |
@@ -61,12 +61,13 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-water.ts`        | The animated water from the extras: which of the sea, foam and wake can be drawn, which frame each shows, the wake's place, and `WaterMotion` — how fast the frames play and the water drifts. Pure. |
 | `client/deck-wake.ts`         | The wake drawn in code, where the generated one did not load: the churn astern and the waves' arms, as runs of foam pixels scrolled with the sea. Pure. |
 | `client/deck-atmosphere.ts`   | The weather by how busy the crew is: working crew → an eased intensity → one table of the sea's, wind's, sail's, bob's and wake's liveliness and the sky's mood; each animation's own clock. Pure. |
-| `client/deck-variants.ts`     | The weather layers from the extras: curves over intensity, which variants line up over which element, cycles, the sky's mood overlays; how an element shares its place with its variants. Pure. |
-| `client/deck-flash.ts`        | Moments of weather from the extras (lightning): seeded flashes at a rate from data, capped; where one stands under a cloud. Pure. |
-| `client/deck-ambient.ts`      | The bob, the masthead's sway, the lanterns, where the water is and when a gull flies, as functions of the clock; the motion plan. Pure. |
-| `client/deck-sky.ts`          | The sky by the local time of day, its place behind the ship; the sea's and foam's scroll, the gull's pose. Pure. |
-| `client/deck-environment.ts`  | The generated sky, stars, clouds, gull, sea and foam, and the wake, drawn with Pixi, behind and in front of the ship — the extras' animated sea, foam and wake in place of the environment's where they loaded; a plain sea (with its wake) without them. |
-| `client/deck-clouds.ts`       | The sky's clouds: the seeded field in lanes above the horizon, each cloud's whole-pixel drift and off-screen wrap, its colours from the sky's blend, a sprite cut into slot masks. Pure. |
+| `client/deck-ambience.ts`     | A setting's ambience compiled from its pack: which elements are drawn — each left out on its own when its images did not arrive, with what is drawn in it or under it, a fallback only in its source's place, drifters a sprite at a time — and how each moves on a lite or still deck (`elementMotion`). Pure, per pack. |
+| `client/deck-variants.ts`     | The weather layers from the extras: curves over intensity, which variants line up over which element, cycles; how an element shares its place with its variants. Pure. |
+| `client/deck-flash.ts`        | Moments of weather (`flash@1`, the ship's lightning): seeded flashes at a rate from data, capped; where one stands under a drifter. Pure. |
+| `client/deck-ambient.ts`      | The bob, the masthead's sway, the lanterns, where the water is, and when and where a flyby flies (`flybysAt`), as functions of the clock; the motion plan. Pure. |
+| `client/deck-sky.ts`          | The pack's day by the local time (`dayBlend`), a backdrop's place behind the stage (`backdropPlacement`), and a strip's scroll. Pure. |
+| `client/deck-environment.ts`  | The scenery drawn with Pixi: the setting's ambience — backdrop cycles, overlays, flashes, drifters, flybys — in its slots and order, and the sea, foam and wake behind and in front of the ship — the extras' animated sea, foam and wake in place of the still ones where they loaded; a plain sea (with its wake) without them. |
+| `client/deck-clouds.ts`       | Drifters (`drifters@1`, the ship's clouds): the seeded field in the pack's lanes above a backdrop's horizon, each one's whole-pixel drift and off-screen wrap, its colours from the day's blend, a sprite cut into slot masks. Pure. |
 | `client/deck-loop.ts`         | When the deck draws: 30 fps at most, paused while hidden, still under reduced motion.     |
 | `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated, the atlas, environment and extras decoded; every failure a status. |
 | `client/deck-pixi.ts`         | The deck, its sail, depth pieces, props, plank and sailor sprites, and the sea's layer of sharks and splashes, drawn with Pixi, handed in through a narrow `PixiModule`. |
@@ -370,7 +371,8 @@ what those look like and where they are. The ship is the first pack, `art/settin
 - **While the move is under way** the engine still draws parts of its art from the three manifests it was once
   served in, read off the pack by `legacyViews` (`client/deck-legacy.ts`), and some of the ship's constants are still
   in code; `client/ship-pack.test.ts` holds the pack equal to both. Each step moves a part of the engine onto the pack
-  and deletes those constants and their checks — step 3 took the stage, floor, zones and portal marks, step 4 the cast. **Every step
+  and deletes those constants and their checks — step 3 took the stage, floor, zones and portal marks, step 4 the cast,
+  step 5a the sky, its overlays, the lightning, the clouds and the gull (`client/deck-ambience.ts`). **Every step
   is held to the gate**: the ship pixel-identical to main's, still and moving (`docs/deck-settings/gate.mjs`).
 
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
@@ -464,7 +466,7 @@ what those look like and where they are. The ship is the first pack, `art/settin
   with two working, spirited at six. **A speed that changes needs its own clock**: each animation is handed a
   clock advanced by step × pace, never the scene's clock times a pace, which would jump the sea and the clouds
   whenever the crew changed. Reduced motion draws exactly as before (`deliveredWeather`).
-- **Weather layers are data, not code** (`client/deck-variants.ts`, `client/deck-flash.ts`,
+- **Weather layers are data, not code** (`client/deck-variants.ts`, `client/deck-flash.ts`, `client/deck-ambience.ts`,
   `docs/ship-deck-weather/README.md`). The pack gives its tile, strip, cycle and drifting elements `variants` (a
   second frame set over each), `cycle` elements, `overlay`s on the sky and `flash`es, each with an
   `opacity` curve of `[intensity, value]` points (flashes also `perMinute`). The heavy weather is the first set; a new
@@ -476,10 +478,11 @@ what those look like and where they are. The ship is the first pack, `art/settin
 
 ### The sea, the sky and the gull are generated art (`docs/ship-deck-environment/README.md` has the evidence)
 
-- **In the pack, and not needed to draw.** The ten images of the sky, still sea and gull (about 50 KB: the water
-  tile, the foam strip, six skies, the stars, the gull's flap strip) come with the rest of the ship's pack and are
-  decoded one by one; when any of them does not, the deck draws its ship and crew on a flat navy sea and warns
-  in the console (`packArt`).
+- **In the pack, and not needed to draw.** The sky, still sea and gull (the water tile, the foam strip, six skies, the
+  stars, the gull's flap strip) come with the rest of the ship's pack and are decoded one by one. Each ambience
+  element stands alone (`compileAmbience`): without a phase of it there is no sky, nor the overcast, stars, clouds and
+  lightning drawn in it, while the gull still flies; without the still sea the deck draws its ship and crew on a flat
+  sea of the pack's `fallbackFill`. Each is a warning in the console (`packArt`).
 - **Depth, back to front** (`createScenery`'s `back` and `front`, either side of `ship` in the world):
   the sky, its stars, the clouds, the gull, the far sea from the horizon; the ship and everything on deck; the near
   sea from the waterline, cut from the same tiles so they line up, and the foam over the waterline.
@@ -487,29 +490,31 @@ what those look like and where they are. The ship is the first pack, `art/settin
 - **The sky follows the machine's local clock**, read through `DeckMotionEnvironment.clock`. Each of the
   six skies is alone from its manifest anchor (dawn 05:30, morning 08:00, midday 12:00, afternoon 16:00,
   dusk 18:30, night 21:00) until the 90 minutes before the next, when the next is drawn over it, eased
-  (`skyBlend`); the stars fade with the night's share. Not the manifest's whole-gap fade, which put half
-  a dawn in the sky at a quarter past one. An invalid clock shows midday. No location or season is read:
+  (`dayBlend`, from the pack's `dayCycle`); the stars fade with the night's share. Not the manifest's whole-gap fade,
+  which put half a dawn in the sky at a quarter past one. An invalid clock shows midday. No location or season is read:
   the anchors are wall-clock hours. A running deck reads the clock every frame; a still one (reduced
   motion) is redrawn once a minute by `every(SKY_REFRESH_MS)`, never while hidden. The canvas carries
   `data-firstmate-deck-sky`: the phase that shows most, or `none`.
 - **The sky is placed, not tiled**: at the hull's pixel scale, centred on the ship, its row 213 (two
   thirds down, where the asset preview puts the sea) on the horizon, scaled up only as far as a wide or
-  tall pane needs (`skyPlacement`). The water tile scrolls 10 px a second and the foam 6.25, in whole
+  tall pane needs (`backdropPlacement`, from the sky's `placement`). The water tile scrolls 10 px a second and the foam 6.25, in whole
   pixels, both still under reduced motion and on a software renderer. The foam is cut from its repeat into
   at most three crops a frame across the hull's waterline (`FOAM_SPAN`), so it never runs into open sea.
   The gull flies behind the ship, beak-registered and mirrored to fly left, flapping `up mid down mid` at
-  125 ms, and not at all while the stars are more than half out.
+  125 ms, and not at all while the stars are more than half out — its slots, speed, rows and flap are the pack's
+  `flyby` (`flybysAt`).
 - **Clouds drift in the sky's own pixels** (`client/deck-clouds.ts`, art in the ship pack's `clouds/`, its
   `drifters` element). Seven, one a lane, each a cloud's bottom a seeded 30–188 sky pixels above the horizon
   row, drawn with the sky's placement and scale, so a resize or the camera's zoom moves them with the sky and
   never against it (`layout` re-places them too, since a still deck's camera can lay out without a draw). Not
   the art manifest's rows 20–110: a pane that fits the deck's height shows only the sky's lowest ~96 rows,
   so the lowest lanes are what keeps a cloud in view there. Each drifts right ~0.2–0.8 sky px a second in
-  whole pixels and wraps only wholly outside the sky, which `skyPlacement` always makes at least as wide as
-  what shows; still when the sea is (`MotionPlan.ambient`). The field is seeded from the clock's second at
+  whole pixels and wraps only wholly outside the sky, which `backdropPlacement` always makes at least as wide as
+  what shows; held on a software renderer and under reduced motion, as the element says (`elementMotion`). Its lanes,
+  margin and top are the pack's `drifters`. The field is seeded from the clock's second at
   start. **The tint is per colour slot, not a multiply**: each sprite holds exactly three colours, so
   `cutCloudMasks` (`client/deck-mount.ts`) reads it back off a scratch canvas into three white masks
-  (`ImageBitmap`s), each a sprite tinted to its slot of the phase palette, crossfaded by `skyBlend`'s `t`. A
+  (`ImageBitmap`s), each a sprite tinted to its slot of the phase palette, crossfaded by `dayBlend`'s `t`. A
   multiply cannot brighten, and the afternoon palette is lighter than the source. A cloud that will not cut is
   left out with a warning, like any extra.
 - **What still wants an artist** is in `docs/ship-deck-art/ENVIRONMENT.md`: the foam's scallops are regular and

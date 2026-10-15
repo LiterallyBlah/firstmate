@@ -29,6 +29,7 @@ import {
   browserDeckEngine,
   decodeAtlas,
   decodePack,
+  drifterMasks,
   extrasImages,
   packArt,
   evaluatePixi,
@@ -718,7 +719,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     expect(dusk).toBeDefined();
   });
 
-  it("draws what decoded: nothing without the backdrop, a plain sea without the whole sky, each extra on its own", async () => {
+  it("draws what decoded: nothing without the backdrop, a plain sea without the still sea, each element and extra on its own", async () => {
     const setting = { manifest: shipManifest(), images: shipImages() };
     const cut = (image: unknown, size: readonly [number, number]) => Promise.resolve([image, size, "mask"] as const);
     const failing = (ids: readonly string[]) =>
@@ -732,16 +733,26 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     expect([...whole.environment!.images.keys()]).toEqual(environmentImagePaths(shipViews().environment));
     expect(environmentComplete(whole.environment)).toBe(true);
     expect([...whole.extras!.images.keys()]).toEqual(extrasImagePaths(shipViews().extras));
+    expect(whole.ambience.elements.map((element) => element.id)).toEqual(["sky", "overcast", "stars", "lightning", "clouds", "gull"]);
+    expect(whole.masks.size).toBe(10);
     expect(warnings).toEqual([]);
 
-    const partial = await packArt(await failing(["sky-dusk", "crew-variants-03-navigator"]), warn, cut);
+    const partial = await packArt(await failing(["sky-dusk", "sea-water-tile", "gull-flap-strip", "crew-variants-03-navigator"]), warn, cut);
     expect(partial.environment).toBeNull();
+    // Without a phase of it the sky is not drawn, nor what is drawn in it or under its clouds; the gull is on its own.
+    expect(partial.ambience.elements.map((element) => element.id)).toEqual([]);
+    const skyless = await packArt(await failing(["sky-dusk"]), warn, cut);
+    expect(skyless.environment).not.toBeNull();
+    expect(skyless.ambience.elements.map((element) => element.id)).toEqual(["gull"]);
     // A look is the cast's: its image is the pack's, by id, and one that did not decode is not handed out.
     expect(partial.images.has("crew-variants-03-navigator")).toBe(false);
     expect(partial.images.has("crew-variants-01-bosun")).toBe(true);
     expect(warnings).toEqual([
-      "[firstmate] the deck's sky and sea did not load; drawing a plain sea:",
+      "[firstmate] the deck's sea did not load; drawing a plain sea:",
+      "[firstmate] the deck's gull/flap-strip.png did not load; drawing without it:",
+      "[firstmate] the deck's sky/dusk.png did not load; drawing without it:",
       "[firstmate] the deck's crew-variants/03-navigator.png did not load; drawing without it:",
+      "[firstmate] the deck's sky/dusk.png did not load; drawing without it:",
     ]);
 
     await expect(packArt(await failing(["deck"]), warn, cut)).rejects.toThrow("bad png");
@@ -1211,41 +1222,44 @@ describe("the ship deck view", () => {
 });
 
 describe("the sail and the crew's looks, decoded", () => {
-  it("keeps every image that decoded and leaves out, by name, one that did not or will not cut", async () => {
+  it("keeps every image that decoded and leaves out, by name, one that did not", () => {
     const extras = shipViews().extras;
     const images = shipImages();
     const ids = new Map([...shipViews().paths].map(([id, path]) => [path, id]));
     const image = (path: string) => ({ png: images[ids.get(path)!] });
-    const cut = (image: unknown, size: readonly [number, number], palette?: readonly string[]) => Promise.resolve([image, size, palette?.[0] ?? "mask"] as const);
-    const all = await extrasImages(extras, image, undefined, cut);
-    expect([...all.images.keys()]).toHaveLength(43);
-    // Every cloud cut into its masks, from its own decoded image, at its manifest size; each thunderhead by its own palette.
-    expect([...all.cloudMasks!.keys()]).toEqual([
-      ...extras.clouds!.sprites.map((cloud) => cloud.texture),
-      ...extras.variants!.filter((variant) => variant.variantOf.startsWith("cloud:")).map((variant) => variant.frames[0]),
-    ]);
-    expect(all.cloudMasks!.get("clouds/puff.png")).toEqual([{ png: images["clouds-puff"] }, [36, 14], "#A8B9BD"]);
-    expect(all.cloudMasks!.get("storm/clouds/puff.png")).toEqual([{ png: images["storm-clouds-puff"] }, [36, 14], "#1D314E"]);
+    const all = extrasImages(extras, image);
+    expect([...all.images.keys()]).toHaveLength(30);
     const missing: string[] = [];
-    const gone = new Set(["clouds/wisp.png", "sails/main-sail.png"]);
-    const some = await extrasImages(
+    const some = extrasImages(
       extras,
-      (path) => (gone.has(path) ? undefined : image(path)),
+      (path) => (path === "sails/main-sail.png" ? undefined : image(path)),
       (path) => missing.push(path),
-      (image, size) => (size[0] === 62 ? Promise.reject(new Error("no canvas")) : cut(image, size)),
     );
-    // A cloud that did not arrive or would not cut is left out like any other image.
-    expect(missing.sort()).toEqual(["clouds/cumulus.png", "clouds/wisp.png", "sails/main-sail.png", "storm/clouds/cumulus.png"]);
-    expect([...some.images.keys()]).toHaveLength(41);
-    expect([...some.cloudMasks!.keys()]).toEqual([
-      "clouds/puff.png",
-      "clouds/long-bank.png",
-      "clouds/twin-bank.png",
-      "storm/clouds/wisp.png",
-      "storm/clouds/puff.png",
-      "storm/clouds/long-bank.png",
-      "storm/clouds/twin-bank.png",
-    ]);
+    expect(missing).toEqual(["sails/main-sail.png"]);
+    expect([...some.images.keys()]).toHaveLength(29);
     expect(some.manifest).toBe(extras);
+  });
+});
+
+describe("the drifters, cut into their masks", () => {
+  it("cuts every cloud and thunderhead that decoded, by its own palette, and leaves out one that did not or will not cut", async () => {
+    const images = new Map(Object.keys(shipManifest().images).map((id) => [id, { image: id }]));
+    const cut = (image: unknown, size: readonly [number, number], palette?: readonly string[]) => Promise.resolve([image, size, palette?.[0] ?? "mask"] as const);
+    const clouds = shipManifest().ambience.find((element) => element.id === "clouds")!.behaviour;
+    if (clouds.kind !== "drifters") throw new Error("the clouds drift");
+    const all = await drifterMasks({ manifest: shipManifest(), images }, cut);
+    // Each cloud from its own decoded image, at its size; each thunderhead by its own palette.
+    expect([...all.keys()]).toEqual([...clouds.sprites.map((sprite) => sprite.image), ...clouds.sprites.map((sprite) => sprite.variants![0]!.frames[0]!.image)]);
+    expect(all.get("clouds-puff")).toEqual([{ image: "clouds-puff" }, [36, 14], "#A8B9BD"]);
+    expect(all.get("storm-clouds-puff")).toEqual([{ image: "storm-clouds-puff" }, [36, 14], "#1D314E"]);
+    const failed: string[] = [];
+    const some = await drifterMasks(
+      { manifest: shipManifest(), images: new Map([...images].filter(([id]) => id !== "clouds-wisp")) },
+      (image, size) => (size[0] === 62 ? Promise.reject(new Error("no canvas")) : cut(image, size)),
+      (id) => failed.push(id),
+    );
+    // One that did not arrive is not cut; one that would not cut is said.
+    expect(failed).toEqual(["clouds-cumulus", "storm-clouds-cumulus"]);
+    expect([...some.keys()]).toEqual(["clouds-puff", "clouds-long-bank", "clouds-twin-bank", "storm-clouds-wisp", "storm-clouds-puff", "storm-clouds-long-bank", "storm-clouds-twin-bank"]);
   });
 });

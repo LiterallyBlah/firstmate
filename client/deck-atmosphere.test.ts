@@ -14,12 +14,13 @@ import {
   BUSY_CREW,
   crewIntensity,
   deliveredWeather,
+  clockOf,
   EASE_SECONDS,
-  moodTint,
+  levelAt,
   openingAtmosphere,
   shade,
-  STORM_SHADE,
   stepAtmosphere,
+  tintToward,
   weatherOf,
   type Atmosphere,
 } from "./deck-atmosphere";
@@ -27,6 +28,8 @@ import { sailFrame } from "./deck-extras";
 import type { DeckState } from "./deck-scene";
 import { CHURN_LENGTH, STERN, wakeRuns } from "./deck-wake";
 import { advanceWater, CALM_WATER, waterFrame } from "./deck-water";
+import { hexColour } from "./deck-clouds";
+import { shipElement } from "../test/ship-pack";
 
 const crew = (...states: DeckState[]) => states.map((state) => ({ state, stale: false }));
 const working = (count: number) => crew(...Array.from({ length: count }, () => "working" as const));
@@ -163,20 +166,43 @@ describe("the weather over time", () => {
 });
 
 describe("the sky's mood", () => {
-  it("is untinted when calm and a shade greyer, never dark, at its fullest", () => {
+  const tint = shipElement("sky", "backdrop-cycle").tint!;
+  const shade_ = hexColour(tint.to);
+  const moodTint = (mood: number) => tintToward(shade_, levelAt(tint.amount, { ...deliveredWeather(0), mood }));
+
+  it("is untinted when calm and a shade greyer, never dark, at its fullest: the ship's sky by the mood channel", () => {
+    expect(tint.amount).toEqual({ channel: "mood" });
     expect(moodTint(0)).toBe(0xffffff);
-    expect(moodTint(1)).toBe(STORM_SHADE);
-    expect(moodTint(9)).toBe(STORM_SHADE);
-    for (const shift of [16, 8, 0]) expect((STORM_SHADE >> shift) & 0xff).toBeGreaterThan(0xc8);
+    expect(moodTint(1)).toBe(shade_);
+    expect(moodTint(9)).toBe(shade_);
+    for (const shift of [16, 8, 0]) expect((shade_ >> shift) & 0xff).toBeGreaterThan(0xc8);
     const half = moodTint(0.5);
     expect(half).toBeLessThan(0xffffff);
-    expect(half).toBeGreaterThan(STORM_SHADE);
+    expect(half).toBeGreaterThan(shade_);
   });
 
   it("shades a colour as Pixi's tint does, channel by channel", () => {
     expect(shade(0xa8b9bd, 0xffffff)).toBe(0xa8b9bd);
-    expect(shade(0xffffff, STORM_SHADE)).toBe(STORM_SHADE);
+    expect(shade(0xffffff, shade_)).toBe(shade_);
     expect(shade(0x804020, 0x808080)).toBe(0x402010);
+  });
+});
+
+describe("a pack's levels and clocks, read off the weather", () => {
+  const weather = { ...deliveredWeather(7), wake: 0.6, mood: 0.25, intensity: 0.5 };
+
+  it("reads a number as it is, a channel times its scale, and a curve at the intensity — nothing on a still deck", () => {
+    expect(levelAt(3, weather)).toBe(3);
+    expect(levelAt({ channel: "wake" }, weather)).toBe(0.6);
+    expect(levelAt({ channel: "mood", scale: 2 }, weather)).toBe(0.5);
+    expect(levelAt({ channel: "nothing" }, weather)).toBe(0);
+    expect(levelAt({ curve: [[0, 0], [1, 1]] }, weather)).toBe(0.5);
+    expect(levelAt({ curve: [[0, 0.4]] }, deliveredWeather(7))).toBe(0);
+  });
+
+  it("reads the water's, the wind's, or the scene's own clock", () => {
+    const clocked = { ...weather, water: { frames: 1, drift: 2 }, wind: 3 };
+    expect(["water-frames", "water-drift", "wind", "other"].map((clock) => clockOf(clocked, clock, 9))).toEqual([1, 2, 3, 9]);
   });
 });
 
