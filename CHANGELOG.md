@@ -10,6 +10,14 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- The ship deck's weather follows the work. The more crewmates are working, the livelier the deck: the sea
+  plays its waves and drifts faster, the clouds run before a fresher wind, the sail snaps quicker and stays
+  filled longer, the ship rides the swell a little harder, the wake fills out, and with the whole fleet busy
+  the sky turns a shade greyer. With nobody working the sea is slow and glassy and the wake faint. The change
+  eases in over a few seconds as crewmates start and finish, never with a jump. Waiting crewmates stir it a
+  little, blocked and idle ones not at all; six working is as lively as it gets. Under reduced motion the deck
+  stays as calm as before, however busy the crew.
+
 - The ship deck's sea moves. Generated water replaces the still sea tile: its four frames play in turn, so
   the waves shimmer gently as they drift past, and a new strip of foam along the waterline breathes with them.
   The scattered dashes of the old wake are gone; a generated stern wake, a churned V of white water opening
