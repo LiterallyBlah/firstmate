@@ -28,6 +28,7 @@ import { badgeTop, figureBox, sailorAt, type DeckBox } from "./deck-hover";
 import { deckAnimator, MAX_STEP_MS, type FrameScheduler, type MotionSignals } from "./deck-loop";
 import { browserMotion } from "./deck-mount";
 import { isSoftwareRenderer } from "./deck-pixi";
+import { PLANK } from "./deck-plank";
 import { deckLayers, depthOf, type DeckSailor, type DeckState } from "./deck-scene";
 import {
   ANCHORS,
@@ -312,7 +313,7 @@ describe("the crew on deck", () => {
     expect(rises).toEqual(new Set([0, 1]));
   });
 
-  it("brings a new crewmate up through the hatch and takes an archived one back down it", () => {
+  it("brings a new crewmate up through the hatch and sends an archived one off by the plank", () => {
     const crew = createCrew();
     applyCrew(crew, [sailor("a", "working")], { snap: false });
     // The crew aboard when the deck opens is simply there.
@@ -330,9 +331,10 @@ describe("the crew on deck", () => {
     const a = crew.walkers.get("a")!;
     expect(a.phase).toBe("leaving");
     expect(a.anchor).toBeNull();
-    expect(a.path.at(-1)).toEqual(HATCH);
+    expect(a.path.at(-1)).toEqual(PLANK.foot);
     run(crew, 20_000);
     expect(crew.walkers.has("a")).toBe(false);
+    expect(crew.departures).toEqual([]);
     expect(crew.walkers.has("b")).toBe(true);
   });
 

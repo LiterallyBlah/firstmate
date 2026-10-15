@@ -16,8 +16,9 @@
  * atlas of about 84 KB, and `deck.json`, its manifest, are read once per process and sent as base64 and
  * JSON (`readDeckArt`). Neither is in the client bundle. The generated sea, sky and gull likewise:
  * `art/ship-deck/environment.json` and the ten small PNGs it draws with, about 50 KB together, read once
- * per process and sent as base64 (`readDeckEnvironment`). And the sail and the crew's extra looks:
- * `art/ship-deck/extras.json` and the eight PNGs it names, about 31 KB, the same way (`readDeckExtras`).
+ * per process and sent as base64 (`readDeckEnvironment`). And the sail, the crew's extra looks, and the
+ * shark and splash of the way off by the plank: `art/ship-deck/extras.json` and the fourteen PNGs it names,
+ * about 35 KB, the same way (`readDeckExtras`).
  */
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -121,7 +122,7 @@ async function readManifestImages<M>(root: string, file: string, parse: (json: u
 const extrasCache = new Map<string, Promise<DeckExtras>>();
 
 /**
- * The sail and the crew's extra looks, for `firstmate.deck.extras`: the manifest checked against the
+ * The sail, the crew's extra looks and the shark and splash, for `firstmate.deck.extras`: the manifest checked against the
  * contract — whose paths cannot leave `art/ship-deck/` either — and every image it names.
  */
 export async function readDeckExtras(pluginRoot: () => Promise<string> = defaultRoot): Promise<DeckExtras> {

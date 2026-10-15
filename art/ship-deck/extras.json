@@ -14,5 +14,18 @@
     { "id": "carpenter", "texture": "crew-variants/04-carpenter.png" },
     { "id": "rigger", "texture": "crew-variants/05-rigger.png" },
     { "id": "deckhand", "texture": "crew-variants/06-deckhand.png" }
-  ]
+  ],
+  "exit": {
+    "shark": {
+      "size": [64, 64],
+      "anchor": [32, 50],
+      "mouth": [13, -22],
+      "frames": { "fin": "shark/fin.png", "surface": "shark/surface.png", "chomp": "shark/chomp.png", "submerge": "shark/submerge.png" }
+    },
+    "splash": {
+      "size": [48, 40],
+      "anchor": [24, 32],
+      "frames": { "impact": "splash/impact.png", "burst": "splash/burst.png" }
+    }
+  }
 }
