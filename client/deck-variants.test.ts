@@ -1,22 +1,16 @@
 /**
- * The deck's weather layers without Pixi (`client/deck-variants.ts`): curves over the weather's intensity, which
- * variants and cycles can be drawn and over what, how an element shares its place with its variants, and the heavy
- * weather as the ship pack tunes it — calm up to three crewmates working, a storm with a busy fleet.
+ * The deck's weather layers without Pixi (`client/deck-variants.ts`): curves over the weather's intensity, how an
+ * element shares its place with its variants, and the heavy weather as the ship pack tunes it — calm up to three
+ * crewmates working, a storm with a busy fleet. Which variants can be drawn over what is `client/deck-ambience.test.ts`'s.
  */
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { extrasImagePaths } from "./deck-legacy";
 import { BUSY_CREW, crewIntensity } from "./deck-atmosphere";
-import type { DeckExtrasImages } from "./deck-extras";
-import { curveAt, curvePeak, cycleFrame, drawnVariants, opacityAt, variantBlend, variantsOf } from "./deck-variants";
-import { drawnWater } from "./deck-water";
-import { shipElement, shipViews } from "../test/ship-pack";
+import { curveAt, curvePeak, cycleFrame, opacityAt, variantBlend } from "./deck-variants";
+import { shipElement } from "../test/ship-pack";
 
-const manifest = shipViews().extras;
-const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
-const without = (...paths: string[]): DeckExtrasImages => ({ manifest, images: new Map([...extras.images].filter(([path]) => !paths.includes(path))) });
 const working = (count: number) => crewIntensity(Array.from({ length: count }, () => ({ state: "working" as const, stale: false })));
 
 describe("a curve over the weather's intensity", () => {
@@ -49,40 +43,6 @@ describe("a curve over the weather's intensity", () => {
   });
 });
 
-describe("which weather layers can be drawn", () => {
-  it("draws every layer the extras send, each variant over the element it names", () => {
-    const drawn = drawnVariants(extras, drawnWater(extras))!;
-    expect([...drawn.variants.keys()]).toEqual(["sea", "wake"]);
-    expect(variantsOf(drawn, "sea").map((variant) => variant.id)).toEqual(["rough-sea"]);
-    expect(variantsOf(drawn, "foam")).toEqual([]);
-    expect(drawn.cycles.map((cycle) => cycle.id)).toEqual(["spindrift"]);
-    expect(drawnVariants(null, null)).toBeNull();
-  });
-
-  it("leaves out only the layer whose image did not decode", () => {
-    const drawn = drawnVariants(without("storm/sea/frame-2.png", "storm/spray/frame-0.png"), drawnWater(extras))!;
-    expect(variantsOf(drawn, "sea")).toEqual([]);
-    expect(variantsOf(drawn, "wake").map((variant) => variant.id)).toEqual(["heavy-wake"]);
-    expect(drawn.cycles).toEqual([]);
-  });
-
-  it("leaves out a variant that would not line up with its element, or whose element is not drawn, and keeps the element", () => {
-    const water = drawnWater(extras)!;
-    const misfit: DeckExtrasImages = {
-      ...extras,
-      manifest: {
-        ...manifest,
-        variants: manifest.variants!.map((variant) =>
-          variant.id === "rough-sea" ? { ...variant, frameSize: [128, 128] } : variant.id === "heavy-wake" ? { ...variant, frames: variant.frames.slice(0, 2) } : variant,
-        ),
-      },
-    };
-    const drawn = drawnVariants(misfit, water)!;
-    expect([variantsOf(drawn, "sea"), variantsOf(drawn, "wake")]).toEqual([[], []]);
-    expect(variantsOf(drawnVariants(extras, { ...water, sea: null }), "sea")).toEqual([]);
-  });
-});
-
 describe("an element under its variants", () => {
   it("is drawn whole under an `over` variant until that is wholly there, and fades under a `crossfade` one", () => {
     const over = { blend: "over" as const, opacity: [[0, 0], [1, 1]] as Array<[number, number]> };
@@ -105,13 +65,13 @@ describe("the heavy weather, as the ship pack tunes it", () => {
   const puff = shipElement("clouds", "drifters").sprites.find((sprite) => sprite.id === "puff")!;
   const overcast = shipElement("overcast", "overlay").alpha;
   const lightning = shipElement("lightning", "flash");
+  const spray = shipElement("spindrift", "cycle").opacity;
   const opacities = (intensity: number) => {
-    const drawn = drawnVariants(extras, drawnWater(extras))!;
     return {
-      sea: opacityAt(variantsOf(drawn, "sea")[0]!.opacity, intensity),
-      wake: opacityAt(variantsOf(drawn, "wake")[0]!.opacity, intensity),
+      sea: opacityAt(shipElement("sea", "tile").variants![0]!.opacity, intensity),
+      wake: opacityAt(shipElement("wake", "cycle").variants![0]!.opacity, intensity),
       clouds: opacityAt(puff.variants![0]!.opacity, intensity),
-      spray: opacityAt(drawn.cycles[0]!.opacity, intensity),
+      spray: typeof spray === "object" && "curve" in spray ? opacityAt(spray.curve, intensity) : 0,
       overcast: overcast === "night" ? 0 : opacityAt(overcast.curve, intensity),
       lightning: opacityAt(lightning.opacity, intensity),
       flashes: curveAt(lightning.perMinute, intensity),

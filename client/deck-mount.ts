@@ -18,10 +18,10 @@
  * and every image, base64 — and `decodePack` decodes each image on its own with `decodeAtlas`. Pixi once per
  * app session, each pack once per session by id, kept; a failure is not kept, and a renderer without a host or
  * WebGL never asks for either. An image that does not decode costs only what draws with it (`packArt`): the
- * backdrop is needed to draw at all; without the still sea the deck draws its stage and crew on a flat sea; the
- * rest — an ambience element (`client/deck-ambience.ts`), the sail, a crew look, a cloud — is left out with a
- * warning. Each drifter is cut into three white masks to be tinted (`cutCloudMasks`), and one that cannot be is
- * left out the same way.
+ * backdrop is needed to draw at all; the rest — an ambience element (`client/deck-ambience.ts`), which its fallback
+ * stands in for or, for a tile with none, a flat fill; the sail, a crew look, a cloud — is left out with a warning.
+ * Each drifter is cut into three white masks to be tinted (`cutCloudMasks`), and one that cannot be is left out the
+ * same way.
  *
  * **Motion is the browser's too.** `browserMotion` hands the deck `requestAnimationFrame`, the
  * `prefers-reduced-motion` query and `document.hidden`, so `client/deck-loop.ts` can cap, pause and still it;
@@ -32,10 +32,9 @@
  */
 import type { DeckEngineSource, DeckSetting } from "../shared/deck-rpc";
 import type { SettingManifest } from "../shared/deck-setting";
-import { environmentImagePaths, extrasImagePaths, legacyViews, type DeckEnvironmentManifest, type DeckExtrasManifest } from "./deck-legacy";
+import { codeWakeSpot, extrasImagePaths, legacyViews, type DeckExtrasManifest } from "./deck-legacy";
 import { compileAmbience } from "./deck-ambience";
 import { cloudSlotMasks, type DrifterMasks } from "./deck-clouds";
-import type { DeckEnvironmentImages } from "./deck-environment";
 import type { DeckExtrasImages } from "./deck-extras";
 import type { DeckHover } from "./deck-hover";
 import type { FrameScheduler, MotionSignals } from "./deck-loop";
@@ -382,20 +381,6 @@ export function decodePack(setting: DeckSetting, decode: (png: string) => Promis
 }
 
 /**
- * The still sea and foam with every image they name, or null when one did not decode: the deck then draws its stage
- * and crew on a plain sea.
- */
-export function environmentImages(manifest: DeckEnvironmentManifest, image: (path: string) => unknown): DeckEnvironmentImages | null {
-  const images = new Map<string, unknown>();
-  for (const path of environmentImagePaths(manifest)) {
-    const decoded = image(path);
-    if (decoded === undefined) return null;
-    images.set(path, decoded);
-  }
-  return { manifest, images };
-}
-
-/**
  * The extras with every image that decoded; one that did not is left out, and `onMissing` hears which. Never refused:
  * the deck draws whatever arrived (`client/deck-extras.ts`).
  */
@@ -448,8 +433,8 @@ export function drifterMasks(
 /**
  * The art the engine draws from a decoded pack: its stage, cast and ambience compiled, each drifter cut into its masks,
  * and the parts not yet drawn from the pack itself read as the manifests they were drawn from before packs
- * (`legacyViews`). The backdrop's image it cannot draw without; the still sea is whole or not at all; an ambience
- * element, a look and an extra are each left out on their own. `warn` hears what is missing.
+ * (`legacyViews`). The backdrop's image it cannot draw without; an ambience element, a look and an extra are each
+ * left out on their own. `warn` hears what is missing.
  */
 export function packArt(
   pack: DecodedPack,
@@ -463,8 +448,6 @@ export function packArt(
   const backdrop = pack.manifest.stage.backdrop.sprite.image;
   const atlas = pack.images.get(backdrop);
   if (atlas === undefined) return Promise.reject(pack.failed.get(backdrop) ?? new Error(`the setting's ${backdrop} did not load`));
-  const environment = environmentImages(views.environment, image);
-  if (environment === null) warn("[firstmate] the deck's sea did not load; drawing a plain sea:", pack.failed.values().next().value);
   const cast = compileCast(pack.manifest);
   const extras = extrasImages(views.extras, image, (path, error) => warn(`[firstmate] the deck's ${path} did not load; drawing without it:`, pack.failed.get(ids.get(path) ?? "") ?? error));
   const uncut = new Map<string, unknown>();
@@ -481,7 +464,17 @@ export function packArt(
       const failed = pack.failed.get(look.image);
       if (failed !== undefined) warn(`[firstmate] the deck's ${pathOf(look.image)} did not load; drawing without it:`, failed);
     }
-    return { stage: compileStage(pack.manifest), cast, ambience, images: pack.images, masks, image: atlas, manifest: views.art, environment, extras };
+    return {
+      stage: compileStage(pack.manifest),
+      cast,
+      ambience,
+      images: pack.images,
+      masks,
+      codeWake: codeWakeSpot(pack.manifest),
+      image: atlas,
+      manifest: views.art,
+      extras,
+    };
   });
 }
 

@@ -11,9 +11,10 @@ import { describe, expect, it } from "vitest";
 
 import { cutCloudMasks } from "./deck-mount";
 import { cloudColours, cloudField, cloudPeriod, cloudSlotMasks, cloudX, hexColour } from "./deck-clouds";
-import { HORIZON } from "./deck-ambient";
 import { backdropPlacement, dayBlend } from "./deck-sky";
-import { shipElement, shipFile, shipManifest, shipStage } from "../test/ship-pack";
+import { shipElement, shipFile, shipManifest, shipStage, shipWater } from "../test/ship-pack";
+
+const HORIZON = shipWater().horizon;
 
 const art = (path: string) => shipFile(path);
 /** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */

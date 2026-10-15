@@ -74,3 +74,9 @@ export function shipElement<K extends AmbienceBehaviour["kind"]>(id: string, kin
   if (element?.behaviour.kind !== kind) throw new Error(`the ship has no ${kind} ${id}`);
   return element.behaviour as Behaviour<K>;
 }
+
+/** The ship's horizon and waterline, in deck rows: its sea's tile origin, and where its front band starts. */
+export function shipWater(): { horizon: number; waterline: number } {
+  const sea = shipElement("sea", "tile");
+  return { horizon: sea.origin, waterline: sea.bands.find((band) => band.slot === "front")!.fromRow };
+}

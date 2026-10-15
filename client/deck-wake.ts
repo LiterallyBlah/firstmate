@@ -1,6 +1,6 @@
 /**
- * The ship's wake drawn in code, where the generated one (`art/settings/ship/water/`, `client/deck-water.ts`) did
- * not load: disturbed water, so the ship reads as moving through the sea and not sitting on it. Pure —
+ * The ship's wake drawn in code, where the pack's generated one (`art/settings/ship/water/`, its `wake` element) did
+ * not load, until step 5c of the migration retires it: disturbed water, so the ship reads as moving through the sea and not sitting on it. Pure —
  * `wakeRuns` says which pixels are foam; `client/deck-environment.ts` draws them in front of the near sea,
  * under the waterline's foam strip, with a plain sea or the generated one.
  *
@@ -17,7 +17,10 @@
  * a wake whose outline never moves. Whole pixels throughout, drawn in two foam tones from the
  * environment's palette, and merged into runs along each row so a frame is a few hundred rectangles at most.
  */
-import { hashUnit, WATERLINE } from "./deck-ambient";
+import { hashUnit } from "./deck-ambient";
+
+/** The hull's waterline, in deck rows: the ship pack's sea's front band, the code wake's own until step 5c retires it. */
+export const WATERLINE = 151;
 
 /** Where the hull meets the water: astern (the stern's foot) and at the bow, in deck pixels. */
 export const STERN = { x: 392, y: WATERLINE } as const;

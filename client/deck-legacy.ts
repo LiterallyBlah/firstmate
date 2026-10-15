@@ -1,56 +1,41 @@
 /**
- * The deck's art as the three manifests it was once served in — the atlas's (`DeckArtManifest`), the environment's
- * (`DeckEnvironmentManifest`) and the extras' (`DeckExtrasManifest`) — now read off a setting pack
- * (`shared/deck-setting.ts`) by `legacyViews`, so the engine's modules draw exactly as they did while the move
- * to a scene engine reads the pack directly a part at a time. Each step of that move takes a part out of these
- * views; when they are empty this file goes. The manifests as they were last served are kept as records in
- * `docs/ship-deck-art/legacy/`, and `client/ship-pack.test.ts` holds these views to them.
+ * The deck's art as two of the manifests it was once served in — the atlas's (`DeckArtManifest`) and the extras'
+ * (`DeckExtrasManifest`) — now read off a setting pack (`shared/deck-setting.ts`) by `legacyViews`, so the engine's
+ * modules draw exactly as they did while the move to a scene engine reads the pack directly a part at a time. Each
+ * step of that move takes a part out of these views; when they are empty this file goes. The manifests as they were
+ * last served are kept as records in `docs/ship-deck-art/legacy/`, and `client/ship-pack.test.ts` holds these views to
+ * them. The third, the environment's, went in step 5b: the sea and foam are the pack's own now.
  *
  * Image paths in the views are paths inside the pack's folder, as they once were inside `art/ship-deck/`.
  */
-import type { AmbienceBehaviour, SettingManifest } from "../shared/deck-setting";
-import type { DeckArtManifest, DeckEnvironmentManifest, DeckExtrasManifest } from "./deck-legacy-schema";
+import type { SettingManifest } from "../shared/deck-setting";
+import type { DeckArtManifest, DeckExtrasManifest } from "./deck-legacy-schema";
 
-export type { DeckArtManifest, DeckEnvironmentManifest, DeckExtrasManifest } from "./deck-legacy-schema";
-
-/** Every image the manifest names, once each, in a stable order. */
-export function environmentImagePaths(manifest: DeckEnvironmentManifest): string[] {
-  return [...new Set([manifest.sea.texture, manifest.foam.texture])];
-}
+export type { DeckArtManifest, DeckExtrasManifest } from "./deck-legacy-schema";
 
 /** Every image the extras manifest names, once each, in a stable order. */
 export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
   const exit = manifest.exit === undefined ? [] : [...Object.values(manifest.exit.shark.frames), ...Object.values(manifest.exit.splash.frames)];
   const plank = manifest.plank === undefined ? [] : [manifest.plank.texture];
   const mast = manifest.mast === undefined ? [] : [manifest.mast.texture];
-  const water = manifest.water === undefined ? [] : [...manifest.water.sea.frames, ...manifest.water.foam.frames, ...manifest.water.wake.frames];
-  const weather = [
-    ...(manifest.variants ?? []).flatMap((variant) => variant.frames),
-    ...(manifest.cycles ?? []).flatMap((cycle) => cycle.frames),
-  ];
-  return [...new Set([manifest.sail.texture, ...exit, ...plank, ...mast, ...water, ...weather])];
+  return [...new Set([manifest.sail.texture, ...exit, ...plank, ...mast])];
 }
 
-/** The three manifests a pack is read as, and each of its images' path by id. */
+/** The manifests a pack is read as, and each of its images' path by id. */
 export interface LegacyViews {
   art: DeckArtManifest;
-  environment: DeckEnvironmentManifest;
   extras: DeckExtrasManifest;
   /** Image id → its path in the pack, the key the views name it by. */
   paths: ReadonlyMap<string, string>;
 }
 
-type Element = SettingManifest["ambience"][number];
-type Of<Kind extends AmbienceBehaviour["kind"]> = Extract<AmbienceBehaviour, { kind: Kind }>;
 type Rect = readonly [number, number, number, number];
-type Points = ReadonlyArray<readonly [number, number]>;
 
 /**
- * A pack read as the three manifests the engine drew from before packs: the atlas's frames, the environment's still
- * sea and foam, and the extras' tall mast, sail, shark and splash, plank, animated water and the weather over it. Each
- * part is found by what it is — the tile with a still fallback is the sea — and a part the pack has none of is an
- * error: these views exist only for the ship's own pack. The sky, its overlays, flash and drifters, and the flyby are
- * the pack's own now (`client/deck-ambience.ts`).
+ * A pack read as the manifests the engine drew from before packs: the atlas's frames, and the extras' tall mast, sail,
+ * shark and splash and plank. Each part is found by what it is, and a part the pack has none of is an error: these
+ * views exist only for the ship's own pack. The sky and everything in it, the flyby, the sea, foam, wake and spindrift
+ * are the pack's own now (`client/deck-ambience.ts`).
  */
 export function legacyViews(manifest: SettingManifest): LegacyViews {
   const paths = new Map(Object.entries(manifest.images).map(([id, image]) => [id, image.path]));
@@ -70,32 +55,6 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
     return [0, 0, width, height];
   };
   const pair = (point: readonly [number, number]): [number, number] => [point[0], point[1]];
-  const curve = (points: Points): Array<[number, number]> => points.map(pair);
-  function one<Kind extends AmbienceBehaviour["kind"]>(kind: Kind, test: (behaviour: Of<Kind>, element: Element) => boolean = () => true) {
-    const found = manifest.ambience.filter((element) => element.behaviour.kind === kind && test(element.behaviour as Of<Kind>, element));
-    if (found.length !== 1) throw new Error(`the setting has ${found.length} ${kind} elements where its legacy view wants one`);
-    return { element: found[0]!, behaviour: found[0]!.behaviour as Of<Kind> };
-  }
-  const all = <Kind extends AmbienceBehaviour["kind"]>(kind: Kind, test: (behaviour: Of<Kind>) => boolean) =>
-    manifest.ambience
-      .filter((element) => element.behaviour.kind === kind && test(element.behaviour as Of<Kind>))
-      .map((element) => ({ element, behaviour: element.behaviour as Of<Kind> }));
-  const byId = (id: string | undefined) => manifest.ambience.find((element) => element.id === id);
-  const curveOf = (level: unknown): Points | null =>
-    typeof level === "object" && level !== null && "curve" in level ? (level as { curve: Points }).curve : null;
-  const variantsOf = (variantOf: string, variants: Of<"tile">["variants"]) =>
-    (variants ?? []).map((variant) => ({
-      id: variant.id,
-      variantOf,
-      frames: variant.frames.map((frame) => path(frame.image)),
-      frameSize: size(variant.frames[0]!.image),
-      blend: variant.blend,
-      opacity: curve(variant.opacity),
-      ...(variant.palette === undefined ? {} : { palette: variant.palette }),
-      ...(variant.byPhase === undefined ? {} : { stages: variant.byPhase }),
-    }));
-  const frames = (behaviour: { frames: { sprites: ReadonlyArray<{ image: string }> } }) => behaviour.frames.sprites.map((sprite) => path(sprite.image));
-  const frameSize = (behaviour: { frames: { sprites: ReadonlyArray<{ image: string }> } }) => size(behaviour.frames.sprites[0]!.image);
 
   // The atlas: the backdrop and the pieces on it. Its crew and props are the cast's and the stage's now.
   const { stage } = manifest;
@@ -110,16 +69,6 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
     ),
   };
 
-  // The environment: the still sea and foam the animated ones fall back to.
-  const sea = one("tile", (_behaviour, element) => element.fallback !== undefined);
-  const foam = one("strip", (_behaviour, element) => element.fallback !== undefined);
-  const seaStill = byId(sea.element.fallback)!.behaviour as Of<"tile">;
-  const foamStill = byId(foam.element.fallback)!.behaviour as Of<"strip">;
-  const environment: DeckEnvironmentManifest = {
-    sea: { texture: path(seaStill.frames.sprites[0]!.image), period: size(seaStill.frames.sprites[0]!.image), animation: { xPixelsPerSecond: seaStill.drift.pxPerSecond } },
-    foam: { texture: path(foamStill.frames.sprites[0]!.image), period: size(foamStill.frames.sprites[0]!.image)[0], xPixelsPerSecond: foamStill.drift.pxPerSecond },
-  };
-
   // The extras.
   const tallMast = stage.parts.find((part) => part.replacesPiece !== undefined && part.cutout !== undefined);
   const topmast = stage.parts.find((part) => part.behaviour?.kind === "sway" && tallMast !== undefined && part.needs?.includes(tallMast.id) === true);
@@ -129,8 +78,6 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
   const plank = stage.pieces.find((piece) => piece.baseline !== null && typeof piece.baseline === "object");
   const shark = manifest.effects.shark;
   const splash = manifest.effects.splash;
-  const wake = one("cycle", (behaviour) => typeof behaviour.opacity === "object" && "channel" in behaviour.opacity);
-  const cycles = all("cycle", (behaviour) => curveOf(behaviour.opacity) !== null);
   const point = (effect: { points: Record<string, readonly [number, number]> }, name: string): [number, number] => pair(effect.points[name] ?? [0, 0]);
   const frameOf = (effect: { frames: Record<string, { image: string }> }, name: string) => path(effect.frames[name]?.image ?? "");
   const extras: DeckExtrasManifest = {
@@ -163,39 +110,17 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
       clears: rect({ image: tallMast.sprite.image, rect: tallMast.cutout }),
       replaces: tallMast.replacesPiece!.piece,
     },
-    water: {
-      sea: { frames: frames(sea.behaviour), frameSize: frameSize(sea.behaviour), frameMs: sea.behaviour.frames.frameMs, xPixelsPerSecond: sea.behaviour.drift.pxPerSecond },
-      foam: {
-        frames: frames(foam.behaviour),
-        frameSize: frameSize(foam.behaviour),
-        frameMs: foam.behaviour.frames.frameMs,
-        top: foam.behaviour.top,
-        span: pair(foam.behaviour.span),
-        xPixelsPerSecond: foam.behaviour.drift.pxPerSecond,
-      },
-      wake: {
-        frames: frames(wake.behaviour),
-        frameSize: frameSize(wake.behaviour),
-        frameMs: wake.behaviour.frames.frameMs,
-        anchor: pair(wake.behaviour.anchor),
-        position: pair(wake.behaviour.at),
-      },
-    },
-    variants: [
-      ...variantsOf("sea", sea.behaviour.variants),
-      ...variantsOf("foam", foam.behaviour.variants),
-      ...variantsOf("wake", wake.behaviour.variants),
-      ...cycles.flatMap((cycle) => variantsOf(`cycle:${cycle.element.id}`, cycle.behaviour.variants)),
-    ],
-    cycles: cycles.map((cycle) => ({
-      id: cycle.element.id,
-      frames: frames(cycle.behaviour),
-      frameSize: frameSize(cycle.behaviour),
-      frameMs: cycle.behaviour.frames.frameMs,
-      anchor: pair(cycle.behaviour.anchor),
-      position: pair(cycle.behaviour.at),
-      opacity: curve(curveOf(cycle.behaviour.opacity) ?? []),
-    })),
   };
-  return { art, environment, extras, paths };
+  return { art, extras, paths };
+}
+
+/**
+ * Where the wake drawn in code (`client/deck-wake.ts`) stands in for the pack's own, until step 5c retires it: the cycle
+ * in front whose opacity reads a weather channel — the ship's wake — by id, slot and order. Null for a pack without one.
+ */
+export function codeWakeSpot(manifest: SettingManifest): { id: string; slot: "back" | "front"; order: number } | null {
+  const wake = manifest.ambience.find(
+    (element) => element.behaviour.kind === "cycle" && typeof element.behaviour.opacity === "object" && "channel" in element.behaviour.opacity,
+  );
+  return wake === undefined ? null : { id: wake.id, slot: wake.slot, order: wake.order };
 }
