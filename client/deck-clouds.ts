@@ -23,12 +23,16 @@
  *   them, night dims them blue. A white mask per slot, tinted, draws that with no shader.
  * - **Still when the deck is.** They drift only while the sea scrolls (`MotionPlan.ambient`): not under reduced
  *   motion, not on a software renderer. Their colours still follow the clock.
+ * - **Variants over them** (`extras.json`'s `variants`, `variantOf: "cloud:<id>"`): a second sprite of the same size in
+ *   the same container — the same lane, drift and wrap — in its own three colours by sky phase, cross-faded in by the
+ *   weather (`client/deck-variants.ts`). The heavy weather's thunderheads are these.
  * - **Faster in a fresher wind.** The deck hands `cloudX` the wind's own clock, not the scene's
  *   (`client/deck-atmosphere.ts`): it runs faster the more of the crew is working, without a jump when it changes.
  */
 import type { DeckExtrasManifest, SkyPhaseId } from "../shared/ship-deck";
 import { hashUnit } from "./deck-ambient";
 import type { DeckExtrasImages } from "./deck-extras";
+import type { Variant } from "./deck-variants";
 import { scrollOffset, type SkyBlend } from "./deck-sky";
 
 export type CloudManifest = NonNullable<DeckExtrasManifest["clouds"]>;
@@ -38,9 +42,14 @@ export type CloudSprite = CloudManifest["sprites"][number];
 export interface CloudImages {
   manifest: CloudManifest;
   masks: ReadonlyMap<string, readonly [unknown, unknown, unknown]>;
+  /**
+   * The variants laid over each cloud (`client/deck-variants.ts`), by the cloud's id: each with its own palette and
+   * stages, and its frame's three slot masks. Only a variant of the cloud's size whose masks were cut.
+   */
+  variants?: ReadonlyMap<string, ReadonlyArray<{ variant: Variant; masks: readonly [unknown, unknown, unknown] }>>;
 }
 
-/** The sprites that can be drawn: those whose masks were cut. Null when none can. */
+/** The sprites that can be drawn: those whose masks were cut, and the variants over each that can be. Null when none can. */
 export function drawnClouds(extras: DeckExtrasImages | null): CloudImages | null {
   const manifest = extras?.manifest.clouds;
   if (manifest === undefined || extras === null) return null;
@@ -50,7 +59,20 @@ export function drawnClouds(extras: DeckExtrasImages | null): CloudImages | null
     if (cut !== undefined) masks.set(sprite.texture, cut);
   }
   if (masks.size === 0) return null;
-  return { manifest: { ...manifest, sprites: manifest.sprites.filter((sprite) => masks.has(sprite.texture)) }, masks };
+  const sprites = manifest.sprites.filter((sprite) => masks.has(sprite.texture));
+  const variants = new Map<string, Array<{ variant: Variant; masks: readonly [unknown, unknown, unknown] }>>();
+  for (const variant of extras.manifest.variants ?? []) {
+    const cloud = sprites.find((sprite) => `cloud:${sprite.id}` === variant.variantOf);
+    const cut = extras.cloudMasks?.get(variant.frames[0]!);
+    if (cloud === undefined || cut === undefined || variant.frames.length !== 1 || cloud.size[0] !== variant.frameSize[0] || cloud.size[1] !== variant.frameSize[1]) continue;
+    variants.set(cloud.id, [...(variants.get(cloud.id) ?? []), { variant, masks: cut }]);
+  }
+  return { manifest: { ...manifest, sprites }, masks, variants };
+}
+
+/** A cloud variant's palette and stages, for `cloudColours`: its own, or the clouds' where it names none. */
+export function variantPalette(variant: Variant, clouds: Pick<CloudManifest, "palette" | "stages">): Pick<CloudManifest, "palette" | "stages"> {
+  return { palette: variant.palette ?? clouds.palette, stages: variant.stages ?? clouds.stages };
 }
 
 /** Where each lane's cloud has its bottom: from and to, in sky pixels above the horizon row, lowest first. */

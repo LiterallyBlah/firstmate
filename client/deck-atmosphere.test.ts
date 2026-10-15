@@ -155,10 +155,10 @@ describe("the weather over time", () => {
     expect([still.water, still.wind, still.sail, still.swell]).toEqual([state.water, state.wind, state.sail, state.swell]);
   });
 
-  it("hands the scenery its clocks, its wake and its mood; the art's own weather when none is given", () => {
+  it("hands the scenery its clocks, its wake, its mood and the intensity its layers follow; the art's own weather, with no layers, when none is given", () => {
     const state = run(openingAtmosphere(1), 2, 1);
-    expect(weatherOf(state)).toEqual({ water: state.water, wind: state.wind, wake: atmosphereAt(1).wake, mood: atmosphereAt(1).mood });
-    expect(deliveredWeather(12)).toEqual({ water: { frames: 12, drift: 12 }, wind: 12, wake: 1, mood: 0 });
+    expect(weatherOf(state)).toEqual({ water: state.water, wind: state.wind, wake: atmosphereAt(1).wake, mood: atmosphereAt(1).mood, intensity: state.intensity });
+    expect(deliveredWeather(12)).toEqual({ water: { frames: 12, drift: 12 }, wind: 12, wake: 1, mood: 0, intensity: null });
   });
 });
 

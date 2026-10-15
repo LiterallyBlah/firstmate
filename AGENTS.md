@@ -57,6 +57,8 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-water.ts`        | The animated water from the extras: which of the sea, foam and wake can be drawn, which frame each shows, the wake's place, and `WaterMotion` — how fast the frames play and the water drifts. Pure. |
 | `client/deck-wake.ts`         | The wake drawn in code, where the generated one did not load: the churn astern and the waves' arms, as runs of foam pixels scrolled with the sea. Pure. |
 | `client/deck-atmosphere.ts`   | The weather by how busy the crew is: working crew → an eased intensity → one table of the sea's, wind's, sail's, bob's and wake's liveliness and the sky's mood; each animation's own clock. Pure. |
+| `client/deck-variants.ts`     | The weather layers from the extras: curves over intensity, which variants line up over which element, cycles, the sky's mood overlays; how an element shares its place with its variants. Pure. |
+| `client/deck-flash.ts`        | Moments of weather from the extras (lightning): seeded flashes at a rate from data, capped; where one stands under a cloud. Pure. |
 | `client/deck-ambient.ts`      | The bob, the masthead's sway, the lanterns, where the water is and when a gull flies, as functions of the clock; the motion plan. Pure. |
 | `client/deck-sky.ts`          | The sky by the local time of day, its place behind the ship; the sea's and foam's scroll, the gull's pose. Pure. |
 | `client/deck-environment.ts`  | The generated sky, stars, clouds, gull, sea and foam, and the wake, drawn with Pixi, behind and in front of the ship — the extras' animated sea, foam and wake in place of the environment's where they loaded; a plain sea (with its wake) without them. |
@@ -393,6 +395,15 @@ starts.
   with two working, spirited at six. **A speed that changes needs its own clock**: each animation is handed a
   clock advanced by step × pace, never the scene's clock times a pace, which would jump the sea and the clouds
   whenever the crew changed. Reduced motion draws exactly as before (`deliveredWeather`).
+- **Weather layers are data, not code** (`client/deck-variants.ts`, `client/deck-flash.ts`,
+  `docs/ship-deck-weather/README.md`). `extras.json` lists `variants` (a second frame set over the `sea`, `foam`,
+  `wake`, a `cycle:<id>` or a `cloud:<id>`), `cycles`, the sky's `mood` overlays and `flashes`, each with an
+  `opacity` curve of `[intensity, value]` points (flashes also `perMinute`). The heavy weather is the first set; a new
+  setting adds entries, not code. A variant rides its element's own clock and frame index, so it must have as many
+  frames of the same size — one that does not line up, or did not decode, is dropped alone and the element stands.
+  `over` (opaque art) hides the element once whole; `crossfade` fades it out. Flashes are capped at
+  `FLASH_CAP_PER_MINUTE` whatever the data says. No layer draws on a still deck (`Weather.intensity` null); on a
+  software renderer variants show on frame 0 and flashes never fire.
 
 ### The sea, the sky and the gull are generated art (`docs/ship-deck-environment/README.md` has the evidence)
 
