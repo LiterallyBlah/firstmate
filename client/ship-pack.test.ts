@@ -5,7 +5,7 @@
  * the move to a scene engine that deletes a constant deletes its check here; the pack is the source from then on.
  * Step 3 took the stage, floor, zones and portal marks, step 4 the cast, step 5a the sky, its overlays, the lightning,
  * the clouds and the gull, step 5b the sea, foam, wake and spindrift, step 5c the stage's parts, pieces and lights and its
- * bob and sway: the engine reads those from the pack now. The atlas's and the extras' records still hold the parts and
+ * bob and sway, step 6 the atmosphere: the engine reads those from the pack now. The atlas's and the extras' records still hold the parts and
  * pieces to what was served, by the arithmetic the deck cut them with.
  */
 import { readFileSync } from "node:fs";
@@ -13,7 +13,6 @@ import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { FADE_MS, HATCH_MS, SHARK_MOUTH } from "./deck-crew";
-import { ATMOSPHERE } from "./deck-atmosphere";
 import { extrasImagePaths } from "./deck-legacy";
 import { DeckArtManifestSchema, DeckExtrasManifestSchema } from "./deck-legacy-schema";
 import {
@@ -154,10 +153,4 @@ describe("the ship's pack, against the deck's constants", () => {
     for (const why of ["done", "failed", "closed", "removed"] as const) expect(ship.portals.byDeparture[why] === "plank", why).toBe(PLANK_DEPARTURES.has(why));
   });
 
-  it("has the weather of the deck's code", () => {
-    expect(ship.atmosphere!.table).toEqual(
-      ATMOSPHERE.map((row) => ({ at: row.at, pace: row.water.pace, drift: row.water.drift, wind: row.wind, sail: row.sail, billow: row.billow, swell: row.swell, heave: row.heave, wake: row.wake, mood: row.mood })),
-    );
-    expect(ship.atmosphere!.delivered.heave).toBe(1.2);
-  });
 });

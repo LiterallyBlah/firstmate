@@ -34,6 +34,7 @@ import type { DeckEngineSource, DeckSetting } from "../shared/deck-rpc";
 import type { SettingManifest } from "../shared/deck-setting";
 import { extrasImagePaths, legacyViews, type DeckExtrasImages, type DeckExtrasManifest } from "./deck-legacy";
 import { compileAmbience } from "./deck-ambience";
+import { compileAtmosphere } from "./deck-atmosphere";
 import { cloudSlotMasks, type DrifterMasks } from "./deck-clouds";
 import { compileParts } from "./deck-parts";
 import type { DeckHover } from "./deck-hover";
@@ -469,7 +470,7 @@ export function packArt(
       const failed = pack.failed.get(look.image);
       if (failed !== undefined) warn(`[firstmate] the deck's ${pathOf(look.image)} did not load; drawing without it:`, failed);
     }
-    return { stage: compileStage(pack.manifest), cast, parts, ambience, images: pack.images, masks, image: atlas, extras };
+    return { stage: compileStage(pack.manifest), cast, parts, ambience, atmosphere: compileAtmosphere(pack.manifest), images: pack.images, masks, image: atlas, extras };
   });
 }
 

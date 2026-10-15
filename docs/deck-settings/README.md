@@ -231,3 +231,28 @@ Gate: every shot pixel-identical to main. Client bundle −5,189 bytes against m
   at the piece's own top).
 
 Gate: every shot pixel-identical to main. Client bundle −5,227 bytes against main; Hermes parses it; no `class`.
+
+## Step 6 — atmosphere channels and clocks from the pack
+
+- **`compileAtmosphere`** (`client/deck-atmosphere.ts`, called by `packArt`) compiles the pack's table, channel names,
+  clock bindings and calm values once. Each mount keeps its own clock state. `atmosphereAt` linearly interpolates every
+  channel; `stepAtmosphere` advances every named clock by step times its channel's pace, clamped against reversal.
+  `Weather` carries channel and clock maps, so `channelOf`, `clockOf` and every existing behaviour can read new names
+  without an engine change. No atmosphere means empty maps; unclocked behaviours use scene time.
+- **Intensity stays engine-owned**: state weights, six weighted workers at the top, and three-second easing are unchanged.
+  **Reduced motion stays calm**: live clocks hold, the target intensity updates without a ramp, and the renderer uses the
+  pack's `delivered` channels with null intensity. Variants, curve-driven overlays/cycles and flashes stay off.
+- **Removed**: the code's `ATMOSPHERE`, fixed `AtmosphereParams`/`Weather` fields and clock/channel switches, and
+  `client/deck-water.ts` (`WaterMotion`, `WaterClock`, `CALM_WATER`, `advanceWater`). The ship's table and art are unchanged.
+  The weather layers already migrated in 5a/5b remain generic `variants`, `flash`, `overlay` and `cycle` behaviours;
+  thresholds and tint come from the pack.
+- **Validation** now requires strictly increasing table intensities, a valid id for each channel, matching channels in
+  every row, and one delivered value for every channel. Tests cover arbitrary channel/clock names, shared pace channels,
+  single-row and absent atmospheres, independent mounts, clamped and invalid times, and pause/resume without a phase jump.
+- **Flash guards closed**: the schema and runtime enforce at most two frames, at most 3500 ms total, opacity ≤ 0.6,
+  and no flashes in lite or still even if a pack requests them. Starts remain seeded in fifteen-second slots' first
+  halves, leaving at least four seconds dark between events. Format 1 permits **one flash element**: multiple independent
+  emitters would evade that interval and need a shared scheduler capability before they are supported. The ship already
+  has one two-frame, 200 ms flash at opacity ≤ 0.28, so these caps change none of its pixels.
+
+Validation results for this step are recorded in `gate-results.json` and `compile-results.json`.
