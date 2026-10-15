@@ -5,13 +5,15 @@
  * the deck's ambient life — the bob, the masthead's sway, the sail's billow, the lanterns, a gull now and then.
  *
  * **Depth, back to front:** the sky, its stars and the gull, then the far sea (the `back` of
- * `client/deck-environment.ts`); the ship — the hull, the masthead, the sail — with its deck of props,
- * pieces, lanterns and crew; then the near sea, the wake and the foam over the hull's waterline (its
- * `front`). The hover label and legend are React, on top. The sail hangs behind the crew; while it shows, the
- * mast's depth piece is the occluder, which leaves the cloth alone (`client/deck-extras.ts`).
+ * `client/deck-environment.ts`); the ship — the hull, the mast and its masthead, the sail — with its deck of
+ * props, pieces, lanterns and crew; then the near sea, the wake and the foam over the hull's waterline (its
+ * `front`). The hover label and legend are React, on top. The sail hangs on the tall mast behind the crew.
+ * The tall mast reaches into the sky above the hull, and the fit takes in its top (`deckBox`); its own rows
+ * below the sail are the mast's depth piece, which leaves the cloth alone (`client/deck-extras.ts`).
  *
- * **The plank** (`client/deck-plank.ts`) is drawn in code on the deck's layer, just in front of the near
- * rail, and a sailor walking it is drawn in front of the plank. Off its end the sailor goes into the
+ * **The plank** (`client/deck-plank.ts`) is the generated board (`art/ship-deck/plank/`), or where it did not
+ * load the board drawn in code, on the deck's layer just in front of the near rail, and a sailor walking it
+ * is drawn in front of the plank. Off its end the sailor goes into the
  * `overboard` layer over the near sea — outside the ship's bob, as the shark's art asks — and the shark and
  * the splash are drawn there after it, at their water anchors.
  *
@@ -45,7 +47,7 @@ import type { DeckArtManifest, SailorPose } from "../shared/ship-deck";
 import { LANTERNS, lanternFlicker, MASTHEAD, mastSway, shipBob, type MotionPlan } from "./deck-ambient";
 import { BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, BREATH_ROWS, createCrew, crewFigures, fading, plankEffects, SHARK_MOUTH, stepCrew, stepDepartures, type Figure } from "./deck-crew";
-import { ATLAS_LOOKS, crewLooks, drawnSail, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
+import { ATLAS_LOOKS, crewLooks, drawnMast, drawnPlank, drawnSail, lookLane, mastLayout, sailFrame, type DeckExtrasImages } from "./deck-extras";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
 import { badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
@@ -53,7 +55,7 @@ import type { DeckDrawing, DeckHost } from "./deck-mount";
 import { DECK_PROPS, depthOf, type DeckScene, type DeckState } from "./deck-scene";
 import { drawnClouds } from "./deck-clouds";
 import { createScenery, type DeckEnvironmentImages } from "./deck-environment";
-import { plankPixels, type SharkFrame, type SplashFrame } from "./deck-plank";
+import { PLANK_SEA_BOTTOM, plankPixels, type SharkFrame, type SplashFrame } from "./deck-plank";
 import { dominantPhase, localMinute, SKY_REFRESH_MS } from "./deck-sky";
 
 /** Marks the canvas with its renderer, so the live check can read it in the app's DevTools. */
@@ -199,8 +201,8 @@ function glRendererName(renderer: unknown): string | null {
 
 /**
  * One texture per frame of the atlas, all on one `nearest`-sampled source, and crops made on demand; and
- * the same for the extras: the sail's states, the mast occluder, and every pose of each extra look, cut
- * from its own image at the atlas's base-lane rectangles.
+ * the same for the extras: the tall mast cut in its parts, the sail's states, and every pose of each extra
+ * look, cut from its own image at the atlas's base-lane rectangles.
  */
 function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
   const sources: PixiTextureSource[] = [];
@@ -219,19 +221,47 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
   };
   const { manifest } = art;
   const [shipX, shipY, shipWidth, shipHeight] = manifest.ship.frame;
-  const mastRight = MASTHEAD.x + MASTHEAD.width;
-  // The hull in four: everything but the masthead, which is cut out to sway.
+  const { extras } = art;
+  // The hull in slices around what is cut out of it: the masthead, to sway; or, under the tall mast, the
+  // hull's whole short rig, which is not drawn at all.
+  const mastManifest = drawnMast(extras, manifest.pieces);
+  const sailManifest = drawnSail(extras, mastManifest);
+  const [cutX, cutY, cutWidth, cutHeight] = mastManifest?.clears ?? [MASTHEAD.x, MASTHEAD.y, MASTHEAD.width, MASTHEAD.height];
+  const cutRight = cutX + cutWidth;
+  const cutBottom = cutY + cutHeight;
   const hull = [
-    { texture: frame([shipX, shipY, MASTHEAD.x, shipHeight]), x: 0, y: 0 },
-    { texture: frame([shipX + MASTHEAD.x, shipY + MASTHEAD.height, MASTHEAD.width, shipHeight - MASTHEAD.height]), x: MASTHEAD.x, y: MASTHEAD.height },
-    { texture: frame([shipX + mastRight, shipY, shipWidth - mastRight, shipHeight]), x: mastRight, y: 0 },
+    { texture: frame([shipX, shipY, cutX, shipHeight]), x: 0, y: 0 },
+    ...(cutY > 0 ? [{ texture: frame([shipX + cutX, shipY, cutWidth, cutY]), x: cutX, y: 0 }] : []),
+    { texture: frame([shipX + cutX, shipY + cutBottom, cutWidth, shipHeight - cutBottom]), x: cutX, y: cutBottom },
+    { texture: frame([shipX + cutRight, shipY, shipWidth - cutRight, shipHeight]), x: cutRight, y: 0 },
   ];
-  const masthead = frame([shipX + MASTHEAD.x, shipY + MASTHEAD.y, MASTHEAD.width, MASTHEAD.height]);
+  // The rig: the swaying masthead, and under the tall mast its fixed shaft, the depth piece it stands in for,
+  // and how high it reaches.
+  let rig: {
+    masthead: { texture: PixiTexture; x: number; y: number };
+    shaft: { texture: PixiTexture; x: number; y: number } | null;
+    depth: { replaces: string; texture: PixiTexture; x: number; y: number; baseline: number | null } | null;
+    top: number;
+  } = {
+    masthead: { texture: frame([shipX + MASTHEAD.x, shipY + MASTHEAD.y, MASTHEAD.width, MASTHEAD.height]), x: MASTHEAD.x, y: MASTHEAD.y },
+    shaft: null,
+    depth: null,
+    top: 0,
+  };
+  if (mastManifest !== null) {
+    const layout = mastLayout(mastManifest, manifest.pieces[mastManifest.replaces]!, sailManifest);
+    const image = sourceOf(extras!.images.get(mastManifest.texture));
+    rig = {
+      masthead: { texture: frame(layout.head.frame, image), x: layout.head.x, y: layout.head.y },
+      shaft: { texture: frame(layout.shaft.frame, image), x: layout.shaft.x, y: layout.shaft.y },
+      depth: { replaces: mastManifest.replaces, texture: frame(layout.depth.frame, image), x: layout.depth.x, y: layout.depth.y, baseline: layout.depth.baseline },
+      top: layout.top,
+    };
+  }
   const pieces = new Map(Object.entries(manifest.pieces).map(([name, piece]) => [name, frame(piece.frame)]));
   const props = new Map(Object.entries(manifest.props).map(([name, entry]) => [name, frame(entry.frame)]));
 
   // Each look's image: the atlas for its own two outfits, an extra look's own texture otherwise.
-  const { extras } = art;
   const lookSources = new Map<string, PixiTextureSource>(ATLAS_LOOKS.map((outfit) => [outfit, source]));
   for (const look of extras?.manifest.crew ?? []) {
     const image = extras!.images.get(look.texture);
@@ -244,17 +274,12 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
     }),
   );
 
-  // The sail's states, side by side in its strip, and the occluder that stands in for the mast while it shows.
-  const sailManifest = drawnSail(extras, manifest.pieces);
-  let sail: { states: PixiTexture[]; occluder: PixiTexture } | null = null;
+  // The sail's states, side by side in its strip.
+  let sail: { states: PixiTexture[] } | null = null;
   if (sailManifest !== null) {
     const strip = sourceOf(extras!.images.get(sailManifest.texture));
     const [width, height] = sailManifest.frameSize;
-    const states = Array.from({ length: sailManifest.frames }, (_, index) => frame([index * width, 0, width, height], strip));
-    const occluderPiece = manifest.pieces[sailManifest.occluder.replaces]!;
-    const [, , pieceWidth, pieceHeight] = occluderPiece.frame;
-    const occluder = frame([0, 0, pieceWidth, pieceHeight], sourceOf(extras!.images.get(sailManifest.occluder.texture)));
-    sail = { states, occluder };
+    sail = { states: Array.from({ length: sailManifest.frames }, (_, index) => frame([index * width, 0, width, height], strip)) };
   }
 
   // The shark's keys and the splash's, each its own image, whichever decoded.
@@ -263,6 +288,10 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
     const image = extras?.images.get(path);
     return image === undefined ? null : frame([0, 0, size[0], size[1]], sourceOf(image));
   };
+  // The plank's generated board, whole, where it decoded.
+  const plankManifest = drawnPlank(extras);
+  const plankTexture = plankManifest === null ? null : whole(plankManifest.texture, plankManifest.size);
+  const plank = plankManifest === null || plankTexture === null ? null : { texture: plankTexture, position: plankManifest.position };
   const shark = new Map<SharkFrame, PixiTexture>();
   const splash = new Map<SplashFrame, PixiTexture>();
   if (exitManifest !== null) {
@@ -282,11 +311,12 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
     exit: exitManifest,
     shark,
     splash,
-    masthead,
+    rig,
     pieces,
     props,
     sail,
     sailManifest,
+    plank,
     /** A look's whole pose. */
     pose(look: string, pose: SailorPose): PixiTexture {
       return (crew.get(look) ?? crew.get("base")!).get(pose)!;
@@ -328,11 +358,25 @@ function stand(sprite: PixiSprite, standing: { frame: readonly number[]; feet: r
  * pixel narrower than a step (3 device pixels an art pixel to 2). Sampled `nearest`, a fractional scale
  * makes some art pixels one device pixel wider than others, which at three or more device pixels an
  * art pixel hardly shows; a ship that jumps does.
+ *
+ * What is fitted is the deck's rows from `top` (0, the hull's top row, unless a tall mast reaches above it)
+ * to `height`.
  */
-export function fitDeck(screen: { width: number; height: number }, deck: { width: number; height: number }, resolution: number) {
-  const scale = Math.max(0, Math.min(screen.width / deck.width, screen.height / deck.height) * 0.96);
+export function fitDeck(screen: { width: number; height: number }, deck: { width: number; height: number; top?: number }, resolution: number) {
+  const top = deck.top ?? 0;
+  const rows = deck.height - top;
+  const scale = Math.max(0, Math.min(screen.width / deck.width, screen.height / rows) * 0.96);
   const snap = (value: number) => Math.round(value * resolution) / resolution;
-  return { scale, x: snap((screen.width - deck.width * scale) / 2), y: snap((screen.height - deck.height * scale) / 2) };
+  return { scale, x: snap((screen.width - deck.width * scale) / 2), y: snap((screen.height - rows * scale) / 2 - top * scale) };
+}
+
+/**
+ * The deck's rows the fit takes in: the hull's, or under the tall mast from its top down to the lowest the
+ * plank's shark and splash reach in the near sea, so that the taller fit keeps the whole of the way off
+ * the plank in view in a wide pane, as the hull's own did.
+ */
+export function deckBox(deck: { width: number; height: number }, rigTop: number): { width: number; height: number; top?: number } {
+  return rigTop >= 0 ? deck : { width: deck.width, height: Math.max(deck.height, PLANK_SEA_BOTTOM), top: rigTop };
 }
 
 /**
@@ -449,11 +493,18 @@ export async function startDeck(
     sprite.position.set(slice.x, slice.y);
     ship.addChild(sprite);
   }
-  const masthead = new pixi.Sprite(textures.masthead);
+  const { rig } = textures;
+  if (rig.shaft !== null) {
+    const shaft = new pixi.Sprite(rig.shaft.texture);
+    shaft.label = "mast";
+    shaft.position.set(rig.shaft.x, rig.shaft.y);
+    ship.addChild(shaft);
+  }
+  const masthead = new pixi.Sprite(rig.masthead.texture);
   masthead.label = "masthead";
-  masthead.position.set(MASTHEAD.x, MASTHEAD.y);
+  masthead.position.set(rig.masthead.x, rig.masthead.y);
   ship.addChild(masthead);
-  // The sail, on the mast under the crow's nest: it rides the bob, not the masthead's sway, and hangs behind the crew.
+  // The sail, on the tall mast under the crow's nest: it rides the bob, not the masthead's sway, and hangs behind the crew.
   const sailTextures = textures.sail;
   const sailManifest = textures.sailManifest;
   const sail = sailTextures === null || sailManifest === null ? null : new pixi.Sprite(sailTextures.states[0]!);
@@ -476,22 +527,37 @@ export async function startDeck(
     deck.addChild(sprite);
   }
   for (const [name, piece] of Object.entries(manifest.pieces)) {
-    // Under sail, the mast's piece is the occluder: the mast with the rows behind the cloth cleared.
-    const occluder = sailManifest !== null && sailTextures !== null && sailManifest.occluder.replaces === name ? sailManifest.occluder : null;
-    const texture = occluder !== null ? sailTextures!.occluder : textures.pieces.get(name);
+    // Under the tall mast, the mast's piece is its own lower rows.
+    if (rig.depth !== null && rig.depth.replaces === name) {
+      const sprite = new pixi.Sprite(rig.depth.texture);
+      sprite.label = `piece:${name}:tall`;
+      sprite.position.set(rig.depth.x, rig.depth.y);
+      sprite.zIndex = depthOf(rig.depth.baseline, 1);
+      deck.addChild(sprite);
+      continue;
+    }
+    const texture = textures.pieces.get(name);
     if (texture === undefined) continue;
     const sprite = new pixi.Sprite(texture);
-    sprite.label = occluder !== null ? `piece:${name}:occluder` : `piece:${name}`;
-    sprite.position.set(occluder?.position[0] ?? piece.x, occluder?.position[1] ?? piece.y);
-    sprite.zIndex = depthOf(occluder !== null ? occluder.baseline : piece.baseline, 1);
+    sprite.label = `piece:${name}`;
+    sprite.position.set(piece.x, piece.y);
+    sprite.zIndex = depthOf(piece.baseline, 1);
     deck.addChild(sprite);
   }
-  // The plank over the near rail, in front of it, and behind whoever walks it.
-  const plank = new pixi.Graphics();
-  plank.label = "plank";
-  for (const [x, y, width, height, colour, alpha] of plankPixels()) plank.rect(x, y, width, height).fill({ color: colour, alpha });
-  plank.zIndex = PLANK_DEPTH;
-  deck.addChild(plank);
+  // The plank over the near rail, in front of it, and behind whoever walks it: the generated board, or the one drawn in code.
+  if (textures.plank !== null) {
+    const board = new pixi.Sprite(textures.plank.texture);
+    board.label = "plank";
+    board.position.set(textures.plank.position[0], textures.plank.position[1]);
+    board.zIndex = PLANK_DEPTH;
+    deck.addChild(board);
+  } else {
+    const board = new pixi.Graphics();
+    board.label = "plank";
+    for (const [x, y, width, height, colour, alpha] of plankPixels()) board.rect(x, y, width, height).fill({ color: colour, alpha });
+    board.zIndex = PLANK_DEPTH;
+    deck.addChild(board);
+  }
   const lanterns = LANTERNS.map(function (lantern) {
     const root = new pixi.Container();
     root.label = "lantern";
@@ -725,7 +791,7 @@ export async function startDeck(
     if (!moving) applyCrew(crew, current.sailors, { snap: true, departures: current.departures });
     const bob = moving ? shipBob(seconds) : { x: 0, y: 0 };
     ship.position.set(bob.x, bob.y);
-    masthead.position.set(MASTHEAD.x + (moving ? mastSway(seconds) : 0), MASTHEAD.y);
+    masthead.position.set(rig.masthead.x + (moving ? mastSway(seconds) : 0), rig.masthead.y);
     if (sail !== null && sailTextures !== null && sailManifest !== null) sail.texture = sailTextures.states[sailFrame(seconds, sailManifest, moving)]!;
     const sky = scenery.draw(seconds, plan, currentMinute());
     for (const { lantern, glow, glass } of lanterns) {
@@ -800,7 +866,7 @@ export async function startDeck(
 
   /** Fits the world to the canvas through the camera's shot, and lays the scenery and veil out over what shows. */
   function fit(): void {
-    const base = fitDeck(app.screen, current, app.renderer.resolution);
+    const base = fitDeck(app.screen, deckBox(current, rig.top), app.renderer.resolution);
     const { scale, x, y } = cameraFit(base, shot, focusLayout(app.screen), app.renderer.resolution);
     veil.visible = shot.amount > 0;
     veil.alpha = FOCUS_VEIL_ALPHA * Math.max(0, Math.min(1, shot.amount));

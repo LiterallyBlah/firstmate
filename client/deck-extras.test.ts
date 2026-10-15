@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { DeckArtManifestSchema, DeckExtrasManifestSchema, SAILOR_POSES, extrasImagePaths } from "../shared/ship-deck";
 import { WATERLINE } from "./deck-ambient";
 import { BREATH_MS, BREATH_ROWS, STATE_POSES, applyCrew, breathSink, createCrew, crewFigures, looksFore } from "./deck-crew";
-import { ATLAS_LOOKS, crewLooks, drawnSail, lookFor, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
+import { ATLAS_LOOKS, crewLooks, drawnPlank, drawnSail, lookFor, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
 import type { DeckSailor, DeckState } from "./deck-scene";
 import { BOW, CHURN_LENGTH, STERN, WAKE_ARMS, wakeRuns } from "./deck-wake";
 
@@ -88,24 +88,23 @@ describe("the sail and the crew's looks, as served", () => {
     }
   });
 
-  it("hang the sail on the mast, under the crow's nest and clear of the deck, in a strip of its states", () => {
+  it("hang the taller sail on the tall mast, its yard at the mast's lashing point, under the crow's nest and clear of the deck", () => {
     const { sail } = manifest;
+    const mast = manifest.mast!;
     const strip = decodePng(readFileSync(art(sail.texture)));
     expect([strip.width, strip.height]).toEqual([sail.frameSize[0] * sail.frames, sail.frameSize[1]]);
-    expect(sail.frames).toBe(2);
+    expect([sail.frames, sail.frameSize[0], sail.frameSize[1]]).toEqual([2, 114, 84]);
     const [x, y] = sail.position;
-    const mast = deck.pieces.mast!;
-    // Across the mast, from the crow's nest's foot to above the open deck (the far bulwark is about row 86).
-    expect(x).toBeLessThan(mast.x);
-    expect(x + sail.frameSize[0]).toBeGreaterThan(mast.x + mast.frame[2]);
-    expect(y + sail.frameSize[1]).toBeLessThanOrEqual(80);
-    // The occluder is the mast below the cloth only: clear where the sail hangs, the mast's own pixels under it.
-    const occluder = decodePng(readFileSync(art(sail.occluder.texture)));
-    const clearTo = y + sail.frameSize[1] - mast.y;
-    for (let row = 0; row < clearTo - 2; row += 1) for (let column = 0; column < occluder.width; column += 1) expect(occluder.alpha(column, row)).toBe(0);
-    let below = 0;
-    for (let row = clearTo; row < occluder.height; row += 1) for (let column = 0; column < occluder.width; column += 1) below += occluder.alpha(column, row) === 255 ? 1 : 0;
-    expect(below).toBeGreaterThan(100);
+    // The yard's lashing (the strip's (57, 3)) on the tall mast's (its own (24, 100), art/ship-deck/sails/README.md).
+    expect([x + 57, y + 3]).toEqual([mast.position[0] + 24, mast.position[1] + 100]);
+    // Across the mast's shaft, below the crow's nest (its floor is the mast's row 44), and its hem above the
+    // open deck (the far bulwark is about row 86) and the mast's foot.
+    expect(x).toBeLessThan(207);
+    expect(x + sail.frameSize[0]).toBeGreaterThan(216);
+    expect(y).toBeGreaterThan(mast.position[1] + 44);
+    expect(y + sail.frameSize[1]).toBeLessThanOrEqual(72);
+    // The yard and its top rows hold still between the two states: only the cloth below them breathes.
+    for (let row = 0; row < 8; row += 1) for (let column = 0; column < sail.frameSize[0]; column += 1) expect(strip.alpha(column, row)).toBe(strip.alpha(column + sail.frameSize[0], row));
   });
 });
 
@@ -164,15 +163,23 @@ describe("the sail's billow", () => {
     expect(sailFrame(Number.NaN, sail, true)).toBe(0);
   });
 
-  it("is drawn only with its strip and the occluder both, over a mast the atlas has", () => {
-    expect(drawnSail(extras, deck.pieces)).toBe(manifest.sail);
-    expect(drawnSail(null, deck.pieces)).toBeNull();
-    for (const path of [manifest.sail.texture, manifest.sail.occluder.texture]) {
-      const without = { manifest, images: new Map([...extras.images].filter(([each]) => each !== path)) };
-      expect(drawnSail(without, deck.pieces), path).toBeNull();
-    }
-    const { mast: _mast, ...noMast } = deck.pieces;
-    expect(drawnSail(extras, noMast)).toBeNull();
+  it("is drawn only with its strip, on the tall mast it is fitted to", () => {
+    expect(drawnSail(extras, manifest.mast)).toBe(manifest.sail);
+    expect(drawnSail(null, manifest.mast)).toBeNull();
+    expect(drawnSail(extras, null)).toBeNull();
+    const without = { manifest, images: new Map([...extras.images].filter(([each]) => each !== manifest.sail.texture)) };
+    expect(drawnSail(without, manifest.mast)).toBeNull();
+  });
+});
+
+describe("the plank's board", () => {
+  it("is the generated one where its image decoded, and the code board's otherwise", () => {
+    expect(drawnPlank(extras)).toBe(manifest.plank);
+    expect(drawnPlank(null)).toBeNull();
+    const without = { manifest, images: new Map([...extras.images].filter(([each]) => each !== manifest.plank!.texture)) };
+    expect(drawnPlank(without)).toBeNull();
+    const { plank: _plank, ...older } = manifest;
+    expect(drawnPlank({ manifest: older, images: extras.images })).toBeNull();
   });
 });
 

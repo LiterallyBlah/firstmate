@@ -1,0 +1,18 @@
+{
+  "tool": "image_gen__imagegen",
+  "mode": "built-in",
+  "backendModel": "Not disclosed by tool",
+  "generationCalls": 1,
+  "transparent_background": true,
+  "reference": {
+    "path": "../deck.png",
+    "crop": [
+      0,
+      0,
+      426,
+      161
+    ],
+    "role": "Shipped hull C style and proportion reference"
+  },
+  "prompt": "Use case: stylized-concept. Asset type: transparent pixel-art game sprite.\nReference image 1 is Hull C, the SHIPPED GAME STYLE reference only. Generate ONE standalone MUCH TALLER wooden mainmast with its crow's nest, WITHOUT the ship, deck, sail, yard, crew, flags, or long ropes. Genuine transparent background.\n\nThe new mast must look like the SAME wooden mast from the reference, extended UP into the sky to twice its original height, not a thicker mast. Pixel-art camera: ship side elevation viewed slightly down onto elliptical crow's nest, exactly like the reference. Warm ochre wood highlight on left, chestnut shading on right, darkest brown/navy outlines, navy blue metal bands. Keep its simple understated detail and small chunky pixel clusters. Not realistic painting.\n\nPrecise sprite proportions on an imagined 48 wide by 224 high LOGICAL PIXEL grid, presented at large nearest-neighbor scale for clean sampling:\n- vertical centerline x=24;\n- top cap y=2, mast foot y=222;\n- main shaft 9 logical pixels wide, straight and continuous; upper tip can taper to 6 pixels;\n- crow's nest is a modest 34-pixel wide elliptical wooden barrel basket around the shaft, top rail at y=28, bottom at y=53. Perspective/size like reference, warm wooden staves with slim navy hoop, dark open interior. Pole continues visibly above the basket to y=2;\n- two small rope attachment lugs just under basket at y=57. NO trailing ropes;\n- uninterrupted straight pole from y=62 down to foot, with generous clear area at y=100 for the EXISTING 114-pixel yard and sail to be added later. Do NOT draw that yard or sail;\n- simple navy foot socket at the bottom, maximum 19 logical pixels wide, like reference.\nFrame the entire sprite uncropped with transparent padding. The basket is only about four shaft widths across, and the entire mast is about 24 shaft widths tall. This long narrow silhouette is essential. All added height must be in the long shaft BELOW the nest. No ladder, no crossbars, no decoration.\n\nPalette: use only the reference's dark navy #0E121E #151E2D #182B47 #1F3554 #22395A #2C4869; dark brown #1A1417 #31211D #4F3427 #613A28 #72412A #834C2D; warm wood #A56235 #B16F3D #BB7B44 #C17F46 #C9894C #CD8F50 #DCA35B #DD9954. No white backdrop or ground shadow, no text, no watermark."
+}
