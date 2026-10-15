@@ -1,5 +1,7 @@
 # Animated water for Hull C
 
+**Wake angle revision (2026-10-15):** the shipped wake is now the [regenerated steeper trail](../wake-angle/README.md), with the far ridge increasing from about 6.6 to 16 degrees down-right. The same three 240x96 frames, names, stern anchor and timing are retained. The [current manifest](manifest.json) and [current verification](../wake-angle/verification.json) describe the replacement. Original wake sources and review images in this directory remain historical evidence; the current strip is `wake/strip.png`.
+
 Generated sea, hull-contact foam, and a connected stern wake. This began as an **assets-only handoff**;
 the Deck now draws it through [`extras.json`](../../../art/ship-deck/extras.json)'s `water`, which copies the frames, timing
 and placement below (`client/deck-water.test.ts` holds the two to each other). The companion
@@ -10,7 +12,7 @@ and placement below (`client/deck-water.test.ts` holds the two to each other). T
 | --- | --- | --- | --- | --- |
 | `sea/frame-{0,1,2,3}.png` | 256 x 128 | 4 | 960 ms | usable |
 | `foam/frame-{0,1,2}.png` | 256 x 16 | 3 | 720 ms | usable-with-cleanup |
-| `wake/frame-{0,1,2}.png` | 240 x 96 | 3 | 720 ms | usable-with-cleanup |
+| `wake/frame-{0,1,2}.png` | 240 x 96 | 3 | 720 ms | usable |
 
 Each folder also contains `strip.png`, with the same frames **left to right, no padding**.
 Play frames in ascending order at **240 ms per frame**, looping to zero. Hold frame zero for reduced
@@ -35,7 +37,7 @@ The ship sails **left**. Draw sky/clouds, far sea, hull/crew, near sea, wake, th
 - **Wake:** local anchor **(8,8)** goes on stern water contact **(392,151)**, so the sprite top-left is
   **(384,143)**. It occupies a 240 x 96 canvas, opening right and down. Keep that anchor fixed and
   cycle its textures; do not translate the whole wake with the sea's drift. A compact foam knot extends
-  four pixels above the nominal waterline to overlap the stern, while the widening arms lie below it.
+  two pixels above the nominal waterline to overlap the stern, while the widening arms lie below it.
   Avoid hard-clipping that knot at y=151. All outside borders are transparent. It is **not a tile**.
   Replace `wakeRuns` / `wakeLayer` output rather than drawing both. This asset supplies a stern V;
   it intentionally does not duplicate the old code's long bow-wave arm.
@@ -56,7 +58,7 @@ opposite columns and clear top/bottom rows. The [2 x 2 repeat](review/sea-repeat
 inspected as well as checked numerically. Wake borders are transparent, but seamless tiling is neither
 required nor claimed for a finite stern trail.
 
-Made with **four built-in `image_gen__imagegen` calls** on 2026-10-15. The backend model is not disclosed
+The original set was made with **four built-in `image_gen__imagegen` calls** on 2026-10-15; the later wake angle revision used eight additional calls, documented above. The backend model is not disclosed
 by the tool. [Provenance](provenance.json) contains every exact prompt, reference hash and source hash;
 all four original generated sheets are retained under `source/`. The first wake sheet was superseded
 by a generated correction that lowers its upper arm to fit the stern's water plane.
@@ -68,7 +70,7 @@ Review composites only layer those generated assets with the existing hull and s
 the repository MIT license; AI-generated artwork, without a claim of human authorship or exclusive
 copyright. No third-party art was used.
 
-## Review and limitations
+## Original-generation review and limitations (historical)
 
 [Hull fit at 2x](review/hull-fit-2x.png) shows the palette, contact and wake direction. The
 [contact sheet](review/contact.png) shows every pose. Animated PNGs are supplied for the

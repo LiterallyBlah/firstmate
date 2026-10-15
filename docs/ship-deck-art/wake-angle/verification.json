@@ -1,0 +1,400 @@
+{
+  "date": "2026-10-15",
+  "scope": "All ten current water PNGs decoded and checked; sea and foam hashes unchanged. Offline hull previews, no install or live runtime test.",
+  "assets": [
+    {
+      "path": "art/ship-deck/water/sea/frame-0.png",
+      "size": [
+        256,
+        128
+      ],
+      "sha256": "50ad57414c16c509dfd7b1c833940f509570d176bb7f49e099eaee6743070748",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A"
+      ],
+      "alpha": [
+        255
+      ],
+      "opaquePixels": 32768,
+      "bounds": [
+        0,
+        0,
+        256,
+        128
+      ],
+      "paletteSubset": true,
+      "transparentRgbZero": true
+    },
+    {
+      "path": "art/ship-deck/water/sea/frame-1.png",
+      "size": [
+        256,
+        128
+      ],
+      "sha256": "79e6fe374bb4b791336997514b622d96caa87b1d16bb9603c6e6a83623ab9792",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A"
+      ],
+      "alpha": [
+        255
+      ],
+      "opaquePixels": 32768,
+      "bounds": [
+        0,
+        0,
+        256,
+        128
+      ],
+      "paletteSubset": true,
+      "transparentRgbZero": true
+    },
+    {
+      "path": "art/ship-deck/water/sea/frame-2.png",
+      "size": [
+        256,
+        128
+      ],
+      "sha256": "1582b6553d532838d9291076e0e3cb5cce56fd7c6ab58d4972efc1a55fd3b2ad",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A"
+      ],
+      "alpha": [
+        255
+      ],
+      "opaquePixels": 32768,
+      "bounds": [
+        0,
+        0,
+        256,
+        128
+      ],
+      "paletteSubset": true,
+      "transparentRgbZero": true
+    },
+    {
+      "path": "art/ship-deck/water/sea/frame-3.png",
+      "size": [
+        256,
+        128
+      ],
+      "sha256": "8863ae4f4078a15200c96c2c514a3c91c9b19887c403f0c86dc3bafd17d6468c",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A"
+      ],
+      "alpha": [
+        255
+      ],
+      "opaquePixels": 32768,
+      "bounds": [
+        0,
+        0,
+        256,
+        128
+      ],
+      "paletteSubset": true,
+      "transparentRgbZero": true
+    },
+    {
+      "path": "art/ship-deck/water/foam/frame-0.png",
+      "size": [
+        256,
+        16
+      ],
+      "sha256": "13ed086bedfcd0c699fa149593f5073f8051212f84d3cec1f6199a13780b9722",
+      "palette": [
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "alpha": [
+        0,
+        255
+      ],
+      "opaquePixels": 1231,
+      "bounds": [
+        0,
+        5,
+        256,
+        14
+      ],
+      "paletteSubset": true,
+      "transparentRgbZero": true
+    },
+    {
+      "path": "art/ship-deck/water/foam/frame-1.png",
+      "size": [
+        256,
+        16
+      ],
+      "sha256": "ef862b8e2ad35e22faece685ca5d300792fa9263ea5da33b2ed89560237e1461",
+      "palette": [
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "alpha": [
+        0,
+        255
+      ],
+      "opaquePixels": 1316,
+      "bounds": [
+        0,
+        1,
+        256,
+        14
+      ],
+      "paletteSubset": true,
+      "transparentRgbZero": true
+    },
+    {
+      "path": "art/ship-deck/water/foam/frame-2.png",
+      "size": [
+        256,
+        16
+      ],
+      "sha256": "514662a41953f3a4dede58a8dd30b04268220d145dc9e72911fbe6469b4c7716",
+      "palette": [
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "alpha": [
+        0,
+        255
+      ],
+      "opaquePixels": 1201,
+      "bounds": [
+        0,
+        5,
+        256,
+        14
+      ],
+      "paletteSubset": true,
+      "transparentRgbZero": true
+    },
+    {
+      "path": "art/ship-deck/water/wake/frame-0.png",
+      "size": [
+        240,
+        96
+      ],
+      "sha256": "9635a23a9be1bf8c4db1ad4604b923114798dfbf2ab752cf3892445388c724b9",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#7795A5",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "alpha": [
+        0,
+        255
+      ],
+      "opaquePixels": 5245,
+      "bounds": [
+        9,
+        6,
+        220,
+        89
+      ],
+      "paletteSubset": true,
+      "transparentRgbZero": true
+    },
+    {
+      "path": "art/ship-deck/water/wake/frame-1.png",
+      "size": [
+        240,
+        96
+      ],
+      "sha256": "187f23082f2340297d7f09e9172fc1ded7850b2f550a92b772bc40eef203893b",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#7795A5",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "alpha": [
+        0,
+        255
+      ],
+      "opaquePixels": 5315,
+      "bounds": [
+        9,
+        6,
+        220,
+        89
+      ],
+      "paletteSubset": true,
+      "transparentRgbZero": true
+    },
+    {
+      "path": "art/ship-deck/water/wake/frame-2.png",
+      "size": [
+        240,
+        96
+      ],
+      "sha256": "bebe32f7bf6f1844b00f5f47f56f3249cfd990d016ee7c9be2b1d7308f8eadb7",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#7795A5",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "alpha": [
+        0,
+        255
+      ],
+      "opaquePixels": 5287,
+      "bounds": [
+        9,
+        6,
+        220,
+        89
+      ],
+      "paletteSubset": true,
+      "transparentRgbZero": true
+    }
+  ],
+  "angle": {
+    "method": "Mean angle from fixed anchor (8,8) to first opaque pixel in columns 160..195; positive is down-right on screen.",
+    "before": [
+      6.57,
+      6.48,
+      6.76
+    ],
+    "after": [
+      15.95,
+      15.96,
+      15.94
+    ]
+  },
+  "animation": [
+    {
+      "from": 0,
+      "to": 1,
+      "changedPixels": 2058,
+      "changedCanvasPercent": 8.93,
+      "alphaChangedPixels": 106
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "changedPixels": 2339,
+      "changedCanvasPercent": 10.15,
+      "alphaChangedPixels": 66
+    },
+    {
+      "from": 2,
+      "to": 0,
+      "changedPixels": 2657,
+      "changedCanvasPercent": 11.53,
+      "alphaChangedPixels": 76
+    }
+  ],
+  "checks": {
+    "frameCount": 3,
+    "size": [
+      240,
+      96
+    ],
+    "anchor": [
+      8,
+      8
+    ],
+    "worldAnchor": [
+      392,
+      151
+    ],
+    "topLeft": [
+      384,
+      143
+    ],
+    "frameMs": 240,
+    "loopMs": 720,
+    "allWakeBordersTransparent": true,
+    "contactFirst20ColumnsIdentical": true,
+    "stripMatchesFrames": true,
+    "binaryAlpha": true,
+    "exactPalette": true,
+    "transparentRgbZero": true,
+    "seaAndFoamUnchanged": true,
+    "runtimeManifestMatches": true,
+    "apngCrcsAndDecodedFramesMatch": true
+  },
+  "review": [
+    "review/before-after-3x.png",
+    "review/hull-fit-2x.png",
+    "review/wake-cycle.png",
+    "review/hull-fit-cycle.png"
+  ],
+  "limitation": "Generated local foam details differ from the old trail. Narrower disturbed-water wedge and slightly finer foam; subtle shimmer rather than physically advected fluid. Offline composite uses bare Hull C, no live-app claim."
+}
