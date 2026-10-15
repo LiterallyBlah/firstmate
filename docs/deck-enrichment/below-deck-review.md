@@ -64,3 +64,9 @@ compiling to reproduce the unmasked comparison. The following evidence commit ch
 Self-review of the complete code, pack, art and screenshot diff is complete. The implementation's
 [Windows and Ubuntu CI](https://github.com/LiterallyBlah/firstmate/actions/runs/38819645779) passes.
 The PR is published READY only after those checks also pass on its final pushed evidence commit.
+
+The subsequent PR-triggered run exposed a five-second limit in the ship linter's all-pairs route test.
+Its half-pixel samples and every route/corner check are retained; a single assertion now reports the first
+off-floor sample per route, instead of constructing a matcher for every passing sample. This reduced the
+local ship route check to **1.47 seconds**, with all 51 pack checks passing and no timeout increase. This
+test-only optimization leaves the compiled runtime, art and reviewed 81-shot evidence unchanged.
