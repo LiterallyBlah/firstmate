@@ -343,11 +343,15 @@ const Overlay = z.object({
 /** `flash@1`: a moment now and then, `perMinute` at an intensity (capped by the engine), under a drifting sprite in view. */
 const Flash = z.object({
   kind: z.literal("flash"),
-  frames: z.array(z.object({ sprite: Sprite, ms: Ms, alpha: z.number().min(0).max(1) })).min(1),
+  frames: z
+    .array(z.object({ sprite: Sprite, ms: Ms, alpha: z.number().min(0).max(1) }))
+    .min(1)
+    .max(2)
+    .refine((frames) => frames.reduce((sum, frame) => sum + frame.ms, 0) <= 3500, "a flash lasts at most 3500 ms"),
   size: Size,
   anchor: Point,
   under: Id,
-  opacity: Opacity,
+  opacity: Opacity.refine((points) => points.every((point) => point[1] <= 0.6), "flash opacity is at most 0.6"),
   perMinute: Curve,
 });
 /**
@@ -426,7 +430,10 @@ const DayCycle = z.object({
 
 const Atmosphere = z.object({
   /** Rows lowest first, interpolated; every channel in every row. */
-  table: z.array(z.object({ at: z.number().min(0).max(1) }).catchall(z.number())).min(1),
+  table: z
+    .array(z.object({ at: z.number().min(0).max(1) }).catchall(z.number()))
+    .min(1)
+    .refine((rows) => rows.every((row, index) => index === 0 || row.at > rows[index - 1]!.at), "atmosphere intensities must rise"),
   /** What the art was made for: a still deck's weather. */
   delivered: z.record(Id, z.number()),
   /** Each clock advanced every frame by its step times its channel. */
@@ -569,6 +576,8 @@ export function incompatibility(manifest: Pick<SettingManifest, "formatVersion" 
  */
 export function settingProblems(manifest: SettingManifest): string[] {
   const problems: string[] = [];
+  // One emitter keeps the engine's interval cap global. More need a shared scheduler capability first.
+  if (manifest.ambience.filter((element) => element.behaviour.kind === "flash").length > 1) problems.push("a setting supports at most one flash element");
   const missing = (what: string, id: string, where: string) => problems.push(`${where} names ${what} "${id}", which the setting does not have`);
   const unique = (what: string, ids: readonly string[]) => {
     const seen = new Set<string>();
@@ -675,6 +684,10 @@ export function settingProblems(manifest: SettingManifest): string[] {
   for (const row of manifest.atmosphere?.table ?? []) {
     const keys = Object.keys(row).filter((key) => key !== "at");
     if (keys.length !== channels.size || keys.some((key) => !channels.has(key))) problems.push(`atmosphere row at ${row.at} does not have every channel`);
+  }
+  for (const channel of channels) {
+    if (!Id.safeParse(channel).success) problems.push(`atmosphere channel "${channel}" is not an id`);
+    if (typeof manifest.atmosphere?.delivered[channel] !== "number") problems.push(`atmosphere.delivered has no value for channel "${channel}"`);
   }
   for (const [clock, channel] of Object.entries(manifest.atmosphere?.clocks ?? {})) if (!channels.has(channel)) missing("channel", channel, `clock ${clock}`);
   for (const channel of Object.keys(manifest.atmosphere?.delivered ?? {})) if (!channels.has(channel)) missing("channel", channel, "atmosphere.delivered");

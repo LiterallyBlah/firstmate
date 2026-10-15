@@ -50,7 +50,7 @@
  */
 import { elementMotion, elementsOf, type AmbientElement, type DayCycle, type DeckAmbience } from "./deck-ambience";
 import { flybyPose, flybysAt, type MotionPlan } from "./deck-ambient";
-import { clockOf, deliveredWeather, levelAt, shade, tintToward, type Weather } from "./deck-atmosphere";
+import { clockOf, deliveredWeather, levelAt, shade, tintToward, type DeckAtmosphere, type Weather } from "./deck-atmosphere";
 import { cloudColours, cloudField, cloudX, hexColour, variantPalette, type DrifterMasks } from "./deck-clouds";
 import { flashAt, flashSalt, underCloud } from "./deck-flash";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
@@ -61,6 +61,7 @@ import { cycleFrame, curvePeak, opacityAt, variantBlend, type Variant } from "./
 export interface SceneryArt {
   /** The setting's ambience (`client/deck-ambience.ts`), drawn from `images`, the pack's by id, and `masks`, by image id. */
   ambience: DeckAmbience;
+  atmosphere: DeckAtmosphere;
   images: ReadonlyMap<string, unknown>;
   masks: ReadonlyMap<string, DrifterMasks>;
 }
@@ -162,7 +163,7 @@ export function createScenery(pixi: PixiModule, stage: StageSize, art: SceneryAr
     front,
     generated: layers.generated,
     layout: layers.layout,
-    draw(seconds, plan, minute, weather = deliveredWeather(seconds)) {
+    draw(seconds, plan, minute, weather = deliveredWeather(art.atmosphere, seconds)) {
       return layers.draw(seconds, plan, minute, weather);
     },
     flashing: layers.flashing,
@@ -376,8 +377,8 @@ function ambienceLayers(
       for (const { element, under, frames, sprite, salt } of flashes) {
         // A flash now and then, tucked under a drifter in view; only while it runs.
         const { behaviour } = element;
-        const moment = elementMotion(element, plan) === "run" && intensity !== null ? flashAt(seconds, behaviour, intensity, salt) : null;
-        const alpha = moment === null ? 0 : opacityAt(behaviour.opacity, intensity) * moment.share;
+        const moment = plan.level === "full" && elementMotion(element, plan) === "run" && intensity !== null ? flashAt(seconds, behaviour, intensity, salt) : null;
+        const alpha = moment === null ? 0 : Math.min(0.6, opacityAt(behaviour.opacity, intensity) * moment.share);
         const spot = moment === null || alpha <= 0 ? null : underCloud(under.places(), moment.slot, behaviour, under.space.element.behaviour.placement.horizonRow, under.space.view, salt);
         sprite.visible = spot !== null;
         if (moment === null || spot === null) continue;

@@ -52,7 +52,7 @@
 import type { DeckExtrasImages } from "./deck-legacy";
 import { availableLooks, laneOf, standing, type DeckCast } from "./deck-cast";
 import type { MotionPlan } from "./deck-ambient";
-import { clockOf, crewIntensity, deliveredWeather, levelAt, openingAtmosphere, stepAtmosphere, weatherOf } from "./deck-atmosphere";
+import { clockOf, crewIntensity, deliveredWeather, levelAt, openingAtmosphere, stepAtmosphere, weatherOf, type DeckAtmosphere } from "./deck-atmosphere";
 import { ASK_PAPER, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, createCrew, crewFigures, fading, plankEffects, SHARK_MOUTH, stepCrew, stepDepartures, type Figure } from "./deck-crew";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
@@ -173,6 +173,7 @@ export interface DeckArtImage {
   cast: DeckCast;
   parts: DeckParts;
   ambience: DeckAmbience;
+  atmosphere: DeckAtmosphere;
   images: ReadonlyMap<string, unknown>;
   masks: ReadonlyMap<string, DrifterMasks>;
   image: unknown;
@@ -505,7 +506,7 @@ export async function startDeck(
   const scenery = createScenery(
     pixi,
     stage,
-    { ambience: art.ambience, images: art.images, masks: art.masks },
+    { ambience: art.ambience, atmosphere: art.atmosphere, images: art.images, masks: art.masks },
     Math.floor(environment.clock().getTime() / 1000),
   );
 
@@ -578,7 +579,7 @@ export async function startDeck(
   let drawnMarks: ReadonlyMap<string, AskMark> = new Map();
   let drawnBob = { x: 0, y: 0 };
   // The weather opens at the crew's, as the crew already aboard is simply there.
-  let atmosphere = openingAtmosphere(crewIntensity(scene.sailors));
+  let atmosphere = openingAtmosphere(art.atmosphere, crewIntensity(scene.sailors));
   let drawnFit: DeckFit = { scale: 0, x: 0, y: 0 };
   let drawnLayout = "";
   let pointer: { x: number; y: number } | null = null;
@@ -801,8 +802,8 @@ export async function startDeck(
     // and anyone on the way out fading where they are.
     if (!moving) applyCrew(crew, current.sailors, { snap: true, departures: current.departures });
     // The weather: eased towards how busy the crew is, each animation on its own clock; as it always was when still.
-    atmosphere = stepAtmosphere(atmosphere, stepMs, crewIntensity(current.sailors), moving);
-    const weather = moving ? weatherOf(atmosphere) : deliveredWeather(seconds);
+    atmosphere = stepAtmosphere(art.atmosphere, atmosphere, stepMs, crewIntensity(current.sailors), moving);
+    const weather = moving ? weatherOf(art.atmosphere, atmosphere) : deliveredWeather(art.atmosphere, seconds);
     // The stage's bob, never on a still deck; each part's sway and cycle as it says it moves.
     const { bob: bobbing } = parts;
     const bob = { x: 0, y: moving && bobbing !== null ? bobAt(clockOf(weather, bobbing.clock, seconds), bobbing.periodS, levelAt(bobbing.amplitude, weather)) : 0 };
