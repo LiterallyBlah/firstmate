@@ -19,6 +19,8 @@
  *   rests under reduced motion. It rides the ship's bob but not the masthead's sway, and hangs behind the
  *   crew; while it shows, the occluder — the mast with the rows behind the cloth cleared — stands in for
  *   the mast's depth piece, so the mast is still drawn over a sailor behind it without painting through the sail.
+ * - **The plank** is the generated board (`art/ship-deck/plank/`) at its placement, where it decoded; the
+ *   board drawn in code (`client/deck-plank.ts`) stands in for it otherwise, so a sailor never walks out on nothing.
  */
 import type { DeckArtManifest, DeckExtrasManifest, SailorOutfit } from "../shared/ship-deck";
 
@@ -65,6 +67,12 @@ export function drawnSail(extras: DeckExtrasImages | null, pieces: DeckArtManife
   const { sail } = extras.manifest;
   if (!extras.images.has(sail.texture) || !extras.images.has(sail.occluder.texture)) return null;
   return pieces[sail.occluder.replaces] === undefined ? null : sail;
+}
+
+/** The plank's generated board, when its image decoded; null leaves the board drawn in code (`plankPixels`). */
+export function drawnPlank(extras: DeckExtrasImages | null): NonNullable<DeckExtrasManifest["plank"]> | null {
+  const plank = extras?.manifest.plank;
+  return plank === undefined || !extras!.images.has(plank.texture) ? null : plank;
 }
 
 /** Which of the sail's states shows `seconds` into the scene: alternating while the deck moves, the rest frame while it is still. */

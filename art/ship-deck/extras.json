@@ -45,5 +45,6 @@
       { "id": "long-bank", "texture": "clouds/long-bank.png", "size": [92, 25], "pixelsPerSecond": 0.55 },
       { "id": "twin-bank", "texture": "clouds/twin-bank.png", "size": [80, 24], "pixelsPerSecond": 0.4 }
     ]
-  }
+  },
+  "plank": { "texture": "plank/plank.png", "size": [18, 22], "position": [241, 120] }
 }

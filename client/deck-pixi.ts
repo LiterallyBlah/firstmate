@@ -10,8 +10,8 @@
  * `front`). The hover label and legend are React, on top. The sail hangs behind the crew; while it shows, the
  * mast's depth piece is the occluder, which leaves the cloth alone (`client/deck-extras.ts`).
  *
- * **The plank** (`client/deck-plank.ts`) is drawn in code on the deck's layer, just in front of the near
- * rail, and a sailor walking it is drawn in front of the plank. Off its end the sailor goes into the
+ * **The plank** (`client/deck-plank.ts`) is the generated board (`art/ship-deck/plank/`), or where it did not
+ * load the board drawn in code, on the deck's layer just in front of the near rail, and a sailor walking it is drawn in front of the plank. Off its end the sailor goes into the
  * `overboard` layer over the near sea — outside the ship's bob, as the shark's art asks — and the shark and
  * the splash are drawn there after it, at their water anchors.
  *
@@ -45,7 +45,7 @@ import type { DeckArtManifest, SailorPose } from "../shared/ship-deck";
 import { LANTERNS, lanternFlicker, MASTHEAD, mastSway, shipBob, type MotionPlan } from "./deck-ambient";
 import { BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, BREATH_ROWS, createCrew, crewFigures, fading, plankEffects, SHARK_MOUTH, stepCrew, stepDepartures, type Figure } from "./deck-crew";
-import { ATLAS_LOOKS, crewLooks, drawnSail, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
+import { ATLAS_LOOKS, crewLooks, drawnPlank, drawnSail, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
 import { badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
@@ -263,6 +263,10 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
     const image = extras?.images.get(path);
     return image === undefined ? null : frame([0, 0, size[0], size[1]], sourceOf(image));
   };
+  // The plank's generated board, whole, where it decoded.
+  const plankManifest = drawnPlank(extras);
+  const plankTexture = plankManifest === null ? null : whole(plankManifest.texture, plankManifest.size);
+  const plank = plankManifest === null || plankTexture === null ? null : { texture: plankTexture, position: plankManifest.position };
   const shark = new Map<SharkFrame, PixiTexture>();
   const splash = new Map<SplashFrame, PixiTexture>();
   if (exitManifest !== null) {
@@ -287,6 +291,7 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
     props,
     sail,
     sailManifest,
+    plank,
     /** A look's whole pose. */
     pose(look: string, pose: SailorPose): PixiTexture {
       return (crew.get(look) ?? crew.get("base")!).get(pose)!;
@@ -486,12 +491,20 @@ export async function startDeck(
     sprite.zIndex = depthOf(occluder !== null ? occluder.baseline : piece.baseline, 1);
     deck.addChild(sprite);
   }
-  // The plank over the near rail, in front of it, and behind whoever walks it.
-  const plank = new pixi.Graphics();
-  plank.label = "plank";
-  for (const [x, y, width, height, colour, alpha] of plankPixels()) plank.rect(x, y, width, height).fill({ color: colour, alpha });
-  plank.zIndex = PLANK_DEPTH;
-  deck.addChild(plank);
+  // The plank over the near rail, in front of it, and behind whoever walks it: the generated board, or the one drawn in code.
+  if (textures.plank !== null) {
+    const board = new pixi.Sprite(textures.plank.texture);
+    board.label = "plank";
+    board.position.set(textures.plank.position[0], textures.plank.position[1]);
+    board.zIndex = PLANK_DEPTH;
+    deck.addChild(board);
+  } else {
+    const board = new pixi.Graphics();
+    board.label = "plank";
+    for (const [x, y, width, height, colour, alpha] of plankPixels()) board.rect(x, y, width, height).fill({ color: colour, alpha });
+    board.zIndex = PLANK_DEPTH;
+    deck.addChild(board);
+  }
   const lanterns = LANTERNS.map(function (lantern) {
     const root = new pixi.Container();
     root.label = "lantern";

@@ -8,8 +8,9 @@
  *   departure not in the set goes down the hatch as before.
  * - **The plank** sticks out over the near rail amidships, between the mast and the gunwale's bollards,
  *   towards the viewer: its top face runs down the screen from the gunwale (row 121) to its tip, its end
- *   is two rows thick, and it throws a shadow on the hull below. It is drawn in code from the hull's own
- *   colours (`plankPixels`), in the deck's layer just in front of the near rail, so it rides the bob.
+ *   is two rows thick. It is the generated board (`art/ship-deck/plank/`, served with the extras), placed on
+ *   these same anchors, in the deck's layer just in front of the near rail, so it rides the bob. Where that
+ *   image did not load, the board is drawn in code from the hull's own colours instead (`plankPixels`).
  * - **The walk.** A departing sailor walks the deck to the plank's foot (`PLANK.foot`, open deck behind the
  *   rail) by the deck's own paths. One at a time: the rest wait beside the foot, in the order they left,
  *   and the next steps up only once the one before has hit the water (`plankFree`), so two sharks are
