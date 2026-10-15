@@ -28,7 +28,7 @@ drifts and the ship bobs.
 | **Gulls** | Now and then one crosses above the masthead, flapping in bursts, gliding between; seeded, so the same clock gives the same gulls | `gullsAt` |
 
 **The walk frames are derived, not a cycle.** The atlas has `front-walk-a`, `front-walk-b`,
-`side-walk-a` and `side-walk-b`, separate generated drawings with their own feet (`art/ship-deck/README.md`).
+`side-walk-a` and `side-walk-b`, separate generated drawings with their own feet (`docs/ship-deck-art/README.md`).
 The deck plays `walk-a, idle, walk-b, idle` at 150 ms a step, each on its own feet, and raises the body a
 pixel on the passing frames. The side poses are mirrored to walk left. There is no back view: a sailor
 walking up the deck shows its front frames. A pixel artist would give it a real four-frame cycle in four

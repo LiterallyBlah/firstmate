@@ -1,0 +1,24 @@
+{
+  "paseoCompiler": "0.11.0",
+  "main": {
+    "commit": "5d284e8",
+    "clientBytes": 587226,
+    "serverBytes": 305436,
+    "ms": 5763
+  },
+  "branch": {
+    "commit": "5d284e8",
+    "clientBytes": 587251,
+    "serverBytes": 305461,
+    "ms": 1365
+  },
+  "clientGrowthBytes": 25,
+  "vendoredPixiBytes": 840663,
+  "hermesc": "node_modules/react-native/sdks/hermesc (react-native 0.81.5)",
+  "hermesParse": {
+    "main": "parsed",
+    "branch": "parsed",
+    "vendoredPixi": "refused: async functions are unsupported",
+    "vendoredPixiWithEs6Class": "refused: invalid assignment left-hand side"
+  }
+}

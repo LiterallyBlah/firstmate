@@ -5,7 +5,7 @@
 
 Four changes to the Deck, all still behind `FIRSTMATE_SHIP_DECK` and desktop only: the generated sail on
 hull C's mast, a wake, a look per crewmate, and an idle sailor that reads as at rest. The art is the
-assets-2 expansion (`art/ship-deck/assets-2/README.md`), served by a new `firstmate.deck.extras` from
+assets-2 expansion (`docs/ship-deck-art/assets-2/README.md`), served by a new `firstmate.deck.extras` from
 `art/ship-deck/extras.json`.
 
 ![The deck at noon, still](still-noon.png)

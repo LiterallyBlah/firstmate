@@ -1,6 +1,6 @@
 /**
  * The deck's animated water, without Pixi: the water as served (`extras.json`'s `water`) placed exactly where
- * the art's own manifest (`art/ship-deck/water/manifest.json`) says, which parts are drawn when a frame is
+ * the art's own manifest (`docs/ship-deck-art/water/manifest.json`) says, which parts are drawn when a frame is
  * missing, which frame shows when, and the wake's place. The sprites are `deck-environment.test.ts`'s.
  */
 import { readFileSync } from "node:fs";
@@ -15,12 +15,14 @@ import { STERN } from "./deck-wake";
 import { CALM_WATER, drawnWater, wakeTopLeft, waterDrift, waterFrame } from "./deck-water";
 
 const artFile = (path: string) => new URL(`../art/ship-deck/${path}`, import.meta.url);
+/** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */
+const sources = (path: string) => new URL(`../docs/ship-deck-art/${path}`, import.meta.url);
 const manifest = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(artFile("extras.json"), "utf8")));
 const water = manifest.water!;
 const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
 
 /** The parts of the art's own manifest the deck is held to. */
-const art = JSON.parse(readFileSync(artFile("water/manifest.json"), "utf8")) as {
+const art = JSON.parse(readFileSync(sources("water/manifest.json"), "utf8")) as {
   assets: Record<"sea" | "foam" | "wake", { size: [number, number]; frameMs: number; stillFrame: number; frameOrder: number[]; frames: Array<{ path: string }> }>;
   placement: {
     horizonY: number;
