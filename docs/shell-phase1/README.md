@@ -46,7 +46,7 @@ describe the old layout; this harness exercises the new destinations.
 
 Reproduce with `npm ci`, `npm ci --prefix docs/board-list`, then the commands above. The bundle check
 uses the installed npm Paseo compiler, or `PASEO_COMPILER`. Formatting uses
-`node docs/board-list/node_modules/prettier/bin/prettier.cjs --check --print-width 120` on changed code.
+`node docs/board-list/node_modules/prettier/bin/prettier.cjs --check --print-width 120 --end-of-line auto` on changed code.
 Screenshots and generated bundles/logs are in ignored `.generated/`; selected captures follow.
 
 ![Home: chat, board and workspace shortcuts](home-dark.png)
@@ -78,5 +78,11 @@ Self-review: no additional tab manager or host-private API; the terminal and cha
 constant; current server state validates terminal scope; native API errors cannot cause automatic
 retries; a browser ID or reusable focus handle is never fabricated. The pinned charter fingerprint
 is deliberately updated for the new instructions.
+
+Validated after rebasing onto `0d2f672` (including the collector merge): **83 files, 1,048 passed,
+3 skipped** with four workers; typecheck; pack lint (51 checks); changed-code formatting (native line
+endings) and diff whitespace checks. Paseo 0.11 compiled both bundles; the 635,685-byte client has
+zero `class` tokens and parses under Hermes default flags. The expanded browser harness passed.
+Native daemon/browser APIs remain fixture-backed here; this is not an installed-app smoke test.
 
 ![Explicit native browser creation](new-browser.png)
