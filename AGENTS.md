@@ -44,7 +44,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
 | `shared/deck-setting.ts`      | A deck setting pack's format, `firstmate.deck-setting` 1: the manifest's schema, every reference it must resolve (`settingProblems`), the closed, versioned behaviour catalogue (`ENGINE_CAPABILITIES`) and what a pack uses. Server and tests only. |
 | `shared/deck-rpc.ts`, `server/deck-settings.ts` | What the Deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.settings` listing the packs under `art/settings/` (and which this engine can draw), `firstmate.deck.setting` serving one whole — manifest and images — confined to its folder and capped. |
-| `client/deck-legacy.ts`, `client/deck-legacy-schema.ts` | What is left of the manifests the engine drew from before packs (`legacyViews`): the extras' shark and splash, until step 7 makes them the pack's; the old manifests' zod shapes, for the records the tests read. |
+| `test/deck-legacy.ts`, `test/deck-legacy-schema.ts` | Historical art manifest adapters and schemas, used only by regression tests; excluded from the shipped package. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the focused sailor's panel and keys, the legend of badges and counts. |
 | `client/deck-camera.ts`       | The camera: the exact fit or a shot closed in on a focused sailor, the eased zoom between, where the focus panel goes; what a click or an arrow does to the focus. Pure. |
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z; the reply marker's pixels and bob. Pure. |
@@ -57,7 +57,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-scene.ts`        | Cards → sailors, by column, greyed when their feed is lost, each with its hover caption; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
 | `client/deck-geometry.ts`     | Any setting's floor (`createFloor`): walkable areas and obstacles, A* paths, a spot beside a shared post, a place packed into a zone's overflow. Pure; its caches are per floor. |
 | `client/deck-crew.ts`         | The crew in motion, on its setting's stage and in its cast: posts reserved, the state shown at once and walked to after, the hatch, the queue for the plank and each departure's clock, each frame's pose, fidget and breath. Pure. |
-| `client/deck-plank.ts`        | The plank and the way off by it: which departures take it (`PLANK_DEPARTURES`), its pixels, and one departure's walk, jump, splash and shark as a function of time. Pure. |
+| `client/deck-choreography.ts` | A pack's finite departure timelines: segments, events, paths, cropped poses, named effect anchors and depth. Pure. |
 | `client/deck-atmosphere.ts`   | Engine-owned intensity → the pack's compiled table of named channels and clocks (`compileAtmosphere`); calm values under reduced motion. Pure. |
 | `client/deck-ambience.ts`     | A setting's ambience compiled from its pack: which elements are drawn — each left out on its own when its images did not arrive, with what is drawn in it or under it, a fallback only in its source's place (and named for it), a tile with neither filled flat, variants and drifters a sprite at a time — and how each moves on a lite or still deck (`elementMotion`). Pure, per pack. |
 | `client/deck-variants.ts`     | The weather layers' arithmetic: curves over intensity, how an element shares its place with its variants, which frame of a looping set shows. Pure. |
@@ -375,15 +375,12 @@ what those look like and where they are. The ship is the first pack, `art/settin
   handed to the crew, the geometry and the renderer; caches are keyed by id (`packOnce` in `client/deck-mount.ts`)
   or held on the compiled floor; and the view takes the id as a prop (`setting`, the default
   `DEFAULT_DECK_SETTING`), so choosing one globally now and per project later changes neither the engine nor the format.
-- **While the move is under way** the engine still draws parts of its art from the three manifests it was once
-  served in, read off the pack by `legacyViews` (`client/deck-legacy.ts`), and some of the ship's constants are still
-  in code; `client/ship-pack.test.ts` holds the pack equal to both. Each step moves a part of the engine onto the pack
-  and deletes those constants and their checks — step 3 took the stage, floor, zones and portal marks, step 4 the cast,
-  step 5a the sky, its overlays, the lightning, the clouds and the gull (`client/deck-ambience.ts`), step 5b the sea,
-  foam, wake and spindrift, step 5c the stage's parts, pieces and lights and its bob and sway (`client/deck-parts.ts`),
-  retiring the plank and the wake drawn in code; step 6 the atmosphere's channels, clocks and calm values,
-  deleting the water-only clock module. **Every step
-  is held to the gate**: the ship pixel-identical to main's, still and moving (`docs/deck-settings/gate.mjs`).
+- **Every drawn part now comes from the pack.** Steps 3?7 moved the stage, floor, zones, cast, ambience,
+  furniture, atmosphere and portals into data. `client/deck-choreography.ts` compiles finite actor segments
+  and effect tracks; `portals.byDeparture` routes departures, queues release on named events, and rise/sink/fade
+  durations belong to the pack. No runtime reads the old art manifests. Historical adapters and frozen timeline
+  expectations live under `test/` and are excluded from the package. Every step is held to the 81-shot
+  pixel-identical gate in `docs/deck-settings/gate.mjs`; global selection and final catalogue/authoring work follow.
 
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
 
@@ -411,11 +408,11 @@ what those look like and where they are. The ship is the first pack, `art/settin
   walking sailor goes behind the mast while its feet are on or behind the mast's row and in front after.
 - **The hatch.** Crew already aboard when the Deck opens are simply there. A crewmate that joins later
   climbs out of the hatch (its sprite cropped to the rows above the grate) and walks to its anchor.
-- **The plank** (`client/deck-plank.ts`, `docs/ship-deck-plank/README.md`). One whose card leaves the deck
+- **The ship's departure choreography** (`client/deck-choreography.ts`, `docs/ship-deck-plank/README.md`). One whose card leaves the deck
   walks to the plank over the gunwale amidships, queues there in the order they left, and goes over the side
   one at a time: out along it, a jump, a splash, a shark. The scene says why each card is off the deck
-  (`departureOf`: done, failed, closed; removed when gone from the board) and `PLANK_DEPARTURES` alone decides
-  who takes the plank — the rest walk back to the hatch and climb down. From the plank's foot a sailor is a
+  (`departureOf`: done, failed, closed; removed when gone from the board), and `portals.byDeparture` selects
+  the exit. The ship sends all four reasons to its plank. From the plank's foot a sailor is a
   `Departure`, off the crew and on its own clock under a new key, so a card that comes back meanwhile is a
   new sailor from the hatch. A departing sailor has no badge or mark and is never under the pointer. The
   plank is a piece of the pack, drawn just in front of the near rail it stands `over`; off its end the sailor, the shark and the splash are in
