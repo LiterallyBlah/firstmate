@@ -14,9 +14,9 @@
  * hang from that row, under the near rail, rather than over its head: the rest areas pack sleepers close, and a
  * label over one would cover the others' badges and the crew at work beside them.
  */
-import { standing, type DeckCast } from "./deck-cast";
+import type { DeckCast } from "./deck-cast";
 import { ASK_GAP, ASK_SIZE, BADGE_GAP, BADGE_SIZE } from "./deck-badges";
-import type { Figure } from "./deck-crew";
+import { figureStanding, type Figure } from "./deck-crew";
 import { depthOf } from "./deck-scene";
 
 /** How the deck sits on the canvas: `world`'s scale and offset (`fitDeck`), in CSS pixels. */
@@ -60,7 +60,7 @@ export interface DeckHover {
 
 /** Where a sailor's badge goes: its top, in deck pixels from the feet's row, for a sprite drawn at `figure`. */
 export function badgeTop(figure: Figure, cast: DeckCast): number {
-  const frame = standing(cast, figure.lane, figure.pose);
+  const frame = figureStanding(cast, figure);
   return figure.y - frame.feet[1] - BADGE_GAP - BADGE_SIZE.height;
 }
 
@@ -120,7 +120,7 @@ export function askMarks(figures: readonly Figure[], cast: DeckCast): Map<string
     .map((figure) => ({ key: figure.key, box: figureBox(figure, cast) }))
     .filter((each): each is { key: string; box: DeckBox } => each.box !== null);
   const placed: DeckBox[] = [];
-  asking.sort((a, b) => depthOf(b.row, 0) + b.x / 10000 - (depthOf(a.row, 0) + a.x / 10000));
+  asking.sort((a, b) => figureDepth(b) - figureDepth(a));
   for (const figure of asking) {
     const badge = badgeBox(figure, cast);
     const raised = badge.top - Math.ceil(ASK_SIZE.height / 2);
@@ -145,7 +145,7 @@ export function askMarks(figures: readonly Figure[], cast: DeckCast): Map<string
  * one (`mark`); null while under the hatch.
  */
 export function figureBox(figure: Figure, cast: DeckCast, mark?: AskMark): DeckBox | null {
-  const frame = standing(cast, figure.lane, figure.pose);
+  const frame = figureStanding(cast, figure);
   const [, , width, height] = frame.frame;
   const rows = Math.round(height * figure.reveal);
   if (rows <= 0) return null;
@@ -191,13 +191,18 @@ export function sailorAt(
     const box = figureBox(figure, cast, marks?.get(figure.key));
     if (box === null) continue;
     if (point.x < box.left || point.x >= box.right || point.y < box.top || point.y >= box.bottom) continue;
-    const depth = depthOf(figure.row, 0) + figure.x / 10000;
+    const depth = figureDepth(figure);
     if (depth > bestDepth) {
       best = figure;
       bestDepth = depth;
     }
   }
   return best;
+}
+
+/** A stationary handle uses the same piece-relative depth as the renderer. */
+function figureDepth(figure: Figure): number {
+  return (figure.appearance?.depth ?? depthOf(figure.row, 0)) + figure.x / 10000;
 }
 
 /**

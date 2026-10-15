@@ -15,7 +15,7 @@ or capabilities as incompatible, with a reason. The pane falls back to ship and 
 
 | Capability group | Version 1 vocabulary |
 | --- | --- |
-| Layout and workers | `stage`, `floor`, `zones`, `stable-posts`, `cast`, `pose-fidgets` |
+| Layout and workers | `stage`, `floor`, `zones`, `zone-appearance`, `stable-posts`, `cast`, `pose-fidgets` |
 | Portals and effects | `rise`, `walk-in`, `sink`, `choreography` |
 | Stage motion and light | `phase-tint`, `bob`, `sway`, `cycle`, `flicker` |
 | Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `strip`, `variants` |
@@ -32,6 +32,14 @@ The pack supplies geometry, art, pose roles, presentation words and activity-to-
 Reduced motion holds clocks and stays calm: no static storm variants or curve-driven layers. Flash limits
 remain engine-enforced (one emitter, at most two frames and 3500 ms, opacity at most 0.6, at least four
 seconds dark, hidden in lite and still).
+
+`zone-appearance@1` adds optional `appearance: { sprite, feet, front }` to a zone. A settled worker uses
+that fixed sprite, anchored at its post and drawn ahead of the named stage piece, while preserving its
+identity and engine-owned badge/interaction. Cast fidgets, mirroring and breathing are held; walking and
+portals still use the cast. Geometry, depth, focus and hit testing follow the actual representation.
+A failed optional image leaves a clickable badge/mark. Explicit `pack` overflow areas for such a zone
+may include non-spill floor; ordinary overflow still cannot enter it. Keep every handle in sight and in
+the fit, clear of active workers and other foreground pieces. The pack linter checks this at 24 workers.
 
 ## Build and check
 

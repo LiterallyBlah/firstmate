@@ -423,6 +423,9 @@ is recorded in `docs/deck-settings/README.md`. The two built-in packs are `art/s
   Step 9d adds `phase-frames@1`: an ambience sprite selected by local hour/minute, modulo its frame count
   (`client/deck-phase-frames.ts`). It shares the renderer's wall clock, honors lite/still policies and adds no timer.
   The existing wall-clock refresh also applies in still mode, without restoring weather variants or animation.
+  `zone-appearance@1` adds a settled zone's fixed sprite, feet anchor and foreground piece. The engine keeps
+  identity, state and badges; sprite bounds/depth drive hit testing and focus. Cast motion resumes while walking.
+  Only explicit packing areas with visible handles can use non-spill floor; ordinary overflow stays out.
   The office's commissioning contract, historical draft, provenance and runtime review live in
   `docs/settings/office/`. Its installed manifest has real image digests and copies of the verified PNGs.
   `test/office-draft.test.ts` preserves the original geometry/registration checks; generic pack lint checks
@@ -484,16 +487,14 @@ is recorded in `docs/deck-settings/README.md`. The two built-in packs are `art/s
   one; when a place is full it stands beside a taken one (`sharedSpot`), never on it and never on the
   stairs. A new anchor must stand on open deck: `deck-motion.test.ts` reads the atlas for every anchor,
   every walkable cell and every path between any two anchors.
-- **Idle crew rest off the working deck** (`docs/ship-deck-rest/README.md`). They once stood along the
-  near rail amidships, in front of the stations, and a crowd of them hid the crew at work. Now idle sends a
-  sailor to `REST_AREAS` — the foredeck between the bow's spots and the stations, and the foot of the
-  quarterdeck stairs — whose rest spots fill in their listed order, not nearest first, so a crowd stays
-  tidy; past them `restSpot` packs sleepers a badge apart (`REST_SPACING`), still inside the areas. A
-  test fills every other place's anchors and adds up to two dozen sleepers: each stays in a rest area,
-  overlaps no working, waiting or blocked sailor, and is found by the pointer somewhere in its badge. A
-  sleeper's label hangs below `REST_LABEL_ROW`, under every sailor's feet, when the canvas has room there.
-- **Walking is A* over a 2 px grid** of three hand-drawn polygons (main deck, stairs, quarterdeck) minus
-  obstacle footprints, pulled tight. The only way to the helm is the stairs, which belong to the `near`
+- **Idle crew rest below deck** (`docs/deck-enrichment/below-deck-review.md`). The ship pack's rest zone
+  uses non-spill floor below the hull, reached through its narrow access corridor. Once settled, a generated
+  porthole represents each worker in front of the hull (`zone-appearance@1`), preserving its badge, identity,
+  hover and focus. Posts fill in order; packing fits two dozen at regular spacing, with closer overflow and
+  a gap round the plank. Active overflow stays upstairs. The linter checks every handle is visible, clear of
+  active workers and reachable by the pointer. Its label hangs below the hull when there is room.
+- **Walking is A* over a 2 px grid** of the pack's polygons (main deck, stairs, quarterdeck and the
+  below-deck room with its single access corridor) minus obstacle footprints, pulled tight. The only way to the helm is the stairs, which belong to the `near`
   piece, so a climbing sailor passes behind their balustrade.
 - **Depth is set every frame.** The deck's layer sorts by `zIndex` from `depthOf(row, rank)`, so a
   walking sailor goes behind the mast while its feet are on or behind the mast's row and in front after.

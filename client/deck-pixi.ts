@@ -55,7 +55,7 @@ import { availableLooks, laneOf, standing, type DeckCast } from "./deck-cast";
 import type { MotionPlan } from "./deck-ambient";
 import { clockOf, crewIntensity, deliveredWeather, levelAt, openingAtmosphere, shade, stepAtmosphere, weatherOf, type DeckAtmosphere } from "./deck-atmosphere";
 import { ASK_PAPER, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
-import { applyCrew, createCrew, crewFigures, fading, portalEffects, stepCrew, stepDepartures, type Figure } from "./deck-crew";
+import { applyCrew, createCrew, crewFigures, fading, figureStanding, portalEffects, stepCrew, stepDepartures, type Figure } from "./deck-crew";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
 import { askMarks, badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type AskMark, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
@@ -292,6 +292,9 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
     }),
   );
   const firstLook = cast.looks[0]!.id;
+  const appearances = new Map([...art.stage.zones.values()].flatMap(({ appearance }) =>
+    appearance === null || !art.images.has(appearance.image) ? [] : [[appearance, cutOf({ image: appearance.image, rect: appearance.frame })] as const],
+  ));
 
   // Effects use their own frame rectangles (or whole images); a missing frame costs only that key.
   const effects = new Map(Object.entries(art.effects).map(([id, effect]) => [id, new Map(
@@ -306,6 +309,7 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
     rig,
     pieces,
     props,
+    appearances,
     /** A look's whole pose. */
     pose(look: string, pose: string): PixiTexture {
       return (crew.get(look) ?? crew.get(firstLook)!).get(pose)!;
@@ -615,7 +619,7 @@ export async function startDeck(
     for (const figure of figures) {
       present.add(figure.key);
       const sprites = sailorSprites(figure);
-      const posed = standing(cast, figure.lane, figure.pose);
+      const posed = figureStanding(cast, figure);
       const height = posed.frame[3];
       const rows = Math.round(height * figure.reveal);
       sprites.root.visible = rows > 0;
@@ -623,7 +627,13 @@ export async function startDeck(
       const [, , width] = posed.frame;
       const [feetX, feetY] = posed.feet;
       const breathing = rows >= height && figure.sink > 0 && height > breathRows;
-      if (rows < height) {
+      const appearanceTexture = figure.appearance === undefined ? undefined : textures.appearances.get(figure.appearance);
+      // Failed optional art leaves the engine's badge/mark and its hit target intact.
+      sprites.sprite.visible = figure.appearance === undefined || appearanceTexture !== undefined;
+      if (figure.appearance !== undefined) {
+        if (appearanceTexture !== undefined) sprites.sprite.texture = appearanceTexture;
+        stand(sprites.sprite, posed);
+      } else if (rows < height) {
         // Climbing the hatch's ladder: only the top of the sailor is out, its cut edge on the hatch.
         sprites.sprite.texture = textures.rows(figure.look, figure.pose, 0, rows);
         sprites.sprite.anchor.set(feetX / width, 1);

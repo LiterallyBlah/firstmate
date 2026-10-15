@@ -102,6 +102,10 @@ try {
     const { checkSwitcher } = await import("../deck-scene-switcher/check.mjs");
     await checkSwitcher(view);
   }
+  if (process.env.CHECK_IDLE === "1") {
+    const { checkIdle } = await import("../deck-enrichment/check-idle.mjs");
+    await checkIdle(view, manifest);
+  }
   if (errors.length !== 0) throw new Error(errors.join("\n"));
   console.log(JSON.stringify({ setting: actual, overlay: drawn, selectionCheck: process.env.CHECK_SELECTION === "1", errors }));
 } finally {

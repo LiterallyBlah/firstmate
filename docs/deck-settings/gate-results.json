@@ -1,7 +1,7 @@
 {
-  "base": "compiled main 0ff23d7",
-  "branch": "HEAD 3d56e06",
-  "compiledBranch": "3d56e06",
+  "base": "compiled main 3cc12d1",
+  "branch": "HEAD 70f3cd7",
+  "compiledBranch": "70f3cd7",
   "maskToolbar": false,
   "control": null,
   "scenarios": [
@@ -15,9 +15,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a585b88373191841",
+          "identical": false,
+          "differingPixels": 32760,
+          "firstDifference": [
+            898,
+            1111
+          ],
+          "box": [
+            876,
+            1111,
+            1296,
+            1721
+          ],
+          "sha": [
+            "a585b88373191841",
+            "92640de9b57dad20"
+          ],
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -39,9 +53,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "8887633f0ecd8e21",
+          "identical": false,
+          "differingPixels": 8264,
+          "firstDifference": [
+            449,
+            556
+          ],
+          "box": [
+            437,
+            556,
+            648,
+            860
+          ],
+          "sha": [
+            "8887633f0ecd8e21",
+            "c0882914577cdddb"
+          ],
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -64,9 +92,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "0e00c82c7a975490",
+          "identical": false,
+          "differingPixels": 32760,
+          "firstDifference": [
+            898,
+            1111
+          ],
+          "box": [
+            876,
+            1111,
+            1296,
+            1721
+          ],
+          "sha": [
+            "0e00c82c7a975490",
+            "ba98371e1afab437"
+          ],
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -88,9 +130,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "f18809b65cedb9de",
+          "identical": false,
+          "differingPixels": 8264,
+          "firstDifference": [
+            449,
+            556
+          ],
+          "box": [
+            437,
+            556,
+            648,
+            860
+          ],
+          "sha": [
+            "f18809b65cedb9de",
+            "a837f0b6c16c374b"
+          ],
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -112,9 +168,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "787f7d8451a174e6",
+          "identical": false,
+          "differingPixels": 8264,
+          "firstDifference": [
+            449,
+            556
+          ],
+          "box": [
+            437,
+            556,
+            648,
+            860
+          ],
+          "sha": [
+            "787f7d8451a174e6",
+            "50ad97752db68a76"
+          ],
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -137,9 +207,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "0cf7094fd35f101b",
+          "identical": false,
+          "differingPixels": 61622,
+          "firstDifference": [
+            967,
+            1003
+          ],
+          "box": [
+            876,
+            1003,
+            1811,
+            1721
+          ],
+          "sha": [
+            "0cf7094fd35f101b",
+            "b0267f1972f3ed24"
+          ],
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -162,9 +246,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "de8d4875109394d4",
+          "identical": false,
+          "differingPixels": 155916,
+          "firstDifference": [
+            933,
+            952
+          ],
+          "box": [
+            715,
+            952,
+            2427,
+            1721
+          ],
+          "sha": [
+            "de8d4875109394d4",
+            "330e117b877c8d4a"
+          ],
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -185,9 +283,23 @@
       "shots": [
         {
           "shot": "lost",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "7ec2c48204293e51",
+          "identical": false,
+          "differingPixels": 7193,
+          "firstDifference": [
+            470,
+            578
+          ],
+          "box": [
+            458,
+            578,
+            716,
+            860
+          ],
+          "sha": [
+            "7ec2c48204293e51",
+            "99baa855a1510c6d"
+          ],
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -210,22 +322,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 40774,
+          "differingPixels": 32983,
           "firstDifference": [
-            2411,
-            1386
+            938,
+            1089
           ],
           "box": [
-            248,
-            1386,
-            2627,
-            1618
+            876,
+            1089,
+            1296,
+            1721
           ],
           "sha": [
-            "fa2af157f9ceff60",
-            "0aadf27e983266bd"
+            "0aadf27e983266bd",
+            "890a8721e8b43b6b"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -239,22 +351,22 @@
         {
           "shot": "1s",
           "identical": false,
-          "differingPixels": 44748,
+          "differingPixels": 33387,
           "firstDifference": [
-            2468,
-            1363
+            938,
+            1083
           ],
           "box": [
-            248,
-            1363,
-            2610,
-            1618
+            876,
+            1083,
+            1296,
+            1721
           ],
           "sha": [
-            "af6aa6354f2f4636",
-            "47bfc97e837be35c"
+            "47bfc97e837be35c",
+            "5ca5073dc9aa2d79"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -268,22 +380,22 @@
         {
           "shot": "2.5s",
           "identical": false,
-          "differingPixels": 45763,
+          "differingPixels": 32753,
           "firstDifference": [
-            2457,
-            1391
+            898,
+            1111
           ],
           "box": [
-            248,
-            1391,
-            2615,
-            1618
+            876,
+            1111,
+            1296,
+            1721
           ],
           "sha": [
-            "5d6163a53738679f",
-            "b542c25ae54c504f"
+            "b542c25ae54c504f",
+            "737b59559dec0dc1"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -297,22 +409,22 @@
         {
           "shot": "5s",
           "identical": false,
-          "differingPixels": 45887,
+          "differingPixels": 33223,
           "firstDifference": [
-            465,
-            1363
+            944,
+            1060
           ],
           "box": [
-            248,
-            1363,
-            2610,
-            1618
+            876,
+            1060,
+            1296,
+            1721
           ],
           "sha": [
-            "b699a65d90300d6e",
-            "ee93c7757cb4228f"
+            "ee93c7757cb4228f",
+            "121438cfddde32a7"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -326,22 +438,22 @@
         {
           "shot": "10s",
           "identical": false,
-          "differingPixels": 42395,
+          "differingPixels": 33424,
           "firstDifference": [
-            2457,
-            1391
+            938,
+            1089
           ],
           "box": [
-            254,
-            1391,
-            2615,
-            1618
+            876,
+            1089,
+            1296,
+            1721
           ],
           "sha": [
-            "85f9975b3fbccbd4",
-            "9147b8bc35826133"
+            "9147b8bc35826133",
+            "e5ecc955a29572d9"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -355,22 +467,22 @@
         {
           "shot": "25s",
           "identical": false,
-          "differingPixels": 42833,
+          "differingPixels": 32110,
           "firstDifference": [
-            2457,
-            1391
+            898,
+            1117
           ],
           "box": [
-            248,
-            1391,
-            2615,
-            1618
+            876,
+            1117,
+            1296,
+            1721
           ],
           "sha": [
-            "03bfdd3f29a9972e",
-            "ff7106e1d694b67b"
+            "ff7106e1d694b67b",
+            "54bf805792050e52"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -384,22 +496,22 @@
         {
           "shot": "49s",
           "identical": false,
-          "differingPixels": 46934,
+          "differingPixels": 33388,
           "firstDifference": [
-            465,
-            1363
+            938,
+            1083
           ],
           "box": [
-            248,
-            1363,
-            2627,
-            1618
+            876,
+            1083,
+            1296,
+            1721
           ],
           "sha": [
-            "461982156ad5a6d9",
-            "0d7e7d122036a814"
+            "0d7e7d122036a814",
+            "e98249d67d739771"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -413,22 +525,22 @@
         {
           "shot": "73s",
           "identical": false,
-          "differingPixels": 47210,
+          "differingPixels": 32571,
           "firstDifference": [
-            2457,
-            1391
+            898,
+            1117
           ],
           "box": [
-            248,
-            1391,
-            2615,
-            1618
+            876,
+            1117,
+            1296,
+            1721
           ],
           "sha": [
-            "486d374eb82169fe",
-            "1d68a53e5aa5bfcf"
+            "1d68a53e5aa5bfcf",
+            "b2541c7de7904bf6"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -451,22 +563,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 10032,
+          "differingPixels": 15538,
           "firstDifference": [
-            1205,
-            692
+            503,
+            490
           ],
           "box": [
-            123,
-            692,
-            1312,
-            809
+            437,
+            490,
+            910,
+            860
           ],
           "sha": [
-            "9593ee514282566a",
-            "5b56046de8339774"
+            "5b56046de8339774",
+            "7ea0f7f4a2e7919b"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -480,22 +592,22 @@
         {
           "shot": "5.4s",
           "identical": false,
-          "differingPixels": 11267,
+          "differingPixels": 15546,
           "firstDifference": [
-            1228,
-            695
+            483,
+            504
           ],
           "box": [
-            123,
-            695,
-            1307,
-            809
+            437,
+            504,
+            904,
+            860
           ],
           "sha": [
-            "f1dced84ccc064b2",
-            "e1d503eb78bfa929"
+            "e1d503eb78bfa929",
+            "459375d074e69afe"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -509,22 +621,22 @@
         {
           "shot": "10.4s",
           "identical": false,
-          "differingPixels": 10871,
+          "differingPixels": 15074,
           "firstDifference": [
-            1214,
-            692
+            503,
+            490
           ],
           "box": [
-            123,
-            692,
-            1304,
-            809
+            437,
+            490,
+            910,
+            860
           ],
           "sha": [
-            "e932af6a7b3161be",
-            "161c6c1270107003"
+            "161c6c1270107003",
+            "706d2b1000b3cdb5"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -538,22 +650,22 @@
         {
           "shot": "15.4s",
           "identical": false,
-          "differingPixels": 9901,
+          "differingPixels": 15251,
           "firstDifference": [
-            1234,
-            681
+            483,
+            504
           ],
           "box": [
-            123,
-            681,
-            1304,
-            809
+            437,
+            504,
+            904,
+            860
           ],
           "sha": [
-            "cc16479f8d2e28b4",
-            "420e0df4acba36a5"
+            "420e0df4acba36a5",
+            "e8439269e08e7e3e"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -567,22 +679,22 @@
         {
           "shot": "20.4s",
           "identical": false,
-          "differingPixels": 11222,
+          "differingPixels": 15206,
           "firstDifference": [
-            1228,
-            695
+            503,
+            484
           ],
           "box": [
-            126,
-            695,
-            1307,
-            809
+            437,
+            484,
+            910,
+            860
           ],
           "sha": [
-            "1d414ec56a86993d",
-            "fe72d225ea9a5eea"
+            "fe72d225ea9a5eea",
+            "14d64a86f64cc6ed"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -596,22 +708,22 @@
         {
           "shot": "25.4s",
           "identical": false,
-          "differingPixels": 11239,
+          "differingPixels": 15328,
           "firstDifference": [
-            232,
-            681
+            483,
+            501
           ],
           "box": [
-            123,
-            681,
-            1312,
-            809
+            437,
+            501,
+            904,
+            860
           ],
           "sha": [
-            "9f3c3aafbe50cecc",
-            "3ef4631e247c37f2"
+            "3ef4631e247c37f2",
+            "49a3ebd9d1877c35"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -625,22 +737,22 @@
         {
           "shot": "30.4s",
           "identical": false,
-          "differingPixels": 10445,
+          "differingPixels": 15572,
           "firstDifference": [
-            1228,
-            695
+            506,
+            476
           ],
           "box": [
-            123,
-            695,
-            1307,
-            809
+            437,
+            476,
+            913,
+            860
           ],
           "sha": [
-            "b509261a33f1cc7d",
-            "d31d01e9359f9b3b"
+            "d31d01e9359f9b3b",
+            "f81cd9fc7748cd4e"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -654,22 +766,22 @@
         {
           "shot": "flash-33.5s",
           "identical": false,
-          "differingPixels": 12286,
+          "differingPixels": 15249,
           "firstDifference": [
-            104,
-            338
+            506,
+            484
           ],
           "box": [
-            87,
-            338,
-            1304,
-            809
+            437,
+            484,
+            913,
+            860
           ],
           "sha": [
-            "56cff29db1e06944",
-            "96a67cc1319b0fa2"
+            "96a67cc1319b0fa2",
+            "4d1fb0d304143394"
           ],
-          "intentional": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -683,22 +795,22 @@
         {
           "shot": "flash-33.6s",
           "identical": false,
-          "differingPixels": 11934,
+          "differingPixels": 15280,
           "firstDifference": [
-            101,
-            338
+            506,
+            482
           ],
           "box": [
-            87,
-            338,
-            1304,
-            809
+            437,
+            482,
+            913,
+            860
           ],
           "sha": [
-            "20ea6d7ff9d291b9",
-            "ef141a40f5271e11"
+            "ef141a40f5271e11",
+            "40548e57209528b6"
           ],
-          "intentional": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -712,22 +824,22 @@
         {
           "shot": "35.4s",
           "identical": false,
-          "differingPixels": 10709,
+          "differingPixels": 15771,
           "firstDifference": [
-            1214,
-            692
+            500,
+            484
           ],
           "box": [
-            123,
-            692,
-            1304,
-            809
+            437,
+            484,
+            907,
+            860
           ],
           "sha": [
-            "cc371d35c3410366",
-            "1d7456f3307f84a6"
+            "1d7456f3307f84a6",
+            "6b105ad6540c6909"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -741,22 +853,22 @@
         {
           "shot": "40.4s",
           "identical": false,
-          "differingPixels": 11282,
+          "differingPixels": 15550,
           "firstDifference": [
-            232,
-            681
+            483,
+            496
           ],
           "box": [
-            123,
-            681,
-            1304,
-            809
+            437,
+            496,
+            904,
+            860
           ],
           "sha": [
-            "c9a51e1f0911819b",
-            "e34258605a923647"
+            "e34258605a923647",
+            "84aa9562e3fdcd88"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -770,22 +882,22 @@
         {
           "shot": "45.4s",
           "identical": false,
-          "differingPixels": 10903,
+          "differingPixels": 15641,
           "firstDifference": [
-            1214,
-            692
+            503,
+            484
           ],
           "box": [
-            123,
-            692,
-            1304,
-            809
+            437,
+            484,
+            910,
+            860
           ],
           "sha": [
-            "6377d2d8d394d12e",
-            "06f632eceeef5d45"
+            "06f632eceeef5d45",
+            "c79ee5ab0ebbf286"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -799,22 +911,22 @@
         {
           "shot": "flash-48.9s",
           "identical": false,
-          "differingPixels": 12859,
+          "differingPixels": 15546,
           "firstDifference": [
-            172,
-            338
+            503,
+            482
           ],
           "box": [
-            123,
-            338,
-            1307,
-            809
+            437,
+            482,
+            910,
+            860
           ],
           "sha": [
-            "40924f00d3bdecf4",
-            "3177665d568861ab"
+            "3177665d568861ab",
+            "5dce51818e24ce25"
           ],
-          "intentional": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -828,22 +940,22 @@
         {
           "shot": "flash-49.0s",
           "identical": false,
-          "differingPixels": 12390,
+          "differingPixels": 15538,
           "firstDifference": [
-            172,
-            339
+            503,
+            482
           ],
           "box": [
-            123,
-            339,
-            1304,
-            809
+            437,
+            482,
+            910,
+            860
           ],
           "sha": [
-            "8b60d59b6e285a49",
-            "63b0e678818c6af7"
+            "63b0e678818c6af7",
+            "3d8093e768cd05c4"
           ],
-          "intentional": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -857,22 +969,22 @@
         {
           "shot": "50.4s",
           "identical": false,
-          "differingPixels": 10545,
+          "differingPixels": 15306,
           "firstDifference": [
-            1205,
-            692
+            483,
+            501
           ],
           "box": [
-            123,
-            692,
-            1312,
-            809
+            437,
+            501,
+            904,
+            860
           ],
           "sha": [
-            "8c9232f4ab10c0cf",
-            "fc59ac1893adb309"
+            "fc59ac1893adb309",
+            "6b32f7ef459353b6"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -886,22 +998,22 @@
         {
           "shot": "55.4s",
           "identical": false,
-          "differingPixels": 11899,
+          "differingPixels": 15321,
           "firstDifference": [
-            232,
-            681
+            503,
+            487
           ],
           "box": [
-            123,
-            681,
-            1307,
-            809
+            437,
+            487,
+            910,
+            860
           ],
           "sha": [
-            "12d89a1ad822be9a",
-            "8cd029e4bf283ca6"
+            "8cd029e4bf283ca6",
+            "1480ebe96652b852"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -915,22 +1027,22 @@
         {
           "shot": "60.4s",
           "identical": false,
-          "differingPixels": 10888,
+          "differingPixels": 15268,
           "firstDifference": [
-            1214,
-            692
+            483,
+            504
           ],
           "box": [
-            123,
-            692,
-            1304,
-            809
+            437,
+            504,
+            904,
+            860
           ],
           "sha": [
-            "fc955a43dc53b403",
-            "d9794d42592575e5"
+            "d9794d42592575e5",
+            "38d891bb792d572b"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -944,22 +1056,22 @@
         {
           "shot": "65.4s",
           "identical": false,
-          "differingPixels": 9917,
+          "differingPixels": 15229,
           "firstDifference": [
-            1234,
-            681
+            506,
+            484
           ],
           "box": [
-            123,
-            681,
-            1304,
-            809
+            437,
+            484,
+            913,
+            860
           ],
           "sha": [
-            "266ce041dd1d8edc",
-            "de069ff16bc4ce0c"
+            "de069ff16bc4ce0c",
+            "ffb27316d9ac561a"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -973,22 +1085,22 @@
         {
           "shot": "70.4s",
           "identical": false,
-          "differingPixels": 11553,
+          "differingPixels": 15530,
           "firstDifference": [
-            232,
-            681
+            500,
+            496
           ],
           "box": [
-            123,
-            681,
-            1304,
-            809
+            437,
+            496,
+            907,
+            860
           ],
           "sha": [
-            "9cd61a26bb1811c3",
-            "a3d6e20f1c7d1497"
+            "a3d6e20f1c7d1497",
+            "0d1fadd611c6e9ff"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1002,22 +1114,22 @@
         {
           "shot": "75.4s",
           "identical": false,
-          "differingPixels": 10840,
+          "differingPixels": 15360,
           "firstDifference": [
-            1205,
-            692
+            506,
+            479
           ],
           "box": [
-            123,
-            692,
-            1312,
-            809
+            437,
+            479,
+            913,
+            860
           ],
           "sha": [
-            "7b0b49778fcdf76c",
-            "3ec42e419ca6e65e"
+            "3ec42e419ca6e65e",
+            "df68c6d1947c6e8b"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1031,22 +1143,22 @@
         {
           "shot": "80.4s",
           "identical": false,
-          "differingPixels": 10365,
+          "differingPixels": 15687,
           "firstDifference": [
-            1228,
-            695
+            503,
+            487
           ],
           "box": [
-            123,
-            695,
-            1307,
-            809
+            437,
+            487,
+            910,
+            860
           ],
           "sha": [
-            "7b98279ab159cc06",
-            "c27f1bd1cd4da94d"
+            "c27f1bd1cd4da94d",
+            "07044a661601e52e"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1060,22 +1172,22 @@
         {
           "shot": "85.4s",
           "identical": false,
-          "differingPixels": 10629,
+          "differingPixels": 15558,
           "firstDifference": [
-            1205,
-            692
+            483,
+            499
           ],
           "box": [
-            123,
-            692,
-            1312,
-            809
+            437,
+            499,
+            904,
+            860
           ],
           "sha": [
-            "19b40ae7053cb22c",
-            "4199d83448a18b5a"
+            "4199d83448a18b5a",
+            "05c668d1a77cc46f"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1089,22 +1201,22 @@
         {
           "shot": "90.4s",
           "identical": false,
-          "differingPixels": 10852,
+          "differingPixels": 15562,
           "firstDifference": [
-            1234,
-            681
+            503,
+            482
           ],
           "box": [
-            126,
-            681,
-            1304,
-            809
+            437,
+            482,
+            910,
+            860
           ],
           "sha": [
-            "0bf2bed2d6e610a9",
-            "c0aed8c4ce9ab11c"
+            "c0aed8c4ce9ab11c",
+            "5f7fdfa468f6e610"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1118,22 +1230,22 @@
         {
           "shot": "95.4s",
           "identical": false,
-          "differingPixels": 9835,
+          "differingPixels": 15421,
           "firstDifference": [
-            1214,
-            692
+            483,
+            496
           ],
           "box": [
-            123,
-            692,
-            1304,
-            809
+            437,
+            496,
+            904,
+            860
           ],
           "sha": [
-            "8671e9285a83797c",
-            "9573922ab07ce540"
+            "9573922ab07ce540",
+            "25cbb07c060d2ef2"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1147,22 +1259,22 @@
         {
           "shot": "100.4s",
           "identical": false,
-          "differingPixels": 10682,
+          "differingPixels": 15436,
           "firstDifference": [
-            1205,
-            692
+            503,
+            479
           ],
           "box": [
-            123,
-            692,
-            1312,
-            809
+            437,
+            479,
+            910,
+            860
           ],
           "sha": [
-            "9697e4339f300030",
-            "0f14dceabeb38c75"
+            "0f14dceabeb38c75",
+            "8e8d2da8390d0b8e"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1176,22 +1288,22 @@
         {
           "shot": "105.4s",
           "identical": false,
-          "differingPixels": 12078,
+          "differingPixels": 15371,
           "firstDifference": [
-            232,
-            681
+            483,
+            499
           ],
           "box": [
-            123,
-            681,
-            1307,
-            809
+            437,
+            499,
+            904,
+            860
           ],
           "sha": [
-            "31ee35e95a21a9a0",
-            "7480096144ab5d7d"
+            "7480096144ab5d7d",
+            "7d1829708851470b"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1205,22 +1317,22 @@
         {
           "shot": "110.4s",
           "identical": false,
-          "differingPixels": 10096,
+          "differingPixels": 15620,
           "firstDifference": [
-            1205,
-            692
+            506,
+            479
           ],
           "box": [
-            123,
-            692,
-            1312,
-            809
+            437,
+            479,
+            913,
+            860
           ],
           "sha": [
-            "a34fb5c31ad3f2c2",
-            "f6b50e03d07cbf37"
+            "f6b50e03d07cbf37",
+            "5b38dfd910111c99"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1234,22 +1346,22 @@
         {
           "shot": "115.4s",
           "identical": false,
-          "differingPixels": 10577,
+          "differingPixels": 15571,
           "firstDifference": [
-            1234,
-            681
+            500,
+            493
           ],
           "box": [
-            123,
-            681,
-            1304,
-            809
+            437,
+            493,
+            907,
+            860
           ],
           "sha": [
-            "ebac7fe032044cf6",
-            "b34cfd60924b6fe2"
+            "b34cfd60924b6fe2",
+            "58782349e367cadd"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1263,22 +1375,22 @@
         {
           "shot": "120.4s",
           "identical": false,
-          "differingPixels": 11529,
+          "differingPixels": 15168,
           "firstDifference": [
-            232,
-            681
+            483,
+            507
           ],
           "box": [
-            123,
-            681,
-            1304,
-            809
+            437,
+            507,
+            904,
+            860
           ],
           "sha": [
-            "9f623266a32f4a36",
-            "2a3684aca39cacfa"
+            "2a3684aca39cacfa",
+            "d9f60c95588d56c6"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1301,22 +1413,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 10256,
+          "differingPixels": 8289,
           "firstDifference": [
-            1205,
-            692
+            469,
+            544
           ],
           "box": [
-            123,
-            692,
-            1312,
-            809
+            437,
+            544,
+            648,
+            860
           ],
           "sha": [
-            "6ec1921ad282bb70",
-            "5e290cd109d1f799"
+            "5e290cd109d1f799",
+            "96bafd66c10e1ac3"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1330,22 +1442,22 @@
         {
           "shot": "10s",
           "identical": false,
-          "differingPixels": 10661,
+          "differingPixels": 8412,
           "firstDifference": [
-            1228,
-            695
+            469,
+            544
           ],
           "box": [
-            123,
-            695,
-            1307,
-            809
+            437,
+            544,
+            648,
+            860
           ],
           "sha": [
-            "6ab1ae942e663787",
-            "d7b8b30581e69140"
+            "d7b8b30581e69140",
+            "38b9d624acb3e3fd"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1368,22 +1480,22 @@
         {
           "shot": "aboard",
           "identical": false,
-          "differingPixels": 40774,
+          "differingPixels": 32983,
           "firstDifference": [
-            2411,
-            1386
+            938,
+            1089
           ],
           "box": [
-            248,
-            1386,
-            2627,
-            1618
+            876,
+            1089,
+            1296,
+            1721
           ],
           "sha": [
-            "fa2af157f9ceff60",
-            "0aadf27e983266bd"
+            "0aadf27e983266bd",
+            "890a8721e8b43b6b"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1397,22 +1509,22 @@
         {
           "shot": "changed",
           "identical": false,
-          "differingPixels": 39535,
+          "differingPixels": 40848,
           "firstDifference": [
-            2411,
-            1386
+            853,
+            1066
           ],
           "box": [
-            248,
-            1386,
-            2627,
-            1618
+            830,
+            1066,
+            1296,
+            1721
           ],
           "sha": [
-            "2e15899d50ed32fb",
-            "ee54c0411e47c322"
+            "ee54c0411e47c322",
+            "fc0ec2739b655557"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1426,22 +1538,22 @@
         {
           "shot": "walking-1000ms",
           "identical": false,
-          "differingPixels": 44463,
+          "differingPixels": 41186,
           "firstDifference": [
-            2468,
-            1363
+            944,
+            1071
           ],
           "box": [
-            248,
-            1363,
-            2610,
-            1618
+            876,
+            1071,
+            1296,
+            1721
           ],
           "sha": [
-            "475d0cefd4193ee4",
-            "f3e962fc94926bc5"
+            "f3e962fc94926bc5",
+            "aaf01089084bb2d9"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1455,22 +1567,22 @@
         {
           "shot": "walking-2000ms",
           "identical": false,
-          "differingPixels": 45516,
+          "differingPixels": 49020,
           "firstDifference": [
-            2457,
-            1391
+            1075,
+            1083
           ],
           "box": [
-            248,
-            1391,
-            2615,
-            1618
+            876,
+            1083,
+            1296,
+            1721
           ],
           "sha": [
-            "40bdb92a8d6b77ea",
-            "a88f96ed18185ac4"
+            "a88f96ed18185ac4",
+            "e0d01809af4e8ba6"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1484,22 +1596,22 @@
         {
           "shot": "walking-3000ms",
           "identical": false,
-          "differingPixels": 40251,
+          "differingPixels": 47259,
           "firstDifference": [
-            2428,
-            1386
+            1081,
+            1054
           ],
           "box": [
-            248,
-            1386,
-            2610,
-            1618
+            876,
+            1054,
+            1348,
+            1721
           ],
           "sha": [
-            "13aaf4ed97f898d4",
-            "72137f7818c74de7"
+            "72137f7818c74de7",
+            "5dd64f5b1f50d214"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1513,22 +1625,22 @@
         {
           "shot": "walking-5000ms",
           "identical": false,
-          "differingPixels": 42143,
+          "differingPixels": 49377,
           "firstDifference": [
-            2468,
-            1363
+            1070,
+            1094
           ],
           "box": [
-            248,
-            1363,
-            2610,
-            1618
+            876,
+            1094,
+            1405,
+            1721
           ],
           "sha": [
-            "be51124b4457c79e",
-            "aed125e0cf4adce0"
+            "aed125e0cf4adce0",
+            "e67cee8fb7d612a3"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1542,22 +1654,22 @@
         {
           "shot": "walking-8000ms",
           "identical": false,
-          "differingPixels": 41770,
+          "differingPixels": 48729,
           "firstDifference": [
-            2468,
-            1363
+            1070,
+            1083
           ],
           "box": [
-            248,
-            1363,
-            2610,
-            1618
+            876,
+            1083,
+            1405,
+            1721
           ],
           "sha": [
-            "261aa05cae37841b",
-            "4a319f4993dcf634"
+            "4a319f4993dcf634",
+            "01f3bf24466c85b5"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1571,22 +1683,22 @@
         {
           "shot": "arrived",
           "identical": false,
-          "differingPixels": 44758,
+          "differingPixels": 48556,
           "firstDifference": [
-            2457,
-            1391
+            938,
+            1077
           ],
           "box": [
-            248,
-            1391,
-            2615,
-            1618
+            876,
+            1077,
+            1400,
+            1721
           ],
           "sha": [
-            "a93d934b665f6a08",
-            "20e53b759e40c553"
+            "20e53b759e40c553",
+            "d04addecde4f1f9d"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1600,22 +1712,22 @@
         {
           "shot": "hatch-200ms",
           "identical": false,
-          "differingPixels": 42236,
+          "differingPixels": 49078,
           "firstDifference": [
-            2428,
-            1386
+            944,
+            1066
           ],
           "box": [
-            253,
-            1386,
-            2610,
-            1618
+            876,
+            1066,
+            1400,
+            1721
           ],
           "sha": [
-            "70a20366717c4f00",
-            "d70a2f1daf54fbf1"
+            "d70a2f1daf54fbf1",
+            "10fcff4c8d70326b"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1629,22 +1741,22 @@
         {
           "shot": "hatch-400ms",
           "identical": false,
-          "differingPixels": 41882,
+          "differingPixels": 49023,
           "firstDifference": [
-            2428,
-            1386
+            944,
+            1060
           ],
           "box": [
-            248,
-            1386,
-            2610,
-            1618
+            876,
+            1060,
+            1400,
+            1721
           ],
           "sha": [
-            "e678a0573415e4de",
-            "2f1a8aed03986edc"
+            "2f1a8aed03986edc",
+            "e02ab02656fbd3b5"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1658,22 +1770,22 @@
         {
           "shot": "hatch-700ms",
           "identical": false,
-          "differingPixels": 39176,
+          "differingPixels": 48834,
           "firstDifference": [
-            2428,
-            1386
+            1070,
+            1089
           ],
           "box": [
-            248,
-            1386,
-            2610,
-            1618
+            876,
+            1089,
+            1405,
+            1721
           ],
           "sha": [
-            "dd6bd5a656f83742",
-            "20148cf15471e928"
+            "20148cf15471e928",
+            "49dc2a8b35d57afd"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1687,22 +1799,22 @@
         {
           "shot": "hatch-1500ms",
           "identical": false,
-          "differingPixels": 43910,
+          "differingPixels": 49558,
           "firstDifference": [
-            2411,
-            1386
+            1075,
+            1066
           ],
           "box": [
-            248,
-            1386,
-            2627,
-            1618
+            876,
+            1066,
+            1411,
+            1721
           ],
           "sha": [
-            "5a4cdc12fb7c5cbb",
-            "b540df767ad72ee3"
+            "b540df767ad72ee3",
+            "ce8cc35174ff63cc"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1716,22 +1828,22 @@
         {
           "shot": "hatch-3000ms",
           "identical": false,
-          "differingPixels": 44686,
+          "differingPixels": 49343,
           "firstDifference": [
-            2457,
-            1391
+            938,
+            1077
           ],
           "box": [
-            248,
-            1391,
-            2615,
-            1618
+            876,
+            1077,
+            1400,
+            1721
           ],
           "sha": [
-            "4df1f8052c94035a",
-            "f1be557559057965"
+            "f1be557559057965",
+            "efa4e2a6937ebde7"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1745,22 +1857,22 @@
         {
           "shot": "leaving-300ms",
           "identical": false,
-          "differingPixels": 43677,
+          "differingPixels": 48515,
           "firstDifference": [
-            2468,
-            1363
+            1012,
+            1066
           ],
           "box": [
-            248,
-            1363,
-            2610,
-            1618
+            876,
+            1066,
+            1400,
+            1721
           ],
           "sha": [
-            "0d1127f9d2b47a89",
-            "93ee62048db2beb1"
+            "93ee62048db2beb1",
+            "102c1bb048cc82b6"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1774,22 +1886,22 @@
         {
           "shot": "leaving-800ms",
           "identical": false,
-          "differingPixels": 48142,
+          "differingPixels": 48752,
           "firstDifference": [
-            465,
-            1363
+            1070,
+            1094
           ],
           "box": [
-            248,
-            1363,
-            2615,
-            1618
+            876,
+            1094,
+            1405,
+            1721
           ],
           "sha": [
-            "4762c07a8db57b86",
-            "6221c53535e63df4"
+            "6221c53535e63df4",
+            "cc64f83bc7676bb1"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1803,22 +1915,22 @@
         {
           "shot": "leaving-1400ms",
           "identical": false,
-          "differingPixels": 44414,
+          "differingPixels": 49349,
           "firstDifference": [
-            465,
-            1363
+            1075,
+            1071
           ],
           "box": [
-            248,
-            1363,
-            2610,
-            1618
+            876,
+            1071,
+            1411,
+            1721
           ],
           "sha": [
-            "3cce11c24b6602d1",
-            "fa30de6c0dac417b"
+            "fa30de6c0dac417b",
+            "9c0aa989d673e59d"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1832,22 +1944,22 @@
         {
           "shot": "leaving-2000ms",
           "identical": false,
-          "differingPixels": 43104,
+          "differingPixels": 50345,
           "firstDifference": [
-            2428,
-            1386
+            1081,
+            1054
           ],
           "box": [
-            248,
-            1386,
-            2610,
-            1618
+            876,
+            1054,
+            1417,
+            1721
           ],
           "sha": [
-            "d311711ca4ab28ca",
-            "75d4eae0ee44fd79"
+            "75d4eae0ee44fd79",
+            "c7d55eaf339da8df"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1861,22 +1973,22 @@
         {
           "shot": "leaving-2400ms",
           "identical": false,
-          "differingPixels": 40087,
+          "differingPixels": 49809,
           "firstDifference": [
-            2411,
-            1386
+            938,
+            1066
           ],
           "box": [
-            248,
-            1386,
-            2627,
-            1618
+            876,
+            1066,
+            1400,
+            1721
           ],
           "sha": [
-            "6e76fb697501106e",
-            "46b022afc80c6ebb"
+            "46b022afc80c6ebb",
+            "09b0f29a33f4376b"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1890,22 +2002,22 @@
         {
           "shot": "leaving-2700ms",
           "identical": false,
-          "differingPixels": 39401,
+          "differingPixels": 49827,
           "firstDifference": [
-            2411,
-            1386
+            938,
+            1066
           ],
           "box": [
-            248,
-            1386,
-            2627,
-            1618
+            876,
+            1066,
+            1400,
+            1721
           ],
           "sha": [
-            "739e87f75331580b",
-            "85aeaf40f7af6a2f"
+            "85aeaf40f7af6a2f",
+            "e01e604874f0c012"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1919,22 +2031,22 @@
         {
           "shot": "leaving-3000ms",
           "identical": false,
-          "differingPixels": 44709,
+          "differingPixels": 49334,
           "firstDifference": [
-            2411,
-            1386
+            944,
+            1060
           ],
           "box": [
-            248,
-            1386,
-            2627,
-            1618
+            876,
+            1060,
+            1400,
+            1721
           ],
           "sha": [
-            "60c9d9b4e2cf7b63",
-            "1878b80f3f10ee4d"
+            "1878b80f3f10ee4d",
+            "83c408d1c1249d3d"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1948,22 +2060,22 @@
         {
           "shot": "leaving-3300ms",
           "identical": false,
-          "differingPixels": 43996,
+          "differingPixels": 48722,
           "firstDifference": [
-            2468,
-            1363
+            944,
+            1066
           ],
           "box": [
-            248,
-            1363,
-            2610,
-            1618
+            876,
+            1066,
+            1400,
+            1721
           ],
           "sha": [
-            "24b3b5917ff2f4a8",
-            "1c494993641c595e"
+            "1c494993641c595e",
+            "a56194757a63c2cb"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1977,22 +2089,22 @@
         {
           "shot": "leaving-3600ms",
           "identical": false,
-          "differingPixels": 43379,
+          "differingPixels": 48879,
           "firstDifference": [
-            2468,
-            1363
+            1070,
+            1094
           ],
           "box": [
-            248,
-            1363,
-            2610,
-            1618
+            876,
+            1094,
+            1405,
+            1721
           ],
           "sha": [
-            "9f46b91deb464ce1",
-            "c874302cebe026f9"
+            "c874302cebe026f9",
+            "ad0b77df9b20ec41"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2006,22 +2118,22 @@
         {
           "shot": "leaving-4000ms",
           "identical": false,
-          "differingPixels": 47414,
+          "differingPixels": 48740,
           "firstDifference": [
-            465,
-            1363
+            1070,
+            1094
           ],
           "box": [
-            248,
-            1363,
-            2615,
-            1618
+            876,
+            1094,
+            1405,
+            1721
           ],
           "sha": [
-            "defec5ace7687072",
-            "ce6ebd310041e978"
+            "ce6ebd310041e978",
+            "dc4db4cb19d0328a"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2035,22 +2147,22 @@
         {
           "shot": "leaving-4600ms",
           "identical": false,
-          "differingPixels": 45431,
+          "differingPixels": 48541,
           "firstDifference": [
-            2457,
-            1391
+            1075,
+            1089
           ],
           "box": [
-            248,
-            1391,
-            2615,
-            1618
+            876,
+            1089,
+            1411,
+            1721
           ],
           "sha": [
-            "6a9fae86b4d61660",
-            "b7041a09c29a8d8f"
+            "b7041a09c29a8d8f",
+            "5ff9e0f6d6c883b2"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2064,22 +2176,22 @@
         {
           "shot": "leaving-5400ms",
           "identical": false,
-          "differingPixels": 39701,
+          "differingPixels": 49721,
           "firstDifference": [
-            2428,
-            1386
+            1081,
+            1066
           ],
           "box": [
-            248,
-            1386,
-            2610,
-            1618
+            876,
+            1066,
+            1417,
+            1721
           ],
           "sha": [
-            "4886eb98780d1f61",
-            "ce889ea3c4c9b053"
+            "ce889ea3c4c9b053",
+            "4cfaf730193aace3"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2093,22 +2205,22 @@
         {
           "shot": "leaving-7000ms",
           "identical": false,
-          "differingPixels": 45326,
+          "differingPixels": 49280,
           "firstDifference": [
-            465,
-            1363
+            1070,
+            1077
           ],
           "box": [
-            248,
-            1363,
-            2610,
-            1618
+            876,
+            1077,
+            1405,
+            1721
           ],
           "sha": [
-            "85b38eb3ff892b9c",
-            "c1e0f96b1e1696fa"
+            "c1e0f96b1e1696fa",
+            "7cf0861a3b8cdee1"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2122,22 +2234,22 @@
         {
           "shot": "after",
           "identical": false,
-          "differingPixels": 43211,
+          "differingPixels": 48952,
           "firstDifference": [
-            2428,
-            1386
+            1075,
+            1083
           ],
           "box": [
-            248,
-            1386,
-            2610,
-            1618
+            876,
+            1083,
+            1411,
+            1721
           ],
           "sha": [
-            "c83e382bcbc9107a",
-            "00f6f68f432dc8e0"
+            "00f6f68f432dc8e0",
+            "33ba23abd8a913d8"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2160,22 +2272,22 @@
         {
           "shot": "100ms",
           "identical": false,
-          "differingPixels": 42769,
+          "differingPixels": 34304,
           "firstDifference": [
-            2427,
-            1384
+            925,
+            1081
           ],
           "box": [
-            220,
-            1384,
-            2647,
-            1622
+            861,
+            1081,
+            1296,
+            1721
           ],
           "sha": [
-            "51b6d87f57c6b8d5",
-            "a24a5f1f014ab6e5"
+            "a24a5f1f014ab6e5",
+            "99f07b3e04fab7b4"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2188,9 +2300,23 @@
         },
         {
           "shot": "300ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "497707f5118e24fb",
+          "identical": false,
+          "differingPixels": 89874,
+          "firstDifference": [
+            527,
+            877
+          ],
+          "box": [
+            422,
+            877,
+            1296,
+            1721
+          ],
+          "sha": [
+            "497707f5118e24fb",
+            "29a75fc666e8eba1"
+          ],
+          "intentional": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2203,9 +2329,23 @@
         },
         {
           "shot": "1.5s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "cdba3fd790f615c0",
+          "identical": false,
+          "differingPixels": 145539,
+          "firstDifference": [
+            138,
+            824
+          ],
+          "box": [
+            88,
+            824,
+            1296,
+            1721
+          ],
+          "sha": [
+            "cdba3fd790f615c0",
+            "78cf04356b506c01"
+          ],
+          "intentional": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2219,22 +2359,22 @@
         {
           "shot": "back-out",
           "identical": false,
-          "differingPixels": 40282,
+          "differingPixels": 33116,
           "firstDifference": [
-            2428,
-            1386
+            933,
+            1083
           ],
           "box": [
-            248,
-            1386,
-            2610,
-            1618
+            876,
+            1083,
+            1296,
+            1721
           ],
           "sha": [
-            "d6c4a8ba8b111d2a",
-            "816fb1d8190edf4b"
+            "816fb1d8190edf4b",
+            "5a5f3397963f6e5d"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2256,22 +2396,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 10117,
+          "differingPixels": 8322,
           "firstDifference": [
-            1205,
-            692
+            469,
+            544
           ],
           "box": [
-            123,
-            692,
-            1312,
-            809
+            437,
+            544,
+            648,
+            860
           ],
           "sha": [
-            "535949cf32be003b",
-            "6c56fadd49bbf021"
+            "6c56fadd49bbf021",
+            "29be3e26bca548ab"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2285,22 +2425,22 @@
         {
           "shot": "2s",
           "identical": false,
-          "differingPixels": 10117,
+          "differingPixels": 8244,
           "firstDifference": [
-            1205,
-            692
+            449,
+            559
           ],
           "box": [
-            123,
-            692,
-            1312,
-            809
+            437,
+            559,
+            648,
+            860
           ],
           "sha": [
-            "a2566bdf8cff092a",
-            "3b22298b35e9c2ac"
+            "3b22298b35e9c2ac",
+            "2512cdd923ff84e6"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2314,22 +2454,22 @@
         {
           "shot": "6s",
           "identical": false,
-          "differingPixels": 10120,
+          "differingPixels": 8213,
           "firstDifference": [
-            1205,
-            692
+            449,
+            561
           ],
           "box": [
-            123,
-            692,
-            1312,
-            809
+            437,
+            561,
+            648,
+            860
           ],
           "sha": [
-            "5beebeee73c876c8",
-            "2cac375d3dc22378"
+            "2cac375d3dc22378",
+            "b1aa9428d9dabd3c"
           ],
-          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
+          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2348,5 +2488,5 @@
   "shots": 81,
   "passed": true,
   "identical": false,
-  "intentionalShots": 71
+  "intentionalShots": 81
 }

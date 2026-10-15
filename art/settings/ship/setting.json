@@ -3,11 +3,12 @@
   "formatVersion": 1,
   "id": "ship",
   "name": "Ship's deck",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "requires": [
     "stage@1",
     "floor@1",
     "zones@1",
+    "zone-appearance@1",
     "cast@1",
     "rise@1",
     "sink@1",
@@ -42,7 +43,7 @@
       "station": "hauling amidships",
       "helm": "by the helm",
       "bow": "in the bow",
-      "rest": "resting off watch"
+      "rest": "resting below deck"
     }
   },
   "images": {
@@ -653,6 +654,14 @@
         48
       ],
       "sha256": "2876aa8a4a6c8f457d7dbd58e2040e4f70e009fcccdc5f68beee3c50ee0f3812"
+    },
+    "below-deck-porthole": {
+      "path": "below-deck/porthole.png",
+      "size": [
+        16,
+        16
+      ],
+      "sha256": "59173b872e2221f70ffbecc3e643c1e5fc2eaf7e9fc6cd25c167ab38dc93bd51"
     }
   },
   "stage": {
@@ -1242,6 +1251,50 @@
             96
           ]
         ]
+      },
+      {
+        "id": "rest-corridor",
+        "polygon": [
+          [
+            138,
+            103
+          ],
+          [
+            142,
+            103
+          ],
+          [
+            142,
+            147
+          ],
+          [
+            138,
+            147
+          ]
+        ],
+        "spill": false
+      },
+      {
+        "id": "below-deck",
+        "polygon": [
+          [
+            78,
+            128
+          ],
+          [
+            394,
+            128
+          ],
+          [
+            394,
+            147
+          ],
+          [
+            78,
+            147
+          ]
+        ],
+        "spill": false
       }
     ],
     "obstacles": [
@@ -1297,7 +1350,7 @@
         40,
         80,
         384,
-        46
+        68
       ]
     },
     "walkSpeed": 32
@@ -1385,104 +1438,64 @@
           {
             "id": "rest-1",
             "at": [
-              132,
-              117
+              128,
+              146
             ],
             "facing": "front"
           },
           {
             "id": "rest-2",
             "at": [
-              120,
-              117
+              164,
+              146
             ],
             "facing": "front"
           },
           {
             "id": "rest-3",
             "at": [
-              144,
-              117
+              200,
+              146
             ],
             "facing": "front"
           },
           {
             "id": "rest-4",
             "at": [
-              132,
-              98
+              272,
+              146
             ],
             "facing": "front"
           },
           {
             "id": "rest-5",
             "at": [
-              120,
-              98
+              308,
+              146
             ],
             "facing": "front"
           },
           {
             "id": "rest-6",
             "at": [
-              144,
-              98
+              344,
+              146
             ],
             "facing": "front"
           },
           {
             "id": "rest-7",
             "at": [
-              312,
-              117
+              380,
+              146
             ],
             "facing": "front"
           },
           {
             "id": "rest-8",
             "at": [
-              312,
-              98
-            ],
-            "facing": "front"
-          },
-          {
-            "id": "rest-9",
-            "at": [
-              316,
-              107
-            ],
-            "facing": "front"
-          },
-          {
-            "id": "rest-10",
-            "at": [
-              126,
-              107
-            ],
-            "facing": "front"
-          },
-          {
-            "id": "rest-11",
-            "at": [
-              138,
-              107
-            ],
-            "facing": "front"
-          },
-          {
-            "id": "rest-12",
-            "at": [
-              126,
-              89
-            ],
-            "facing": "front"
-          },
-          {
-            "id": "rest-13",
-            "at": [
-              138,
-              89
+              92,
+              146
             ],
             "facing": "front"
           }
@@ -1492,28 +1505,38 @@
           "kind": "pack",
           "areas": [
             [
-              120,
-              86,
-              29,
-              34
+              80,
+              146,
+              145,
+              1
             ],
             [
-              310,
-              95,
-              9,
-              25
+              272,
+              146,
+              121,
+              1
             ]
           ],
           "spacing": [
-            8,
-            9
+            12,
+            1
           ],
           "fallback": [
             6,
-            3
+            1
           ]
         },
-        "labelFloor": 122
+        "labelFloor": 150,
+        "appearance": {
+          "sprite": {
+            "image": "below-deck-porthole"
+          },
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near"
+        }
       },
       {
         "id": "helm",

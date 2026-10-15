@@ -9,8 +9,18 @@ import { walkInChoreography } from "../shared/deck-portals";
 import { compileChoreography, type Choreography, type DeckDeparture } from "./deck-choreography";
 import { createFloor, type Anchor, type Floor, type Point } from "./deck-geometry";
 import { compilePhaseTint, type PhaseTint } from "./deck-phase-tint";
+import { pieceDepths } from "./deck-parts";
 
 type Rect = readonly [number, number, number, number];
+
+/** A worker's stationary representation at a zone post; independent of its cast, identity and state. */
+export interface ZoneAppearance {
+  image: string;
+  frame: Rect;
+  feet: readonly [number, number];
+  front: string;
+  depth: number;
+}
 
 /** A zone: its posts in order of preference, how one is chosen, and where a worker stands once they are all held. */
 export interface Zone {
@@ -23,6 +33,7 @@ export interface Zone {
     | { kind: "pack"; areas: readonly Rect[]; spacing: readonly [number, number]; fallback: readonly [number, number] };
   /** The row hover labels of workers here hang from, or null: over their heads. */
   labelFloor: number | null;
+  appearance: ZoneAppearance | null;
 }
 
 /** A way off the stage: back down where it came up (`sink`), or a choreography from its queue's mark. */
@@ -65,6 +76,7 @@ const point = ([x, y]: readonly [number, number]): Point => ({ x, y });
 
 export function compileStage(manifest: SettingManifest): DeckStage {
   const { stage, floor, zones, portals } = manifest;
+  const depths = pieceDepths(stage.pieces);
   const compiledZones = new Map<string, Zone>(
     zones.zones.map((zone) => [
       zone.id,
@@ -74,6 +86,13 @@ export function compileStage(manifest: SettingManifest): DeckStage {
         assign: zone.assign,
         overflow: zone.overflow,
         labelFloor: zone.labelFloor ?? null,
+        appearance: zone.appearance === undefined ? null : {
+          image: zone.appearance.sprite.image,
+          frame: zone.appearance.sprite.rect ?? [0, 0, ...manifest.images[zone.appearance.sprite.image]!.size],
+          feet: zone.appearance.feet,
+          front: zone.appearance.front,
+          depth: depths.get(zone.appearance.front)! + 1,
+        },
       },
     ]),
   );

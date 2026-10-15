@@ -870,7 +870,7 @@ describe("the ship deck view", () => {
     expect(engine.starts[0]?.host).toBe(host);
     expect(engine.starts[0]?.scene.sailors.map((s) => s.key)).toEqual(["w1", "w2", "r1", "w3", "b1", "f1", "i1", "p1"]);
     expect(text(root)).toContain("Drawn with WebGL · 8 on deck");
-    expect(text(root)).toContain("2 working | hauling amidships | 2 waiting | by the helm | 2 blocked | in the bow | 2 idle | resting off watch");
+    expect(text(root)).toContain("2 working | hauling amidships | 2 waiting | by the helm | 2 blocked | in the bow | 2 idle | resting below deck");
     expect(text(root)).toContain("Point at a sailor to see who it is");
     const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
     expect(canvasHost.props.accessibilityLabel).toBe("Ship deck: 2 working, 2 waiting, 2 blocked, 2 idle");
@@ -897,7 +897,7 @@ describe("the ship deck view", () => {
     await act(flush);
     const root = renderer!;
     expect(text(root)).toContain("The crew's feed is lost: the deck shows where everyone last stood, greyed.");
-    expect(text(root)).toContain("2 idle | resting off watch | 8 stale");
+    expect(text(root)).toContain("2 idle | resting below deck | 8 stale");
     const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
     expect(canvasHost.props.accessibilityLabel).toBe("Ship deck: 2 working, 2 waiting, 2 blocked, 2 idle, feed lost: last known");
     expect(engine.starts[0]?.scene.sailors.every((s) => s.stale)).toBe(true);

@@ -12,6 +12,7 @@ import { extrasImagePaths } from "../test/deck-legacy";
 import { applyCrew, createCrew, crewFigures } from "./deck-crew";
 import type { DeckExtrasImages } from "../test/deck-legacy";
 import { compileParts, dutyFrame } from "./deck-parts";
+import { compileStage } from "./deck-stage";
 import type { DeckSailor, DeckState } from "./deck-scene";
 import { shipCast, shipFile, shipManifest, shipStage, shipViews } from "../test/ship-pack";
 import { availableLooks, breathSink as castBreathSink, laneOf, lookFor, settledPose, standing } from "./deck-cast";
@@ -214,7 +215,10 @@ describe("a sailor at ease", () => {
   });
 
   it("looks fore or aft along the rail by its seed, and breathes: head and shoulders settle a pixel and rise, feet planted", () => {
-    const crew = createCrew(shipStage(), shipCast());
+    // This cast behaviour remains available to zones that draw the actor itself.
+    const stage = compileStage(shipManifest());
+    stage.zoneOf("idle").appearance = null;
+    const crew = createCrew(stage, shipCast());
     applyCrew(crew, Array.from({ length: 6 }, (_, index) => sailor(`idle-${index}`)), { snap: true });
     const flips = new Set(crewFigures(crew, 0, { still: true }).map((figure) => figure.flip));
     expect(flips).toEqual(new Set([true, false]));
