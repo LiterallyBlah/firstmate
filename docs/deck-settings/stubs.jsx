@@ -4,7 +4,8 @@
  * checkout the page was opened for (`?tree=main` or `?tree=branch`). Nothing here knows which deck RPCs a
  * checkout has, so main's bundle and the branch's are served alike whatever their contracts are.
  */
-import { useRpc as boardListRpc } from "../board-list/stubs.jsx";
+import { useSyncExternalStore } from "react";
+import { useSettings as boardListSettings, useRpc as boardListRpc } from "../board-list/stubs.jsx";
 
 export * from "../board-list/stubs.jsx";
 
@@ -34,4 +35,14 @@ export function useRpc(contract) {
   if (contract.name === "firstmate.fleet.load") return loadFleet;
   if (contract.name.startsWith("firstmate.deck.")) return deckRpc(contract.name);
   return boardListRpc(contract);
+}
+
+// The render/overlay harness selects the same global display field as the app, from ?setting=.
+let selectedSetting = new URLSearchParams(location.search).get("setting") ?? "ship";
+const settingListeners = new Set();
+window.selectDeckSetting = (id) => { selectedSetting = id; for (const listener of settingListeners) listener(); };
+export function useSettings(contract) {
+  const settings = boardListSettings(contract);
+  const deckSetting = useSyncExternalStore((listener) => { settingListeners.add(listener); return () => settingListeners.delete(listener); }, () => selectedSetting);
+  return { ...settings, values: { ...settings.values, deckSetting }, save: async (next) => { window.selectDeckSetting(next.deckSetting ?? "ship"); return settings.save(next); } };
 }

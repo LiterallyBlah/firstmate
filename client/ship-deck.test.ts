@@ -4,6 +4,7 @@
  * through react-test-renderer with WebGL stood in for. Whether a real WebGL canvas paints is
  * `docs/deck-settings/gate.mjs`, in a real browser, against main's. The deck's motion is `deck-motion.test.ts`.
  */
+import { deckPresentation, type DeckPresentation } from "./deck-setting";
 import { readFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
 import { inflateSync } from "node:zlib";
@@ -55,7 +56,7 @@ import {
   type DeckScene,
 } from "./deck-scene";
 import { answeredReplies } from "./deck-replies";
-import { BUBBLE_LINGER_MS, DECK_PLACES, ShipDeckView, deckKeyAction, deckStatusText } from "./ship-deck";
+import { BUBBLE_LINGER_MS, ShipDeckView, deckKeyAction, deckStatusText } from "./ship-deck";
 import { focusLayout } from "./deck-camera";
 import { shipFile, shipImages, shipManifest, shipStage, shipViews } from "../test/ship-pack";
 
@@ -410,7 +411,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function fakeEngine(options: { webgl?: "webgl2" | "webgl" | null; load?: () => Promise<StartDeck>; startFails?: Error; hold?: Promise<void> } = {}): FakeEngine {
+function fakeEngine(options: { webgl?: "webgl2" | "webgl" | null; load?: () => Promise<StartDeck>; startFails?: Error; hold?: Promise<void>; presentation?: DeckPresentation } = {}): FakeEngine {
   const engine: FakeEngine = {
     starts: [],
     drawings: [],
@@ -432,6 +433,7 @@ function fakeEngine(options: { webgl?: "webgl2" | "webgl" | null; load?: () => P
         if (options.startFails !== undefined) throw options.startFails;
         const drawing = {
           renderer: "webgl",
+          ...(options.presentation === undefined ? {} : { presentation: options.presentation }),
           updates: [] as DeckScene[],
           resizes: [] as number[][],
           focuses: [] as Array<string | null>,
@@ -802,6 +804,8 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
   });
 });
 
+const viewEngine = (options: Parameters<typeof fakeEngine>[0] = {}) => fakeEngine({ presentation: deckPresentation(shipManifest()), ...options });
+
 describe("the ship deck view", () => {
   beforeAll(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -819,8 +823,41 @@ describe("the ship deck view", () => {
       .join(" | ");
   }
 
+  it("destroys and recreates the mount when only the setting id changes, clearing the old focus", async () => {
+    const engine = viewEngine();
+    const props = { cards: fixture, theme, engine, os: "web", renderFocus: () => createElement("FocusCard") };
+    await act(async () => { renderer = create(createElement(ShipDeckView, { ...props, setting: "ship" }), { createNodeMock: () => fakeHost() }); });
+    await act(flush);
+    await act(async () => engine.select?.("w1"));
+    expect(engine.drawings[0]!.focuses).toContain("w1");
+    await act(async () => renderer!.update(createElement(ShipDeckView, { ...props, setting: "studio" })));
+    await act(flush);
+    expect(engine.loads).toBe(2);
+    expect(engine.drawings[0]!.destroyed).toBe(1);
+    expect(engine.stops).toBe(1);
+    expect(engine.drawings[1]!.focuses).not.toContain("w1");
+    expect(renderer!.root.findAllByProps({ testID: "firstmate-deck-focus" })).toEqual([]);
+  });
+
+  it("uses the selected pack's pane, actor and zone wording", async () => {
+    const manifest = structuredClone(shipManifest());
+    manifest.id = "studio";
+    manifest.copy.title = "Studio";
+    manifest.copy.aboard = "in the studio";
+    manifest.copy.actor = { one: "maker", many: "makers" };
+    manifest.copy.zones.station = "at the workbench";
+    const engine = viewEngine({ presentation: deckPresentation(manifest) });
+    await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web", setting: "studio" }), { createNodeMock: () => fakeHost() }); });
+    await act(flush);
+    expect(text(renderer!)).toContain("Studio");
+    expect(text(renderer!)).toContain("8 in the studio");
+    expect(text(renderer!)).toContain("at the workbench");
+    expect(text(renderer!)).toContain("Point at a maker");
+    expect(text(renderer!)).not.toContain("Ship deck");
+  });
+
   it("mounts in a web renderer and draws the fixture fleet into its host view", async () => {
-    const engine = fakeEngine();
+    const engine = viewEngine();
     const host = fakeHost();
     await act(async () => {
       renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web" }), {
@@ -851,7 +888,7 @@ describe("the ship deck view", () => {
   });
 
   it("with the feed lost, greys the crew it last saw and says so, keeping every count", async () => {
-    const engine = fakeEngine();
+    const engine = viewEngine();
     await act(async () => {
       renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web", stale: true }), {
         createNodeMock: () => fakeHost(),
@@ -872,12 +909,12 @@ describe("the ship deck view", () => {
   });
 
   it("on a phone says where it draws, with no host view and no WebGL or Pixi touched", async () => {
-    const engine = fakeEngine();
+    const engine = viewEngine();
     await act(async () => {
       renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "ios" }));
     });
     const root = renderer!;
-    expect(text(root)).toContain("The ship deck draws only in the Paseo desktop app.");
+    expect(text(root)).toContain("The deck draws only in the Paseo desktop app.");
     expect(root.root.findAll((node) => node.props.accessibilityRole === "image")).toHaveLength(0);
     expect(engine.probes).toBe(0);
     expect(engine.loads).toBe(0);
@@ -896,18 +933,18 @@ describe("the ship deck view", () => {
   });
 
   it("without WebGL shows a plain message in the canvas's place", async () => {
-    const engine = fakeEngine({ webgl: null });
+    const engine = viewEngine({ webgl: null });
     await act(async () => {
       renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web" }), {
         createNodeMock: () => fakeHost(),
       });
     });
-    expect(text(renderer!)).toContain("This display has no WebGL, so the ship deck cannot draw.");
+    expect(text(renderer!)).toContain("This display has no WebGL, so the deck cannot draw.");
     expect(engine.loads).toBe(0);
   });
 
   it("labels the sailor under the pointer with who it is, over the canvas, and takes it away after", async () => {
-    const engine = fakeEngine();
+    const engine = viewEngine();
     await act(async () => {
       renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web" }), {
         createNodeMock: () => fakeHost(),
@@ -967,7 +1004,7 @@ describe("the ship deck view", () => {
     const panels = (root: ReactTestRenderer) => root.root.findAll((node) => node.props.testID === "firstmate-deck-focus" && (node.type as unknown) === "View");
 
     async function mounted(withCard = true) {
-      const engine = fakeEngine();
+      const engine = viewEngine();
       await act(async () => {
         renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web", ...(withCard ? { renderFocus } : {}) }), {
           createNodeMock: () => fakeHost(),
@@ -1053,7 +1090,7 @@ describe("the ship deck view", () => {
       (globalThis as { document?: unknown }).document = doc;
       try {
         const host = fakeHost();
-        const engine = fakeEngine();
+        const engine = viewEngine();
         await act(async () => {
           renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web", renderFocus }), { createNodeMock: () => host });
         });
@@ -1098,7 +1135,7 @@ describe("the ship deck view", () => {
     afterEach(() => answeredReplies.keepOnly([]));
 
     async function mounted(options: { replyBlocked?: string | null } = {}) {
-      const engine = fakeEngine();
+      const engine = viewEngine();
       const picked: Array<{ label: string; prompt: string }> = [];
       const focusReplies: unknown[] = [];
       const props = {
@@ -1213,7 +1250,7 @@ describe("the ship deck view", () => {
     });
 
     it("offers nothing without a way to send", async () => {
-      const engine = fakeEngine();
+      const engine = viewEngine();
       await act(async () => {
         renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web", suggestions: [land] }), { createNodeMock: () => fakeHost() });
       });
@@ -1240,13 +1277,13 @@ describe("the ship deck view", () => {
 
   it("says where each state stands in the ship pack's own words", () => {
     const { copy, zones } = shipManifest();
-    for (const state of DECK_STATES) expect(DECK_PLACES[state], state).toBe(copy.zones[zones.byState[state]]);
+    for (const state of DECK_STATES) expect(deckPresentation(shipManifest()).places[state], state).toBe(copy.zones[zones.byState[state]]);
   });
 
   it("words every status", () => {
     expect(deckStatusText({ kind: "drawing", renderer: "webgl" })).toBeNull();
-    expect(deckStatusText({ kind: "starting" })).toBe("Raising the deck…");
-    expect(deckStatusText({ kind: "failed", message: "boom" })).toBe("The ship deck could not start: boom");
+    expect(deckStatusText({ kind: "starting" }, deckPresentation(shipManifest()))).toBe("Raising the deck…");
+    expect(deckStatusText({ kind: "failed", message: "boom" }, deckPresentation(shipManifest()))).toBe("The ship deck could not start: boom");
     expect(deckStatusText({ kind: "unsupported", reason: "no-host" })).toContain("desktop app");
   });
 });

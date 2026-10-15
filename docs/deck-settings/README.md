@@ -260,7 +260,7 @@ no `class`. Full suite: 70 files, 956 tests passed, three skipped (`npm test -- 
 hit a pre-existing remote-service polling race). Typecheck, the pack linter and `git diff --check` pass; this repo
 has no separate lint script. Results are recorded in `gate-results.json` and `compile-results.json`.
 
-## Step 7 ? portals, choreography and effects from the pack
+## Step 7 — portals, choreography and effects from the pack
 
 - `client/deck-choreography.ts` compiles a finite timeline per exit/drift: segments, named end events,
   distance-derived walks, line/arc/ballistic paths, cast cycles, jiggle, cropped reveal, bob and layer transitions.
@@ -282,6 +282,37 @@ has no separate lint script. Results are recorded in `gate-results.json` and `co
 
 Gate: **81/81 pixel-identical** to main, with no flakes or page errors. Full suite: 71 files, 966 tests passed,
 three skipped (`npm test -- --maxWorkers=2`). Typecheck, pack linter and `git diff --check` pass; no separate lint
-script exists. Client bundle ?2,146 bytes; Hermes parses it; no `class`. The npm pack dry-run excludes the
+script exists. Client bundle −2,146 bytes; Hermes parses it; no `class`. The npm pack dry-run excludes the
 retired runtime and all test-only legacy files. Results are in `gate-results.json` and `compile-results.json`.
 No new art was needed.
+
+## Step 8 — global selection and closing the authoring contract
+
+- `displaySettings.deckSetting` defaults to `ship` in existing version-1 settings documents. Settings >
+  Plugins > FirstMate has a picker with installed names, previews and versions; incompatible entries show
+  their reason and cannot be selected. This is global only. `resolveDeckSetting(display, scope, installed)`
+  is the future project-resolution seam; the engine still receives one pack id.
+- `SelectedDeckView` waits for metadata before opening a non-default pack and falls back to ship, with a
+  notice, when the choice is missing, incompatible or fails to start. It preserves the saved choice and
+  keeps a known compatible setting through a metadata refresh error. Changing the resolved id remounts the
+  view, disposing the old drawing and pending loads and clearing focus/hover. The actual canvas id is
+  `data-firstmate-deck-setting`. Pane titles, actor nouns and zone descriptions now use the pack's `copy`.
+- The **closed catalogue** and pack linter already landed in step 2, the overlay in step 3. This step makes
+  every manifest object strict: unknown fields fail instead of being silently stripped. The 21 supported
+  version-1 capabilities are unchanged. `npm run lint:deck-packs` runs the schema and all-pack checks;
+  choreography effect bounds now follow the compiled timeline through both sides, every drift, approach,
+  anchor and named-point alignment. No scripting hooks or expressions are accepted.
+- `render.mjs '?setting=<id>'` selects through the real global field. Add `&overlay=1` for the authoring
+  overlay, or use `overlay.mjs '?setting=<id>'`. Both check the actual canvas id before writing evidence.
+  `CHECK_SELECTION=1` also exercises missing-pack fallback and return to the original choice in Edge.
+  [Authoring a built-in setting](authoring.md) records the format, tools and the second-setting workflow:
+  commission art, review any generic capabilities first, then land a data/art-only pack. No new art is added.
+
+Gate: **81/81 pixel-identical** to main `38b5464`, with no flakes or page errors. Full suite: 74 files,
+978 tests passed, three skipped (`npm test -- --maxWorkers=2`). Typecheck, `npm run lint:deck-packs`
+(26 tests) and `git diff --check` pass. The final client bundle is +6,314 bytes, parses in Hermes and contains
+no `class`. The Edge selection smoke check and selected-pack render/overlay pass without page errors;
+[`render-ship.png`](render-ship.png) and [`overlay-ship.png`](overlay-ship.png) record them. Gate canvas
+metadata now includes the selected id, so its metadata equality flag differs from older main; all pixels match.
+The package dry-run has 331,187 bytes under `art/` and excludes tests and documentation. Build and gate
+evidence is in `compile-results.json` and `gate-results.json`.

@@ -61,7 +61,7 @@ import { clampShare, MIN_SPLIT_WIDTH } from "./resize-layout";
 import { hostTabs, onTab, shownHostTab, watchKey } from "./host-tabs";
 import { HostTabRow } from "./host-tab-row";
 import { HostHealthCard, useRemotes } from "./remotes";
-import { ShipDeckView } from "./ship-deck";
+import { SelectedDeckView } from "./deck-setting-view";
 import { SuggestionStrip } from "./suggestions";
 import { TaskList } from "./task-list";
 import { ItemTagFilter } from "./item-tags";
@@ -579,7 +579,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
                 tooltip: "Browse and edit files in the FirstMate home.",
               },
               ...(deck
-                ? [{ value: "deck" as const, label: "Deck", tooltip: "Show the crew as sailors on a ship deck." }]
+                ? [{ value: "deck" as const, label: "Deck", tooltip: "Show the crew in the selected deck setting." }]
                 : []),
             ]}
             onChange={setRightPane}
@@ -883,7 +883,8 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             {pane === "board" ? (
               crew
             ) : pane === "deck" ? (
-              <ShipDeckView
+              <SelectedDeckView
+                setting={values.deckSetting}
                 cards={data.cards}
                 theme={theme}
                 stale={fleet.error !== null}

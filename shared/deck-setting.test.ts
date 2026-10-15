@@ -120,3 +120,16 @@ describe("whether this engine can draw a setting", () => {
     expect(incompatibility({ formatVersion: 1, requires: ["stage@1", "walkers@1", "drifters@2"] })).toBe("it needs walkers@1, drifters@2, which this FirstMate does not have");
   });
 });
+
+it("rejects undeclared fields at every level of the closed catalogue instead of silently stripping them", () => {
+  const changes: Array<(manifest: SettingManifest) => void> = [
+    (manifest) => { Reflect.set(manifest, "script", "run()"); },
+    (manifest) => { Reflect.set(manifest.stage, "onDraw", "hook"); },
+    (manifest) => { Reflect.set(manifest.stage.motion!.bob, "expression", "sin(t)"); },
+    (manifest) => { Reflect.set(manifest.ambience[0]!.behaviour, "when", "busy"); },
+    (manifest) => { Reflect.set(manifest.cast.roles, "choosePose", "callback"); },
+    (manifest) => { Reflect.set(manifest.portals.entry, "condition", "ready"); },
+    (manifest) => { Reflect.set(manifest.effects.shark!.frames.fin!, "shader", "custom"); },
+  ];
+  for (const change of changes) expect(SettingManifestSchema.safeParse(broken(change)).success).toBe(false);
+});
