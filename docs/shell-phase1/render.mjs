@@ -156,12 +156,71 @@ try {
     .waitFor();
   assert.equal(await phone.locator("canvas").count(), 0);
   await phone.getByRole("button", { name: "FirstMate Home", exact: true }).click();
+  assert.equal(await phone.getByRole("button", { name: "New browser", exact: true }).isDisabled(), true);
+  await phone.mouse.move(0, 843);
   await phone.screenshot({ path: join(generated, "home-phone.png") });
   assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await phone.close();
+  // Native API fixtures: creation is explicit, a request cannot steal navigation after leaving Home,
+  // browser errors allow retry, and ordinary web/phone clients cannot create a browser.
+  const native = await pageAt("?desktop=1");
+  await native.getByRole("button", { name: "Shared terminal", exact: true }).waitFor();
+  const terminalCalls = () =>
+    native.evaluate(() => window.fixtureCalls.filter((call) => call.name === "firstmate.native.terminal"));
+  assert.equal((await terminalCalls()).length, 0);
+  assert.equal(await native.evaluate(() => window.navigationCalls.length), 0);
+  await native.evaluate(() => {
+    window.terminalDelay = true;
+  });
+  await native.getByRole("button", { name: "Shared terminal", exact: true }).click();
+  assert.equal(await native.getByRole("button", { name: "Preparing terminal…", exact: true }).isDisabled(), true);
+  assert.equal((await terminalCalls()).length, 1);
+  await native.getByRole("button", { name: "Open Crew", exact: true }).click();
+  await native.evaluate(() => window.finishTerminal());
+  await native.getByRole("button", { name: "FirstMate Home", exact: true }).waitFor();
+  assert.equal(await native.evaluate(() => window.navigationCalls.some((call) => call.workspace)), false);
+  await native.getByRole("button", { name: "FirstMate Home", exact: true }).click();
+  await native.evaluate(() => {
+    window.terminalDelay = false;
+    window.terminalFailure = true;
+  });
+  await native.getByRole("button", { name: "Shared terminal", exact: true }).click();
+  await native.waitForFunction(() => window.fixtureErrors.includes("Terminal host is offline"));
+  assert.equal(await native.evaluate(() => window.navigationCalls.some((call) => call.workspace)), false);
+  await native.evaluate(() => {
+    window.terminalFailure = false;
+  });
+  await native.getByRole("button", { name: "Shared terminal", exact: true }).click();
+  await native.waitForFunction(() => window.navigationCalls.some((call) => call.workspace));
+  assert.deepEqual(await native.evaluate(() => window.navigationCalls.at(-1)), {
+    workspace: { workspaceId: "sample" },
+  });
+  assert.deepEqual((await terminalCalls()).at(-1).input, { workspaceId: "sample" });
+  await native.getByRole("button", { name: "New browser", exact: true }).click();
+  assert.equal(await native.getByRole("button", { name: "Create browser tab", exact: true }).isDisabled(), true);
+  await native.getByRole("textbox", { name: "Browser URL" }).fill("javascript:alert(1)");
+  assert.equal(await native.getByRole("button", { name: "Create browser tab", exact: true }).isDisabled(), true);
+  await native.getByRole("button", { name: "Cancel", exact: true }).click();
+  assert.equal(await native.evaluate(() => window.navigationCalls.some((call) => call.browser)), false);
+  await native.getByRole("button", { name: "New browser", exact: true }).click();
+  await native.getByRole("textbox", { name: "Browser URL" }).fill("http://localhost:3000");
+  await native.screenshot({ path: join(generated, "new-browser.png") });
+  await native.evaluate(() => {
+    window.browserFailure = true;
+  });
+  await native.getByRole("button", { name: "Create browser tab", exact: true }).click();
+  await native.getByText("Browser host is unavailable", { exact: true }).waitFor();
+  await native.evaluate(() => {
+    window.browserFailure = false;
+  });
+  await native.getByRole("button", { name: "Create browser tab", exact: true }).click();
+  assert.deepEqual(await native.evaluate(() => window.navigationCalls.filter((call) => call.browser)), [
+    { browser: { workspaceId: "sample", url: "http://localhost:3000/" } },
+  ]);
+  await native.close();
   assert.deepEqual(errors, []);
   console.log(
-    "Shell render checks passed: Home/Board/Crew/office Deck, light/dark, phone, workspace routing, adoption guard, attention, canvas teardown.",
+    "Shell render checks passed: Home/Board/Crew/office Deck, themes/phone, routing/attention/teardown, explicit terminal/browser creation, unavailable/error/retry and no navigation after unmount.",
   );
 } finally {
   await browser.close();

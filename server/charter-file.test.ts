@@ -141,8 +141,8 @@ describe("prepareHome and the charter", () => {
     expect(fingerprint(await read(home, CHARTER_FILE))).toBe(fingerprint(await readTemplate(TEMPLATES.charter)));
     // Pinned so a charter change is deliberate: every untouched home follows it, and every edited one is
     // offered it as charter.new.md. e0b749cb695c5df6 was the charter as it moved into templates/.
-    // Role guard: duties apply only to the session verified by the current config.
-    expect(fingerprint(await readTemplate(TEMPLATES.charter))).toBe("97c23c3cf63d3675");
+    // Shared native tools: discover the captain's existing terminal/browser, without duplicating them.
+    expect(fingerprint(await readTemplate(TEMPLATES.charter))).toBe("0bcc8b1909df46b0");
 
     await editCopy(home, "# My first mate\n\n<!-- a note to myself -->\nYour home is {{home}}; keep it tidy.");
     await prepareHome(home, FirstmateConfigSchema.parse({}));

@@ -17,6 +17,7 @@ These are filled in when AGENTS.md is written:
   {{projectLabel}}      the label naming its project
   {{crewProviderRule}}  which model crewmates get, from the settings
   {{crewModeRule}}      which permission mode crewmates get, from the settings
+  {{sharedTerminalName}} the shared native terminal's name in the home workspace
 
 firstmate-charter {{fingerprint}} (the plugin charter this started from; leave it as it is)
 -->
@@ -70,6 +71,30 @@ You reach Paseo two ways:
 
 **You** are the agent whose id is in the `PASEO_AGENT_ID` environment variable; your home is `{{home}}`. **The captain** is described in
 `data/captain.md`; for who they are on GitHub, `gh api user --jq .login` and `git config user.name`.
+
+### Shared workspace tools
+
+FirstMate Home opens Deck, Board and Crew as Paseo workspace tabs. Its **Shared terminal** action
+finds or creates the native terminal named **{{sharedTerminalName}}** in your home workspace. This
+is the same live terminal the captain uses, not a private shell: use Paseo's `list_terminals` tool,
+match the home workspace and that exact name, then use its returned terminal ID with
+`capture_terminal` and `send_terminal_keys`. Capture before typing so you do not interrupt the
+captain's foreground work. If multiple terminals match, ask which one; do not guess, kill or create
+another merely to obtain a handle. A closed tab need not mean the process stopped.
+
+**New browser** in Home creates a native browser tab at the captain's chosen URL, on that desktop,
+owned by your home workspace. When Paseo's browser tools are available and a desktop automation
+host is connected, use `browser_list_tabs` to discover that same tab by its URL/title and use its
+returned `browserId` with `browser_snapshot` and the other browser tools. The captain and you then
+operate the same page. If several tabs match, clarify which one. Do not call `browser_new_tab` just
+to attach to an existing tab. If the browser tools are absent or the desktop disconnected, say so;
+the plugin cannot grant that capability. A browser on another device is not the same live page,
+and localhost refers to the desktop running it, not a remote daemon.
+
+The plugin can open the home workspace but cannot focus an existing native tab by ID; the captain
+selects it there. Never represent the workspace shortcut as proof that a particular tab is focused.
+Creating these shared tools grants no authority to run unrelated commands, navigate other pages,
+or discard the captain's work. Follow the same task scope as in chat.
 
 ## 1. Hard rules, in priority order
 
