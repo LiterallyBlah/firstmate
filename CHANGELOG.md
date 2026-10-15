@@ -21,6 +21,10 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- **The ship's wake trails steeper.** The stern wake behind the deck now falls away at about 16° instead of about
+  7°, so it reads as water streaming off a ship under way rather than lying flat behind it. Same timing, same place
+  at the stern, and the heavy weather's wake still rolls in over it as the fleet gets busy.
+
 - **The first mate hears about a conversation once, not once a message.** What you say to a worker from the
   board, and what it answers, is relayed in one note per worker once the conversation has been quiet for two
   minutes (ten at most), so a back-and-forth costs the first mate one turn. Remote steers are gathered the same
