@@ -38,11 +38,19 @@ export function useRpc(contract) {
 }
 
 // The render/overlay harness selects the same global display field as the app, from ?setting=.
-let selectedSetting = new URLSearchParams(location.search).get("setting") ?? "ship";
+const params = new URLSearchParams(location.search);
+// Opt-in browser storage stands in for the host's persisted document during the switcher reload check.
+const persistScene = params.get("persistScene") === "1";
+let selectedSetting = (persistScene ? localStorage.getItem("firstmate-deck-setting") : null) ?? params.get("setting") ?? "ship";
 const settingListeners = new Set();
 window.selectDeckSetting = (id) => { selectedSetting = id; for (const listener of settingListeners) listener(); };
 export function useSettings(contract) {
   const settings = boardListSettings(contract);
   const deckSetting = useSyncExternalStore((listener) => { settingListeners.add(listener); return () => settingListeners.delete(listener); }, () => selectedSetting);
-  return { ...settings, values: { ...settings.values, deckSetting }, save: async (next) => { window.selectDeckSetting(next.deckSetting ?? "ship"); return settings.save(next); } };
+  return { ...settings, values: { ...settings.values, deckSetting }, save: async (next) => {
+    if (window.failSceneSave) return false;
+    if (persistScene) localStorage.setItem("firstmate-deck-setting", next.deckSetting ?? "ship");
+    window.selectDeckSetting(next.deckSetting ?? "ship");
+    return settings.save(next);
+  } };
 }

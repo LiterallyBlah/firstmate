@@ -464,7 +464,9 @@ FirstMate's has changed. The first mate adds or changes a watch only when you sa
 
 ## Deck settings: ship and office
 
-Choose **Ship's deck** (the default) or **The office** in Settings > Plugins > FirstMate > Deck setting.
+Open **Deck** from FirstMate Home, then use **Scene** in the Deck toolbar to choose **Ship's deck**
+(the default), **The office**, or another installed compatible scene. This is a global choice for the
+whole fleet, saved across sessions. The same choice is available in Settings > Plugins > FirstMate > Deck setting.
 The choice applies to the whole fleet. Both use the same scene engine, crew states, badges, interactions,
 focus controls and motion rules; each setting is a JSON manifest plus PNGs in `art/settings/`.
 

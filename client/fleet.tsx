@@ -61,6 +61,7 @@ import { hostTabs, onTab, shownHostTab } from "./host-tabs";
 import { HostTabRow } from "./host-tab-row";
 import { HostHealthCard, useRemotes } from "./remotes";
 import { SelectedDeckView } from "./deck-setting-view";
+import { DeckSceneSwitcher } from "./deck-scene-switcher";
 import { SuggestionStrip } from "./suggestions";
 import { TaskList } from "./task-list";
 import { ItemTagFilter } from "./item-tags";
@@ -882,6 +883,7 @@ function FleetViewBody({
           <View style={styles.headerRow}>
             <Text style={styles.title}>{FLEET_PANELS[view].title}</Text>
             <View style={styles.spacer} />
+            {view === "deck" && deck ? <DeckSceneSwitcher theme={theme} /> : null}
             {shell === undefined ? null : (
               <IconButton theme={theme} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
             )}

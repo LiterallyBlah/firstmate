@@ -456,8 +456,10 @@ is recorded in `docs/deck-settings/README.md`. The two built-in packs are `art/s
   handed to the crew, the geometry and the renderer; caches are keyed by id (`packOnce` in `client/deck-mount.ts`)
   or held on the compiled floor; and the view takes the id as a prop (`setting`, the default
   `DEFAULT_DECK_SETTING`), so choosing one globally now and per project later changes neither the engine nor the format.
-- **Global selection** lives in `displaySettings.deckSetting`, default `ship`, chosen in Settings > Plugins >
-  FirstMate > Deck setting. The picker lists installed pack previews, disabling incompatible choices with their
+- **Global selection** lives in `displaySettings.deckSetting`, default `ship`, chosen through **Scene** in the
+  Deck workspace toolbar (`client/deck-scene-switcher.tsx`) or Settings > Plugins > FirstMate > Deck setting.
+  The toolbar saves the host document at its current revision and reports a failed save without changing the scene.
+  The picker lists installed pack previews, disabling incompatible choices with their
   reason. `resolveDeckSetting(display, scope, installed)` handles the fleet scope now; a future project resolver
   changes selection alone. Missing, incompatible or failed choices fall back to ship with a notice, leaving the
   saved choice intact. A changed resolved id remounts the view, clearing focus, hover and pending loads. The canvas
