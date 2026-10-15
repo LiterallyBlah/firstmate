@@ -1,0 +1,116 @@
+[
+  {
+    "name": "room",
+    "prompt": "Use case: stylized-concept. Generate source raster pixel art for a game office room shell. Aspect 7:4 (420x240 logical pixels, enlarged source acceptable). Three-quarter slightly top-down cosy open-plan office, orthographic not isometric diamond. Crisp chunky square pixels, restrained 24-colour palette: ink #18232E #293B49, slate #425563 #657781 #95A3A8, cream #CCD0C6 #F0E5CE, warm wood #594A42 #80604B #B7835C #D8AB7C, teal #3D5B65 #5C8390. Flat opaque scene fills entire canvas, no external border. Top 36% is back wall, lower 64% empty light slate carpet with extremely subtle tile seams. Three evenly spaced large rectangular city windows across upper wall; sill height about 26% of image. A narrow horizontal glass strip under them across left two thirds. Far right small open dark lift shaft at wall/floor junction. Important: absolutely NO people, chairs, desks, kitchen counters, clocks, lamps or other foreground furniture; these come as separate sprites. No plants or rugs in floor area. Pixel-art architectural wall panels and wood trim only. Floor must remain completely clear. No text, logos, icons, badges, antialias, blur, gradients, painted texture. The room is a rectangular game background.",
+    "source": "sources/room.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "navy",
+    "prompt": "Use case: stylized-concept. Asset type: pixel-art office colleague animation source sheet. Exactly TEN full-body poses of ONE identical adult office colleague arranged on a regular FIVE columns by TWO rows grid, each cell equal, no border, no labels, no text, transparent background. Each figure will be reduced to a 24x32 logical-pixel frame: chunky simple square pixels, limited colours, readable silhouette, dark ink outline, no shading gradients, NO antialiasing, no blur. Keep generous transparent space between figures, every figure entirely inside its cell, identical scale and foot baseline. Top row left-to-right: 1 front neutral standing with both arms down; 2 walking toward viewer left foot forward; 3 walking toward viewer right foot forward; 4 walking profile RIGHT left stride; 5 walking profile RIGHT right stride. Bottom row: 6 seated typing profile RIGHT with arms forward and bent knees, no desk or keyboard; 7 same seated typing profile RIGHT, moving ONLY hands; 8 front standing holding small cream mug at chest; 9 front standing with one hand on head; 10 relaxed reclining on small office chair fully inside cell, feet near same bottom baseline. Head/body/feet absolutely identical in typing pair. No held objects except mug. Office clothes and shoes, no hats, weapons, badges or speech bubbles. Palette: #18232E #293B49 #425563 #657781 #95A3A8 #CCD0C6 #F0E5CE #FFFFFF #594A42 #80604B #B7835C #D8AB7C #F2CBA5 #3D5B65 #5C8390 #8CB6BD #3B6658 #6B9472 #A5B98A #B68C45 #D8B765 #76566F #AB7683 #B7674F. Character: medium-light warm skin, short dark-brown wavy hair, navy blazer over cream shirt, charcoal trousers, dark shoes.",
+    "source": "sources/navy.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "teal",
+    "prompt": "Use case: stylized-concept. Asset type: pixel-art office colleague animation source sheet. Exactly TEN full-body poses of ONE identical adult office colleague arranged on a regular FIVE columns by TWO rows grid, each cell equal, no border, no labels, no text, transparent background. Each figure will be reduced to a 24x32 logical-pixel frame: chunky simple square pixels, limited colours, readable silhouette, dark ink outline, no shading gradients, NO antialiasing, no blur. Keep generous transparent space between figures, every figure entirely inside its cell, identical scale and foot baseline. Top row left-to-right: 1 front neutral standing with both arms down; 2 walking toward viewer left foot forward; 3 walking toward viewer right foot forward; 4 walking profile RIGHT left stride; 5 walking profile RIGHT right stride. Bottom row: 6 seated typing profile RIGHT with arms forward and bent knees, no desk or keyboard; 7 same seated typing profile RIGHT, moving ONLY hands; 8 front standing holding small cream mug at chest; 9 front standing with one hand on head; 10 relaxed reclining on small office chair fully inside cell, feet near same bottom baseline. Head/body/feet absolutely identical in typing pair. No held objects except mug. Office clothes and shoes, no hats, weapons, badges or speech bubbles. Palette: #18232E #293B49 #425563 #657781 #95A3A8 #CCD0C6 #F0E5CE #FFFFFF #594A42 #80604B #B7835C #D8AB7C #F2CBA5 #3D5B65 #5C8390 #8CB6BD #3B6658 #6B9472 #A5B98A #B68C45 #D8B765 #76566F #AB7683 #B7674F. Character: dark brown skin, short rounded black curls, teal cardigan and pale shirt, dark trousers, dark shoes.",
+    "source": "sources/teal.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "ochre",
+    "prompt": "Use case: stylized-concept. Asset type: pixel-art office colleague animation source sheet. Exactly TEN full-body poses of ONE identical adult office colleague arranged on a regular FIVE columns by TWO rows grid, each cell equal, no border, no labels, no text, transparent background. Each figure will be reduced to a 24x32 logical-pixel frame: chunky simple square pixels, limited colours, readable silhouette, dark ink outline, no shading gradients, NO antialiasing, no blur. Keep generous transparent space between figures, every figure entirely inside its cell, identical scale and foot baseline. Top row left-to-right: 1 front neutral standing with both arms down; 2 walking toward viewer left foot forward; 3 walking toward viewer right foot forward; 4 walking profile RIGHT left stride; 5 walking profile RIGHT right stride. Bottom row: 6 seated typing profile RIGHT with arms forward and bent knees, no desk or keyboard; 7 same seated typing profile RIGHT, moving ONLY hands; 8 front standing holding small cream mug at chest; 9 front standing with one hand on head; 10 relaxed reclining on small office chair fully inside cell, feet near same bottom baseline. Head/body/feet absolutely identical in typing pair. No held objects except mug. Office clothes and shoes, no hats, weapons, badges or speech bubbles. Palette: #18232E #293B49 #425563 #657781 #95A3A8 #CCD0C6 #F0E5CE #FFFFFF #594A42 #80604B #B7835C #D8AB7C #F2CBA5 #3D5B65 #5C8390 #8CB6BD #3B6658 #6B9472 #A5B98A #B68C45 #D8B765 #76566F #AB7683 #B7674F. Character: warm tan skin, short silver-grey hair, ochre sweater, slate trousers, brown shoes.",
+    "source": "sources/ochre.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "plum",
+    "prompt": "Use case: stylized-concept. Asset type: pixel-art office colleague animation source sheet. Exactly TEN full-body poses of ONE identical adult office colleague arranged on a regular FIVE columns by TWO rows grid, each cell equal, no border, no labels, no text, transparent background. Each figure will be reduced to a 24x32 logical-pixel frame: chunky simple square pixels, limited colours, readable silhouette, dark ink outline, no shading gradients, NO antialiasing, no blur. Keep generous transparent space between figures, every figure entirely inside its cell, identical scale and foot baseline. Top row left-to-right: 1 front neutral standing with both arms down; 2 walking toward viewer left foot forward; 3 walking toward viewer right foot forward; 4 walking profile RIGHT left stride; 5 walking profile RIGHT right stride. Bottom row: 6 seated typing profile RIGHT with arms forward and bent knees, no desk or keyboard; 7 same seated typing profile RIGHT, moving ONLY hands; 8 front standing holding small cream mug at chest; 9 front standing with one hand on head; 10 relaxed reclining on small office chair fully inside cell, feet near same bottom baseline. Head/body/feet absolutely identical in typing pair. No held objects except mug. Office clothes and shoes, no hats, weapons, badges or speech bubbles. Palette: #18232E #293B49 #425563 #657781 #95A3A8 #CCD0C6 #F0E5CE #FFFFFF #594A42 #80604B #B7835C #D8AB7C #F2CBA5 #3D5B65 #5C8390 #8CB6BD #3B6658 #6B9472 #A5B98A #B68C45 #D8B765 #76566F #AB7683 #B7674F. Character: light warm skin, auburn bob haircut, plum blouse/cardigan, charcoal trousers, brown shoes. Adult woman.",
+    "source": "sources/plum.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "rust",
+    "prompt": "Use case: stylized-concept. Asset type: pixel-art office colleague animation source sheet. Exactly TEN full-body poses of ONE identical adult office colleague arranged on a regular FIVE columns by TWO rows grid, each cell equal, no border, no labels, no text, transparent background. Each figure will be reduced to a 24x32 logical-pixel frame: chunky simple square pixels, limited colours, readable silhouette, dark ink outline, no shading gradients, NO antialiasing, no blur. Keep generous transparent space between figures, every figure entirely inside its cell, identical scale and foot baseline. Top row left-to-right: 1 front neutral standing with both arms down; 2 walking toward viewer left foot forward; 3 walking toward viewer right foot forward; 4 walking profile RIGHT left stride; 5 walking profile RIGHT right stride. Bottom row: 6 seated typing profile RIGHT with arms forward and bent knees, no desk or keyboard; 7 same seated typing profile RIGHT, moving ONLY hands; 8 front standing holding small cream mug at chest; 9 front standing with one hand on head; 10 relaxed reclining on small office chair fully inside cell, feet near same bottom baseline. Head/body/feet absolutely identical in typing pair. No held objects except mug. Office clothes and shoes, no hats, weapons, badges or speech bubbles. Palette: #18232E #293B49 #425563 #657781 #95A3A8 #CCD0C6 #F0E5CE #FFFFFF #594A42 #80604B #B7835C #D8AB7C #F2CBA5 #3D5B65 #5C8390 #8CB6BD #3B6658 #6B9472 #A5B98A #B68C45 #D8B765 #76566F #AB7683 #B7674F. Character: medium brown skin, dark swept-back hair tied in low bun, rust-red sweater, navy trousers, dark shoes. Adult woman.",
+    "source": "sources/rust.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "slate",
+    "prompt": "Use case: stylized-concept. Asset type: pixel-art office colleague animation source sheet. Exactly TEN full-body poses of ONE identical adult office colleague arranged on a regular FIVE columns by TWO rows grid, each cell equal, no border, no labels, no text, transparent background. Each figure will be reduced to a 24x32 logical-pixel frame: chunky simple square pixels, limited colours, readable silhouette, dark ink outline, no shading gradients, NO antialiasing, no blur. Keep generous transparent space between figures, every figure entirely inside its cell, identical scale and foot baseline. Top row left-to-right: 1 front neutral standing with both arms down; 2 walking toward viewer left foot forward; 3 walking toward viewer right foot forward; 4 walking profile RIGHT left stride; 5 walking profile RIGHT right stride. Bottom row: 6 seated typing profile RIGHT with arms forward and bent knees, no desk or keyboard; 7 same seated typing profile RIGHT, moving ONLY hands; 8 front standing holding small cream mug at chest; 9 front standing with one hand on head; 10 relaxed reclining on small office chair fully inside cell, feet near same bottom baseline. Head/body/feet absolutely identical in typing pair. No held objects except mug. Office clothes and shoes, no hats, weapons, badges or speech bubbles. Palette: #18232E #293B49 #425563 #657781 #95A3A8 #CCD0C6 #F0E5CE #FFFFFF #594A42 #80604B #B7835C #D8AB7C #F2CBA5 #3D5B65 #5C8390 #8CB6BD #3B6658 #6B9472 #A5B98A #B68C45 #D8B765 #76566F #AB7683 #B7674F. Character: deep brown skin, short silver hair and tidy beard, slate blue-grey jacket over cream shirt, charcoal trousers, brown shoes. Adult man.",
+    "source": "sources/slate.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "desk-front",
+    "prompt": "Use case: stylized-concept. Pixel art game furniture source, chunky crisp square pixels, limited muted palette, no antialiasing or gradients. A single row of SIX identical joined office desks viewed from the front and slightly above, an extremely wide thin isolated sprite with transparent background. Long warm oak desktop, six equal leg-space bays and slim slate drawer pedestals, modest depth. No monitors, chairs, people, lamps, books. This will be a 260x22 logical pixel depth overlay. Entire row fits canvas, six equal repeated units. Hard dark outlines, cream highlights, oak shades #594A42 #80604B #B7835C #D8AB7C and slate #293B49 #425563 #657781. No cast shadow outside silhouette.",
+    "source": "sources/desk-front.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "printer",
+    "prompt": "Use case: stylized-concept. Pixel art game furniture source, chunky crisp square pixels, limited muted palette, no antialiasing or gradients. One compact office printer on a low wheeled cabinet, paper tray with a few white sheets at top, three-quarter view, facing viewer and slightly left, isolated with transparent background. Entire asset fits 20x24 logical pixels. Strong chunky pixel blocks and dark outlines, slate blue-grey casing, cream paper, tiny teal indicator, no text. No shadow outside silhouette.",
+    "source": "sources/printer.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "help-desk",
+    "prompt": "Use case: stylized-concept. Pixel art game furniture source, chunky crisp square pixels, limited muted palette, no antialiasing or gradients. A small single help desk counter with one compact monitor on the left, three-quarter view from front and above, isolated transparent sprite 32x24 logical pixels. Warm oak wood counter, slate panel front, cream trim, small teal-screen monitor. Different from the long working desks. No people, words, logos, badges, external shadows.",
+    "source": "sources/help-desk.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "coffee-counter",
+    "prompt": "Use case: stylized-concept. Pixel art game furniture source, chunky crisp square pixels, limited muted palette, no antialiasing or gradients. Small kitchenette coffee cabinet 32x28 logical pixel sprite, three-quarter front view, transparent background. Warm oak cabinet base with double doors, slate worktop. A cream coffee mug centered at the TOP centre of the object; the mug rim must be at local x16 y4 of 32x28 image. Small dark coffee machine to left of cup. No steam, no people, text, badges, logos or external shadow. Full cabinet contained in canvas.",
+    "source": "sources/coffee-counter.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "city",
+    "prompt": "Use case: stylized-concept. Game pixel-art source raster. Wide panoramic city skyline pixel art, 7:3 aspect, for a window backdrop 420x180 logical pixels. Entire image opaque. Crisp architectural silhouettes, modest office towers, low rooftops, water tanks and antenna details, viewed straight-on at distant high floor. Skyline horizon/roofline average row120 (two thirds down); buildings fill bottom third, some towers rise to middle. Flat horizontal pale blue sky bands and two sparse cream block clouds. No foreground, no frame, no sun, no text, no logos. Buildings dark slate #293B49 #425563 #657781 #95A3A8, sky ONLY #657F9A #8EAABE #B6CBCE #D6DFD3 #F0E5CE #FFFFFF. Small rectangular window clusters, some warm #B68C45 #D8B765; these will become the separate registered night lights. Hard pixel clusters, no noise, gradients or antialiasing.",
+    "source": "sources/city.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "pigeon",
+    "prompt": "Use case: stylized-concept. Game pixel-art source raster. Three small pigeon flight poses on ONE horizontal row, equally spaced, same scale and body center: LEFT wings UP, MIDDLE wings LEVEL gliding horizontally, RIGHT wings DOWN. All face RIGHT. True transparent background, no ground/shadows. Each must fit 24x16 logical pixel frame. Chunky clean pixel art, grey-blue pigeons with dark blue head, subtle green neck, short brown beak, 1px eye. Limited palette #18232E #293B49 #425563 #657781 #95A3A8 #CCD0C6 #3B6658 #B7835C. No text, no letters, no decorative icons, no outlines around cells.",
+    "source": "sources/pigeon.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "clock",
+    "prompt": "Use case: stylized-concept. Game pixel-art source raster. One tiny round office wall clock front-on, isolated on truly transparent background, intended 16x16 logical pixels. Thick dark slate round rim, cream face, four cardinal tick marks, no numerals or letters. BOTH short and long hands point straight UP at 12 oclock. Very simple chunky pixel art in #18232E #425563 #95A3A8 #F0E5CE. Clean stepped circular silhouette, no shadows or gradients, no text or other objects.",
+    "source": "sources/clock.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "coffee-steam",
+    "prompt": "Use case: stylized-concept. Game pixel-art source raster. Three VERY modest small steam wisps on a single row with identical transparent frame boxes, left low, middle drifting upward, right higher. No cup and no other objects. Each isolated steam shape fits 16x20 logical pixels, curling upward from same bottom-centre point. Delicate discrete stair-step pixel wisps, two strands each, no thick smoke puff. All opacity solid; transparent between thin strands. Colours only #95A3A8 #CCD0C6 #F0E5CE. No shading, blur, antialiasing, background, text or cell boundaries.",
+    "source": "sources/coffee-steam.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "quiet",
+    "prompt": "Use case: stylized-concept. Very wide shallow strip of distant office interior behind glass, 248x18 logical pixel proportions (approximately14:1). Make an opaque panoramic long row of office desks and monitors, pale teal glass colour, slate shadow shapes, a few ceiling lights at top. Three tiny distant seated colleague silhouettes across whole row, no foreground people. Strong tiny simple silhouettes, muted #3D5B65 #5C8390 #8CB6BD #425563 #657781 #95A3A8 #CCD0C6. No words or symbols, no labels. The strip should fill entire image to all four edges. Crisp chunky pixel art, no antialias, no gradients. Furniture architecture will be reused exactly for denser crowd variant.",
+    "source": "sources/quiet.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "lift-doors",
+    "prompt": "Use case: stylized-concept. Single closed office elevator double door sprite viewed straight-on. Intended exact 32x48 logical pixels. Whole rectangular frame fits image, tall dark slate metal jamb 2px on each side and lintel at top, two symmetrical vertical brushed slate-blue leaves meeting in a dark centre seam, light vertical highlights. No wall outside frame, no buttons, no signs, no numbers, no perspective, no shadows. Transparent background outside rectangle. Colours #18232E #293B49 #425563 #657781 #95A3A8 #CCD0C6. Very simple clean square pixel art; flat shade panels no gradients. This will be split to generate open/half/closed frames.",
+    "source": "sources/lift-doors.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "confetti",
+    "prompt": "Use case: stylized-concept. Sprite animation source: exactly THREE small confetti bursts in a single row on transparent background. First POP small narrow burst near lower-right corner of its cell, second SPREAD fans upward and LEFT into cell, third FALL with separated paper bits drifting down and further left. Each intended 48x40 logical pixel frame. Keep all bits contained in own frame, blank space between groups. Origin at local [36,40] (bottom towards right), burst biased LEFT, never extends to right of its cell. Only sparse rectangular 1x2 and 2x2 paper specks of muted teal, ochre, cream, plum and rust colours #5C8390 #D8B765 #F0E5CE #76566F #B7674F. No glow, no flash, no star symbols, no lines or text, no background or ground. Pixel art no antialias.",
+    "source": "sources/confetti.png",
+    "tool": "built-in image_gen.imagegen"
+  },
+  {
+    "name": "desk-back",
+    "prompt": "Use case: stylized-concept. One small workstation office desk seen straight-on slightly from above, for low-res office pixel-art game. Isolated transparent background. ONE simple dark office chair at centre-front, ONE tiny monitor on warm oak desk at back, thin desk legs to sides. No person, no keyboard text, no lamp, no shadows. Target final 32x18 logical pixels: simple chunky shapes, very few pixels, dark navy outlines, teal chair, slate monitor with pale blue screen, warm wood tabletop. Uniform crisp square pixels, no gradients or antialias. Whole furniture fully visible.",
+    "source": "sources/desk-back.png",
+    "tool": "built-in image_gen.imagegen"
+  }
+]

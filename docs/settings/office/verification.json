@@ -1,0 +1,705 @@
+{
+  "contract": "art-contract.json",
+  "contractSha256": "67ce565efde4a510fb85864ded2802bf353d960cc08398a8c9d1cd74417c51d4",
+  "directory": "docs/settings/office/art",
+  "totalPNGs": 26,
+  "totalFrames": 99,
+  "totalBytes": 168223,
+  "maxBytes": 1000000,
+  "failures": [],
+  "assets": [
+    {
+      "id": "room",
+      "path": "room.png",
+      "size": [
+        420,
+        240
+      ],
+      "frameSize": [
+        420,
+        240
+      ],
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "palette": "base",
+      "coloursUsed": 17,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 81552,
+      "bytes": 7100,
+      "sha256": "5c5c576b7ec0e98efcda13641c13e20dd52e8b131082b53ea2886a3f7e980590",
+      "result": "PASS"
+    },
+    {
+      "id": "desk-front",
+      "path": "desk-front.png",
+      "size": [
+        260,
+        22
+      ],
+      "frameSize": [
+        260,
+        22
+      ],
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "palette": "base",
+      "coloursUsed": 13,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 4766,
+      "bytes": 2806,
+      "sha256": "f9b81e9de175abf24a5241d479a9d130320141cba74209dc2d55482645ebaa3d",
+      "result": "PASS"
+    },
+    {
+      "id": "printer",
+      "path": "props/printer.png",
+      "size": [
+        20,
+        24
+      ],
+      "frameSize": [
+        20,
+        24
+      ],
+      "frames": 1,
+      "anchor": [
+        10,
+        24
+      ],
+      "palette": "base",
+      "coloursUsed": 10,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 366,
+      "bytes": 810,
+      "sha256": "4381dbfa5d7bb13f7e588e1c40a39f5a48b181c2a843d03e0ea4808ccd88329d",
+      "result": "PASS"
+    },
+    {
+      "id": "help-desk",
+      "path": "props/help-desk.png",
+      "size": [
+        32,
+        24
+      ],
+      "frameSize": [
+        32,
+        24
+      ],
+      "frames": 1,
+      "anchor": [
+        16,
+        24
+      ],
+      "palette": "base",
+      "coloursUsed": 18,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 472,
+      "bytes": 1210,
+      "sha256": "91fde8069fc5febba6e617acb26143b6185e43a22be885d0c7f7d072c7726f8c",
+      "result": "PASS"
+    },
+    {
+      "id": "coffee-counter",
+      "path": "props/coffee-counter.png",
+      "size": [
+        32,
+        28
+      ],
+      "frameSize": [
+        32,
+        28
+      ],
+      "frames": 1,
+      "anchor": [
+        16,
+        28
+      ],
+      "palette": "base",
+      "coloursUsed": 14,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 651,
+      "bytes": 1235,
+      "sha256": "5133784b54954d7ec3816888abc0369cca8d937b0a0b04e10deddc32e9595573",
+      "result": "PASS"
+    },
+    {
+      "id": "colleague-navy",
+      "path": "cast/navy.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": 10,
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "coloursUsed": 20,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 2424,
+      "bytes": 6366,
+      "sha256": "448774c03a6b5faa5a658f1be025c38ed74af9936bd6cab08d226832fee4947b",
+      "result": "PASS"
+    },
+    {
+      "id": "colleague-teal",
+      "path": "cast/teal.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": 10,
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "coloursUsed": 16,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 2369,
+      "bytes": 4785,
+      "sha256": "2fd260e49a12556684de00b16874a83ab563d33d6126df9c91ef192d5ffa7c0f",
+      "result": "PASS"
+    },
+    {
+      "id": "colleague-ochre",
+      "path": "cast/ochre.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": 10,
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "coloursUsed": 19,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 2440,
+      "bytes": 6328,
+      "sha256": "d1b0a42c248bbcf08d0987ec946aef2f763753c2dd90e39bafa1b05f28534529",
+      "result": "PASS"
+    },
+    {
+      "id": "colleague-plum",
+      "path": "cast/plum.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": 10,
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "coloursUsed": 16,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 2192,
+      "bytes": 5918,
+      "sha256": "9a144bc967bd5f7ef572160d50cf87a475b2ed54a2d00eff0fdd4ed04bfc2e54",
+      "result": "PASS"
+    },
+    {
+      "id": "colleague-rust",
+      "path": "cast/rust.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": 10,
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "coloursUsed": 12,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 2208,
+      "bytes": 4567,
+      "sha256": "11303711de58f48e3e63a8e40ba4e89687e0d5c0d0a5a2288eb721a4cbb1b9ba",
+      "result": "PASS"
+    },
+    {
+      "id": "colleague-slate",
+      "path": "cast/slate.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": 10,
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "coloursUsed": 18,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 2395,
+      "bytes": 5693,
+      "sha256": "bd2178e139df18aff4184ea82500b138946040ee418809e41f455f05cf50e16f",
+      "result": "PASS"
+    },
+    {
+      "id": "city-dawn",
+      "path": "city/dawn.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": 1,
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:dawn",
+      "coloursUsed": 11,
+      "alpha": [
+        255
+      ],
+      "visiblePixels": 75600,
+      "bytes": 15697,
+      "sha256": "7ce5b2186bf95bd1e619f291d4f8299734606e314310422fb92d0b72e29753c1",
+      "result": "PASS"
+    },
+    {
+      "id": "city-morning",
+      "path": "city/morning.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": 1,
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:morning",
+      "coloursUsed": 11,
+      "alpha": [
+        255
+      ],
+      "visiblePixels": 75600,
+      "bytes": 15611,
+      "sha256": "c1088b793cf94f3d4f20ea7319508dca161271378ff2e2e7c27ca4cd8c0893e4",
+      "result": "PASS"
+    },
+    {
+      "id": "city-midday",
+      "path": "city/midday.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": 1,
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:midday",
+      "coloursUsed": 11,
+      "alpha": [
+        255
+      ],
+      "visiblePixels": 75600,
+      "bytes": 15416,
+      "sha256": "4d03e5fa01ab407e7fe628eb36a4e9e736519a3d9b7cea903a3e8c3f8f3fd4b4",
+      "result": "PASS"
+    },
+    {
+      "id": "city-afternoon",
+      "path": "city/afternoon.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": 1,
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:afternoon",
+      "coloursUsed": 11,
+      "alpha": [
+        255
+      ],
+      "visiblePixels": 75600,
+      "bytes": 15749,
+      "sha256": "9d526b0e4b4d9295bf5d7c60cd3f4e1d7d46b3cf4f3679c327c98653e8fc41c6",
+      "result": "PASS"
+    },
+    {
+      "id": "city-dusk",
+      "path": "city/dusk.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": 1,
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:dusk",
+      "coloursUsed": 11,
+      "alpha": [
+        255
+      ],
+      "visiblePixels": 75600,
+      "bytes": 15512,
+      "sha256": "fa56e24a3789146588cdc12cd13c60abb4eb5c8dd1bad491307cf653b96b2b3e",
+      "result": "PASS"
+    },
+    {
+      "id": "city-night",
+      "path": "city/night.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": 1,
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:night",
+      "coloursUsed": 11,
+      "alpha": [
+        255
+      ],
+      "visiblePixels": 75600,
+      "bytes": 15834,
+      "sha256": "bdd6eca82353dc0847e8d728d671c4b1f0e2244586fa1bb3eb5e47f4d3aac5c9",
+      "result": "PASS"
+    },
+    {
+      "id": "city-lights",
+      "path": "city/lights.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": 1,
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "lights",
+      "coloursUsed": 2,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 928,
+      "bytes": 3448,
+      "sha256": "cee7c21ed068d3e8c19ea8b588553f0412233b9a72e7ddc59d065933e9273e37",
+      "result": "PASS"
+    },
+    {
+      "id": "pigeon",
+      "path": "pigeon.png",
+      "size": [
+        72,
+        16
+      ],
+      "frameSize": [
+        24,
+        16
+      ],
+      "frames": 3,
+      "anchor": [
+        12,
+        8
+      ],
+      "palette": "base",
+      "coloursUsed": 13,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 270,
+      "bytes": 965,
+      "sha256": "bd90bedde061268b1b8c1705a64008a490605174f35ad8def3d6e02bd6afb06c",
+      "result": "PASS"
+    },
+    {
+      "id": "clock",
+      "path": "clock.png",
+      "size": [
+        192,
+        16
+      ],
+      "frameSize": [
+        16,
+        16
+      ],
+      "frames": 12,
+      "anchor": [
+        8,
+        8
+      ],
+      "palette": "base",
+      "coloursUsed": 4,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 2304,
+      "bytes": 2733,
+      "sha256": "c4c8f7830c7d3d2499808d0e9ac6e60a706043897bcfe383f904c220878e7a7f",
+      "result": "PASS"
+    },
+    {
+      "id": "coffee-steam",
+      "path": "coffee-steam.png",
+      "size": [
+        48,
+        20
+      ],
+      "frameSize": [
+        16,
+        20
+      ],
+      "frames": 3,
+      "anchor": [
+        8,
+        20
+      ],
+      "palette": "steam",
+      "coloursUsed": 3,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 49,
+      "bytes": 331,
+      "sha256": "b38e14eeb93a662f79f0edac8d8662474a1a7b6c0ca3ce1cb9d03a1f1d998556",
+      "result": "PASS"
+    },
+    {
+      "id": "quiet-floor",
+      "path": "background/quiet.png",
+      "size": [
+        248,
+        18
+      ],
+      "frameSize": [
+        248,
+        18
+      ],
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "palette": "base",
+      "coloursUsed": 12,
+      "alpha": [
+        255
+      ],
+      "visiblePixels": 4464,
+      "bytes": 4030,
+      "sha256": "619418eab97b163372240daaac4bc95b74168b62089b7483760da55b733ce9a9",
+      "result": "PASS"
+    },
+    {
+      "id": "busy-floor",
+      "path": "background/busy.png",
+      "size": [
+        248,
+        18
+      ],
+      "frameSize": [
+        248,
+        18
+      ],
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "palette": "base",
+      "coloursUsed": 12,
+      "alpha": [
+        255
+      ],
+      "visiblePixels": 4464,
+      "bytes": 4199,
+      "sha256": "1d7ca598787bd13428db5d3cbb4dc7a6af69193bcca6668c8d55b69e011c3238",
+      "result": "PASS"
+    },
+    {
+      "id": "lift-doors",
+      "path": "effects/lift-doors.png",
+      "size": [
+        96,
+        48
+      ],
+      "frameSize": [
+        32,
+        48
+      ],
+      "frames": 3,
+      "anchor": [
+        16,
+        48
+      ],
+      "palette": "base",
+      "coloursUsed": 6,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 2718,
+      "bytes": 649,
+      "sha256": "0f90677c53f0a89a5c3e58ba04f7b976502abbfb7bd6dce56ac7d4ef217d80f8",
+      "result": "PASS"
+    },
+    {
+      "id": "confetti",
+      "path": "effects/confetti.png",
+      "size": [
+        144,
+        40
+      ],
+      "frameSize": [
+        48,
+        40
+      ],
+      "frames": 3,
+      "anchor": [
+        36,
+        40
+      ],
+      "palette": "base",
+      "coloursUsed": 8,
+      "alpha": [
+        0,
+        255
+      ],
+      "visiblePixels": 191,
+      "bytes": 832,
+      "sha256": "5aae4613837db0d53a13da9d917d6b8554b7c369474e07a34b381940940a6653",
+      "result": "PASS"
+    },
+    {
+      "id": "preview",
+      "path": "preview.png",
+      "size": [
+        210,
+        120
+      ],
+      "frameSize": [
+        210,
+        120
+      ],
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "palette": "base",
+      "coloursUsed": 24,
+      "alpha": [
+        255
+      ],
+      "visiblePixels": 25200,
+      "bytes": 10399,
+      "sha256": "17527d47cbd2c4a388a1b103ada40bbe35484a5bc9c881b5eaff5a0dc4219847",
+      "result": "PASS"
+    }
+  ]
+}
