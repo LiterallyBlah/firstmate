@@ -8,7 +8,7 @@
  *   plugin's folder; built by `docs/ship-deck-art/build-art.py`.
  * - `firstmate.deck.environment` — the generated sea, sky and gull: each image, base64, and what
  *   `art/ship-deck/environment.json` says about drawing them. See below.
- * - `firstmate.deck.extras` — the sail, the crew's extra looks, the shark and the splash: each image, base64, and what
+ * - `firstmate.deck.extras` — the sail, the crew's extra looks, the shark, the splash and the sky's clouds: each image, base64, and what
  *   `art/ship-deck/extras.json` says about drawing them. See the last note.
  */
 import { defineRpc } from "@getpaseo/plugin";
@@ -81,6 +81,9 @@ const ArtPath = z
   .regex(/^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.png$/i, "an environment image must be a relative .png path inside art/ship-deck/");
 const Size = z.tuple([z.number().int().positive(), z.number().int().positive()]);
 const Point = z.tuple([z.number().int(), z.number().int()]);
+const HexColour = z.string().regex(/^#[0-9a-f]{6}$/i, "a colour must be #RRGGBB");
+/** A cloud's three colours, shadow to highlight. */
+const CloudPalette = z.tuple([HexColour, HexColour, HexColour]);
 
 /** The six sky phases, in the order of the day. */
 export const SKY_PHASES = ["dawn", "morning", "midday", "afternoon", "dusk", "night"] as const;
@@ -149,7 +152,8 @@ export type DeckEnvironment = z.infer<typeof loadDeckEnvironment.output>;
 
 /**
  * `firstmate.deck.extras` — the sail on hull C's mast and the crew's extra looks (`art/ship-deck/assets-2/README.md`),
- * and the shark and splash that see a sailor off the plank (`art/ship-deck/shark/README.md`):
+ * the shark and splash that see a sailor off the plank (`art/ship-deck/shark/README.md`), and the clouds that
+ * drift across the sky (`art/ship-deck/clouds/README.md`):
  * the parts of `art/ship-deck/extras.json` the deck draws with, and each image it names, base64. Apart from
  * the atlas and the environment, and not needed to
  * draw: the client keeps whatever of it decodes, so a missing sail is the bare mast and a missing look is
@@ -198,13 +202,30 @@ export const DeckExtrasManifestSchema = z.object({
       splash: z.object({ size: Size, anchor: Point, frames: z.object({ impact: ArtPath, burst: ArtPath }) }),
     })
     .optional(),
+  /**
+   * The sky's drifting clouds (`art/ship-deck/clouds/README.md`): neutral sprites in three colours,
+   * `palette` — shadow, body, highlight — each recoloured to the same slot of the showing sky phase's
+   * entry in `stages`, and drifted right at about `pixelsPerSecond` sky pixels a second. Without it, or
+   * without a sprite's image, the sky has fewer clouds or none (`client/deck-clouds.ts`).
+   */
+  clouds: z
+    .object({
+      palette: CloudPalette,
+      stages: z.object(Object.fromEntries(SKY_PHASES.map((phase) => [phase, CloudPalette])) as Record<SkyPhaseId, typeof CloudPalette>),
+      sprites: z
+        .array(z.object({ id: z.string().regex(/^[a-z0-9-]+$/), texture: ArtPath, size: Size, pixelsPerSecond: z.number().positive().max(4) }))
+        .min(1)
+        .refine((sprites) => new Set(sprites.map((sprite) => sprite.id)).size === sprites.length, "each cloud needs its own id"),
+    })
+    .optional(),
 });
 export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;
 
 /** Every image the extras manifest names, once each, in a stable order. */
 export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
   const exit = manifest.exit === undefined ? [] : [...Object.values(manifest.exit.shark.frames), ...Object.values(manifest.exit.splash.frames)];
-  return [...new Set([manifest.sail.texture, manifest.sail.occluder.texture, ...manifest.crew.map((look) => look.texture), ...exit])];
+  const clouds = manifest.clouds?.sprites.map((sprite) => sprite.texture) ?? [];
+  return [...new Set([manifest.sail.texture, manifest.sail.occluder.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds])];
 }
 
 export const loadDeckExtras = defineRpc({

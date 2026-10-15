@@ -1063,17 +1063,24 @@ describe("the sail and the crew's looks, decoded", () => {
   it("keeps every image that decodes and leaves out, by name, one that is missing or will not decode", async () => {
     const root = fileURLToPath(new URL("..", import.meta.url));
     const extras = await readDeckExtras(async () => root);
-    const all = await decodeExtras(extras, (png) => Promise.resolve({ png }));
-    expect([...all.images.keys()]).toHaveLength(14);
+    const cut = (image: unknown, size: readonly [number, number]) => Promise.resolve([image, size, "mask"] as const);
+    const all = await decodeExtras(extras, (png) => Promise.resolve({ png }), undefined, cut);
+    expect([...all.images.keys()]).toHaveLength(19);
+    // Every cloud cut into its masks, from its own decoded image, at its manifest size.
+    expect([...all.cloudMasks!.keys()]).toEqual(extras.manifest.clouds!.sprites.map((cloud) => cloud.texture));
+    expect(all.cloudMasks!.get("clouds/puff.png")).toEqual([{ png: extras.images["clouds/puff.png"] }, [36, 14], "mask"]);
     const missing: string[] = [];
-    const { ["crew-variants/03-navigator.png"]: _navigator, ...without } = extras.images;
+    const { ["crew-variants/03-navigator.png"]: _navigator, ["clouds/wisp.png"]: _wisp, ...without } = extras.images;
     const some = await decodeExtras(
       { manifest: extras.manifest, images: without },
       (png) => (png === extras.images["sails/main-sail.png"] ? Promise.reject(new Error("bad png")) : Promise.resolve({ png })),
       (path) => missing.push(path),
+      (image, size) => (size[0] === 62 ? Promise.reject(new Error("no canvas")) : cut(image, size)),
     );
-    expect(missing.sort()).toEqual(["crew-variants/03-navigator.png", "sails/main-sail.png"]);
-    expect([...some.images.keys()]).toHaveLength(12);
+    // A cloud that did not arrive or would not cut is left out like any other image.
+    expect(missing.sort()).toEqual(["clouds/cumulus.png", "clouds/wisp.png", "crew-variants/03-navigator.png", "sails/main-sail.png"]);
+    expect([...some.images.keys()]).toHaveLength(16);
+    expect([...some.cloudMasks!.keys()]).toEqual(["clouds/puff.png", "clouds/long-bank.png", "clouds/twin-bank.png"]);
     expect(some.manifest).toBe(extras.manifest);
   });
 });

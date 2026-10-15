@@ -799,3 +799,132 @@ describe("the plank and the shark on the deck", () => {
     deck.drawing.destroy();
   });
 });
+
+describe("the clouds in the sky", () => {
+  /** The extras with every cloud cut into its masks: each a token naming its sprite and slot. */
+  const cloudy: DeckExtrasImages = {
+    ...extras,
+    cloudMasks: new Map(
+      extrasManifest.clouds!.sprites.map((sprite) => [sprite.texture, [0, 1, 2].map((slot) => ({ image: `${sprite.texture}#${slot}` })) as [unknown, unknown, unknown]]),
+    ),
+  };
+  const cloudsOf = (deck: Awaited<ReturnType<typeof start>>) => one(deck.app.stage, "clouds").children;
+  /** Each cloud's place in the sky's own pixels, read back through the sky's sprite: whole pixels, at the sky's scale. */
+  const inSky = (deck: Awaited<ReturnType<typeof start>>) => {
+    const sky = one(deck.app.stage, "sky:under");
+    return cloudsOf(deck).map(function (cloud) {
+      expect(cloud.scale.x).toBe(sky.scale.x);
+      // To a millionth of a pixel: a fractional scale leaves a float's last digits.
+      const pixels = (value: number) => Math.round(value * 1e6) / 1e6;
+      return { x: pixels((cloud.position.x - sky.position.x) / sky.scale.x), y: pixels((cloud.position.y - sky.position.y) / sky.scale.x) };
+    });
+  };
+
+  it("draws them over the stars and behind the gull, the far sea and the ship, each of three nearest-sampled masks", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy });
+    deck.advance(16);
+    expect(one(deck.app.stage, "scenery:back").children.map((child) => child.label)).toEqual([
+      "sky:under",
+      "sky:over",
+      "sky:stars",
+      "clouds",
+      "gull",
+      "gull",
+      "sea:far",
+    ]);
+    const clouds = cloudsOf(deck);
+    expect(clouds).toHaveLength(7);
+    for (const cloud of clouds) {
+      expect(cloud.children.map((child) => child.label)).toEqual(["cloud:shadow", "cloud:body", "cloud:highlight"]);
+      const id = cloud.label.replace("cloud:", "");
+      expect(cloud.children.map(texturePath)).toEqual([0, 1, 2].map((slot) => `clouds/${id}.png#${slot}`));
+      expect(cloud.children.every((mask) => (mask as FakeSprite).texture.source.scaleMode === "nearest")).toBe(true);
+    }
+    // Midday: the neutral palette, slot by slot.
+    expect(clouds[0]!.children.map((mask) => mask.tint)).toEqual([0xa8b9bd, 0xbecac6, 0xd9d4be]);
+    // In the sky's pixels, above its horizon row.
+    for (const place of inSky(deck)) {
+      expect(Number.isInteger(place.x) && Number.isInteger(place.y)).toBe(true);
+      expect(place.y).toBeGreaterThan(0);
+      expect(place.y).toBeLessThan(213);
+    }
+    deck.drawing.destroy();
+  });
+
+  it("drifts them right, slowly, on the scene clock, and the same opening gives the same sky", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy });
+    deck.advance(0);
+    const before = inSky(deck);
+    // A minute of frames: each cloud a few dozen sky pixels on at most, never back.
+    for (let frame = 0; frame < 1800; frame += 1) deck.advance(34);
+    const after = inSky(deck);
+    const moved = after.map((place, index) => place.x - before[index]!.x);
+    expect(moved.every((step) => step >= 0 && step <= 50)).toBe(true);
+    expect(moved.filter((step) => step >= 10)).toHaveLength(7);
+    expect(after.map((place) => place.y)).toEqual(before.map((place) => place.y));
+    const again = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy });
+    again.advance(0);
+    expect(inSky(again)).toEqual(before);
+    const later = await start(environment, { now: new Date(2026, 9, 14, 12, 7), extras: cloudy });
+    later.advance(0);
+    expect(inSky(later)).not.toEqual(before);
+    for (const opened of [deck, again, later]) opened.drawing.destroy();
+  });
+
+  it("holds them still under reduced motion and on a software renderer's lite plan, but recolours them with the clock", async () => {
+    const deck = await start(environment, { reducedMotion: true, now: new Date(2026, 9, 14, 12, 0), extras: cloudy });
+    const before = inSky(deck);
+    deck.state.now = new Date(2026, 9, 15, 2, 0);
+    deck.timers[0]!.run();
+    expect(inSky(deck)).toEqual(before);
+    // Night: dim blue.
+    expect(cloudsOf(deck)[0]!.children.map((mask) => mask.tint)).toEqual([0x1d314e, 0x2c4869, 0x45617a]);
+    deck.drawing.destroy();
+  });
+
+  it("warms them at dawn and blends them through a fade with the sky", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 5, 30), extras: cloudy });
+    deck.advance(16);
+    expect(cloudsOf(deck)[3]!.children.map((mask) => mask.tint)).toEqual([0x927f8b, 0xc7987d, 0xdfbb96]);
+    const dusk = await start(environment, { now: new Date(2026, 9, 14, 20, 15), extras: cloudy });
+    dusk.advance(16);
+    const [shadow] = cloudsOf(dusk)[0]!.children.map((mask) => mask.tint);
+    expect(shadow).not.toBe(0x536e87);
+    expect(shadow).not.toBe(0x1d314e);
+    for (const opened of [deck, dusk]) opened.drawing.destroy();
+  });
+
+  it("keeps them in the sky's place through a resize and the camera's zoom: same sky pixels, the sky's scale", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy, scene: crewScene([["a", "working"]]), reducedMotion: true });
+    const before = inSky(deck);
+    for (const [width, height] of [
+      [1203.5, 911.25],
+      [480, 600],
+      [1900, 300],
+    ] as const) {
+      deck.drawing.resize(width, height);
+      expect(inSky(deck)).toEqual(before);
+    }
+    deck.drawing.focus("a");
+    expect(inSky(deck)).toEqual(before);
+    deck.drawing.focus(null);
+    expect(inSky(deck)).toEqual(before);
+    deck.drawing.destroy();
+  });
+
+  it("draws none without a sky, or with no cloud cut into masks; lets go of their textures when torn down", async () => {
+    const flat = await start(null, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy });
+    flat.advance(16);
+    expect(byLabel(flat.app.stage, "clouds")).toEqual([]);
+    flat.drawing.destroy();
+    const uncut = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
+    uncut.advance(16);
+    expect(byLabel(uncut.app.stage, "clouds")).toEqual([]);
+    uncut.drawing.destroy();
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy });
+    deck.advance(16);
+    const masks = cloudsOf(deck).flatMap((cloud) => cloud.children) as FakeSprite[];
+    deck.drawing.destroy();
+    expect(masks.every((mask) => mask.texture.destroyed && mask.texture.source.destroyed)).toBe(true);
+  });
+});

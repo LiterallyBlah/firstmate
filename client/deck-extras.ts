@@ -1,6 +1,7 @@
 /**
  * The deck's extras (`art/ship-deck/assets-2/README.md`): the sail on hull C's mast and the crew's six
- * extra looks — bosun, old salt, navigator, carpenter, rigger, deckhand — served by `firstmate.deck.extras`.
+ * extra looks — bosun, old salt, navigator, carpenter, rigger, deckhand — served by `firstmate.deck.extras`,
+ * which also sends the shark (`client/deck-plank.ts`) and the sky's clouds (`client/deck-clouds.ts`).
  * Pure: which looks there are, who wears which, and which of the sail's two states shows. The sprites
  * are `client/deck-pixi.ts`'s.
  *
@@ -25,6 +26,8 @@ import type { DeckArtManifest, DeckExtrasManifest, SailorOutfit } from "../share
 export interface DeckExtrasImages {
   manifest: DeckExtrasManifest;
   images: ReadonlyMap<string, unknown>;
+  /** Each cloud sprite cut into its three slot masks, by texture, for those that could be cut (`client/deck-clouds.ts`). */
+  cloudMasks?: ReadonlyMap<string, readonly [unknown, unknown, unknown]>;
 }
 
 /** The atlas's own two outfits, always there: the first two looks. */
