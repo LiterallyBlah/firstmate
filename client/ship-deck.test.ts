@@ -12,7 +12,7 @@ import { act, createElement } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-vi.mock("react-native", () => ({ Platform: { OS: "web" }, View: "View", Text: "Text" }));
+vi.mock("react-native", () => ({ Platform: { OS: "web" }, View: "View", Text: "Text", ScrollView: "ScrollView" }));
 const rpcLoads = vi.hoisted(() => ({ count: 0 }));
 vi.mock("@getpaseo/plugin/client", () => ({
   useRpc: () => () => {
@@ -56,7 +56,8 @@ import {
   sailorIdentity,
   type DeckScene,
 } from "./deck-scene";
-import { ShipDeckView, deckStatusText } from "./ship-deck";
+import { ShipDeckView, deckKeyAction, deckStatusText } from "./ship-deck";
+import { focusLayout } from "./deck-camera";
 
 const theme = {
   colors: {
@@ -379,12 +380,13 @@ function fakeHost(width = 640, height = 300): DeckHost & { children: unknown[] }
 
 interface FakeEngine extends DeckEngine {
   starts: Array<{ host: DeckHost; scene: DeckScene; size: { width: number; height: number } }>;
-  drawings: Array<DeckDrawing & { updates: DeckScene[]; resizes: number[][]; destroyed: number }>;
+  drawings: Array<DeckDrawing & { updates: DeckScene[]; resizes: number[][]; focuses: Array<string | null>; destroyed: number }>;
   loads: number;
   probes: number;
   stops: number;
   resize?: (width: number, height: number) => void;
   hover?: (hover: DeckHover | null) => void;
+  select?: (key: string | null) => void;
 }
 
 function deferred<T>() {
@@ -411,18 +413,23 @@ function fakeEngine(options: { webgl?: "webgl2" | "webgl" | null; load?: () => P
     load() {
       engine.loads += 1;
       if (options.load !== undefined) return options.load();
-      return Promise.resolve<StartDeck>(async (host, scene, size, onHover) => {
+      return Promise.resolve<StartDeck>(async (host, scene, size, onHover, onSelect) => {
         engine.starts.push({ host, scene, size });
         engine.hover = onHover;
+        engine.select = onSelect;
         if (options.hold !== undefined) await options.hold;
         if (options.startFails !== undefined) throw options.startFails;
         const drawing = {
           renderer: "webgl",
           updates: [] as DeckScene[],
           resizes: [] as number[][],
+          focuses: [] as Array<string | null>,
           destroyed: 0,
           update(next: DeckScene) {
             drawing.updates.push(next);
+          },
+          focus(key: string | null) {
+            drawing.focuses.push(key);
           },
           resize(width: number, height: number) {
             drawing.resizes.push([width, height]);
@@ -886,6 +893,152 @@ describe("the ship deck view", () => {
     // A sailor that has left the deck gets no label.
     await act(async () => engine.hover?.({ key: "gone", ...where }));
     expect(labels()).toHaveLength(0);
+  });
+
+  describe("focusing a sailor", () => {
+    /** The screen's card, stood in for: its key and title, and a close button that calls back. */
+    const closers: Array<() => void> = [];
+    const renderFocus = (focused: FleetCard, close: () => void) => {
+      closers.push(close);
+      return createElement("Text", {}, `card for ${focused.key}`);
+    };
+    const panels = (root: ReactTestRenderer) => root.root.findAll((node) => node.props.testID === "firstmate-deck-focus" && (node.type as unknown) === "View");
+
+    async function mounted(withCard = true) {
+      const engine = fakeEngine();
+      await act(async () => {
+        renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web", ...(withCard ? { renderFocus } : {}) }), {
+          createNodeMock: () => fakeHost(),
+        });
+      });
+      await act(flush);
+      const root = renderer!;
+      const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
+      await act(async () => canvasHost.props.onLayout({ nativeEvent: { layout: { width: 900, height: 500 } } }));
+      return { engine, root, drawing: engine.drawings[0]! };
+    }
+
+    it("opens the sailor's own card beside it on a click, and closes the camera in on it", async () => {
+      const { engine, root, drawing } = await mounted();
+      expect(panels(root)).toHaveLength(0);
+      await act(async () => engine.select?.("i1"));
+      expect(panels(root)).toHaveLength(1);
+      expect(text(root)).toContain("card for i1");
+      expect(drawing.focuses.at(-1)).toBe("i1");
+      // A dialog, named for the card, placed where the camera left room for it.
+      const panel = panels(root)[0]!;
+      expect(panel.props.role).toBe("dialog");
+      expect(panel.props["aria-label"]).toBe("Task i1: details and actions");
+      expect(panel.props.style).toMatchObject({ position: "absolute", ...focusLayout({ width: 900, height: 500 }).panel });
+      // No hover label while focused, even when the canvas reports one.
+      await act(async () => engine.hover?.({ key: "w1", x: 300, top: 200, bottom: 260, width: 900, height: 500, floor: null }));
+      expect(root.root.findAll((node) => node.props.accessibilityRole === "text")).toHaveLength(0);
+      // Clicking the focused sailor keeps it; clicking another, or open deck, lets it go.
+      await act(async () => engine.select?.("i1"));
+      expect(panels(root)).toHaveLength(1);
+      await act(async () => engine.select?.("w1"));
+      expect(panels(root)).toHaveLength(0);
+      expect(drawing.focuses.at(-1)).toBeNull();
+      await act(async () => engine.select?.("w1"));
+      await act(async () => engine.select?.(null));
+      expect(panels(root)).toHaveLength(0);
+      // Unfocused, hover labels are back.
+      await act(async () => engine.hover?.({ key: "w1", x: 300, top: 200, bottom: 260, width: 900, height: 500, floor: null }));
+      expect(root.root.findAll((node) => node.props.accessibilityRole === "text")).toHaveLength(1);
+    });
+
+    it("closes from the card's close button, and when the sailor leaves the deck", async () => {
+      const { engine, root, drawing } = await mounted();
+      await act(async () => engine.select?.("b1"));
+      await act(async () => closers.at(-1)?.());
+      expect(panels(root)).toHaveLength(0);
+      expect(drawing.focuses.at(-1)).toBeNull();
+      await act(async () => engine.select?.("b1"));
+      expect(panels(root)).toHaveLength(1);
+      // Ended: its card is off deck now, and the focus goes with it.
+      await act(async () => {
+        root.update(createElement(ShipDeckView, { cards: fixture.filter((each) => each.key !== "b1"), theme, engine, os: "web", renderFocus }));
+      });
+      expect(panels(root)).toHaveLength(0);
+      expect(drawing.focuses.at(-1)).toBeNull();
+    });
+
+    it("focuses no one without a card to show, and says only how to point", async () => {
+      const { engine, root, drawing } = await mounted(false);
+      await act(async () => engine.select?.("i1"));
+      expect(panels(root)).toHaveLength(0);
+      expect(drawing.focuses.every((key) => key === null)).toBe(true);
+      expect(text(root)).toContain("Point at a sailor to see who it is and what it is on.");
+    });
+
+    it("tells the pointer and the keyboard how to focus one", async () => {
+      const { root } = await mounted();
+      expect(text(root)).toContain("Point at a sailor to see who it is; click one to focus it and act on it.");
+      const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
+      expect(canvasHost.props.accessibilityLabel).toBe("Ship deck: 2 working, 2 waiting, 2 blocked, 2 idle. Arrow keys focus a sailor.");
+      expect(canvasHost.props.focusable).toBe(true);
+    });
+
+    it("takes the arrows and Enter on the deck, Esc and Tab while a sailor is focused", async () => {
+      const listeners: Array<(event: { key: string; shiftKey: boolean; preventDefault(): void }) => void> = [];
+      const doc = {
+        activeElement: null as unknown,
+        body: {},
+        addEventListener: (_type: string, listener: (typeof listeners)[number]) => listeners.push(listener),
+        removeEventListener: () => undefined,
+      };
+      const saved = (globalThis as { document?: unknown }).document;
+      (globalThis as { document?: unknown }).document = doc;
+      try {
+        const host = fakeHost();
+        const engine = fakeEngine();
+        await act(async () => {
+          renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "web", renderFocus }), { createNodeMock: () => host });
+        });
+        await act(flush);
+        const root = renderer!;
+        const press = async (key: string) => {
+          let prevented = false;
+          await act(async () => listeners.forEach((listener) => listener({ key, shiftKey: false, preventDefault: () => (prevented = true) })));
+          return prevented;
+        };
+        // Not on the deck: the arrows are the page's.
+        expect(await press("ArrowRight")).toBe(false);
+        expect(panels(root)).toHaveLength(0);
+        doc.activeElement = host;
+        expect(await press("ArrowRight")).toBe(true);
+        expect(text(root)).toContain("card for w1");
+        expect(await press("ArrowRight")).toBe(true);
+        expect(text(root)).toContain("card for w2");
+        expect(await press("Escape")).toBe(true);
+        expect(panels(root)).toHaveLength(0);
+        // Enter goes back to the sailor last focused.
+        expect(await press("Enter")).toBe(true);
+        expect(text(root)).toContain("card for w2");
+        expect(await press("ArrowLeft")).toBe(true);
+        expect(text(root)).toContain("card for w1");
+        await press("Escape");
+        expect(await press("Escape")).toBe(false);
+      } finally {
+        (globalThis as { document?: unknown }).document = saved;
+      }
+    });
+  });
+
+  it("maps each key to what it does on the deck", () => {
+    expect(deckKeyAction("Escape", { focused: true, onCanvas: false })).toBe("close");
+    expect(deckKeyAction("Escape", { focused: false, onCanvas: true })).toBeNull();
+    expect(deckKeyAction("Tab", { focused: true, onCanvas: false })).toBe("trap");
+    expect(deckKeyAction("Tab", { focused: false, onCanvas: true })).toBeNull();
+    expect(deckKeyAction("ArrowRight", { focused: false, onCanvas: true })).toBe("next");
+    expect(deckKeyAction("ArrowDown", { focused: true, onCanvas: true })).toBe("next");
+    expect(deckKeyAction("ArrowLeft", { focused: false, onCanvas: true })).toBe("previous");
+    expect(deckKeyAction("ArrowUp", { focused: false, onCanvas: true })).toBe("previous");
+    expect(deckKeyAction("ArrowRight", { focused: true, onCanvas: false })).toBeNull();
+    expect(deckKeyAction("Enter", { focused: false, onCanvas: true })).toBe("open");
+    expect(deckKeyAction(" ", { focused: false, onCanvas: true })).toBe("open");
+    expect(deckKeyAction("Enter", { focused: true, onCanvas: true })).toBeNull();
+    expect(deckKeyAction("a", { focused: false, onCanvas: true })).toBeNull();
   });
 
   it("words every status", () => {
