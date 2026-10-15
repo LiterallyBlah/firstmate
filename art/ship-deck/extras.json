@@ -48,8 +48,8 @@
   "plank": { "texture": "plank/plank.png", "size": [18, 22], "position": [241, 120] },
   "mast": {
     "texture": "mast/tall-mast.png",
-    "size": [48, 224],
-    "position": [187, -112],
+    "size": [48, 192],
+    "position": [187, -80],
     "sway": 52,
     "clears": [117, 0, 149, 71],
     "replaces": "mast"

@@ -16,9 +16,10 @@ import { askMarks, badgeTop, figureBox, markBox, toCanvas } from "../../client/d
 import { deckBox, fitDeck } from "../../client/deck-pixi";
 import { deckScene } from "../../client/deck-scene";
 import { answeredReplies, repliesByCard } from "../../client/deck-replies";
+import extras from "../../art/ship-deck/extras.json";
 
-/** The tall rig's top, in deck rows above the hull (`docs/ship-deck-mast/host.jsx`). */
-const RIG_TOP = -112;
+/** The tall rig's top, in deck rows above the hull: the mast's own top row (`art/ship-deck/extras.json`). */
+const RIG_TOP = extras.mast.position[1];
 
 const REPLIES = [
   { label: "Smoke check passed", prompt: "block-0: I ran the local smoke check on the live panel and it passed; carry on." },
