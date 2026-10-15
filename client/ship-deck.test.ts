@@ -300,7 +300,8 @@ function decodePng(file: Buffer): { width: number; height: number; alpha: (x: nu
 const DECK_PROPS = shipStage().props.map((prop) => ({ name: prop.id, x: prop.x, y: prop.y }));
 
 describe("the deck's art", () => {
-  const manifest = shipViews().art;
+  const { stage } = shipManifest();
+  const backdrop = stage.backdrop.sprite.rect!;
   const atlas = decodePng(readFileSync(shipFile("deck.png")));
   const opaque = (frame: readonly number[], x: number, y: number) => {
     const [fx = 0, fy = 0, fw = 0, fh = 0] = frame;
@@ -308,9 +309,9 @@ describe("the deck's art", () => {
   };
 
   it("is the hull the scene's coordinates are, in an atlas the manifest describes", () => {
-    expect(manifest.ship.frame).toEqual([0, 0, shipStage().width, shipStage().height]);
-    expect([atlas.width, atlas.height]).toEqual(shipManifest().images[shipManifest().stage.backdrop.sprite.image]!.size);
-    expect(Object.keys(manifest.pieces).sort()).toEqual([
+    expect(backdrop).toEqual([0, 0, shipStage().width, shipStage().height]);
+    expect([atlas.width, atlas.height]).toEqual(shipManifest().images[stage.backdrop.sprite.image]!.size);
+    expect(shipStage().pieces.map((piece) => piece.id).sort()).toEqual([
       "bollard-bow-aft",
       "bollard-bow-fore",
       "bollard-gunwale-aft",
@@ -318,11 +319,11 @@ describe("the deck's art", () => {
       "mast",
       "near",
     ]);
-    expect(manifest.pieces.near?.baseline).toBeNull();
+    expect(shipStage().pieces.find((piece) => piece.id === "near")?.baseline).toBeNull();
   });
 
   it("stands every prop on the deck", () => {
-    for (const prop of DECK_PROPS) expect(opaque(manifest.ship.frame, prop.x, prop.y), prop.name).toBe(true);
+    for (const prop of DECK_PROPS) expect(opaque(backdrop, prop.x, prop.y), prop.name).toBe(true);
   });
 
   it("draws the hull first, the near rail last, and everything else by the row it stands on", () => {
@@ -347,7 +348,7 @@ describe("the deck's art", () => {
       alpha: 1,
     });
     const figures = [at(211, 111, "before-mast"), at(211, 100, "behind-mast"), at(80, 94, "behind-bollard"), at(80, 95, "before-bollard")];
-    const order = deckLayers(figures, manifest.pieces, shipStage().props).map((layer) =>
+    const order = deckLayers(figures, shipStage().pieces, shipStage().props).map((layer) =>
       layer.kind === "ship" ? "ship" : layer.kind === "piece" ? `piece:${layer.name}` : layer.kind === "prop" ? `prop:${layer.name}` : layer.figure.key,
     );
     expect(order[0]).toBe("ship");
@@ -358,7 +359,7 @@ describe("the deck's art", () => {
     before("behind-bollard", "piece:bollard-bow-aft");
     before("piece:bollard-bow-aft", "before-bollard");
     before("prop:barrel", "behind-mast");
-    expect(order).toHaveLength(1 + DECK_PROPS.length + 4 + Object.keys(manifest.pieces).length);
+    expect(order).toHaveLength(1 + DECK_PROPS.length + 4 + shipStage().pieces.length);
   });
 
   it("fits the deck exactly at any size, its offset on whole device pixels", () => {
@@ -718,7 +719,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     expect(dusk).toBeDefined();
   });
 
-  it("draws what decoded: nothing without the backdrop, each element and extra on its own, a fallback in its place, a flat sea with neither", async () => {
+  it("draws what decoded: nothing without the backdrop, each part, element and extra on its own, a fallback in its place, a flat sea with neither", async () => {
     const setting = { manifest: shipManifest(), images: shipImages() };
     const cut = (image: unknown, size: readonly [number, number]) => Promise.resolve([image, size, "mask"] as const);
     const failing = (ids: readonly string[]) =>
@@ -728,19 +729,41 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
 
     const whole = await packArt(await failing([]), warn, cut);
     expect(whole.image).toEqual({ png: setting.images.deck });
-    expect(whole.manifest).toEqual(shipViews().art);
+    expect(whole.parts.parts.map((part) => part.id)).toEqual(["tall-mast", "topmast", "sail"]);
+    expect(whole.parts.pieces.map((piece) => [piece.id, piece.by])).toEqual([
+      ["near", null],
+      ["mast", "tall-mast"],
+      ["bollard-bow-aft", null],
+      ["bollard-bow-fore", null],
+      ["bollard-gunwale-fore", null],
+      ["bollard-gunwale-aft", null],
+      ["plank", null],
+    ]);
     expect([...whole.extras!.images.keys()]).toEqual(extrasImagePaths(shipViews().extras));
     expect(whole.ambience.elements.map((element) => element.id)).toEqual(["sky", "overcast", "stars", "lightning", "clouds", "gull", "sea", "wake", "foam", "spindrift"]);
     expect(whole.ambience.flats).toEqual([]);
-    expect(whole.codeWake).toEqual({ id: "wake", slot: "front", order: 7 });
     expect(whole.masks.size).toBe(10);
     expect(warnings).toEqual([]);
 
     // Without a phase of it the sky is not drawn, nor what is drawn in it or under its clouds; the gull is on its own.
-    // Without a frame of the sea and its still tile, the sea is a flat fill; without the wake's, the code wake stands in.
-    const partial = await packArt(await failing(["sky-dusk", "water-sea-frame-1", "sea-water-tile", "gull-flap-strip", "water-wake-frame-0", "crew-variants-03-navigator"]), warn, cut);
+    // Without a frame of the sea and its still tile, the sea is a flat fill; without the wake's, no wake. Without the tall
+    // mast, no topmast and no sail: the hull's own masthead in the topmast's place, its mast piece its own.
+    const partial = await packArt(
+      await failing(["sky-dusk", "water-sea-frame-1", "sea-water-tile", "gull-flap-strip", "water-wake-frame-0", "crew-variants-03-navigator", "mast-tall-mast", "plank-plank"]),
+      warn,
+      cut,
+    );
     expect(partial.ambience.elements.map((element) => element.id)).toEqual(["foam", "spindrift"]);
     expect(partial.ambience.flats.map((element) => element.id)).toEqual(["sea"]);
+    expect(partial.parts.parts.map((part) => [part.id, part.place])).toEqual([["masthead", "topmast"]]);
+    expect(partial.parts.pieces.map((piece) => [piece.id, piece.by])).toEqual([
+      ["near", null],
+      ["mast", null],
+      ["bollard-bow-aft", null],
+      ["bollard-bow-fore", null],
+      ["bollard-gunwale-fore", null],
+      ["bollard-gunwale-aft", null],
+    ]);
     const skyless = await packArt(await failing(["sky-dusk", "water-foam-frame-2"]), warn, cut);
     expect(skyless.ambience.elements.map((element) => element.id)).toEqual(["gull", "sea", "wake", "foam-still", "spindrift"]);
     // A look is the cast's: its image is the pack's, by id, and one that did not decode is not handed out.
@@ -748,6 +771,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     expect(partial.images.has("crew-variants-01-bosun")).toBe(true);
     const without = (path: string) => `[firstmate] the deck's ${path} did not load; drawing without it:`;
     expect(warnings).toEqual([
+      ...["mast/tall-mast.png", "plank/plank.png"].map(without),
       ...["gull/flap-strip.png", "sea/water-tile.png", "sky/dusk.png", "water/sea/frame-1.png", "water/wake/frame-0.png", "crew-variants/03-navigator.png"].map(without),
       ...["sky/dusk.png", "water/foam/frame-2.png"].map(without),
     ]);
@@ -1218,22 +1242,22 @@ describe("the ship deck view", () => {
   });
 });
 
-describe("the sail and the crew's looks, decoded", () => {
+describe("the shark and the splash, decoded", () => {
   it("keeps every image that decoded and leaves out, by name, one that did not", () => {
     const extras = shipViews().extras;
     const images = shipImages();
     const ids = new Map([...shipViews().paths].map(([id, path]) => [path, id]));
     const image = (path: string) => ({ png: images[ids.get(path)!] });
     const all = extrasImages(extras, image);
-    expect([...all.images.keys()]).toHaveLength(9);
+    expect([...all.images.keys()]).toHaveLength(6);
     const missing: string[] = [];
     const some = extrasImages(
       extras,
-      (path) => (path === "sails/main-sail.png" ? undefined : image(path)),
+      (path) => (path === "shark/fin.png" ? undefined : image(path)),
       (path) => missing.push(path),
     );
-    expect(missing).toEqual(["sails/main-sail.png"]);
-    expect([...some.images.keys()]).toHaveLength(8);
+    expect(missing).toEqual(["shark/fin.png"]);
+    expect([...some.images.keys()]).toHaveLength(5);
     expect(some.manifest).toBe(extras);
   });
 });

@@ -42,9 +42,8 @@
  * scene's clock.
  *
  * **What is missing is never a hole**: an element that failed is left out by itself or stood in for by its fallback
- * (the ship's still sea and foam), and a tile with neither is a flat `fallbackFill` across its bands. Until step 5c
- * retires it, the ship's wake drawn in code (`client/deck-wake.ts`) stands in for its generated wake where that did
- * not load, scrolling with the water, redrawn only when the scroll moves a whole pixel.
+ * (the ship's still sea and foam), and a tile with neither is a flat `fallbackFill` across its bands. Nothing is
+ * drawn in code in an element's place any more: without its art and a fallback, an element is not drawn (the wake).
  *
  * Every texture is cut from its own image once, except a strip's crops, which are made as the scroll first reaches them
  * and kept: at most a few hundred small objects on a few dozen images' sources.
@@ -57,14 +56,6 @@ import { flashAt, flashSalt, underCloud } from "./deck-flash";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
 import { backdropPlacement, dayBlend, dominantPhase, NO_DAY, scrollOffset, type DayBlend, type Placement } from "./deck-sky";
 import { cycleFrame, curvePeak, opacityAt, variantBlend, type Variant } from "./deck-variants";
-import { WAKE_COLOURS, WAKE_SPEED, wakeRuns } from "./deck-wake";
-
-/** Where the code wake stands in for the pack's own until step 5c retires it: that element's id, slot and order. */
-export interface CodeWakeSpot {
-  id: string;
-  slot: AmbientElement["slot"];
-  order: number;
-}
 
 /** What the scenery is drawn from. */
 export interface SceneryArt {
@@ -72,8 +63,6 @@ export interface SceneryArt {
   ambience: DeckAmbience;
   images: ReadonlyMap<string, unknown>;
   masks: ReadonlyMap<string, DrifterMasks>;
-  /** The element the wake drawn in code stands in for when it is not drawn, or null. */
-  codeWake?: CodeWakeSpot | null;
 }
 
 /** The part of the world the screen shows, in deck coordinates. */
@@ -165,7 +154,7 @@ export function createScenery(pixi: PixiModule, stage: StageSize, art: SceneryAr
   const front = new pixi.Container();
   front.label = "scenery:front";
   const cutter = textureCutter(pixi, (image) => art.images.get(image));
-  const layers = ambienceLayers(pixi, stage, art.ambience, art.masks, cutter, seed, art.codeWake ?? null);
+  const layers = ambienceLayers(pixi, stage, art.ambience, art.masks, cutter, seed);
   back.addChild(...layers.back);
   front.addChild(...layers.front);
   return {
@@ -221,8 +210,7 @@ interface SlotViews {
 
 /**
  * The ambience's layers: each element the pack's compiled ambience draws, built after what it is drawn in or under,
- * each tile with nothing to draw it filled flat, and the code wake where it stands in; all of it put in its slot in
- * the pack's order.
+ * each tile with nothing to draw it filled flat; all of it put in its slot in the pack's order.
  */
 function ambienceLayers(
   pixi: PixiModule,
@@ -231,7 +219,6 @@ function ambienceLayers(
   masks: ReadonlyMap<string, DrifterMasks>,
   cutter: Cutter,
   seed: number,
-  codeWake: CodeWakeSpot | null,
 ) {
   const { cut } = cutter;
   const { dayCycle } = ambience;
@@ -314,18 +301,12 @@ function ambienceLayers(
     ...elementsOf(ambience, "cycle").map((element) => placedLayer(element.id, cycleLayer(pixi, element, cut, ambience.sizes))),
   ];
   const flats = ambience.flats.map((element) => ({ element, layer: flatLayer(pixi, element, ambience.fallbackFill) }));
-  // Until step 5c retires it, the wake drawn in code where the pack's did not load, in that wake's place.
-  const standIn =
-    codeWake === null || ambience.elements.some((element) => element.id === codeWake.id)
-      ? null
-      : codeWakeLayer(pixi, stage, codeWake.slot, tiles[0]?.drift ?? WAKE_SPEED);
-  water.push(...flats.map(({ layer }) => layer), ...(standIn === null ? [] : [standIn]));
+  water.push(...flats.map(({ layer }) => layer));
 
-  // Every element's views by order, the flats and the code wake after what is drawn at the same order.
+  // Every element's views by order, the flats after what is drawn at the same order.
   const placed = [
     ...ambience.elements.map((element) => ({ order: element.order, views: views.get(element.id)! })),
     ...flats.map(({ element, layer }) => ({ order: element.order, views: layer })),
-    ...(standIn === null || codeWake === null ? [] : [{ order: codeWake.order, views: standIn }]),
   ].sort((a, b) => a.order - b.order);
   const inSlot = (slot: AmbientElement["slot"]) => placed.flatMap(({ views: each }) => each[slot]);
 
@@ -663,7 +644,6 @@ function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, 
   return {
     back: inSlot("back"),
     front: inSlot("front"),
-    drift: behaviour.drift.pxPerSecond,
     layout(visible: VisibleWorld) {
       if (tiles.length > 0 && visible.left >= tiled.left && visible.right <= tiled.right && visible.bottom <= tiled.bottom) return;
       // A tile's width of slack either side, so a scroll of up to a tile never shows an edge.
@@ -812,30 +792,3 @@ function stripLayer(pixi: PixiModule, element: AmbientElement<"strip">, cut: Cut
   };
 }
 
-/**
- * The wake drawn in code, standing in for the pack's where that did not load until step 5c retires it: its foam drawn
- * as rectangles, again only when the sea has scrolled a whole pixel or the screen shows more of the water than it did.
- */
-function codeWakeLayer(pixi: PixiModule, stage: StageSize, slot: AmbientElement["slot"], speed: number): WaterLayer {
-  const graphics: PixiGraphics = new pixi.Graphics();
-  graphics.label = "wake";
-  let reach = { right: stage.width, bottom: stage.height };
-  let drawn: string | null = null;
-  return {
-    back: slot === "back" ? [graphics] : [],
-    front: slot === "front" ? [graphics] : [],
-    layout(visible) {
-      reach = { right: Math.ceil(visible.right), bottom: Math.ceil(visible.bottom) };
-    },
-    draw(_seconds, plan, weather) {
-      const shift = plan.ambient && Number.isFinite(weather.water.drift) ? Math.floor(weather.water.drift * speed) : 0;
-      // Its length in twentieths, so an easing weather redraws it a step at a time and not every frame.
-      const strength = Math.round(weather.wake * 20) / 20;
-      const key = `${shift}:${strength}:${reach.right}:${reach.bottom}`;
-      if (key === drawn) return;
-      drawn = key;
-      graphics.clear();
-      for (const run of wakeRuns(shift, reach, strength)) graphics.rect(run.x, run.y, run.width, 1).fill(WAKE_COLOURS[run.tone]);
-    },
-  };
-}

@@ -8,16 +8,8 @@ import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
-import {
-  DECK_FPS,
-  flybysAt,
-  LANTERNS,
-  LITE_FPS,
-  lanternFlicker,
-  mastSway,
-  motionPlan,
-  shipBob,
-} from "./deck-ambient";
+import { DECK_FPS, flybysAt, LITE_FPS, motionPlan } from "./deck-ambient";
+import { bobAt, flickerAt, swayAt } from "./deck-parts";
 import { HATCH_MS, applyCrew, createCrew, crewFigures, stepCrew, type Crew, type Figure } from "./deck-crew";
 import { deckAnimator, MAX_STEP_MS, type FrameScheduler, type MotionSignals } from "./deck-loop";
 import { browserMotion } from "./deck-mount";
@@ -87,7 +79,6 @@ function decodePng(file: Buffer): { width: number; height: number; alpha: (x: nu
   return { width, height, alpha: (x, y) => pixels[y * stride + x * 4 + 3] ?? 0 };
 }
 
-const manifest = shipViews().art;
 const atlas = decodePng(readFileSync(shipFile("deck.png")));
 function opaque(frame: readonly number[], x: number, y: number): boolean {
   const [fx = 0, fy = 0, fw = 0, fh = 0] = frame;
@@ -95,8 +86,9 @@ function opaque(frame: readonly number[], x: number, y: number): boolean {
   const py = Math.floor(y);
   return px >= 0 && py >= 0 && px < fw && py < fh && atlas.alpha(fx + px, fy + py) === 255;
 }
-const near = manifest.pieces.near!;
-const onHull = (p: Point) => opaque(manifest.ship.frame, p.x, p.y);
+const nearPiece = shipManifest().stage.pieces.find((piece) => piece.id === "near")!;
+const near = { frame: nearPiece.sprite.rect!, x: nearPiece.at[0], y: nearPiece.at[1] };
+const onHull = (p: Point) => opaque(shipManifest().stage.backdrop.sprite.rect!, p.x, p.y);
 const underNear = (p: Point) => opaque(near.frame, p.x - near.x, p.y - near.y);
 
 /** Every point a walk from `from` along `path` passes, a half pixel apart. */
@@ -472,7 +464,7 @@ describe("depth while walking", () => {
     for (let at = 0; at < 4000; at += 33) {
       stepCrew(crew, 33);
       const figures = crewFigures(crew, at, { still: false });
-      const order = deckLayers(figures, manifest.pieces, shipStage().props).map((layer) => (layer.kind === "piece" ? layer.name : layer.kind === "sailor" ? "sailor" : layer.kind));
+      const order = deckLayers(figures, shipStage().pieces, shipStage().props).map((layer) => (layer.kind === "piece" ? layer.name : layer.kind === "sailor" ? "sailor" : layer.kind));
       const behind = order.indexOf("sailor") < order.indexOf("mast");
       // Feet on the mast's own row are behind it, as for every piece.
       expect(behind, `row ${figures[0]!.row}`).toBe(figures[0]!.row <= 110);
@@ -486,28 +478,32 @@ describe("depth while walking", () => {
 });
 
 describe("the ambient clock", () => {
-  it("bobs the ship and sways the masthead a whole pixel at most", () => {
+  it("bobs the ship and sways the masthead a whole pixel at most, at the art's own heave", () => {
+    const { bob } = shipManifest().stage.motion!;
+    const sway = shipManifest().stage.parts.find((part) => part.id === "topmast")!.behaviour!;
+    if (sway.kind !== "sway" || typeof sway.amplitude !== "object" || !("channel" in sway.amplitude)) throw new Error("the topmast sways with the heave");
+    const heave = 1.2;
     const bobs = new Set<number>();
     const sways = new Set<number>();
     for (let t = 0; t < 30; t += 0.05) {
-      const bob = shipBob(t);
-      expect(bob.x).toBe(0);
-      bobs.add(bob.y);
-      sways.add(mastSway(t));
+      bobs.add(bobAt(t, bob.periodS, heave));
+      sways.add(swayAt(t, sway, heave * (sway.amplitude.scale ?? 1)));
     }
     expect(bobs).toEqual(new Set([-1, 0, 1]));
     expect(sways).toEqual(new Set([-1, 0, 1]));
   });
 
   it("flickers the lanterns within a narrow band, never in step", () => {
+    const { lights, lightStyles } = shipManifest().stage;
+    const flicker = lightStyles.lantern!.flicker;
     for (let t = 0; t < 20; t += 0.03) {
-      for (const lantern of LANTERNS) {
-        const level = lanternFlicker(t, lantern.seed);
+      for (const light of lights) {
+        const level = flickerAt(t, light.seed, flicker);
         expect(level).toBeGreaterThanOrEqual(0.55);
         expect(level).toBeLessThanOrEqual(1);
       }
     }
-    expect(lanternFlicker(1, LANTERNS[0]!.seed)).not.toBe(lanternFlicker(1, LANTERNS[1]!.seed));
+    expect(flickerAt(1, lights[0]!.seed, flicker)).not.toBe(flickerAt(1, lights[1]!.seed, flicker));
   });
 
   it("flies the odd gull, the same gulls for the same clock, at the masthead's height and never more than two", () => {

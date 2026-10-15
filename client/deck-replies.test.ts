@@ -34,7 +34,6 @@ const REST_SPACING = { x: restOverflow.spacing[0], y: restOverflow.spacing[1] };
 const PLACES = Object.fromEntries((Object.keys(shipManifest().zones.byState) as DeckState[]).map((state) => [state, stage.zoneOf(state).id])) as Record<DeckState, string>;
 const anchorsAt = (place: string) => stage.zones.get(place)!.posts;
 
-const manifest = shipViews().art;
 
 function card(key: string, extra: Partial<FleetCard> = {}): FleetCard {
   return {

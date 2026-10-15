@@ -444,7 +444,7 @@ export interface Figure {
   stale: boolean;
   /** Replies wait for the captain over it: it wears the reply marker (`client/deck-badges.ts`). Absent is none. */
   asks?: boolean;
-  /** What it wears (`client/deck-extras.ts`). */
+  /** What it wears: a look of the cast's (`lookFor` in `client/deck-cast.ts`). */
   look: string;
   /** Whose frames it is drawn, hit-tested and badged with: the look's lane (`laneOf`). */
   lane: string;

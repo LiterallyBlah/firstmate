@@ -44,33 +44,32 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
 | `shared/deck-setting.ts`      | A deck setting pack's format, `firstmate.deck-setting` 1: the manifest's schema, every reference it must resolve (`settingProblems`), the closed, versioned behaviour catalogue (`ENGINE_CAPABILITIES`) and what a pack uses. Server and tests only. |
 | `shared/deck-rpc.ts`, `server/deck-settings.ts` | What the Deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.settings` listing the packs under `art/settings/` (and which this engine can draw), `firstmate.deck.setting` serving one whole — manifest and images — confined to its folder and capped. |
-| `client/deck-legacy.ts`, `client/deck-legacy-schema.ts` | The pack read as the manifests the engine drew from before packs (`legacyViews`) — what is left of them: the atlas's pieces, and the extras' sail, tall mast, plank, shark and splash — while the move to a scene engine takes them apart, and where the code wake stands in (`codeWakeSpot`); the old manifests' zod shapes, for the tests. |
+| `client/deck-legacy.ts`, `client/deck-legacy-schema.ts` | What is left of the manifests the engine drew from before packs (`legacyViews`): the extras' shark and splash, until step 7 makes them the pack's; the old manifests' zod shapes, for the records the tests read. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the focused sailor's panel and keys, the legend of badges and counts. |
 | `client/deck-camera.ts`       | The camera: the exact fit or a shot closed in on a focused sailor, the eased zoom between, where the focus panel goes; what a click or an arrow does to the focus. Pure. |
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z; the reply marker's pixels and bob. Pure. |
 | `client/deck-hover.ts`        | The sailor under the pointer, by the box it is drawn in; canvas ↔ deck coordinates; where its label goes; where each reply marker hangs (`askMarks`). Pure. |
 | `client/deck-replies.ts`      | Which suggestions are a sailor's replies (`cardReplies`), the replies already picked (`answeredReplies`), where the speech bubble hangs. Pure but for that store. |
 | `client/reply-bubble.tsx`     | The speech bubble over a sailor with its replies as chips, the focus panel's replies, the marker in the legend. |
-| `client/deck-stage.ts`        | A setting's stage compiled from its pack: size and fit box, the floor, the zones each state sends a worker to, the entry, the exits' marks, the props. Pure, per pack. |
+| `client/deck-stage.ts`        | A setting's stage compiled from its pack: size and fit box, the floor, the zones each state sends a worker to, the entry, the exits' marks, the props, the pieces' rows, the veil and stale tint. Pure, per pack. |
+| `client/deck-parts.ts`        | A setting's stage furniture compiled from its pack: the parts drawn (fallbacks and needs resolved, as the ambience's), the backdrop's cutout, the pieces and what stands in for one, the lights — and the bob, sway, duty cycle and flicker as functions of a clock. Pure, per pack. |
 | `client/deck-cast.ts`         | A setting's cast compiled from its pack: each lane's poses and feet, the looks and who wears which (`lookFor`, by agent id), the roles — stand, walk cycles, each state's settled pose and mirroring — each state's fidget keyframes and the at-ease breath. Pure, per pack. |
 | `client/deck-scene.ts`        | Cards → sailors, by column, greyed when their feed is lost, each with its hover caption; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
 | `client/deck-geometry.ts`     | Any setting's floor (`createFloor`): walkable areas and obstacles, A* paths, a spot beside a shared post, a place packed into a zone's overflow. Pure; its caches are per floor. |
 | `client/deck-crew.ts`         | The crew in motion, on its setting's stage and in its cast: posts reserved, the state shown at once and walked to after, the hatch, the queue for the plank and each departure's clock, each frame's pose, fidget and breath. Pure. |
 | `client/deck-plank.ts`        | The plank and the way off by it: which departures take it (`PLANK_DEPARTURES`), its pixels, and one departure's walk, jump, splash and shark as a function of time. Pure. |
-| `client/deck-extras.ts`       | The sail and the tall mast: whether each is drawn, the sail's billow, how the mast is cut. Pure. |
 | `client/deck-water.ts`        | How lively the water is (`WaterMotion`) and its own clock (`WaterClock`, `advanceWater`): how fast the frames play and the water drifts. Pure. |
-| `client/deck-wake.ts`         | The wake drawn in code, standing in for the pack's where that did not load until step 5c retires it: the churn astern and the waves' arms, as runs of foam pixels scrolled with the sea. Pure. |
 | `client/deck-atmosphere.ts`   | The weather by how busy the crew is: working crew → an eased intensity → one table of the sea's, wind's, sail's, bob's and wake's liveliness and the sky's mood; each animation's own clock. Pure. |
 | `client/deck-ambience.ts`     | A setting's ambience compiled from its pack: which elements are drawn — each left out on its own when its images did not arrive, with what is drawn in it or under it, a fallback only in its source's place (and named for it), a tile with neither filled flat, variants and drifters a sprite at a time — and how each moves on a lite or still deck (`elementMotion`). Pure, per pack. |
 | `client/deck-variants.ts`     | The weather layers' arithmetic: curves over intensity, how an element shares its place with its variants, which frame of a looping set shows. Pure. |
 | `client/deck-flash.ts`        | Moments of weather (`flash@1`, the ship's lightning): seeded flashes at a rate from data, capped; where one stands under a drifter. Pure. |
-| `client/deck-ambient.ts`      | The bob, the masthead's sway, the lanterns, where the water is, and when and where a flyby flies (`flybysAt`), as functions of the clock; the motion plan. Pure. |
+| `client/deck-ambient.ts`      | The motion plan, and when and where a flyby flies (`flybysAt`), as a function of the clock. Pure. |
 | `client/deck-sky.ts`          | The pack's day by the local time (`dayBlend`), a backdrop's place behind the stage (`backdropPlacement`), and a strip's scroll. Pure. |
 | `client/deck-environment.ts`  | The scenery drawn with Pixi: every element of the setting's ambience — backdrop cycles, overlays, flashes, drifters, flybys, tiles, strips, cycles — in its slot in the pack's order, each under its variants; a tile with no art filled flat. |
 | `client/deck-clouds.ts`       | Drifters (`drifters@1`, the ship's clouds): the seeded field in the pack's lanes above a backdrop's horizon, each one's whole-pixel drift and off-screen wrap, its colours from the day's blend, a sprite cut into slot masks. Pure. |
 | `client/deck-loop.ts`         | When the deck draws: 30 fps at most, paused while hidden, still under reduced motion.     |
 | `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated; the pack decoded, its drifters cut into masks, its stage, cast and ambience compiled (`packArt`); every failure a status. |
-| `client/deck-pixi.ts`         | The deck, its sail, depth pieces, props, plank and sailor sprites, and the sea's layer of sharks and splashes, drawn with Pixi, handed in through a narrow `PixiModule`. |
+| `client/deck-pixi.ts`         | The deck — the backdrop cut round its parts, the parts, pieces, props, lights and sailor sprites, and the sea's layer of sharks and splashes — drawn with Pixi, handed in through a narrow `PixiModule`. |
 | `art/settings/<id>/`, `docs/ship-deck-art/`, `docs/settings/` | The setting packs as shipped — each a `setting.json` and only the PNGs it names; the ship is `art/settings/ship/` — and, unshipped, everything that made the ship's art (sources, prompts, provenance, reviews, `build-art.py`, the old manifests in `legacy/`) and its pack (`docs/settings/ship/from-legacy.mjs`). |
 | `test/deck-settings.test.ts`, `test/ship-pack.ts`, `test/png.ts` | The pack linter, run over every pack under `art/settings/`; the ship's pack read for the tests; enough of PNG for both. |
 | `shared/attachments.ts`       | What the captain can attach: the message's shape, image-or-file by Paseo's rules, the size cap. |
@@ -374,7 +373,8 @@ what those look like and where they are. The ship is the first pack, `art/settin
   in code; `client/ship-pack.test.ts` holds the pack equal to both. Each step moves a part of the engine onto the pack
   and deletes those constants and their checks — step 3 took the stage, floor, zones and portal marks, step 4 the cast,
   step 5a the sky, its overlays, the lightning, the clouds and the gull (`client/deck-ambience.ts`), step 5b the sea,
-  foam, wake and spindrift. **Every step
+  foam, wake and spindrift, step 5c the stage's parts, pieces and lights and its bob and sway (`client/deck-parts.ts`),
+  retiring the plank and the wake drawn in code. **Every step
   is held to the gate**: the ship pixel-identical to main's, still and moving (`docs/deck-settings/gate.mjs`).
 
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
@@ -410,7 +410,7 @@ what those look like and where they are. The ship is the first pack, `art/settin
   who takes the plank — the rest walk back to the hatch and climb down. From the plank's foot a sailor is a
   `Departure`, off the crew and on its own clock under a new key, so a card that comes back meanwhile is a
   new sailor from the hatch. A departing sailor has no badge or mark and is never under the pointer. The
-  plank is code, drawn in front of the near rail; off its end the sailor, the shark and the splash are in
+  plank is a piece of the pack, drawn just in front of the near rail it stands `over`; off its end the sailor, the shark and the splash are in
   the `overboard` layer over the near sea, outside the bob. Under reduced motion a departure fades where it
   stood, redrawn by a timer only while something fades.
 - **Stale never reads idle.** A failing fleet load (`fleet.error`) greys the whole crew, a remote host
@@ -461,7 +461,8 @@ what those look like and where they are. The ship is the first pack, `art/settin
   inside it, which applies to any hover card with buttons in it.
 - **Ambient life has no shaders**: whole-pixel bob and sway, a sea tile that scrolls, three lanterns, a
   gull now and then, so a software renderer pays only for sprites. The masthead sways because the hull is
-  drawn in slices with it cut out (`MASTHEAD`).
+  drawn in slices round the cutout of the parts drawn in its place (`client/deck-parts.ts`): the tall mast's, or the
+  hull's own masthead's in the topmast's place where the tall mast did not load.
 - **The weather follows the work** (`client/deck-atmosphere.ts`, `docs/ship-deck-atmosphere/README.md`). Working
   crew (waiting a quarter, blocked, idle and greyed not at all; local and remote) make an intensity, eased over a
   few seconds; `ATMOSPHERE` maps it to multiples of the art's own timing — glassy at idle, the art as delivered
@@ -529,8 +530,10 @@ what those look like and where they are. The ship is the first pack, `art/settin
 
 - **In the pack, and kept image by image.** The sail's two-state strip, the tall mast, six crew looks, and the
   plank's four shark keys and two splashes come with the ship's pack. `packArt` keeps whatever decodes: no sail
-  without both its strip and the tall mast, and a look that failed is not handed out, with a warning.
-- **The sail hangs behind the crew** (`ship`'s children: hull, masthead, sail, deck). It rides the bob but
+  without both its strip and the tall mast (the sail `needs` it), and a look that failed is not handed out, with a
+  warning.
+- **The sail hangs behind the crew** (`ship`'s children: the hull's slices, then the pack's parts in order —
+  `tall-mast`, `topmast`, `sail` — then the deck). It rides the bob but
   not the masthead's sway, and alternates rest and billow every 850 ms, resting under reduced motion.
   While it shows, the mast's depth piece is the occluder — the mast with the rows behind the cloth
   cleared — so a sailor behind the mast is still covered from the cloth down, and the mast never paints
@@ -545,9 +548,8 @@ what those look like and where they are. The ship is the first pack, `art/settin
   placed by its top in whole pixels. Read the deck's canvas at art-pixel centres to compare frames: drawn
   in two parts, the body's rows can round to device pixels a little differently from the whole sprite.
 - **The wake is the pack's**, a `cycle` at the stern whose opacity is the weather's `wake` channel. Where it did not
-  load, until step 5c retires it, the code wake stands in its place (`codeWakeSpot`): `wakeRuns` in
-  `client/deck-wake.ts`, drawn as one `Graphics`, redrawn only when the sea has scrolled a whole pixel. Its outline
-  stays with the ship; its foam is anchored to the water.
+  load there is no wake: the wake drawn in code is retired, as is the plank's board drawn in code (captain's call: not
+  baked to PNGs either).
 
 ## Remote work is on the board
 

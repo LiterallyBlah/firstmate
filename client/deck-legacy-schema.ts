@@ -1,7 +1,8 @@
 /**
- * The zod contracts of the three manifests the deck's art was once served in (`client/deck-legacy.ts`): what
- * `legacyViews` must produce, and what the records in `docs/ship-deck-art/legacy/` are checked against
- * (`client/ship-pack.test.ts`). Types only, for the engine: nothing here is in the client bundle.
+ * The zod contracts of the manifests the deck's art was once served in: what the records in
+ * `docs/ship-deck-art/legacy/` are read with (`client/ship-pack.test.ts`), and the shape of what is left of them,
+ * the extras' shark and splash, that `legacyViews` (`client/deck-legacy.ts`) still produces until step 7. Types only,
+ * for the engine: nothing here is in the client bundle.
  */
 import { z } from "zod";
 
@@ -31,10 +32,9 @@ const Point = z.tuple([z.number().int(), z.number().int()]);
  * The extras: the tall mast and its sail (`docs/ship-deck-art/mast/README.md`, `docs/ship-deck-art/sails/README.md`),
  * the plank's board (`docs/ship-deck-art/plank/README.md`),
  * and the shark and splash that see a sailor off the plank (`docs/ship-deck-art/shark/README.md`):
- * not needed to draw: the client keeps whatever of it decodes, so a missing sail is the bare mast (`client/deck-mount.ts`).
- * The record has the clouds, the sky's mood, the flashes, the animated water and the weather over it too, which the
- * pack draws itself now: parsing it leaves them out. So does the environment's record, whose sky, gull, still sea
- * and foam are the pack's now.
+ * the record as last served. Of it the engine reads only the shark and splash now; the pack draws the rest itself — the
+ * tall mast, the sail and the plank are its stage's parts and pieces — and the record's clouds, sky's mood, flashes,
+ * animated water and weather are left out by parsing it, as is all of the environment's record.
  */
 export const DeckExtrasManifestSchema = z.object({
   /**
@@ -91,5 +91,6 @@ export const DeckExtrasManifestSchema = z.object({
     })
     .optional(),
 });
-export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;
+/** What the engine still reads of the extras: the way off by the plank's shark and splash. */
+export type DeckExtrasManifest = Pick<z.infer<typeof DeckExtrasManifestSchema>, "exit">;
 

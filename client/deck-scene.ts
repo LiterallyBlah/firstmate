@@ -33,7 +33,6 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 
 import type { FleetCard } from "../shared/fleet";
-import type { DeckArtManifest } from "./deck-legacy";
 import type { Figure } from "./deck-crew";
 import type { DeckDeparture } from "./deck-plank";
 import { cardHeadline } from "./format";
@@ -268,11 +267,15 @@ export type DeckLayer =
  * Everything on deck in the order it is drawn, back to front: the hull, then props, sailors and the
  * hull's depth pieces by `depthOf`, and last the near rail. Ties go left to right.
  */
-export function deckLayers(figures: readonly Figure[], pieces: DeckArtManifest["pieces"], props: ReadonlyArray<{ id: string; x: number; y: number }>): DeckLayer[] {
+export function deckLayers(
+  figures: readonly Figure[],
+  pieces: ReadonlyArray<{ id: string; x: number; baseline: number | null }>,
+  props: ReadonlyArray<{ id: string; x: number; y: number }>,
+): DeckLayer[] {
   const sorted: Array<{ layer: DeckLayer; depth: number; x: number }> = [];
   for (const prop of props) sorted.push({ layer: { kind: "prop", name: prop.id, x: prop.x, y: prop.y }, depth: depthOf(prop.y, 0), x: prop.x });
   for (const figure of figures) sorted.push({ layer: { kind: "sailor", figure }, depth: depthOf(figure.row, 0), x: figure.x });
-  for (const [name, piece] of Object.entries(pieces)) sorted.push({ layer: { kind: "piece", name }, depth: depthOf(piece.baseline, 1), x: piece.x });
+  for (const piece of pieces) sorted.push({ layer: { kind: "piece", name: piece.id }, depth: depthOf(piece.baseline, 1), x: piece.x });
   sorted.sort((a, b) => a.depth - b.depth || a.x - b.x);
   return [{ kind: "ship" }, ...sorted.map((entry) => entry.layer)];
 }
