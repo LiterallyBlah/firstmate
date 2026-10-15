@@ -1,8 +1,8 @@
 /** Crew movement on a pack-defined floor: reservations, arrival/sink portals, queued choreographies, and calm fades. */
-import { breathSink, fidgetAt, laneOf, lookFor, settledPose, walkPose, type DeckCast } from "./deck-cast";
+import { breathSink, fidgetAt, laneOf, lookFor, settledPose, standing, walkPose, type DeckCast } from "./deck-cast";
 import { findPath, restSpot, sharedSpot, type Anchor, type Facing, type Point } from "./deck-geometry";
 import { choreographyAt, type ActorLayer, type Choreography, type DeckDeparture } from "./deck-choreography";
-import type { DeckStage } from "./deck-stage";
+import type { DeckStage, ZoneAppearance } from "./deck-stage";
 import type { DeckSailor, DeckState } from "./deck-scene";
 
 type Phase = "arriving" | "walking" | "settled" | "leaving" | "sinking";
@@ -60,6 +60,7 @@ export interface Departure {
   reveal: number;
   layer: ActorLayer;
   flip: boolean;
+  appearance?: ZoneAppearance;
 }
 
 export interface Crew {
@@ -132,7 +133,7 @@ function reserve(crew: Crew, walker: Walker, byPreference: boolean): void {
   walker.endFacing = chosen.facing;
   const taken = others.map((other) => other.target);
   walker.target =
-    zone.overflow.kind === "pack" ? restSpot(crew.stage.floor, zone.overflow, chosen, taken) : sharedSpot(crew.stage.floor, chosen, taken, zone.overflow.spacing);
+    zone.overflow.kind === "pack" ? restSpot(crew.stage.floor, zone.overflow, chosen, taken, zone.appearance !== null) : sharedSpot(crew.stage.floor, chosen, taken, zone.overflow.spacing);
 }
 
 function walkTo(crew: Crew, walker: Walker, target: Point): void {
@@ -188,7 +189,7 @@ function board(crew: Crew, walker: Walker, exit: Choreography): void {
 }
 
 /** Fades a sailor out where it is shown, off the crew: a departure under reduced motion. */
-function fadeOut(crew: Crew, walker: Walker, shown: { pose: string; reveal: number; layer: ActorLayer; flip: boolean }): void {
+function fadeOut(crew: Crew, walker: Walker, shown: { pose: string; reveal: number; layer: ActorLayer; flip: boolean; appearance?: ZoneAppearance }): void {
   crew.serial += 1;
   crew.departures.push({ key: `${walker.key}~${crew.serial}`, kind: "fade", choreography: null, walker, ms: 0, side: -1, drift: 0, ...shown });
 }
@@ -205,7 +206,8 @@ function depart(crew: Crew, walker: Walker, departure: DeckDeparture, snap: bool
     const pose = settled?.pose ?? crew.cast.stand;
     const flip = settled?.flip ?? false;
     const onLadder = !walkingEntry(crew, walker) && (walker.phase === "arriving" || walker.phase === "sinking");
-    if (!onLadder) fadeOut(crew, walker, { pose, reveal: 1, layer: "floor", flip });
+    const appearance = walker.phase === "settled" ? crew.stage.zoneOf(walker.state).appearance : null;
+    if (!onLadder) fadeOut(crew, walker, { pose, reveal: 1, layer: appearance === null ? "floor" : { front: appearance.front }, flip: appearance === null ? flip : false, ...(appearance === null ? {} : { appearance }) });
     return;
   }
   if (walker.phase === "leaving" || walker.phase === "sinking") return;
@@ -251,10 +253,13 @@ export function applyCrew(
   options: { snap: boolean; departures?: Readonly<Record<string, DeckDeparture>> },
 ): void {
   const snap = options.snap || !crew.started;
-  const seen = new Set<string>();
+  const seen = new Set(sailors.map((sailor) => sailor.key));
+  // Release absent workers' reservations before newcomers choose posts in this same poll.
+  for (const walker of [...crew.walkers.values()]) {
+    if (!seen.has(walker.key)) depart(crew, walker, options.departures?.[walker.key] ?? "removed", snap);
+  }
   const ordered = [...sailors].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   for (const sailor of ordered) {
-    seen.add(sailor.key);
     const existing = crew.walkers.get(sailor.key);
     if (existing === undefined) {
       const walker: Walker = {
@@ -311,10 +316,6 @@ export function applyCrew(
     if (walkingEntry(crew, existing)) entryPosition(crew, existing);
     if (snap) place(existing);
     else walkTo(crew, existing, existing.target);
-  }
-  for (const walker of [...crew.walkers.values()]) {
-    if (seen.has(walker.key)) continue;
-    depart(crew, walker, options.departures?.[walker.key] ?? "removed", snap);
   }
   // Reduced motion turned on with sailors already over the side: whoever is still in sight fades where it is.
   if (snap) {
@@ -430,6 +431,8 @@ export function stepCrew(crew: Crew, dtMs: number): void {
 
 /** A sailor as the renderer draws it this frame. */
 export interface Figure {
+  /** A zone's stationary handle, once settled; omitted while walking or using a portal. */
+  appearance?: ZoneAppearance;
   key: string;
   label: string;
   state: DeckState;
@@ -463,10 +466,16 @@ export interface Figure {
   alpha: number;
 }
 
+/** Geometry follows the sprite actually drawn, so labels, hit targets and the focus camera agree. */
+export function figureStanding(cast: DeckCast, figure: Figure) {
+  return figure.appearance ?? standing(cast, figure.lane, figure.pose);
+}
+
 /** The crew as the renderer draws it now. `still` drops the idle motion (reduced motion). */
 export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean }): Figure[] {
   const figures: Figure[] = [];
   for (const walker of crew.walkers.values()) {
+    const appearance = walker.phase === "settled" ? crew.stage.zoneOf(walker.state).appearance : null;
     const entering = walkingEntry(crew, walker);
     const moving = entering ? entryTime(walker) < crew.stage.walkIn!.walkMs
       : (walker.phase === "walking" || walker.phase === "leaving") && walker.path.length > 0;
@@ -499,7 +508,7 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
       dy = step.rise === 0 ? 0 : -step.rise;
     } else {
       ({ pose, flip } = settledPose(cast, walker.state, walker.facing, walker.seed));
-      if (!options.still && !walker.stale) {
+      if (!options.still && !walker.stale && appearance === null) {
         const motion = fidgetAt(cast, walker.state, walker.facing, walker.seed, nowMs);
         dx = motion.dx;
         dy = motion.dy;
@@ -519,14 +528,15 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
       y: Math.round(walker.y) + dy,
       row: Math.round(walker.y),
       pose,
-      flip,
+      flip: appearance === null ? flip : false,
       reveal,
       moving,
       seed: walker.seed,
       sink,
       // Its card has gone: on its way to an exit, it is no longer one of the crew.
       departing: walker.phase === "leaving" || walker.phase === "sinking",
-      layer: "floor",
+      layer: appearance === null ? "floor" : { front: appearance.front },
+      ...(appearance === null ? {} : { appearance }),
       alpha: 1,
     });
   }
@@ -555,6 +565,7 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
       sink: 0,
       departing: true,
       layer: shown.layer,
+      ...(departure.kind === "fade" && departure.appearance !== undefined ? { appearance: departure.appearance } : {}),
       alpha: departure.kind === "fade" ? Math.max(0, 1 - departure.ms / crew.stage.fadeMs) : 1,
     });
   }

@@ -30,6 +30,7 @@ export const ENGINE_CAPABILITIES = [
   "stage@1",
   "floor@1",
   "zones@1",
+  "zone-appearance@1",
   "stable-posts@1",
   "cast@1",
   "pose-fidgets@1",
@@ -223,6 +224,8 @@ const Zones = z.strictObject({
       ]),
       /** Hover labels for workers here hang from this row, below the floor, instead of over their heads. */
       labelFloor: Px.optional(),
+      /** `zone-appearance@1`: a settled worker's visible handle, ahead of a depth piece. Badges and identity stay engine-owned. */
+      appearance: z.strictObject({ sprite: Sprite, feet: Point, front: Id }).optional(),
     }),
   ),
 });
@@ -522,6 +525,7 @@ function spritesOf(manifest: SettingManifest): Array<{ where: string; sprite: z.
   }
   for (const piece of stage.pieces) add(`piece ${piece.id}`, piece.sprite);
   for (const prop of stage.props) add(`prop ${prop.id}`, prop.sprite);
+  for (const zone of manifest.zones.zones) if (zone.appearance !== undefined) add(`zone ${zone.id}`, zone.appearance.sprite);
   for (const [id, effect] of Object.entries(manifest.effects)) for (const sprite of Object.values(effect.frames)) add(`effect ${id}`, sprite);
   for (const element of manifest.ambience) {
     const where = `ambience ${element.id}`;
@@ -565,6 +569,7 @@ export function settingImageIds(manifest: SettingManifest): string[] {
 /** The capabilities a manifest uses: what its `requires` must say. */
 export function capabilitiesUsed(manifest: SettingManifest): string[] {
   const used = new Set<string>(["stage@1", "floor@1", "zones@1", "cast@1"]);
+  if (manifest.zones.zones.some((zone) => zone.appearance !== undefined)) used.add("zone-appearance@1");
   if (manifest.zones.zones.some((zone) => zone.assign === "stable")) used.add("stable-posts@1");
   if (Object.values(manifest.cast.fidgets).some((fidget) => fidget?.keys.some((key) => key.pose !== undefined))) used.add("pose-fidgets@1");
   used.add(`${manifest.portals.entry.kind}@1`);
@@ -635,6 +640,13 @@ export function settingProblems(manifest: SettingManifest): string[] {
   unique("posts", manifest.zones.zones.flatMap((zone) => zone.posts.map((post) => post.id)));
   for (const [state, zone] of Object.entries(manifest.zones.byState)) if (!zones.has(zone)) missing("zone", zone, `zones.byState.${state}`);
   for (const zone of zones) if (manifest.copy.zones[zone] === undefined) problems.push(`copy.zones has no words for zone "${zone}"`);
+  for (const zone of manifest.zones.zones) {
+    const appearance = zone.appearance;
+    if (appearance === undefined) continue;
+    if (!manifest.stage.pieces.some((piece) => piece.id === appearance.front)) missing("piece", appearance.front, `zone ${zone.id}`);
+    const size = appearance.sprite.rect?.slice(2) ?? manifest.images[appearance.sprite.image]?.size;
+    if (size !== undefined && appearance.feet.some((value, index) => value < 0 || value > size[index]!)) problems.push(`zone ${zone.id} has feet outside its appearance`);
+  }
   for (const [why, exit] of Object.entries(manifest.portals.byDeparture)) if (manifest.portals.exits[exit] === undefined) missing("exit", exit, `portals.byDeparture.${why}`);
   const timelines = Object.entries(manifest.portals.exits);
   if (manifest.portals.entry.kind === "walk-in") timelines.push(["(entry)", walkInChoreography(manifest.portals.entry)]);

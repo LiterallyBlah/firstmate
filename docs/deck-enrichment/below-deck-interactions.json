@@ -1,0 +1,36 @@
+{
+  "checks": [
+    "24 distinct hull targets focus 24 worker cards",
+    "working state vacates the below-deck target",
+    "resting again preserves worker identity",
+    "removal closes focus and removes the target",
+    "batch replacement releases old reservations before assigning new workers"
+  ],
+  "focused": [
+    "Below-deck worker 15: details and actions",
+    "Below-deck worker 07: details and actions",
+    "Below-deck worker 23: details and actions",
+    "Below-deck worker 08: details and actions",
+    "Below-deck worker 00: details and actions",
+    "Below-deck worker 16: details and actions",
+    "Below-deck worker 09: details and actions",
+    "Below-deck worker 01: details and actions",
+    "Below-deck worker 17: details and actions",
+    "Below-deck worker 10: details and actions",
+    "Below-deck worker 02: details and actions",
+    "Below-deck worker 18: details and actions",
+    "Below-deck worker 19: details and actions",
+    "Below-deck worker 03: details and actions",
+    "Below-deck worker 11: details and actions",
+    "Below-deck worker 12: details and actions",
+    "Below-deck worker 04: details and actions",
+    "Below-deck worker 20: details and actions",
+    "Below-deck worker 13: details and actions",
+    "Below-deck worker 05: details and actions",
+    "Below-deck worker 21: details and actions",
+    "Below-deck worker 14: details and actions",
+    "Below-deck worker 06: details and actions",
+    "Below-deck worker 22: details and actions"
+  ],
+  "errors": []
+}

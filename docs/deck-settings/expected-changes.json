@@ -1,361 +1,411 @@
 {
-  "review": "docs/deck-enrichment/weather-review.md",
-  "base": "compiled main 0ff23d7",
+  "review": "docs/deck-enrichment/below-deck-review.md",
+  "base": "compiled main 3cc12d1",
   "shots": {
+    "still-noon-dark/open": {
+      "main": "a585b88373191841",
+      "branch": "92640de9b57dad20",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+    },
+    "still-noon-light/open": {
+      "main": "8887633f0ecd8e21",
+      "branch": "c0882914577cdddb",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+    },
+    "still-night/open": {
+      "main": "0e00c82c7a975490",
+      "branch": "ba98371e1afab437",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+    },
+    "still-dawn/open": {
+      "main": "f18809b65cedb9de",
+      "branch": "a837f0b6c16c374b",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+    },
+    "still-dusk-to-night/open": {
+      "main": "787f7d8451a174e6",
+      "branch": "50ad97752db68a76",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+    },
+    "still-busy/open": {
+      "main": "0cf7094fd35f101b",
+      "branch": "b0267f1972f3ed24",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+    },
+    "still-all-idle/open": {
+      "main": "de8d4875109394d4",
+      "branch": "330e117b877c8d4a",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+    },
+    "still-feed-lost/lost": {
+      "main": "7ec2c48204293e51",
+      "branch": "99baa855a1510c6d",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+    },
     "moving-noon/0.4s": {
-      "main": "fa2af157f9ceff60",
-      "branch": "0aadf27e983266bd",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "0aadf27e983266bd",
+      "branch": "890a8721e8b43b6b",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-noon/1s": {
-      "main": "af6aa6354f2f4636",
-      "branch": "47bfc97e837be35c",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "47bfc97e837be35c",
+      "branch": "5ca5073dc9aa2d79",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-noon/2.5s": {
-      "main": "5d6163a53738679f",
-      "branch": "b542c25ae54c504f",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "b542c25ae54c504f",
+      "branch": "737b59559dec0dc1",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-noon/5s": {
-      "main": "b699a65d90300d6e",
-      "branch": "ee93c7757cb4228f",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "ee93c7757cb4228f",
+      "branch": "121438cfddde32a7",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-noon/10s": {
-      "main": "85f9975b3fbccbd4",
-      "branch": "9147b8bc35826133",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "9147b8bc35826133",
+      "branch": "e5ecc955a29572d9",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-noon/25s": {
-      "main": "03bfdd3f29a9972e",
-      "branch": "ff7106e1d694b67b",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "ff7106e1d694b67b",
+      "branch": "54bf805792050e52",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-noon/49s": {
-      "main": "461982156ad5a6d9",
-      "branch": "0d7e7d122036a814",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "0d7e7d122036a814",
+      "branch": "e98249d67d739771",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-noon/73s": {
-      "main": "486d374eb82169fe",
-      "branch": "1d68a53e5aa5bfcf",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "1d68a53e5aa5bfcf",
+      "branch": "b2541c7de7904bf6",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/0.4s": {
-      "main": "9593ee514282566a",
-      "branch": "5b56046de8339774",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "5b56046de8339774",
+      "branch": "7ea0f7f4a2e7919b",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/5.4s": {
-      "main": "f1dced84ccc064b2",
-      "branch": "e1d503eb78bfa929",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "e1d503eb78bfa929",
+      "branch": "459375d074e69afe",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/10.4s": {
-      "main": "e932af6a7b3161be",
-      "branch": "161c6c1270107003",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "161c6c1270107003",
+      "branch": "706d2b1000b3cdb5",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/15.4s": {
-      "main": "cc16479f8d2e28b4",
-      "branch": "420e0df4acba36a5",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "420e0df4acba36a5",
+      "branch": "e8439269e08e7e3e",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/20.4s": {
-      "main": "1d414ec56a86993d",
-      "branch": "fe72d225ea9a5eea",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "fe72d225ea9a5eea",
+      "branch": "14d64a86f64cc6ed",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/25.4s": {
-      "main": "9f3c3aafbe50cecc",
-      "branch": "3ef4631e247c37f2",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "3ef4631e247c37f2",
+      "branch": "49a3ebd9d1877c35",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/30.4s": {
-      "main": "b509261a33f1cc7d",
-      "branch": "d31d01e9359f9b3b",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "d31d01e9359f9b3b",
+      "branch": "f81cd9fc7748cd4e",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/flash-33.5s": {
-      "main": "56cff29db1e06944",
-      "branch": "96a67cc1319b0fa2",
-      "reason": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges."
+      "main": "96a67cc1319b0fa2",
+      "branch": "4d1fb0d304143394",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/flash-33.6s": {
-      "main": "20ea6d7ff9d291b9",
-      "branch": "ef141a40f5271e11",
-      "reason": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges."
+      "main": "ef141a40f5271e11",
+      "branch": "40548e57209528b6",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/35.4s": {
-      "main": "cc371d35c3410366",
-      "branch": "1d7456f3307f84a6",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "1d7456f3307f84a6",
+      "branch": "6b105ad6540c6909",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/40.4s": {
-      "main": "c9a51e1f0911819b",
-      "branch": "e34258605a923647",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "e34258605a923647",
+      "branch": "84aa9562e3fdcd88",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/45.4s": {
-      "main": "6377d2d8d394d12e",
-      "branch": "06f632eceeef5d45",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "06f632eceeef5d45",
+      "branch": "c79ee5ab0ebbf286",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/flash-48.9s": {
-      "main": "40924f00d3bdecf4",
-      "branch": "3177665d568861ab",
-      "reason": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges."
+      "main": "3177665d568861ab",
+      "branch": "5dce51818e24ce25",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/flash-49.0s": {
-      "main": "8b60d59b6e285a49",
-      "branch": "63b0e678818c6af7",
-      "reason": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges."
+      "main": "63b0e678818c6af7",
+      "branch": "3d8093e768cd05c4",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/50.4s": {
-      "main": "8c9232f4ab10c0cf",
-      "branch": "fc59ac1893adb309",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "fc59ac1893adb309",
+      "branch": "6b32f7ef459353b6",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/55.4s": {
-      "main": "12d89a1ad822be9a",
-      "branch": "8cd029e4bf283ca6",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "8cd029e4bf283ca6",
+      "branch": "1480ebe96652b852",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/60.4s": {
-      "main": "fc955a43dc53b403",
-      "branch": "d9794d42592575e5",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "d9794d42592575e5",
+      "branch": "38d891bb792d572b",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/65.4s": {
-      "main": "266ce041dd1d8edc",
-      "branch": "de069ff16bc4ce0c",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "de069ff16bc4ce0c",
+      "branch": "ffb27316d9ac561a",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/70.4s": {
-      "main": "9cd61a26bb1811c3",
-      "branch": "a3d6e20f1c7d1497",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "a3d6e20f1c7d1497",
+      "branch": "0d1fadd611c6e9ff",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/75.4s": {
-      "main": "7b0b49778fcdf76c",
-      "branch": "3ec42e419ca6e65e",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "3ec42e419ca6e65e",
+      "branch": "df68c6d1947c6e8b",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/80.4s": {
-      "main": "7b98279ab159cc06",
-      "branch": "c27f1bd1cd4da94d",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "c27f1bd1cd4da94d",
+      "branch": "07044a661601e52e",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/85.4s": {
-      "main": "19b40ae7053cb22c",
-      "branch": "4199d83448a18b5a",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "4199d83448a18b5a",
+      "branch": "05c668d1a77cc46f",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/90.4s": {
-      "main": "0bf2bed2d6e610a9",
-      "branch": "c0aed8c4ce9ab11c",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "c0aed8c4ce9ab11c",
+      "branch": "5f7fdfa468f6e610",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/95.4s": {
-      "main": "8671e9285a83797c",
-      "branch": "9573922ab07ce540",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "9573922ab07ce540",
+      "branch": "25cbb07c060d2ef2",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/100.4s": {
-      "main": "9697e4339f300030",
-      "branch": "0f14dceabeb38c75",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "0f14dceabeb38c75",
+      "branch": "8e8d2da8390d0b8e",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/105.4s": {
-      "main": "31ee35e95a21a9a0",
-      "branch": "7480096144ab5d7d",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "7480096144ab5d7d",
+      "branch": "7d1829708851470b",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/110.4s": {
-      "main": "a34fb5c31ad3f2c2",
-      "branch": "f6b50e03d07cbf37",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "f6b50e03d07cbf37",
+      "branch": "5b38dfd910111c99",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/115.4s": {
-      "main": "ebac7fe032044cf6",
-      "branch": "b34cfd60924b6fe2",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "b34cfd60924b6fe2",
+      "branch": "58782349e367cadd",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-storm/120.4s": {
-      "main": "9f623266a32f4a36",
-      "branch": "2a3684aca39cacfa",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "2a3684aca39cacfa",
+      "branch": "d9f60c95588d56c6",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-night/0.4s": {
-      "main": "6ec1921ad282bb70",
-      "branch": "5e290cd109d1f799",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "5e290cd109d1f799",
+      "branch": "96bafd66c10e1ac3",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-night/10s": {
-      "main": "6ab1ae942e663787",
-      "branch": "d7b8b30581e69140",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "d7b8b30581e69140",
+      "branch": "38b9d624acb3e3fd",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "moving-crew/aboard": {
-      "main": "fa2af157f9ceff60",
-      "branch": "0aadf27e983266bd",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "0aadf27e983266bd",
+      "branch": "890a8721e8b43b6b",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/changed": {
-      "main": "2e15899d50ed32fb",
-      "branch": "ee54c0411e47c322",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "ee54c0411e47c322",
+      "branch": "fc0ec2739b655557",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/walking-1000ms": {
-      "main": "475d0cefd4193ee4",
-      "branch": "f3e962fc94926bc5",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "f3e962fc94926bc5",
+      "branch": "aaf01089084bb2d9",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/walking-2000ms": {
-      "main": "40bdb92a8d6b77ea",
-      "branch": "a88f96ed18185ac4",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "a88f96ed18185ac4",
+      "branch": "e0d01809af4e8ba6",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/walking-3000ms": {
-      "main": "13aaf4ed97f898d4",
-      "branch": "72137f7818c74de7",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "72137f7818c74de7",
+      "branch": "5dd64f5b1f50d214",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/walking-5000ms": {
-      "main": "be51124b4457c79e",
-      "branch": "aed125e0cf4adce0",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "aed125e0cf4adce0",
+      "branch": "e67cee8fb7d612a3",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/walking-8000ms": {
-      "main": "261aa05cae37841b",
-      "branch": "4a319f4993dcf634",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "4a319f4993dcf634",
+      "branch": "01f3bf24466c85b5",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/arrived": {
-      "main": "a93d934b665f6a08",
-      "branch": "20e53b759e40c553",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "20e53b759e40c553",
+      "branch": "d04addecde4f1f9d",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/hatch-200ms": {
-      "main": "70a20366717c4f00",
-      "branch": "d70a2f1daf54fbf1",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "d70a2f1daf54fbf1",
+      "branch": "10fcff4c8d70326b",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/hatch-400ms": {
-      "main": "e678a0573415e4de",
-      "branch": "2f1a8aed03986edc",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "2f1a8aed03986edc",
+      "branch": "e02ab02656fbd3b5",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/hatch-700ms": {
-      "main": "dd6bd5a656f83742",
-      "branch": "20148cf15471e928",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "20148cf15471e928",
+      "branch": "49dc2a8b35d57afd",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/hatch-1500ms": {
-      "main": "5a4cdc12fb7c5cbb",
-      "branch": "b540df767ad72ee3",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "b540df767ad72ee3",
+      "branch": "ce8cc35174ff63cc",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/hatch-3000ms": {
-      "main": "4df1f8052c94035a",
-      "branch": "f1be557559057965",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "f1be557559057965",
+      "branch": "efa4e2a6937ebde7",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-300ms": {
-      "main": "0d1127f9d2b47a89",
-      "branch": "93ee62048db2beb1",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "93ee62048db2beb1",
+      "branch": "102c1bb048cc82b6",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-800ms": {
-      "main": "4762c07a8db57b86",
-      "branch": "6221c53535e63df4",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "6221c53535e63df4",
+      "branch": "cc64f83bc7676bb1",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-1400ms": {
-      "main": "3cce11c24b6602d1",
-      "branch": "fa30de6c0dac417b",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "fa30de6c0dac417b",
+      "branch": "9c0aa989d673e59d",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-2000ms": {
-      "main": "d311711ca4ab28ca",
-      "branch": "75d4eae0ee44fd79",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "75d4eae0ee44fd79",
+      "branch": "c7d55eaf339da8df",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-2400ms": {
-      "main": "6e76fb697501106e",
-      "branch": "46b022afc80c6ebb",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "46b022afc80c6ebb",
+      "branch": "09b0f29a33f4376b",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-2700ms": {
-      "main": "739e87f75331580b",
-      "branch": "85aeaf40f7af6a2f",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "85aeaf40f7af6a2f",
+      "branch": "e01e604874f0c012",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-3000ms": {
-      "main": "60c9d9b4e2cf7b63",
-      "branch": "1878b80f3f10ee4d",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "1878b80f3f10ee4d",
+      "branch": "83c408d1c1249d3d",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-3300ms": {
-      "main": "24b3b5917ff2f4a8",
-      "branch": "1c494993641c595e",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "1c494993641c595e",
+      "branch": "a56194757a63c2cb",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-3600ms": {
-      "main": "9f46b91deb464ce1",
-      "branch": "c874302cebe026f9",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "c874302cebe026f9",
+      "branch": "ad0b77df9b20ec41",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-4000ms": {
-      "main": "defec5ace7687072",
-      "branch": "ce6ebd310041e978",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "ce6ebd310041e978",
+      "branch": "dc4db4cb19d0328a",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-4600ms": {
-      "main": "6a9fae86b4d61660",
-      "branch": "b7041a09c29a8d8f",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "b7041a09c29a8d8f",
+      "branch": "5ff9e0f6d6c883b2",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-5400ms": {
-      "main": "4886eb98780d1f61",
-      "branch": "ce889ea3c4c9b053",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "ce889ea3c4c9b053",
+      "branch": "4cfaf730193aace3",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/leaving-7000ms": {
-      "main": "85b38eb3ff892b9c",
-      "branch": "c1e0f96b1e1696fa",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "c1e0f96b1e1696fa",
+      "branch": "7cf0861a3b8cdee1",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "moving-crew/after": {
-      "main": "c83e382bcbc9107a",
-      "branch": "00f6f68f432dc8e0",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "00f6f68f432dc8e0",
+      "branch": "33ba23abd8a913d8",
+      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
     },
     "focus/100ms": {
-      "main": "51b6d87f57c6b8d5",
-      "branch": "a24a5f1f014ab6e5",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "a24a5f1f014ab6e5",
+      "branch": "99f07b3e04fab7b4",
+      "reason": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged."
+    },
+    "focus/300ms": {
+      "main": "497707f5118e24fb",
+      "branch": "29a75fc666e8eba1",
+      "reason": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged."
+    },
+    "focus/1.5s": {
+      "main": "cdba3fd790f615c0",
+      "branch": "78cf04356b506c01",
+      "reason": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged."
     },
     "focus/back-out": {
-      "main": "d6c4a8ba8b111d2a",
-      "branch": "816fb1d8190edf4b",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "816fb1d8190edf4b",
+      "branch": "5a5f3397963f6e5d",
+      "reason": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged."
     },
     "lite-software-renderer/0.4s": {
-      "main": "535949cf32be003b",
-      "branch": "6c56fadd49bbf021",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "6c56fadd49bbf021",
+      "branch": "29be3e26bca548ab",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "lite-software-renderer/2s": {
-      "main": "a2566bdf8cff092a",
-      "branch": "3b22298b35e9c2ac",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "3b22298b35e9c2ac",
+      "branch": "2512cdd923ff84e6",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     },
     "lite-software-renderer/6s": {
-      "main": "5beebeee73c876c8",
-      "branch": "2cac375d3dc22378",
-      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+      "main": "2cac375d3dc22378",
+      "branch": "b1aa9428d9dabd3c",
+      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
     }
   }
 }

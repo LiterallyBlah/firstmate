@@ -274,7 +274,7 @@ export function deckLayers(
 ): DeckLayer[] {
   const sorted: Array<{ layer: DeckLayer; depth: number; x: number }> = [];
   for (const prop of props) sorted.push({ layer: { kind: "prop", name: prop.id, x: prop.x, y: prop.y }, depth: depthOf(prop.y, 0), x: prop.x });
-  for (const figure of figures) sorted.push({ layer: { kind: "sailor", figure }, depth: depthOf(figure.row, 0), x: figure.x });
+  for (const figure of figures) sorted.push({ layer: { kind: "sailor", figure }, depth: figure.appearance?.depth ?? depthOf(figure.row, 0), x: figure.x });
   for (const piece of pieces) sorted.push({ layer: { kind: "piece", name: piece.id }, depth: depthOf(piece.baseline, 1), x: piece.x });
   sorted.sort((a, b) => a.depth - b.depth || a.x - b.x);
   return [{ kind: "ship" }, ...sorted.map((entry) => entry.layer)];
