@@ -1,0 +1,803 @@
+{
+  "version": 1,
+  "status": "needs-art",
+  "stage": {
+    "size": [
+      420,
+      240
+    ],
+    "fit": {
+      "top": 0,
+      "bottom": 240,
+      "margin": 0.96
+    },
+    "actorHeight": 40,
+    "windows": [
+      [
+        24,
+        18,
+        112,
+        44
+      ],
+      [
+        144,
+        18,
+        112,
+        44
+      ],
+      [
+        264,
+        18,
+        112,
+        44
+      ]
+    ],
+    "interiorGlass": [
+      24,
+      68,
+      248,
+      18
+    ],
+    "lift": {
+      "at": [
+        404,
+        112
+      ],
+      "rect": [
+        388,
+        64,
+        32,
+        48
+      ]
+    }
+  },
+  "delivery": {
+    "png": "8-bit RGBA, non-interlaced, sRGB, no scale-up or filtering",
+    "alpha": "0 or 255 only; no antialiasing or matte fringe",
+    "layout": "horizontal frame strips, no gutters, no trimming; anchors measured from each frame top-left",
+    "maxImageBytes": 1000000,
+    "noCode": true
+  },
+  "palettes": {
+    "base": [
+      "#18232E",
+      "#293B49",
+      "#425563",
+      "#657781",
+      "#95A3A8",
+      "#CCD0C6",
+      "#F0E5CE",
+      "#FFFFFF",
+      "#594A42",
+      "#80604B",
+      "#B7835C",
+      "#D8AB7C",
+      "#F2CBA5",
+      "#3D5B65",
+      "#5C8390",
+      "#8CB6BD",
+      "#3B6658",
+      "#6B9472",
+      "#A5B98A",
+      "#B68C45",
+      "#D8B765",
+      "#76566F",
+      "#AB7683",
+      "#B7674F"
+    ],
+    "sky:dawn": [
+      "#423C57",
+      "#69516B",
+      "#947387",
+      "#C7989C",
+      "#E1B99F",
+      "#F1D8B5",
+      "#293B49",
+      "#425563",
+      "#657781",
+      "#95A3A8",
+      "#D8B765",
+      "#F0E5CE"
+    ],
+    "sky:morning": [
+      "#5C8390",
+      "#8CB6BD",
+      "#AFC9C9",
+      "#D6DFD3",
+      "#F0E5CE",
+      "#FFFFFF",
+      "#293B49",
+      "#425563",
+      "#657781",
+      "#95A3A8",
+      "#B68C45",
+      "#D8B765"
+    ],
+    "sky:midday": [
+      "#657F9A",
+      "#8EAABE",
+      "#B6CBCE",
+      "#D6DFD3",
+      "#F0E5CE",
+      "#FFFFFF",
+      "#293B49",
+      "#425563",
+      "#657781",
+      "#95A3A8",
+      "#B68C45",
+      "#D8B765"
+    ],
+    "sky:afternoon": [
+      "#6F8798",
+      "#9BB5BD",
+      "#C4D1CA",
+      "#DFDDC8",
+      "#F0E5CE",
+      "#FFFFFF",
+      "#293B49",
+      "#425563",
+      "#657781",
+      "#95A3A8",
+      "#B68C45",
+      "#D8B765"
+    ],
+    "sky:dusk": [
+      "#423C57",
+      "#69516B",
+      "#947387",
+      "#C48D82",
+      "#D8AB7C",
+      "#F0C698",
+      "#18232E",
+      "#293B49",
+      "#425563",
+      "#657781",
+      "#B68C45",
+      "#D8B765"
+    ],
+    "sky:night": [
+      "#111C32",
+      "#1D2D49",
+      "#2E4260",
+      "#455B76",
+      "#6B819A",
+      "#9EB1C4",
+      "#18232E",
+      "#293B49",
+      "#425563",
+      "#657781",
+      "#D8B765",
+      "#F0E5CE"
+    ],
+    "lights": [
+      "#D8B765",
+      "#F0E5CE"
+    ],
+    "steam": [
+      "#95A3A8",
+      "#CCD0C6",
+      "#F0E5CE"
+    ]
+  },
+  "assets": [
+    {
+      "id": "room",
+      "path": "room.png",
+      "size": [
+        420,
+        240
+      ],
+      "frameSize": [
+        420,
+        240
+      ],
+      "frames": [
+        "room"
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "palette": "base",
+      "purpose": "Three-quarter room shell, floor, desk backs/chairs, open dark lift well; transparent city windows and interior glass only."
+    },
+    {
+      "id": "desk-front",
+      "path": "desk-front.png",
+      "size": [
+        260,
+        22
+      ],
+      "frameSize": [
+        260,
+        22
+      ],
+      "frames": [
+        "front"
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "palette": "base",
+      "purpose": "One repeatable six-desk front; draw twice with baselines 108 and 138, hiding seated lower legs."
+    },
+    {
+      "id": "printer",
+      "path": "props/printer.png",
+      "size": [
+        20,
+        24
+      ],
+      "frameSize": [
+        20,
+        24
+      ],
+      "frames": [
+        "printer"
+      ],
+      "anchor": [
+        10,
+        24
+      ],
+      "palette": "base",
+      "purpose": "Printer and paper tray, transparent outside silhouette."
+    },
+    {
+      "id": "help-desk",
+      "path": "props/help-desk.png",
+      "size": [
+        32,
+        24
+      ],
+      "frameSize": [
+        32,
+        24
+      ],
+      "frames": [
+        "help-desk"
+      ],
+      "anchor": [
+        16,
+        24
+      ],
+      "palette": "base",
+      "purpose": "Help desk with a small monitor, distinct from working desks."
+    },
+    {
+      "id": "coffee-counter",
+      "path": "props/coffee-counter.png",
+      "size": [
+        32,
+        28
+      ],
+      "frameSize": [
+        32,
+        28
+      ],
+      "frames": [
+        "coffee-counter"
+      ],
+      "anchor": [
+        16,
+        28
+      ],
+      "palette": "base",
+      "purpose": "Kitchenette counter and cup; cup steam starts at local [16,4]."
+    },
+    {
+      "id": "colleague-navy",
+      "path": "cast/navy.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": [
+        "stand",
+        "walk-front-a",
+        "walk-front-b",
+        "walk-side-a",
+        "walk-side-b",
+        "seated-type-a",
+        "seated-type-b",
+        "stand-cup",
+        "hand-on-head",
+        "lounge"
+      ],
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "purpose": "Colleague look navy; ten registered poses, side poses face right; diverse skin/hair among looks, same frame layout."
+    },
+    {
+      "id": "colleague-teal",
+      "path": "cast/teal.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": [
+        "stand",
+        "walk-front-a",
+        "walk-front-b",
+        "walk-side-a",
+        "walk-side-b",
+        "seated-type-a",
+        "seated-type-b",
+        "stand-cup",
+        "hand-on-head",
+        "lounge"
+      ],
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "purpose": "Colleague look teal; ten registered poses, side poses face right; diverse skin/hair among looks, same frame layout."
+    },
+    {
+      "id": "colleague-ochre",
+      "path": "cast/ochre.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": [
+        "stand",
+        "walk-front-a",
+        "walk-front-b",
+        "walk-side-a",
+        "walk-side-b",
+        "seated-type-a",
+        "seated-type-b",
+        "stand-cup",
+        "hand-on-head",
+        "lounge"
+      ],
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "purpose": "Colleague look ochre; ten registered poses, side poses face right; diverse skin/hair among looks, same frame layout."
+    },
+    {
+      "id": "colleague-plum",
+      "path": "cast/plum.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": [
+        "stand",
+        "walk-front-a",
+        "walk-front-b",
+        "walk-side-a",
+        "walk-side-b",
+        "seated-type-a",
+        "seated-type-b",
+        "stand-cup",
+        "hand-on-head",
+        "lounge"
+      ],
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "purpose": "Colleague look plum; ten registered poses, side poses face right; diverse skin/hair among looks, same frame layout."
+    },
+    {
+      "id": "colleague-rust",
+      "path": "cast/rust.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": [
+        "stand",
+        "walk-front-a",
+        "walk-front-b",
+        "walk-side-a",
+        "walk-side-b",
+        "seated-type-a",
+        "seated-type-b",
+        "stand-cup",
+        "hand-on-head",
+        "lounge"
+      ],
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "purpose": "Colleague look rust; ten registered poses, side poses face right; diverse skin/hair among looks, same frame layout."
+    },
+    {
+      "id": "colleague-slate",
+      "path": "cast/slate.png",
+      "size": [
+        240,
+        32
+      ],
+      "frameSize": [
+        24,
+        32
+      ],
+      "frames": [
+        "stand",
+        "walk-front-a",
+        "walk-front-b",
+        "walk-side-a",
+        "walk-side-b",
+        "seated-type-a",
+        "seated-type-b",
+        "stand-cup",
+        "hand-on-head",
+        "lounge"
+      ],
+      "anchor": [
+        12,
+        32
+      ],
+      "palette": "base",
+      "purpose": "Colleague look slate; ten registered poses, side poses face right; diverse skin/hair among looks, same frame layout."
+    },
+    {
+      "id": "city-dawn",
+      "path": "city/dawn.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": [
+        "dawn"
+      ],
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:dawn",
+      "purpose": "Opaque city sky at dawn; all six phases have identical skyline geometry and horizon row 120."
+    },
+    {
+      "id": "city-morning",
+      "path": "city/morning.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": [
+        "morning"
+      ],
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:morning",
+      "purpose": "Opaque city sky at morning; all six phases have identical skyline geometry and horizon row 120."
+    },
+    {
+      "id": "city-midday",
+      "path": "city/midday.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": [
+        "midday"
+      ],
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:midday",
+      "purpose": "Opaque city sky at midday; all six phases have identical skyline geometry and horizon row 120."
+    },
+    {
+      "id": "city-afternoon",
+      "path": "city/afternoon.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": [
+        "afternoon"
+      ],
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:afternoon",
+      "purpose": "Opaque city sky at afternoon; all six phases have identical skyline geometry and horizon row 120."
+    },
+    {
+      "id": "city-dusk",
+      "path": "city/dusk.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": [
+        "dusk"
+      ],
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:dusk",
+      "purpose": "Opaque city sky at dusk; all six phases have identical skyline geometry and horizon row 120."
+    },
+    {
+      "id": "city-night",
+      "path": "city/night.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": [
+        "night"
+      ],
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "sky:night",
+      "purpose": "Opaque city sky at night; all six phases have identical skyline geometry and horizon row 120."
+    },
+    {
+      "id": "city-lights",
+      "path": "city/lights.png",
+      "size": [
+        420,
+        180
+      ],
+      "frameSize": [
+        420,
+        180
+      ],
+      "frames": [
+        "lights"
+      ],
+      "anchor": [
+        210,
+        120
+      ],
+      "palette": "lights",
+      "purpose": "Only lit city windows; transparent elsewhere, registered to all city skies."
+    },
+    {
+      "id": "pigeon",
+      "path": "pigeon.png",
+      "size": [
+        72,
+        16
+      ],
+      "frameSize": [
+        24,
+        16
+      ],
+      "frames": [
+        "up",
+        "level",
+        "down"
+      ],
+      "anchor": [
+        12,
+        8
+      ],
+      "palette": "base",
+      "purpose": "Small pigeon facing right; level is glide, wing-tip pixels stay inside each frame."
+    },
+    {
+      "id": "clock",
+      "path": "clock.png",
+      "size": [
+        192,
+        16
+      ],
+      "frameSize": [
+        16,
+        16
+      ],
+      "frames": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11"
+      ],
+      "anchor": [
+        8,
+        8
+      ],
+      "palette": "base",
+      "purpose": "Wall clock: frame 0 is 12 oclock, frames 1..11 are 1..11; minute hand fixed at 12."
+    },
+    {
+      "id": "coffee-steam",
+      "path": "coffee-steam.png",
+      "size": [
+        48,
+        20
+      ],
+      "frameSize": [
+        16,
+        20
+      ],
+      "frames": [
+        "low",
+        "middle",
+        "high"
+      ],
+      "anchor": [
+        8,
+        20
+      ],
+      "palette": "steam",
+      "purpose": "Three modest steam shapes rising from the same cup anchor."
+    },
+    {
+      "id": "quiet-floor",
+      "path": "background/quiet.png",
+      "size": [
+        248,
+        18
+      ],
+      "frameSize": [
+        248,
+        18
+      ],
+      "frames": [
+        "quiet"
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "palette": "base",
+      "purpose": "Distant office silhouettes behind interior glazing, sparse still occupancy."
+    },
+    {
+      "id": "busy-floor",
+      "path": "background/busy.png",
+      "size": [
+        248,
+        18
+      ],
+      "frameSize": [
+        248,
+        18
+      ],
+      "frames": [
+        "busy"
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "palette": "base",
+      "purpose": "Same registered background and furniture; denser static occupancy for intensity crossfade."
+    },
+    {
+      "id": "lift-doors",
+      "path": "effects/lift-doors.png",
+      "size": [
+        96,
+        48
+      ],
+      "frameSize": [
+        32,
+        48
+      ],
+      "frames": [
+        "open",
+        "half",
+        "closed"
+      ],
+      "anchor": [
+        16,
+        48
+      ],
+      "palette": "base",
+      "purpose": "Door leaves/jamb only; open centre transparent over the room lift well. Finite close/reopen cycle, idle open."
+    },
+    {
+      "id": "confetti",
+      "path": "effects/confetti.png",
+      "size": [
+        144,
+        40
+      ],
+      "frameSize": [
+        48,
+        40
+      ],
+      "frames": [
+        "pop",
+        "spread",
+        "fall"
+      ],
+      "anchor": [
+        36,
+        40
+      ],
+      "palette": "base",
+      "purpose": "Small completion burst biased left into the room, empty space transparent; no flash."
+    },
+    {
+      "id": "preview",
+      "path": "preview.png",
+      "size": [
+        210,
+        120
+      ],
+      "frameSize": [
+        210,
+        120
+      ],
+      "frames": [
+        "preview"
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "palette": "base",
+      "purpose": "Picker thumbnail of completed midday office with a few colleagues; no text or badges."
+    }
+  ]
+}

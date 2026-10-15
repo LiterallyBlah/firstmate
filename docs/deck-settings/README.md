@@ -316,3 +316,25 @@ no `class`. The Edge selection smoke check and selected-pack render/overlay pass
 metadata now includes the selected id, so its metadata equality flag differs from older main; all pixels match.
 The package dry-run has 331,187 bytes under `art/` and excludes tests and documentation. Build and gate
 evidence is in `compile-results.json` and `gate-results.json`.
+
+## Step 9a — worker capabilities and the office art contract (office not yet installed)
+
+- `stable-posts@1` adds `assign: "stable"`: hash agent identity to a preferred post, take the nearest free
+  post to it on collision (manifest order breaks ties), then use the zone's usual overflow when full.
+  Existing holders keep their posts. A relaunched identity triggers a fresh reservation even if the card
+  and activity state stay the same. The ship's nearest/ordered behavior is unchanged.
+- `pose-fidgets@1` permits a pose on a fidget key, retaining the settled state's mirror rule. An omitted
+  pose returns to the settled role. Every lane must supply it. Fidgets remain finite numeric keyframes;
+  reduced motion and stale workers skip both offsets and pose swaps. The ship's offset-only loops are unchanged.
+- [The office brief](../settings/office/README.md), `art-contract.json` and `setting.draft.json` specify
+  **26 PNGs / 99 frames**, exact palettes, frame grids, anchors and room registration. They are outside the
+  installed pack scan and npm package; no pixels are drawn or copied as placeholders. Draft hashes are null,
+  and proposed `walk-in@1`, `phase-tint@1` and `phase-frames@1` remain incompatible until separate engine PRs.
+- The proposed office is **420 x 240** rather than the report's 420 x 180 sketch: a dedicated foreground
+  break area fits 24 full-height colleagues with their badges reachable, clear of all working/waiting/blocked
+  posts. Draft checks exercise all-pairs floor paths, occupied-post crowd bounds and hit targets, image/frame
+  inventory, palettes, cast/effect anchors and the currently supported schema. They join `lint:deck-packs`.
+
+The art boundary is reached. The commission must supply the PNGs before opacity, seams, hashes, byte budget,
+depth appearance and real office renders can be verified. Step 9 remains unfinished; the next engine slices
+and the final data/art-only office pack follow reviewed merges and the art delivery.
