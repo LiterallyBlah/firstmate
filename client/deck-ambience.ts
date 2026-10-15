@@ -53,6 +53,39 @@ export interface DeckAmbience {
   sizes: ReadonlyMap<string, readonly [number, number]>;
 }
 
+/**
+ * Which of `elements` are drawn: those that can be (`can`), less any a drawn element stands in for, and less any
+ * that `needs` one not drawn — until nothing changes. A fallback is drawn only once what it stands in for is not, and
+ * then in its place (`standsInFor`). Names `needs` gives that are not among `elements` are taken as drawn. The
+ * ambience's elements and the stage's parts are resolved alike.
+ */
+export function resolveDrawn<E extends { id: string; fallback?: string | undefined }>(
+  elements: readonly E[],
+  can: (element: E) => boolean,
+  needs: (element: E) => readonly string[],
+): { drawn: ReadonlySet<string>; standsInFor: ReadonlyMap<string, string> } {
+  const known = new Set(elements.map((element) => element.id));
+  const standsInFor = new Map(elements.flatMap((element) => (element.fallback === undefined ? [] : [[element.fallback, element.id] as const])));
+  // Left out until nothing changes: what cannot be drawn, what stands in for something drawn, what needs something not drawn.
+  const blocked = new Set(elements.filter((element) => !can(element)).map((element) => element.id));
+  const shown = () =>
+    new Set(
+      elements
+        .filter((element) => !blocked.has(element.id))
+        .filter((element) => !standsInFor.has(element.id) || blocked.has(standsInFor.get(element.id)!))
+        .map((element) => element.id),
+    );
+  for (let drawn = shown(), changed = true; changed; drawn = shown()) {
+    changed = false;
+    for (const element of elements) {
+      if (!drawn.has(element.id) || needs(element).every((id) => !known.has(id) || drawn.has(id))) continue;
+      blocked.add(element.id);
+      changed = true;
+    }
+  }
+  return { drawn: shown(), standsInFor };
+}
+
 /** The elements of `kind`, in drawing order. */
 export function elementsOf<K extends Kind>(ambience: DeckAmbience, kind: K): Array<AmbientElement<K>> {
   return ambience.elements.filter((element) => element.behaviour.kind === kind) as unknown as Array<AmbientElement<K>>;
@@ -124,30 +157,15 @@ export function compileAmbience(manifest: SettingManifest, has: (image: string) 
   /** Who stands in for whom: each fallback, by the element it is drawn in place of. */
   const standsInFor = new Map(inScope.flatMap((element) => (element.fallback === undefined ? [] : [[element.fallback, element.id] as const])));
   const own = new Map(inScope.map((element) => [element.id, drawable(element)]));
-  const scoped = new Set(own.keys());
-  const needs = (element: Element) => [
-    ...(element.needs ?? []),
-    ...(element.behaviour.kind === "overlay" || element.behaviour.kind === "drifters" ? [element.behaviour.space] : []),
-    ...(element.behaviour.kind === "flash" ? [element.behaviour.under] : []),
-  ];
-  // Left out until nothing changes: what did not arrive, what stands in for something drawn, what needs something not drawn.
-  const blocked = new Set(inScope.filter((element) => own.get(element.id) === null).map((element) => element.id));
-  const shown = () =>
-    new Set(
-      inScope
-        .filter((element) => !blocked.has(element.id))
-        .filter((element) => !standsInFor.has(element.id) || blocked.has(standsInFor.get(element.id)!))
-        .map((element) => element.id),
-    );
-  for (let drawn = shown(), changed = true; changed; drawn = shown()) {
-    changed = false;
-    for (const element of inScope) {
-      if (!drawn.has(element.id) || needs(element).every((id) => !scoped.has(id) || drawn.has(id))) continue;
-      blocked.add(element.id);
-      changed = true;
-    }
-  }
-  const drawn = shown();
+  const { drawn } = resolveDrawn(
+    inScope,
+    (element) => own.get(element.id) !== null,
+    (element) => [
+      ...(element.needs ?? []),
+      ...(element.behaviour.kind === "overlay" || element.behaviour.kind === "drifters" ? [element.behaviour.space] : []),
+      ...(element.behaviour.kind === "flash" ? [element.behaviour.under] : []),
+    ],
+  );
   const inOrder = (keep: (element: Element) => boolean) =>
     inScope
       .map((element, index) => ({ element, index }))

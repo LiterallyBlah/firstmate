@@ -30,16 +30,14 @@ import {
   exitFor,
   FIN_AT,
   IMPACT_AT,
-  PLANK_COLOURS,
   PLANK_DEPARTURES,
   PLANK_EXIT_MS,
   plankExit,
-  plankPixels,
   type DeckDeparture,
   type PlankMoment,
 } from "./deck-plank";
 import type { DeckSailor, DeckState } from "./deck-scene";
-import { shipCast, shipFile, shipPlankMarks, shipStage, shipViews, shipWater } from "../test/ship-pack";
+import { shipCast, shipFile, shipManifest, shipPlankMarks, shipStage, shipViews, shipWater } from "../test/ship-pack";
 
 // The ship's cast, under the names its constants had in the deck's code.
 const FRONT_ROWS = shipCast().standRows;
@@ -55,7 +53,12 @@ const PLANK = { ...shipPlankMarks(), water: shipPlankMarks().water.y };
 const art = (path: string) => shipFile(path);
 /** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */
 const sources = (path: string) => new URL(`../docs/ship-deck-art/${path}`, import.meta.url);
-const manifest = shipViews().art;
+// The ship's backdrop, its near rail and its plank: the pack's.
+const ship = shipManifest();
+const backdrop = ship.stage.backdrop.sprite.rect!;
+const nearPiece = ship.stage.pieces.find((piece) => piece.id === "near")!;
+const plankPiece = ship.stage.pieces.find((piece) => piece.id === "plank")!;
+/** The shark and the splash, as the engine reads them until step 7. */
 const extras = shipViews().extras;
 
 /** Enough of PNG for the art here (8-bit RGBA, not interlaced): each pixel as 0xRRGGBB and its alpha. */
@@ -101,7 +104,7 @@ function decodePng(file: Buffer): { width: number; height: number; at: (x: numbe
 }
 
 const atlas = decodePng(readFileSync(art("deck.png")));
-const near = manifest.pieces.near!;
+const near = { frame: nearPiece.sprite.rect!, x: nearPiece.at[0], y: nearPiece.at[1] };
 /** Whether the near rail's piece is drawn at deck point (x, y). */
 const underNear = (x: number, y: number) => {
   const [fx, fy, fw, fh] = near.frame;
@@ -150,32 +153,11 @@ describe("the plank, read against the hull", () => {
       const path = findPath(shipStage().floor, anchor, PLANK.foot);
       expect(path.at(-1), anchor.id).toEqual(PLANK.foot);
     }
-    // The board drawn in code is clear of the mast and the gunwale's bollards.
-    const columns = plankPixels(shipPlankMarks())
-      .filter(([, y]) => y === PLANK.rail.y)
-      .flatMap(([x, , width]) => [x, x + width - 1]);
-    expect(Math.min(...columns)).toBeGreaterThan(224);
-    expect(Math.max(...columns)).toBeLessThan(269);
-  });
-
-  it("is drawn over the hull in the hull's own colours, from the gunwale to its tip, and its shadow", () => {
-    const hull = new Set<number>();
-    const [sx, sy, sw, sh] = manifest.ship.frame;
-    for (let y = sy; y < sy + sh; y += 1) for (let x = sx; x < sx + sw; x += 1) if (atlas.at(x, y).alpha === 255) hull.add(atlas.at(x, y).rgb);
-    for (const colour of Object.values(PLANK_COLOURS)) expect(hull.has(colour), colour.toString(16)).toBe(true);
-    const pixels = plankPixels(shipPlankMarks());
-    const rows = pixels.map(([, y, , height]) => [y, y + height - 1]).flat();
-    expect(Math.min(...rows)).toBe(PLANK.rail.y);
-    // Above the waterline, on the hull's near side: never out over open sea.
-    expect(Math.max(...rows)).toBeLessThan(WATERLINE);
-    for (const [x, y, width, height] of pixels) {
-      for (let dy = 0; dy < height; dy += 1) for (let dx = 0; dx < width; dx += 1) expect(underNear(x + dx, y + dy), `${x + dx},${y + dy}`).toBe(true);
-    }
   });
 
   it("draws the generated board on the same anchors: its walking face from the rail to the tip, centred on the walk", () => {
-    const plank = extras.plank!;
-    expect(plank.texture).toBe("plank/plank.png");
+    const plank = { texture: ship.images[plankPiece.sprite.image]!.path, size: ship.images[plankPiece.sprite.image]!.size, position: plankPiece.at };
+    expect([plank.texture, plankPiece.baseline, plankPiece.optional]).toEqual(["plank/plank.png", { over: "near" }, true]);
     const board = decodePng(readFileSync(art(plank.texture)));
     expect([board.width, board.height]).toEqual(plank.size);
     const [left, top] = plank.position;
@@ -195,7 +177,7 @@ describe("the plank, read against the hull", () => {
     expect(top + board.height).toBeLessThan(WATERLINE);
     // Binary alpha, in the hull's own colours.
     const hull = new Set<number>();
-    const [sx, sy, sw, sh] = manifest.ship.frame;
+    const [sx, sy, sw, sh] = backdrop;
     for (let y = sy; y < sy + sh; y += 1) for (let x = sx; x < sx + sw; x += 1) if (atlas.at(x, y).alpha === 255) hull.add(atlas.at(x, y).rgb);
     for (let y = 0; y < board.height; y += 1) {
       for (let x = 0; x < board.width; x += 1) {

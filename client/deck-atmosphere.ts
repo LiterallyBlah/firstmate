@@ -13,7 +13,7 @@
  * - **One table** (`ATMOSPHERE`): what each part does at a few intensities, interpolated between. Every value is a
  *   multiple of the art's own timing, or an amplitude, so a stormier top end is one row's change.
  * - **Speeds change, phases do not jump.** Each animation runs on its own clock, advanced by the frame's step times
- *   its current pace, and the pure frame functions (`cycleFrame`, `cloudX`, `sailFrame`, `shipBob`) are handed
+ *   its current pace, and the pure frame functions (`cycleFrame`, `cloudX`, `dutyFrame`, `bobAt`) are handed
  *   that clock instead of the scene's. Multiplying the scene's clock by a pace that changes would jump the sea,
  *   the clouds and the sail forwards or back as the crew changed.
  * - **Reduced motion is calm.** A still deck draws as it always has — the parts' first frames, no drift, the whole
@@ -134,26 +134,44 @@ export function stepAtmosphere(state: Atmosphere, stepMs: number, target: number
 }
 
 /**
- * What the scenery is drawn with this frame: the water's and the clouds' clocks, the wake's strength, the sky's mood,
- * and the eased intensity its weather layers follow — null for none of them, as on a still deck.
+ * What the deck is drawn with this frame: the water's, the clouds', the sail's and the swell's clocks; the wake's
+ * strength, the sky's mood, the sail's billow and the swell's heave; and the eased intensity the weather layers follow —
+ * null for none of them, as on a still deck.
  */
 export interface Weather {
   water: WaterClock;
   wind: number;
+  sail: number;
+  swell: number;
   wake: number;
   mood: number;
+  billow: number;
+  heave: number;
   intensity: number | null;
 }
 
-/** The weather the art was made for at the scene's clock: every part at its own timing, a full wake, no mood, no weather layers. */
+/**
+ * The weather the art was made for at the scene's clock: every part at its own timing, a full wake, no mood, the sail's
+ * even billow and the bob's own heave (the table's row for two working), no weather layers.
+ */
 export function deliveredWeather(seconds: number): Weather {
-  return { water: { frames: seconds, drift: seconds }, wind: seconds, wake: 1, mood: 0, intensity: null };
+  return { water: { frames: seconds, drift: seconds }, wind: seconds, sail: seconds, swell: seconds, wake: 1, mood: 0, billow: 0.5, heave: 1.2, intensity: null };
 }
 
-/** The scenery's weather from the atmosphere as it stands. */
+/** The deck's weather from the atmosphere as it stands. */
 export function weatherOf(atmosphere: Atmosphere): Weather {
   const params = atmosphereAt(atmosphere.intensity);
-  return { water: atmosphere.water, wind: atmosphere.wind, wake: params.wake, mood: params.mood, intensity: atmosphere.intensity };
+  return {
+    water: atmosphere.water,
+    wind: atmosphere.wind,
+    sail: atmosphere.sail,
+    swell: atmosphere.swell,
+    wake: params.wake,
+    mood: params.mood,
+    billow: params.billow,
+    heave: params.heave,
+    intensity: atmosphere.intensity,
+  };
 }
 
 /** `colour` shaded by a tint, channel by channel, as Pixi's tint multiplies. */
@@ -175,19 +193,44 @@ export function tintToward(to: number, amount: number): number {
 export type Level = number | { channel: string; scale?: number | undefined } | { curve: Curve };
 
 /**
- * A weather channel by the pack's name for it, of those the scenery is handed (`Weather`'s `wake` and `mood`); any
- * other reads 0. Until step 6 of the migration makes the weather the pack's table, every channel by name.
+ * A weather channel by the pack's name for it, of those the deck is handed (`Weather`'s `wake`, `mood`, `billow`
+ * and `heave`); any other reads 0. Until step 6 of the migration makes the weather the pack's table, every channel by
+ * name.
  */
 export function channelOf(weather: Weather, channel: string): number {
-  return channel === "wake" ? weather.wake : channel === "mood" ? weather.mood : 0;
+  switch (channel) {
+    case "wake":
+      return weather.wake;
+    case "mood":
+      return weather.mood;
+    case "billow":
+      return weather.billow;
+    case "heave":
+      return weather.heave;
+    default:
+      return 0;
+  }
 }
 
 /**
- * A weather clock by the pack's name for it (`atmosphere.clocks`): the water's frames and drift, and the wind. Any other
- * is the scene's own, `seconds` — until step 6 makes every clock the pack's.
+ * A weather clock by the pack's name for it (`atmosphere.clocks`): the water's frames and drift, the wind, the sail and
+ * the swell. Any other is the scene's own, `seconds` — until step 6 makes every clock the pack's.
  */
 export function clockOf(weather: Weather, clock: string | undefined, seconds: number): number {
-  return clock === "water-frames" ? weather.water.frames : clock === "water-drift" ? weather.water.drift : clock === "wind" ? weather.wind : seconds;
+  switch (clock) {
+    case "water-frames":
+      return weather.water.frames;
+    case "water-drift":
+      return weather.water.drift;
+    case "wind":
+      return weather.wind;
+    case "sail":
+      return weather.sail;
+    case "swell":
+      return weather.swell;
+    default:
+      return seconds;
+  }
 }
 
 /** `level` in `weather`. A curve reads nothing on a still deck, which has no intensity (`Weather.intensity`). */

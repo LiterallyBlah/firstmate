@@ -1,7 +1,7 @@
 /**
- * The deck's four tweaks, without Pixi: the sail and the crew's looks as served (the ship pack, `art/settings/ship/`),
- * who wears which look, the sail's billow, the wake's pattern, and the idle sailor at ease. The sprites
- * themselves are `deck-environment.test.ts`'s, through `startDeck` with a stand-in Pixi.
+ * The deck's tweaks, without Pixi: the sail and the crew's looks as the ship pack has them (`art/settings/ship/`), who
+ * wears which look, the sail's billow, the plank's board, and the idle sailor at ease. The sprites themselves are
+ * `deck-environment.test.ts`'s, through `startDeck` with a stand-in Pixi. The wake drawn in code is retired.
  */
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
@@ -10,9 +10,9 @@ import { describe, expect, it } from "vitest";
 
 import { extrasImagePaths } from "./deck-legacy";
 import { applyCrew, createCrew, crewFigures } from "./deck-crew";
-import { drawnPlank, drawnSail, sailFrame, type DeckExtrasImages } from "./deck-extras";
+import type { DeckExtrasImages } from "./deck-legacy";
+import { compileParts, dutyFrame } from "./deck-parts";
 import type { DeckSailor, DeckState } from "./deck-scene";
-import { BOW, CHURN_LENGTH, STERN, WAKE_ARMS, WATERLINE, wakeRuns } from "./deck-wake";
 import { shipCast, shipFile, shipManifest, shipStage, shipViews } from "../test/ship-pack";
 import { availableLooks, breathSink as castBreathSink, laneOf, lookFor, settledPose, standing } from "./deck-cast";
 
@@ -29,7 +29,6 @@ const lookLane = (look: string) => laneOf(shipCast(), look);
 const crewLooks = (extras: { images: ReadonlyMap<string, unknown> } | null) => availableLooks(shipCast(), (image) => extras?.images.has(shipViews().paths.get(image) ?? "") ?? false);
 
 const art = (path: string) => shipFile(path);
-const deck = shipViews().art;
 const manifest = shipViews().extras;
 /** The extra looks' images: the cast's, decoded with the rest of the pack, and handed to the deck beside the extras'. */
 const lookPaths = shipCast()
@@ -106,8 +105,14 @@ describe("the sail and the crew's looks, as served", () => {
   }, 20_000);
 
   it("hang the taller sail on the tall mast, its yard at the mast's lashing point, under the crow's nest and clear of the deck", () => {
-    const { sail } = manifest;
-    const mast = manifest.mast!;
+    const parts = shipManifest().stage.parts;
+    const part = parts.find((each) => each.id === "sail")!;
+    if (part.behaviour?.kind !== "cycle") throw new Error("the sail is a cycle");
+    const frames = part.behaviour.frames.sprites.map((sprite) => sprite.rect!);
+    const sail = { texture: shipManifest().images[part.sprite.image]!.path, frames: frames.length, frameSize: [frames[0]![2], frames[0]![3]] as const, position: part.at };
+    // The tall mast's top: its topmast's place.
+    const mast = { position: parts.find((each) => each.id === "topmast")!.at };
+    expect(part.needs).toEqual(["tall-mast"]);
     const strip = decodePng(readFileSync(art(sail.texture)));
     expect([strip.width, strip.height]).toEqual([sail.frameSize[0] * sail.frames, sail.frameSize[1]]);
     expect([sail.frames, sail.frameSize[0], sail.frameSize[1]]).toEqual([2, 114, 84]);
@@ -172,88 +177,33 @@ describe("who wears which look", () => {
 });
 
 describe("the sail's billow", () => {
+  const sailPart = shipManifest().stage.parts.find((each) => each.id === "sail")!;
+  const behaviour = sailPart.behaviour!;
+  if (behaviour.kind !== "cycle") throw new Error("the sail is a cycle");
+  const sail = { count: behaviour.frames.sprites.length, frameMs: behaviour.frames.frameMs };
+  const drawn = (...gone: string[]) =>
+    compileParts(shipManifest(), (image) => !gone.includes(image))
+      .parts.map((part) => part.id);
+
   it("alternates its states every 850 ms while the deck moves, and rests while it is still", () => {
-    const { sail } = manifest;
-    expect(sail.frameMs).toBe(850);
-    expect([0, 0.849, 0.85, 1.69, 1.7].map((seconds) => sailFrame(seconds, sail, true))).toEqual([0, 0, 1, 1, 0]);
-    for (const seconds of [0, 0.9, 12.3]) expect(sailFrame(seconds, sail, false)).toBe(0);
-    expect(sailFrame(Number.NaN, sail, true)).toBe(0);
+    expect([sail.frameMs, behaviour.frames.clock, behaviour.duty]).toEqual([850, "sail", { channel: "billow" }]);
+    expect([0, 0.849, 0.85, 1.69, 1.7].map((seconds) => dutyFrame(seconds, sail, true))).toEqual([0, 0, 1, 1, 0]);
+    for (const seconds of [0, 0.9, 12.3]) expect(dutyFrame(seconds, sail, false)).toBe(0);
+    expect(dutyFrame(Number.NaN, sail, true)).toBe(0);
   });
 
   it("is drawn only with its strip, on the tall mast it is fitted to", () => {
-    expect(drawnSail(extras, manifest.mast)).toBe(manifest.sail);
-    expect(drawnSail(null, manifest.mast)).toBeNull();
-    expect(drawnSail(extras, null)).toBeNull();
-    const without = { manifest, images: new Map([...extras.images].filter(([each]) => each !== manifest.sail.texture)) };
-    expect(drawnSail(without, manifest.mast)).toBeNull();
+    expect(drawn()).toEqual(["tall-mast", "topmast", "sail"]);
+    expect(drawn("sails-main-sail")).toEqual(["tall-mast", "topmast"]);
+    expect(drawn("mast-tall-mast")).toEqual(["masthead"]);
   });
 });
 
 describe("the plank's board", () => {
-  it("is the generated one where its image decoded, and the code board's otherwise", () => {
-    expect(drawnPlank(extras)).toBe(manifest.plank);
-    expect(drawnPlank(null)).toBeNull();
-    const without = { manifest, images: new Map([...extras.images].filter(([each]) => each !== manifest.plank!.texture)) };
-    expect(drawnPlank(without)).toBeNull();
-    const { plank: _plank, ...older } = manifest;
-    expect(drawnPlank({ manifest: older, images: extras.images })).toBeNull();
-  });
-});
-
-describe("the wake", () => {
-  const reach = { right: 440, bottom: 300 };
-
-  it("trails from the stern and the bow, on and below the waterline, never forward of the bow or over the hull above the water", () => {
-    const runs = wakeRuns(0, reach);
-    expect(runs.length).toBeGreaterThan(40);
-    for (const run of runs) {
-      expect(Number.isInteger(run.x) && Number.isInteger(run.y) && run.width >= 1).toBe(true);
-      expect(run.x).toBeGreaterThanOrEqual(BOW.x);
-      expect(run.x + run.width - 1).toBeLessThanOrEqual(reach.right);
-      expect(run.y).toBeLessThanOrEqual(reach.bottom);
-      // Only the churn reaches above the waterline, by a row, and only aft of the stern's foot.
-      if (run.y < WATERLINE) expect([run.y, run.x >= STERN.x - 4]).toEqual([WATERLINE - 1, true]);
-    }
-    // Astern there is broken water right at the hull.
-    expect(runs.some((run) => run.x <= STERN.x + 8 && run.y <= WATERLINE + 1 && run.tone === "crest")).toBe(true);
-  });
-
-  it("thins as it trails away", () => {
-    const pixels = (from: number, to: number) => {
-      let count = 0;
-      for (let offset = 0; offset < 60; offset += 1) {
-        for (const run of wakeRuns(offset, reach)) for (let x = run.x; x < run.x + run.width; x += 1) if (x >= from && x < to && run.y <= WATERLINE + 3) count += 1;
-      }
-      return count;
-    };
-    expect(pixels(STERN.x, STERN.x + 20)).toBeGreaterThan(pixels(STERN.x + 100, STERN.x + 120) * 2);
-  });
-
-  it("keeps its outline while its foam scrolls aft with the water, a whole pixel at a time", () => {
-    const at = (offset: number) => wakeRuns(offset, { right: 1000, bottom: 1000 });
-    const set = (runs: ReturnType<typeof wakeRuns>) => new Set(runs.flatMap((run) => Array.from({ length: run.width }, (_, i) => `${run.x + i},${run.y}`)));
-    expect(at(17)).toEqual(at(17));
-    expect(set(at(0))).not.toEqual(set(at(1)));
-    // Twelve pixels on, the same dashes are twelve pixels further aft, wherever the outline lets them show.
-    const before = set(at(0));
-    const after = set(at(12));
-    const churnRows = [...before].filter((point) => {
-      const [x, y] = point.split(",").map(Number) as [number, number];
-      return y === WATERLINE && x >= STERN.x + 4 && x < STERN.x + 30;
-    });
-    const carried = churnRows.filter((point) => {
-      const [x, y] = point.split(",").map(Number) as [number, number];
-      return after.has(`${x + 12},${y}`);
-    });
-    expect(carried.length / churnRows.length).toBeGreaterThan(0.6);
-    // The arms leave the water where the hull meets it.
-    for (const arm of WAKE_ARMS) expect(arm.from.y).toBe(WATERLINE);
-    expect(CHURN_LENGTH).toBeGreaterThan(100);
-  });
-
-  it("goes no further than the screen shows", () => {
-    const small = wakeRuns(0, { right: STERN.x + 10, bottom: WATERLINE + 2 });
-    expect(small.every((run) => run.x + run.width - 1 <= STERN.x + 10 && run.y <= WATERLINE + 2)).toBe(true);
+  it("is the generated one where its image decoded, and none otherwise: the code board is retired", () => {
+    const plank = (...gone: string[]) => compileParts(shipManifest(), (image) => !gone.includes(image)).pieces.find((piece) => piece.id === "plank");
+    expect(plank()).toMatchObject({ cut: { image: "plank-plank" }, at: [241, 120] });
+    expect(plank("plank-plank")).toBeUndefined();
   });
 });
 

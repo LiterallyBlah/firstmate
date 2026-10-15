@@ -1,18 +1,18 @@
 /**
- * The tall mast (`art/settings/ship/mast/`), read against the hull it stands on, without Pixi: its foot is the
- * hull's own, what it leaves out of the hull is only the short rig, its parts and depth piece are cut where
- * `mastLayout` says, and the deck's fit takes in its top and still the whole of the way off the plank. The
- * sprites themselves are `deck-environment.test.ts`'s, through `startDeck` with a stand-in Pixi.
+ * The tall mast (`art/settings/ship/mast/`), the ship pack's `tall-mast` and `topmast` parts, read against the hull it
+ * stands on, without Pixi: its foot is the hull's own, what it leaves out of the hull is only the short rig, its parts
+ * and the rows it stands in for the mast piece with are cut where they belong, and the deck's fit takes in its top and
+ * still the whole of the way off the plank. The sprites themselves are `deck-environment.test.ts`'s, through
+ * `startDeck` with a stand-in Pixi.
  */
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
-import { extrasImagePaths } from "./deck-legacy";
-import { drawnMast, mastLayout, type DeckExtrasImages } from "./deck-extras";
+import { compileParts } from "./deck-parts";
 import { deckBox, fitDeck } from "./deck-pixi";
-import { shipFile, shipPlankMarks, shipStage, shipViews } from "../test/ship-pack";
+import { shipFile, shipManifest, shipPlankMarks, shipStage } from "../test/ship-pack";
 
 const art = (path: string) => shipFile(path);
 
@@ -21,10 +21,24 @@ const stage = shipStage();
 const DECK_PROPS = stage.props.map((prop) => ({ name: prop.id, x: prop.x, y: prop.y }));
 const PLANK = { ...shipPlankMarks(), water: shipPlankMarks().water.y };
 
-const deck = shipViews().art;
-const manifest = shipViews().extras;
-const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
-const mast = manifest.mast!;
+// The pack's pieces and parts, under the names the deck's manifests had for them.
+const ship = shipManifest();
+const deck = {
+  pieces: Object.fromEntries(ship.stage.pieces.map((piece) => [piece.id, { frame: piece.sprite.rect ?? [0, 0, 1, 1], x: piece.at[0], y: piece.at[1], baseline: piece.baseline }])),
+};
+const part = (id: string) => ship.stage.parts.find((each) => each.id === id)!;
+const tallMast = part("tall-mast");
+const topmast = part("topmast");
+const sailPart = part("sail");
+const mast = {
+  texture: ship.images[tallMast.sprite.image]!.path,
+  size: ship.images[tallMast.sprite.image]!.size,
+  position: topmast.at,
+  sway: topmast.sprite.rect![3],
+  clears: tallMast.cutout!,
+  replaces: tallMast.replacesPiece!.piece,
+};
+const manifest = { sail: { position: sailPart.at, frameSize: [sailPart.sprite.rect![2], sailPart.sprite.rect![3]] as const } };
 
 /** Enough of PNG for the art here (8-bit RGBA, not interlaced): each pixel as 0xRRGGBBAA, 0 where transparent. */
 function decodePng(file: Buffer): { width: number; height: number; at: (x: number, y: number) => number } {
@@ -133,12 +147,16 @@ describe("the tall mast on the hull", () => {
     expect(opaque(230, cx + cw)).toBeGreaterThan(0);
   });
 
-  it("is drawn only with its image, over a mast the atlas has", () => {
-    expect(drawnMast(extras, deck.pieces)).toBe(mast);
-    expect(drawnMast(null, deck.pieces)).toBeNull();
-    expect(drawnMast({ manifest, images: new Map([...extras.images].filter(([path]) => path !== mast.texture)) }, deck.pieces)).toBeNull();
-    const { mast: _mast, ...noMast } = deck.pieces;
-    expect(drawnMast(extras, noMast)).toBeNull();
+  it("is drawn only with its image, its rows standing in for the mast piece; without it, the hull's own masthead", () => {
+    const whole = compileParts(ship, () => true);
+    expect(whole.parts.map((each) => each.id)).toEqual(["tall-mast", "topmast", "sail"]);
+    expect(whole.cutout).toEqual(mast.clears);
+    expect(whole.pieces.find((piece) => piece.id === mast.replaces)?.by).toBe("tall-mast");
+    const bare = compileParts(ship, (image) => image !== tallMast.sprite.image);
+    expect(bare.parts.map((each) => [each.id, each.place])).toEqual([["masthead", "topmast"]]);
+    expect(bare.cutout).toEqual(part("masthead").cutout);
+    expect(bare.pieces.find((piece) => piece.id === mast.replaces)?.by).toBeNull();
+    expect([whole.top, bare.top]).toEqual([mastY, 0]);
   });
 });
 
@@ -146,22 +164,17 @@ describe("the tall mast's parts", () => {
   const piece = deck.pieces[mast.replaces]!;
 
   it("cuts its swaying head from its fixed shaft, together the whole image", () => {
-    const layout = mastLayout(mast, piece, manifest.sail);
-    expect(layout.head).toEqual({ frame: [0, 0, 48, mast.sway], x: mastX, y: mastY });
-    expect(layout.shaft).toEqual({ frame: [0, mast.sway, 48, mast.size[1] - mast.sway], x: mastX, y: mastY + mast.sway });
-    expect(layout.top).toBe(mastY);
+    expect([topmast.sprite.rect, topmast.at]).toEqual([[0, 0, 48, mast.sway], [mastX, mastY]]);
+    expect([tallMast.sprite.rect, tallMast.at]).toEqual([[0, mast.sway, 48, mast.size[1] - mast.sway], [mastX, mastY + mast.sway]]);
+    expect(topmast.behaviour?.kind).toBe("sway");
   });
 
   it("stands its own rows in for the mast piece, on its row, from below the sail's hem", () => {
     const hem = manifest.sail.position[1] + manifest.sail.frameSize[1];
     expect(hem).toBeGreaterThan(piece.y);
-    const layout = mastLayout(mast, piece, manifest.sail);
-    expect(layout.depth).toEqual({ frame: [0, hem - mastY, 48, mastY + mast.size[1] - hem], x: mastX, y: hem, baseline: piece.baseline });
+    expect(tallMast.replacesPiece).toEqual({ piece: mast.replaces, sprite: { image: tallMast.sprite.image, rect: [0, hem - mastY, 48, mastY + mast.size[1] - hem] }, at: [mastX, hem] });
     // Its rows from the hem down are the mast with nothing cleared: the foot and the shaft over a sailor behind them.
     for (let y = hem; y < mastY + mast.size[1]; y += 1) expect(tall.at(211 - mastX, y - mastY), `211,${y}`).not.toBe(0);
-    // Without a sail, from the mast piece's own top; a sail hanging high, likewise.
-    expect(mastLayout(mast, piece, null).depth.y).toBe(piece.y);
-    expect(mastLayout(mast, piece, { position: [154, -15], frameSize: [114, 27] }).depth.y).toBe(piece.y);
   });
 });
 
