@@ -1,5 +1,5 @@
 /**
- * The deck's four tweaks, without Pixi: the sail and the crew's looks as served (`art/ship-deck/extras.json`),
+ * The deck's four tweaks, without Pixi: the sail and the crew's looks as served (the ship pack, `art/settings/ship/`),
  * who wears which look, the sail's billow, the wake's pattern, and the idle sailor at ease. The sprites
  * themselves are `deck-environment.test.ts`'s, through `startDeck` with a stand-in Pixi.
  */
@@ -8,16 +8,17 @@ import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
-import { DeckArtManifestSchema, DeckExtrasManifestSchema, SAILOR_POSES, extrasImagePaths } from "../shared/ship-deck";
+import { SAILOR_POSES, extrasImagePaths } from "./deck-legacy";
 import { WATERLINE } from "./deck-ambient";
 import { BREATH_MS, BREATH_ROWS, STATE_POSES, applyCrew, breathSink, createCrew, crewFigures, looksFore } from "./deck-crew";
 import { ATLAS_LOOKS, crewLooks, drawnPlank, drawnSail, lookFor, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
 import type { DeckSailor, DeckState } from "./deck-scene";
 import { BOW, CHURN_LENGTH, STERN, WAKE_ARMS, wakeRuns } from "./deck-wake";
+import { shipFile, shipManifest, shipViews } from "../test/ship-pack";
 
-const art = (path: string) => new URL(`../art/ship-deck/${path}`, import.meta.url);
-const deck = DeckArtManifestSchema.parse(JSON.parse(readFileSync(art("deck.json"), "utf8")));
-const manifest = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(art("extras.json"), "utf8")));
+const art = (path: string) => shipFile(path);
+const deck = shipViews().art;
+const manifest = shipViews().extras;
 const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
 
 /** A PNG's size and the alpha of any pixel: RGBA, 8 bits, no interlace, as the art pipeline writes them. */
@@ -75,7 +76,7 @@ describe("the sail and the crew's looks, as served", () => {
     const inside = (x: number, y: number) => frames.some(([fx, fy, fw, fh]) => x >= fx && x < fx + fw && y >= fy && y < fy + fh);
     for (const look of manifest.crew) {
       const png = decodePng(readFileSync(art(look.texture)));
-      expect([png.width, png.height], look.id).toEqual([deck.atlas.width, deck.atlas.height]);
+      expect([png.width, png.height], look.id).toEqual(shipManifest().images[shipManifest().stage.backdrop.sprite.image]!.size);
       for (const pose of SAILOR_POSES) {
         const [fx, fy, fw, fh] = deck.crew.base[pose].frame;
         let opaque = 0;

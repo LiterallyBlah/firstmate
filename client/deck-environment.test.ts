@@ -13,7 +13,7 @@ import { URL } from "node:url";
 import type { PluginTheme } from "@getpaseo/plugin";
 import { describe, expect, it } from "vitest";
 
-import { DeckArtManifestSchema, DeckEnvironmentManifestSchema, DeckExtrasManifestSchema, environmentImagePaths, extrasImagePaths } from "../shared/ship-deck";
+import { environmentImagePaths, extrasImagePaths } from "./deck-legacy";
 import { HORIZON, WATERLINE } from "./deck-ambient";
 import { BUSY_CREW, deliveredWeather, shade, STORM_SHADE } from "./deck-atmosphere";
 import { cloudPeriod, drawnClouds } from "./deck-clouds";
@@ -31,6 +31,7 @@ import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { DECK_FLASH_ATTRIBUTE, DECK_MOTION_ATTRIBUTE, DECK_SKY_ATTRIBUTE, DECK_WEATHER_ATTRIBUTE, deckBox, fitDeck, startDeck, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
 import { SKY_REFRESH_MS } from "./deck-sky";
 import { deckScene, depthOf, type DeckScene, type DeckSailor, type DeckState } from "./deck-scene";
+import { shipViews } from "../test/ship-pack";
 
 const theme = {
   colors: {
@@ -48,10 +49,8 @@ const theme = {
   },
 } as unknown as PluginTheme;
 
-const deckManifest = DeckArtManifestSchema.parse(JSON.parse(readFileSync(new URL("../art/ship-deck/deck.json", import.meta.url), "utf8")));
-const environmentManifest = DeckEnvironmentManifestSchema.parse(
-  JSON.parse(readFileSync(new URL("../art/ship-deck/environment.json", import.meta.url), "utf8")),
-);
+const deckManifest = shipViews().art;
+const environmentManifest = shipViews().environment;
 
 // A stand-in for the part of Pixi the deck uses, keeping the scene graph so the tests can read it.
 class FakePoint {
@@ -448,7 +447,7 @@ describe("the generated environment on the deck", () => {
   });
 });
 
-const extrasManifest = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(new URL("../art/ship-deck/extras.json", import.meta.url), "utf8")));
+const extrasManifest = shipViews().extras;
 /** The extras as the mount decodes them: each image a token naming its path. */
 const extras: DeckExtrasImages = {
   manifest: extrasManifest,

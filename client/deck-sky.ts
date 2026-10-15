@@ -4,7 +4,7 @@
  * foam have scrolled, and which pose the gull is in. No Pixi and no browser globals; the clock is handed
  * in, so the tests pick any hour (`client/deck-sky.test.ts`). `client/deck-environment.ts` draws it.
  *
- * **The sky follows the machine's own clock.** `art/ship-deck/environment.json` gives each of its six
+ * **The sky follows the machine's own clock.** The ship pack's `dayCycle` gives each of its six
  * backdrops a local wall-clock minute — dawn 05:30, morning 08:00, midday 12:00, afternoon 16:00, dusk
  * 18:30, night 21:00 — and from that minute that sky shows alone, until the last `SKY_FADE_MINUTES`
  * before the next anchor, when the next is drawn over it, eased in (`skyBlend`); round through midnight
@@ -14,7 +14,7 @@
  * night's share of what shows. These are the manifest's illustrative hours, not the
  * sun's: no location or season is read. A clock that will not say (an invalid date) shows midday.
  */
-import type { DeckEnvironmentManifest, GullPose } from "../shared/ship-deck";
+import type { DeckEnvironmentManifest, GullPose } from "./deck-legacy";
 import { HORIZON } from "./deck-ambient";
 import { DECK_WIDTH } from "./deck-scene";
 

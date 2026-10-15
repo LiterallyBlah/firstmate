@@ -8,7 +8,7 @@ import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
-import { DeckEnvironmentManifestSchema, DeckExtrasManifestSchema, SKY_PHASES } from "../shared/ship-deck";
+import { SKY_PHASES } from "./deck-legacy";
 import { cutCloudMasks } from "./deck-mount";
 import {
   CLOUD_LANES,
@@ -25,13 +25,14 @@ import {
 import { HORIZON } from "./deck-ambient";
 import { skyBlend, skyHorizonRow, skyPlacement } from "./deck-sky";
 import { DECK_WIDTH } from "./deck-scene";
+import { shipFile, shipViews } from "../test/ship-pack";
 
-const art = (path: string) => new URL(`../art/ship-deck/${path}`, import.meta.url);
+const art = (path: string) => shipFile(path);
 /** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */
 const sources = (path: string) => new URL(`../docs/ship-deck-art/${path}`, import.meta.url);
-const extras = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(art("extras.json"), "utf8")));
+const extras = shipViews().extras;
 const clouds = extras.clouds!;
-const environment = DeckEnvironmentManifestSchema.parse(JSON.parse(readFileSync(art("environment.json"), "utf8")));
+const environment = shipViews().environment;
 const [skyWidth] = environment.sky.size;
 const horizonRow = skyHorizonRow(environment.sky.size);
 const artManifest = JSON.parse(readFileSync(sources("clouds/manifest.json"), "utf8")) as {

@@ -8,7 +8,7 @@
  *   departure not in the set goes down the hatch as before.
  * - **The plank** sticks out over the near rail amidships, between the mast and the gunwale's bollards,
  *   towards the viewer: its top face runs down the screen from the gunwale (row 121) to its tip, its end
- *   is two rows thick. It is the generated board (`art/ship-deck/plank/`, served with the extras), placed on
+ *   is two rows thick. It is the generated board (`art/settings/ship/plank/`, served with the pack), placed on
  *   these same anchors, in the deck's layer just in front of the near rail, so it rides the bob. Where that
  *   image did not load, the board is drawn in code from the hull's own colours instead (`plankPixels`).
  * - **The walk.** A departing sailor walks the deck to the plank's foot (`PLANK.foot`, open deck behind the
@@ -26,7 +26,7 @@
  *   (`docs/ship-deck-art/shark/README.md`); its mouth is placed over the sailor, and it comes from the left or
  *   the right by turns (`side`), mirrored about its anchor.
  */
-import type { SailorPose } from "../shared/ship-deck";
+import type { SailorPose } from "./deck-legacy";
 
 /**
  * Why a sailor left the deck: its card's work is done, it failed, its worker was closed (cancelled,
@@ -60,7 +60,7 @@ export const PLANK = {
   width: 12,
 } as const;
 
-/** The row below the lowest the shark and the splash reach at the water (`extras.json`'s `exit`): their ripple ends two rows under it. */
+/** The row below the lowest the shark and the splash reach at the water (the pack's shark and splash): their ripple ends two rows under it. */
 export const PLANK_SEA_BOTTOM = PLANK.water + 3;
 
 /**
@@ -103,7 +103,7 @@ export function plankPixels(): ReadonlyArray<readonly [number, number, number, n
   return runs;
 }
 
-/** The hull's own colours (`art/ship-deck/deck.png`), for the plank; its shadow is the hull's darkest navy, half seen through. */
+/** The hull's own colours (`art/settings/ship/deck.png`), for the plank; its shadow is the hull's darkest navy, half seen through. */
 export const PLANK_COLOURS = {
   light: 0xdca35b,
   face: 0xce9659,

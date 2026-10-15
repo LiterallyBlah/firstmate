@@ -13,7 +13,7 @@
  * The tall mast reaches into the sky above the hull, and the fit takes in its top (`deckBox`); its own rows
  * below the sail are the mast's depth piece, which leaves the cloth alone (`client/deck-extras.ts`).
  *
- * **The plank** (`client/deck-plank.ts`) is the generated board (`art/ship-deck/plank/`), or where it did not
+ * **The plank** (`client/deck-plank.ts`) is the generated board (`art/settings/ship/plank/`), or where it did not
  * load the board drawn in code, on the deck's layer just in front of the near rail, and a sailor walking it
  * is drawn in front of the plank. Off its end the sailor goes into the
  * `overboard` layer over the near sea — outside the ship's bob, as the shark's art asks — and the shark and
@@ -33,7 +33,7 @@
  * So Pixi stays out of the bundle: the daemon serves its browser build (`vendor/pixi.min.js`) through
  * `firstmate.deck.engine`, and `client/deck-mount.ts` evaluates it in a web renderer and passes the
  * namespace here. `PixiModule` is the narrow shape of it this file uses; `client/ship-deck.test.ts` holds
- * it to Pixi's own build. **So is the art**: one atlas from `firstmate.deck.art`, decoded once a session
+ * it to Pixi's own build. **So is the art**: the setting pack from `firstmate.deck.setting`, decoded once a session
  * by the mount and handed in as an image with its manifest — and the environment's images beside it.
  *
  * It is pixel art, so it is sampled `nearest` and every position is a whole art pixel; the deck is
@@ -46,7 +46,7 @@
  * prop, piece and lantern once and for every sailor on every frame, so a sailor walking aft passes
  * behind the mast, the bollards and the stairs' balustrade, and in front of them on its way back.
  */
-import type { DeckArtManifest, SailorPose } from "../shared/ship-deck";
+import type { DeckArtManifest, SailorPose } from "./deck-legacy";
 import { LANTERNS, lanternFlicker, MASTHEAD, mastSway, shipBob, type MotionPlan } from "./deck-ambient";
 import { atmosphereAt, crewIntensity, deliveredWeather, openingAtmosphere, stepAtmosphere, weatherOf } from "./deck-atmosphere";
 import { ASK_PAPER, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
