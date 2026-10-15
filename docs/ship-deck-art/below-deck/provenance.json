@@ -1,0 +1,40 @@
+{
+  "tool": "built-in image_gen__imagegen",
+  "source": {
+    "sha256": "a8da09a274e1fd773f122733f77e181206c6fc134b0aeb5fee0ac2f98934e817",
+    "size": [
+      1254,
+      1254
+    ]
+  },
+  "crop": [
+    49.66666666666663,
+    37.66666666666663,
+    1154.6666666666667,
+    1154.6666666666667
+  ],
+  "scale": 72.16666666666667,
+  "palette": [
+    "#151E2D",
+    "#1D314E",
+    "#2C4869",
+    "#45617A",
+    "#613A28",
+    "#815C43",
+    "#BF854C",
+    "#C88C50",
+    "#DCA35B",
+    "#E8CCA6",
+    "#D9D4BE"
+  ],
+  "size": [
+    16,
+    16
+  ],
+  "feet": [
+    8,
+    16
+  ],
+  "alpha": "binary; majority coverage at alpha >= 192",
+  "sha256": "59173b872e2221f70ffbecc3e643c1e5fc2eaf7e9fc6cd25c167ab38dc93bd51"
+}

@@ -88,6 +88,27 @@ export interface DeckParts {
   required: readonly string[];
 }
 
+/** Resolve the pack's depth references once, identically for furniture, actors and hit testing. */
+export function pieceDepths(pieces: Stage["pieces"]): Map<string, number> {
+  const depths = new Map<string, number>();
+  for (const piece of pieces) if (typeof piece.baseline !== "object" || piece.baseline === null) depths.set(piece.id, depthOf(piece.baseline, 1));
+  const resolving = new Set<string>();
+  const resolve = (id: string): number => {
+    const found = depths.get(id);
+    if (found !== undefined) return found;
+    if (resolving.has(id)) throw new Error(`cyclic piece depth at ${id}`);
+    const piece = pieces.find((piece) => piece.id === id);
+    if (piece === undefined || typeof piece.baseline !== "object" || piece.baseline === null) throw new Error(`missing piece depth for ${id}`);
+    resolving.add(id);
+    const depth = resolve(piece.baseline.over) + 1;
+    resolving.delete(id);
+    depths.set(id, depth);
+    return depth;
+  };
+  for (const piece of pieces) resolve(piece.id);
+  return depths;
+}
+
 /**
  * The stage's furniture as it can be drawn: `has` says which images arrived.
  */
@@ -148,22 +169,7 @@ export function compileParts(manifest: SettingManifest, has: (image: string) => 
         })();
 
   // The pieces: each at its row, or a drawn part's own rows in its place; one `over` another just in front of it.
-  const depthById = new Map<string, number>();
-  for (const piece of stage.pieces) if (typeof piece.baseline !== "object" || piece.baseline === null) depthById.set(piece.id, depthOf(piece.baseline, 1));
-  const resolving = new Set<string>();
-  const pieceDepth = (id: string): number => {
-    const found = depthById.get(id);
-    if (found !== undefined) return found;
-    if (resolving.has(id)) throw new Error(`cyclic piece depth at ${id}`);
-    const piece = stage.pieces.find((piece) => piece.id === id);
-    if (piece === undefined || typeof piece.baseline !== "object" || piece.baseline === null) throw new Error(`missing piece depth for ${id}`);
-    resolving.add(id);
-    const depth = pieceDepth(piece.baseline.over) + 1;
-    resolving.delete(id);
-    depthById.set(id, depth);
-    return depth;
-  };
-  for (const piece of stage.pieces) pieceDepth(piece.id);
+  const depthById = pieceDepths(stage.pieces);
   const pieces = stage.pieces.flatMap(function (piece): DrawnPiece[] {
     const depth = depthById.get(piece.id)!;
     const by = stage.parts.find((part) => drawn.has(part.id) && part.replacesPiece?.piece === piece.id);

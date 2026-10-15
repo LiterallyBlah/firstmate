@@ -115,7 +115,7 @@ describe("the settings the daemon serves", () => {
     const settings = await listDeckSettings(async () => root);
     expect(settings.map((setting) => setting.id)).toContain("ship");
     const ship = settings.find((setting) => setting.id === "ship");
-    expect(ship).toMatchObject({ id: "ship", name: "Ship's deck", version: "1.1.0", formatVersion: 1, compatible: true, reason: null, preview: null });
+    expect(ship).toMatchObject({ id: "ship", name: "Ship's deck", version: "1.2.0", formatVersion: 1, compatible: true, reason: null, preview: null });
     // Small enough to send whole: the bundle carries none of it.
     expect(ship!.bytes).toBeGreaterThan(200_000);
     expect(ship!.bytes).toBeLessThan(400_000);
@@ -130,7 +130,7 @@ describe("the settings the daemon serves", () => {
     const setting = await readDeckSetting("ship", async () => root);
     expect(setting.manifest).toEqual(shipJson());
     expect(Object.keys(setting.images)).toEqual(settingImageIds(setting.manifest));
-    expect(Object.keys(setting.images)).toHaveLength(76);
+    expect(Object.keys(setting.images)).toHaveLength(77);
     for (const [id, png] of Object.entries(setting.images)) {
       expect(Buffer.from(png, "base64").equals(readFileSync(join(shipFolder, setting.manifest.images[id]!.path))), id).toBe(true);
     }

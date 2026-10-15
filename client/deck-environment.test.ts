@@ -263,11 +263,12 @@ const ambienceImages = new Set(
  * water among them. With `masks`, each drifter's three slot masks, tokens too.
  */
 function packImages(options: { extras?: Extras | null; without?: readonly string[] }, art: StillWater, atlas: unknown = { atlas: true }) {
+  const handles = new Set(shipManifest().zones.zones.flatMap((zone) => zone.appearance === undefined ? [] : [zone.appearance.sprite.image]));
   const images = new Map(
     [...shipViews().paths].flatMap(([id, path]): Array<[string, unknown]> => {
       if (options.without?.includes(id)) return [];
       const image =
-        path === "deck.png" ? atlas : ambienceImages.has(id) ? { image: path } : stillWater.includes(id) ? art?.images.get(path) : options.extras?.images.get(path);
+        path === "deck.png" ? atlas : ambienceImages.has(id) || handles.has(id) ? { image: path } : stillWater.includes(id) ? art?.images.get(path) : options.extras?.images.get(path);
       return image === undefined ? [] : [[id, image]];
     }),
   );
@@ -926,7 +927,9 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
   });
 
   it("breathes an at-ease sailor: its head and shoulders a pixel lower over its planted body, then whole again", async () => {
-    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: crewScene([["rest", "idle"]]) });
+    const stage = compileStage(shipManifest());
+    stage.zoneOf("idle").appearance = null;
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, stage, scene: crewScene([["rest", "idle"]]) });
     deck.advance(0);
     const { sprite, upper } = sailorSprites(deck.app.stage, "rest");
     const lane = sprite.texture.frame.x === standing(shipCast(), "outfit", "side-idle").frame[0] ? "outfit" : "base";
@@ -967,6 +970,73 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     ] as FakeSprite[];
     deck.drawing.destroy();
     expect(sprites.every((sprite) => sprite.texture.destroyed && sprite.texture.source.destroyed)).toBe(true);
+  });
+});
+
+describe("settled zone handles in the renderer", () => {
+  const now = new Date(2026, 9, 14, 12, 0);
+  const point = (deck: Awaited<ReturnType<typeof start>>, key: string, aboveFeet: number) => {
+    const root = one(deck.app.stage, key), world = one(deck.app.stage, "world"), ship = one(deck.app.stage, "ship");
+    return toCanvas({ x: root.position.x, y: root.position.y - aboveFeet },
+      { scale: world.scale.x, x: world.position.x, y: world.position.y }, { x: ship.position.x, y: ship.position.y });
+  };
+  const click = (deck: Awaited<ReturnType<typeof start>>, at: { x: number; y: number }) =>
+    deck.app.canvas.listeners.get("click")?.({ offsetX: at.x, offsetY: at.y });
+
+  it("draws generated handles in front of the hull and keeps the worker clickable before and after focus", async () => {
+    const selected: Array<string | null> = [], hovers: Array<DeckHover | null> = [];
+    const deck = await start(environment, { now, extras, reducedMotion: true, scene: crewScene([["rest", "idle"]]),
+      onSelect: key => selected.push(key), onHover: hover => hovers.push(hover) });
+    const { root, sprite, upper } = sailorSprites(deck.app.stage, "rest");
+    expect(texturePath(sprite)).toBe("below-deck/porthole.png");
+    expect([sprite.texture.frame.width, sprite.texture.frame.height]).toEqual([16, 16]);
+    expect(root.zIndex).toBeGreaterThan(one(deck.app.stage, "piece:near").zIndex);
+    expect(upper.visible).toBe(false);
+    const at = point(deck, "rest", 8);
+    deck.app.canvas.listeners.get("pointermove")?.({ offsetX: at.x, offsetY: at.y });
+    expect(hovers.at(-1)?.key).toBe("rest");
+    click(deck, at);
+    deck.drawing.focus("rest");
+    expect(one(deck.app.stage, "spot").children.map(child => child.label)).toContain("rest");
+    click(deck, point(deck, "rest", 8));
+    expect(selected).toEqual(["rest", "rest"]);
+    deck.drawing.focus(null);
+    deck.drawing.destroy();
+    expect(sprite.texture.destroyed && sprite.texture.source.destroyed).toBe(true);
+  });
+
+  it("preserves a clickable engine badge when the optional handle image fails", async () => {
+    const selected: Array<string | null> = [];
+    const deck = await start(environment, { now, extras, without: ["below-deck-porthole"], reducedMotion: true,
+      scene: crewScene([["rest", "idle"]]), onSelect: key => selected.push(key) });
+    const { root, sprite } = sailorSprites(deck.app.stage, "rest");
+    expect(sprite.visible).toBe(false);
+    const badge = one(root, "badge");
+    expect(badge.visible).toBe(true);
+    click(deck, point(deck, "rest", -badge.position.y - 2));
+    expect(selected).toEqual(["rest"]);
+    deck.drawing.destroy();
+  });
+
+  it("greys a stale handle, restores a full body for work and removes its hit target with its card", async () => {
+    const selected: Array<string | null> = [];
+    const deck = await start(environment, { now, extras, reducedMotion: true,
+      scene: crewScene([["rest", "idle"]]), onSelect: key => selected.push(key) });
+    const stale = crewScene([["rest", "idle"]]); stale.sailors[0]!.stale = true;
+    deck.drawing.update(stale);
+    const { sprite } = sailorSprites(deck.app.stage, "rest");
+    expect(sprite.tint).toBe(shipStage().palette.staleTint);
+    click(deck, point(deck, "rest", 8));
+    deck.drawing.update(crewScene([["rest", "working"]]));
+    expect(sprite.visible).toBe(true);
+    expect(sprite.texture.frame.height).toBeGreaterThan(16);
+    deck.drawing.update(crewScene([["rest", "idle"]]));
+    expect(texturePath(sprite)).toBe("below-deck/porthole.png");
+    const at = point(deck, "rest", 8);
+    deck.drawing.update(crewScene([]));
+    click(deck, at);
+    expect(selected).toEqual(["rest", null]);
+    deck.drawing.destroy();
   });
 });
 

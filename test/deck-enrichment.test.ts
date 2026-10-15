@@ -11,7 +11,7 @@ const png = (id: string) => decodePng(readFileSync(new URL(`../art/settings/ship
 
 describe("registered enrichment art", () => {
   it("uses the ship's exact palette, hard transparency and two clear border pixels", () => {
-    for (const id of Object.keys(ship.images).filter((id) => id.startsWith("enrichment-"))) {
+    for (const id of Object.keys(ship.images).filter((id) => id.startsWith("enrichment-") || id.startsWith("below-deck-"))) {
       const frame = png(id);
       let visible = 0;
       for (let y = 0; y < frame.height; y++) for (let x = 0; x < frame.width; x++) {

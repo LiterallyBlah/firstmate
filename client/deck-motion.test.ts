@@ -108,27 +108,29 @@ function walkPoints(from: Point, path: readonly Point[]): Point[] {
 // Every post, mark and walkable point on the hull, reachable from every other, is the pack linter's
 // (`test/deck-settings.test.ts`), for every setting. What is the ship's own is here.
 describe("the ship's walkable deck", () => {
-  it("is a main deck, its stairs and the quarterdeck, the stairs behind the near rail's balustrade", () => {
+  it("keeps ordinary overflow on the main deck and quarterdeck, with non-spill stairs and below-deck rooms", () => {
     expect(WALKABLE.map((area) => [area.id, area.spill])).toEqual([
       ["main-deck", true],
       ["stairs", false],
       ["quarterdeck", true],
+      ["rest-corridor", false],
+      ["below-deck", false],
     ]);
     let behind = 0;
     for (let y = 80; y < 126; y += 1) for (let x = 40; x < 424; x += 1) if (walkable(shipStage().floor, x, y) && underNear({ x, y })) behind += 1;
     expect(behind).toBeGreaterThan(0);
   });
 
-  it("puts the helm on the quarterdeck and everything else on the main deck, four posts at least to each place", () => {
+  it("puts the helm on the quarterdeck, rest below deck and work on the main deck", () => {
     for (const place of ["station", "rest", "helm", "bow"] as const) expect(anchorsAt(place).length).toBeGreaterThanOrEqual(4);
-    for (const anchor of ANCHORS) expect(areaAt(shipStage().floor, anchor.x, anchor.y)?.id).toBe(anchor.place === "helm" ? "quarterdeck" : "main-deck");
+    for (const anchor of ANCHORS) expect(areaAt(shipStage().floor, anchor.x, anchor.y)?.id).toBe(anchor.place === "helm" ? "quarterdeck" : anchor.place === "rest" ? "below-deck" : "main-deck");
     expect(onHull(HATCH)).toBe(true);
   });
 });
 
 describe("pathing", () => {
-  it("keeps the ship's routes within their original detour bound", () => {
-    const places = [...ANCHORS, HATCH, ...[...stage.exits.values()].map((exit) => exit.kind === "choreography" ? exit.queue.at : exit.at)];
+  it("keeps the working deck's routes within their original detour bound", () => {
+    const places = [...ANCHORS.filter((anchor) => anchor.place !== "rest"), HATCH, ...[...stage.exits.values()].map((exit) => exit.kind === "choreography" ? exit.queue.at : exit.at)];
     for (const from of places) for (const to of places) {
       if (from.x === to.x && from.y === to.y) continue;
       expect(pathLength(from, findPath(stage.floor, from, to))).toBeLessThan(Math.hypot(to.x - from.x, to.y - from.y) * 1.6 + 30);
@@ -214,7 +216,7 @@ describe("the crew on deck", () => {
         expect(new Set(walkers.map((walker) => walker.anchor)).size).toBe(Math.min(count, free));
         for (const walker of walkers) {
           expect(walkable(shipStage().floor, walker.x, walker.y), `${walker.key} at ${walker.x},${walker.y}`).toBe(true);
-          expect(underNear(walker), `${walker.key} behind the near rail`).toBe(false);
+          expect(underNear(walker), `${walker.key} behind the near rail`).toBe(state === "idle");
           expect(onHull(walker)).toBe(true);
         }
       }
@@ -273,6 +275,8 @@ describe("the crew on deck", () => {
   it("walks with the side frames across the deck, mirrored going forward, and rises a pixel as a leg passes", () => {
     const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a", "idle")], { snap: false });
+    // Start on the working deck: below-deck travel also includes the vertical access corridor.
+    Object.assign(crew.walkers.get("a")!, { x: 132, y: 117 });
     applyCrew(crew, [sailor("a", "blocked")], { snap: false });
     const poses = new Set<string>();
     const rises = new Set<number>();
@@ -414,6 +418,17 @@ describe("idle crew at rest", () => {
     for (const sleeper of sleepers) expect(inRestArea({ x: sleeper.x, y: sleeper.row }), sleeper.key).toBe(true);
   });
 
+  it.each([true, false])("releases absent workers' posts before replacing a full rest room (snap=%s)", (snap) => {
+    const crew = createCrew(shipStage(), shipCast());
+    const batch = (prefix: string) => Array.from({ length: 24 }, (_, i) => sailor(`${prefix}-${String(i).padStart(2, "0")}`, "idle"));
+    applyCrew(crew, batch("old"), { snap: true });
+    const before = [...crew.walkers.values()].map((walker) => walker.target);
+    applyCrew(crew, batch("new"), { snap });
+    const targets = [...crew.walkers.values()].filter((walker) => walker.key.startsWith("new-")).map((walker) => walker.target);
+    expect(targets).toEqual(before);
+    expect(new Set(targets.map(({ x, y }) => `${x},${y}`)).size).toBe(24);
+  });
+
   it("takes the rest spots in their order wherever a sleeper comes from, and leaves them when given work", () => {
     const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a", "working"), sailor("b", "waiting"), sailor("c", "blocked")], { snap: false });
@@ -468,6 +483,7 @@ describe("depth while walking", () => {
     const walker = crew.walkers.get("a")!;
     expect(walker.y).toBeGreaterThan(110);
     // From the rest area to the station behind the mast.
+    walker.state = "working";
     walker.path = findPath(shipStage().floor, walker, { x: 212, y: 94 });
     walker.phase = "walking";
     const sides = new Set<string>();

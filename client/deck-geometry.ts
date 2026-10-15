@@ -12,7 +12,8 @@
  * - **Paths** are A* over the setting's grid of the walkable floor, then pulled tight: a corner is kept only
  *   where the straight line past it would leave the floor.
  * - **Crowds**: `sharedSpot` stands one more worker beside a taken post, `restSpot` packs one into a zone's
- *   overflow areas; both search the floor's open points, never a `spill: false` area.
+ *   overflow areas. Only an explicitly packed zone with a visible appearance may reserve non-spill floor;
+ *   ordinary overflow never enters it.
  *
  * The pack linter (`test/deck-settings.test.ts`) holds every setting's floor to its own backdrop's pixels: every
  * walkable point on it, every post and mark on open floor, every post and the entry reachable from every other.
@@ -49,7 +50,7 @@ export interface Floor {
   readonly rows: number;
   /** Walking pace, stage pixels a second. */
   readonly walkSpeed: number;
-  readonly cache: { cells: Uint8Array | null; open: Point[] | null };
+  readonly cache: { cells: Uint8Array | null; open: Point[] | null; all: Point[] | null };
 }
 
 export function createFloor(spec: {
@@ -69,7 +70,7 @@ export function createFloor(spec: {
     columns: Math.ceil(width / cell),
     rows: Math.ceil(height / cell),
     walkSpeed: spec.walkSpeed,
-    cache: { cells: null, open: null },
+    cache: { cells: null, open: null, all: null },
   };
 }
 
@@ -281,17 +282,18 @@ export function pathLength(from: Point, path: readonly Point[]): number {
   return length;
 }
 
-/** Every other walkable pixel across the grid, off any area a crowd may not spill onto, made once: where a crowd can stand. */
-function openPoints(floor: Floor): Point[] {
-  if (floor.cache.open !== null) return floor.cache.open;
+/** Grid candidates, cached separately for ordinary crowds and explicitly packed, visible zone handles. */
+function openPoints(floor: Floor, includeNonSpill = false): Point[] {
+  const key = includeNonSpill ? "all" : "open";
+  if (floor.cache[key] !== null) return floor.cache[key];
   const points: Point[] = [];
   for (let y = floor.top; y < floor.top + floor.rows * floor.cell; y += 1) {
     for (let x = floor.left; x < floor.left + floor.columns * floor.cell; x += floor.cell) {
       const area = areaAt(floor, x, y);
-      if (area !== null && area.spill && walkable(floor, x, y)) points.push({ x, y });
+      if (area !== null && (area.spill || includeNonSpill) && walkable(floor, x, y)) points.push({ x, y });
     }
   }
-  floor.cache.open = points;
+  floor.cache[key] = points;
   return points;
 }
 
@@ -322,18 +324,20 @@ export function sharedSpot(floor: Floor, anchor: Point, taken: readonly Point[],
  * Where a worker packed into a zone's overflow stands: the post itself while it stands `spacing` clear of every
  * taken spot, else the open spot in the overflow `areas` nearest it that does. Only when the areas hold no such spot
  * does it settle for the closer `fallback` spacing, still in the areas; the post itself when even that is gone.
+ * A visible zone appearance allows its authored packing areas to include otherwise hidden, non-spill floor.
  */
 export function restSpot(
   floor: Floor,
   overflow: { areas: readonly Rect[]; spacing: readonly [number, number]; fallback: readonly [number, number] },
   anchor: Point,
   taken: readonly Point[],
+  includeNonSpill = false,
 ): Point {
   for (const spacing of [overflow.spacing, overflow.fallback]) {
     const crowded = (spot: Point) => taken.some((other) => Math.abs(other.x - spot.x) < spacing[0] && Math.abs(other.y - spot.y) < spacing[1]);
     let best: Point | null = null;
     let bestCost = Number.POSITIVE_INFINITY;
-    for (const spot of openPoints(floor)) {
+    for (const spot of openPoints(floor, includeNonSpill)) {
       if (!inRects(overflow.areas, spot)) continue;
       const cost = Math.hypot(spot.x - anchor.x, spot.y - anchor.y);
       if (cost < bestCost && !crowded(spot)) {
