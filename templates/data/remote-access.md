@@ -206,3 +206,23 @@ Each worker in `data/remote-hosts.json` carries `lastMessage` (the final
 message alone), `output` (the last few replies and thoughts) and, while it
 waits, `pendingPermissions` with each request's `id`, `tool` and
 `description`, and `recentTools`, its latest three tool calls.
+
+## Action receipts
+
+The helper writes `data/remote-action-receipts/<request-id>.<phase>.json` for `run`,
+`send`, `archive`, `stop`, `permit allow/deny`, and `workspace create/archive`.
+An immutable `started` receipt is synced before the command enters the queue. Its
+terminal receipt is `succeeded`, `failed`, or `uncertain`; a missing terminal receipt
+also means uncertain. A collector must never label an intent alone as a successful action.
+
+Receipts contain only the request UUID, calling `PASEO_AGENT_ID` (or null), saved
+server ID (or null), target UUID (or null), action class, local UTC time, phase,
+schema version, and an optional SHA-256 digest of the task label. They contain no
+command arguments, prompt, result, error prose, credentials, or model output.
+Unknown identities remain null. Read-only commands produce no action receipt.
+
+These receipts attest to the remote CLI accepting the command, not to the worker
+finishing its assignment. A request to merge delivered with `send` is a `steer`;
+it is not evidence that a merge completed. Commands that bypass this helper are
+outside this receipt source. Consumers must check actor identity, correlate phases
+by request UUID, deduplicate, and preserve their pre-action inputs separately.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Plugin-owned transport helper. Credentials stay in the daemon's registry.
-import { randomUUID } from "node:crypto";
-import { readFile, realpath, stat, writeFile, rename, rm } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { readFile, realpath, stat, writeFile, rename, rm, mkdir, open, link } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 const queue = {{remoteQueueJson}};
@@ -12,11 +12,59 @@ const MAX_PROMPT_CHARS = 28000;
 const FLAGS = new Set(["-d", "--background", "--json", "-q", "--quiet", "--no-headers", "--no-color", "--no-wait", "-h", "--help", "-v", "--version"]);
 // Clock warnings the plugin attached to its answers, printed once each to stderr.
 const warnings = new Set();
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuid = (value) => typeof value === "string" && UUID.test(value) ? value.toLowerCase() : null;
+const receipts = join(home, "data", "remote-action-receipts");
+const ACTIONS = new Map([["run", "dispatch"], ["send", "steer"], ["archive", "archive"], ["stop", "stop"]]);
+const WORKSPACE_ACTIONS = new Map([["create", "dispatch"], ["archive", "archive"]]);
+
+/** Deliberately project identifiers only. Never retain arguments, prompts, results, or errors. */
+async function actionIdentity(host, args, requestId) {
+  const options = args.slice(0, args.includes("--") ? args.indexOf("--") : args.length);
+  if (options.some((arg) => ["--help", "-h", "--version", "-v"].includes(arg))) return null;
+  const action = ACTIONS.get(args[0])
+    ?? (args[0] === "permit" && ["allow", "deny"].includes(args[1]) ? "answer-permission" : null)
+    ?? (args[0] === "workspace" ? WORKSPACE_ACTIONS.get(args[1]) : null);
+  if (!action) return null;
+  let catalog;
+  try { catalog = JSON.parse(await readFile(join(home, "data", "remote-hosts.json"), "utf8")); } catch { /* Unknown identity stays unknown. */ }
+  const hosts = (Array.isArray(catalog?.hosts) ? catalog.hosts : []).filter((h) => h.serverId === host || h.label === host);
+  const found = hosts.length === 1 ? hosts[0] : null;
+  const serverId = typeof found?.serverId === "string" && /^[A-Za-z0-9_-]{1,80}$/.test(found.serverId) ? found.serverId : null;
+  const target = ["send", "archive", "stop"].includes(args[0]) ? args[1] : null;
+  const workers = (Array.isArray(found?.workers) ? found.workers : []).filter((w) => uuid(w.id) && typeof target === "string" && /^[0-9a-f-]{7,36}$/i.test(target) && w.id.startsWith(target));
+  const targetId = uuid(target) ?? (workers.length === 1 ? uuid(workers[0].id) : null);
+  const worker = targetId ? (Array.isArray(found?.workers) ? found.workers : []).find((w) => uuid(w.id) === targetId) : null;
+  // Task labels are arbitrary input: retain a digest, never their text.
+  let task = typeof worker?.taskId === "string" ? worker.taskId : null;
+  for (let i = 1; i < options.length; i++) {
+    const label = options[i] === "--label" ? options[++i] : options[i].startsWith("--label=") ? options[i].slice(8) : null;
+    if (label?.startsWith("firstmate.task=")) task = label.slice(15);
+  }
+  return { version: 1, requestId, actorId: uuid(process.env.PASEO_AGENT_ID), serverId, action, targetId,
+    taskKey: task ? createHash("sha256").update(task).digest("hex") : null };
+}
+
+/** Two immutable files per action. A durable intent precedes queue submission; no terminal file means uncertain. */
+async function actionReceipt(identity, phase, targetId = identity.targetId) {
+  await mkdir(receipts, { recursive: true });
+  const destination = join(receipts, `${identity.requestId}.${phase}.json`);
+  const temporary = `${destination}.${randomUUID()}.tmp`;
+  const file = await open(temporary, "wx", 0o600);
+  try { await file.writeFile(JSON.stringify({ ...identity, targetId, phase, at: new Date().toISOString() }) + "\n"); await file.sync(); }
+  finally { await file.close(); }
+  try { await link(temporary, destination); } finally { await rm(temporary, { force: true }); }
+}
 const usage = "Usage: node tools/remote.mjs hosts | <host-id-or-name> <paseo command...> [--prompt-file <file in the home>] | --request-file <JSON file with host and args>";
 
 /** One Paseo command on the remote host, through the plugin's queue. */
 async function remote(host, args) {
   const id = randomUUID();
+  const identity = await actionIdentity(host, args, id);
+  if (identity) {
+    try { await actionReceipt(identity, "started"); }
+    catch { throw new Error("Remote action receipt unavailable; command was not submitted."); }
+  }
   const request = join(queue, `${id}.request.json`);
   const response = join(queue, `${id}.response.json`);
   const temp = `${request}.tmp`;
@@ -32,6 +80,12 @@ async function remote(host, args) {
   if (!result) {
     await rm(request, { force: true });
     throw new Error("Remote request timed out. Its outcome is uncertain: inspect the host before retrying a change.");
+  }
+  if (identity) {
+    const phase = result.id !== id ? "uncertain" : result.ok ? "succeeded" : "failed";
+    const targetId = identity.targetId ?? uuid(result.result?.agentId) ?? uuid(result.result?.workspaceId);
+    try { await actionReceipt(identity, phase, targetId); }
+    catch { warnings.add("Remote command returned, but its action receipt is incomplete. Inspect the host before retrying a change."); }
   }
   await rm(response, { force: true });
   if (typeof result.warning === "string") warnings.add(result.warning);

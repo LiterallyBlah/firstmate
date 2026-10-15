@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -36,6 +36,49 @@ async function fixture(execute: ConstructorParameters<typeof RemoteService>[0], 
 const success = (value: unknown) => ({ code: 0, stdout: JSON.stringify(value), stderr: "" });
 
 describe("independent remote access", () => {
+  it("retains minimal immutable action receipts, with a durable intent before submission", async () => {
+    const actor = "10000000-0000-4000-8000-000000000001";
+    const target = "20000000-0000-4000-8000-000000000002";
+    let receiptDir = "";
+    let fail = false;
+    const intentsSeen: number[] = [];
+    const { directory, home, service } = await fixture(async (args) => {
+      if (args[0] === "status") return success({ serverId: remote.serverId, connectedDaemon: "reachable" });
+      if (["run", "send", "archive", "stop"].includes(args[0]!)) {
+        intentsSeen.push((await readdir(receiptDir)).filter((n) => n.endsWith(".started.json")).length);
+        if (fail) return { code: 1, stdout: "", stderr: "private failure prose" };
+        return success({ agentId: target, prose: "private result prose" });
+      }
+      return success({ Id: target, CreatedAt: new Date().toISOString() });
+    });
+    receiptDir = join(home, "data", "remote-action-receipts");
+    const helper = join(home, "tools", "remote.mjs");
+    await writeFile(helper, fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(join(directory, "remote-requests")) }));
+    service.start();
+    const env = { ...process.env, PASEO_AGENT_ID: actor };
+    await run(process.execPath, [helper, "Remote", "run", "--label", "firstmate.task=receipt-test", "--", "private prompt --password=secret"], { env, timeout: 10000 });
+    await run(process.execPath, [helper, "Remote", "send", target, "--", "--archive private steer"], { env, timeout: 10000 });
+    await run(process.execPath, [helper, "Remote", "archive", target], { env, timeout: 10000 });
+    fail = true;
+    await expect(run(process.execPath, [helper, "Remote", "stop", target], { env, timeout: 10000 })).rejects.toThrow();
+    const before = (await readdir(receiptDir)).sort();
+    await run(process.execPath, [helper, "Remote", "inspect", target], { env, timeout: 10000 });
+    await expect(run(process.execPath, [helper, "Remote", "constructor"], { env, timeout: 10000 })).rejects.toThrow();
+    expect((await readdir(receiptDir)).sort()).toEqual(before);
+    const raw = await Promise.all(before.map((n) => readFile(join(receiptDir, n), "utf8")));
+    const rows = raw.map((s) => JSON.parse(s));
+    expect(intentsSeen).toEqual([1, 2, 3, 4]);
+    expect(rows.filter((r) => r.phase === "succeeded").map((r) => r.action).sort()).toEqual(["archive", "dispatch", "steer"]);
+    expect(rows.filter((r) => r.phase === "failed")).toHaveLength(1);
+    for (const r of rows) {
+      expect(Object.keys(r).sort()).toEqual(["action", "actorId", "at", "phase", "requestId", "serverId", "targetId", "taskKey", "version"]);
+      expect(r.actorId).toBe(actor);
+      expect(r.serverId).toBe(remote.serverId);
+    }
+    expect(raw.join("")).not.toMatch(/private|secret|password|receipt-test|--archive/);
+    expect(rows.find((r) => r.action === "dispatch" && r.phase === "succeeded").targetId).toBe(target);
+    expect(rows.find((r) => r.action === "dispatch").taskKey).toMatch(/^[a-f0-9]{64}$/);
+  }, 60000);
   it("projects only connection fields and rejects unknown formats and duplicate hosts", () => {
     const hosts = SavedHosts.parse([{ ...remote, appearance: { secret: "ignored" } }]);
     expect(hosts[0]).not.toHaveProperty("appearance");
