@@ -1,7 +1,6 @@
 {
   "status": "not-installable",
   "pendingCapabilities": [
-    "walk-in@1",
     "phase-tint@1",
     "phase-frames@1"
   ],

@@ -16,7 +16,7 @@ or capabilities as incompatible, with a reason. The pane falls back to ship and 
 | Capability group | Version 1 vocabulary |
 | --- | --- |
 | Layout and workers | `stage`, `floor`, `zones`, `stable-posts`, `cast`, `pose-fidgets` |
-| Portals and effects | `rise`, `sink`, `choreography` |
+| Portals and effects | `rise`, `walk-in`, `sink`, `choreography` |
 | Stage motion and light | `bob`, `sway`, `cycle`, `flicker` |
 | Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `strip`, `variants` |
 | Time and activity | `day-cycle`, `atmosphere` |
@@ -38,8 +38,8 @@ seconds dark, hidden in lite and still).
 1. Commission new art separately. Agree the stage dimensions, actor scale, feet anchors, floor polygons,
    props, depth pieces, cast pose roles and entry/departure paths before laying out the manifest. Existing
    `art/settings/ship/setting.json` is a complete reference, not a requirement to use ship names or channels.
-2. Author the stage, zones and portals against those pixels. Every post and portal must be on open,
-   reachable floor; packing zones need enough visible space. Set the fit box to contain every part and
+2. Author the stage, zones and portals against those pixels. Every post, entry endpoint and exit queue must
+   be on open, reachable floor; a walk-in's source may be off-floor. Packing zones need enough visible space. Set the fit box to contain every part and
    effect. Define cast lanes/looks/roles, `copy` for the pane and zone descriptions, and optional ambience,
    day phases and atmosphere channels. Name each PNG in `images` with dimensions and SHA-256. The total
    image budget is 1,000,000 bytes; no unused image, source file or script belongs in the pack.
@@ -72,6 +72,32 @@ ties in manifest order. Existing holders keep their places. Pose fidgets may nam
 a key without one uses the settled pose, and all use the settled mirror rule. Still/stale workers keep
 their settled role. Every lane must define every named fidget pose.
 
-Walking entry, phase tint and phase frames still require separate engine PRs. Keep choreography finite;
+`walk-in@1` is supported as of step 9b. Phase tint and phase frames still require separate engine PRs. Keep choreography finite;
 do not add hooks to work around a missing behavior. The actual office art and installable pack remain
 pending. The draft contains no placeholder pixels and cannot be selected as an installed pack.
+
+## Walking entry
+
+```json
+{ "kind": "walk-in", "from": [404, 112], "at": [392, 112] }
+```
+
+The actor walks the straight corridor from `from` to `at`, fully visible, using the floor's `walkSpeed`
+and the cast's directional cycles. The engine derives its duration from distance, rounded to milliseconds;
+zero-length walks are invalid. Only `at` enters floor navigation. The corridor may cross off-floor space
+but must avoid all obstacle footprints and fit every walking frame; the linter checks it and the overlay
+draws its source and line. Floor row depth follows the actor's feet throughout.
+
+An optional `effects` array uses the same finite effect tracks as `choreography@1`: explicit positive depth
+orders, frames, durations, anchors and named-point alignment. Available marks are **`from` / `at`**;
+events are **`start` / `entered`** (zero and the corridor duration). There is no alternation: side is `-1`
+and drift is `0`, so side mirroring is off and any approach comes from the left. Keys in a track cannot
+overlap. The actor waits at `at` until the last effect ends, then follows the floor path to its reserved post.
+Concurrent arrivals own independent effect tracks; a door shared by several workers should use the static
+open art or tracks designed to overlap. There is no persistent door state or entry queue.
+
+A card removed during entry reverses the same clock and corridor, including any effect tail; a returning
+card reverses again continuously. First mount and reduced motion place actors directly at their posts
+without portal effects. Turning reduced motion on discards entry effects and snaps present actors to posts;
+an actor removed at that moment fades at its current position. Lite uses the same walk on its existing
+lower frame budget, and hidden scenes retain their paused simulation clock.

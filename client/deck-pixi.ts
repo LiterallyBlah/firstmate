@@ -55,7 +55,7 @@ import { availableLooks, laneOf, standing, type DeckCast } from "./deck-cast";
 import type { MotionPlan } from "./deck-ambient";
 import { clockOf, crewIntensity, deliveredWeather, levelAt, openingAtmosphere, stepAtmosphere, weatherOf, type DeckAtmosphere } from "./deck-atmosphere";
 import { ASK_PAPER, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
-import { applyCrew, createCrew, crewFigures, fading, departureEffects, stepCrew, stepDepartures, type Figure } from "./deck-crew";
+import { applyCrew, createCrew, crewFigures, fading, portalEffects, stepCrew, stepDepartures, type Figure } from "./deck-crew";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
 import { askMarks, badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type AskMark, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
@@ -712,7 +712,7 @@ export async function startDeck(
   /** Draw each track in its pack-defined order, anchored and mirrored about the effect's named anchor. */
   function drawEffects(): void {
     const present = new Set<string>();
-    for (const effect of departureEffects(crew)) {
+    for (const effect of portalEffects(crew)) {
       present.add(effect.key);
       const sprite = shown(effects.get(effect.key) ?? null, textures.effects.get(effect.effect)?.get(effect.frame), effect.order, effect.effect);
       if (sprite === null) continue;

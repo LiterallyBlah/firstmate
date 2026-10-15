@@ -26,6 +26,7 @@ import { badgeTop, figureBox, sailorAt, type DeckBox } from "../client/deck-hove
 import { BADGE_SIZE } from "../client/deck-badges";
 import type { DeckSailor, DeckState } from "../client/deck-scene";
 import { decodePng, type Pixels } from "./png";
+import { walkingEntryProblems } from "./deck-entry";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const settings = join(root, SETTINGS_DIR);
@@ -223,6 +224,15 @@ describe.each(packs)("the %s pack", (id) => {
     const places: Array<Point & { id: string }> = [...posts, { id: "entry", ...stage.entry }, ...sinks, ...queues];
     const [gridLeft, gridTop, gridWidth, gridHeight] = manifest.floor.grid.bounds;
 
+    it("keeps walking entry corridors clear and their actors inside the fit", () => {
+      expect(walkingEntryProblems(manifest)).toEqual([]);
+      if (stage.walkIn === null) return;
+      for (const point of walkPoints(stage.walkIn.from, [stage.entry])) {
+        expect(onBackdrop(point), "entry corridor on backdrop").toBe(true);
+        expect(hidden(point), "entry corridor hidden by foreground").toBe(false);
+      }
+    });
+
     it("is all backdrop, and hidden behind what stands in front of everything only where a crowd may not spill", () => {
       let walkablePoints = 0;
       for (let y = gridTop; y < gridTop + gridHeight; y += 1) {
@@ -325,7 +335,9 @@ describe.each(packs)("the %s pack", (id) => {
       }
       const cast = compileCast(manifest);
       const lane = cast.looks[0]!.lane;
-      for (const [id, exit] of stage.exits) {
+      const portals = [...stage.exits];
+      if (stage.walkIn !== null) portals.push(["entry", stage.walkIn.choreography]);
+      for (const [id, exit] of portals) {
         if (exit.kind !== "choreography") continue;
         for (const [drift, timeline] of exit.timelines) for (const side of new Set(exit.alternate.side)) {
           for (const track of timeline.effects) for (const { start, key } of track.keys) {
