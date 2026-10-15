@@ -9,7 +9,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import type { FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
 import { CrewCard } from "./card";
-import { watchKey } from "./host-tabs";
+import { converseKey, conversingWith } from "./converse-layout";
 import { doneCards, LIST_GROUPS, listGroups } from "./format";
 
 export function TaskList({
@@ -76,7 +76,7 @@ export function TaskList({
             {id === "done" && !showDone
               ? null
               : (id === "done" ? doneCards(entries, true).shown : entries).map((card) => {
-                  const key = watchKey(card);
+                  const key = converseKey(card);
                   return (
                     <CrewCard
                       key={card.key}
@@ -86,8 +86,8 @@ export function TaskList({
                       density={density}
                       presentation="row"
                       opener={null}
-                      onConverse={key === null ? null : () => onConverse(key)}
-                      conversing={key !== null && key === conversing}
+                      onConverse={() => onConverse(key)}
+                      conversing={conversingWith(card, conversing)}
                       onChanged={onChanged}
                     />
                   );

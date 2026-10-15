@@ -254,6 +254,13 @@ once it goes quiet for two minutes, not one per message. **Esc** or ✕ puts you
 the model and mode, the worktree's files, terminals. What you type in Paseo's own tab is not relayed to
 the first mate.
 
+Items **without a worker** also have 💬. They open a saved discussion with the first mate about that
+item; opening it sends nothing, and discussing it does not request dispatch. When the idea is ready,
+choose **Start work… → Request dispatch** to ask the first mate to carry the discussion into a brief
+and launch a crewmate. **Work requested** means the request was sent, not that dispatch is complete.
+Once a worker appears, **Worker | Item discussion** keeps both conversations available. Drafts stay
+with their recipient, and the saved discussion survives reloads and a change of first mate.
+
 Press the card itself for the rest — task id, kind, mode, model, the full status line, the pull request —
 and its actions:
 

@@ -1,0 +1,62 @@
+[
+  {
+    "name": "list-1440-light",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  },
+  {
+    "name": "board-1440-light",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  },
+  {
+    "name": "list-1440-dark",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  },
+  {
+    "name": "board-1440-dark",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  },
+  {
+    "name": "list-900-light",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  },
+  {
+    "name": "board-900-light",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  },
+  {
+    "name": "list-900-dark",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  },
+  {
+    "name": "board-900-dark",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  },
+  {
+    "name": "list-390-light",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  },
+  {
+    "name": "board-390-light",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  },
+  {
+    "name": "list-390-dark",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  },
+  {
+    "name": "board-390-dark",
+    "passed": true,
+    "checks": "universal icons; no send on open; scoped reply; draft; cancel and explicit graduation; single request; phase-1 steer; reload persistence; no horizontal overflow"
+  }
+]

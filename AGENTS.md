@@ -1139,7 +1139,7 @@ what the sidebar needs to.
 
 ## Conversing with a crewmate
 
-Every card and list row with a worker has a **💬** at rest (`MessagesSquare`), a sibling of the card's
+Every card and list row has a **💬** at rest (`MessagesSquare`), a sibling of the card's
 toggle — pressing it never folds the card, and pressing the card still only expands it. It opens the
 **Converse drawer** (`client/converse.tsx`) in the right-hand pane: **docked** beside the list or board
 when the pane fits both (`drawerDocks`: 380 pt of drawer and 300 of surface), with ✕; **over** them
@@ -1149,6 +1149,33 @@ return to it scrolled where it was, and focus goes back to the 💬 (`converseBu
 `focusWebElement`). The open worker is `watching` in module scope; its 💬 is lit. Pressing *Crew* again
 also closes it. The deck's focus panel still opens it through `watchOpener` (now labelled Converse),
 which moves the pane to Crew — the deck's own entry is a later change, kept out of the deck's files.
+
+**Items without a worker open a light discussion with the existing first mate.** Opening is read-only;
+Send calls `firstmate.item.discuss`, using `askMate` and its lifecycle guards. The discussion template
+explicitly forbids dispatch or implementation. **Start work… → Request dispatch** is a separate,
+explicit request for the first mate to turn the discussion into a brief and dispatch using its own tools.
+The UI says **Work requested**, never claims a worker was created from successful message delivery.
+After graduation, follow-up questions keep the original work request's authority and scope.
+
+`shared/item-threads.ts` reuses `itemTagKey`: host, project and task, independent of title, column and
+worker. `converseKey` keeps the existing worker id when one exists, otherwise an encoded `thread:` key.
+An open thread stays selected when a worker appears; **Worker | Item discussion** switches between the
+two without changing recipients or drafts. Reopening a live worker defaults to phase-1 read/steer.
+
+`server/item-threads.ts` stores `data/item-threads/<sha256-key>/thread.json` and asks the first mate to
+write each reply to `<message-id>.reply.md` beside it. These reply files are the thread transcript,
+read every five seconds while open; unrelated first-mate timeline text is never attributed to an item.
+The plugin owns the JSON, the first mate owns the replies. Both remain readable in Files and survive
+reloads and first-mate replacement. This is a model/file contract, like the backlog, not a second agent
+or a new topic transport: if the first mate omits the reply file, the drawer keeps awaiting the saved
+reply. Permissions on the first mate are still answered in the bridge.
+
+Writes use the existing confined, atomic, content-checked home-file path. A send reserves its message
+id and receiving first mate immediately before delivery. A lost response or restart never automatically
+resends it; uncertain delivery is shown explicitly. Graduation is reserved once per discussion, even
+when uncertain; further clarification goes through discussion. Current fleet identity and absence of a
+worker are checked before graduation, and its template checks for an existing worker before dispatch.
+No steer, receipt id, or burst relay code changes for live workers.
 
 The drawer is a non-modal `complementary` region named "Conversation with ‹title›". Top to bottom:
 the title, state chip and tags; the glance — status line, captain's call, error, link, one line each;
