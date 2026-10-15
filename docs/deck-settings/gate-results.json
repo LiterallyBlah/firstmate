@@ -1,6 +1,6 @@
 {
-  "base": "origin/main de7824e",
-  "branch": "HEAD de7824e",
+  "base": "origin/main 9723bdb",
+  "branch": "HEAD 9723bdb",
   "control": null,
   "scenarios": [
     {
@@ -13,9 +13,22 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "5f0aeec8e944562d",
+          "identical": false,
+          "differingPixels": 10986,
+          "firstDifference": [
+            2734,
+            1294
+          ],
+          "box": [
+            2710,
+            1294,
+            2853,
+            1435
+          ],
+          "sha": [
+            "5f0aeec8e944562d",
+            "b1664ed43b4ee95e"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "still",
@@ -36,9 +49,22 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "bcbfcdd26ddbb57b",
+          "identical": false,
+          "differingPixels": 2779,
+          "firstDifference": [
+            1368,
+            647
+          ],
+          "box": [
+            1353,
+            647,
+            1426,
+            717
+          ],
+          "sha": [
+            "bcbfcdd26ddbb57b",
+            "af2c0b13d2f54aed"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "still",
@@ -60,9 +86,22 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "33c112a4e7b179d7",
+          "identical": false,
+          "differingPixels": 10986,
+          "firstDifference": [
+            2734,
+            1294
+          ],
+          "box": [
+            2710,
+            1294,
+            2853,
+            1435
+          ],
+          "sha": [
+            "33c112a4e7b179d7",
+            "b60af3eca50ac5c6"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "still",
@@ -83,9 +122,22 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "b3b41d4072164151",
+          "identical": false,
+          "differingPixels": 2779,
+          "firstDifference": [
+            1368,
+            647
+          ],
+          "box": [
+            1353,
+            647,
+            1426,
+            717
+          ],
+          "sha": [
+            "b3b41d4072164151",
+            "4ce05b53626655ec"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "still",
@@ -106,9 +158,22 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "6e66c8c0ae18a562",
+          "identical": false,
+          "differingPixels": 2779,
+          "firstDifference": [
+            1368,
+            647
+          ],
+          "box": [
+            1353,
+            647,
+            1426,
+            717
+          ],
+          "sha": [
+            "6e66c8c0ae18a562",
+            "47208ddd65df18c7"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "still",
@@ -130,9 +195,22 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "0f27b86390630fb2",
+          "identical": false,
+          "differingPixels": 10986,
+          "firstDifference": [
+            2734,
+            1294
+          ],
+          "box": [
+            2710,
+            1294,
+            2853,
+            1435
+          ],
+          "sha": [
+            "0f27b86390630fb2",
+            "37811d686ed16aec"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "still",
@@ -154,9 +232,22 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "3703fef554a3ce0d",
+          "identical": false,
+          "differingPixels": 10986,
+          "firstDifference": [
+            2734,
+            1294
+          ],
+          "box": [
+            2710,
+            1294,
+            2853,
+            1435
+          ],
+          "sha": [
+            "3703fef554a3ce0d",
+            "9616bed9f6631d3c"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "still",
@@ -176,9 +267,22 @@
       "shots": [
         {
           "shot": "lost",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "8720bf8b25dcc08e",
+          "identical": false,
+          "differingPixels": 2779,
+          "firstDifference": [
+            1368,
+            681
+          ],
+          "box": [
+            1353,
+            681,
+            1426,
+            751
+          ],
+          "sha": [
+            "8720bf8b25dcc08e",
+            "6aaa9be70c2ad108"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "still",
@@ -199,9 +303,22 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "8e0e4f159fb4d5c7",
+          "identical": false,
+          "differingPixels": 9776,
+          "firstDifference": [
+            2730,
+            1298
+          ],
+          "box": [
+            2710,
+            1298,
+            2853,
+            1445
+          ],
+          "sha": [
+            "8e0e4f159fb4d5c7",
+            "09904224270fef35"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -213,9 +330,22 @@
         },
         {
           "shot": "1s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "d29cb37bf09d304e",
+          "identical": false,
+          "differingPixels": 9558,
+          "firstDifference": [
+            2734,
+            1294
+          ],
+          "box": [
+            2710,
+            1294,
+            2853,
+            1435
+          ],
+          "sha": [
+            "d29cb37bf09d304e",
+            "dc1afbb263a39dc0"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -227,9 +357,22 @@
         },
         {
           "shot": "2.5s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "06603e3662b9112b",
+          "identical": false,
+          "differingPixels": 9775,
+          "firstDifference": [
+            2730,
+            1298
+          ],
+          "box": [
+            2707,
+            1298,
+            2853,
+            1439
+          ],
+          "sha": [
+            "06603e3662b9112b",
+            "966f211eb691bb5f"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -241,9 +384,22 @@
         },
         {
           "shot": "5s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "6d4086d9e6264bcd",
+          "identical": false,
+          "differingPixels": 9601,
+          "firstDifference": [
+            2744,
+            1298
+          ],
+          "box": [
+            2707,
+            1298,
+            2853,
+            1445
+          ],
+          "sha": [
+            "6d4086d9e6264bcd",
+            "5b68aa35398b1d5f"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -255,9 +411,22 @@
         },
         {
           "shot": "10s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "4a4c5c5442eff8c2",
+          "identical": false,
+          "differingPixels": 9905,
+          "firstDifference": [
+            2734,
+            1294
+          ],
+          "box": [
+            2710,
+            1294,
+            2853,
+            1435
+          ],
+          "sha": [
+            "4a4c5c5442eff8c2",
+            "07e58c519a622d28"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -269,9 +438,22 @@
         },
         {
           "shot": "25s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "934acce58ce972ba",
+          "identical": false,
+          "differingPixels": 9889,
+          "firstDifference": [
+            2734,
+            1294
+          ],
+          "box": [
+            2710,
+            1294,
+            2853,
+            1435
+          ],
+          "sha": [
+            "934acce58ce972ba",
+            "d1c7f18eb914ae64"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -283,9 +465,22 @@
         },
         {
           "shot": "49s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "08adc4ba7278f9d6",
+          "identical": false,
+          "differingPixels": 9753,
+          "firstDifference": [
+            2730,
+            1298
+          ],
+          "box": [
+            2707,
+            1298,
+            2853,
+            1445
+          ],
+          "sha": [
+            "08adc4ba7278f9d6",
+            "4b2a0deb5469b1e9"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -297,9 +492,22 @@
         },
         {
           "shot": "73s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "1ef1d9e44e2eb302",
+          "identical": false,
+          "differingPixels": 9691,
+          "firstDifference": [
+            2734,
+            1294
+          ],
+          "box": [
+            2710,
+            1294,
+            2853,
+            1442
+          ],
+          "sha": [
+            "1ef1d9e44e2eb302",
+            "ce0e00297c3ccca4"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -735,9 +943,22 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "40d162eb4caa1df5",
+          "identical": false,
+          "differingPixels": 2492,
+          "firstDifference": [
+            1365,
+            648
+          ],
+          "box": [
+            1354,
+            648,
+            1426,
+            722
+          ],
+          "sha": [
+            "40d162eb4caa1df5",
+            "baea7945034e826f"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -749,9 +970,22 @@
         },
         {
           "shot": "10s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "8038e5ae1b6dca71",
+          "identical": false,
+          "differingPixels": 2519,
+          "firstDifference": [
+            1366,
+            647
+          ],
+          "box": [
+            1353,
+            647,
+            1426,
+            717
+          ],
+          "sha": [
+            "8038e5ae1b6dca71",
+            "637f252fb7065bd7"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -772,9 +1006,22 @@
       "shots": [
         {
           "shot": "aboard",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "8e0e4f159fb4d5c7",
+          "identical": false,
+          "differingPixels": 9776,
+          "firstDifference": [
+            2730,
+            1298
+          ],
+          "box": [
+            2710,
+            1298,
+            2853,
+            1445
+          ],
+          "sha": [
+            "8e0e4f159fb4d5c7",
+            "09904224270fef35"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -786,9 +1033,22 @@
         },
         {
           "shot": "changed",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "cfde39dcdb96fa85",
+          "identical": false,
+          "differingPixels": 9066,
+          "firstDifference": [
+            2734,
+            1294
+          ],
+          "box": [
+            2710,
+            1294,
+            2853,
+            1432
+          ],
+          "sha": [
+            "cfde39dcdb96fa85",
+            "bba599bdfeb5deab"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -800,9 +1060,22 @@
         },
         {
           "shot": "walking-1000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "63fc26a0ea238fb2",
+          "identical": false,
+          "differingPixels": 3647,
+          "firstDifference": [
+            2737,
+            1295
+          ],
+          "box": [
+            2713,
+            1295,
+            2853,
+            1425
+          ],
+          "sha": [
+            "63fc26a0ea238fb2",
+            "7a5667cb62a5d327"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -814,9 +1087,22 @@
         },
         {
           "shot": "walking-2000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "f2f09112d738df82",
+          "identical": false,
+          "differingPixels": 221,
+          "firstDifference": [
+            2736,
+            1328
+          ],
+          "box": [
+            2736,
+            1328,
+            2853,
+            1398
+          ],
+          "sha": [
+            "f2f09112d738df82",
+            "7860d757967a9c04"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -1159,9 +1445,22 @@
       "shots": [
         {
           "shot": "100ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "2af5e21088bc58b2",
+          "identical": false,
+          "differingPixels": 8226,
+          "firstDifference": [
+            2746,
+            1298
+          ],
+          "box": [
+            2722,
+            1298,
+            2853,
+            1439
+          ],
+          "sha": [
+            "9ea3f893b5c3a327",
+            "3a4ab78152ead398"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -1175,7 +1474,7 @@
           "shot": "300ms",
           "identical": true,
           "differingPixels": 0,
-          "sha": "af286246b77324e2",
+          "sha": "8cbccdd0553c582d",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -1189,7 +1488,7 @@
           "shot": "1.5s",
           "identical": true,
           "differingPixels": 0,
-          "sha": "35ea1d594f49d3fb",
+          "sha": "cbb3cc9931aafdbf",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -1201,9 +1500,22 @@
         },
         {
           "shot": "back-out",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "4453287e71c5d49b",
+          "identical": false,
+          "differingPixels": 10100,
+          "firstDifference": [
+            2734,
+            1294
+          ],
+          "box": [
+            2710,
+            1294,
+            2853,
+            1435
+          ],
+          "sha": [
+            "4453287e71c5d49b",
+            "3cef78d73e83b5a1"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "full",
@@ -1223,9 +1535,22 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "9092fcf83fa58cf6",
+          "identical": false,
+          "differingPixels": 2479,
+          "firstDifference": [
+            1366,
+            647
+          ],
+          "box": [
+            1353,
+            647,
+            1426,
+            717
+          ],
+          "sha": [
+            "9092fcf83fa58cf6",
+            "e2210f1610fca548"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "lite",
@@ -1237,9 +1562,22 @@
         },
         {
           "shot": "2s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a86c8c2272b1c98f",
+          "identical": false,
+          "differingPixels": 2479,
+          "firstDifference": [
+            1366,
+            647
+          ],
+          "box": [
+            1353,
+            647,
+            1426,
+            717
+          ],
+          "sha": [
+            "a86c8c2272b1c98f",
+            "d160cb11572df684"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "lite",
@@ -1251,9 +1589,22 @@
         },
         {
           "shot": "6s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "2e644fd1f7b1c105",
+          "identical": false,
+          "differingPixels": 2481,
+          "firstDifference": [
+            1366,
+            647
+          ],
+          "box": [
+            1353,
+            647,
+            1426,
+            717
+          ],
+          "sha": [
+            "2e644fd1f7b1c105",
+            "7ec627e0e9ea98bb"
+          ],
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-motion": "lite",
@@ -1268,5 +1619,5 @@
   ],
   "pageErrors": [],
   "shots": 81,
-  "identical": true
+  "identical": false
 }

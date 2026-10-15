@@ -232,12 +232,16 @@ async function compare(name, a, b, labels = ["main", "branch"]) {
   if (left.width !== right.width || left.height !== right.height) return { identical: false, sizes: [[left.width, left.height], [right.width, right.height]] };
   let differing = 0;
   let first = null;
+  // Where the differences are: the box round them, in screenshot pixels [left, top, right, bottom].
+  let box = null;
   const mask = Buffer.from(left.rgba);
   for (let index = 0; index < left.width * left.height; index += 1) {
     const at = index * 4;
     if (left.rgba.readUInt32BE(at) !== right.rgba.readUInt32BE(at)) {
       differing += 1;
-      first ??= [index % left.width, Math.floor(index / left.width)];
+      const [x, y] = [index % left.width, Math.floor(index / left.width)];
+      first ??= [x, y];
+      box = box === null ? [x, y, x, y] : [Math.min(box[0], x), Math.min(box[1], y), Math.max(box[2], x), Math.max(box[3], y)];
       mask.set([255, 0, 0, 255], at);
     }
   }
@@ -246,7 +250,7 @@ async function compare(name, a, b, labels = ["main", "branch"]) {
     await writeFile(join(failures, `${name}.${labels[1]}.png`), b);
     await writeFile(join(failures, `${name}.diff.png`), encodePng({ ...left, rgba: mask }));
   }
-  return { identical: differing === 0, differingPixels: differing, firstDifference: first, sha: [sha(a), sha(b)] };
+  return { identical: differing === 0, differingPixels: differing, firstDifference: first, box, sha: [sha(a), sha(b)] };
 }
 
 // ---- Opening the Deck, and the moments each scenario is shot at.
@@ -493,7 +497,7 @@ async function run(browser, scenario) {
     if (SAVE) await writeFile(join(failures, "shots", `${label}-${name}.png`), branch.shots[index][1]);
     shots.push({ shot: name, ...outcome, canvas: branch.facts[index], canvasMatchesMain: JSON.stringify(main.facts[index]) === JSON.stringify(branch.facts[index]) });
     if (!outcome.identical) identical = false;
-    console.log(`${outcome.identical ? "same" : "DIFF"}  ${label} ${name}${outcome.identical ? "" : ` — ${outcome.differingPixels} px, first at ${outcome.firstDifference}`}`);
+    console.log(`${outcome.identical ? "same" : "DIFF"}  ${label} ${name}${outcome.identical ? "" : ` — ${outcome.differingPixels} px in ${outcome.box}`}`);
   }
   results.scenarios.push({ scenario: label, options: scenario.options, shots });
 }

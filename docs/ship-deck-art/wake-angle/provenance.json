@@ -1,0 +1,91 @@
+{
+  "tool": "image_gen__imagegen",
+  "calls": 8,
+  "backendModel": "Not disclosed by built-in tool",
+  "date": "2026-10-15",
+  "prompts": "prompts.json",
+  "sources": [
+    {
+      "path": "source/01-angle.png",
+      "promptIndex": 0,
+      "sha256": "4c633caa97be29f666de4c7f2bf9ed57e399c33a454649f28ff1aa230a2b71b1",
+      "selectedFrame": null
+    },
+    {
+      "path": "source/02-thin.png",
+      "promptIndex": 1,
+      "sha256": "3585fbdbd6d907a990b0c8b7840086b601d2f4bb403c1538c6613456e21d9ef2",
+      "selectedFrame": null
+    },
+    {
+      "path": "source/03-detail.png",
+      "promptIndex": 2,
+      "sha256": "2e0a1e12f8f665b3feedaf4e9246b961538bf49be4e7b166d7225bd7ffeb7a70",
+      "selectedFrame": null
+    },
+    {
+      "path": "source/04-contact.png",
+      "promptIndex": 3,
+      "sha256": "94fee2c51b3ab1f8b7d977e2393a04ab6c1b7ee27aeebe5df209e10e854dae66",
+      "selectedFrame": 0
+    },
+    {
+      "path": "source/05-phase1.png",
+      "promptIndex": 4,
+      "sha256": "3eaf162b59331934bdf9b1a51a5dc0c85bb887c0e8c8dabc5d8d3a5bcfd5e7f0",
+      "selectedFrame": null
+    },
+    {
+      "path": "source/06-phase2.png",
+      "promptIndex": 5,
+      "sha256": "00b2bea06c3e882209efdf19290c43839fb05c3196f7507b9a94199d274970f0",
+      "selectedFrame": null
+    },
+    {
+      "path": "source/07-phase1-quiet.png",
+      "promptIndex": 6,
+      "sha256": "c589562ce45fc1c154303b79faac60e45a161bbaa193a3a1d18d43881b79c109",
+      "selectedFrame": 1
+    },
+    {
+      "path": "source/08-phase2-quiet.png",
+      "promptIndex": 7,
+      "sha256": "b1aa05cb85ba6077258f0f3dc58196e09adcc0c3de6126035046ac4d93b66e57",
+      "selectedFrame": 2
+    }
+  ],
+  "referenceChain": [
+    [
+      "docs/ship-deck-art/wake-angle/before/frame-0.png",
+      "art/ship-deck/water/foam/frame-0.png",
+      "docs/ship-deck-art/water/review/hull-fit-2x.png"
+    ],
+    [
+      "source/01-angle.png"
+    ],
+    [
+      "source/02-thin.png",
+      "docs/ship-deck-art/wake-angle/before/frame-0.png"
+    ],
+    [
+      "source/03-detail.png"
+    ],
+    [
+      "source/04-contact.png"
+    ],
+    [
+      "source/04-contact.png",
+      "source/05-phase1.png"
+    ],
+    [
+      "source/04-contact.png",
+      "source/05-phase1.png"
+    ],
+    [
+      "source/04-contact.png",
+      "source/07-phase1-quiet.png"
+    ]
+  ],
+  "mechanicalPreparation": "prepare.ps1: identical uniform 8.2:1 block median sampling, source origin (8,40); alpha >=192 with majority coverage, exact original wake palette, transparent RGB zero. Generated phase-zero first 20 columns locked across phases. No drawn, rotated, sheared or procedurally synthesized trail geometry.",
+  "upstreamSeaAndFoamProvenance": "../water/provenance.json"
+}
