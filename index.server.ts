@@ -69,6 +69,8 @@ import { startWatches } from "./server/watch-service";
 import { createWatch, configureWatch, watchOptions, watchHistory } from "./shared/watch-routing";
 import { displaySettings } from "./shared/settings";
 import { editItemTag } from "./shared/item-tags";
+import { readItemThread, sendItemThread } from "./shared/item-threads";
+import { readThread, sendThread } from "./server/item-threads";
 import { changeItemTag, findTagItem } from "./server/item-tags";
 import { RemoteService } from "./server/remotes";
 import { UpdateService } from "./server/update";
@@ -147,6 +149,17 @@ export default function contribute(server: PluginServerContext) {
   server.handle(editItemTag, async ({ key, tag, present }, { paseo }) => {
     const fleet = await loadFleet(paseo, await readFirstmateConfig(), reports, async () => [], () => remotes.read());
     return changeItemTag(await requireHome(fleet.home), findTagItem(fleet.cards, key), tag, present, { origin: () => newAction("item-tag.edit", "captain") });
+  });
+
+  server.handle(readItemThread, async ({ key }) => readThread(await requireHome(resolveHome(await readFirstmateConfig())), key));
+  server.handle(sendItemThread, async (input, { paseo }) => {
+    const config = await readFirstmateConfig();
+    const fleet = await loadFleet(paseo, config, reports, async () => [], () => remotes.read());
+    return sendThread(await requireHome(fleet.home), findTagItem(fleet.cards, input.key), input,
+      (text, messageId, beforeSend) => askMate(paseo, { text, messageId }, async (agentId) => {
+        if (resolveHome(await readFirstmateConfig()) !== fleet.home) throw new Error("The first mate's home changed. Reopen the discussion.");
+        await beforeSend(agentId);
+      }));
   });
 
   server.handle(launchMateRpc, (input, { paseo }) => launchMate(paseo, input));

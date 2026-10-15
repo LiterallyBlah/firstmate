@@ -1,0 +1,5 @@
+.generated/
+failed.png
+*.png
+!list-1440-light.png
+!board-390-dark.png
