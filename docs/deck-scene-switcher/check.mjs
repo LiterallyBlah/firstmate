@@ -7,13 +7,18 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 export async function checkSwitcher(view) {
   const canvas = view.locator("canvas[data-firstmate-deck]");
-  const actual = (id) => view.waitForFunction((id) => {
-    const canvases = document.querySelectorAll("canvas[data-firstmate-deck]");
-    return canvases.length === 1 && canvases[0].getAttribute("data-firstmate-deck-setting") === id && canvases[0].hasAttribute("data-firstmate-deck-motion");
-  }, id);
+  const actual = (id) =>
+    view.waitForFunction((id) => {
+      const canvases = document.querySelectorAll("canvas[data-firstmate-deck]");
+      return (
+        canvases.length === 1 &&
+        canvases[0].getAttribute("data-firstmate-deck-setting") === id &&
+        canvases[0].hasAttribute("data-firstmate-deck-motion")
+      );
+    }, id);
   const choose = async (name) => {
     await view.getByRole("button", { name: /^Scene:/ }).click();
-    await view.getByRole("button", { name: `${name}, 1.0.0`, exact: true }).click();
+    await view.getByRole("button", { name: new RegExp(`^${name}, `) }).click();
   };
   const saved = (id) => view.waitForFunction((id) => window.fixtureSettings?.deckSetting === id, id);
   const evidence = { checks: [], screenshots: [] };
@@ -21,17 +26,22 @@ export async function checkSwitcher(view) {
   await actual("ship");
   const shipBox = await canvas.boundingBox();
   // A failed save must not silently switch the scene or claim it survived reload.
-  await view.evaluate(() => { window.failSceneSave = true; });
+  await view.evaluate(() => {
+    window.failSceneSave = true;
+  });
   await choose("The office");
   await view.waitForFunction(() => window.fixtureErrors.includes("The scene was not saved. Please try again."));
   assert.equal(await canvas.getAttribute("data-firstmate-deck-setting"), "ship");
-  await view.evaluate(() => { window.failSceneSave = false; window.fixtureErrors = []; });
+  await view.evaluate(() => {
+    window.failSceneSave = false;
+    window.fixtureErrors = [];
+  });
   evidence.checks.push("failed save keeps ship and reports an error");
 
   await view.getByRole("button", { name: /^Scene:/ }).click();
   await view.screenshot({ path: join(here, "scene-picker.png") });
   evidence.screenshots.push("scene-picker.png");
-  await view.getByRole("button", { name: "The office, 1.0.0", exact: true }).click();
+  await view.getByRole("button", { name: /^The office, / }).click();
   await saved("office");
   await actual("office");
   await view.waitForTimeout(300);
@@ -40,7 +50,7 @@ export async function checkSwitcher(view) {
   evidence.checks.push("ship to office through the visible scene picker; one office canvas");
 
   await view.reload();
-  await view.getByText("Deck", { exact: true }).click();
+  await view.getByRole("button", { name: "Open Deck", exact: true }).click();
   await actual("office");
   assert.match(await view.getByRole("button", { name: /^Scene:/ }).innerText(), /The office/);
   evidence.checks.push("office survives a full page reload via the host settings stub");
@@ -56,7 +66,7 @@ export async function checkSwitcher(view) {
   evidence.checks.push("office to ship through the picker; original canvas geometry restored");
 
   await view.reload();
-  await view.getByText("Deck", { exact: true }).click();
+  await view.getByRole("button", { name: "Open Deck", exact: true }).click();
   await actual("ship");
   evidence.checks.push("ship survives a full page reload");
   // A separate client changing the shared settings document reaches both toolbar and engine.

@@ -1,0 +1,16 @@
+{
+  "checks": [
+    "failed save keeps ship and reports an error",
+    "ship to office through the visible scene picker; one office canvas",
+    "office survives a full page reload via the host settings stub",
+    "office to ship through the picker; original canvas geometry restored",
+    "ship survives a full page reload",
+    "external global setting changes update the toolbar and scene together",
+    "scene control is visible at 1100 and 1440 pixels; no unexpected errors"
+  ],
+  "screenshots": [
+    "scene-picker.png",
+    "office.png",
+    "ship.png"
+  ]
+}

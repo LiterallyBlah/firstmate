@@ -111,29 +111,35 @@ export function OptionPicker(props: OptionPickerProps) {
   const muted = theme.colors.foregroundMuted;
 
   const trigger = (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${props.label}: ${current?.label ?? (value === "" ? "not set" : value)}. Change`}
-          disabled={props.disabled === true}
-          accessibilityState={{ disabled: props.disabled === true, expanded: open }}
-          onPress={() => {
-            if (props.disabled === true) return;
-            setQuery("");
-            setOpen(true);
-          }}
-          style={[styles.trigger, props.disabled === true ? styles.triggerDisabled : null]}
-        >
-          <Text style={styles.triggerText} numberOfLines={1}>
-            {props.inline ? `${props.label}: ` : ""}
-            {current?.label ?? (value === "" ? "Choose…" : value)}
-          </Text>
-          <Icon name="ChevronDown" size={14} color={muted} />
-        </Pressable>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${props.label}: ${current?.label ?? (value === "" ? "not set" : value)}. Change`}
+      disabled={props.disabled === true}
+      accessibilityState={{ disabled: props.disabled === true, expanded: open }}
+      onPress={() => {
+        if (props.disabled === true) return;
+        setQuery("");
+        setOpen(true);
+      }}
+      style={[
+        styles.trigger,
+        props.inline ? { height: 28 } : null,
+        props.disabled === true ? styles.triggerDisabled : null,
+      ]}
+    >
+      <Text style={[styles.triggerText, props.inline ? { fontSize: 12, lineHeight: 14 } : null]} numberOfLines={1}>
+        {props.inline ? `${props.label}: ` : ""}
+        {current?.label ?? (value === "" ? "Choose…" : value)}
+      </Text>
+      <Icon name="ChevronDown" size={14} color={muted} />
+    </Pressable>
   );
 
   return (
     <>
-      {props.inline ? trigger : (
+      {props.inline ? (
+        trigger
+      ) : (
         <SettingsRow label={props.label} {...(props.hint === undefined ? {} : { hint: props.hint })}>
           {trigger}
         </SettingsRow>
@@ -173,9 +179,20 @@ export function OptionPicker(props: OptionPickerProps) {
                   onSelect(item.value);
                   setOpen(false);
                 }}
-                style={[styles.row, item.value === value ? styles.rowSelected : null, item.disabled === true ? styles.triggerDisabled : null]}
+                style={[
+                  styles.row,
+                  item.value === value ? styles.rowSelected : null,
+                  item.disabled === true ? styles.triggerDisabled : null,
+                ]}
               >
-                {item.preview === undefined ? null : <Image source={{ uri: item.preview }} style={{ width: 64, height: 40 }} resizeMode="contain" accessibilityLabel={`${item.label} preview`} />}
+                {item.preview === undefined ? null : (
+                  <Image
+                    source={{ uri: item.preview }}
+                    style={{ width: 64, height: 40 }}
+                    resizeMode="contain"
+                    accessibilityLabel={`${item.label} preview`}
+                  />
+                )}
                 <View style={styles.rowText}>
                   <Text style={styles.rowLabel}>{item.label}</Text>
                   {item.detail === undefined ? null : <Text style={styles.rowDetail}>{item.detail}</Text>}
