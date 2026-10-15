@@ -1,0 +1,480 @@
+﻿{
+    "verification":  "shark/verification.json",
+    "palette":  {
+                    "shark":  [
+                                  "#151E2D",
+                                  "#182B47",
+                                  "#1D314E",
+                                  "#2C4869",
+                                  "#45617A",
+                                  "#64849A",
+                                  "#8FA8B4",
+                                  "#BECAC6",
+                                  "#E8CCA6"
+                              ],
+                    "splashMatches":  "Exact six colours of sea/foam-strip.png",
+                    "source":  "environment.json palette.deckColours + palette.environmentExtension",
+                    "splash":  [
+                                   "#2C4869",
+                                   "#45617A",
+                                   "#64849A",
+                                   "#8FA8B4",
+                                   "#E8CCA6",
+                                   "#BECAC6"
+                               ],
+                    "newColours":  0
+                },
+    "previews":  [
+                     "shark/contact-6x.png",
+                     "shark/hull-fit-2x.png",
+                     "shark/hull-fit-native.png"
+                 ],
+    "provenance":  "shark/provenance.json",
+    "placement":  {
+                      "exampleSharkWaterAnchor":  [
+                                                      250,
+                                                      177
+                                                  ],
+                      "recommendedVisibleBottomY":  190,
+                      "offsetBelowHullWaterline":  26,
+                      "exampleSharkTopLeft":  [
+                                                  218,
+                                                  127
+                                              ],
+                      "minimumVisibleBottomY":  181,
+                      "exampleSplashWaterAnchor":  [
+                                                       263,
+                                                       177
+                                                   ],
+                      "exampleSplashTopLeft":  [
+                                                   239,
+                                                   145
+                                               ],
+                      "layerOrder":  [
+                                         "far sea",
+                                         "ship and depth-sorted crew",
+                                         "near sea, wake and hull foam",
+                                         "falling sailor until bite cue",
+                                         "shark",
+                                         "splash"
+                                     ],
+                      "space":  "Same world coordinate system as hull; effects live in near-sea foreground, outside ship bob transform",
+                      "exampleMouthCentre":  [
+                                                 263,
+                                                 155
+                                             ],
+                      "note":  "Draw shark and splash above scenery.front, not beneath near-sea tiles. Keep water anchor fixed in world space and do not apply ship bob or sea texture scroll. Body may overlap hull lower edge naturally in foreground. Reserve viewport space: the existing 161px hull fit alone does not guarantee visibility below y=161."
+                  },
+    "plank":  {
+                  "included":  false,
+                  "reason":  "Optional prop skipped; integration can draw a simple board fitted to chosen rail exit."
+              },
+    "coordinateSystem":  "Top-left origin; logical hull C pixels; nearest-neighbour; no smoothing",
+    "shark":  {
+                  "anchorMeaning":  "Centre of water-contact ellipse, fixed across all frames",
+                  "sequence":  [
+                                   {
+                                       "durationMs":  300,
+                                       "frame":  "fin"
+                                   },
+                                   {
+                                       "durationMs":  160,
+                                       "frame":  "surface"
+                                   },
+                                   {
+                                       "durationMs":  180,
+                                       "frame":  "chomp"
+                                   },
+                                   {
+                                       "durationMs":  180,
+                                       "frame":  "submerge"
+                                   }
+                               ],
+                  "anchor":  [
+                                 32,
+                                 50
+                             ],
+                  "verdict":  "usable-with-cleanup",
+                  "bite":  {
+                               "mouthCentre":  [
+                                                   45,
+                                                   28
+                                               ],
+                               "mouthApproximateRect":  [
+                                                            41,
+                                                            18,
+                                                            11,
+                                                            18
+                                                        ],
+                               "note":  "Mouth contact cue, not a collision polygon. Hide sailor during bite; there is no separate jaw-closing frame.",
+                               "relativeToWaterAnchor":  [
+                                                             13,
+                                                             -22
+                                                         ],
+                               "frame":  "chomp"
+                           },
+                  "direction":  "right",
+                  "afterSequence":  "Hide shark; optional burst splash then hide",
+                  "mirrorForLeft":  true,
+                  "frames":  [
+                                 {
+                                     "anchor":  [
+                                                    32,
+                                                    50
+                                                ],
+                                     "path":  "shark/fin.png",
+                                     "sourceAnchor":  [
+                                                          267,
+                                                          518
+                                                      ],
+                                     "id":  "fin",
+                                     "rect":  [
+                                                  0,
+                                                  0,
+                                                  64,
+                                                  64
+                                              ]
+                                 },
+                                 {
+                                     "anchor":  [
+                                                    32,
+                                                    50
+                                                ],
+                                     "path":  "shark/surface.png",
+                                     "sourceAnchor":  [
+                                                          809,
+                                                          518
+                                                      ],
+                                     "id":  "surface",
+                                     "rect":  [
+                                                  64,
+                                                  0,
+                                                  64,
+                                                  64
+                                              ]
+                                 },
+                                 {
+                                     "anchor":  [
+                                                    32,
+                                                    50
+                                                ],
+                                     "path":  "shark/chomp.png",
+                                     "sourceAnchor":  [
+                                                          1365,
+                                                          518
+                                                      ],
+                                     "id":  "chomp",
+                                     "rect":  [
+                                                  128,
+                                                  0,
+                                                  64,
+                                                  64
+                                              ]
+                                 },
+                                 {
+                                     "anchor":  [
+                                                    32,
+                                                    50
+                                                ],
+                                     "path":  "shark/submerge.png",
+                                     "sourceAnchor":  [
+                                                          1909,
+                                                          518
+                                                      ],
+                                     "id":  "submerge",
+                                     "rect":  [
+                                                  192,
+                                                  0,
+                                                  64,
+                                                  64
+                                              ]
+                                 }
+                             ],
+                  "sheet":  "shark/strip.png",
+                  "limitation":  "Four readable action keys, not a continuous anatomical cycle; surface-to-chomp changes pose abruptly. Artist inbetweens and jaw-close would improve polish.",
+                  "frameSize":  [
+                                    64,
+                                    64
+                                ]
+              },
+    "integration":  "Assets only; no runtime schema or RPC changes; manifest is a handoff contract, not currently consumed by the plugin",
+    "assets":  [
+                   {
+                       "sha256":  "c5481744846d139fdef0c64d34d01b430d9bb3e4973e267b266947a310daa940",
+                       "alpha":  "binary",
+                       "path":  "shark/fin.png",
+                       "palette":  [
+                                       "#151E2D",
+                                       "#182B47",
+                                       "#1D314E",
+                                       "#2C4869",
+                                       "#45617A",
+                                       "#64849A",
+                                       "#8FA8B4",
+                                       "#BECAC6",
+                                       "#E8CCA6"
+                                   ],
+                       "opaqueBounds":  [
+                                            10,
+                                            37,
+                                            44,
+                                            16
+                                        ],
+                       "size":  [
+                                    64,
+                                    64
+                                ]
+                   },
+                   {
+                       "sha256":  "e365cf940c36665d05e3e50082aa8477bb936657d36d48f50443578e7731b3e0",
+                       "alpha":  "binary",
+                       "path":  "shark/surface.png",
+                       "palette":  [
+                                       "#151E2D",
+                                       "#182B47",
+                                       "#1D314E",
+                                       "#2C4869",
+                                       "#45617A",
+                                       "#64849A",
+                                       "#8FA8B4",
+                                       "#BECAC6",
+                                       "#E8CCA6"
+                                   ],
+                       "opaqueBounds":  [
+                                            8,
+                                            31,
+                                            48,
+                                            22
+                                        ],
+                       "size":  [
+                                    64,
+                                    64
+                                ]
+                   },
+                   {
+                       "sha256":  "3cd718adc684c341a8fe88be39296b411694b9f90a202df0d2fcf035668d67d0",
+                       "alpha":  "binary",
+                       "path":  "shark/chomp.png",
+                       "palette":  [
+                                       "#151E2D",
+                                       "#182B47",
+                                       "#1D314E",
+                                       "#2C4869",
+                                       "#45617A",
+                                       "#64849A",
+                                       "#8FA8B4",
+                                       "#BECAC6",
+                                       "#E8CCA6"
+                                   ],
+                       "opaqueBounds":  [
+                                            6,
+                                            9,
+                                            52,
+                                            44
+                                        ],
+                       "size":  [
+                                    64,
+                                    64
+                                ]
+                   },
+                   {
+                       "sha256":  "cf713f9c19888b2869481cfef4aac75147bcc47f477368492ac50eb6272a2a7f",
+                       "alpha":  "binary",
+                       "path":  "shark/submerge.png",
+                       "palette":  [
+                                       "#151E2D",
+                                       "#182B47",
+                                       "#1D314E",
+                                       "#2C4869",
+                                       "#45617A",
+                                       "#64849A",
+                                       "#8FA8B4",
+                                       "#BECAC6",
+                                       "#E8CCA6"
+                                   ],
+                       "opaqueBounds":  [
+                                            11,
+                                            35,
+                                            42,
+                                            18
+                                        ],
+                       "size":  [
+                                    64,
+                                    64
+                                ]
+                   },
+                   {
+                       "sha256":  "40823d7dfd706f8cb5ce1a70058c83c8f3e8b3e4e81a2d562994a487a3db450a",
+                       "alpha":  "binary",
+                       "path":  "shark/strip.png",
+                       "palette":  [
+                                       "#151E2D",
+                                       "#182B47",
+                                       "#1D314E",
+                                       "#2C4869",
+                                       "#45617A",
+                                       "#64849A",
+                                       "#8FA8B4",
+                                       "#BECAC6",
+                                       "#E8CCA6"
+                                   ],
+                       "opaqueBounds":  [
+                                            10,
+                                            9,
+                                            235,
+                                            44
+                                        ],
+                       "size":  [
+                                    256,
+                                    64
+                                ]
+                   },
+                   {
+                       "sha256":  "6da9127de723ffb1fd6dd4f578a44fb80d4953261c98e92ed9916a69b2fb0d7a",
+                       "alpha":  "binary",
+                       "path":  "splash/impact.png",
+                       "palette":  [
+                                       "#2C4869",
+                                       "#45617A",
+                                       "#64849A",
+                                       "#8FA8B4",
+                                       "#BECAC6",
+                                       "#E8CCA6"
+                                   ],
+                       "opaqueBounds":  [
+                                            12,
+                                            10,
+                                            24,
+                                            24
+                                        ],
+                       "size":  [
+                                    48,
+                                    40
+                                ]
+                   },
+                   {
+                       "sha256":  "6c2bd6ec00735f8cd735d70ee8fa43d99a3d5129ac36cb783be171aaf056fdfb",
+                       "alpha":  "binary",
+                       "path":  "splash/burst.png",
+                       "palette":  [
+                                       "#2C4869",
+                                       "#45617A",
+                                       "#64849A",
+                                       "#8FA8B4",
+                                       "#BECAC6",
+                                       "#E8CCA6"
+                                   ],
+                       "opaqueBounds":  [
+                                            5,
+                                            13,
+                                            38,
+                                            21
+                                        ],
+                       "size":  [
+                                    48,
+                                    40
+                                ]
+                   },
+                   {
+                       "sha256":  "57cafee405ab8844205a40247a9ee8bccaa5f762110a518b68b6b91b0daa187c",
+                       "alpha":  "binary",
+                       "path":  "splash/strip.png",
+                       "palette":  [
+                                       "#2C4869",
+                                       "#45617A",
+                                       "#64849A",
+                                       "#8FA8B4",
+                                       "#BECAC6",
+                                       "#E8CCA6"
+                                   ],
+                       "opaqueBounds":  [
+                                            12,
+                                            10,
+                                            79,
+                                            24
+                                        ],
+                       "size":  [
+                                    96,
+                                    40
+                                ]
+                   }
+               ],
+    "kind":  "ship-deck-exit-art",
+    "documentation":  "shark/README.md",
+    "reference":  {
+                      "environment":  "environment.json",
+                      "crewHeight":  32,
+                      "baseCommit":  "faf516db8d306aa597d00dddb2af7e6afabb2e9a",
+                      "deck":  "deck.png",
+                      "waterlineY":  151,
+                      "hullSize":  [
+                                       426,
+                                       161
+                                   ]
+                  },
+    "pathBase":  "art/ship-deck",
+    "schemaVersion":  1,
+    "splash":  {
+                   "anchorMeaning":  "Water contact; same anchor for both frames",
+                   "sequence":  [
+                                    {
+                                        "durationMs":  100,
+                                        "frame":  "impact"
+                                    },
+                                    {
+                                        "durationMs":  140,
+                                        "frame":  "burst"
+                                    }
+                                ],
+                   "anchor":  [
+                                  24,
+                                  32
+                              ],
+                   "verdict":  "usable",
+                   "limitation":  "Two compact keys; no separately authored dissipation ring. Reuse burst over submerge for the bite finish.",
+                   "afterSequence":  "Hide",
+                   "frames":  [
+                                  {
+                                      "anchor":  [
+                                                     24,
+                                                     32
+                                                 ],
+                                      "path":  "splash/impact.png",
+                                      "sourceAnchor":  [
+                                                           466,
+                                                           628
+                                                       ],
+                                      "id":  "impact",
+                                      "rect":  [
+                                                   0,
+                                                   0,
+                                                   48,
+                                                   40
+                                               ]
+                                  },
+                                  {
+                                      "anchor":  [
+                                                     24,
+                                                     32
+                                                 ],
+                                      "path":  "splash/burst.png",
+                                      "sourceAnchor":  [
+                                                           1384,
+                                                           628
+                                                       ],
+                                      "id":  "burst",
+                                      "rect":  [
+                                                   48,
+                                                   0,
+                                                   48,
+                                                   40
+                                               ]
+                                  }
+                              ],
+                   "sheet":  "splash/strip.png",
+                   "frameSize":  [
+                                     48,
+                                     40
+                                 ]
+               }
+}
