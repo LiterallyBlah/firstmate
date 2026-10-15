@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "shark body opens local Converse",
+    "speech bubble opens remote Converse with host-specific permission guidance",
+    "keyboard Converse opens the suggested worker",
+    "multiple requests selectable without overlap",
+    "insertion preserves selected identity",
+    "unreachable remote removed from selection",
+    "removed workers leave no clickable ghost",
+    "office selection has no carrier",
+    "no browser errors"
+  ],
+  "errors": []
+}

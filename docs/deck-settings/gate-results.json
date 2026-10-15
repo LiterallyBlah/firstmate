@@ -1,7 +1,7 @@
 {
-  "base": "compiled main 3cc12d1",
-  "branch": "HEAD 70f3cd7",
-  "compiledBranch": "70f3cd7",
+  "base": "compiled main b830b37",
+  "branch": "HEAD ccfe291",
+  "compiledBranch": "ccfe291",
   "maskToolbar": false,
   "control": null,
   "scenarios": [
@@ -16,22 +16,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 32760,
+          "differingPixels": 41244,
           "firstDifference": [
-            898,
-            1111
+            425,
+            1391
           ],
           "box": [
-            876,
-            1111,
-            1296,
-            1721
+            24,
+            1391,
+            1129,
+            1775
           ],
           "sha": [
-            "a585b88373191841",
-            "92640de9b57dad20"
+            "92640de9b57dad20",
+            "4bc948d064b81110"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -54,22 +54,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 8264,
+          "differingPixels": 10822,
           "firstDifference": [
-            449,
-            556
+            212,
+            695
           ],
           "box": [
-            437,
-            556,
-            648,
-            860
+            12,
+            695,
+            565,
+            887
           ],
           "sha": [
-            "8887633f0ecd8e21",
-            "c0882914577cdddb"
+            "c0882914577cdddb",
+            "fd5b1e52b10dc378"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -93,22 +93,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 32760,
+          "differingPixels": 41244,
           "firstDifference": [
-            898,
-            1111
+            425,
+            1391
           ],
           "box": [
-            876,
-            1111,
-            1296,
-            1721
+            24,
+            1391,
+            1129,
+            1775
           ],
           "sha": [
-            "0e00c82c7a975490",
-            "ba98371e1afab437"
+            "ba98371e1afab437",
+            "f192b174cc4bbcf6"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -131,22 +131,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 8264,
+          "differingPixels": 10822,
           "firstDifference": [
-            449,
-            556
+            212,
+            695
           ],
           "box": [
-            437,
-            556,
-            648,
-            860
+            12,
+            695,
+            565,
+            887
           ],
           "sha": [
-            "f18809b65cedb9de",
-            "a837f0b6c16c374b"
+            "a837f0b6c16c374b",
+            "7852c4c8774f7f10"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -169,22 +169,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 8264,
+          "differingPixels": 10822,
           "firstDifference": [
-            449,
-            556
+            212,
+            695
           ],
           "box": [
-            437,
-            556,
-            648,
-            860
+            12,
+            695,
+            565,
+            887
           ],
           "sha": [
-            "787f7d8451a174e6",
-            "50ad97752db68a76"
+            "50ad97752db68a76",
+            "bdf5835d2e928649"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -208,22 +208,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 61622,
+          "differingPixels": 40914,
           "firstDifference": [
-            967,
-            1003
+            425,
+            1391
           ],
           "box": [
-            876,
-            1003,
-            1811,
-            1721
+            24,
+            1391,
+            1043,
+            1775
           ],
           "sha": [
-            "0cf7094fd35f101b",
-            "b0267f1972f3ed24"
+            "b0267f1972f3ed24",
+            "6632a099bf9fb4b5"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -247,22 +247,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 155916,
+          "differingPixels": 40914,
           "firstDifference": [
-            933,
-            952
+            425,
+            1391
           ],
           "box": [
-            715,
-            952,
-            2427,
-            1721
+            24,
+            1391,
+            1043,
+            1775
           ],
           "sha": [
-            "de8d4875109394d4",
-            "330e117b877c8d4a"
+            "330e117b877c8d4a",
+            "6ffa79ff8f8e975d"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -283,23 +283,9 @@
       "shots": [
         {
           "shot": "lost",
-          "identical": false,
-          "differingPixels": 7193,
-          "firstDifference": [
-            470,
-            578
-          ],
-          "box": [
-            458,
-            578,
-            716,
-            860
-          ],
-          "sha": [
-            "7ec2c48204293e51",
-            "99baa855a1510c6d"
-          ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "99baa855a1510c6d",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -322,22 +308,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 32983,
+          "differingPixels": 41207,
           "firstDifference": [
-            938,
-            1089
+            431,
+            1397
           ],
           "box": [
-            876,
-            1089,
-            1296,
-            1721
+            24,
+            1397,
+            1129,
+            1775
           ],
           "sha": [
-            "0aadf27e983266bd",
-            "890a8721e8b43b6b"
+            "890a8721e8b43b6b",
+            "5964fd6d3069bc37"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -351,22 +337,22 @@
         {
           "shot": "1s",
           "identical": false,
-          "differingPixels": 33387,
+          "differingPixels": 41067,
           "firstDifference": [
-            938,
-            1083
+            436,
+            1397
           ],
           "box": [
-            876,
-            1083,
-            1296,
-            1721
+            24,
+            1397,
+            1129,
+            1775
           ],
           "sha": [
-            "47bfc97e837be35c",
-            "5ca5073dc9aa2d79"
+            "5ca5073dc9aa2d79",
+            "fe0c3dae3614396b"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -380,22 +366,22 @@
         {
           "shot": "2.5s",
           "identical": false,
-          "differingPixels": 32753,
+          "differingPixels": 40899,
           "firstDifference": [
-            898,
-            1111
+            425,
+            1391
           ],
           "box": [
-            876,
-            1111,
-            1296,
-            1721
+            24,
+            1391,
+            1129,
+            1775
           ],
           "sha": [
-            "b542c25ae54c504f",
-            "737b59559dec0dc1"
+            "737b59559dec0dc1",
+            "68bc201b0ee59f27"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -409,22 +395,22 @@
         {
           "shot": "5s",
           "identical": false,
-          "differingPixels": 33223,
+          "differingPixels": 40632,
           "firstDifference": [
-            944,
-            1060
+            425,
+            1391
           ],
           "box": [
-            876,
-            1060,
-            1296,
-            1721
+            24,
+            1391,
+            1129,
+            1775
           ],
           "sha": [
-            "ee93c7757cb4228f",
-            "121438cfddde32a7"
+            "121438cfddde32a7",
+            "caf568df641f2d12"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -438,22 +424,22 @@
         {
           "shot": "10s",
           "identical": false,
-          "differingPixels": 33424,
+          "differingPixels": 40859,
           "firstDifference": [
-            938,
-            1089
+            431,
+            1397
           ],
           "box": [
-            876,
-            1089,
-            1296,
-            1721
+            24,
+            1397,
+            1129,
+            1775
           ],
           "sha": [
-            "9147b8bc35826133",
-            "e5ecc955a29572d9"
+            "e5ecc955a29572d9",
+            "5d1dc0863a6ac1fb"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -467,22 +453,22 @@
         {
           "shot": "25s",
           "identical": false,
-          "differingPixels": 32110,
+          "differingPixels": 40496,
           "firstDifference": [
-            898,
-            1117
+            436,
+            1397
           ],
           "box": [
-            876,
-            1117,
-            1296,
-            1721
+            24,
+            1397,
+            1129,
+            1775
           ],
           "sha": [
-            "ff7106e1d694b67b",
-            "54bf805792050e52"
+            "54bf805792050e52",
+            "58c8bf8a0cc1b651"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -496,22 +482,22 @@
         {
           "shot": "49s",
           "identical": false,
-          "differingPixels": 33388,
+          "differingPixels": 41055,
           "firstDifference": [
-            938,
-            1083
+            436,
+            1397
           ],
           "box": [
-            876,
-            1083,
-            1296,
-            1721
+            24,
+            1397,
+            1129,
+            1775
           ],
           "sha": [
-            "0d7e7d122036a814",
-            "e98249d67d739771"
+            "e98249d67d739771",
+            "c37b43e6867991b8"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -525,22 +511,22 @@
         {
           "shot": "73s",
           "identical": false,
-          "differingPixels": 32571,
+          "differingPixels": 41097,
           "firstDifference": [
-            898,
-            1117
+            436,
+            1397
           ],
           "box": [
-            876,
-            1117,
-            1296,
-            1721
+            24,
+            1397,
+            1129,
+            1775
           ],
           "sha": [
-            "1d68a53e5aa5bfcf",
-            "b2541c7de7904bf6"
+            "b2541c7de7904bf6",
+            "17f176618067212e"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -563,22 +549,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 15538,
+          "differingPixels": 10650,
           "firstDifference": [
-            503,
-            490
+            215,
+            698
           ],
           "box": [
-            437,
-            490,
-            910,
-            860
+            12,
+            698,
+            521,
+            887
           ],
           "sha": [
-            "5b56046de8339774",
-            "7ea0f7f4a2e7919b"
+            "7ea0f7f4a2e7919b",
+            "335da02eb5eeea5c"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -592,22 +578,22 @@
         {
           "shot": "5.4s",
           "identical": false,
-          "differingPixels": 15546,
+          "differingPixels": 10555,
           "firstDifference": [
-            483,
-            504
+            215,
+            698
           ],
           "box": [
-            437,
-            504,
-            904,
-            860
+            12,
+            698,
+            521,
+            887
           ],
           "sha": [
-            "e1d503eb78bfa929",
-            "459375d074e69afe"
+            "459375d074e69afe",
+            "89d810c2d76e1650"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -621,22 +607,22 @@
         {
           "shot": "10.4s",
           "identical": false,
-          "differingPixels": 15074,
+          "differingPixels": 10455,
           "firstDifference": [
-            503,
-            490
+            238,
+            698
           ],
           "box": [
-            437,
-            490,
-            910,
-            860
+            12,
+            698,
+            521,
+            887
           ],
           "sha": [
-            "161c6c1270107003",
-            "706d2b1000b3cdb5"
+            "706d2b1000b3cdb5",
+            "3da8cbd48771cb37"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -650,22 +636,22 @@
         {
           "shot": "15.4s",
           "identical": false,
-          "differingPixels": 15251,
+          "differingPixels": 10590,
           "firstDifference": [
-            483,
-            504
+            218,
+            698
           ],
           "box": [
-            437,
-            504,
-            904,
-            860
+            12,
+            698,
+            521,
+            887
           ],
           "sha": [
-            "420e0df4acba36a5",
-            "e8439269e08e7e3e"
+            "e8439269e08e7e3e",
+            "d13f95eef0e00d52"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -679,22 +665,22 @@
         {
           "shot": "20.4s",
           "identical": false,
-          "differingPixels": 15206,
+          "differingPixels": 10626,
           "firstDifference": [
-            503,
-            484
+            218,
+            695
           ],
           "box": [
-            437,
-            484,
-            910,
-            860
+            12,
+            695,
+            521,
+            887
           ],
           "sha": [
-            "fe72d225ea9a5eea",
-            "14d64a86f64cc6ed"
+            "14d64a86f64cc6ed",
+            "16145e4d48c8103c"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -708,22 +694,22 @@
         {
           "shot": "25.4s",
           "identical": false,
-          "differingPixels": 15328,
+          "differingPixels": 10379,
           "firstDifference": [
-            483,
-            501
+            229,
+            695
           ],
           "box": [
-            437,
-            501,
-            904,
-            860
+            12,
+            695,
+            521,
+            887
           ],
           "sha": [
-            "3ef4631e247c37f2",
-            "49a3ebd9d1877c35"
+            "49a3ebd9d1877c35",
+            "359343851fddf6a9"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -737,22 +723,22 @@
         {
           "shot": "30.4s",
           "identical": false,
-          "differingPixels": 15572,
+          "differingPixels": 10428,
           "firstDifference": [
-            506,
-            476
+            218,
+            692
           ],
           "box": [
-            437,
-            476,
-            913,
-            860
+            12,
+            692,
+            521,
+            887
           ],
           "sha": [
-            "d31d01e9359f9b3b",
-            "f81cd9fc7748cd4e"
+            "f81cd9fc7748cd4e",
+            "80529acc45c3331f"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -766,22 +752,22 @@
         {
           "shot": "flash-33.5s",
           "identical": false,
-          "differingPixels": 15249,
+          "differingPixels": 10443,
           "firstDifference": [
-            506,
-            484
+            212,
+            695
           ],
           "box": [
-            437,
-            484,
-            913,
-            860
+            12,
+            695,
+            521,
+            887
           ],
           "sha": [
-            "96a67cc1319b0fa2",
-            "4d1fb0d304143394"
+            "4d1fb0d304143394",
+            "d20233a073d7e8e1"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -795,22 +781,22 @@
         {
           "shot": "flash-33.6s",
           "identical": false,
-          "differingPixels": 15280,
+          "differingPixels": 10551,
           "firstDifference": [
-            506,
-            482
+            212,
+            695
           ],
           "box": [
-            437,
-            482,
-            913,
-            860
+            12,
+            695,
+            521,
+            887
           ],
           "sha": [
-            "ef141a40f5271e11",
-            "40548e57209528b6"
+            "40548e57209528b6",
+            "dc94dd14253cfd77"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -824,22 +810,22 @@
         {
           "shot": "35.4s",
           "identical": false,
-          "differingPixels": 15771,
+          "differingPixels": 10579,
           "firstDifference": [
-            500,
-            484
+            215,
+            692
           ],
           "box": [
-            437,
-            484,
-            907,
-            860
+            12,
+            692,
+            521,
+            887
           ],
           "sha": [
-            "1d7456f3307f84a6",
-            "6b105ad6540c6909"
+            "6b105ad6540c6909",
+            "7e38435eb32a7e59"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -853,22 +839,22 @@
         {
           "shot": "40.4s",
           "identical": false,
-          "differingPixels": 15550,
+          "differingPixels": 10659,
           "firstDifference": [
-            483,
-            496
+            215,
+            692
           ],
           "box": [
-            437,
-            496,
-            904,
-            860
+            12,
+            692,
+            521,
+            887
           ],
           "sha": [
-            "e34258605a923647",
-            "84aa9562e3fdcd88"
+            "84aa9562e3fdcd88",
+            "656eb28007abf8ec"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -882,22 +868,22 @@
         {
           "shot": "45.4s",
           "identical": false,
-          "differingPixels": 15641,
+          "differingPixels": 10460,
           "firstDifference": [
-            503,
-            484
+            215,
+            692
           ],
           "box": [
-            437,
-            484,
-            910,
-            860
+            12,
+            692,
+            521,
+            887
           ],
           "sha": [
-            "06f632eceeef5d45",
-            "c79ee5ab0ebbf286"
+            "c79ee5ab0ebbf286",
+            "9e74ff99d72fa1fc"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -911,22 +897,22 @@
         {
           "shot": "flash-48.9s",
           "identical": false,
-          "differingPixels": 15546,
+          "differingPixels": 10505,
           "firstDifference": [
-            503,
-            482
+            218,
+            698
           ],
           "box": [
-            437,
-            482,
-            910,
-            860
+            12,
+            698,
+            521,
+            887
           ],
           "sha": [
-            "3177665d568861ab",
-            "5dce51818e24ce25"
+            "5dce51818e24ce25",
+            "4ea4fcd3f16085f5"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -940,22 +926,22 @@
         {
           "shot": "flash-49.0s",
           "identical": false,
-          "differingPixels": 15538,
+          "differingPixels": 10562,
           "firstDifference": [
-            503,
-            482
+            218,
+            698
           ],
           "box": [
-            437,
-            482,
-            910,
-            860
+            12,
+            698,
+            521,
+            887
           ],
           "sha": [
-            "63b0e678818c6af7",
-            "3d8093e768cd05c4"
+            "3d8093e768cd05c4",
+            "ae3a53f60e545e7a"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -969,22 +955,22 @@
         {
           "shot": "50.4s",
           "identical": false,
-          "differingPixels": 15306,
+          "differingPixels": 10344,
           "firstDifference": [
-            483,
-            501
+            212,
+            695
           ],
           "box": [
-            437,
-            501,
-            904,
-            860
+            12,
+            695,
+            521,
+            887
           ],
           "sha": [
-            "fc59ac1893adb309",
-            "6b32f7ef459353b6"
+            "6b32f7ef459353b6",
+            "d08d682aecce8aab"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -998,22 +984,22 @@
         {
           "shot": "55.4s",
           "identical": false,
-          "differingPixels": 15321,
+          "differingPixels": 10466,
           "firstDifference": [
-            503,
-            487
+            212,
+            695
           ],
           "box": [
-            437,
-            487,
-            910,
-            860
+            12,
+            695,
+            521,
+            887
           ],
           "sha": [
-            "8cd029e4bf283ca6",
-            "1480ebe96652b852"
+            "1480ebe96652b852",
+            "6fd0b91a47c17b63"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1027,22 +1013,22 @@
         {
           "shot": "60.4s",
           "identical": false,
-          "differingPixels": 15268,
+          "differingPixels": 10354,
           "firstDifference": [
-            483,
-            504
+            209,
+            698
           ],
           "box": [
-            437,
-            504,
-            904,
-            860
+            12,
+            698,
+            521,
+            887
           ],
           "sha": [
-            "d9794d42592575e5",
-            "38d891bb792d572b"
+            "38d891bb792d572b",
+            "20b54b8e068ad9b7"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1056,22 +1042,22 @@
         {
           "shot": "65.4s",
           "identical": false,
-          "differingPixels": 15229,
+          "differingPixels": 10522,
           "firstDifference": [
-            506,
-            484
+            209,
+            698
           ],
           "box": [
-            437,
-            484,
-            913,
-            860
+            12,
+            698,
+            521,
+            887
           ],
           "sha": [
-            "de069ff16bc4ce0c",
-            "ffb27316d9ac561a"
+            "ffb27316d9ac561a",
+            "94759518e6ba9e90"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1085,22 +1071,22 @@
         {
           "shot": "70.4s",
           "identical": false,
-          "differingPixels": 15530,
+          "differingPixels": 10480,
           "firstDifference": [
-            500,
-            496
+            206,
+            698
           ],
           "box": [
-            437,
-            496,
-            907,
-            860
+            12,
+            698,
+            521,
+            887
           ],
           "sha": [
-            "a3d6e20f1c7d1497",
-            "0d1fadd611c6e9ff"
+            "0d1fadd611c6e9ff",
+            "8ff43f702b20d194"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1114,22 +1100,22 @@
         {
           "shot": "75.4s",
           "identical": false,
-          "differingPixels": 15360,
+          "differingPixels": 10463,
           "firstDifference": [
-            506,
-            479
+            206,
+            698
           ],
           "box": [
-            437,
-            479,
-            913,
-            860
+            12,
+            698,
+            521,
+            887
           ],
           "sha": [
-            "3ec42e419ca6e65e",
-            "df68c6d1947c6e8b"
+            "df68c6d1947c6e8b",
+            "bd1ba0938617dfdb"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1143,22 +1129,22 @@
         {
           "shot": "80.4s",
           "identical": false,
-          "differingPixels": 15687,
+          "differingPixels": 10410,
           "firstDifference": [
-            503,
-            487
+            206,
+            695
           ],
           "box": [
-            437,
-            487,
-            910,
-            860
+            12,
+            695,
+            521,
+            887
           ],
           "sha": [
-            "c27f1bd1cd4da94d",
-            "07044a661601e52e"
+            "07044a661601e52e",
+            "5b217171d0029b5a"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1172,22 +1158,22 @@
         {
           "shot": "85.4s",
           "identical": false,
-          "differingPixels": 15558,
+          "differingPixels": 10357,
           "firstDifference": [
-            483,
-            499
+            206,
+            695
           ],
           "box": [
-            437,
-            499,
-            904,
-            860
+            12,
+            695,
+            521,
+            887
           ],
           "sha": [
-            "4199d83448a18b5a",
-            "05c668d1a77cc46f"
+            "05c668d1a77cc46f",
+            "181bf7a215ef7034"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1201,22 +1187,22 @@
         {
           "shot": "90.4s",
           "identical": false,
-          "differingPixels": 15562,
+          "differingPixels": 10539,
           "firstDifference": [
-            503,
-            482
+            206,
+            692
           ],
           "box": [
-            437,
-            482,
-            910,
-            860
+            12,
+            692,
+            521,
+            887
           ],
           "sha": [
-            "c0aed8c4ce9ab11c",
-            "5f7fdfa468f6e610"
+            "5f7fdfa468f6e610",
+            "7207f96a4b6dcc45"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1230,22 +1216,22 @@
         {
           "shot": "95.4s",
           "identical": false,
-          "differingPixels": 15421,
+          "differingPixels": 10295,
           "firstDifference": [
-            483,
-            496
+            209,
+            692
           ],
           "box": [
-            437,
-            496,
-            904,
-            860
+            12,
+            692,
+            521,
+            887
           ],
           "sha": [
-            "9573922ab07ce540",
-            "25cbb07c060d2ef2"
+            "25cbb07c060d2ef2",
+            "426fc933d42714ef"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1259,22 +1245,22 @@
         {
           "shot": "100.4s",
           "identical": false,
-          "differingPixels": 15436,
+          "differingPixels": 10489,
           "firstDifference": [
-            503,
-            479
+            209,
+            692
           ],
           "box": [
-            437,
-            479,
-            910,
-            860
+            12,
+            692,
+            521,
+            887
           ],
           "sha": [
-            "0f14dceabeb38c75",
-            "8e8d2da8390d0b8e"
+            "8e8d2da8390d0b8e",
+            "840b88aa349d2a69"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1288,22 +1274,22 @@
         {
           "shot": "105.4s",
           "identical": false,
-          "differingPixels": 15371,
+          "differingPixels": 10488,
           "firstDifference": [
-            483,
-            499
+            209,
+            692
           ],
           "box": [
-            437,
-            499,
-            904,
-            860
+            12,
+            692,
+            521,
+            887
           ],
           "sha": [
-            "7480096144ab5d7d",
-            "7d1829708851470b"
+            "7d1829708851470b",
+            "cf47d46b2cf73d01"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1317,22 +1303,22 @@
         {
           "shot": "110.4s",
           "identical": false,
-          "differingPixels": 15620,
+          "differingPixels": 10673,
           "firstDifference": [
-            506,
-            479
+            212,
+            695
           ],
           "box": [
-            437,
-            479,
-            913,
-            860
+            12,
+            695,
+            521,
+            887
           ],
           "sha": [
-            "f6b50e03d07cbf37",
-            "5b38dfd910111c99"
+            "5b38dfd910111c99",
+            "44b310bb505d403a"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1346,22 +1332,22 @@
         {
           "shot": "115.4s",
           "identical": false,
-          "differingPixels": 15571,
+          "differingPixels": 10633,
           "firstDifference": [
-            500,
-            493
+            212,
+            695
           ],
           "box": [
-            437,
-            493,
-            907,
-            860
+            12,
+            695,
+            521,
+            887
           ],
           "sha": [
-            "b34cfd60924b6fe2",
-            "58782349e367cadd"
+            "58782349e367cadd",
+            "71a0beb08e054ecc"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1375,22 +1361,22 @@
         {
           "shot": "120.4s",
           "identical": false,
-          "differingPixels": 15168,
+          "differingPixels": 10544,
           "firstDifference": [
-            483,
-            507
+            215,
+            698
           ],
           "box": [
-            437,
-            507,
-            904,
-            860
+            12,
+            698,
+            521,
+            887
           ],
           "sha": [
-            "2a3684aca39cacfa",
-            "d9f60c95588d56c6"
+            "d9f60c95588d56c6",
+            "44928aafff84ba67"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1413,22 +1399,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 8289,
+          "differingPixels": 10811,
           "firstDifference": [
-            469,
-            544
+            215,
+            698
           ],
           "box": [
-            437,
-            544,
-            648,
-            860
+            12,
+            698,
+            565,
+            887
           ],
           "sha": [
-            "5e290cd109d1f799",
-            "96bafd66c10e1ac3"
+            "96bafd66c10e1ac3",
+            "6f78dbdd0335e339"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1442,22 +1428,22 @@
         {
           "shot": "10s",
           "identical": false,
-          "differingPixels": 8412,
+          "differingPixels": 10725,
           "firstDifference": [
-            469,
-            544
+            215,
+            698
           ],
           "box": [
-            437,
-            544,
-            648,
-            860
+            12,
+            698,
+            565,
+            887
           ],
           "sha": [
-            "d7b8b30581e69140",
-            "38b9d624acb3e3fd"
+            "38b9d624acb3e3fd",
+            "76c06f17d5fa0299"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1480,22 +1466,22 @@
         {
           "shot": "aboard",
           "identical": false,
-          "differingPixels": 32983,
+          "differingPixels": 41207,
           "firstDifference": [
-            938,
-            1089
+            431,
+            1397
           ],
           "box": [
-            876,
-            1089,
-            1296,
-            1721
+            24,
+            1397,
+            1129,
+            1775
           ],
           "sha": [
-            "0aadf27e983266bd",
-            "890a8721e8b43b6b"
+            "890a8721e8b43b6b",
+            "5964fd6d3069bc37"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1509,22 +1495,22 @@
         {
           "shot": "changed",
           "identical": false,
-          "differingPixels": 40848,
+          "differingPixels": 40097,
           "firstDifference": [
-            853,
-            1066
+            431,
+            1397
           ],
           "box": [
-            830,
-            1066,
-            1296,
-            1721
+            24,
+            1397,
+            1045,
+            1775
           ],
           "sha": [
-            "ee54c0411e47c322",
-            "fc0ec2739b655557"
+            "fc0ec2739b655557",
+            "ed73d7dd2eb514c5"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1538,22 +1524,22 @@
         {
           "shot": "walking-1000ms",
           "identical": false,
-          "differingPixels": 41186,
+          "differingPixels": 40714,
           "firstDifference": [
-            944,
-            1071
+            436,
+            1385
           ],
           "box": [
-            876,
-            1071,
-            1296,
-            1721
+            24,
+            1385,
+            1045,
+            1775
           ],
           "sha": [
-            "f3e962fc94926bc5",
-            "aaf01089084bb2d9"
+            "aaf01089084bb2d9",
+            "a3867fe1f2ffba58"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1567,22 +1553,22 @@
         {
           "shot": "walking-2000ms",
           "identical": false,
-          "differingPixels": 49020,
+          "differingPixels": 40257,
           "firstDifference": [
-            1075,
-            1083
+            425,
+            1391
           ],
           "box": [
-            876,
-            1083,
-            1296,
-            1721
+            24,
+            1391,
+            1045,
+            1775
           ],
           "sha": [
-            "a88f96ed18185ac4",
-            "e0d01809af4e8ba6"
+            "e0d01809af4e8ba6",
+            "e813df3df21ea2c2"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1596,22 +1582,22 @@
         {
           "shot": "walking-3000ms",
           "identical": false,
-          "differingPixels": 47259,
+          "differingPixels": 40366,
           "firstDifference": [
-            1081,
-            1054
+            413,
+            1391
           ],
           "box": [
-            876,
-            1054,
-            1348,
-            1721
+            24,
+            1391,
+            1045,
+            1775
           ],
           "sha": [
-            "72137f7818c74de7",
-            "5dd64f5b1f50d214"
+            "5dd64f5b1f50d214",
+            "8e007946ff620e5b"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1625,22 +1611,22 @@
         {
           "shot": "walking-5000ms",
           "identical": false,
-          "differingPixels": 49377,
+          "differingPixels": 40730,
           "firstDifference": [
-            1070,
-            1094
+            431,
+            1397
           ],
           "box": [
-            876,
-            1094,
-            1405,
-            1721
+            24,
+            1397,
+            1045,
+            1775
           ],
           "sha": [
-            "aed125e0cf4adce0",
-            "e67cee8fb7d612a3"
+            "e67cee8fb7d612a3",
+            "f6d50923102fc3c7"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1654,22 +1640,22 @@
         {
           "shot": "walking-8000ms",
           "identical": false,
-          "differingPixels": 48729,
+          "differingPixels": 40434,
           "firstDifference": [
-            1070,
-            1083
+            413,
+            1391
           ],
           "box": [
-            876,
-            1083,
-            1405,
-            1721
+            24,
+            1391,
+            1045,
+            1775
           ],
           "sha": [
-            "4a319f4993dcf634",
-            "01f3bf24466c85b5"
+            "01f3bf24466c85b5",
+            "2eea1df9cd262cb8"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1683,22 +1669,22 @@
         {
           "shot": "arrived",
           "identical": false,
-          "differingPixels": 48556,
+          "differingPixels": 40954,
           "firstDifference": [
-            938,
-            1077
+            436,
+            1391
           ],
           "box": [
-            876,
-            1077,
-            1400,
-            1721
+            24,
+            1391,
+            1045,
+            1775
           ],
           "sha": [
-            "20e53b759e40c553",
-            "d04addecde4f1f9d"
+            "d04addecde4f1f9d",
+            "0128de12a715d561"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1712,22 +1698,22 @@
         {
           "shot": "hatch-200ms",
           "identical": false,
-          "differingPixels": 49078,
+          "differingPixels": 40904,
           "firstDifference": [
-            944,
-            1066
+            436,
+            1385
           ],
           "box": [
-            876,
-            1066,
-            1400,
-            1721
+            24,
+            1385,
+            1045,
+            1775
           ],
           "sha": [
-            "d70a2f1daf54fbf1",
-            "10fcff4c8d70326b"
+            "10fcff4c8d70326b",
+            "a659dcffee7483b6"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1741,22 +1727,22 @@
         {
           "shot": "hatch-400ms",
           "identical": false,
-          "differingPixels": 49023,
+          "differingPixels": 40216,
           "firstDifference": [
-            944,
-            1060
+            436,
+            1385
           ],
           "box": [
-            876,
-            1060,
-            1400,
-            1721
+            24,
+            1385,
+            1045,
+            1775
           ],
           "sha": [
-            "2f1a8aed03986edc",
-            "e02ab02656fbd3b5"
+            "e02ab02656fbd3b5",
+            "abf44be2a646143d"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1770,22 +1756,22 @@
         {
           "shot": "hatch-700ms",
           "identical": false,
-          "differingPixels": 48834,
+          "differingPixels": 40349,
           "firstDifference": [
-            1070,
-            1089
+            431,
+            1385
           ],
           "box": [
-            876,
-            1089,
-            1405,
-            1721
+            24,
+            1385,
+            1045,
+            1775
           ],
           "sha": [
-            "20148cf15471e928",
-            "49dc2a8b35d57afd"
+            "49dc2a8b35d57afd",
+            "d5109ce033abc424"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1799,22 +1785,22 @@
         {
           "shot": "hatch-1500ms",
           "identical": false,
-          "differingPixels": 49558,
+          "differingPixels": 40437,
           "firstDifference": [
-            1075,
-            1066
+            453,
+            1402
           ],
           "box": [
-            876,
-            1066,
-            1411,
-            1721
+            24,
+            1402,
+            1045,
+            1775
           ],
           "sha": [
-            "b540df767ad72ee3",
-            "ce8cc35174ff63cc"
+            "ce8cc35174ff63cc",
+            "ce42b65d54d20607"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1828,22 +1814,22 @@
         {
           "shot": "hatch-3000ms",
           "identical": false,
-          "differingPixels": 49343,
+          "differingPixels": 40882,
           "firstDifference": [
-            938,
-            1077
+            419,
+            1385
           ],
           "box": [
-            876,
-            1077,
-            1400,
-            1721
+            24,
+            1385,
+            1045,
+            1775
           ],
           "sha": [
-            "f1be557559057965",
-            "efa4e2a6937ebde7"
+            "efa4e2a6937ebde7",
+            "3ee6d9e9767fe820"
           ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1856,23 +1842,9 @@
         },
         {
           "shot": "leaving-300ms",
-          "identical": false,
-          "differingPixels": 48515,
-          "firstDifference": [
-            1012,
-            1066
-          ],
-          "box": [
-            876,
-            1066,
-            1400,
-            1721
-          ],
-          "sha": [
-            "93ee62048db2beb1",
-            "102c1bb048cc82b6"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "102c1bb048cc82b6",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1885,23 +1857,9 @@
         },
         {
           "shot": "leaving-800ms",
-          "identical": false,
-          "differingPixels": 48752,
-          "firstDifference": [
-            1070,
-            1094
-          ],
-          "box": [
-            876,
-            1094,
-            1405,
-            1721
-          ],
-          "sha": [
-            "6221c53535e63df4",
-            "cc64f83bc7676bb1"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "cc64f83bc7676bb1",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1914,23 +1872,9 @@
         },
         {
           "shot": "leaving-1400ms",
-          "identical": false,
-          "differingPixels": 49349,
-          "firstDifference": [
-            1075,
-            1071
-          ],
-          "box": [
-            876,
-            1071,
-            1411,
-            1721
-          ],
-          "sha": [
-            "fa30de6c0dac417b",
-            "9c0aa989d673e59d"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "9c0aa989d673e59d",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1943,23 +1887,9 @@
         },
         {
           "shot": "leaving-2000ms",
-          "identical": false,
-          "differingPixels": 50345,
-          "firstDifference": [
-            1081,
-            1054
-          ],
-          "box": [
-            876,
-            1054,
-            1417,
-            1721
-          ],
-          "sha": [
-            "75d4eae0ee44fd79",
-            "c7d55eaf339da8df"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c7d55eaf339da8df",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1972,23 +1902,9 @@
         },
         {
           "shot": "leaving-2400ms",
-          "identical": false,
-          "differingPixels": 49809,
-          "firstDifference": [
-            938,
-            1066
-          ],
-          "box": [
-            876,
-            1066,
-            1400,
-            1721
-          ],
-          "sha": [
-            "46b022afc80c6ebb",
-            "09b0f29a33f4376b"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "09b0f29a33f4376b",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2001,23 +1917,9 @@
         },
         {
           "shot": "leaving-2700ms",
-          "identical": false,
-          "differingPixels": 49827,
-          "firstDifference": [
-            938,
-            1066
-          ],
-          "box": [
-            876,
-            1066,
-            1400,
-            1721
-          ],
-          "sha": [
-            "85aeaf40f7af6a2f",
-            "e01e604874f0c012"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e01e604874f0c012",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2030,23 +1932,9 @@
         },
         {
           "shot": "leaving-3000ms",
-          "identical": false,
-          "differingPixels": 49334,
-          "firstDifference": [
-            944,
-            1060
-          ],
-          "box": [
-            876,
-            1060,
-            1400,
-            1721
-          ],
-          "sha": [
-            "1878b80f3f10ee4d",
-            "83c408d1c1249d3d"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "83c408d1c1249d3d",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2059,23 +1947,9 @@
         },
         {
           "shot": "leaving-3300ms",
-          "identical": false,
-          "differingPixels": 48722,
-          "firstDifference": [
-            944,
-            1066
-          ],
-          "box": [
-            876,
-            1066,
-            1400,
-            1721
-          ],
-          "sha": [
-            "1c494993641c595e",
-            "a56194757a63c2cb"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "a56194757a63c2cb",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2088,23 +1962,9 @@
         },
         {
           "shot": "leaving-3600ms",
-          "identical": false,
-          "differingPixels": 48879,
-          "firstDifference": [
-            1070,
-            1094
-          ],
-          "box": [
-            876,
-            1094,
-            1405,
-            1721
-          ],
-          "sha": [
-            "c874302cebe026f9",
-            "ad0b77df9b20ec41"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "ad0b77df9b20ec41",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2117,23 +1977,9 @@
         },
         {
           "shot": "leaving-4000ms",
-          "identical": false,
-          "differingPixels": 48740,
-          "firstDifference": [
-            1070,
-            1094
-          ],
-          "box": [
-            876,
-            1094,
-            1405,
-            1721
-          ],
-          "sha": [
-            "ce6ebd310041e978",
-            "dc4db4cb19d0328a"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "dc4db4cb19d0328a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2146,23 +1992,9 @@
         },
         {
           "shot": "leaving-4600ms",
-          "identical": false,
-          "differingPixels": 48541,
-          "firstDifference": [
-            1075,
-            1089
-          ],
-          "box": [
-            876,
-            1089,
-            1411,
-            1721
-          ],
-          "sha": [
-            "b7041a09c29a8d8f",
-            "5ff9e0f6d6c883b2"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "5ff9e0f6d6c883b2",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2175,23 +2007,9 @@
         },
         {
           "shot": "leaving-5400ms",
-          "identical": false,
-          "differingPixels": 49721,
-          "firstDifference": [
-            1081,
-            1066
-          ],
-          "box": [
-            876,
-            1066,
-            1417,
-            1721
-          ],
-          "sha": [
-            "ce889ea3c4c9b053",
-            "4cfaf730193aace3"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "4cfaf730193aace3",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2204,23 +2022,9 @@
         },
         {
           "shot": "leaving-7000ms",
-          "identical": false,
-          "differingPixels": 49280,
-          "firstDifference": [
-            1070,
-            1077
-          ],
-          "box": [
-            876,
-            1077,
-            1405,
-            1721
-          ],
-          "sha": [
-            "c1e0f96b1e1696fa",
-            "7cf0861a3b8cdee1"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "7cf0861a3b8cdee1",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2233,23 +2037,9 @@
         },
         {
           "shot": "after",
-          "identical": false,
-          "differingPixels": 48952,
-          "firstDifference": [
-            1075,
-            1083
-          ],
-          "box": [
-            876,
-            1083,
-            1411,
-            1721
-          ],
-          "sha": [
-            "00f6f68f432dc8e0",
-            "33ba23abd8a913d8"
-          ],
-          "intentional": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "33ba23abd8a913d8",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2272,22 +2062,22 @@
         {
           "shot": "100ms",
           "identical": false,
-          "differingPixels": 34304,
+          "differingPixels": 11084,
           "firstDifference": [
-            925,
-            1081
+            28,
+            1746
           ],
           "box": [
-            861,
-            1081,
-            1296,
-            1721
+            24,
+            1746,
+            1129,
+            1775
           ],
           "sha": [
-            "a24a5f1f014ab6e5",
-            "99f07b3e04fab7b4"
+            "99f07b3e04fab7b4",
+            "20ac2253e6caccec"
           ],
-          "intentional": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged.",
+          "intentional": "The attention footer offers Converse for the selected worker. The carrier is hidden while a sailor is focused; every canvas pixel remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2301,22 +2091,22 @@
         {
           "shot": "300ms",
           "identical": false,
-          "differingPixels": 89874,
+          "differingPixels": 11084,
           "firstDifference": [
-            527,
-            877
+            28,
+            1746
           ],
           "box": [
-            422,
-            877,
-            1296,
-            1721
+            24,
+            1746,
+            1129,
+            1775
           ],
           "sha": [
-            "497707f5118e24fb",
-            "29a75fc666e8eba1"
+            "29a75fc666e8eba1",
+            "5f0f2760308a60d6"
           ],
-          "intentional": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged.",
+          "intentional": "The attention footer offers Converse for the selected worker. The carrier is hidden while a sailor is focused; every canvas pixel remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2330,22 +2120,22 @@
         {
           "shot": "1.5s",
           "identical": false,
-          "differingPixels": 145539,
+          "differingPixels": 11084,
           "firstDifference": [
-            138,
-            824
+            28,
+            1746
           ],
           "box": [
-            88,
-            824,
-            1296,
-            1721
+            24,
+            1746,
+            1129,
+            1775
           ],
           "sha": [
-            "cdba3fd790f615c0",
-            "78cf04356b506c01"
+            "78cf04356b506c01",
+            "1ce303953b7bbfe6"
           ],
-          "intentional": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged.",
+          "intentional": "The attention footer offers Converse for the selected worker. The carrier is hidden while a sailor is focused; every canvas pixel remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2359,22 +2149,22 @@
         {
           "shot": "back-out",
           "identical": false,
-          "differingPixels": 33116,
+          "differingPixels": 41007,
           "firstDifference": [
-            933,
-            1083
+            413,
+            1397
           ],
           "box": [
-            876,
-            1083,
-            1296,
-            1721
+            24,
+            1397,
+            1129,
+            1775
           ],
           "sha": [
-            "816fb1d8190edf4b",
-            "5a5f3397963f6e5d"
+            "5a5f3397963f6e5d",
+            "3abddb24e5624ff6"
           ],
-          "intentional": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2396,22 +2186,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 8322,
+          "differingPixels": 10779,
           "firstDifference": [
-            469,
-            544
+            212,
+            695
           ],
           "box": [
-            437,
-            544,
-            648,
-            860
+            12,
+            695,
+            565,
+            887
           ],
           "sha": [
-            "6c56fadd49bbf021",
-            "29be3e26bca548ab"
+            "29be3e26bca548ab",
+            "54b4401b8f23b91b"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2425,22 +2215,22 @@
         {
           "shot": "2s",
           "identical": false,
-          "differingPixels": 8244,
+          "differingPixels": 10779,
           "firstDifference": [
-            449,
-            559
+            212,
+            695
           ],
           "box": [
-            437,
-            559,
-            648,
-            860
+            12,
+            695,
+            565,
+            887
           ],
           "sha": [
-            "3b22298b35e9c2ac",
-            "2512cdd923ff84e6"
+            "2512cdd923ff84e6",
+            "66d90059c5cc80dc"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2454,22 +2244,22 @@
         {
           "shot": "6s",
           "identical": false,
-          "differingPixels": 8213,
+          "differingPixels": 10779,
           "firstDifference": [
-            449,
-            561
+            212,
+            695
           ],
           "box": [
-            437,
-            561,
-            648,
-            860
+            12,
+            695,
+            565,
+            887
           ],
           "sha": [
-            "2cac375d3dc22378",
-            "b1aa9428d9dabd3c"
+            "b1aa9428d9dabd3c",
+            "b82569701f347294"
           ],
-          "intentional": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged.",
+          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2488,5 +2278,5 @@
   "shots": 81,
   "passed": true,
   "identical": false,
-  "intentionalShots": 81
+  "intentionalShots": 66
 }

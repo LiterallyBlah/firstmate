@@ -89,6 +89,8 @@ export interface DeckSailor {
 }
 
 export interface DeckScene {
+  /** The attention carrier's selected worker. Selection and Converse routing belong to the view. */
+  attentionKey?: string | null;
   palette: DeckPalette;
   sailors: DeckSailor[];
   /** Why each card on the board but not on deck is not, by card key: how a sailor that was there leaves. */

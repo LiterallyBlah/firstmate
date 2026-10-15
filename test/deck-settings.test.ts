@@ -132,6 +132,7 @@ describe.each(packs)("the %s pack", (id) => {
     for (const piece of stage.pieces) inside(piece.sprite, piece.id);
     for (const prop of stage.props) inside(prop.sprite, prop.id);
     for (const zone of manifest.zones.zones) if (zone.appearance !== undefined) inside(zone.appearance.sprite, zone.id);
+    for (const sprite of manifest.attentionCarrier?.frames ?? []) inside(sprite, "attentionCarrier");
     for (const look of manifest.cast.looks) {
       for (const [pose, standing] of Object.entries(manifest.cast.lanes[look.lane]!)) inside({ image: look.image, rect: standing.rect }, `${look.id} ${pose}`);
     }
@@ -150,6 +151,10 @@ describe.each(packs)("the %s pack", (id) => {
       }
     };
     for (const part of manifest.stage.parts) if (part.behaviour?.kind === "cycle") oneSize(part.behaviour.frames.sprites, part.id);
+    if (manifest.attentionCarrier !== undefined) {
+      oneSize(manifest.attentionCarrier.frames, "attentionCarrier");
+      expect(size(manifest.attentionCarrier.frames[0]!)).toEqual(manifest.attentionCarrier.size);
+    }
     for (const element of manifest.ambience) {
       const behaviour = element.behaviour;
       switch (behaviour.kind) {
