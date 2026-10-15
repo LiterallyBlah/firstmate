@@ -87,6 +87,22 @@ describe("the ship's ambience, compiled", () => {
   });
 });
 
+describe("wall-clock frames, compiled", () => {
+  it("requires all frames, uses a fallback in place, and leaves unrelated elements independent", () => {
+    const indicator = {
+      id: "indicator", slot: "front", order: 2, lite: "run", still: "first-frame", fallback: "backup",
+      behaviour: { kind: "phase-frames", by: "local-hour", at: [30, 40], anchor: [2, 3], frames: [{ image: "deck" }, { image: "sky-dawn" }] },
+    } satisfies SettingManifest["ambience"][number];
+    const backup = { ...indicator, id: "backup", fallback: undefined, behaviour: { ...indicator.behaviour, frames: [{ image: "deck" }] } };
+    const manifest: SettingManifest = { ...ship, ambience: [indicator, backup, { ...backup, id: "independent", order: 1 }] };
+    expect(ids(manifest)).toEqual(["independent", "indicator"]);
+    const partial = compileAmbience(manifest, without("sky-dawn"));
+    expect(partial.elements.map((element) => [element.id, element.place])).toEqual([["independent", "independent"], ["backup", "indicator"]]);
+    expect(partial.missing).toEqual(["sky-dawn"]);
+    expect(compileAmbience(manifest, without("deck")).elements).toEqual([]);
+  });
+});
+
 describe("the ship's water, compiled", () => {
   it("draws the still sea and foam only in place of the animated ones, under their names, and the sea flat with neither", () => {
     const stillSea = compileAmbience(ship, without("water-sea-frame-2"));

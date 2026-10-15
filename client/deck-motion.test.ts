@@ -22,6 +22,7 @@ import {
   clearLine,
   findPath,
   inRects,
+  pathLength,
   sharedSpot,
   walkable,
   type Facing,
@@ -126,6 +127,14 @@ describe("the ship's walkable deck", () => {
 });
 
 describe("pathing", () => {
+  it("keeps the ship's routes within their original detour bound", () => {
+    const places = [...ANCHORS, HATCH, ...[...stage.exits.values()].map((exit) => exit.kind === "choreography" ? exit.queue.at : exit.at)];
+    for (const from of places) for (const to of places) {
+      if (from.x === to.x && from.y === to.y) continue;
+      expect(pathLength(from, findPath(stage.floor, from, to))).toBeLessThan(Math.hypot(to.x - from.x, to.y - from.y) * 1.6 + 30);
+    }
+  });
+
   it("climbs the stairs between the main deck and the quarterdeck", () => {
     const helm = ANCHORS.find((anchor) => anchor.id === "helm-1")!;
     const path = findPath(shipStage().floor, HATCH, helm);

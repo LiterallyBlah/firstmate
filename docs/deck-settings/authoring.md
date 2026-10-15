@@ -19,7 +19,7 @@ or capabilities as incompatible, with a reason. The pane falls back to ship and 
 | Portals and effects | `rise`, `walk-in`, `sink`, `choreography` |
 | Stage motion and light | `phase-tint`, `bob`, `sway`, `cycle`, `flicker` |
 | Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `strip`, `variants` |
-| Time and activity | `day-cycle`, `atmosphere` |
+| Time and activity | `phase-frames`, `day-cycle`, `atmosphere` |
 
 Each entry is spelled `<name>@1` in `requires`. The schema and `settingProblems` define all parameters
 and reference rules. A manifest contains numbers, ids, sprites, lookup curves, fixed path shapes and finite
@@ -72,8 +72,8 @@ ties in manifest order. Existing holders keep their places. Pose fidgets may nam
 a key without one uses the settled pose, and all use the settled mirror rule. Still/stale workers keep
 their settled role. Every lane must define every named fidget pose.
 
-`walk-in@1` is supported as of step 9b and `phase-tint@1` as of step 9c. Phase frames still require a separate
-engine PR. Keep choreography finite; do not add hooks to work around a missing behavior. The office's commissioned
+`walk-in@1` is supported as of step 9b, `phase-tint@1` as of step 9c and `phase-frames@1` as of step 9d.
+Keep choreography finite; do not add hooks to work around a missing behavior. The office's commissioned
 art is delivered under `docs/settings/office/art/`; final pack wiring remains pending. The draft cannot be selected
 as an installed pack.
 
@@ -119,3 +119,20 @@ own colours, including actors that move into that slot. No parent shared with in
 Phase tint is independent of intensity and motion. Full/lite frames read the same wall clock; reduced motion
 refreshes it on the existing minute timer, with no animation loop, bob, weather variants or flash. Hidden scenes
 do not redraw. No extra timer, expression, shader hook or setting-specific branch is needed.
+
+## Phase frames
+
+An ambience element with `kind: "phase-frames"` declares a nonempty `frames` array of sprites, `at` and
+`anchor` points, and `by: "local-hour"` or `"local-minute"`. It requires `phase-frames@1`; no `dayCycle` or
+atmosphere clock is needed. The selector is closed: no seconds, expressions, variants, opacity or clock hooks.
+
+The engine takes the local hour (0–23) or minute of the hour (0–59), then wraps it modulo the number of frames.
+A twelve-frame dial uses frame zero at midnight/noon; a 24-frame list spans a day. Seconds never interpolate
+frames. An invalid or throwing clock selects frame zero. Each frame has the same size, drawn at `at - anchor`
+in its element's slot and order. The pack linter checks image crops, matching sizes and fit bounds.
+
+Full motion follows the wall clock. Lite honors `run`, `freeze` (frame zero) or `hide`; reduced motion honors
+`first-frame` or `hide`. Switching back to running selects the current wall-clock frame, without replaying
+elapsed time. Hidden scenes do not redraw. The renderer shares its existing local-time sample with the backdrop
+and phase tint; this behaviour adds no timer and reads neither simulation clocks nor intensity. All frames must
+load or the element falls back under the usual ambience rules. Ambience keeps its own colours, outside stage tint.

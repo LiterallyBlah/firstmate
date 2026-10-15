@@ -1,16 +1,16 @@
 # Office: art commission and uninstalled pack draft
 
-Status: **art delivered; final capability and pack wiring pending**. The commissioned PNGs are in
+Status: **art delivered; all capabilities supported; final pack wiring pending**. The commissioned PNGs are in
 [art/](art/), with [delivery verification](ART-DELIVERY.md). This step-9 scaffold is outside `art/settings/`
 and outside the npm package. `setting.draft.json` is an envelope around a proposed manifest, with null
-image digests and one pending capability; it is deliberately not installable. `art-contract.json`
+image digests; it is deliberately not installable. `art-contract.json`
 is the machine-readable delivery contract for **26 PNGs / 99 frames**. The tables below are its brief.
 
-The engine supports `stable-posts@1`, `pose-fidgets@1`, `walk-in@1` and `phase-tint@1`. Still required before
-the pack can ship: generic `phase-frames@1`, followed by the final pack wiring and its pixel checks.
-The capability review precedes a data/art-only pack PR. The draft fields for `phase-frames@1` are proposals,
-not accepted schema. The draft's phase tint and walking entry are now checked directly,
-including its off-floor corridor, actor fit and furniture clearance. No office branch belongs in the renderer.
+The engine supports `stable-posts@1`, `pose-fidgets@1`, `walk-in@1`, `phase-tint@1` and `phase-frames@1`.
+The final pack wiring and its pixel checks follow in a data/art-only PR. The complete draft is now checked
+against the schema, including its clock, phase tint, off-floor entry corridor, actor fit and furniture clearance.
+No office branch belongs in the renderer. The twelve-frame wall clock follows local hours in full/lite motion;
+reduced motion holds its first frame, as the draft specifies.
 
 ## Coordinate and palette contract
 
@@ -85,10 +85,10 @@ sprite follows a worker. Every look must contain all ten poses, even if some sha
 `test/office-draft.test.ts` checks image inventory, frame grids, palettes, anchors, current schema fields,
 cast/effect registration, all-pairs floor paths, and a 24-person break crowd with every other post occupied.
 The delivered art has separate [contract checks](verify-art.mjs); installed-pack lint and engine renders
-will check its final wiring and appearance. A test-only adapter substitutes sentinels for missing hashes and omits unsupported fields;
+will check its final wiring and appearance. A test-only adapter substitutes sentinels for missing hashes;
 it never writes or installs that adapted manifest. `npm run lint:deck-packs` includes these draft checks.
 
-Review and land `phase-frames@1`, then copy the delivered art unchanged and fill real SHA-256 values,
+After step 9d merges, copy the delivered art unchanged and fill real SHA-256 values,
 validate every PNG with the full pack linter, inspect office full/lite/still, entry/exit, focus and crowd views,
 then land `art/settings/office/` as an art/data-only PR. The ship must remain 81/81 pixel-identical at every
 engine slice. Global selection, calm reduced motion and engine-owned intensity remain unchanged.

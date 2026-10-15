@@ -390,3 +390,26 @@ Gate: **81/81 pixel-identical** to main `0e98ab5`, with no flakes or page errors
 Full suite: 78 files, 1,010 tests passed, three skipped. Typecheck, pack lint (34 tests) and `git diff --check`
 pass. Client growth is 1,349 bytes; Hermes parses it and the bundle has no `class`. Package art is unchanged
 at 331,187 bytes, with staged office art, tests and documentation excluded. Results are recorded beside this file.
+
+## Step 9d — local-time frames capability (office pack wiring next)
+
+- `phase-frames@1` adds one anchored ambience sprite selected by `local-hour` (0–23) or `local-minute`
+  (0–59), modulo its nonempty frame list. `client/deck-phase-frames.ts` samples the renderer's local-time
+  value, with frame zero for invalid clocks. No day cycle, expressions, intensity binding or new timer.
+- Full motion follows wall time; lite honors run/freeze/hide, reduced motion first-frame/hide. Switching
+  back to running selects the current time. Existing frame budgets and hidden-scene pause remain intact.
+  Frames use ordinary slot/order, texture lifetime, missing-image and fallback rules, outside stage tint.
+- The closed schema checks selectors, image references and `requires`; pack lint checks crops, equal
+  frame sizes and fit. Tests cover hour/minute boundaries, noon/midnight wrap, invalid time, independent
+  mounts, placement/order, full/lite/still policies, hidden pause and texture cleanup.
+- The office draft now validates all its authored fields; only hash sentinels are substituted in its
+  tests. Installed-pack discovery tests accept additional packs and use a separate missing test id.
+  A temporary copy of the commissioned art with the draft's real hashes passes all 51 pack-lint checks
+  and server checks, then leaves the installed scan. No office pack or new art ships in this engine PR.
+- That preflight exposed the generic linter's inherited ship detour bound: long office desks legitimately
+  require walks longer than a multiple of straight-line distance. Generic checks now require walkable,
+  connected paths with no avoidable corners. The original ratio is retained in the ship's path regression
+  tests. Navigation code and geometry are unchanged.
+
+After this capability merges, the final office PR can contain the delivered PNGs and `setting.json` with
+real hashes plus documentation, without TypeScript changes. All five accepted migration decisions remain intact.
