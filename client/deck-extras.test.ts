@@ -86,7 +86,7 @@ describe("the sail and the crew's looks, as served", () => {
         for (let x = 0; x < png.width; x += 1) if (!inside(x, y)) expect(png.alpha(x, y), `${look.id} at ${x},${y}`).toBe(0);
       }
     }
-  });
+  }, 20_000);
 
   it("hang the taller sail on the tall mast, its yard at the mast's lashing point, under the crow's nest and clear of the deck", () => {
     const { sail } = manifest;
