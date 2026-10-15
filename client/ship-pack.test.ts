@@ -3,13 +3,13 @@
  * still holds both: read as the old manifests (`legacyViews`) it is those manifests exactly as last served (kept in
  * `docs/ship-deck-art/legacy/`), and every number in it is the constant in the deck's code it replaces. Each step of
  * the move to a scene engine that deletes a constant deletes its check here; the pack is the source from then on.
- * Step 3 took the stage, floor, zones and portal marks: the engine reads those from the pack now.
+ * Step 3 took the stage, floor, zones and portal marks, step 4 the cast: the engine reads those from the pack now.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { BREATH_MS, BREATH_ROWS, FADE_MS, HATCH_MS, SHARK_MOUTH, STATE_POSES, STEP_MS, breathSink, idleMotion } from "./deck-crew";
+import { FADE_MS, HATCH_MS, SHARK_MOUTH } from "./deck-crew";
 import { HEAVE, LANTERNS, MASTHEAD, GULL_LOWEST, GULL_SLOT_SECONDS, HORIZON, SEA_FALLBACK, WATERLINE, lanternFlicker, mastSway, shipBob } from "./deck-ambient";
 import { ATMOSPHERE, STORM_SHADE } from "./deck-atmosphere";
 import { CLOUD_LANES, CLOUD_MARGIN, CLOUD_TOP_MIN } from "./deck-clouds";
@@ -36,10 +36,10 @@ import {
   SWIM_ROWS,
   TEETER_MS,
 } from "./deck-plank";
-import { DECK_STATES } from "./deck-scene";
 import { SKY_FADE_MINUTES, skyHorizonRow } from "./deck-sky";
 import { mastLayout } from "./deck-extras";
 import { shipManifest, shipViews } from "../test/ship-pack";
+
 
 const legacy = (name: string): unknown => JSON.parse(readFileSync(fileURLToPath(new URL(`../docs/ship-deck-art/legacy/${name}`, import.meta.url)), "utf8"));
 const ship = shipManifest();
@@ -60,7 +60,8 @@ describe("the ship's pack, read as the manifests the deck drew from", () => {
 
   it("names every image at the path it was served at", () => {
     const { environment, extras } = shipViews();
-    const served = new Set(["deck.png", ...environmentImagePaths(environment), ...extrasImagePaths(extras)]);
+    const looks = ship.cast.looks.map((look) => ship.images[look.image]!.path);
+    const served = new Set(["deck.png", ...environmentImagePaths(environment), ...extrasImagePaths(extras), ...looks]);
     expect(new Set(Object.values(ship.images).map((image) => image.path))).toEqual(served);
   });
 });
@@ -115,33 +116,6 @@ describe("the ship's pack, against the deck's constants", () => {
     expect(ship.portals.entry.ms).toBe(HATCH_MS);
     expect(ship.portals.exits.hatch).toMatchObject({ kind: "sink", ms: HATCH_MS });
     expect(ship.portals.still.fadeMs).toBe(FADE_MS);
-  });
-
-  it("stands, walks and settles the crew as the deck does, its fidgets and its breath the deck's own", () => {
-    const { roles, fidgets, breath } = ship.cast;
-    expect(roles.stepMs).toBe(STEP_MS);
-    for (const state of DECK_STATES) expect(roles.settled[state].pose, state).toBe(STATE_POSES[state]);
-    expect(breath).toMatchObject({ state: "idle", rows: BREATH_ROWS, periodMs: BREATH_MS });
-    for (let seed = 0; seed < 200; seed += 7) {
-      for (let now = 0; now < 9000; now += 13) {
-        for (const state of DECK_STATES) {
-          for (const facing of ["left", "right", "front"] as const) {
-            const fidget = fidgets[state];
-            let dx = 0;
-            let dy = 0;
-            if (fidget !== null) {
-              const t = (now + seed * fidget.seedMs) % fidget.periodMs;
-              const key = [...fidget.keys].reverse().find((each) => each.fromMs <= t)!;
-              dx = key.towardFacing === true && facing === "left" ? -key.dx : key.dx;
-              dy = key.dy;
-            }
-            expect({ dx, dy }, `${state} ${facing} ${seed} ${now}`).toEqual(idleMotion(state, facing, seed, now));
-          }
-        }
-        const t = (now + seed * breath!.seedMs) % breath!.periodMs;
-        expect(t >= breath!.inMs ? 1 : 0).toBe(breathSink(seed, now));
-      }
-    }
   });
 
   it("walks the plank on the deck's own timeline, to the shark at its mouth", () => {

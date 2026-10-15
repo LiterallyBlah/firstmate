@@ -1,21 +1,12 @@
 /**
- * The deck's extras (`docs/ship-deck-art/assets-2/README.md`): the tall mast and its sail, the plank's board and the
- * crew's six extra looks — bosun, old salt, navigator, carpenter, rigger, deckhand — served by
- * the setting pack (`firstmate.deck.setting`), which also has the shark (`client/deck-plank.ts`) and the sky's clouds
- * (`client/deck-clouds.ts`). Pure: which looks there are, who wears which, which of the sail's two states
- * shows, and how the tall mast is cut. The sprites
- * are `client/deck-pixi.ts`'s.
+ * The deck's extras (`docs/ship-deck-art/assets-2/README.md`): the tall mast and its sail and the plank's board,
+ * served in the setting pack (`firstmate.deck.setting`), which also has the shark (`client/deck-plank.ts`) and the
+ * sky's clouds (`client/deck-clouds.ts`). Pure: which of the sail's two states shows, and how the tall mast is cut.
+ * The sprites are `client/deck-pixi.ts`'s. The crew's looks — the atlas's two outfits and the six extra ones — are
+ * the cast's (`client/deck-cast.ts`).
  *
- * - **Nothing here is needed to draw.** The mount keeps every image that decodes (`decodeExtras` in
- *   `client/deck-mount.ts`): the sail needs its strip and the tall mast both, or the short mast stays bare;
- *   a look whose image is missing is simply not handed out. The atlas's own two outfits are always there.
- * - **A look per crewmate, stable by agent id.** A sailor wears the look its agent id hashes to, whoever
- *   else is aboard, from poll to poll and from one opening of the deck to the next. Two crewmates can
- *   hash to the same look; with eight looks a small crew is mostly varied, and the hover label says who
- *   is who. A look that did not load is not in the list, so the crew is then dressed from the rest.
- * - **A look is drawn with the atlas's frames.** Each extra look is a texture the atlas's size with every
- *   pose at exactly the atlas's own crew rectangles and feet, so it is drawn, hit-tested and badged with the
- *   base lane's frames (`lookLane`).
+ * - **Nothing here is needed to draw.** The mount keeps every image that decodes (`packArt` in
+ *   `client/deck-mount.ts`): the sail needs its strip and the tall mast both, or the short mast stays bare.
  * - **The tall mast** (`art/settings/ship/mast/`) stands in for the hull's own short one where it decoded: the
  *   hull's crow's nest, upper mast and stays are left out (`clears`), the mast is drawn behind the sail and
  *   the crew with its crow's nest and topmast swaying as the masthead did, and its own rows below the sail
@@ -29,7 +20,7 @@
  * - **The plank** is the generated board (`art/settings/ship/plank/`) at its placement, where it decoded; the
  *   board drawn in code (`client/deck-plank.ts`) stands in for it otherwise, so a sailor never walks out on nothing.
  */
-import type { DeckArtManifest, DeckExtrasManifest, SailorOutfit } from "./deck-legacy";
+import type { DeckArtManifest, DeckExtrasManifest } from "./deck-legacy";
 
 /** The extras as the mount hands them over: what the manifest says, and each image that decoded. */
 export interface DeckExtrasImages {
@@ -37,35 +28,6 @@ export interface DeckExtrasImages {
   images: ReadonlyMap<string, unknown>;
   /** Each cloud sprite cut into its three slot masks, by texture, for those that could be cut (`client/deck-clouds.ts`). */
   cloudMasks?: ReadonlyMap<string, readonly [unknown, unknown, unknown]>;
-}
-
-/** The atlas's own two outfits, always there: the first two looks. */
-export const ATLAS_LOOKS: readonly SailorOutfit[] = ["base", "outfit"];
-
-/** Every look the crew can wear: the atlas's two, then each extra look whose image arrived, in the manifest's order. */
-export function crewLooks(extras: DeckExtrasImages | null): string[] {
-  const looks: string[] = [...ATLAS_LOOKS];
-  for (const look of extras?.manifest.crew ?? []) {
-    if (extras!.images.has(look.texture) && !looks.includes(look.id)) looks.push(look.id);
-  }
-  return looks;
-}
-
-/** Whose frames a look is drawn with: an atlas outfit its own, an extra look the base lane's. */
-export function lookLane(look: string): SailorOutfit {
-  return look === "outfit" ? "outfit" : "base";
-}
-
-function hashOf(text: string): number {
-  // FNV-1a: unrelated to the walk's seed, so a sailor's look and its idle rhythm do not go together.
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < text.length; index += 1) hash = Math.imul(hash ^ text.charCodeAt(index), 0x01000193) >>> 0;
-  return hash;
-}
-
-/** The look a sailor wears: the one its `identity` (its agent's id) hashes to among `looks`. */
-export function lookFor(identity: string, looks: readonly string[]): string {
-  return looks[hashOf(identity) % looks.length] ?? "base";
 }
 
 /** The sail, when it can be drawn: its strip decoded and the tall mast it is fitted to drawn (`drawnMast`). Null otherwise. */

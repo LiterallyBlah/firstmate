@@ -38,6 +38,7 @@ import type { DeckExtrasImages } from "./deck-extras";
 import type { DeckHover } from "./deck-hover";
 import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { startDeck, type DeckArtImage, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
+import { compileCast } from "./deck-cast";
 import { compileStage } from "./deck-stage";
 import type { DeckScene } from "./deck-scene";
 
@@ -451,8 +452,16 @@ export function packArt(
   if (atlas === undefined) return Promise.reject(pack.failed.get(backdrop) ?? new Error(`the setting's ${backdrop} did not load`));
   const environment = environmentImages(views.environment, image);
   if (environment === null) warn("[firstmate] the deck's sky and sea did not load; drawing a plain sea:", pack.failed.values().next().value);
+  const cast = compileCast(pack.manifest);
   return extrasImages(views.extras, image, (path, error) => warn(`[firstmate] the deck's ${path} did not load; drawing without it:`, pack.failed.get(ids.get(path) ?? "") ?? error), cutCloud).then(
-    (extras) => ({ stage: compileStage(pack.manifest), image: atlas, manifest: views.art, environment, extras }),
+    function (extras) {
+      // A look whose image did not decode is not handed out.
+      for (const look of cast.looks) {
+        const failed = pack.failed.get(look.image);
+        if (failed !== undefined) warn(`[firstmate] the deck's ${views.paths.get(look.image) ?? look.image} did not load; drawing without it:`, failed);
+      }
+      return { stage: compileStage(pack.manifest), cast, images: pack.images, image: atlas, manifest: views.art, environment, extras };
+    },
   );
 }
 

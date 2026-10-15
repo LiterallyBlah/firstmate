@@ -23,7 +23,6 @@ import { drawnVariants } from "./deck-variants";
 import { drawnWater } from "./deck-water";
 import { ASK_PAPER, askPixels } from "./deck-badges";
 import { FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout } from "./deck-camera";
-import { BREATH_ROWS } from "./deck-crew";
 import { toCanvas } from "./deck-hover";
 import type { DeckExtrasImages } from "./deck-extras";
 import type { DeckHover } from "./deck-hover";
@@ -31,7 +30,11 @@ import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { DECK_FLASH_ATTRIBUTE, DECK_MOTION_ATTRIBUTE, DECK_SKY_ATTRIBUTE, DECK_WEATHER_ATTRIBUTE, deckBox, fitDeck, startDeck, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
 import { SKY_REFRESH_MS } from "./deck-sky";
 import { deckScene, depthOf, type DeckScene, type DeckSailor, type DeckState } from "./deck-scene";
-import { shipStage, shipViews } from "../test/ship-pack";
+import { shipCast, shipStage, shipViews } from "../test/ship-pack";
+import { standing } from "./deck-cast";
+
+// The ship's cast, under the names its constants had in the deck's code.
+const BREATH_ROWS = shipCast().breath!.rows;
 
 const theme = {
   colors: {
@@ -263,9 +266,17 @@ async function start(
 ) {
   const w = world(options);
   const host = { appendChild() {}, clientWidth: 800, clientHeight: 400 };
+  // The pack's images by id, as the mount hands them over: the atlas, and whatever of the extras arrived.
+  const atlas = { atlas: true };
+  const images = new Map(
+    [...shipViews().paths].flatMap(([id, path]): Array<[string, unknown]> => {
+      const image = path === "deck.png" ? atlas : options.extras?.images.get(path);
+      return image === undefined ? [] : [[id, image]];
+    }),
+  );
   const drawing = await startDeck(
     pixi,
-    { stage: shipStage(), image: { atlas: true }, manifest: deckManifest, environment: art, extras: options.extras ?? null },
+    { stage: shipStage(), cast: shipCast(), images, image: atlas, manifest: deckManifest, environment: art, extras: options.extras ?? null },
     host,
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
@@ -449,9 +460,13 @@ describe("the generated environment on the deck", () => {
 
 const extrasManifest = shipViews().extras;
 /** The extras as the mount decodes them: each image a token naming its path. */
+/** The extra looks' images: the cast's, decoded with the rest of the pack, and handed to the deck beside the extras'. */
+const lookPaths = shipCast()
+  .looks.filter((look) => look.optional)
+  .map((look) => shipViews().paths.get(look.image)!);
 const extras: DeckExtrasImages = {
   manifest: extrasManifest,
-  images: new Map(extrasImagePaths(extrasManifest).map((path) => [path, { image: path }])),
+  images: new Map([...extrasImagePaths(extrasManifest), ...lookPaths].map((path) => [path, { image: path }])),
 };
 /** The extras without the tall mast's image: the hull's own short rig, as before it. */
 const shortRig: DeckExtrasImages = { manifest: extrasManifest, images: new Map([...extras.images].filter(([path]) => path !== "mast/tall-mast.png")) };
@@ -596,8 +611,8 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     expect(new Set(worn).size).toBe(8);
     for (const sailor of scene.sailors) {
       const { sprite } = sailorSprites(deck.app.stage, sailor.key);
-      const [x, y, width, height] = deckManifest.crew.base.hauling.frame;
-      const outfit = deckManifest.crew.outfit.hauling.frame;
+      const [x, y, width, height] = standing(shipCast(), "base", "hauling").frame;
+      const outfit = standing(shipCast(), "outfit", "hauling").frame;
       expect([[x, y, width, height], outfit]).toContainEqual([sprite.texture.frame.x, sprite.texture.frame.y, sprite.texture.frame.width, sprite.texture.frame.height]);
     }
     deck.drawing.destroy();
@@ -612,8 +627,8 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: crewScene([["rest", "idle"]]) });
     deck.advance(0);
     const { sprite, upper } = sailorSprites(deck.app.stage, "rest");
-    const lane = sprite.texture.frame.x === deckManifest.crew.outfit["side-idle"].frame[0] ? "outfit" : "base";
-    const standing = deckManifest.crew[lane]["side-idle"];
+    const lane = sprite.texture.frame.x === standing(shipCast(), "outfit", "side-idle").frame[0] ? "outfit" : "base";
+    const posed = standing(shipCast(), lane, "side-idle");
     const seen = { whole: 0, out: 0 };
     for (let frame = 0; frame < 200; frame += 1) {
       deck.advance(34);
@@ -621,15 +636,15 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
         seen.out += 1;
         expect(upper.texture.frame.height).toBe(BREATH_ROWS);
         expect(sprite.texture.frame.y).toBe(upper.texture.frame.y + BREATH_ROWS);
-        expect(sprite.texture.frame.height).toBe(standing.frame[3] - BREATH_ROWS);
+        expect(sprite.texture.frame.height).toBe(posed.frame[3] - BREATH_ROWS);
         // The body where the whole sailor's rows would be; the head and shoulders a pixel lower; mirrored alike.
         expect(sprite.anchor.y).toBe(0);
         expect(upper.position.y).toBe(sprite.position.y - BREATH_ROWS + 1);
-        expect(sprite.position.y + standing.frame[3] - BREATH_ROWS).toBe(standing.frame[3] - standing.feet[1]);
+        expect(sprite.position.y + posed.frame[3] - BREATH_ROWS).toBe(posed.frame[3] - posed.feet[1]);
         expect(upper.scale.x).toBe(sprite.scale.x);
       } else {
         seen.whole += 1;
-        expect(sprite.texture.frame.height).toBe(standing.frame[3]);
+        expect(sprite.texture.frame.height).toBe(posed.frame[3]);
       }
     }
     expect(seen.whole).toBeGreaterThan(20);

@@ -29,7 +29,10 @@ compared pixel for pixel:
 | `lite-software-renderer` | SwiftShader: the lite plan, at its own pace |
 
 The deck draws only from its clocks, never `Math.random`, so a render is deterministic: `CONTROL=1` renders
-main twice and compares it with itself first, and it is identical. `ONLY=<names>` renders some scenarios;
+main twice and compares it with itself first, and it is identical. Now and then a GPU rasterizes one edge pixel of a frame
+differently (seen once, a lantern's edge at 1×), so a scenario that differs is rendered again on both sides: a
+difference that does not come back is recorded under `flakes` and does not fail the gate, one that does fails it
+(`RERENDER=0` turns this off). `ONLY=<names>` renders some scenarios;
 `SAVE=1` keeps the branch's shots in `docs/ship-deck-canvas/.generated/gate/shots/`; on any difference the
 main, branch and diff images go to `docs/ship-deck-canvas/.generated/gate/`. Results are in
 [`gate-results.json`](gate-results.json), and the compile's in [`compile-results.json`](compile-results.json).
@@ -113,3 +116,28 @@ as those PRs' evidence; they are not maintained through the migration. This gate
 ![The ship's stage over its deck](overlay-ship.png)
 
 Gate: every shot pixel-identical to main. Client bundle +115 bytes; Hermes parses it; no `class`.
+
+## Step 4 — the cast from the pack
+
+- **`client/deck-cast.ts`** compiles a pack's cast once (`compileCast`): each lane's poses with their frames and
+  feet, the looks (each with its image and lane, and whether it must draw), and the roles the engine asks poses
+  of — `stand`, the front and side walk cycles with their `stepMs` and `rise`, and each activity state's settled
+  pose, mirrored by facing, by the worker's seed, or never. **Poses are an open set**: the engine never names one.
+- **Fidgets are keyframes** (`fidgetAt`): a loop of whole-pixel offsets per state, out of step by the worker's seed,
+  `towardFacing` turning a step the way it faces. **The breath** (`breathSink`) sinks the top rows of a worker
+  settled in its state. **Looks** are handed out by identity over those whose image arrived (`availableLooks`,
+  `lookFor`), and each is drawn with its lane's frames from its own image.
+- **The crew** (`createCrew(stage, cast, …)`) and the renderer ask the cast: `settledPose`, `walkPose`, `fidgetAt`,
+  `breathSink`, `standing`; the plank's sailor is cropped at the stand pose's rows. **Hit-testing and badges**
+  (`client/deck-hover.ts`) read the cast's frames; a figure carries its look's `lane` (it was `outfit`). **Props**
+  are drawn from the stage's own sprites and feet; **the pack's images** reach the renderer by id
+  (`DeckArtImage.images`).
+- **Deleted from code**: `SAILOR_POSES`, `SAILOR_OUTFITS`, `DECK_PROP_NAMES`, `STATE_POSES`, `STEP_MS`, the walk
+  cycles, `idleMotion`, `looksFore`, `BREATH_ROWS`, `BREATH_MS`, `FRONT_ROWS`, `ATLAS_LOOKS`, `crewLooks` and
+  `lookLane`; the legacy views lose the atlas's crew and props and the extras' looks.
+- **The pack linter** packs two dozen workers into each packing zone with every other zone's posts held, and holds
+  each in its areas, in sight, clear of the crew at work and in the pointer's reach — `deck-motion.test.ts`'s
+  crowd check, now for any setting.
+
+Gate: every shot pixel-identical to main (which has the re-angled wake). Client bundle +1,424 bytes; Hermes parses
+it; no `class`.

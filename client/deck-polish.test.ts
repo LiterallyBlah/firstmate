@@ -7,12 +7,13 @@ import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { BADGE_GLYPHS, BADGE_SIZE, badgeInk, badgePixels, dozeAt, DOZE_PERIOD_MS, DOZE_RISE_MS, INK_DARK, INK_LIGHT } from "./deck-badges";
+import { standing } from "./deck-cast";
 import { applyCrew, createCrew, crewFigures, type Figure } from "./deck-crew";
 import { walkable } from "./deck-geometry";
 import { figureBox, hoverChanged, hoverOf, labelPlacement, LABEL_GAP, LABEL_MARGIN, LABEL_ROOM, sailorAt, toCanvas, toDeck, type DeckHover } from "./deck-hover";
 import { fitDeck } from "./deck-pixi";
 import { DECK_STATES, type DeckSailor, type DeckState } from "./deck-scene";
-import { shipStage, shipViews } from "../test/ship-pack";
+import { shipCast, shipStage, shipViews } from "../test/ship-pack";
 
 const manifest = shipViews().art;
 const deck = { width: shipStage().width, height: shipStage().height };
@@ -78,28 +79,28 @@ function sailor(key: string, state: DeckState): DeckSailor {
 }
 
 function figure(key: string, x: number, row: number, overrides: Partial<Figure> = {}): Figure {
-  return { key, label: key, state: "idle", stale: false, look: "base", outfit: "base", x, y: row, row, pose: "leaning", flip: false, reveal: 1, moving: false, seed: 0, sink: 0, departing: false, layer: "deck", alpha: 1, ...overrides };
+  return { key, label: key, state: "idle", stale: false, look: "base", lane: "base", x, y: row, row, pose: "leaning", flip: false, reveal: 1, moving: false, seed: 0, sink: 0, departing: false, layer: "deck", alpha: 1, ...overrides };
 }
 
 describe("the sailor under the pointer", () => {
   it("is found by the box its sprite is drawn in, its badge over its head included", () => {
     const one = figure("a", 150, 100);
-    const box = figureBox(one, manifest)!;
-    const standing = manifest.crew.base.leaning;
-    expect(box.bottom).toBe(100 - standing.feet[1] + standing.frame[3]);
-    expect(box.top).toBe(100 - standing.feet[1] - 1 - BADGE_SIZE.height);
-    expect(sailorAt([one], manifest, { x: 150, y: 95 })?.key).toBe("a");
+    const box = figureBox(one, shipCast())!;
+    const leaning = standing(shipCast(), "base", "leaning");
+    expect(box.bottom).toBe(100 - leaning.feet[1] + leaning.frame[3]);
+    expect(box.top).toBe(100 - leaning.feet[1] - 1 - BADGE_SIZE.height);
+    expect(sailorAt([one], shipCast(), { x: 150, y: 95 })?.key).toBe("a");
     // The badge over its head counts.
-    expect(sailorAt([one], manifest, { x: 150, y: box.top + 1 })?.key).toBe("a");
-    expect(sailorAt([one], manifest, { x: 150, y: box.top - 1 })).toBeNull();
-    expect(sailorAt([one], manifest, { x: box.right + 1, y: 95 })).toBeNull();
+    expect(sailorAt([one], shipCast(), { x: 150, y: box.top + 1 })?.key).toBe("a");
+    expect(sailorAt([one], shipCast(), { x: 150, y: box.top - 1 })).toBeNull();
+    expect(sailorAt([one], shipCast(), { x: box.right + 1, y: 95 })).toBeNull();
   });
 
   it("mirrors with the sprite", () => {
-    const right = figureBox(figure("a", 150, 100, { pose: "hauling" }), manifest)!;
-    const left = figureBox(figure("a", 150, 100, { pose: "hauling", flip: true }), manifest)!;
-    const [, , width] = manifest.crew.base.hauling.frame;
-    const feet = manifest.crew.base.hauling.feet[0];
+    const right = figureBox(figure("a", 150, 100, { pose: "hauling" }), shipCast())!;
+    const left = figureBox(figure("a", 150, 100, { pose: "hauling", flip: true }), shipCast())!;
+    const [, , width] = standing(shipCast(), "base", "hauling").frame;
+    const feet = standing(shipCast(), "base", "hauling").feet[0];
     expect(Math.min(right.left, 146)).toBe(Math.min(150 - feet, 146));
     expect(Math.max(left.right, 154)).toBe(Math.max(150 - (width - feet) + width, 154));
   });
@@ -107,15 +108,15 @@ describe("the sailor under the pointer", () => {
   it("is the frontmost of two that overlap: the one standing further forward", () => {
     const back = figure("back", 150, 99);
     const front = figure("front", 152, 101);
-    expect(sailorAt([front, back], manifest, { x: 151, y: 92 })?.key).toBe("front");
-    expect(sailorAt([back, front], manifest, { x: 151, y: 92 })?.key).toBe("front");
+    expect(sailorAt([front, back], shipCast(), { x: 151, y: 92 })?.key).toBe("front");
+    expect(sailorAt([back, front], shipCast(), { x: 151, y: 92 })?.key).toBe("front");
   });
 
   it("is never one still under the hatch, and on the ladder only by what shows of it", () => {
-    expect(figureBox(figure("a", 140, 104, { reveal: 0 }), manifest)).toBeNull();
-    const half = figureBox(figure("a", 140, 104, { reveal: 0.5 }), manifest)!;
+    expect(figureBox(figure("a", 140, 104, { reveal: 0 }), shipCast())).toBeNull();
+    const half = figureBox(figure("a", 140, 104, { reveal: 0.5 }), shipCast())!;
     expect(half.bottom).toBe(104);
-    expect(half.bottom - half.top).toBe(Math.round(manifest.crew.base.leaning.frame[3] * 0.5));
+    expect(half.bottom - half.top).toBe(Math.round(standing(shipCast(), "base", "leaning").frame[3] * 0.5));
   });
 
   it("is found through the same fit and bob the frame was drawn with, both ways", () => {
@@ -126,23 +127,23 @@ describe("the sailor under the pointer", () => {
     expect(back.x).toBeCloseTo(point.x);
     expect(back.y).toBeCloseTo(point.y);
     const one = figure("a", 123, 98);
-    const hover = hoverOf(one, manifest, fit, bob, { width: 777, height: 500 }, shipStage().zoneOf(one.state).labelFloor);
+    const hover = hoverOf(one, shipCast(), fit, bob, { width: 777, height: 500 }, shipStage().zoneOf(one.state).labelFloor);
     expect(hover).toMatchObject({ key: "a", width: 777, height: 500 });
     expect(hover.x).toBeCloseTo(fit.x + (123 + bob.x) * fit.scale);
     expect(hover.bottom).toBeCloseTo(fit.y + (98 + bob.y) * fit.scale);
     expect(hover.top).toBeLessThan(hover.bottom);
     // A pointer anywhere on the sailor on screen finds it.
-    expect(sailorAt([one], manifest, toDeck({ x: hover.x, y: (hover.top + hover.bottom) / 2 }, fit, bob))?.key).toBe("a");
+    expect(sailorAt([one], shipCast(), toDeck({ x: hover.x, y: (hover.top + hover.bottom) / 2 }, fit, bob))?.key).toBe("a");
   });
 
   it("finds every sailor of a crew as the deck places it, by pointing at its middle", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     const states: DeckState[] = ["working", "working", "waiting", "waiting", "blocked", "blocked", "idle", "idle"];
     applyCrew(crew, states.map((state, index) => sailor(`s${index}`, state)), { snap: true });
     const figures = crewFigures(crew, 0, { still: true });
     for (const one of figures) {
-      const box = figureBox(one, manifest)!;
-      const hit = sailorAt(figures, manifest, { x: one.x, y: (box.top + box.bottom) / 2 });
+      const box = figureBox(one, shipCast())!;
+      const hit = sailorAt(figures, shipCast(), { x: one.x, y: (box.top + box.bottom) / 2 });
       expect(hit, one.key).not.toBeNull();
       // Neighbours may overlap; the one found is one standing at least as far forward.
       expect(hit!.row, one.key).toBeGreaterThanOrEqual(one.row);
@@ -168,24 +169,24 @@ describe("the sailor under the pointer", () => {
     const fit = fitDeck({ width: 1200, height: 900 }, deck, 1, shipStage().fit.margin);
     const bob = { x: 0, y: 1 };
     const canvas = { width: 1200, height: 900 };
-    const asleep = hoverOf(figure("a", 132, 117, { pose: "side-idle" }), manifest, fit, bob, canvas, shipStage().zoneOf(figure("a", 132, 117, { pose: "side-idle" }).state).labelFloor);
+    const asleep = hoverOf(figure("a", 132, 117, { pose: "side-idle" }), shipCast(), fit, bob, canvas, shipStage().zoneOf(figure("a", 132, 117, { pose: "side-idle" }).state).labelFloor);
     expect(asleep.floor).toBeCloseTo(toCanvas({ x: 132, y: shipStage().zones.get("rest")!.labelFloor! }, fit, bob).y);
     expect(asleep.floor!).toBeGreaterThan(asleep.bottom);
-    expect(hoverOf(figure("w", 194, 106, { state: "working", pose: "hauling" }), manifest, fit, bob, canvas, shipStage().zoneOf(figure("w", 194, 106, { state: "working", pose: "hauling" }).state).labelFloor).floor).toBeNull();
+    expect(hoverOf(figure("w", 194, 106, { state: "working", pose: "hauling" }), shipCast(), fit, bob, canvas, shipStage().zoneOf(figure("w", 194, 106, { state: "working", pose: "hauling" }).state).labelFloor).floor).toBeNull();
   });
 
   it("hangs a sleeper's label under every sailor on deck: no sailor stands, or is drawn, that low", () => {
     for (let y = shipStage().zones.get("rest")!.labelFloor! - 2; y < shipStage().height; y += 1) {
       for (let x = 0; x < shipStage().width; x += 1) expect(walkable(shipStage().floor, x, y), `${x},${y}`).toBe(false);
     }
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     const states: DeckState[] = ["working", "waiting", "blocked"];
     applyCrew(
       crew,
       [...states.flatMap((state) => Array.from({ length: 8 }, (_, index) => sailor(`${state}${index}`, state))), ...Array.from({ length: 20 }, (_, index) => sailor(`i${index}`, "idle"))],
       { snap: true },
     );
-    for (const one of crewFigures(crew, 0, { still: false })) expect(figureBox(one, manifest)!.bottom, one.key).toBeLessThanOrEqual(shipStage().zones.get("rest")!.labelFloor!);
+    for (const one of crewFigures(crew, 0, { still: false })) expect(figureBox(one, shipCast())!.bottom, one.key).toBeLessThanOrEqual(shipStage().zones.get("rest")!.labelFloor!);
   });
 });
 
@@ -262,7 +263,7 @@ describe("each state's badge", () => {
 
 describe("the figures the renderer draws", () => {
   it("carry each sailor's seed, so idle sailors doze out of step", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a", "idle"), sailor("b", "idle")], { snap: true });
     const seeds = crewFigures(crew, 0, { still: true }).map((one) => one.seed);
     expect(seeds[0]).not.toBe(seeds[1]);
