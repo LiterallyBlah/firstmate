@@ -1,5 +1,9 @@
 # art/ship-deck/
 
+An assets-only [animated water upgrade](water/README.md) adds four sea frames, three foam frames,
+and a three-frame stern wake, with palette/seam checks, placement anchors and generated sources.
+It has a companion manifest and is not yet wired into the live environment.
+
 An expansion adds [fitted Hull C sails and six crew variants](assets-2/README.md), with two sail states,
 exact existing crew frame layouts, provenance and per-asset quality verdicts. The Deck draws them through
 [`extras.json`](extras.json), served by `firstmate.deck.extras` (`client/deck-extras.ts`); without them it

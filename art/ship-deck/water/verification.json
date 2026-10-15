@@ -1,0 +1,576 @@
+{
+  "created": "2026-10-15",
+  "scope": "Asset PNG validation and offline hull compositing only; no runtime wiring or plugin install.",
+  "paletteSource": "../environment.json",
+  "assets": [
+    {
+      "path": "sea/frame-0.png",
+      "size": [
+        256,
+        128
+      ],
+      "sha256": "50ad57414c16c509dfd7b1c833940f509570d176bb7f49e099eaee6743070748",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A"
+      ],
+      "paletteSubset": true,
+      "alpha": [
+        255
+      ],
+      "transparentRgbZero": true,
+      "opaquePixels": 32768,
+      "bounds": [
+        0,
+        0,
+        256,
+        128
+      ],
+      "horizontalEdgesIdentical": true,
+      "verticalEdgesIdentical": true
+    },
+    {
+      "path": "sea/frame-1.png",
+      "size": [
+        256,
+        128
+      ],
+      "sha256": "79e6fe374bb4b791336997514b622d96caa87b1d16bb9603c6e6a83623ab9792",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A"
+      ],
+      "paletteSubset": true,
+      "alpha": [
+        255
+      ],
+      "transparentRgbZero": true,
+      "opaquePixels": 32768,
+      "bounds": [
+        0,
+        0,
+        256,
+        128
+      ],
+      "horizontalEdgesIdentical": true,
+      "verticalEdgesIdentical": true
+    },
+    {
+      "path": "sea/frame-2.png",
+      "size": [
+        256,
+        128
+      ],
+      "sha256": "1582b6553d532838d9291076e0e3cb5cce56fd7c6ab58d4972efc1a55fd3b2ad",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A"
+      ],
+      "paletteSubset": true,
+      "alpha": [
+        255
+      ],
+      "transparentRgbZero": true,
+      "opaquePixels": 32768,
+      "bounds": [
+        0,
+        0,
+        256,
+        128
+      ],
+      "horizontalEdgesIdentical": true,
+      "verticalEdgesIdentical": true
+    },
+    {
+      "path": "sea/frame-3.png",
+      "size": [
+        256,
+        128
+      ],
+      "sha256": "8863ae4f4078a15200c96c2c514a3c91c9b19887c403f0c86dc3bafd17d6468c",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A"
+      ],
+      "paletteSubset": true,
+      "alpha": [
+        255
+      ],
+      "transparentRgbZero": true,
+      "opaquePixels": 32768,
+      "bounds": [
+        0,
+        0,
+        256,
+        128
+      ],
+      "horizontalEdgesIdentical": true,
+      "verticalEdgesIdentical": true
+    },
+    {
+      "path": "foam/frame-0.png",
+      "size": [
+        256,
+        16
+      ],
+      "sha256": "13ed086bedfcd0c699fa149593f5073f8051212f84d3cec1f6199a13780b9722",
+      "palette": [
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "paletteSubset": true,
+      "alpha": [
+        0,
+        255
+      ],
+      "transparentRgbZero": true,
+      "opaquePixels": 1231,
+      "bounds": [
+        0,
+        5,
+        256,
+        14
+      ],
+      "horizontalEdgesIdentical": true,
+      "verticalEdgesIdentical": true
+    },
+    {
+      "path": "foam/frame-1.png",
+      "size": [
+        256,
+        16
+      ],
+      "sha256": "ef862b8e2ad35e22faece685ca5d300792fa9263ea5da33b2ed89560237e1461",
+      "palette": [
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "paletteSubset": true,
+      "alpha": [
+        0,
+        255
+      ],
+      "transparentRgbZero": true,
+      "opaquePixels": 1316,
+      "bounds": [
+        0,
+        1,
+        256,
+        14
+      ],
+      "horizontalEdgesIdentical": true,
+      "verticalEdgesIdentical": true
+    },
+    {
+      "path": "foam/frame-2.png",
+      "size": [
+        256,
+        16
+      ],
+      "sha256": "514662a41953f3a4dede58a8dd30b04268220d145dc9e72911fbe6469b4c7716",
+      "palette": [
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "paletteSubset": true,
+      "alpha": [
+        0,
+        255
+      ],
+      "transparentRgbZero": true,
+      "opaquePixels": 1201,
+      "bounds": [
+        0,
+        5,
+        256,
+        14
+      ],
+      "horizontalEdgesIdentical": true,
+      "verticalEdgesIdentical": true
+    },
+    {
+      "path": "wake/frame-0.png",
+      "size": [
+        240,
+        96
+      ],
+      "sha256": "dbc7cda85d15ef7a3a36117b02acca219a52840bcd237d1bd0ce36f90b653a79",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#7795A5",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "paletteSubset": true,
+      "alpha": [
+        0,
+        255
+      ],
+      "transparentRgbZero": true,
+      "opaquePixels": 7667,
+      "bounds": [
+        7,
+        4,
+        224,
+        90
+      ],
+      "horizontalEdgesIdentical": true,
+      "verticalEdgesIdentical": true
+    },
+    {
+      "path": "wake/frame-1.png",
+      "size": [
+        240,
+        96
+      ],
+      "sha256": "1acfe22e96985d9b11a3b3f6ff532533330c6a90592782a7aa3f263bacbeb750",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#7795A5",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "paletteSubset": true,
+      "alpha": [
+        0,
+        255
+      ],
+      "transparentRgbZero": true,
+      "opaquePixels": 7869,
+      "bounds": [
+        7,
+        4,
+        224,
+        92
+      ],
+      "horizontalEdgesIdentical": true,
+      "verticalEdgesIdentical": true
+    },
+    {
+      "path": "wake/frame-2.png",
+      "size": [
+        240,
+        96
+      ],
+      "sha256": "4d457e01f15f137cf9dcd16fa0ebf3faf9c1a692d77122be1180054e333bd0c4",
+      "palette": [
+        "#182B47",
+        "#1D314E",
+        "#1F3554",
+        "#22395A",
+        "#2C4869",
+        "#45617A",
+        "#536E87",
+        "#64849A",
+        "#7795A5",
+        "#8FA8B4",
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "paletteSubset": true,
+      "alpha": [
+        0,
+        255
+      ],
+      "transparentRgbZero": true,
+      "opaquePixels": 7781,
+      "bounds": [
+        7,
+        5,
+        224,
+        90
+      ],
+      "horizontalEdgesIdentical": true,
+      "verticalEdgesIdentical": true
+    }
+  ],
+  "animation": {
+    "sea": [
+      {
+        "from": 0,
+        "to": 1,
+        "changedPixels": 9187,
+        "changedPercent": 28.04,
+        "meanChannelDelta": 2.83,
+        "alphaChangedPixels": 0
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "changedPixels": 8887,
+        "changedPercent": 27.12,
+        "meanChannelDelta": 2.74,
+        "alphaChangedPixels": 0
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "changedPixels": 9130,
+        "changedPercent": 27.86,
+        "meanChannelDelta": 2.86,
+        "alphaChangedPixels": 0
+      },
+      {
+        "from": 3,
+        "to": 0,
+        "changedPixels": 9039,
+        "changedPercent": 27.58,
+        "meanChannelDelta": 2.62,
+        "alphaChangedPixels": 0
+      }
+    ],
+    "foam": [
+      {
+        "from": 0,
+        "to": 1,
+        "changedPixels": 659,
+        "changedPercent": 16.09,
+        "meanChannelDelta": 12.01,
+        "alphaChangedPixels": 241
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "changedPixels": 490,
+        "changedPercent": 11.96,
+        "meanChannelDelta": 8.39,
+        "alphaChangedPixels": 153
+      },
+      {
+        "from": 2,
+        "to": 0,
+        "changedPixels": 401,
+        "changedPercent": 9.79,
+        "meanChannelDelta": 4.38,
+        "alphaChangedPixels": 88
+      }
+    ],
+    "wake": [
+      {
+        "from": 0,
+        "to": 1,
+        "changedPixels": 5960,
+        "changedPercent": 25.87,
+        "meanChannelDelta": 11.63,
+        "alphaChangedPixels": 996
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "changedPixels": 5920,
+        "changedPercent": 25.69,
+        "meanChannelDelta": 11.14,
+        "alphaChangedPixels": 992
+      },
+      {
+        "from": 2,
+        "to": 0,
+        "changedPixels": 5570,
+        "changedPercent": 24.18,
+        "meanChannelDelta": 9.81,
+        "alphaChangedPixels": 730
+      }
+    ]
+  },
+  "checks": {
+    "frameCount": 10,
+    "paletteSubset": true,
+    "binaryAlpha": true,
+    "transparentRgbZero": true,
+    "allSeaHorizontalSeamsExact": true,
+    "allSeaVerticalSeamsExact": true,
+    "allFoamHorizontalSeamsExact": true,
+    "allFoamTopBottomTransparent": true,
+    "nearestNeighbourPreview": true,
+    "wakeOuterBordersTransparent": true,
+    "sourceAndReferenceHashesMatch": true
+  },
+  "previewCoordinates": {
+    "worldOrigin": [
+      -40,
+      -80
+    ],
+    "horizon": 96,
+    "waterline": 151,
+    "hullRect": [
+      0,
+      0,
+      426,
+      161
+    ],
+    "foamTop": 142,
+    "foamClipX": [
+      68,
+      392
+    ],
+    "wakeTopLeft": [
+      384,
+      143
+    ],
+    "wakeAnchor": [
+      8,
+      8
+    ],
+    "stern": [
+      392,
+      151
+    ]
+  },
+  "wakeCrops": [
+    [
+      28,
+      188,
+      960,
+      384
+    ],
+    [
+      28,
+      720,
+      960,
+      384
+    ],
+    [
+      28,
+      1244,
+      960,
+      384
+    ]
+  ],
+  "stripChecks": [
+    {
+      "path": "sea/strip.png",
+      "size": [
+        1024,
+        128
+      ],
+      "framesMatchIndividualFiles": true,
+      "framesHaveDifferentColourHistograms": true
+    },
+    {
+      "path": "foam/strip.png",
+      "size": [
+        768,
+        16
+      ],
+      "framesMatchIndividualFiles": true,
+      "framesHaveDifferentColourHistograms": true
+    },
+    {
+      "path": "wake/strip.png",
+      "size": [
+        720,
+        96
+      ],
+      "framesMatchIndividualFiles": true,
+      "framesHaveDifferentColourHistograms": true
+    }
+  ],
+  "apngChecks": [
+    {
+      "path": "review/sea-cycle.png",
+      "frames": 4,
+      "durationMs": 960,
+      "crcValid": true,
+      "compressedFramesDecode": true,
+      "loopsForever": true
+    },
+    {
+      "path": "review/foam-cycle.png",
+      "frames": 3,
+      "durationMs": 720,
+      "crcValid": true,
+      "compressedFramesDecode": true,
+      "loopsForever": true
+    },
+    {
+      "path": "review/wake-cycle.png",
+      "frames": 3,
+      "durationMs": 720,
+      "crcValid": true,
+      "compressedFramesDecode": true,
+      "loopsForever": true
+    },
+    {
+      "path": "review/sea-repeat-cycle.png",
+      "frames": 4,
+      "durationMs": 960,
+      "crcValid": true,
+      "compressedFramesDecode": true,
+      "loopsForever": true
+    },
+    {
+      "path": "review/hull-fit-cycle.png",
+      "frames": 36,
+      "durationMs": 2880,
+      "crcValid": true,
+      "compressedFramesDecode": true,
+      "loopsForever": true
+    }
+  ],
+  "reviewLimitations": [
+    "Every static pose and hull/tile composites inspected.",
+    "APNG containers, CRCs, sequence numbers, decoded frame lengths and timing checked. Browser unavailable, so live browser playback not visually reviewed.",
+    "No client wiring, runtime test or install performed."
+  ]
+}
