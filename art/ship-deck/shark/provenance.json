@@ -1,0 +1,101 @@
+﻿{
+    "references":  [
+                       "deck.png",
+                       "environment-detail.png"
+                   ],
+    "tool":  "image_gen__imagegen (built-in)",
+    "license":  "Distributed under repository MIT license; AI-generated art, no third-party source art",
+    "sources":  [
+                    {
+                        "retainedPath":  "C:/Users/micha/.codex/workspaces/deck-shark-art-work/source/shark-source.png",
+                        "sha256":  "26548a1463e816c09794194d5535e349b1853179a902e61a1b51220449d43508",
+                        "prompt":  "Use case: stylized-concept. Asset type: pixel-art game animation sprite sheet.\nCreate a four-frame shark attack animation, actual transparent background. The images in context of a wooden ship atlas and blue sea are STYLE REFERENCES only; do not reproduce the ship or sailors.\nOne horizontal row of FOUR isolated evenly spaced frames, no labels/text/borders. Each frame occupies the same square cell; ample transparent padding. Same small blue-grey shark facing RIGHT in every frame, seen side-on from slightly above to match the low isometric ship deck. Cartoon nautical fun, no blood, no human or victim.\nFrame 1: only a strong triangular dorsal fin cutting through a thin elliptical cream/blue foam ripple.\nFrame 2: shark surfacing, dorsal fin and head, closed snout pointing right, short upper torso emerging from an elliptical waterline.\nFrame 3: shark rising vertically out of that same waterline, head tilted right and UP, HUGE OPEN JAWS facing upper right, dark navy mouth cavity with a few big cream triangular teeth; clear upper and lower jaws; little side fins. It should be able to swallow a tiny 32px sailor. Broad recognizable shark, not a dolphin, not a whale. Body cropped by foam at waterline.\nFrame 4: shark sinking again, only back/dorsal fin and a little snout visible, slightly smaller low foam oval.\nAll water contact baselines identical in cells. Frame 3 exposed body approx 36-40 logical pixels tall and 36 wide; waterline ellipse max 56 logical pixels wide. Frame1 fin about 15px high. Each cell intended to be cleaned to 64x64 logical pixels with water anchor at (32,50). Render enlarged crisp square pixel blocks, chunky low-resolution clusters, flat limited shading, single dark navy outline. Same pixel size across four poses.\nStrict palette from shipped art: outlines #151E2D #182B47, body #2C4869 #45617A #64849A #8FA8B4, light underside #BECAC6 #E8CCA6, teeth/foam #F1DEC0 #E8CCA6 #8FA8B4; water accents #1D314E #2C4869. No pure white, no saturated cyan, no red. No anti-aliasing, no smooth illustration, no gradients, no checkerboard, no filled background, no shadow underneath. The generated alpha must remain transparent.",
+                        "id":  "shark",
+                        "size":  [
+                                     2172,
+                                     724
+                                 ]
+                    },
+                    {
+                        "retainedPath":  "C:/Users/micha/.codex/workspaces/deck-shark-art-work/source/splash-source.png",
+                        "sha256":  "abf5f903ffe0208c7dcb61175969a0127df17b15d69fbe20f7512f2a68d89f05",
+                        "prompt":  "Use case: stylized-concept. Asset type: pixel-art game water impact two-frame sprite sheet.\nGenerate two isolated foam splash animation frames in ONE HORIZONTAL ROW on genuinely transparent background, with generous blank space between. No labels or border. Match the existing ship-deck atlas, sea and shark images in the conversation as STYLE REFERENCES. No shark, sailor, ship, other objects.\nLeft frame: compact small water impact crown, two curved outward fingers of water around a narrow centre jet, 3-4 chunky airborne droplets, thin elliptical ripple base. Right frame: wider lower falling water burst, two outward curling foam lobes and a scattering of chunky falling droplets above a wider elliptical ripple. It should read like a tiny sailor jumping into sea, or a cartoon shark bite splash. Splash only, no solid background water patch.\nSide-on seen slightly from above, elliptical water-contact base horizontal. Sparse cream highlights, muted blue-grey water. Same baseline and same pixel size across frames. Intended logical grid 48x40 per frame, left visible splash about 28x24 logical pixels, right 38x20; anchor at (24,32). Render crisp enlarged square pixel clusters without smoothing. Sparse broken outlines, 1-3px foam clusters similar to the shipped sea foam, no intricate detail.\nExact existing palette only: #2C4869 #45617A #64849A #8FA8B4 #E8CCA6 #F1DEC0. Mostly #64849A and #8FA8B4, cream only on ridges. No pure white, no cyan, no black, no shadows, no gradients, no anti-aliasing, no text, no checkerboard. Transparent alpha around and within gaps of the droplets and splash.",
+                        "id":  "splash",
+                        "size":  [
+                                     1881,
+                                     836
+                                 ]
+                    }
+                ],
+    "generationCalls":  2,
+    "date":  "2026-10-15",
+    "cleanup":  {
+                    "transparentRGB":  "zero",
+                    "sampling":  "Map output pixel cell to source using sourceAnchor + (output - anchor) * scale; round both block edges; median RGB of source pixels with alpha \u003e=192; opaque only if at least half of the complete block qualifies",
+                    "quantization":  "Nearest squared RGB distance within the per-asset palette, no dithering",
+                    "recipe":  {
+                                   "value":  [
+                                                 {
+                                                     "ay":  50,
+                                                     "palette":  [
+                                                                     "#151E2D",
+                                                                     "#182B47",
+                                                                     "#1D314E",
+                                                                     "#2C4869",
+                                                                     "#45617A",
+                                                                     "#64849A",
+                                                                     "#8FA8B4",
+                                                                     "#BECAC6",
+                                                                     "#E8CCA6"
+                                                                 ],
+                                                     "scale":  9.2,
+                                                     "ids":  [
+                                                                 "fin",
+                                                                 "surface",
+                                                                 "chomp",
+                                                                 "submerge"
+                                                             ],
+                                                     "ax":  32,
+                                                     "w":  64,
+                                                     "name":  "shark",
+                                                     "h":  64,
+                                                     "sourceY":  518,
+                                                     "centres":  [
+                                                                     267,
+                                                                     809,
+                                                                     1365,
+                                                                     1909
+                                                                 ]
+                                                 },
+                                                 {
+                                                     "ay":  32,
+                                                     "palette":  [
+                                                                     "#2C4869",
+                                                                     "#45617A",
+                                                                     "#64849A",
+                                                                     "#8FA8B4",
+                                                                     "#E8CCA6",
+                                                                     "#BECAC6"
+                                                                 ],
+                                                     "scale":  19,
+                                                     "ids":  [
+                                                                 "impact",
+                                                                 "burst"
+                                                             ],
+                                                     "ax":  24,
+                                                     "w":  48,
+                                                     "name":  "splash",
+                                                     "h":  40,
+                                                     "sourceY":  628,
+                                                     "centres":  [
+                                                                     466,
+                                                                     1384
+                                                                 ]
+                                                 }
+                                             ],
+                                   "Count":  2
+                               },
+                    "implementation":  "C# System.Drawing, mechanical only; no drawn replacement artwork"
+                },
+    "backendModel":  "Not disclosed by tool"
+}
