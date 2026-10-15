@@ -44,7 +44,11 @@ check('room has exactly the four contract openings',()=>{
 check('cast feet and hand-only typing changes',()=>{
   for(const name of ['navy','teal','ochre','plum','rust','slate']){
     const a=decoded.get('cast/'+name+'.png');
-    for(let i=0;i<10;i++)assert(Array.from({length:24},(_,x)=>pixel(a,x+i*24,31)[3]).some(Boolean),'bottom-edge feet '+name+'/'+i);
+    for(let i=0;i<10;i++){
+      const feet=Array.from({length:24},(_,x)=>x).filter(x=>pixel(a,x+i*24,31)[3]);
+      assert(feet.length>0,'bottom-edge feet '+name+'/'+i);
+      assert(Math.abs((Math.min(...feet)+Math.max(...feet)+1)/2-12)<=.5,'feet centred at x12 '+name+'/'+i);
+    }
     let changes=0;for(let y=0;y<32;y++)for(let x=0;x<24;x++){
       const before=pixel(a,x+5*24,y),after=pixel(a,x+6*24,y);
       if(before.join()!==after.join()){changes++;assert(x>=15&&x<23&&y>=15&&y<23,'typing changes outside hands '+name);}
@@ -82,7 +86,7 @@ check('door openings and left-biased confetti',()=>{
 });
 const totalBytes=rows.reduce((n,a)=>n+a.bytes,0),totalFrames=rows.reduce((n,a)=>n+a.frames,0);
 check('26 PNGs / 99 frames / <=1,000,000 bytes',()=>{assert.equal(rows.length,26);assert.equal(totalFrames,99);assert(totalBytes<=contract.delivery.maxImageBytes);});
-const report={contract:'art-contract.json',contractSha256:createHash('sha256').update(fs.readFileSync(path.join(here,'art-contract.json'))).digest('hex'),directory:'docs/settings/office/art',totalPNGs:rows.length,totalFrames,totalBytes,maxBytes:contract.delivery.maxImageBytes,failures,assets:rows};
+const report={contract:'art-contract.json',contractSha256:createHash('sha256').update(fs.readFileSync(path.join(here,'art-contract.json'),'utf8').replaceAll('\r\n','\n')).digest('hex'),contractHashEncoding:'UTF-8, LF line endings',directory:'docs/settings/office/art',totalPNGs:rows.length,totalFrames,totalBytes,maxBytes:contract.delivery.maxImageBytes,failures,assets:rows};
 fs.writeFileSync(path.join(here,'verification.json'),JSON.stringify(report,null,2)+'\n');
 const table=['| Asset | File px | Frames | Anchor | Palette | PNG bytes | Result |','| --- | --- | ---: | --- | --- | ---: | --- |',...rows.map(a=>`| ${a.path} | ${a.size.join(' × ')} | ${a.frames} | [${a.anchor.join(',')}] | ${a.palette} | ${a.bytes} | ${a.result} |`)];
 fs.writeFileSync(path.join(here,'CONFORMANCE.md'),`# Office raster conformance\n\n${rows.length} PNGs, ${totalFrames} frames, **${totalBytes.toLocaleString('en-US')} / 1,000,000 bytes**. ${failures.length?'FAIL: '+failures.join('; '):'All automated checks pass.'}\n\nEvery file is 8-bit truecolour RGBA, non-interlaced, explicitly sRGB, with binary alpha and only its contract palette. Strip width equals frame stride × count, with no gutters or trimming. SHA-256 digests and detailed results are in [verification.json](verification.json).\n\n${table.join('\n')}\n\nAdditional checks cover exact room transparency, opaque dark lift well, cast feet on row 31, hand-only typing changes, identical six-phase city geometry, registered night windows, unchanged quiet/busy architecture, twelve unique clock faces with fixed minute hands, open/half/closed door centres, and left-biased confetti. Visual review composites are in [review/](review/).\n\nAnchors are metadata in the unchanged contract, not embedded PNG metadata. These checks verify their bounds and the applicable raster registrations; facing, poses, depth and composition are also visually reviewed. Runtime timing remains the separate pack-wiring task.\n`);

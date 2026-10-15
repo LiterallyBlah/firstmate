@@ -1,10 +1,11 @@
 {
   "contract": "art-contract.json",
-  "contractSha256": "67ce565efde4a510fb85864ded2802bf353d960cc08398a8c9d1cd74417c51d4",
+  "contractSha256": "a00661e2554a3b35a0227812ab4629e768590a51fbd20a9130f0a8dfc09fb9eb",
+  "contractHashEncoding": "UTF-8, LF line endings",
   "directory": "docs/settings/office/art",
   "totalPNGs": 26,
   "totalFrames": 99,
-  "totalBytes": 168223,
+  "totalBytes": 168155,
   "maxBytes": 1000000,
   "failures": [],
   "assets": [
@@ -167,7 +168,7 @@
       ],
       "visiblePixels": 2424,
       "bytes": 6366,
-      "sha256": "448774c03a6b5faa5a658f1be025c38ed74af9936bd6cab08d226832fee4947b",
+      "sha256": "f610ce11b797bac7a9ab159aa62f93c86e46790a9c6ae742a038f19fc30caa02",
       "result": "PASS"
     },
     {
@@ -192,9 +193,9 @@
         0,
         255
       ],
-      "visiblePixels": 2369,
-      "bytes": 4785,
-      "sha256": "2fd260e49a12556684de00b16874a83ab563d33d6126df9c91ef192d5ffa7c0f",
+      "visiblePixels": 2366,
+      "bytes": 4780,
+      "sha256": "890c8a50a75ff0cea95fda55dbd8f12f5fade1681918e75bccc67ed528cffdd3",
       "result": "PASS"
     },
     {
@@ -220,8 +221,8 @@
         255
       ],
       "visiblePixels": 2440,
-      "bytes": 6328,
-      "sha256": "d1b0a42c248bbcf08d0987ec946aef2f763753c2dd90e39bafa1b05f28534529",
+      "bytes": 6331,
+      "sha256": "77d31d9d590f34a97fd20e756f4e24636f53471a81eeaf0ebb1fb05931ec62c7",
       "result": "PASS"
     },
     {
@@ -246,9 +247,9 @@
         0,
         255
       ],
-      "visiblePixels": 2192,
-      "bytes": 5918,
-      "sha256": "9a144bc967bd5f7ef572160d50cf87a475b2ed54a2d00eff0fdd4ed04bfc2e54",
+      "visiblePixels": 2188,
+      "bytes": 5905,
+      "sha256": "017c05610cc9c9666e89a7670ebdd5e4c9aa41e47e5eaf803b85e4aac3055d08",
       "result": "PASS"
     },
     {
@@ -273,9 +274,9 @@
         0,
         255
       ],
-      "visiblePixels": 2208,
-      "bytes": 4567,
-      "sha256": "11303711de58f48e3e63a8e40ba4e89687e0d5c0d0a5a2288eb721a4cbb1b9ba",
+      "visiblePixels": 2209,
+      "bytes": 4566,
+      "sha256": "eaecb86dcecdf0a4929245a0e2df0869ce4910a93869ef884bc52b329bf824fe",
       "result": "PASS"
     },
     {
@@ -300,9 +301,9 @@
         0,
         255
       ],
-      "visiblePixels": 2395,
+      "visiblePixels": 2393,
       "bytes": 5693,
-      "sha256": "bd2178e139df18aff4184ea82500b138946040ee418809e41f455f05cf50e16f",
+      "sha256": "ad96f71cd8f7986e7bfa31482de933c988802557381a9ca0357d1ec461ed240b",
       "result": "PASS"
     },
     {
@@ -617,8 +618,8 @@
         255
       ],
       "visiblePixels": 4464,
-      "bytes": 4199,
-      "sha256": "1d7ca598787bd13428db5d3cbb4dc7a6af69193bcca6668c8d55b69e011c3238",
+      "bytes": 4200,
+      "sha256": "5e047979c0453976791fa1aff15546e2cb939d09d31a987fc036b60419e56427",
       "result": "PASS"
     },
     {
@@ -697,8 +698,8 @@
         255
       ],
       "visiblePixels": 25200,
-      "bytes": 10399,
-      "sha256": "17527d47cbd2c4a388a1b103ada40bbe35484a5bc9c881b5eaff5a0dc4219847",
+      "bytes": 10346,
+      "sha256": "cc387a61d9580bb30d348d128ce34802281eceef1ab7a670d2f69664f4759177",
       "result": "PASS"
     }
   ]
