@@ -16,7 +16,8 @@ import { describe, expect, it } from "vitest";
 import { DeckArtManifestSchema, DeckEnvironmentManifestSchema, DeckExtrasManifestSchema, environmentImagePaths, extrasImagePaths } from "../shared/ship-deck";
 import { HORIZON, WATERLINE } from "./deck-ambient";
 import { cloudPeriod } from "./deck-clouds";
-import { FOAM_SPAN, FOAM_TOP, type DeckEnvironmentImages } from "./deck-environment";
+import { createScenery, FOAM_SPAN, FOAM_TOP, type DeckEnvironmentImages } from "./deck-environment";
+import { drawnWater } from "./deck-water";
 import { ASK_PAPER, askPixels } from "./deck-badges";
 import { FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout } from "./deck-camera";
 import { BREATH_ROWS } from "./deck-crew";
@@ -626,7 +627,7 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     deck.drawing.destroy();
   });
 
-  it("draws the wake over the near sea, scrolling with the water, and still under reduced motion and on a plain sea", async () => {
+  it("without the generated wake, draws the code wake over the near sea, scrolling with the water, and still under reduced motion and on a plain sea", async () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0) });
     deck.advance(0);
     const wake = one(deck.app.stage, "wake") as FakeGraphics;
@@ -1060,5 +1061,146 @@ describe("the reply marker on deck", () => {
     expect(hovers.at(-1)).toBeNull();
     deck.drawing.focus(null);
     deck.drawing.destroy();
+  });
+});
+
+describe("the animated water on the deck", () => {
+  const water = extrasManifest.water!;
+  const seaTiles = (stage: FakeContainer) => [...one(stage, "sea:far").children, ...one(stage, "sea:near").children] as FakeSprite[];
+  const wakeOf = (stage: FakeContainer) => one(stage, "wake") as FakeSprite;
+  const foamOf = (stage: FakeContainer) => (one(stage, "foam").children as FakeSprite[]).filter((piece) => piece.visible);
+  /** The extras without one image. */
+  const without = (path: string): DeckExtrasImages => ({ manifest: extrasManifest, images: new Map([...extras.images].filter(([key]) => key !== path)) });
+
+  it("draws the generated sea, its wake and foam in the environment's places: far sea behind the ship, the rest in front", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
+    deck.advance(16);
+    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot"]);
+    expect(one(deck.app.stage, "scenery:back").children.at(-1)!.label).toBe("sea:far");
+    expect(one(deck.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:near", "wake", "foam"]);
+
+    // The sea: the first frame on every tile of both bands, from the horizon and from the waterline, one tile origin.
+    const far = one(deck.app.stage, "sea:far").children as FakeSprite[];
+    const near = one(deck.app.stage, "sea:near").children as FakeSprite[];
+    expect(seaTiles(deck.app.stage).every((tile) => texturePath(tile) === "water/sea/frame-0.png")).toBe(true);
+    expect(seaTiles(deck.app.stage).every((tile) => tile.texture.source.scaleMode === "nearest")).toBe(true);
+    expect(Math.min(...far.map((tile) => tile.position.y))).toBe(HORIZON);
+    const cut = near.find((tile) => tile.position.y === WATERLINE)!;
+    expect([cut.texture.frame.y, cut.texture.frame.height]).toEqual([55, 128 - 55]);
+    expect(near.filter((tile) => tile.position.y !== WATERLINE).every((tile) => (tile.position.y - HORIZON) % 128 === 0)).toBe(true);
+
+    // The wake: one sprite, its anchor on the stern's water contact, in front of the hull's foot.
+    const wake = wakeOf(deck.app.stage);
+    expect(texturePath(wake)).toBe("water/wake/frame-0.png");
+    expect([wake.position.x, wake.position.y, wake.texture.frame.width, wake.texture.frame.height]).toEqual([384, 143, 240, 96]);
+
+    // The foam: the generated strip three rows higher than the old one, across the hull's waterline only.
+    const foam = foamOf(deck.app.stage);
+    expect(foam.every((piece) => texturePath(piece) === "water/foam/frame-0.png" && piece.position.y === 142 && piece.texture.frame.height === 16)).toBe(true);
+    expect(Math.min(...foam.map((piece) => piece.position.x))).toBe(68);
+    expect(Math.max(...foam.map((piece) => piece.position.x + piece.texture.frame.width))).toBe(392);
+    deck.drawing.destroy();
+  });
+
+  it("cycles every part's frames, 240 ms each, the sea's tiles together, the wake held at the stern while the sea drifts", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
+    deck.advance(0);
+    const seen = { sea: new Set<string>(), wake: new Set<string>(), foam: new Set<string>(), drift: new Set<number>() };
+    const wake = wakeOf(deck.app.stage);
+    // Three seconds of frames at 30 a second.
+    for (let frame = 0; frame < 90; frame += 1) {
+      deck.advance(34);
+      const tiles = new Set(seaTiles(deck.app.stage).map(texturePath));
+      expect(tiles.size).toBe(1);
+      seen.sea.add([...tiles][0]!);
+      seen.wake.add(texturePath(wake));
+      for (const piece of foamOf(deck.app.stage)) seen.foam.add(texturePath(piece));
+      seen.drift.add(one(deck.app.stage, "sea:far").position.x);
+      expect(one(deck.app.stage, "sea:near").position.x).toBe(one(deck.app.stage, "sea:far").position.x);
+      expect([wake.position.x, wake.position.y]).toEqual([384, 143]);
+    }
+    expect([...seen.sea].sort()).toEqual(water.sea.frames);
+    expect([...seen.wake].sort()).toEqual(water.wake.frames);
+    expect([...seen.foam].sort()).toEqual(water.foam.frames);
+    // Ten pixels a second, whole pixels: about thirty places in three seconds.
+    expect(seen.drift.size).toBeGreaterThan(25);
+    expect([...seen.drift].every((x) => Number.isInteger(x))).toBe(true);
+    deck.drawing.destroy();
+  });
+
+  it("keeps the frame showing through a resize: new tiles on the same frame", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
+    deck.advance(0);
+    for (let frame = 0; frame < 8; frame += 1) deck.advance(34);
+    const showing = texturePath(seaTiles(deck.app.stage)[0]!);
+    expect(showing).not.toBe("water/sea/frame-0.png");
+    deck.drawing.resize(2300, 560);
+    expect(seaTiles(deck.app.stage).every((tile) => texturePath(tile) === showing)).toBe(true);
+    deck.drawing.destroy();
+  });
+
+  it("holds the calm first frame of each under reduced motion, through the minute's redraw", async () => {
+    const deck = await start(environment, { reducedMotion: true, now: new Date(2026, 9, 14, 12, 0), extras });
+    const calm = () => [new Set(seaTiles(deck.app.stage).map(texturePath)), texturePath(wakeOf(deck.app.stage)), new Set(foamOf(deck.app.stage).map(texturePath))];
+    const expected = [new Set(["water/sea/frame-0.png"]), "water/wake/frame-0.png", new Set(["water/foam/frame-0.png"])];
+    expect(calm()).toEqual(expected);
+    deck.state.now = new Date(2026, 9, 14, 12, 3);
+    deck.timers[0]!.run();
+    expect(calm()).toEqual(expected);
+    expect(one(deck.app.stage, "sea:far").position.x).toBe(0);
+    deck.drawing.destroy();
+  });
+
+  it("holds them on a software renderer's lite plan too, where the sea does not drift", () => {
+    const scenery = createScenery(pixi, environment, null, 0, drawnWater(extras));
+    scenery.layout({ left: 0, right: 426, top: -80, bottom: 240 });
+    const lite = { level: "lite", animate: true, fps: 12, ambient: false } as const;
+    for (const seconds of [0, 0.25, 0.5, 0.75, 1]) {
+      scenery.draw(seconds, lite, 720);
+      const front = scenery.front as unknown as FakeContainer;
+      expect(texturePath(one(front, "wake"))).toBe("water/wake/frame-0.png");
+      expect(new Set((one(front, "sea:near").children as FakeSprite[]).map(texturePath))).toEqual(new Set(["water/sea/frame-0.png"]));
+      expect(one(front, "sea:near").position.x).toBe(0);
+    }
+    scenery.destroy();
+  });
+
+  it("falls back part by part: a missing wake frame is the code wake, a missing sea frame the environment's tile, a missing foam frame its strip", async () => {
+    const noWake = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: without("water/wake/frame-1.png") });
+    noWake.advance(16);
+    expect((one(noWake.app.stage, "wake") as FakeGraphics).shapes.length).toBeGreaterThan(20);
+    expect(texturePath(seaTiles(noWake.app.stage)[0]!)).toBe("water/sea/frame-0.png");
+    noWake.drawing.destroy();
+
+    const noSea = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: without("water/sea/frame-3.png") });
+    noSea.advance(16);
+    expect(seaTiles(noSea.app.stage).every((tile) => texturePath(tile) === "sea/water-tile.png")).toBe(true);
+    expect(texturePath(wakeOf(noSea.app.stage))).toBe("water/wake/frame-0.png");
+    noSea.drawing.destroy();
+
+    const noFoam = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: without("water/foam/frame-2.png") });
+    noFoam.advance(16);
+    expect(foamOf(noFoam.app.stage).every((piece) => texturePath(piece) === "sea/foam-strip.png" && piece.position.y === FOAM_TOP)).toBe(true);
+    noFoam.drawing.destroy();
+  });
+
+  it("on the plain sea without the environment, still draws the generated wake", async () => {
+    const plain = await start(null, { now: new Date(2026, 9, 14, 12, 0), extras });
+    plain.advance(16);
+    expect(one(plain.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:near", "wake"]);
+    const wake = wakeOf(plain.app.stage);
+    expect(texturePath(wake)).toBe("water/wake/frame-0.png");
+    for (let frame = 0; frame < 8; frame += 1) plain.advance(34);
+    expect(texturePath(wake)).toBe("water/wake/frame-1.png");
+    plain.drawing.destroy();
+    expect(wake.texture.destroyed && wake.texture.source.destroyed).toBe(true);
+  });
+
+  it("lets go of the water's textures and sources when torn down", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
+    for (let frame = 0; frame < 30; frame += 1) deck.advance(34);
+    const sprites = [...seaTiles(deck.app.stage), wakeOf(deck.app.stage), ...foamOf(deck.app.stage)];
+    deck.drawing.destroy();
+    expect(sprites.every((sprite) => sprite.texture.destroyed && sprite.texture.source.destroyed)).toBe(true);
   });
 });

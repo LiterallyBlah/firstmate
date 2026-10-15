@@ -17,8 +17,8 @@
  * JSON (`readDeckArt`). Neither is in the client bundle. The generated sea, sky and gull likewise:
  * `art/ship-deck/environment.json` and the ten small PNGs it draws with, about 50 KB together, read once
  * per process and sent as base64 (`readDeckEnvironment`). And the sail, the crew's extra looks, the clouds,
- * the tall mast, and the plank's board, shark and splash: `art/ship-deck/extras.json` and the twenty-one PNGs
- * it names, about 40 KB, the same way (`readDeckExtras`).
+ * the tall mast, the plank's board, shark and splash, and the animated water's ten frames:
+ * `art/ship-deck/extras.json` and the thirty PNGs it names, about 85 KB, the same way (`readDeckExtras`).
  */
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";

@@ -55,6 +55,7 @@ import type { DeckDrawing, DeckHost } from "./deck-mount";
 import { DECK_PROPS, depthOf, type DeckScene, type DeckState } from "./deck-scene";
 import { drawnClouds } from "./deck-clouds";
 import { createScenery, type DeckEnvironmentImages } from "./deck-environment";
+import { drawnWater } from "./deck-water";
 import { PLANK_SEA_BOTTOM, plankPixels, type SharkFrame, type SplashFrame } from "./deck-plank";
 import { dominantPhase, localMinute, SKY_REFRESH_MS } from "./deck-sky";
 
@@ -492,7 +493,7 @@ export async function startDeck(
 
   // The sky, its clouds, the gull and the far sea behind the hull; the near sea and the foam in front of its waterline.
   // The clouds are laid out from the clock's second the deck opens at, so each opening has its own sky.
-  const scenery = createScenery(pixi, art.environment, drawnClouds(art.extras), Math.floor(environment.clock().getTime() / 1000));
+  const scenery = createScenery(pixi, art.environment, drawnClouds(art.extras), Math.floor(environment.clock().getTime() / 1000), drawnWater(art.extras));
   const skyPhases = art.environment?.manifest.sky.phases ?? [];
 
   // The ship: the hull, the swaying masthead, and the deck's layer of props, pieces, lanterns and crew.

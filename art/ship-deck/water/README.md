@@ -1,9 +1,10 @@
 # Animated water for Hull C
 
-Generated sea, hull-contact foam, and a connected stern wake. This is an **assets-only handoff**;
-the live deck still uses its existing `environment.json` and code wake. No client wiring is included.
-The companion [manifest](manifest.json) describes these new frames; it is not an instance of the
-existing runtime `DeckEnvironmentManifestSchema`.
+Generated sea, hull-contact foam, and a connected stern wake. This began as an **assets-only handoff**;
+the Deck now draws it through [`extras.json`](../extras.json)'s `water`, which copies the frames, timing
+and placement below (`client/deck-water.test.ts` holds the two to each other). The companion
+[manifest](manifest.json) describes these frames; it is not an instance of the runtime
+`DeckEnvironmentManifestSchema` or `DeckExtrasManifestSchema`.
 
 | Asset | Frame size | Frames | Loop | Verdict |
 | --- | --- | --- | --- | --- |
