@@ -1,5 +1,5 @@
 /**
- * Converse: one worker's conversation, read and answered in place.
+ * Converse: a worker's conversation, or a light item discussion with the first mate.
  *
  * The drawer opens from a card's 💬 on the board and the list, and from the
  * deck's focus panel. On a wide layout it docks beside the surface it was
@@ -45,6 +45,9 @@ import {
   type SentMessage,
 } from "./conversation-rows";
 import { converseTarget } from "./converse-layout";
+import { watchKey } from "./host-tabs";
+import { itemTagKey } from "../shared/item-tags";
+import { readItemThread, sendItemThread, type ThreadMessage } from "../shared/item-threads";
 import { drafts } from "./draft";
 import { useFollowEnd } from "./follow-end";
 import { REPORT_STATES, agentStatusLabel, agentStatusTone, cardHeadline, columnTone, relativeTime } from "./format";
@@ -92,10 +95,122 @@ interface DrawerProps {
 
 export function ConverseDrawer(props: DrawerProps) {
   const target = converseTarget(props.watchKey);
-  return target.kind === "local" ? (
-    <LocalConverse {...props} agentId={target.agentId} />
-  ) : (
-    <RemoteConverse {...props} serverId={target.serverId} agentId={target.agentId} />
+  const [discussion, setDiscussion] = useState(target.kind === "thread");
+  const workerKey = props.card === null ? null : watchKey(props.card);
+  const worker = target.kind === "thread" ? (workerKey === null ? null : converseTarget(workerKey)) : target;
+  const itemKey = target.kind === "thread" ? target.itemKey : props.card === null ? null : itemTagKey(props.card);
+  return (
+    <View style={{ flex: 1, minHeight: 0 }}>
+      {worker === null || itemKey === null ? null : (
+        <View style={{ padding: 8 }}>
+          <Segmented theme={props.theme} value={discussion ? "discussion" : "worker"} options={[
+            { value: "worker", label: "Worker", tooltip: "Read and steer the worker." },
+            { value: "discussion", label: "Item discussion", tooltip: "The saved discussion with the first mate." },
+          ]} onChange={(value) => setDiscussion(value === "discussion")} />
+        </View>
+      )}
+      {discussion && itemKey !== null ? (
+        <ItemConverse {...props} key={`thread:${itemKey}`} itemKey={itemKey} />
+      ) : worker?.kind === "local" ? (
+        <LocalConverse {...props} watchKey={workerKey ?? props.watchKey} key={worker.agentId} agentId={worker.agentId} />
+      ) : worker?.kind === "remote" ? (
+        <RemoteConverse {...props} watchKey={workerKey ?? props.watchKey} key={`${worker.serverId}:${worker.agentId}`} serverId={worker.serverId} agentId={worker.agentId} />
+      ) : null}
+    </View>
+  );
+}
+
+/** A file-backed discussion with the existing first mate. Opening it sends nothing. */
+function ItemConverse({ itemKey, ...props }: DrawerProps & { itemKey: string }) {
+  const { card, theme, compact } = props;
+  const read = useRpc(readItemThread);
+  const send = useRpc(sendItemThread);
+  const toast = useToast();
+  const follow = useFollowEnd();
+  const busy = useRef(false);
+  const retry = useRef<{ id: string; kind: ThreadMessage["kind"]; text: string } | null>(null);
+  const [sending, setSending] = useState(false);
+  const [confirmWork, setConfirmWork] = useState(false);
+  const draftKey = `item-thread:${itemKey}`;
+  const [hasDraft, setHasDraft] = useState(() => drafts.get(draftKey).trim() !== "");
+  useEffect(() => drafts.subscribe(() => setHasDraft(drafts.get(draftKey).trim() !== "")), [draftKey]);
+  const thread = useQuery({ queryKey: ["firstmate", "item-thread", itemKey], queryFn: () => read({ key: itemKey }), refetchInterval: 5000 });
+  const messages = thread.data?.messages ?? [];
+  const requested = messages.some((entry) => entry.kind === "graduate");
+  const hasWorker = card !== null && watchKey(card) !== null;
+  const announcement = useAnnouncement(messages.filter((entry) => entry.reply !== null).length, thread.data !== undefined, "The first mate replied.");
+
+  async function submit(text: string, kind: ThreadMessage["kind"] = "discuss"): Promise<boolean> {
+    if (busy.current) return false;
+    busy.current = true;
+    setSending(true);
+    follow.pin();
+    try {
+      const request = retry.current?.text === text && retry.current.kind === kind ? retry.current
+        : { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, kind, text };
+      retry.current = request;
+      const result = await send({ key: itemKey, ...request });
+      retry.current = null;
+      const last = result.messages[result.messages.length - 1];
+      if (last?.delivery === "uncertain") toast.error("Delivery is uncertain. Check the first mate in Paseo before sending it again.");
+      setConfirmWork(false);
+      await thread.refetch();
+      props.onChanged();
+      return true;
+    } catch (error) {
+      toast.error(errorText(error));
+      // The server may have reserved a send before the connection failed. Re-read before another attempt.
+      await thread.refetch();
+      return false;
+    } finally {
+      busy.current = false;
+      setSending(false);
+    }
+  }
+
+  return (
+    <DrawerShell {...props} onOpen={null} transcriptSwitch={null} composer={
+      <Composer draftKey={draftKey} theme={theme} compact={compact}
+        recipient="To: first mate · discussion about this item" placeholder="Discuss this item…"
+        sendLabel="Send to first mate" sendTooltip="Send this item discussion to the first mate."
+        hint={requested ? "Work has been requested. Continue clarifying it here; use Worker once one appears." : "Discuss and clarify here. Start work explicitly when you are ready."}
+        announcement={announcement} disabledReason={card === null ? "This item is no longer on the board. Its saved discussion is still readable." : thread.data === undefined ? "Loading the discussion…" : null}
+        sending={sending} running={false} onInterrupt={() => {}} onSend={submit} />
+    }>
+      <ScrollView {...follow.scrollProps} contentContainerStyle={{ padding: compact ? 10 : 14, gap: 12 }} automaticallyAdjustKeyboardInsets>
+        <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
+          {hasWorker ? "Saved item discussion with the first mate. Use Worker to read and steer the worker." : "A light thread with the first mate. No crewmate or worktree is created by opening or discussing this item."}
+        </Text>
+        {thread.error === null ? null : <Text style={{ color: theme.colors.statusDanger }}>{errorText(thread.error)}</Text>}
+        {messages.map((entry) => (
+          <View key={entry.id} style={{ gap: 6 }}>
+            <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10 }}>YOU{entry.kind === "graduate" ? " · START WORK" : ""}</Text>
+            <Text selectable style={{ color: theme.colors.foreground, fontSize: 13 }}>{entry.text || "Start work from this discussion."}</Text>
+            {entry.reply === null ? (
+              <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
+                {entry.delivery === "uncertain" ? "Delivery uncertain. Check the first mate in Paseo before sending again." : "Sent to the first mate · awaiting its saved reply. If it needs a permission, answer it in the bridge."}
+              </Text>
+            ) : (
+              <>
+                <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10 }}>FIRST MATE</Text>
+                <Markdown source={entry.reply} theme={theme} onOpenLink={(url) => void openExternalUrl(url).catch((error: unknown) => toast.error(errorText(error)))} />
+              </>
+            )}
+          </View>
+        ))}
+        {requested ? <Text style={{ color: theme.colors.accent, fontSize: 12 }}>{hasWorker ? "A worker is available. Open Worker above to converse with it." : "Work requested · the first mate owns dispatch. A worker has not appeared yet."}</Text> : null}
+        {hasWorker || card === null || requested || messages.length === 0 ? null : (
+          <View style={{ gap: 8 }}>
+            {confirmWork ? <Text style={{ color: theme.colors.foreground, fontSize: 12 }}>Ask the first mate to turn this discussion into a brief and dispatch a crewmate? It will carry the discussion's decisions into the work.</Text> : null}
+            <IconButton theme={theme} icon="Play" label={confirmWork ? "Request dispatch" : "Start work…"} showLabel tone="accent"
+              disabled={sending || thread.isFetching || hasDraft} onPress={() => confirmWork ? void submit("", "graduate") : setConfirmWork(true)} />
+            {hasDraft ? <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Send your draft before requesting work so it is part of the discussion.</Text> : null}
+            {confirmWork ? <IconButton theme={theme} icon="X" label="Keep discussing" showLabel onPress={() => setConfirmWork(false)} /> : null}
+          </View>
+        )}
+      </ScrollView>
+      {follow.away ? <JumpToEnd theme={theme} onPress={follow.jumpToEnd} /> : null}
+    </DrawerShell>
   );
 }
 
@@ -407,7 +522,7 @@ function DrawerShell({
     [],
   );
 
-  const title = card?.title ?? "Worker";
+  const title = card?.title ?? "Item conversation";
   const agent = card?.agent ?? null;
   const remote = card?.remote ?? null;
   const worker = remote?.worker ?? null;
@@ -629,6 +744,8 @@ function Composer({
   running,
   onInterrupt,
   onSend,
+  sendLabel = "Send to worker",
+  sendTooltip = "Send to the worker. The first mate hears of it.",
 }: {
   draftKey: string;
   theme: PluginTheme;
@@ -644,6 +761,8 @@ function Composer({
   onInterrupt: () => void;
   /** Resolves false when the send failed, so the words can come back to the box. */
   onSend: (text: string) => Promise<boolean>;
+  sendLabel?: string;
+  sendTooltip?: string;
 }) {
   const [draft, setDraftState] = useState(() => drafts.get(draftKey));
   useEffect(() => drafts.subscribe(() => setDraftState(drafts.get(draftKey))), [draftKey]);
@@ -713,8 +832,8 @@ function Composer({
             ) : null}
             <IconButton
               icon="Send"
-              label="Send to worker"
-              tooltip={disabledReason ?? (sending ? "Wait for the message on its way." : "Send to the worker. The first mate hears of it.")}
+              label={sendLabel}
+              tooltip={disabledReason ?? (sending ? "Wait for the message on its way." : sendTooltip)}
               tooltipAlign="end"
               tone="accent"
               theme={theme}
