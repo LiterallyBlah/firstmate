@@ -86,6 +86,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/sidebar.tsx`          | The sidebar item: the FirstMate row and its badge.                                         |
 | `client/chat.tsx`             | The first mate's conversation, folded to the words, and the composer.                      |
 | `client/draft.ts`, `attachments.ts` | The unsent message and what is attached to it, kept on `globalThis` across reloads.  |
+| `client/sent-images.ts`       | The images the captain sent, kept by message id for the chat to draw: the timeline has none. |
 | `shared/files.ts`, `server/files.ts` | The home as files: list, read, write — confined to the home, saved against the version opened. |
 | `client/files.tsx`            | The Files view: the home's folders, a text editor, a Markdown preview.                     |
 | `client/open-file.ts`         | The file open in the Files view, and what a save changes about it. Pure.                   |
@@ -1292,6 +1293,14 @@ Paste takes images only, as Paseo's does, so pasting text or a copied file still
 
 The pending attachments live beside the draft on `globalThis` (`client/attachments.ts`), bytes and
 all, so a lost connection keeps them; a failed send puts them back unless something new was attached.
+
+**A sent image comes back from nowhere but the chat's own copy.** The daemon's timeline records a sent
+message's words alone (`submittedPromptText` in Paseo's agent manager keeps text blocks only), so the
+transcript cannot show an image from it; Paseo's app shows one from its local copy of the message. The
+chat does the same (`client/sent-images.ts`): a message with images is sent with a `firstmate-captain-`
+`messageId`, its images kept under that id on `globalThis`, and the captain's row whose `clientMessageId`
+matches draws them. Local like Paseo's — gone after an app restart and on another device, where the row
+shows the words, or `(attachments)`. `docs/image-preview/` has the replay.
 
 ## The remote helper
 

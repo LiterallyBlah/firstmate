@@ -153,6 +153,11 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **An image you send the first mate now shows in the chat.** A screenshot attached, pasted or dropped
+  used to vanish from the conversation once sent — the first mate got it, but your message showed its
+  words alone, or "(attachments)". It now shows under your words, sized to its shape, as in Paseo's own
+  view. Like Paseo's, the copy is kept on the device that sent it until the app restarts.
+
 - The ship deck preview no longer shrinks by a third when its pane is dragged a little narrower: it
   scales smoothly and fills the same share of the pane at any width.
 
