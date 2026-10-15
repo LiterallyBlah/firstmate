@@ -83,7 +83,7 @@ describe("the tall mast on the hull", () => {
     expect(mastY + top).toBe(-110);
     // The crow's nest (sprite rows 22 to 44) and its rigging lugs sway; the yard's place on the shaft does not.
     expect(mast.sway).toBeGreaterThan(46);
-    expect(mastY + mast.sway).toBeLessThan(mast.sail[1]);
+    expect(mastY + mast.sway).toBeLessThan(manifest.sail.position[1]);
   });
 
   it("leaves out of the hull only its short rig: open sky besides, above the rail, clear of every piece and prop but the mast", () => {
@@ -126,22 +126,22 @@ describe("the tall mast's parts", () => {
   const piece = deck.pieces[mast.replaces]!;
 
   it("cuts its swaying head from its fixed shaft, together the whole image", () => {
-    const layout = mastLayout(mast, piece, manifest.sail.frameSize[1]);
+    const layout = mastLayout(mast, piece, manifest.sail);
     expect(layout.head).toEqual({ frame: [0, 0, 48, mast.sway], x: mastX, y: mastY });
     expect(layout.shaft).toEqual({ frame: [0, mast.sway, 48, 224 - mast.sway], x: mastX, y: mastY + mast.sway });
-    expect(layout.sail).toEqual(mast.sail);
     expect(layout.top).toBe(mastY);
   });
 
-  it("stands its own rows in for the mast piece, from that piece's top, on its row, below the sail", () => {
-    const sailBottom = mast.sail[1] + manifest.sail.frameSize[1];
-    const layout = mastLayout(mast, piece, manifest.sail.frameSize[1]);
-    expect(sailBottom).toBeLessThanOrEqual(piece.y);
-    expect(layout.depth).toEqual({ frame: [0, piece.y - mastY, 48, mastY + 224 - piece.y], x: mastX, y: piece.y, baseline: piece.baseline });
-    // A sail hanging lower would clear the rows behind it, as the occluder does on the short mast.
-    const low = mastLayout({ ...mast, sail: [154, 46] }, piece, 27);
-    expect([low.depth.y, low.depth.frame[1], low.depth.frame[3]]).toEqual([73, 73 - mastY, mastY + 224 - 73]);
+  it("stands its own rows in for the mast piece, on its row, from below the sail's hem", () => {
+    const hem = manifest.sail.position[1] + manifest.sail.frameSize[1];
+    expect(hem).toBeGreaterThan(piece.y);
+    const layout = mastLayout(mast, piece, manifest.sail);
+    expect(layout.depth).toEqual({ frame: [0, hem - mastY, 48, mastY + 224 - hem], x: mastX, y: hem, baseline: piece.baseline });
+    // Its rows from the hem down are the mast with nothing cleared: the foot and the shaft over a sailor behind them.
+    for (let y = hem; y < mastY + 224; y += 1) expect(tall.at(211 - mastX, y - mastY), `211,${y}`).not.toBe(0);
+    // Without a sail, from the mast piece's own top; a sail hanging high, likewise.
     expect(mastLayout(mast, piece, null).depth.y).toBe(piece.y);
+    expect(mastLayout(mast, piece, { position: [154, -15], frameSize: [114, 27] }).depth.y).toBe(piece.y);
   });
 });
 

@@ -1,11 +1,10 @@
 {
   "sail": {
     "texture": "sails/main-sail.png",
-    "frameSize": [114, 27],
+    "frameSize": [114, 84],
     "frames": 2,
-    "position": [154, 46],
-    "frameMs": 850,
-    "occluder": { "texture": "sails/mast-occluder.png", "replaces": "mast", "position": [202, 48], "baseline": 110 }
+    "position": [154, -15],
+    "frameMs": 850
   },
   "crew": [
     { "id": "bosun", "texture": "crew-variants/01-bosun.png" },
@@ -53,7 +52,6 @@
     "position": [187, -112],
     "sway": 52,
     "clears": [117, 0, 149, 71],
-    "replaces": "mast",
-    "sail": [154, 10]
+    "replaces": "mast"
   }
 }
