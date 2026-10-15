@@ -1,0 +1,100 @@
+{
+  "markers": {
+    "askers": [
+      "block-0",
+      "block-1",
+      "block-2",
+      "work-5"
+    ],
+    "framed": [],
+    "legend": "4 with replies for you"
+  },
+  "hover": {
+    "words": [
+      "Decide the delivery mode for the next chapter review",
+      "Captain's call: choose local-only or a reviewed pull request",
+      "Reviewed PR",
+      "Local-only"
+    ],
+    "chips": [
+      {
+        "label": "Reviewed PR: send \"For block-1, deliver the next chapter review as a reviewed pull request.\" to the first mate",
+        "disabled": false
+      },
+      {
+        "label": "Local-only: send \"For block-1, deliver the next chapter review local-only.\" to the first mate",
+        "disabled": false
+      }
+    ],
+    "insideCanvas": true,
+    "coversSailor": false,
+    "noLabel": true,
+    "stillUpOverChip": true
+  },
+  "pick": {
+    "calls": [
+      {
+        "name": "firstmate.mate.ask",
+        "input": {
+          "text": "For block-1, deliver the next chapter review as a reviewed pull request."
+        }
+      }
+    ],
+    "bubbleAfter": null,
+    "legendAfter": "3 with replies for you"
+  },
+  "focused": {
+    "panelReplies": [
+      "Opening B reads best: send \"Tell block-2 the second story opening reads best; roll that one out.\" to the first mate"
+    ],
+    "bubbleChips": [
+      "Opening B reads best: send \"Tell block-2 the second story opening reads best; roll that one out.\" to the first mate"
+    ],
+    "bubbleLeftOfPanel": true,
+    "bubbleInsideCanvas": true,
+    "tabStops": [
+      "bubble",
+      "panel",
+      "panel",
+      "panel",
+      "panel",
+      "panel",
+      "panel",
+      "bubble",
+      "panel",
+      "panel",
+      "panel",
+      "panel",
+      "panel",
+      "panel"
+    ]
+  },
+  "docked": {
+    "panel": {
+      "left": 493,
+      "top": 541,
+      "right": 975,
+      "bottom": 799
+    },
+    "bubble": {
+      "left": 594,
+      "top": 356.51470947265625,
+      "right": 874,
+      "bottom": 475
+    },
+    "aboveThePanel": true,
+    "insideCanvas": true
+  },
+  "reducedMotion": {
+    "motion": "still",
+    "identical": true
+  },
+  "crowded": {
+    "sailors": 21,
+    "markers": 21,
+    "framed": 7,
+    "clashes": [],
+    "legend": "21 with replies for you"
+  },
+  "errors": []
+}
