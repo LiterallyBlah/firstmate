@@ -84,7 +84,7 @@ describe("a setting manifest", () => {
       (manifest) => (manifest.atmosphere!.delivered.unknown = 1),
       (manifest) => (manifest.atmosphere!.clocks.wind = "unknown"),
       (manifest) => { for (const row of manifest.atmosphere!.table) row["invalid channel"] = 1; },
-      (manifest) => { for (const row of manifest.atmosphere!.table) row["constructor"] = 1; },
+      (manifest) => { for (const row of manifest.atmosphere!.table) Object.assign(row, { constructor: 1 }); },
     ];
     for (const change of changes) expect(SettingManifestSchema.safeParse(broken(change)).success).toBe(false);
     const single = broken((manifest) => { manifest.atmosphere!.table = [manifest.atmosphere!.table[0]!]; });

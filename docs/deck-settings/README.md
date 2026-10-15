@@ -255,4 +255,7 @@ Gate: every shot pixel-identical to main. Client bundle −5,227 bytes against m
   emitters would evade that interval and need a shared scheduler capability before they are supported. The ship already
   has one two-frame, 200 ms flash at opacity ≤ 0.28, so these caps change none of its pixels.
 
-Validation results for this step are recorded in `gate-results.json` and `compile-results.json`.
+Gate: **81/81 pixel-identical** to main, with no flakes or page errors. Client bundle −696 bytes; Hermes parses it;
+no `class`. Full suite: 70 files, 956 tests passed, three skipped (`npm test -- --maxWorkers=2`; default concurrency
+hit a pre-existing remote-service polling race). Typecheck, the pack linter and `git diff --check` pass; this repo
+has no separate lint script. Results are recorded in `gate-results.json` and `compile-results.json`.
