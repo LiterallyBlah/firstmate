@@ -1,6 +1,6 @@
 {
-  "base": "origin/main 38b5464",
-  "branch": "HEAD c65eef6",
+  "base": "origin/main 84a5aaa",
+  "branch": "HEAD a7c08df",
   "control": null,
   "scenarios": [
     {
@@ -24,7 +24,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -48,7 +48,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -73,7 +73,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "night"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -97,7 +97,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "dawn"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -121,7 +121,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "night"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -146,7 +146,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -171,7 +171,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -194,7 +194,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -218,7 +218,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "1s",
@@ -233,7 +233,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "2.5s",
@@ -248,7 +248,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "5s",
@@ -263,7 +263,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "10s",
@@ -278,7 +278,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "25s",
@@ -293,7 +293,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "49s",
@@ -308,7 +308,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "73s",
@@ -323,7 +323,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -347,7 +347,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "5.4s",
@@ -362,7 +362,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "10.4s",
@@ -377,7 +377,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "15.4s",
@@ -392,7 +392,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "20.4s",
@@ -407,7 +407,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "25.4s",
@@ -422,7 +422,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "30.4s",
@@ -437,7 +437,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "flash-33.5s",
@@ -452,7 +452,7 @@
             "data-firstmate-deck-flash": "lightning",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "flash-33.6s",
@@ -467,7 +467,7 @@
             "data-firstmate-deck-flash": "lightning",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "35.4s",
@@ -482,7 +482,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "40.4s",
@@ -497,7 +497,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "45.4s",
@@ -512,7 +512,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "flash-48.9s",
@@ -527,7 +527,7 @@
             "data-firstmate-deck-flash": "lightning",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "flash-49.0s",
@@ -542,7 +542,7 @@
             "data-firstmate-deck-flash": "lightning",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "50.4s",
@@ -557,7 +557,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "55.4s",
@@ -572,7 +572,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "60.4s",
@@ -587,13 +587,22 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "65.4s",
           "identical": true,
           "differingPixels": 0,
           "sha": "de0d04bd57907b58",
+          "flake": {
+            "differingPixels": 2,
+            "box": [
+              940,
+              536,
+              941,
+              536
+            ]
+          },
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -602,7 +611,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "70.4s",
@@ -617,7 +626,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "75.4s",
@@ -632,7 +641,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "80.4s",
@@ -647,7 +656,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "85.4s",
@@ -662,7 +671,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "90.4s",
@@ -677,7 +686,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "95.4s",
@@ -692,7 +701,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "100.4s",
@@ -707,7 +716,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "105.4s",
@@ -722,7 +731,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "110.4s",
@@ -737,7 +746,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "115.4s",
@@ -752,7 +761,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "120.4s",
@@ -767,7 +776,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -791,7 +800,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "night"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "10s",
@@ -806,7 +815,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "night"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -830,7 +839,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "changed",
@@ -845,7 +854,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "walking-1000ms",
@@ -860,7 +869,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "walking-2000ms",
@@ -875,7 +884,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "walking-3000ms",
@@ -890,7 +899,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "walking-5000ms",
@@ -905,7 +914,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "walking-8000ms",
@@ -920,7 +929,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "arrived",
@@ -935,7 +944,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "hatch-200ms",
@@ -950,7 +959,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "hatch-400ms",
@@ -965,7 +974,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "hatch-700ms",
@@ -980,7 +989,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "hatch-1500ms",
@@ -995,7 +1004,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "hatch-3000ms",
@@ -1010,7 +1019,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-300ms",
@@ -1025,7 +1034,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-800ms",
@@ -1040,7 +1049,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-1400ms",
@@ -1055,7 +1064,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-2000ms",
@@ -1070,7 +1079,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-2400ms",
@@ -1085,7 +1094,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-2700ms",
@@ -1100,7 +1109,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-3000ms",
@@ -1115,7 +1124,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-3300ms",
@@ -1130,7 +1139,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-3600ms",
@@ -1145,7 +1154,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-4000ms",
@@ -1160,7 +1169,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-4600ms",
@@ -1175,7 +1184,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-5400ms",
@@ -1190,7 +1199,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "leaving-7000ms",
@@ -1205,7 +1214,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "after",
@@ -1220,7 +1229,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -1244,7 +1253,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "300ms",
@@ -1259,7 +1268,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "1.5s",
@@ -1274,7 +1283,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "back-out",
@@ -1289,7 +1298,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     },
@@ -1312,7 +1321,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "2s",
@@ -1327,7 +1336,7 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         },
         {
           "shot": "6s",
@@ -1342,13 +1351,25 @@
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": false
+          "canvasMatchesMain": true
         }
       ]
     }
   ],
   "pageErrors": [],
-  "flakes": [],
+  "flakes": [
+    {
+      "scenario": "moving-storm",
+      "shot": "65.4s",
+      "differingPixels": 2,
+      "box": [
+        940,
+        536,
+        941,
+        536
+      ]
+    }
+  ],
   "shots": 81,
   "identical": true
 }

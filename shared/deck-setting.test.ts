@@ -29,8 +29,7 @@ describe("a setting manifest", () => {
   it("is whole for the ship: nothing it names is missing, and it needs exactly what it uses", () => {
     expect(settingProblems(shipManifest())).toEqual([]);
     expect(capabilitiesUsed(shipManifest())).toEqual(shipManifest().requires);
-    // The ship uses every behaviour the engine has: it is the setting they were made for.
-    expect(capabilitiesUsed(shipManifest())).toEqual([...ENGINE_CAPABILITIES]);
+    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["stable-posts@1", "pose-fidgets@1"]);
   });
 
   it("names every image it draws with once, the backdrop first", () => {

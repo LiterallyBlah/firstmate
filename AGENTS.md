@@ -349,6 +349,11 @@ what those look like and where they are. The ship is the first pack, `art/settin
   engine change, setting-agnostic, added only when a shipped setting uses it — never `if (setting.id === …)`.
   `choreography@1` is the one most likely to grow: hold it to segments, events and effect keys.
   Every manifest object has a strict shape: undeclared fields, including script/expression hooks, fail validation.
+  Step 9a adds `stable-posts@1` (`assign: "stable"`: agent identity's preferred post, nearest free on collision)
+  and `pose-fidgets@1` (a key's optional pose, retaining the settled mirror rule; skipped in still/stale).
+  The office's commissioning contract and uninstalled draft live in `docs/settings/office/`. Never move its
+  null image digests or proposed unsupported fields into `art/settings/`; art and the remaining capabilities
+  must land first. `test/office-draft.test.ts` checks its geometry and registrations without manufacturing art.
 - **Atmosphere is compiled per pack** (`compileAtmosphere`, `client/deck-atmosphere.ts`): `atmosphere.table`
   interpolates any named channels, `clocks` binds animation names to pace channels, and `delivered` supplies every
   channel's calm value. Tables have strictly increasing intensities and the same channels in every row. Clocks advance
