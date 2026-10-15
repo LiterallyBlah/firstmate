@@ -30,7 +30,7 @@ import { inRects } from "./deck-geometry";
 import { figureBox, sailorAt, toCanvas, toDeck } from "./deck-hover";
 import { fitDeck } from "./deck-pixi";
 import { type DeckSailor, type DeckState } from "./deck-scene";
-import { shipStage, shipViews } from "../test/ship-pack";
+import { shipCast, shipStage, shipViews } from "../test/ship-pack";
 
 
 // The ship's stage, under the names its constants had in the deck's code.
@@ -180,7 +180,7 @@ describe("what a click and the keyboard do to the focus", () => {
 
 describe("the sailor under the pointer, through the zoomed camera", () => {
   it("finds every sailor — two dozen resting off the working deck among them — focused on any one, and closes in on its middle", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     const states: DeckState[] = [
       "working", "working", "working", "waiting", "waiting", "blocked", "blocked",
       ...Array.from({ length: 24 }, () => "idle" as const),
@@ -193,17 +193,17 @@ describe("the sailor under the pointer, through the zoomed camera", () => {
     const layout = focusLayout(screen);
     const bob = { x: 0, y: 1 };
     for (const focused of figures) {
-      const point = boxMiddle(figureBox(focused, manifest)!);
+      const point = boxMiddle(figureBox(focused, shipCast())!);
       const fit = cameraFit(base, { amount: 1, point }, layout, 2, shipStage().actorHeight);
       // The focused sailor stands at the anchor: a click there is on it.
-      const onIt = sailorAt(figures, manifest, toDeck(toCanvas(point, fit, bob), fit, bob));
+      const onIt = sailorAt(figures, shipCast(), toDeck(toCanvas(point, fit, bob), fit, bob));
       expect(onIt, focused.key).not.toBeNull();
       expect(onIt!.row, focused.key).toBeGreaterThanOrEqual(focused.row);
       // Every sailor on screen is still found by pointing at its middle on the canvas.
       for (const other of figures) {
-        const middle = toCanvas(boxMiddle(figureBox(other, manifest)!), fit, bob);
+        const middle = toCanvas(boxMiddle(figureBox(other, shipCast())!), fit, bob);
         if (middle.x < 0 || middle.y < 0 || middle.x >= screen.width || middle.y >= screen.height) continue;
-        const hit = sailorAt(figures, manifest, toDeck(middle, fit, bob));
+        const hit = sailorAt(figures, shipCast(), toDeck(middle, fit, bob));
         expect(hit, `${focused.key} → ${other.key}`).not.toBeNull();
         expect(hit!.row).toBeGreaterThanOrEqual(other.row);
       }

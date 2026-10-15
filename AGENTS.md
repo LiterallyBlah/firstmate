@@ -52,11 +52,12 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-replies.ts`      | Which suggestions are a sailor's replies (`cardReplies`), the replies already picked (`answeredReplies`), where the speech bubble hangs. Pure but for that store. |
 | `client/reply-bubble.tsx`     | The speech bubble over a sailor with its replies as chips, the focus panel's replies, the marker in the legend. |
 | `client/deck-stage.ts`        | A setting's stage compiled from its pack: size and fit box, the floor, the zones each state sends a worker to, the entry, the exits' marks, the props. Pure, per pack. |
+| `client/deck-cast.ts`         | A setting's cast compiled from its pack: each lane's poses and feet, the looks and who wears which (`lookFor`, by agent id), the roles — stand, walk cycles, each state's settled pose and mirroring — each state's fidget keyframes and the at-ease breath. Pure, per pack. |
 | `client/deck-scene.ts`        | Cards → sailors, by column, greyed when their feed is lost, each with its hover caption; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
 | `client/deck-geometry.ts`     | Any setting's floor (`createFloor`): walkable areas and obstacles, A* paths, a spot beside a shared post, a place packed into a zone's overflow. Pure; its caches are per floor. |
-| `client/deck-crew.ts`         | The crew in motion, on its setting's stage: posts reserved, the state shown at once and walked to after, the hatch, the queue for the plank and each departure's clock, idle motion and the at-ease breath, each sailor's look, each frame's poses. Pure. |
+| `client/deck-crew.ts`         | The crew in motion, on its setting's stage and in its cast: posts reserved, the state shown at once and walked to after, the hatch, the queue for the plank and each departure's clock, each frame's pose, fidget and breath. Pure. |
 | `client/deck-plank.ts`        | The plank and the way off by it: which departures take it (`PLANK_DEPARTURES`), its pixels, and one departure's walk, jump, splash and shark as a function of time. Pure. |
-| `client/deck-extras.ts`       | The sail and the crew's looks: which looks there are, who wears which (by agent id), the sail's billow, whether it is drawn. Pure. |
+| `client/deck-extras.ts`       | The sail and the tall mast: whether each is drawn, the sail's billow, how the mast is cut. Pure. |
 | `client/deck-water.ts`        | The animated water from the extras: which of the sea, foam and wake can be drawn, which frame each shows, the wake's place, and `WaterMotion` — how fast the frames play and the water drifts. Pure. |
 | `client/deck-wake.ts`         | The wake drawn in code, where the generated one did not load: the churn astern and the waves' arms, as runs of foam pixels scrolled with the sea. Pure. |
 | `client/deck-atmosphere.ts`   | The weather by how busy the crew is: working crew → an eased intensity → one table of the sea's, wind's, sail's, bob's and wake's liveliness and the sky's mood; each animation's own clock. Pure. |
@@ -359,7 +360,8 @@ what those look like and where they are. The ship is the first pack, `art/settin
   at their declared sizes and hashes with nothing else in the folder, sprites inside their images, animations one
   size, variants lined up with their elements, drifting sprites in their palette's colours, the whole under the cap —
   and its floor against its own backdrop: every walkable point on it, posts and marks on open floor and in sight,
-  everything reachable from everything else, the fit taking in every part, flyby and effect.
+  everything reachable from everything else, the fit taking in every part, flyby and effect, and two dozen workers
+  packed into each packing zone, each in sight and in the pointer's reach.
   `docs/deck-settings/overlay.mjs` draws a pack's floor, posts, zones, marks and fit box over its deck, for authoring.
 - **No module-level "the setting"**: the stage is compiled per pack (`compileStage`, `client/deck-stage.ts`) and
   handed to the crew, the geometry and the renderer; caches are keyed by id (`packOnce` in `client/deck-mount.ts`)
@@ -368,7 +370,7 @@ what those look like and where they are. The ship is the first pack, `art/settin
 - **While the move is under way** the engine still draws parts of its art from the three manifests it was once
   served in, read off the pack by `legacyViews` (`client/deck-legacy.ts`), and some of the ship's constants are still
   in code; `client/ship-pack.test.ts` holds the pack equal to both. Each step moves a part of the engine onto the pack
-  and deletes those constants and their checks — step 3 took the stage, floor, zones and portal marks. **Every step
+  and deletes those constants and their checks — step 3 took the stage, floor, zones and portal marks, step 4 the cast. **Every step
   is held to the gate**: the ship pixel-identical to main's, still and moving (`docs/deck-settings/gate.mjs`).
 
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
@@ -525,7 +527,7 @@ what those look like and where they are. The ship is the first pack, `art/settin
   cleared — so a sailor behind the mast is still covered from the cloth down, and the mast never paints
   over the sail. A sailor behind the mast stands with its head in front of the sail.
 - **A look per crewmate, stable by agent id** (`DeckSailor.identity`: the agent's id, a remote worker's
-  host and id): `lookFor` hashes it over the looks that loaded, whoever else is aboard, so two crewmates can
+  host and id): `lookFor` (`client/deck-cast.ts`) hashes it over the looks that loaded, whoever else is aboard, so two crewmates can
   share a look and a relaunched one (a new agent) changes its own. The extra looks use the atlas's
   base-lane rectangles and feet exactly, so `Figure.outfit` (the lane) still drives hit boxes and badges,
   and `Figure.look` the texture.

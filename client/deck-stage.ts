@@ -42,8 +42,8 @@ export interface DeckStage {
   /** Where a worker comes up onto the stage. */
   entry: Point;
   exits: ReadonlyMap<string, Exit>;
-  /** Props, where each stands: their feet. */
-  props: ReadonlyArray<{ id: string; x: number; y: number }>;
+  /** Props, where each stands — their feet — and the sprite each is drawn with, registered at `feet`. */
+  props: ReadonlyArray<{ id: string; x: number; y: number; image: string; rect: readonly [number, number, number, number] | null; feet: readonly [number, number] }>;
 }
 
 const point = ([x, y]: readonly [number, number]): Point => ({ x, y });
@@ -89,7 +89,7 @@ export function compileStage(manifest: SettingManifest): DeckStage {
     zoneOf: (state) => compiledZones.get(zones.byState[state])!,
     entry: point(portals.entry.at),
     exits,
-    props: stage.props.map((prop) => ({ id: prop.id, x: prop.at[0], y: prop.at[1] })),
+    props: stage.props.map((prop) => ({ id: prop.id, x: prop.at[0], y: prop.at[1], image: prop.sprite.image, rect: prop.sprite.rect ?? null, feet: prop.feet })),
   };
 }
 

@@ -14,7 +14,7 @@
  * hang from that row, under the near rail, rather than over its head: the rest areas pack sleepers close, and a
  * label over one would cover the others' badges and the crew at work beside them.
  */
-import type { DeckArtManifest } from "./deck-legacy";
+import { standing, type DeckCast } from "./deck-cast";
 import { ASK_GAP, ASK_SIZE, BADGE_GAP, BADGE_SIZE } from "./deck-badges";
 import type { Figure } from "./deck-crew";
 import { depthOf } from "./deck-scene";
@@ -59,9 +59,9 @@ export interface DeckHover {
 }
 
 /** Where a sailor's badge goes: its top, in deck pixels from the feet's row, for a sprite drawn at `figure`. */
-export function badgeTop(figure: Figure, manifest: DeckArtManifest): number {
-  const standing = manifest.crew[figure.outfit][figure.pose];
-  return figure.y - standing.feet[1] - BADGE_GAP - BADGE_SIZE.height;
+export function badgeTop(figure: Figure, cast: DeckCast): number {
+  const frame = standing(cast, figure.lane, figure.pose);
+  return figure.y - frame.feet[1] - BADGE_GAP - BADGE_SIZE.height;
 }
 
 /** Whether a figure shows its badge: once it is out of the hatch, and until it leaves the crew. */
@@ -75,8 +75,8 @@ export function showsAsk(figure: Figure): boolean {
 }
 
 /** A sailor's badge, in deck pixels: where it is drawn, its tail included. */
-export function badgeBox(figure: Figure, manifest: DeckArtManifest): DeckBox {
-  const top = badgeTop(figure, manifest);
+export function badgeBox(figure: Figure, cast: DeckCast): DeckBox {
+  const top = badgeTop(figure, cast);
   const left = figure.x - Math.floor(BADGE_SIZE.width / 2);
   return { left, top, right: left + BADGE_SIZE.width, bottom: top + BADGE_SIZE.height };
 }
@@ -111,18 +111,18 @@ export function boxesOverlap(a: DeckBox, b: DeckBox): boolean {
  * that — sleepers packed a badge apart, a full place's spots three rows apart — the marker is the badge's
  * frame instead, which takes no room the badge did not, so a marker never covers another sailor's state.
  */
-export function askMarks(figures: readonly Figure[], manifest: DeckArtManifest): Map<string, AskMark> {
+export function askMarks(figures: readonly Figure[], cast: DeckCast): Map<string, AskMark> {
   const marks = new Map<string, AskMark>();
   const asking = figures.filter(showsAsk);
   if (asking.length === 0) return marks;
   const others = figures
     .filter((figure) => !figure.departing)
-    .map((figure) => ({ key: figure.key, box: figureBox(figure, manifest) }))
+    .map((figure) => ({ key: figure.key, box: figureBox(figure, cast) }))
     .filter((each): each is { key: string; box: DeckBox } => each.box !== null);
   const placed: DeckBox[] = [];
   asking.sort((a, b) => depthOf(b.row, 0) + b.x / 10000 - (depthOf(a.row, 0) + a.x / 10000));
   for (const figure of asking) {
-    const badge = badgeBox(figure, manifest);
+    const badge = badgeBox(figure, cast);
     const raised = badge.top - Math.ceil(ASK_SIZE.height / 2);
     const candidates: AskMark[] = [
       { left: figure.x - Math.floor(ASK_SIZE.width / 2), top: badge.top - ASK_GAP - ASK_SIZE.height, flip: false, framed: false },
@@ -144,18 +144,18 @@ export function askMarks(figures: readonly Figure[], manifest: DeckArtManifest):
  * A sailor's box on deck this frame, in deck pixels, its badge included, and its reply marker when it wears
  * one (`mark`); null while under the hatch.
  */
-export function figureBox(figure: Figure, manifest: DeckArtManifest, mark?: AskMark): DeckBox | null {
-  const standing = manifest.crew[figure.outfit][figure.pose];
-  const [, , width, height] = standing.frame;
+export function figureBox(figure: Figure, cast: DeckCast, mark?: AskMark): DeckBox | null {
+  const frame = standing(cast, figure.lane, figure.pose);
+  const [, , width, height] = frame.frame;
   const rows = Math.round(height * figure.reveal);
   if (rows <= 0) return null;
   // Mirrored, the sprite turns about its feet.
-  const left = figure.x - (figure.flip ? width - standing.feet[0] : standing.feet[0]);
+  const left = figure.x - (figure.flip ? width - frame.feet[0] : frame.feet[0]);
   if (rows < height) return { left, top: figure.y - rows, right: left + width, bottom: figure.y };
-  const top = figure.y - standing.feet[1];
+  const top = figure.y - frame.feet[1];
   const box = {
     left: Math.min(left, figure.x - 4),
-    top: badgeTop(figure, manifest),
+    top: badgeTop(figure, cast),
     right: Math.max(left + width, figure.x + 4),
     bottom: top + height,
   };
@@ -180,7 +180,7 @@ export function toCanvas(point: { x: number; y: number }, fit: DeckFit, bob: Dec
  */
 export function sailorAt(
   figures: readonly Figure[],
-  manifest: DeckArtManifest,
+  cast: DeckCast,
   point: { x: number; y: number },
   marks?: ReadonlyMap<string, AskMark>,
 ): Figure | null {
@@ -188,7 +188,7 @@ export function sailorAt(
   let bestDepth = -Infinity;
   for (const figure of figures) {
     if (figure.departing) continue;
-    const box = figureBox(figure, manifest, marks?.get(figure.key));
+    const box = figureBox(figure, cast, marks?.get(figure.key));
     if (box === null) continue;
     if (point.x < box.left || point.x >= box.right || point.y < box.top || point.y >= box.bottom) continue;
     const depth = depthOf(figure.row, 0) + figure.x / 10000;
@@ -206,14 +206,14 @@ export function sailorAt(
  */
 export function hoverOf(
   figure: Figure,
-  manifest: DeckArtManifest,
+  cast: DeckCast,
   fit: DeckFit,
   bob: DeckOffset,
   canvas: { width: number; height: number },
   labelFloor: number | null,
   mark?: AskMark,
 ): DeckHover {
-  const box = figureBox(figure, manifest, mark);
+  const box = figureBox(figure, cast, mark);
   const top = toCanvas({ x: figure.x, y: box?.top ?? figure.y }, fit, bob);
   const feet = toCanvas({ x: figure.x, y: figure.row }, fit, bob);
   const floor = labelFloor === null ? null : toCanvas({ x: figure.x, y: labelFloor }, fit, bob).y;
