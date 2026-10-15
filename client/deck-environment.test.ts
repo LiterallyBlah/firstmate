@@ -1034,6 +1034,18 @@ describe("attention carriers in the renderer", () => {
       expect(deck.timers.every(timer => timer.stopped)).toBe(true);
     }
   });
+  it("fits its missing-art bubble to an arbitrary carrier size and position", async () => {
+    const carrier = { ...attentionCarrier, at: [110, 40] as [number, number], size: [8, 6] as [number, number] };
+    const deck = await start(environment, { now, scene: scene(), attentionCarrier: carrier, reducedMotion: true,
+      without: carrier.frames.map(sprite => sprite.image) });
+    const root = one(deck.app.stage, "attention-carrier"), fallback = root.children[1]!;
+    expect(root.position).toMatchObject({ x: 110, y: 40 });
+    expect(fallback.visible).toBe(true);
+    expect(fallback.position.x).toBeGreaterThanOrEqual(0);
+    expect(fallback.position.y).toBeGreaterThanOrEqual(0);
+    expect(fallback.scale.x).toBeLessThan(1);
+    deck.drawing.destroy();
+  });
 });
 
 describe("settled zone handles in the renderer", () => {

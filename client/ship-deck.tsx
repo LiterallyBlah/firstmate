@@ -573,30 +573,30 @@ function DeckView({
       </View>
       {status.kind === "drawing" && crew > 0 ? (
         <View>
-        <Text aria-hidden={usesCarrier && attentionSailor !== undefined} style={{ color: colors.foregroundMuted, fontSize: 12, opacity: usesCarrier && attentionSailor !== undefined ? 0 : 1 }}>
-          {focusable
-            ? `Point at a ${copy.actor.one} to see who it is; click one to focus it and act on it.`
-            : `Point at a ${copy.actor.one} to see who it is and what it is on.`}
-        </Text>
-        {!usesCarrier || attentionSailor === undefined ? null : (
-          <View testID="firstmate-deck-attention" style={{ position: "absolute", left: 0, right: 0, top: -4, bottom: -4, flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <DeckAskMarker accent={scene.palette.ask} />
-            <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{`${speakers.size} need your response`}</Text>
-            {attentionKeys.length < 2 ? null : (
-              <Pressable accessibilityRole="button" accessibilityLabel="Previous worker needing a response" onPress={() => stepAttention(-1)} style={{ padding: 6 }}>
-                <Text style={{ color: colors.foreground }}>‹</Text>
+          <Text aria-hidden={usesCarrier && attentionSailor !== undefined} style={{ color: colors.foregroundMuted, fontSize: 12, opacity: usesCarrier && attentionSailor !== undefined ? 0 : 1 }}>
+            {focusable
+              ? `Point at a ${copy.actor.one} to see who it is; click one to focus it and act on it.`
+              : `Point at a ${copy.actor.one} to see who it is and what it is on.`}
+          </Text>
+          {!usesCarrier || attentionSailor === undefined ? null : (
+            <View testID="firstmate-deck-attention" style={{ position: "absolute", left: 0, right: 0, top: -4, bottom: -4, flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <DeckAskMarker accent={scene.palette.ask} />
+              <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{`${speakers.size} need your response`}</Text>
+              {attentionKeys.length < 2 ? null : (
+                <Pressable accessibilityRole="button" accessibilityLabel="Previous worker needing a response" onPress={() => stepAttention(-1)} style={{ padding: 6 }}>
+                  <Text style={{ color: colors.foreground }}>‹</Text>
+                </Pressable>
+              )}
+              <Pressable accessibilityRole="button" accessibilityLabel={`Converse with ${attentionSailor.caption.title}`} onPress={() => converse(attentionSailor.key)} style={{ flexShrink: 1, paddingVertical: 4 }}>
+                <Text numberOfLines={1} style={{ color: colors.foreground, textDecorationLine: "underline", fontSize: 12 }}>{`Converse · ${attentionSailor.caption.title}`}</Text>
               </Pressable>
-            )}
-            <Pressable accessibilityRole="button" accessibilityLabel={`Converse with ${attentionSailor.caption.title}`} onPress={() => converse(attentionSailor.key)} style={{ flexShrink: 1, paddingVertical: 4 }}>
-              <Text numberOfLines={1} style={{ color: colors.foreground, textDecorationLine: "underline", fontSize: 12 }}>{`Converse · ${attentionSailor.caption.title}`}</Text>
-            </Pressable>
-            {attentionKeys.length < 2 ? null : (
-              <Pressable accessibilityRole="button" accessibilityLabel="Next worker needing a response" onPress={() => stepAttention(1)} style={{ padding: 6 }}>
-                <Text style={{ color: colors.foreground }}>›</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
+              {attentionKeys.length < 2 ? null : (
+                <Pressable accessibilityRole="button" accessibilityLabel="Next worker needing a response" onPress={() => stepAttention(1)} style={{ padding: 6 }}>
+                  <Text style={{ color: colors.foreground }}>›</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
         </View>
       ) : null}
     </View>
