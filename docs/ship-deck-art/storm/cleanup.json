@@ -1,0 +1,380 @@
+{
+  "alphaThreshold": 192,
+  "coverageThreshold": 0.5,
+  "sampling": "block median; nearest RGB palette; no dithering; zero RGB for alpha 0",
+  "recipes": [
+    {
+      "path": "sea/frame-0.png",
+      "source": "sea",
+      "rect": [
+        0,
+        0,
+        887,
+        443
+      ],
+      "sampling": "256x128 block median; opaque; opposing edge reconcile 8 columns / 6 rows"
+    },
+    {
+      "path": "sea/frame-1.png",
+      "source": "sea",
+      "rect": [
+        887,
+        0,
+        887,
+        443
+      ],
+      "sampling": "256x128 block median; opaque; opposing edge reconcile 8 columns / 6 rows"
+    },
+    {
+      "path": "sea/frame-2.png",
+      "source": "sea",
+      "rect": [
+        0,
+        443,
+        887,
+        443
+      ],
+      "sampling": "256x128 block median; opaque; opposing edge reconcile 8 columns / 6 rows"
+    },
+    {
+      "path": "sea/frame-3.png",
+      "source": "sea",
+      "rect": [
+        887,
+        443,
+        887,
+        443
+      ],
+      "sampling": "256x128 block median; opaque; opposing edge reconcile 8 columns / 6 rows"
+    },
+    {
+      "path": "clouds/wisp.png",
+      "source": "wisp",
+      "rect": [
+        166,
+        252,
+        1763,
+        249
+      ],
+      "sampledSize": [
+        40,
+        8
+      ],
+      "offset": [
+        2,
+        2
+      ],
+      "palette": [
+        "#1D314E",
+        "#45617A",
+        "#7795A5"
+      ]
+    },
+    {
+      "path": "clouds/puff.png",
+      "source": "puff",
+      "rect": [
+        395,
+        176,
+        1357,
+        441
+      ],
+      "sampledSize": [
+        32,
+        10
+      ],
+      "offset": [
+        2,
+        2
+      ],
+      "palette": [
+        "#1D314E",
+        "#45617A",
+        "#7795A5"
+      ]
+    },
+    {
+      "path": "clouds/cumulus.png",
+      "source": "cumulus",
+      "rect": [
+        64,
+        123,
+        2010,
+        536
+      ],
+      "sampledSize": [
+        58,
+        17
+      ],
+      "offset": [
+        2,
+        2
+      ],
+      "palette": [
+        "#1D314E",
+        "#45617A",
+        "#7795A5"
+      ]
+    },
+    {
+      "path": "clouds/long-bank.png",
+      "source": "long-bank",
+      "rect": [
+        94,
+        170,
+        1874,
+        422
+      ],
+      "sampledSize": [
+        88,
+        21
+      ],
+      "offset": [
+        2,
+        2
+      ],
+      "palette": [
+        "#1D314E",
+        "#45617A",
+        "#7795A5"
+      ]
+    },
+    {
+      "path": "clouds/twin-bank.png",
+      "source": "twin-bank",
+      "rect": [
+        80,
+        115,
+        2028,
+        498
+      ],
+      "sampledSize": [
+        76,
+        20
+      ],
+      "offset": [
+        2,
+        2
+      ],
+      "palette": [
+        "#1D314E",
+        "#45617A",
+        "#7795A5"
+      ]
+    },
+    {
+      "path": "wake/frame-0.png",
+      "source": "wake",
+      "rect": [
+        11.600000000000001,
+        48.6,
+        1152,
+        460.79999999999995
+      ],
+      "clip": [
+        0,
+        0,
+        1145,
+        475
+      ],
+      "sourceAnchor": [
+        50,
+        87
+      ],
+      "outputAnchor": [
+        8,
+        8
+      ],
+      "sourcePixelsPerLogicalPixel": 4.8,
+      "clearBorder": 2
+    },
+    {
+      "path": "wake/frame-1.png",
+      "source": "wake",
+      "rect": [
+        11.600000000000001,
+        488.6,
+        1152,
+        460.79999999999995
+      ],
+      "clip": [
+        0,
+        475,
+        1145,
+        455
+      ],
+      "sourceAnchor": [
+        50,
+        527
+      ],
+      "outputAnchor": [
+        8,
+        8
+      ],
+      "sourcePixelsPerLogicalPixel": 4.8,
+      "clearBorder": 2
+    },
+    {
+      "path": "wake/frame-2.png",
+      "source": "wake",
+      "rect": [
+        11.600000000000001,
+        934.6,
+        1152,
+        460.79999999999995
+      ],
+      "clip": [
+        0,
+        930,
+        1145,
+        444
+      ],
+      "sourceAnchor": [
+        50,
+        973
+      ],
+      "outputAnchor": [
+        8,
+        8
+      ],
+      "sourcePixelsPerLogicalPixel": 4.8,
+      "clearBorder": 2
+    },
+    {
+      "path": "spray/frame-0.png",
+      "source": "spray",
+      "rect": [
+        80,
+        86,
+        768,
+        384
+      ],
+      "sourceAnchor": [
+        320,
+        398
+      ],
+      "outputAnchor": [
+        20,
+        26
+      ],
+      "sourcePixelsPerLogicalPixel": 12,
+      "clearBorder": 2
+    },
+    {
+      "path": "spray/frame-1.png",
+      "source": "spray",
+      "rect": [
+        920,
+        86,
+        768,
+        384
+      ],
+      "sourceAnchor": [
+        1160,
+        398
+      ],
+      "outputAnchor": [
+        20,
+        26
+      ],
+      "sourcePixelsPerLogicalPixel": 12,
+      "clearBorder": 2
+    },
+    {
+      "path": "spray/frame-2.png",
+      "source": "spray",
+      "rect": [
+        80,
+        477,
+        768,
+        384
+      ],
+      "sourceAnchor": [
+        320,
+        789
+      ],
+      "outputAnchor": [
+        20,
+        26
+      ],
+      "sourcePixelsPerLogicalPixel": 12,
+      "clearBorder": 2
+    },
+    {
+      "path": "spray/frame-3.png",
+      "source": "spray",
+      "rect": [
+        920,
+        477,
+        768,
+        384
+      ],
+      "sourceAnchor": [
+        1160,
+        789
+      ],
+      "outputAnchor": [
+        20,
+        26
+      ],
+      "sourcePixelsPerLogicalPixel": 12,
+      "clearBorder": 2
+    },
+    {
+      "path": "lightning/frame-0.png",
+      "source": "lightning",
+      "rect": [
+        21.19999999999999,
+        -11.200000000000003,
+        745.6,
+        1118.4
+      ],
+      "sourceAnchor": [
+        394,
+        82
+      ],
+      "outputAnchor": [
+        16,
+        4
+      ],
+      "sourcePixelsPerLogicalPixel": 23.3,
+      "clearBorder": 2
+    },
+    {
+      "path": "lightning/frame-1.png",
+      "source": "lightning",
+      "rect": [
+        670.2,
+        -11.200000000000003,
+        745.6,
+        1118.4
+      ],
+      "sourceAnchor": [
+        1043,
+        82
+      ],
+      "outputAnchor": [
+        16,
+        4
+      ],
+      "sourcePixelsPerLogicalPixel": 23.3,
+      "clearBorder": 2
+    },
+    {
+      "path": "sky/overcast.png",
+      "source": "sky",
+      "geometry": "../sky/midday.png",
+      "colourRegionMap": {
+        "#45617A": "#1D314E",
+        "#536E87": "#2C4869",
+        "#64849A": "#536E87",
+        "#7795A5": "#536E87",
+        "#8FA8B4": "#64849A",
+        "#D9D4BE": "#A8B9BD",
+        "#F1DEC0": "#A8B9BD",
+        "#BECAC6": "#8FA8B4",
+        "#A8B9BD": "#7795A5"
+      }
+    }
+  ]
+}

@@ -7,7 +7,9 @@
  * **Depth, back to front:** the sky, its stars and the gull, then the far sea (the `back` of
  * `client/deck-environment.ts`); the ship — the hull, the mast and its masthead, the sail — with its deck of
  * props, pieces, lanterns and crew; then the near sea, the wake and the foam over the hull's waterline (its
- * `front`). The hover label and legend are React, on top. The sail hangs on the tall mast behind the crew.
+ * `front`). The weather layers lie among them (`client/deck-environment.ts`): the sky's mood overlays over the sky and
+ * under the stars, flashes behind the clouds, each variant just over its element, cycles over the foam. The hover label
+ * and legend are React, on top. The sail hangs on the tall mast behind the crew.
  * The tall mast reaches into the sky above the hull, and the fit takes in its top (`deckBox`); its own rows
  * below the sail are the mast's depth piece, which leaves the cloth alone (`client/deck-extras.ts`).
  *
@@ -57,6 +59,8 @@ import type { DeckDrawing, DeckHost } from "./deck-mount";
 import { DECK_PROPS, depthOf, type DeckScene, type DeckState } from "./deck-scene";
 import { drawnClouds } from "./deck-clouds";
 import { createScenery, type DeckEnvironmentImages } from "./deck-environment";
+import { drawnFlashes } from "./deck-flash";
+import { drawnVariants } from "./deck-variants";
 import { drawnWater } from "./deck-water";
 import { PLANK_SEA_BOTTOM, plankPixels, type SharkFrame, type SplashFrame } from "./deck-plank";
 import { dominantPhase, localMinute, SKY_REFRESH_MS } from "./deck-sky";
@@ -69,6 +73,8 @@ export const DECK_MOTION_ATTRIBUTE = "data-firstmate-deck-motion";
 export const DECK_SKY_ATTRIBUTE = "data-firstmate-deck-sky";
 /** Marks the canvas with the weather's intensity as drawn, `0.00` to `1.00` (`client/deck-atmosphere.ts`). */
 export const DECK_WEATHER_ATTRIBUTE = "data-firstmate-deck-weather";
+/** Marks the canvas with the weather's flashes showing, by id (`lightning`), or nothing (`client/deck-flash.ts`). */
+export const DECK_FLASH_ATTRIBUTE = "data-firstmate-deck-flash";
 
 type Style = string | number | { color?: string | number; width?: number; alpha?: number };
 
@@ -497,7 +503,10 @@ export async function startDeck(
 
   // The sky, its clouds, the gull and the far sea behind the hull; the near sea and the foam in front of its waterline.
   // The clouds are laid out from the clock's second the deck opens at, so each opening has its own sky.
-  const scenery = createScenery(pixi, art.environment, drawnClouds(art.extras), Math.floor(environment.clock().getTime() / 1000), drawnWater(art.extras));
+  // Over all of it, the extras' weather layers and flashes as the crew gets busy: the heavy weather (`client/deck-variants.ts`).
+  const water = drawnWater(art.extras);
+  const layers = { variants: drawnVariants(art.extras, water), flashes: drawnFlashes(art.extras) };
+  const scenery = createScenery(pixi, art.environment, drawnClouds(art.extras), Math.floor(environment.clock().getTime() / 1000), water, layers);
   const skyPhases = art.environment?.manifest.sky.phases ?? [];
 
   // The ship: the hull, the swaying masthead, and the deck's layer of props, pieces, lanterns and crew.
@@ -851,6 +860,7 @@ export async function startDeck(
     watchFades();
     canvas.setAttribute(DECK_MOTION_ATTRIBUTE, plan.level);
     canvas.setAttribute(DECK_WEATHER_ATTRIBUTE, moving ? atmosphere.intensity.toFixed(2) : "still");
+    canvas.setAttribute(DECK_FLASH_ATTRIBUTE, scenery.flashing().join(" "));
     canvas.setAttribute(DECK_SKY_ATTRIBUTE, sky === null ? "none" : (skyPhases[dominantPhase(sky)]?.id ?? "none"));
     app.render();
   }

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "sea",
+    "prompt": "Use case: stylized-concept. Generate a game-ready pixel-art rough ocean animation source sheet for the provided nautical deck style. Reference image 1 is the calm water contact sheet, reference 2 the ship style; match muted navy-blue pixel clusters, but make distinctly heavier weather. Layout: precisely four equal 2:1 rectangular tiles in a 2 by 2 grid, no gutters, no border, no labels; whole image aspect 2:1. Each quadrant represents a 256x128 logical pixel seamless sea tile enlarged 4x. Same overhead-oblique sea surface, no horizon, no sky, no ship. Broad rolling dark swells with broken pale grey-cream whitecaps, rolling horizontally right; wave crests 20-50 logical pixels across and 4-9 pixels tall, patches of dark troughs. Same wave layout across all four quadrants with subtle changing crest curl and breakup in cyclic keyframes (0,1 top row; 2,3 bottom row). Fill every quadrant edge to edge; seamless on both axes per quadrant. Crisp chunky pixel clusters, no smooth gradients, no neon teal, no dithering or noise. Palette only #151E2D #182B47 #1D314E #22395A #2C4869 #45617A #536E87 #64849A #8FA8B4 #BECAC6 #D9D4BE. Keep about 70 percent dark blue water and spare whitecaps for contrast. All four phases closely registered. Opaque background.",
+    "originalPath": "C:\\Users\\micha\\.codex\\generated_images\\01a13f53-f048-7d60-9caa-eaef4f202a39\\exec-e1593d57-6449-4e7a-b9ef-ea553fb35a7e.png",
+    "source": "source/sea.png"
+  },
+  {
+    "id": "long-bank",
+    "prompt": "Use case: lighting-weather. Reference image is a pixel-art nautical game's cloud contact sheet, for STYLE ONLY. Generate ONE isolated heavy thunder cloud, the long-bank variant, on genuine transparent background. Broad low dense storm bank with several towering uneven lobes and wind-torn rightward end, heavy low underside, ominous but restrained. Intended final canvas 92x25 logical pixels with two pixels transparent padding. Draw at enlarged pixel scale, hard square clusters, only THREE flat colors: #1D314E deepest shadow, #45617A body, #7795A5 sparse top rim. No outlines, no white, no gradient, no rain, no lightning, no text, no sheet, no background. Shape ratio about 4.2:1, isolated with generous transparent margins. Match existing simple chunky stepped cloud silhouettes, darker and weightier. Keep details broad enough to survive shrinking to 88x21 pixels.",
+    "originalPath": "C:\\Users\\micha\\.codex\\generated_images\\01a13f53-f048-7d60-9caa-eaef4f202a39\\exec-6a44e4cf-5323-4d1d-8792-4998ad0e72df.png",
+    "source": "source/long-bank.png"
+  },
+  {
+    "id": "twin-bank",
+    "prompt": "Use case: lighting-weather. Reference image is a pixel-art nautical game's cloud contact sheet, for STYLE ONLY. Generate ONE isolated heavy thunder cloud, the twin-bank variant, on genuine transparent background. Two dense thunderheads of uneven height with a deep saddle between them and wind-torn rightward end, heavy low underside, ominous but restrained. Intended final canvas 80x24 logical pixels with two pixels transparent padding. Draw at enlarged pixel scale, hard square clusters, only THREE flat colors: #1D314E deepest shadow, #45617A body, #7795A5 sparse top rim. No outlines, no white, no gradient, no rain, no lightning, no text, no sheet, no background. Shape ratio about 3.8:1, isolated with generous transparent margins. Match existing simple chunky stepped cloud silhouettes, darker and weightier. Keep details broad enough to survive shrinking to 76x20 pixels.",
+    "originalPath": "C:\\Users\\micha\\.codex\\generated_images\\01a13f53-f048-7d60-9caa-eaef4f202a39\\exec-27f293fd-82f6-42d6-a8e4-1472a191a297.png",
+    "source": "source/twin-bank.png"
+  },
+  {
+    "id": "cumulus",
+    "prompt": "Use case: lighting-weather. Reference image is a pixel-art nautical game's cloud contact sheet, for STYLE ONLY. Generate ONE isolated heavy thunder cloud, the cumulus variant, on genuine transparent background. Dense compact thunderhead with a large central dome and two smaller lumpy shoulders, wind-torn rightward end, heavy low underside, ominous but restrained. Intended final canvas 62x21 logical pixels with two pixels transparent padding. Draw at enlarged pixel scale, hard square clusters, only THREE flat colors: #1D314E deepest shadow, #45617A body, #7795A5 sparse top rim. No outlines, no white, no gradient, no rain, no lightning, no text, no sheet, no background. Shape ratio about 3.4:1, isolated with generous transparent margins. Match existing simple chunky stepped cloud silhouettes, darker and weightier. Keep details broad enough to survive shrinking to 58x17 pixels.",
+    "originalPath": "C:\\Users\\micha\\.codex\\generated_images\\01a13f53-f048-7d60-9caa-eaef4f202a39\\exec-61ef18f1-6c81-4a75-b8b2-1e24b7915354.png",
+    "source": "source/cumulus.png"
+  },
+  {
+    "id": "puff",
+    "prompt": "Use case: lighting-weather. Reference image is a pixel-art nautical game's cloud contact sheet, for STYLE ONLY. Generate ONE isolated heavy thunder cloud, the puff variant, on genuine transparent background. Small dense storm puff with THREE chunky lobes, tallest at right, compact short rounded silhouette, absolutely NOT a long bank, heavy low underside, ominous but restrained. Intended final canvas 36x14 logical pixels with two pixels transparent padding. Draw at enlarged pixel scale, hard square clusters, only THREE flat colors: #1D314E deepest shadow, #45617A body, #7795A5 sparse top rim. No outlines, no white, no gradient, no rain, no lightning, no text, no sheet, no background. Shape ratio about 3.2:1, isolated with generous transparent margins. Match existing simple chunky stepped cloud silhouettes, darker and weightier. Keep details broad enough to survive shrinking to 32x10 pixels.",
+    "originalPath": "C:\\Users\\micha\\.codex\\generated_images\\01a13f53-f048-7d60-9caa-eaef4f202a39\\exec-40f369d8-a250-4020-8fd2-d9795d8d8236.png",
+    "source": "source/puff.png"
+  },
+  {
+    "id": "wisp",
+    "prompt": "Use case: lighting-weather. Reference image is a pixel-art nautical game's cloud contact sheet, for STYLE ONLY. Generate ONE isolated heavy thunder cloud, the wisp variant, on genuine transparent background. Thin elongated storm scud wisp with two low flattened lobes on the left and a long windswept tapered right tip, absolutely NOT a tall thunderhead, heavy low underside, ominous but restrained. Intended final canvas 44x12 logical pixels with two pixels transparent padding. Draw at enlarged pixel scale, hard square clusters, only THREE flat colors: #1D314E deepest shadow, #45617A body, #7795A5 sparse top rim. No outlines, no white, no gradient, no rain, no lightning, no text, no sheet, no background. Shape ratio about 5:1, isolated with generous transparent margins. Match existing simple chunky stepped cloud silhouettes, darker and weightier. Keep details broad enough to survive shrinking to 40x8 pixels.",
+    "originalPath": "C:\\Users\\micha\\.codex\\generated_images\\01a13f53-f048-7d60-9caa-eaef4f202a39\\exec-9a28b791-2522-4519-8f0a-2cdfac9a0587.png",
+    "source": "source/wisp.png"
+  },
+  {
+    "id": "wake",
+    "prompt": "Use case: lighting-weather. Reference image is the calm water animation contact sheet; use the bottom-row stern wake as exact geometry reference. Generate a THREE-FRAME HEAVY STORM STERN WAKE animation source sheet: three equal rectangular cells stacked vertically, no gutters or labels, true transparent background. Each final logical frame 240x96, entire sheet ratio 240:288. One connected foam V trail per cell, apex at logical (8,8), upper arm running nearly horizontally from (8,8) to (226,38), lower arm running downward-right from (8,8) to (221,86). Both arms BELOW the apex. The ship sails left; the wake opens RIGHT and DOWN only; no boat, no symmetry around horizontal line, nothing trailing left or above apex. Preserve position and contour across all three poses. Make much more turbulent than the reference: thicker torn whitewater crests, churning blue eddies and wind-torn spray close to the arms, connected dense foam knot at the apex. Dense near left tapering to scattered transparent gaps at right. End all marks inside a two-pixel clear canvas border. Style crisp pixel art, same logical pixel clusters as 426px hull and 32px sailor, no antialiasing. Only #1D314E #2C4869 #45617A #536E87 #64849A #8FA8B4 #A8B9BD #BECAC6 #D9D4BE highlights. Three close registered cyclic phases: compression, breaking, dispersing, no massive silhouette changes. Genuine alpha, no sea rectangle behind wake, no text.",
+    "originalPath": "C:\\Users\\micha\\.codex\\generated_images\\01a13f53-f048-7d60-9caa-eaef4f202a39\\exec-ccb5a943-7231-4bce-ada5-417307701fb3.png",
+    "source": "source/wake.png"
+  },
+  {
+    "id": "spray",
+    "prompt": "Use case: stylized-concept. Reference: calm water contact sheet and pixel ship for palette and scale. Generate a pixel-art wave-crest SPRAY/SPINDRIFT burst, exactly FOUR animation poses in equal 2x2 grid cells, transparent background, no labels, no lines. Intended final each cell 64x32 logical pixels; sheet ratio 2:1. A thin curling horizontal broken foam crest at bottom-left/center throws sparse windblown droplets toward the upper right, then droplets scatter and fall. Frame order top-left low crest, top-right rising splash, bottom-left wind-torn spray, bottom-right thinning settling droplets. Same base anchor (20,26) on every 64x32 cell, all art within two-pixel clear borders. Small saltwater spindrift, not fountain, not explosion, no massive white blobs, no sea rectangle, no cloud. Opaque simple pixel clusters with genuine transparency between droplets. Only muted #536E87 #8FA8B4 #BECAC6 #D9D4BE, no pure white. Scale: sailor 32px tall, spray no taller than 22 logical pixels. Crisp pixel-art silhouette; visible individual droplets 1-2 logical pixels. No texture noise, no gradients, no text.",
+    "originalPath": "C:\\Users\\micha\\.codex\\generated_images\\01a13f53-f048-7d60-9caa-eaef4f202a39\\exec-27be2060-7d21-4c36-a877-03fb9e3c05e2.png",
+    "source": "source/spray.png"
+  },
+  {
+    "id": "lightning",
+    "prompt": "Use case: stylized-concept. Generate a small distant cloud-to-cloud LIGHTNING sprite for a muted nautical pixel-art game. Exactly TWO animation frames side by side in equal cells, transparent background. Each final logical cell 32x48 pixels, whole sheet ratio 4:3. Delicate angular stepped fork, not a thick cartoon icon: thin dim blue-grey outer broken glow clusters and a pale cream narrow core, several short fine branches to the right. Starts at top center (16,4), meanders down to (18,42), two-pixel clear borders. Frame 1 brief strike, frame 2 same registered path fading to a few disconnected blue-grey segments with no bright core. NOT a solid yellow zigzag symbol, not photographic lightning, no soft bloom. Crisp low-res pixel art using only #64849A #8FA8B4 #BECAC6 #D9D4BE. Meant to be drawn behind dark clouds at low opacity, occasional subdued distant lightning, not fullscreen flash. No sky, no clouds, no stars, no rain, no text, no border. Real transparent alpha.",
+    "originalPath": "C:\\Users\\micha\\.codex\\generated_images\\01a13f53-f048-7d60-9caa-eaef4f202a39\\exec-7903b750-f091-423c-b960-e5ddce199d4c.png",
+    "source": "source/lightning.png"
+  },
+  {
+    "id": "sky",
+    "prompt": "Use case: lighting-weather. Edit reference sky into a heavy-weather overcast variant for the same nautical pixel-art game. Keep exactly the same 512x320 logical pixel canvas proportions, flat horizontal pixel-banded sky layout, same band heights and distant flattened cloud banks around row 210; maintain an unobstructed subdued lower area and no sea/land. Replace the fair-weather blue and cream with dark slate blue overhead, muted blue-grey lower bands and a softly luminous grey storm horizon. Pixel art only, same hard low-res steps and fine sparse band-edge texture as reference, no smooth gradient, no dramatic painted clouds, no sunlight, no objects, no text. Palette exact subset: #1D314E #2C4869 #45617A #536E87 #64849A #7795A5 #8FA8B4 #A8B9BD. Opaque. This is the quiet atmospheric backdrop BEHIND separately generated thundercloud sprites. Preserve reference geometry to permit crossfade.",
+    "originalPath": "C:\\Users\\micha\\.codex\\generated_images\\01a13f53-f048-7d60-9caa-eaef4f202a39\\exec-385636ed-2fd7-4d26-9fd7-323a5b040dc7.png",
+    "source": "source/sky.png"
+  }
+]

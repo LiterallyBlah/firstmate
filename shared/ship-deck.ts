@@ -8,7 +8,8 @@
  *   plugin's folder; built by `docs/ship-deck-art/build-art.py`.
  * - `firstmate.deck.environment` — the generated sea, sky and gull: each image, base64, and what
  *   `art/ship-deck/environment.json` says about drawing them. See below.
- * - `firstmate.deck.extras` — the sail, the crew's extra looks, the shark, the splash, the sky's clouds and the animated water: each
+ * - `firstmate.deck.extras` — the sail, the crew's extra looks, the shark, the splash, the sky's clouds, the animated water and
+ *   the weather layers over it all (`variants`, `cycles`, `mood`, `flashes`): each
  *   image, base64, and what `art/ship-deck/extras.json` says about drawing them. See the last note.
  */
 import { defineRpc } from "@getpaseo/plugin";
@@ -161,6 +162,21 @@ export type DeckEnvironment = z.infer<typeof loadDeckEnvironment.output>;
  * draw: the client keeps whatever of it decodes, so a missing sail is the bare mast and a missing look is
  * one fewer to hand out (`client/deck-mount.ts`).
  */
+const Id = z.string().regex(/^[a-z0-9-]+$/);
+const uniqueIds = (items: ReadonlyArray<{ id: string }>) => new Set(items.map((item) => item.id)).size === items.length;
+/** A cloud's colours under each sky phase. */
+const CloudStages = z.object(Object.fromEntries(SKY_PHASES.map((phase) => [phase, CloudPalette])) as Record<SkyPhaseId, typeof CloudPalette>);
+/**
+ * A value over the weather's intensity: points [intensity, value], intensity rising, eased between them and held
+ * past either end (`curveAt` in `client/deck-variants.ts`).
+ */
+const Curve = z
+  .array(z.tuple([z.number().min(0).max(1), z.number().nonnegative()]))
+  .min(1)
+  .refine((points) => points.every((point, index) => index === 0 || point[0] > points[index - 1]![0]), "a curve's intensities must rise");
+/** An opacity over the weather's intensity, 0 to 1. */
+const Opacity = Curve.refine((points) => points.every((point) => point[1] <= 1), "an opacity is at most 1");
+
 export const DeckExtrasManifestSchema = z.object({
   /**
    * The sail: `frames` states of `frameSize` side by side in one strip, drawn at `position` on the hull
@@ -207,7 +223,7 @@ export const DeckExtrasManifestSchema = z.object({
   clouds: z
     .object({
       palette: CloudPalette,
-      stages: z.object(Object.fromEntries(SKY_PHASES.map((phase) => [phase, CloudPalette])) as Record<SkyPhaseId, typeof CloudPalette>),
+      stages: CloudStages,
       sprites: z
         .array(z.object({ id: z.string().regex(/^[a-z0-9-]+$/), texture: ArtPath, size: Size, pixelsPerSecond: z.number().positive().max(4) }))
         .min(1)
@@ -260,6 +276,63 @@ export const DeckExtrasManifestSchema = z.object({
       wake: z.object({ frames: z.array(ArtPath).min(1), frameSize: Size, frameMs: z.number().positive(), anchor: Point, position: Point }),
     })
     .optional(),
+  /**
+   * Layers over the scene that follow the deck's weather (`client/deck-variants.ts`, `client/deck-flash.ts`): each
+   * fades in and out along its own `opacity` curve over the weather's intensity (`client/deck-atmosphere.ts`, 0 an
+   * idle crew, 1 a busy fleet), so how and when a setting's weather comes in is data, here, and not code. None of them
+   * is drawn under reduced motion. The heavy weather (`art/ship-deck/storm/`) is the first set of them.
+   *
+   * - `variants` — a second set of frames over one of the scene's elements (`variantOf`): the animated water's `sea`
+   *   tile, `foam` strip or `wake`, a `cycle:<id>`, or a `cloud:<id>`, on that element's own clock, frame for
+   *   frame — so its frames must be as many as the element's and its `frameSize` the element's, or it is not drawn.
+   *   `over` draws it over the whole element (opaque art); `crossfade` fades the element out as it comes in. A cloud's
+   *   variant is three slot colours like the clouds, so it names its own `palette` and `stages`.
+   * - `cycles` — a sprite whose frames loop on the water's clock, its `anchor` on `position`, in front of the hull's waterline.
+   * - `mood` — the sky's mood: `overlays` over the time of day's sky, at its size, faded out by the night's share.
+   * - `flashes` — a moment now and then, `perMinute` of them at an intensity (capped in code), each frame for its
+   *   `frameMs` at its share of the opacity (`frameAlpha`), stood where `place` says: `under-cloud` tucks its
+   *   `anchor` under the underside of a cloud in view, its lower edge above the sky's horizon.
+   */
+  variants: z
+    .array(
+      z
+        .object({
+          id: Id,
+          variantOf: z.string().regex(/^(sea|foam|wake|cycle:[a-z0-9-]+|cloud:[a-z0-9-]+)$/, "a variant is of sea, foam, wake, cycle:<id> or cloud:<id>"),
+          frames: z.array(ArtPath).min(1),
+          frameSize: Size,
+          blend: z.enum(["over", "crossfade"]),
+          opacity: Opacity,
+          palette: CloudPalette.optional(),
+          stages: CloudStages.optional(),
+        })
+        .refine((variant) => !variant.variantOf.startsWith("cloud:") || (variant.palette !== undefined && variant.stages !== undefined), "a cloud's variant needs its palette and stages"),
+    )
+    .refine(uniqueIds, "each variant needs its own id")
+    .optional(),
+  cycles: z
+    .array(z.object({ id: Id, frames: z.array(ArtPath).min(1), frameSize: Size, frameMs: z.number().positive(), anchor: Point, position: Point, opacity: Opacity }))
+    .refine(uniqueIds, "each cycle needs its own id")
+    .optional(),
+  mood: z.object({ overlays: z.array(z.object({ id: Id, texture: ArtPath, size: Size, opacity: Opacity })).refine(uniqueIds, "each overlay needs its own id") }).optional(),
+  flashes: z
+    .array(
+      z
+        .object({
+          id: Id,
+          frames: z.array(ArtPath).min(1),
+          frameSize: Size,
+          frameMs: z.array(z.number().positive()).min(1),
+          frameAlpha: z.array(z.number().min(0).max(1)).min(1),
+          anchor: Point,
+          place: z.literal("under-cloud"),
+          opacity: Opacity,
+          perMinute: Curve,
+        })
+        .refine((flash) => flash.frameMs.length === flash.frames.length && flash.frameAlpha.length === flash.frames.length, "a flash needs a time and an opacity per frame"),
+    )
+    .refine(uniqueIds, "each flash needs its own id")
+    .optional(),
 });
 export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;
 
@@ -270,7 +343,13 @@ export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
   const plank = manifest.plank === undefined ? [] : [manifest.plank.texture];
   const mast = manifest.mast === undefined ? [] : [manifest.mast.texture];
   const water = manifest.water === undefined ? [] : [...manifest.water.sea.frames, ...manifest.water.foam.frames, ...manifest.water.wake.frames];
-  return [...new Set([manifest.sail.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds, ...plank, ...mast, ...water])];
+  const weather = [
+    ...(manifest.variants ?? []).flatMap((variant) => variant.frames),
+    ...(manifest.cycles ?? []).flatMap((cycle) => cycle.frames),
+    ...(manifest.mood?.overlays ?? []).map((overlay) => overlay.texture),
+    ...(manifest.flashes ?? []).flatMap((flash) => flash.frames),
+  ];
+  return [...new Set([manifest.sail.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds, ...plank, ...mast, ...water, ...weather])];
 }
 
 export const loadDeckExtras = defineRpc({

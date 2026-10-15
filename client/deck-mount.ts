@@ -386,12 +386,17 @@ export function decodeExtras(
   ).then(function (decoded) {
     const images = new Map(decoded.filter((entry) => entry !== null));
     // Each cloud that decoded, cut into its three slot masks; one that will not cut is left out like a missing image.
+    // A cloud's variant likewise (`client/deck-variants.ts`), by its own palette, only where there are clouds to lay it over.
     const clouds = extras.manifest.clouds;
-    const sprites = (clouds?.sprites ?? []).filter((sprite) => images.has(sprite.texture));
+    const variants = clouds === undefined ? [] : (extras.manifest.variants ?? []).filter((variant) => variant.variantOf.startsWith("cloud:"));
+    const sprites = [
+      ...(clouds?.sprites ?? []).map((sprite) => ({ texture: sprite.texture, size: sprite.size, palette: clouds!.palette })),
+      ...variants.map((variant) => ({ texture: variant.frames[0]!, size: variant.frameSize, palette: variant.palette ?? clouds!.palette })),
+    ].filter((sprite) => images.has(sprite.texture));
     return Promise.all(
       sprites.map((sprite) =>
         Promise.resolve()
-          .then(() => cutCloud(images.get(sprite.texture), sprite.size, clouds!.palette))
+          .then(() => cutCloud(images.get(sprite.texture), sprite.size, sprite.palette))
           .then(
             (masks) => [sprite.texture, masks] as const,
             function (error: unknown) {

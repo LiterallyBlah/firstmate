@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Heavy weather asset review</title>
+<style>body{margin:32px;background:#151e2d;color:#becac6;font:16px system-ui}main{max-width:1100px;margin:auto}h1{color:#d9d4be}img{image-rendering:pixelated;max-width:100%}figure{margin:24px 0;padding:20px;background:#22395a}figcaption{margin:10px 0}section{display:flex;gap:30px;align-items:start;flex-wrap:wrap}.sea{width:512px}.wake{width:480px}.spray{width:256px}.lightning{width:96px;opacity:.28}a{color:#a8b9bd}</style>
+<main><h1>Heavy weather · generated deck assets</h1>
+<p>Asset review only. Native game frames, shared 64-colour palette. Four sea phases / three wake phases at 240 ms. Sources and previews stay outside shipped art.</p>
+<figure><img src="storm-cycle.png" width="768" height="384"><figcaption>Peak weather: 12-step composite covers the full 4×3 sea/wake cycle. Bare Hull C isolates contact fit; this is not the running plugin.</figcaption></figure>
+<section><figure><img class="sea" src="sea-cycle.png"><figcaption>Rough sea · 256×128 × 4 · 960 ms</figcaption></figure><figure><img class="wake" src="wake-cycle.png"><figcaption>Heavy wake · 240×96 × 3 · 720 ms</figcaption></figure></section>
+<section><figure><img class="spray" src="spray-cycle.png"><figcaption>Spindrift · 64×32 × 4 · brief burst then pause</figcaption></figure><figure><img class="lightning" src="lightning-cycle.png"><figcaption>Distant fork · 32×48 × 2 · 200 ms, 18-second gap</figcaption></figure></section>
+<figure><img src="calm-blend-storm.png"><figcaption>Top: calm. Middle: 50% asset blend. Bottom: storm. Fixed review camera; original foam retained.</figcaption></figure>
+<figure><img src="contact.png"><figcaption>All runtime poses, nearest-neighbour enlarged sprites.</figcaption></figure>
+<figure><img src="sea-repeat-2x.png"><figcaption>Sea frame zero repeated 2×2 at 2× scale; seams also checked byte-for-byte for all four phases.</figcaption></figure>
+</main></html>

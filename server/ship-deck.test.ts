@@ -2,14 +2,14 @@
  * What the ship deck's RPCs serve: Pixi's vendored build, the atlas, the generated environment and the
  * extras — with no switch: the Deck is a standard part of the screen, and the fleet load carries nothing for it.
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { FleetSchema, type Fleet } from "../shared/fleet";
-import { DeckArtManifestSchema, environmentImagePaths, extrasImagePaths } from "../shared/ship-deck";
+import { DeckArtManifestSchema, DeckExtrasManifestSchema, environmentImagePaths, extrasImagePaths } from "../shared/ship-deck";
 import {
   DECK_ATLAS,
   DECK_ENVIRONMENT_DIR,
@@ -198,18 +198,50 @@ describe("the sail and the crew's looks the daemon serves", () => {
     await withEnvironment({ FIRSTMATE_SHIP_DECK: "0" }, () => expect(readDeckExtras(async () => root)).resolves.toBeDefined());
   });
 
-  it("on, is the sail, six looks, the tall mast, the plank's board, shark and splash, five clouds and the water's ten frames, byte for byte, and small enough to send whole", async () => {
+  it("on, is the sail, six looks, the tall mast, the plank's board, shark and splash, five clouds, the water's ten frames and the storm's nineteen, byte for byte, and small enough to send whole", async () => {
     const extras = await readDeckExtras(async () => root);
     const paths = extrasImagePaths(extras.manifest);
     expect(Object.keys(extras.images)).toEqual(paths);
-    expect(paths).toHaveLength(30);
+    expect(paths).toHaveLength(49);
+    expect(paths.filter((path) => path.startsWith("storm/"))).toHaveLength(19);
     for (const path of paths) {
       expect(Buffer.from(extras.images[path]!, "base64").equals(readFileSync(join(root, DECK_ENVIRONMENT_DIR, path))), path).toBe(true);
     }
     expect(extras.manifest.crew.map((look) => look.id)).toEqual(["bosun", "old-salt", "navigator", "carpenter", "rigger", "deckhand"]);
     expect(extras.manifest.clouds?.sprites.map((cloud) => cloud.id)).toEqual(["wisp", "puff", "cumulus", "long-bank", "twin-bank"]);
     const total = Object.values(extras.images).reduce((sum, png) => sum + png.length, 0);
-    expect(total).toBeLessThan(130_000);
+    expect(total).toBeLessThan(190_000);
+  });
+
+  it("serves weather layers that line up with what they lay over: each frame its declared size, each variant its element's frames and size", () => {
+    const extras = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(join(root, DECK_EXTRAS_MANIFEST), "utf8")));
+    const size = (path: string) => {
+      const png = readFileSync(join(root, DECK_ENVIRONMENT_DIR, path));
+      return [png.readUInt32BE(16), png.readUInt32BE(20)];
+    };
+    const water = extras.water!;
+    const elements = new Map<string, { frames: number; size: readonly number[] }>([
+      ["sea", { frames: water.sea.frames.length, size: water.sea.frameSize }],
+      ["foam", { frames: water.foam.frames.length, size: water.foam.frameSize }],
+      ["wake", { frames: water.wake.frames.length, size: water.wake.frameSize }],
+      ...(extras.cycles ?? []).map((cycle) => [`cycle:${cycle.id}`, { frames: cycle.frames.length, size: cycle.frameSize }] as const),
+      ...(extras.clouds?.sprites ?? []).map((cloud) => [`cloud:${cloud.id}`, { frames: 1, size: cloud.size }] as const),
+    ]);
+    // The heavy weather: a rough sea, a heavy wake, five thunderheads; spindrift at the bow; the overcast; lightning.
+    expect(extras.variants!.map((variant) => variant.variantOf)).toEqual(["sea", "wake", "cloud:wisp", "cloud:puff", "cloud:cumulus", "cloud:long-bank", "cloud:twin-bank"]);
+    for (const variant of extras.variants!) {
+      const element = elements.get(variant.variantOf)!;
+      expect([variant.frames.length, variant.frameSize], variant.id).toEqual([element.frames, element.size]);
+      for (const path of variant.frames) expect(size(path), path).toEqual(variant.frameSize);
+    }
+    for (const part of [...extras.cycles!, ...extras.flashes!]) for (const path of part.frames) expect(size(path), path).toEqual(part.frameSize);
+    const environment = JSON.parse(readFileSync(join(root, DECK_ENVIRONMENT_DIR, "environment.json"), "utf8")) as { sky: { size: number[] } };
+    for (const overlay of extras.mood!.overlays) {
+      expect(overlay.size).toEqual(environment.sky.size);
+      expect(size(overlay.texture)).toEqual(overlay.size);
+    }
+    // Only the runtime frames and the hand-off's manifest ship under art/: the generation sources stay in docs/.
+    expect(readdirSync(join(root, DECK_ENVIRONMENT_DIR, "storm"), { recursive: true }).filter((file) => !String(file).endsWith(".png") && String(file).includes("."))).toEqual(["manifest.json"]);
   });
 
   it("stands the tall mast on the mast piece it replaces, at its size, its foot on that piece's last row", () => {

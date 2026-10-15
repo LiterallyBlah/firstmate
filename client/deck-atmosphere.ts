@@ -18,7 +18,11 @@
  *   the clouds and the sail forwards or back as the crew changed.
  * - **Reduced motion is calm.** A still deck draws as it always has — the parts' first frames, no drift, the whole
  *   wake, the sky untinted (`deliveredWeather`) — and no ramp: its intensity follows the crew's at once, unseen, and
- *   its clocks stand, so motion resumes in the right weather.
+ *   its clocks stand, so motion resumes in the right weather. And no weather layers (`Weather.intensity` is null).
+ * - **The top end can be a storm, in data.** The scenery is handed the eased intensity itself (`Weather.intensity`),
+ *   and the extras' weather layers — variants over the sea, wake and clouds, cycles, the sky's mood overlays, flashes —
+ *   each fade in along their own curve over it (`client/deck-variants.ts`, `client/deck-flash.ts`). Their thresholds
+ *   are in `art/ship-deck/extras.json`, beside the art, not here; this table only paces and sizes the calm scene.
  */
 import { advanceWater, type WaterClock, type WaterMotion } from "./deck-water";
 import type { DeckSailor, DeckState } from "./deck-scene";
@@ -53,7 +57,7 @@ export interface AtmosphereParams {
 /**
  * The weather at a few intensities, lowest first, interpolated between — the one place to tune it. Idle is
  * glassy: slower than the art's own timing, a short wake. Two crewmates working is the art as delivered. A busy fleet is spirited: a quick choppy sea, a fresh breeze, the sail snapping, a full wake and
- * a slightly moodier sky. Energetic, never a storm.
+ * a slightly moodier sky. Energetic, never a storm on its own: the heavy weather over the top end is `extras.json`'s.
  */
 export const ATMOSPHERE: ReadonlyArray<{ at: number } & AtmosphereParams> = [
   { at: 0, water: { pace: 0.5, drift: 0.5 }, wind: 0.5, sail: 0.55, billow: 0.4, swell: 0.8, heave: 1, wake: 0.55, mood: 0 },
@@ -131,23 +135,27 @@ export function stepAtmosphere(state: Atmosphere, stepMs: number, target: number
   };
 }
 
-/** What the scenery is drawn with this frame: the water's and the clouds' clocks, the wake's strength, the sky's mood. */
+/**
+ * What the scenery is drawn with this frame: the water's and the clouds' clocks, the wake's strength, the sky's mood,
+ * and the eased intensity its weather layers follow — null for none of them, as on a still deck.
+ */
 export interface Weather {
   water: WaterClock;
   wind: number;
   wake: number;
   mood: number;
+  intensity: number | null;
 }
 
-/** The weather the art was made for at the scene's clock: every part at its own timing, a full wake, no mood. */
+/** The weather the art was made for at the scene's clock: every part at its own timing, a full wake, no mood, no weather layers. */
 export function deliveredWeather(seconds: number): Weather {
-  return { water: { frames: seconds, drift: seconds }, wind: seconds, wake: 1, mood: 0 };
+  return { water: { frames: seconds, drift: seconds }, wind: seconds, wake: 1, mood: 0, intensity: null };
 }
 
 /** The scenery's weather from the atmosphere as it stands. */
 export function weatherOf(atmosphere: Atmosphere): Weather {
   const params = atmosphereAt(atmosphere.intensity);
-  return { water: atmosphere.water, wind: atmosphere.wind, wake: params.wake, mood: params.mood };
+  return { water: atmosphere.water, wind: atmosphere.wind, wake: params.wake, mood: params.mood, intensity: atmosphere.intensity };
 }
 
 /** `colour` shaded by a tint, channel by channel, as Pixi's tint multiplies. */
