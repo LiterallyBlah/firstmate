@@ -13,7 +13,7 @@
  * - **One table** (`ATMOSPHERE`): what each part does at a few intensities, interpolated between. Every value is a
  *   multiple of the art's own timing, or an amplitude, so a stormier top end is one row's change.
  * - **Speeds change, phases do not jump.** Each animation runs on its own clock, advanced by the frame's step times
- *   its current pace, and the pure frame functions (`waterFrame`, `cloudX`, `sailFrame`, `shipBob`) are handed
+ *   its current pace, and the pure frame functions (`cycleFrame`, `cloudX`, `sailFrame`, `shipBob`) are handed
  *   that clock instead of the scene's. Multiplying the scene's clock by a pace that changes would jump the sea,
  *   the clouds and the sail forwards or back as the crew changed.
  * - **Reduced motion is calm.** A still deck draws as it always has — the parts' first frames, no drift, the whole
@@ -186,7 +186,7 @@ export function channelOf(weather: Weather, channel: string): number {
  * A weather clock by the pack's name for it (`atmosphere.clocks`): the water's frames and drift, and the wind. Any other
  * is the scene's own, `seconds` — until step 6 makes every clock the pack's.
  */
-export function clockOf(weather: Weather, clock: string, seconds: number): number {
+export function clockOf(weather: Weather, clock: string | undefined, seconds: number): number {
   return clock === "water-frames" ? weather.water.frames : clock === "water-drift" ? weather.water.drift : clock === "wind" ? weather.wind : seconds;
 }
 

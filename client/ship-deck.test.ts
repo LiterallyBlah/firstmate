@@ -23,8 +23,7 @@ vi.mock("@getpaseo/plugin/client", () => ({
 
 import type { AgentStatus, ColumnId, FleetCard, RemoteCard } from "../shared/fleet";
 import { deckEngineSource } from "../server/deck-settings";
-import { environmentImagePaths, extrasImagePaths } from "./deck-legacy";
-import { environmentComplete } from "./deck-environment";
+import { extrasImagePaths } from "./deck-legacy";
 import {
   browserDeckEngine,
   decodeAtlas,
@@ -719,7 +718,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     expect(dusk).toBeDefined();
   });
 
-  it("draws what decoded: nothing without the backdrop, a plain sea without the still sea, each element and extra on its own", async () => {
+  it("draws what decoded: nothing without the backdrop, each element and extra on its own, a fallback in its place, a flat sea with neither", async () => {
     const setting = { manifest: shipManifest(), images: shipImages() };
     const cut = (image: unknown, size: readonly [number, number]) => Promise.resolve([image, size, "mask"] as const);
     const failing = (ids: readonly string[]) =>
@@ -730,29 +729,27 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     const whole = await packArt(await failing([]), warn, cut);
     expect(whole.image).toEqual({ png: setting.images.deck });
     expect(whole.manifest).toEqual(shipViews().art);
-    expect([...whole.environment!.images.keys()]).toEqual(environmentImagePaths(shipViews().environment));
-    expect(environmentComplete(whole.environment)).toBe(true);
     expect([...whole.extras!.images.keys()]).toEqual(extrasImagePaths(shipViews().extras));
-    expect(whole.ambience.elements.map((element) => element.id)).toEqual(["sky", "overcast", "stars", "lightning", "clouds", "gull"]);
+    expect(whole.ambience.elements.map((element) => element.id)).toEqual(["sky", "overcast", "stars", "lightning", "clouds", "gull", "sea", "wake", "foam", "spindrift"]);
+    expect(whole.ambience.flats).toEqual([]);
+    expect(whole.codeWake).toEqual({ id: "wake", slot: "front", order: 7 });
     expect(whole.masks.size).toBe(10);
     expect(warnings).toEqual([]);
 
-    const partial = await packArt(await failing(["sky-dusk", "sea-water-tile", "gull-flap-strip", "crew-variants-03-navigator"]), warn, cut);
-    expect(partial.environment).toBeNull();
     // Without a phase of it the sky is not drawn, nor what is drawn in it or under its clouds; the gull is on its own.
-    expect(partial.ambience.elements.map((element) => element.id)).toEqual([]);
-    const skyless = await packArt(await failing(["sky-dusk"]), warn, cut);
-    expect(skyless.environment).not.toBeNull();
-    expect(skyless.ambience.elements.map((element) => element.id)).toEqual(["gull"]);
+    // Without a frame of the sea and its still tile, the sea is a flat fill; without the wake's, the code wake stands in.
+    const partial = await packArt(await failing(["sky-dusk", "water-sea-frame-1", "sea-water-tile", "gull-flap-strip", "water-wake-frame-0", "crew-variants-03-navigator"]), warn, cut);
+    expect(partial.ambience.elements.map((element) => element.id)).toEqual(["foam", "spindrift"]);
+    expect(partial.ambience.flats.map((element) => element.id)).toEqual(["sea"]);
+    const skyless = await packArt(await failing(["sky-dusk", "water-foam-frame-2"]), warn, cut);
+    expect(skyless.ambience.elements.map((element) => element.id)).toEqual(["gull", "sea", "wake", "foam-still", "spindrift"]);
     // A look is the cast's: its image is the pack's, by id, and one that did not decode is not handed out.
     expect(partial.images.has("crew-variants-03-navigator")).toBe(false);
     expect(partial.images.has("crew-variants-01-bosun")).toBe(true);
+    const without = (path: string) => `[firstmate] the deck's ${path} did not load; drawing without it:`;
     expect(warnings).toEqual([
-      "[firstmate] the deck's sea did not load; drawing a plain sea:",
-      "[firstmate] the deck's gull/flap-strip.png did not load; drawing without it:",
-      "[firstmate] the deck's sky/dusk.png did not load; drawing without it:",
-      "[firstmate] the deck's crew-variants/03-navigator.png did not load; drawing without it:",
-      "[firstmate] the deck's sky/dusk.png did not load; drawing without it:",
+      ...["gull/flap-strip.png", "sea/water-tile.png", "sky/dusk.png", "water/sea/frame-1.png", "water/wake/frame-0.png", "crew-variants/03-navigator.png"].map(without),
+      ...["sky/dusk.png", "water/foam/frame-2.png"].map(without),
     ]);
 
     await expect(packArt(await failing(["deck"]), warn, cut)).rejects.toThrow("bad png");
@@ -1228,7 +1225,7 @@ describe("the sail and the crew's looks, decoded", () => {
     const ids = new Map([...shipViews().paths].map(([id, path]) => [path, id]));
     const image = (path: string) => ({ png: images[ids.get(path)!] });
     const all = extrasImages(extras, image);
-    expect([...all.images.keys()]).toHaveLength(30);
+    expect([...all.images.keys()]).toHaveLength(9);
     const missing: string[] = [];
     const some = extrasImages(
       extras,
@@ -1236,7 +1233,7 @@ describe("the sail and the crew's looks, decoded", () => {
       (path) => missing.push(path),
     );
     expect(missing).toEqual(["sails/main-sail.png"]);
-    expect([...some.images.keys()]).toHaveLength(29);
+    expect([...some.images.keys()]).toHaveLength(8);
     expect(some.manifest).toBe(extras);
   });
 });

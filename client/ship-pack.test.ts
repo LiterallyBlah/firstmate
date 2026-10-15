@@ -4,18 +4,18 @@
  * `docs/ship-deck-art/legacy/`), and every number in it is the constant in the deck's code it replaces. Each step of
  * the move to a scene engine that deletes a constant deletes its check here; the pack is the source from then on.
  * Step 3 took the stage, floor, zones and portal marks, step 4 the cast, step 5a the sky, its overlays, the lightning,
- * the clouds and the gull: the engine reads those from the pack now.
+ * the clouds and the gull, step 5b the sea, foam, wake and spindrift: the engine reads those from the pack now.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { FADE_MS, HATCH_MS, SHARK_MOUTH } from "./deck-crew";
-import { HEAVE, LANTERNS, MASTHEAD, HORIZON, SEA_FALLBACK, WATERLINE, lanternFlicker, mastSway, shipBob } from "./deck-ambient";
+import { HEAVE, LANTERNS, MASTHEAD, lanternFlicker, mastSway, shipBob } from "./deck-ambient";
 import { ATMOSPHERE } from "./deck-atmosphere";
-import { FOAM_SPAN, FOAM_TOP } from "./deck-environment";
-import { environmentImagePaths, extrasImagePaths } from "./deck-legacy";
-import { DeckArtManifestSchema, DeckEnvironmentManifestSchema, DeckExtrasManifestSchema } from "./deck-legacy-schema";
+import { codeWakeSpot, extrasImagePaths } from "./deck-legacy";
+import { DeckArtManifestSchema, DeckExtrasManifestSchema } from "./deck-legacy-schema";
+import { STERN, WATERLINE } from "./deck-wake";
 import {
   BOB_UP_MS,
   CHOMP_AT,
@@ -37,13 +37,12 @@ import {
   TEETER_MS,
 } from "./deck-plank";
 import { mastLayout } from "./deck-extras";
-import { shipAmbience, shipManifest, shipViews } from "../test/ship-pack";
+import { shipAmbience, shipManifest, shipViews, shipWater } from "../test/ship-pack";
 import type { AmbienceBehaviour } from "../shared/deck-setting";
 
 
 const legacy = (name: string): unknown => JSON.parse(readFileSync(fileURLToPath(new URL(`../docs/ship-deck-art/legacy/${name}`, import.meta.url)), "utf8"));
 const ship = shipManifest();
-const hex = (value: number) => `#${value.toString(16).toUpperCase().padStart(6, "0")}`;
 /** Every image an ambience element draws with. */
 function imagesOf(behaviour: AmbienceBehaviour): string[] {
   switch (behaviour.kind) {
@@ -57,8 +56,10 @@ function imagesOf(behaviour: AmbienceBehaviour): string[] {
       return behaviour.sprites.flatMap((sprite) => [sprite.image, ...(sprite.variants ?? []).flatMap((variant) => variant.frames.map((frame) => frame.image))]);
     case "flyby":
       return Object.values(behaviour.poses).map((sprite) => sprite.image);
-    default:
-      return [];
+    case "tile":
+    case "strip":
+    case "cycle":
+      return [...behaviour.frames.sprites, ...(behaviour.variants ?? []).flatMap((variant) => variant.frames)].map((sprite) => sprite.image);
   }
 }
 
@@ -67,21 +68,18 @@ describe("the ship's pack, read as the manifests the deck drew from", () => {
     expect(shipViews().art).toEqual(DeckArtManifestSchema.parse(legacy("deck.json")));
   });
 
-  it("is the environment's manifest as last served, but for the sky and the gull", () => {
-    expect(shipViews().environment).toEqual(DeckEnvironmentManifestSchema.parse(legacy("environment.json")));
-  });
-
-  it("is the extras' manifest as last served, weather and all, but for the clouds, the sky's mood and the flashes", () => {
-    const served = DeckExtrasManifestSchema.parse(legacy("extras.json"));
-    expect(shipViews().extras).toEqual({ ...served, variants: served.variants!.filter((variant) => !variant.variantOf.startsWith("cloud:")) });
+  it("is the extras' manifest as last served, but for what the pack draws itself now: the weather, clouds and water", () => {
+    expect(shipViews().extras).toEqual(DeckExtrasManifestSchema.parse(legacy("extras.json")));
   });
 
   it("names every image at the path it was served at", () => {
-    const { environment, extras } = shipViews();
+    const { extras } = shipViews();
     const looks = ship.cast.looks.map((look) => ship.images[look.image]!.path);
-    // The sky, its overlays, the lightning, the clouds and their variants, and the gull: the ambience's own.
-    const ambience = shipAmbience().elements.flatMap((element) => imagesOf(element.behaviour)).map((id) => ship.images[id]!.path);
-    const served = new Set(["deck.png", ...environmentImagePaths(environment), ...extrasImagePaths(extras), ...looks, ...ambience]);
+    // The ambience's own: the sky and everything in it, the gull, and the water with its weather. The still sea and
+    // foam are drawn only in the animated ones' place, so they are not among what the ambience draws when all arrived.
+    const elements = ship.ambience.flatMap((element) => imagesOf(element.behaviour)).map((id) => ship.images[id]!.path);
+    expect(new Set(shipAmbience().elements.map((element) => element.id))).toEqual(new Set(ship.ambience.filter((element) => !element.id.endsWith("-still")).map((element) => element.id)));
+    const served = new Set(["deck.png", ...extrasImagePaths(extras), ...looks, ...elements]);
     expect(new Set(Object.values(ship.images).map((image) => image.path))).toEqual(served);
   });
 });
@@ -166,24 +164,12 @@ describe("the ship's pack, against the deck's constants", () => {
     for (const why of ["done", "failed", "closed", "removed"] as const) expect(ship.portals.byDeparture[why] === "plank", why).toBe(PLANK_DEPARTURES.has(why));
   });
 
-  it("has the sea, foam and weather of the deck's code", () => {
-    const element = (id: string) => ship.ambience.find((each) => each.id === id)!.behaviour;
-    for (const id of ["sea", "sea-still"]) {
-      const sea = element(id);
-      if (sea.kind !== "tile") throw new Error(`${id} is a tile`);
-      expect(sea.origin).toBe(HORIZON);
-      expect(sea.bands).toEqual([
-        { slot: "back", fromRow: HORIZON },
-        { slot: "front", fromRow: WATERLINE },
-      ]);
-    }
-    const foam = element("foam-still");
-    if (foam.kind !== "strip") throw new Error("the still foam is a strip");
-    expect([foam.top, foam.span]).toEqual([FOAM_TOP, [FOAM_SPAN.left, FOAM_SPAN.right]]);
+  it("has the weather of the deck's code, and the code wake stands at the pack's wake until it is retired", () => {
+    expect([WATERLINE, STERN.y]).toEqual([shipWater().waterline, shipWater().waterline]);
+    expect(codeWakeSpot(ship)).toEqual({ id: "wake", slot: "front", order: 7 });
     expect(ship.atmosphere!.table).toEqual(
       ATMOSPHERE.map((row) => ({ at: row.at, pace: row.water.pace, drift: row.water.drift, wind: row.wind, sail: row.sail, billow: row.billow, swell: row.swell, heave: row.heave, wake: row.wake, mood: row.mood })),
     );
     expect(ship.atmosphere!.delivered.heave).toBe(HEAVE);
-    expect(ship.palette.fallbackFill).toBe(hex(SEA_FALLBACK));
   });
 });

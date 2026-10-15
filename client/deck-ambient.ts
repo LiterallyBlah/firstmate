@@ -7,8 +7,8 @@
  * no shaders, so a software renderer pays only for sprites. Motion is whole art pixels, slow, and
  * small — the crew is what should catch the eye.
  *
- * The sea, the sky and the flyby's sprite are the generated environment's (`client/deck-environment.ts`,
- * `client/deck-sky.ts`); this file keeps only where the water is and where a flyby flies.
+ * The sea, the sky and the flyby's sprite are the setting's (`client/deck-ambience.ts`, drawn by
+ * `client/deck-environment.ts`); this file keeps only where and when a flyby flies.
  *
  * - **Ship** — bobs a pixel up and down over about six seconds, crew and all; the sea does not.
  * - **Masthead** — the crow's nest and topmast, cut from the hull (or the tall mast's top rows), sway a pixel
@@ -154,10 +154,3 @@ export function flybyPose(ageSeconds: number, flyby: Pick<Behaviour<"flyby">, "s
   const step = Math.floor((Math.max(0, ageSeconds) * 1000) / flyby.frameMs);
   return flyby.sequence[step % flyby.sequence.length] ?? flyby.glide;
 }
-
-/** The sea's colour where the generated water could not be loaded: the hull's navy, deepened. */
-export const SEA_FALLBACK = 0x15304a;
-
-/** Where the water is, in deck rows: the far sea's edge behind the hull, and the waterline in front of it. */
-export const HORIZON = 96;
-export const WATERLINE = 151;
