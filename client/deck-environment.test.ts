@@ -5,7 +5,7 @@
  * sky, and the plain sea the deck falls back to without its environment. Then the extras: the tall mast and
  * its sail, the crew's looks, the at-ease sailor's breath, and the wake. Then the camera closing in on a
  * focused sailor: the zoom over the deck's clock, the veil and the spotlight, a click read through the camera,
- * the snap under reduced motion, and a resize while focused. Whether WebGL paints it is the browser
+ * the snap under reduced motion, and a resize while focused. And the weather, livelier as more of the crew works. Whether WebGL paints it is the browser
  * harnesses' (`docs/ship-deck-environment/`, `docs/ship-deck-tweaks/`, `docs/ship-deck-focus/`).
  */
 import { readFileSync } from "node:fs";
@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 
 import { DeckArtManifestSchema, DeckEnvironmentManifestSchema, DeckExtrasManifestSchema, environmentImagePaths, extrasImagePaths } from "../shared/ship-deck";
 import { HORIZON, WATERLINE } from "./deck-ambient";
+import { BUSY_CREW, shade, STORM_SHADE } from "./deck-atmosphere";
 import { cloudPeriod } from "./deck-clouds";
 import { createScenery, FOAM_SPAN, FOAM_TOP, type DeckEnvironmentImages } from "./deck-environment";
 import { drawnWater } from "./deck-water";
@@ -25,7 +26,7 @@ import { toCanvas } from "./deck-hover";
 import type { DeckExtrasImages } from "./deck-extras";
 import type { DeckHover } from "./deck-hover";
 import type { FrameScheduler, MotionSignals } from "./deck-loop";
-import { DECK_MOTION_ATTRIBUTE, DECK_SKY_ATTRIBUTE, deckBox, fitDeck, startDeck, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
+import { DECK_MOTION_ATTRIBUTE, DECK_SKY_ATTRIBUTE, DECK_WEATHER_ATTRIBUTE, deckBox, fitDeck, startDeck, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
 import { SKY_REFRESH_MS } from "./deck-sky";
 import { deckScene, depthOf, type DeckScene, type DeckSailor, type DeckState } from "./deck-scene";
 
@@ -453,6 +454,14 @@ const extras: DeckExtrasImages = {
 };
 /** The extras without the tall mast's image: the hull's own short rig, as before it. */
 const shortRig: DeckExtrasImages = { manifest: extrasManifest, images: new Map([...extras.images].filter(([path]) => path !== "mast/tall-mast.png")) };
+
+/** Two crewmates working: the weather the art's own timing was made for (`client/deck-atmosphere.ts`). */
+function twoWorking(): DeckScene {
+  return crewScene([
+    ["one", "working"],
+    ["two", "working"],
+  ]);
+}
 
 function crewScene(sailors: Array<[string, DeckState]>): DeckScene {
   const scene = deckScene([], theme);
@@ -926,7 +935,8 @@ describe("the clouds in the sky", () => {
   });
 
   it("drifts them right, slowly, on the scene clock, and the same opening gives the same sky", async () => {
-    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy });
+    // Two crewmates working: the clouds at their own speed (`client/deck-atmosphere.ts`).
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy, scene: twoWorking() });
     deck.advance(0);
     const before = inSky(deck);
     // A minute of frames: each cloud a few dozen sky pixels on at most, never back — counted round its lap, for one that wraps.
@@ -940,10 +950,10 @@ describe("the clouds in the sky", () => {
     expect(moved.every((step) => step >= 0 && step <= 50)).toBe(true);
     expect(moved.filter((step) => step >= 10)).toHaveLength(7);
     expect(after.map((place) => place.y)).toEqual(before.map((place) => place.y));
-    const again = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy });
+    const again = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy, scene: twoWorking() });
     again.advance(0);
     expect(inSky(again)).toEqual(before);
-    const later = await start(environment, { now: new Date(2026, 9, 14, 12, 7), extras: cloudy });
+    const later = await start(environment, { now: new Date(2026, 9, 14, 12, 7), extras: cloudy, scene: twoWorking() });
     later.advance(0);
     expect(inSky(later)).not.toEqual(before);
     for (const opened of [deck, again, later]) opened.drawing.destroy();
@@ -1103,7 +1113,8 @@ describe("the animated water on the deck", () => {
   });
 
   it("cycles every part's frames, 240 ms each, the sea's tiles together, the wake held at the stern while the sea drifts", async () => {
-    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
+    // Two crewmates working: the art's own timing.
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: twoWorking() });
     deck.advance(0);
     const seen = { sea: new Set<string>(), wake: new Set<string>(), foam: new Set<string>(), drift: new Set<number>() };
     const wake = wakeOf(deck.app.stage);
@@ -1129,7 +1140,7 @@ describe("the animated water on the deck", () => {
   });
 
   it("keeps the frame showing through a resize: new tiles on the same frame", async () => {
-    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: twoWorking() });
     deck.advance(0);
     for (let frame = 0; frame < 8; frame += 1) deck.advance(34);
     const showing = texturePath(seaTiles(deck.app.stage)[0]!);
@@ -1185,7 +1196,7 @@ describe("the animated water on the deck", () => {
   });
 
   it("on the plain sea without the environment, still draws the generated wake", async () => {
-    const plain = await start(null, { now: new Date(2026, 9, 14, 12, 0), extras });
+    const plain = await start(null, { now: new Date(2026, 9, 14, 12, 0), extras, scene: twoWorking() });
     plain.advance(16);
     expect(one(plain.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:near", "wake"]);
     const wake = wakeOf(plain.app.stage);
@@ -1202,5 +1213,102 @@ describe("the animated water on the deck", () => {
     const sprites = [...seaTiles(deck.app.stage), wakeOf(deck.app.stage), ...foamOf(deck.app.stage)];
     deck.drawing.destroy();
     expect(sprites.every((sprite) => sprite.texture.destroyed && sprite.texture.source.destroyed)).toBe(true);
+  });
+});
+
+describe("the weather on the deck, by how busy the crew is", () => {
+  const busy = () => crewScene(Array.from({ length: BUSY_CREW }, (_, index): [string, DeckState] => [`hand-${index}`, "working"]));
+  const idle = () => crewScene([["dozing", "idle"]]);
+  const cloudy: DeckExtrasImages = {
+    ...extras,
+    cloudMasks: new Map(
+      extrasManifest.clouds!.sprites.map((sprite) => [sprite.texture, [0, 1, 2].map((slot) => ({ image: `${sprite.texture}#${slot}` })) as [unknown, unknown, unknown]]),
+    ),
+  };
+  const seaFrame = (deck: Awaited<ReturnType<typeof start>>) => texturePath(one(deck.app.stage, "sea:far").children[0]!);
+  /** Over `seconds` at 30 frames a second: how often the sea's frame and the sail's state changed, how far the sea and the first cloud went. */
+  function watch(deck: Awaited<ReturnType<typeof start>>, seconds: number) {
+    deck.advance(0);
+    const sail = one(deck.app.stage, "sail") as FakeSprite;
+    const cloud = one(deck.app.stage, "clouds").children[0]!;
+    const counts = { sea: 0, sail: 0, drift: 0, cloud: 0 };
+    let [sea, cloth, drift, x] = [seaFrame(deck), sail.texture.frame.x, one(deck.app.stage, "sea:far").position.x, cloud.position.x];
+    for (let frame = 0; frame < seconds * 30; frame += 1) {
+      deck.advance(34);
+      if (seaFrame(deck) !== sea) counts.sea += 1;
+      if (sail.texture.frame.x !== cloth) counts.sail += 1;
+      const at = one(deck.app.stage, "sea:far").position.x;
+      // The drift wraps every tile; count whole pixels moved.
+      counts.drift += (((at - drift) % 256) + 256) % 256;
+      if (cloud.position.x > x) counts.cloud += cloud.position.x - x;
+      [sea, cloth, drift, x] = [seaFrame(deck), sail.texture.frame.x, at, cloud.position.x];
+    }
+    return counts;
+  }
+
+  it("plays the sea, drifts it and the clouds, and flaps the sail faster with a busy crew than an idle one", async () => {
+    const calm = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy, scene: idle() });
+    const lively = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy, scene: busy() });
+    const [slow, fast] = [watch(calm, 6), watch(lively, 6)];
+    // Idle: half the art's pace, about 12 frames in 6 s; busy: nearly twice it, about 47.
+    expect(slow.sea).toBeLessThan(15);
+    expect(fast.sea).toBeGreaterThan(40);
+    expect(fast.drift).toBeGreaterThan(slow.drift * 3);
+    expect(fast.cloud).toBeGreaterThan(slow.cloud * 3);
+    expect(fast.sail).toBeGreaterThan(slow.sail * 3);
+    for (const deck of [calm, lively]) deck.drawing.destroy();
+  });
+
+  it("fills the wake out and shades the sky a touch greyer with a busy crew; idle, a fainter wake and the sky as drawn", async () => {
+    const calm = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy, scene: idle() });
+    const lively = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: cloudy, scene: busy() });
+    for (const deck of [calm, lively]) deck.advance(34);
+    expect(one(calm.app.stage, "wake").alpha).toBeLessThan(0.7);
+    expect(one(lively.app.stage, "wake").alpha).toBe(1);
+    expect([one(calm.app.stage, "sky:under").tint, one(calm.app.stage, "sky:over").tint]).toEqual([0xffffff, 0xffffff]);
+    expect([one(lively.app.stage, "sky:under").tint, one(lively.app.stage, "sky:over").tint]).toEqual([STORM_SHADE, STORM_SHADE]);
+    // The clouds take the same shade over the sky's own colours.
+    const clouds = (deck: Awaited<ReturnType<typeof start>>) => one(deck.app.stage, "clouds").children[0]!.children.map((mask) => mask.tint);
+    expect(clouds(calm)).toEqual([0xa8b9bd, 0xbecac6, 0xd9d4be]);
+    expect(clouds(lively)).toEqual([0xa8b9bd, 0xbecac6, 0xd9d4be].map((colour) => shade(colour, STORM_SHADE)));
+    for (const deck of [calm, lively]) deck.drawing.destroy();
+  });
+
+  it("opens in the crew's weather and eases to a new one as the crew changes, never snapping", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: idle() });
+    const weather = () => Number(deck.app.canvas.attributes.get(DECK_WEATHER_ATTRIBUTE));
+    deck.advance(0);
+    expect(weather()).toBe(0);
+    deck.drawing.update(busy());
+    deck.advance(34);
+    expect(weather()).toBeGreaterThan(0);
+    expect(weather()).toBeLessThan(0.05);
+    const seen: number[] = [];
+    for (let frame = 0; frame < 30 * 15; frame += 1) {
+      deck.advance(34);
+      seen.push(weather());
+    }
+    expect(seen).toEqual([...seen].sort((a, b) => a - b));
+    expect(seen.at(-1)).toBeGreaterThan(0.98);
+    expect(seen.filter((value) => value > 0.2 && value < 0.8).length).toBeGreaterThan(30);
+    deck.drawing.destroy();
+
+    const opened = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: busy() });
+    opened.advance(0);
+    expect(opened.app.canvas.attributes.get(DECK_WEATHER_ATTRIBUTE)).toBe("1.00");
+    opened.drawing.destroy();
+  });
+
+  it("stays as it always was under reduced motion, however busy: calm frames, no drift, the whole wake, the sky untinted", async () => {
+    const deck = await start(environment, { reducedMotion: true, now: new Date(2026, 9, 14, 12, 0), extras: cloudy, scene: busy() });
+    expect(deck.app.canvas.attributes.get(DECK_WEATHER_ATTRIBUTE)).toBe("still");
+    expect(seaFrame(deck)).toBe("water/sea/frame-0.png");
+    expect(texturePath(one(deck.app.stage, "wake"))).toBe("water/wake/frame-0.png");
+    expect(one(deck.app.stage, "wake").alpha).toBe(1);
+    expect(one(deck.app.stage, "sea:far").position.x).toBe(0);
+    expect(one(deck.app.stage, "sky:under").tint).toBe(0xffffff);
+    expect((one(deck.app.stage, "sail") as FakeSprite).texture.frame.x).toBe(0);
+    expect(one(deck.app.stage, "ship").position.y).toBe(0);
+    deck.drawing.destroy();
   });
 });

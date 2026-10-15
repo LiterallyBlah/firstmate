@@ -17,7 +17,8 @@
  * `overboard` layer over the near sea — outside the ship's bob, as the shark's art asks — and the shark and
  * the splash are drawn there after it, at their water anchors.
  *
- * Who moves where is `client/deck-crew.ts`; the ambient motion is `client/deck-ambient.ts`; the sea, the
+ * Who moves where is `client/deck-crew.ts`; the ambient motion is `client/deck-ambient.ts`, and how lively it is —
+ * the sea, the wind, the sail, the bob — `client/deck-atmosphere.ts`, by how many of the crew are working; the sea, the
  * sky and the gull are `client/deck-environment.ts`, from the generated art; the sail and the crew's looks
  * are `client/deck-extras.ts`; when a frame
  * is drawn at all is `client/deck-loop.ts`; each state's badge is `client/deck-badges.ts`; which sailor the
@@ -45,6 +46,7 @@
  */
 import type { DeckArtManifest, SailorPose } from "../shared/ship-deck";
 import { LANTERNS, lanternFlicker, MASTHEAD, mastSway, shipBob, type MotionPlan } from "./deck-ambient";
+import { atmosphereAt, crewIntensity, deliveredWeather, openingAtmosphere, stepAtmosphere, weatherOf } from "./deck-atmosphere";
 import { ASK_PAPER, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, BREATH_ROWS, createCrew, crewFigures, fading, plankEffects, SHARK_MOUTH, stepCrew, stepDepartures, type Figure } from "./deck-crew";
 import { ATLAS_LOOKS, crewLooks, drawnMast, drawnPlank, drawnSail, lookLane, mastLayout, sailFrame, type DeckExtrasImages } from "./deck-extras";
@@ -65,6 +67,8 @@ export const DECK_CANVAS_ATTRIBUTE = "data-firstmate-deck";
 export const DECK_MOTION_ATTRIBUTE = "data-firstmate-deck-motion";
 /** Marks the canvas with the sky that shows most (`dawn` … `night`), or `none` without the environment. */
 export const DECK_SKY_ATTRIBUTE = "data-firstmate-deck-sky";
+/** Marks the canvas with the weather's intensity as drawn, `0.00` to `1.00` (`client/deck-atmosphere.ts`). */
+export const DECK_WEATHER_ATTRIBUTE = "data-firstmate-deck-weather";
 
 type Style = string | number | { color?: string | number; width?: number; alpha?: number };
 
@@ -599,6 +603,8 @@ export async function startDeck(
   /** Where each reply marker hangs in that frame (`askMarks`). */
   let drawnMarks: ReadonlyMap<string, AskMark> = new Map();
   let drawnBob = { x: 0, y: 0 };
+  // The weather opens at the crew's, as the crew already aboard is simply there.
+  let atmosphere = openingAtmosphere(crewIntensity(scene.sailors));
   let drawnFit: DeckFit = { scale: 0, x: 0, y: 0 };
   let drawnLayout = "";
   let pointer: { x: number; y: number } | null = null;
@@ -820,11 +826,15 @@ export async function startDeck(
     // Reduced motion turned on mid-walk: everyone to their anchor, nobody frozen on the way or on the ladder,
     // and anyone on the way out fading where they are.
     if (!moving) applyCrew(crew, current.sailors, { snap: true, departures: current.departures });
-    const bob = moving ? shipBob(seconds) : { x: 0, y: 0 };
+    // The weather: eased towards how busy the crew is, each animation on its own clock; as it always was when still.
+    atmosphere = stepAtmosphere(atmosphere, stepMs, crewIntensity(current.sailors), moving);
+    const params = atmosphereAt(atmosphere.intensity);
+    const bob = moving ? shipBob(atmosphere.swell, params.heave) : { x: 0, y: 0 };
     ship.position.set(bob.x, bob.y);
-    masthead.position.set(rig.masthead.x + (moving ? mastSway(seconds) : 0), rig.masthead.y);
-    if (sail !== null && sailTextures !== null && sailManifest !== null) sail.texture = sailTextures.states[sailFrame(seconds, sailManifest, moving)]!;
-    const sky = scenery.draw(seconds, plan, currentMinute());
+    masthead.position.set(rig.masthead.x + (moving ? mastSway(atmosphere.swell, params.heave) : 0), rig.masthead.y);
+    if (sail !== null && sailTextures !== null && sailManifest !== null)
+      sail.texture = sailTextures.states[sailFrame(atmosphere.sail, sailManifest, moving, params.billow)]!;
+    const sky = scenery.draw(seconds, plan, currentMinute(), moving ? weatherOf(atmosphere) : deliveredWeather(seconds));
     for (const { lantern, glow, glass } of lanterns) {
       const level = moving ? lanternFlicker(seconds, lantern.seed) : 0.85;
       glow.alpha = 0.45 + 0.55 * level;
@@ -840,6 +850,7 @@ export async function startDeck(
     drawEffects();
     watchFades();
     canvas.setAttribute(DECK_MOTION_ATTRIBUTE, plan.level);
+    canvas.setAttribute(DECK_WEATHER_ATTRIBUTE, moving ? atmosphere.intensity.toFixed(2) : "still");
     canvas.setAttribute(DECK_SKY_ATTRIBUTE, sky === null ? "none" : (skyPhases[dominantPhase(sky)]?.id ?? "none"));
     app.render();
   }
