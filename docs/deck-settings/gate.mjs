@@ -33,6 +33,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { crc32, deflateSync, inflateSync } from "node:zlib";
 import { createHash } from "node:crypto";
+import { expectedChange } from "./expected-changes.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "../..");
@@ -53,6 +54,9 @@ const MASK_TOOLBAR = process.env.MASK_TOOLBAR === "1";
 mkdirSync(join(failures, "shots"), { recursive: true });
 /** `ONLY=a,b` renders only the scenarios named. */
 const ONLY = process.env.ONLY?.split(",") ?? null;
+// Reviewed additions: exact main AND branch hashes; no masks, tolerances or scenario exemptions.
+const expectedPath = join(here, "expected-changes.json");
+const expected = existsSync(expectedPath) ? JSON.parse(await readFile(expectedPath, "utf8")).shots : {};
 
 for (const bundle of ["main", "branch"]) {
   if (!existsSync(join(generated, `${bundle}.client.js`))) throw new Error(`no ${bundle} bundle: run node docs/ship-deck-canvas/compile.mjs first`);
@@ -295,6 +299,7 @@ async function open(browser, tree, { theme = "dark", working = null, reducedMoti
 
 async function realWait(view, predicate) {
   for (let attempt = 0; attempt < 600; attempt += 1) {
+    if (errors.length > 0) throw new Error(`page errors: ${JSON.stringify(errors)}`);
     if (await view.evaluate(predicate)) return;
     await view.waitForTimeout(50);
   }
@@ -475,6 +480,7 @@ async function render(browser, tree, scenario) {
   await scenario.run(view, async function (name) {
     shots.push([name, await shot(view)]);
     facts.push(await canvasFacts(view));
+    if (process.env.PROGRESS === "1") console.log(`captured ${tree} ${scenario.name}/${name}`);
   });
   await view.context().close();
   return { shots, facts };
@@ -525,9 +531,11 @@ async function run(browser, scenario) {
         flakes.push({ scenario: label, shot: name, ...flake });
       }
     }
-    shots.push({ shot: name, ...outcome, ...(flake === null ? {} : { flake }), canvas: branch.facts[index], canvasMatchesMain: JSON.stringify(main.facts[index]) === JSON.stringify(branch.facts[index]) });
-    if (!outcome.identical) identical = false;
-    console.log(`${outcome.identical ? (flake === null ? "same" : "same (flake)") : "DIFF"}  ${label} ${name}${outcome.identical ? (flake === null ? "" : ` — ${flake.differingPixels} px in ${flake.box} the first time, gone on re-render`) : ` — ${outcome.differingPixels} px in ${outcome.box}`}`);
+    const intentional = expectedChange(expected, `${label}/${name}`, outcome);
+    const canvasMatchesMain = JSON.stringify(main.facts[index]) === JSON.stringify(branch.facts[index]);
+    shots.push({ shot: name, ...outcome, ...(flake === null ? {} : { flake }), ...(intentional === null ? {} : { intentional }), canvas: branch.facts[index], canvasMatchesMain });
+    if ((!outcome.identical && intentional === null) || !canvasMatchesMain) identical = false;
+    console.log(`${outcome.identical ? (flake === null ? "same" : "same (flake)") : intentional === null ? "DIFF" : "expected"}  ${label} ${name}${outcome.identical ? (flake === null ? "" : ` — ${flake.differingPixels} px in ${flake.box} the first time, gone on re-render`) : ` — ${outcome.differingPixels} px in ${outcome.box}`}`);
   }
   results.scenarios.push({ scenario: label, options: scenario.options, shots });
 }
@@ -554,8 +562,10 @@ try {
 results.pageErrors = errors;
 results.flakes = flakes;
 results.shots = results.scenarios.reduce((sum, scenario) => sum + scenario.shots.length, 0);
-results.identical = identical && errors.length === 0;
+results.passed = identical && errors.length === 0;
+results.identical = results.scenarios.every((scenario) => scenario.shots.every((shot) => shot.identical)) && errors.length === 0;
+results.intentionalShots = results.scenarios.reduce((sum, scenario) => sum + scenario.shots.filter((shot) => shot.intentional !== undefined).length, 0);
 if (results.control !== null) results.controlIdentical = results.control.every((entry) => entry.identical);
 await writeFile(join(here, "gate-results.json"), `${JSON.stringify(results, null, 2)}\n`);
-console.log(`${results.shots} shots: ${results.identical ? "pixel-identical to main" : "NOT identical"}${errors.length > 0 ? `; page errors: ${errors.join(" | ")}` : ""}`);
-if (!results.identical || results.controlIdentical === false) process.exitCode = 1;
+console.log(`${results.shots} shots: ${results.passed ? (results.identical ? "pixel-identical to main" : `PASS, ${results.intentionalShots} exact reviewed additions`) : "FAIL"}${errors.length > 0 ? `; page errors: ${errors.join(" | ")}` : ""}`);
+if (!results.passed || results.controlIdentical === false) process.exitCode = 1;

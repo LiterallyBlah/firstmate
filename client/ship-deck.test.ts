@@ -740,7 +740,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
       ["plank", null],
     ]);
     expect(whole.effects).toEqual(shipManifest().effects);
-    expect(whole.ambience.elements.map((element) => element.id)).toEqual(["sky", "overcast", "stars", "lightning", "clouds", "gull", "sea", "wake", "foam", "spindrift"]);
+    expect(whole.ambience.elements.map((element) => element.id)).toEqual(["sky", "overcast", "stars", "lightning", "clouds", "gull", "sea", "wake", "foam", "spindrift", "weather-serpent", "weather-kraken"]);
     expect(whole.ambience.flats).toEqual([]);
     expect(whole.masks.size).toBe(10);
     expect(warnings).toEqual([]);
@@ -753,7 +753,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
       warn,
       cut,
     );
-    expect(partial.ambience.elements.map((element) => element.id)).toEqual(["foam", "spindrift"]);
+    expect(partial.ambience.elements.map((element) => element.id)).toEqual(["foam", "spindrift", "weather-serpent", "weather-kraken"]);
     expect(partial.ambience.flats.map((element) => element.id)).toEqual(["sea"]);
     expect(partial.parts.parts.map((part) => [part.id, part.place])).toEqual([["masthead", "topmast"]]);
     expect(partial.parts.pieces.map((piece) => [piece.id, piece.by])).toEqual([
@@ -765,7 +765,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
       ["bollard-gunwale-aft", null],
     ]);
     const skyless = await packArt(await failing(["sky-dusk", "water-foam-frame-2"]), warn, cut);
-    expect(skyless.ambience.elements.map((element) => element.id)).toEqual(["gull", "sea", "wake", "foam-still", "spindrift"]);
+    expect(skyless.ambience.elements.map((element) => element.id)).toEqual(["gull", "sea", "wake", "foam-still", "spindrift", "weather-serpent", "weather-kraken"]);
     // A look is the cast's: its image is the pack's, by id, and one that did not decode is not handed out.
     expect(partial.images.has("crew-variants-03-navigator")).toBe(false);
     expect(partial.images.has("crew-variants-01-bosun")).toBe(true);

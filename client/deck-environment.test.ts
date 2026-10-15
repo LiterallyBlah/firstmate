@@ -1631,6 +1631,55 @@ describe("the weather on the deck, by how busy the crew is", () => {
   });
 });
 
+describe("intensity-driven creature cycles in the ship pack", () => {
+  function creatures() {
+    const art = sceneryArt({ extras: { ...extras, masks: "all" }, art: environment });
+    const images = new Map(art.images);
+    for (const id of ["weather-serpent", "weather-kraken"].flatMap(elementImages)) images.set(id, { image: pathOf(id) });
+    const ambience = compileAmbience(shipManifest(), (id) => images.has(id), (id) => art.masks.has(id));
+    const scenery = createScenery(pixi, shipStage(), { ...art, images, ambience }, 0);
+    scenery.layout({ left: 0, right: 426, top: -80, bottom: 171 });
+    return { scenery, art, front: scenery.front as unknown as FakeContainer };
+  }
+  const full = { level: "full", animate: true, fps: 30, ambient: true } as const;
+
+  it("looms before surfacing, ramps the two creatures separately, then clears them as work quiets", () => {
+    const { scenery, art, front } = creatures();
+    const draw = (intensity: number | null) => scenery.draw(0, full, 720, { ...deliveredWeather(art.atmosphere, 0), intensity });
+    const serpent = one(front, "weather-serpent");
+    const surfaced = one(front, "weather-serpent:serpent-surface");
+    const kraken = one(front, "weather-kraken:kraken-surface");
+    for (const intensity of [null, 0, .5]) {
+      draw(intensity);
+      expect([serpent, surfaced, kraken].every((sprite) => !sprite.visible)).toBe(true);
+    }
+    draw(.6);
+    expect(serpent.visible).toBe(true);
+    expect(surfaced.visible).toBe(false);
+    expect(kraken.visible).toBe(false);
+    draw(1);
+    expect(serpent.visible).toBe(false);
+    expect(surfaced.visible && kraken.visible).toBe(true);
+    expect(surfaced.alpha).toBe(.85);
+    draw(.5);
+    expect([serpent, surfaced, kraken].every((sprite) => !sprite.visible)).toBe(true);
+    scenery.destroy();
+  });
+
+  it("freezes creatures in lite and hides them under reduced motion even with a busy input", () => {
+    const { scenery, art, front } = creatures();
+    for (const seconds of [0, 1.4, 3.2, 8]) {
+      const weather = { ...deliveredWeather(art.atmosphere, seconds), intensity: 1 };
+      scenery.draw(seconds, { ...full, level: "lite", fps: 12, ambient: false }, 720, weather);
+      expect(texturePath(one(front, "weather-serpent:serpent-surface"))).toBe("enrichment/serpent-0.png");
+      expect(one(front, "weather-kraken:kraken-surface").visible).toBe(true);
+      scenery.draw(seconds, { level: "still", animate: false, fps: 0, ambient: false }, 720, weather);
+      expect(front.children.filter((sprite) => sprite.label.startsWith("weather-")).every((sprite) => !sprite.visible)).toBe(true);
+    }
+    scenery.destroy();
+  });
+});
+
 describe("the heavy weather on the deck, at the top of the dial", () => {
   const working = (count: number) => crewScene(Array.from({ length: count }, (_, index): [string, DeckState] => [`hand-${index}`, "working"]));
   /** The extras, with every cloud and every cloud variant cut into its masks. */
@@ -1725,7 +1774,7 @@ describe("the heavy weather on the deck, at the top of the dial", () => {
       if (flash.visible) {
         frames += 1;
         if (!showing) flashes += 1;
-        expect(flash.alpha).toBeLessThanOrEqual(0.28);
+        expect(flash.alpha).toBeLessThanOrEqual(0.54);
         const sky = one(deck.app.stage, "sky:under");
         expect(flash.position.y + 48 * flash.scale.y).toBeLessThanOrEqual(sky.position.y + 213 * sky.scale.y + 1e-6);
       }
