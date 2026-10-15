@@ -269,7 +269,8 @@ export function commandText(command: MateCommand, args: string): Promise<string>
 /**
  * Delivers the captain's words, joining the first mate's turn if it is mid-way through one.
  * Images go with the message; files are written to Paseo's uploads first and go as their paths —
- * see `shared/attachments.ts`. Nothing is written until the first mate is known to exist.
+ * see `shared/attachments.ts`. Nothing is written until the first mate is known to exist. The chat's
+ * `messageId` becomes the timeline item's `clientMessageId`, by which the chat finds the images it kept.
  */
 export async function askMate(paseo: PaseoApi, message: CaptainMessage, beforeSend?: () => Promise<void>): Promise<string> {
   return oneAtATime(async () => {
@@ -282,6 +283,7 @@ export async function askMate(paseo: PaseoApi, message: CaptainMessage, beforeSe
     await sendWithoutInterrupting(paseo, agentId, message.text.trim(), {
       ...(images.length > 0 ? { images } : {}),
       ...(attachments.length > 0 ? { attachments } : {}),
+      ...(message.messageId === undefined ? {} : { messageId: message.messageId }),
     }, { channel: "mate-ask", actor: "captain", mateRecipient: true });
     return agentId;
   });
