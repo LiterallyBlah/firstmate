@@ -1,0 +1,114 @@
+{
+  "masts": {
+    "before": {
+      "texture": "mast/tall-mast.png",
+      "size": [
+        48,
+        224
+      ],
+      "position": [
+        187,
+        -112
+      ],
+      "sway": 52,
+      "clears": [
+        117,
+        0,
+        149,
+        71
+      ],
+      "replaces": "mast"
+    },
+    "after": {
+      "texture": "mast/tall-mast.png",
+      "size": [
+        48,
+        192
+      ],
+      "position": [
+        187,
+        -80
+      ],
+      "sway": 52,
+      "clears": [
+        117,
+        0,
+        149,
+        71
+      ],
+      "replaces": "mast"
+    }
+  },
+  "before": {
+    "visible": {
+      "top": -185.98345588235296,
+      "bottom": 244.71507352941177,
+      "left": -8.898729946524064,
+      "right": 434.85127005347596,
+      "scale": 1.6856338028169013
+    },
+    "motion": "full"
+  },
+  "after": {
+    "visible": {
+      "top": -169.96574197860963,
+      "bottom": 260.73278743315507,
+      "left": -8.898729946524064,
+      "right": 434.85127005347596,
+      "scale": 1.6856338028169013
+    },
+    "motion": "full"
+  },
+  "sway": {
+    "distinctFrames": 2,
+    "motion": "full"
+  },
+  "panes": {
+    "before-pane-wide-short.png": {
+      "top": -117.61118307426598,
+      "bottom": 177.1804835924007,
+      "left": -253.55138169257341,
+      "right": 678.9372841105354,
+      "scale": 1.309399293286219
+    },
+    "after-pane-wide-short.png": {
+      "top": -85.34650259067358,
+      "bottom": 176.11183074265978,
+      "left": -200.4965457685665,
+      "right": 626.5517055267703,
+      "scale": 1.4763346613545816
+    },
+    "after-pane-narrow-tall.png": {
+      "top": -348.1595849802372,
+      "bottom": 439.3651185770751,
+      "left": -8.769762845849803,
+      "right": 434.98023715415025,
+      "scale": 1.140281690140845
+    },
+    "after-pane-fractional.png": {
+      "top": -208.96177072542133,
+      "bottom": 299.6627144553655,
+      "left": -8.611061980443187,
+      "right": 435.1389380195568,
+      "scale": 1.393556338028169
+    }
+  },
+  "plank": {
+    "key": "work-1",
+    "boardsAfterMs": 759,
+    "beats": {
+      "plank-1-on-the-board": 1184.5,
+      "plank-2-splash": 2290,
+      "plank-3-chomp": 3100
+    },
+    "motion": "full"
+  },
+  "focus": {
+    "panel": "Build the chapter-craft plan: chapter styles, pacing and introductions: details and actions",
+    "after": null
+  },
+  "reducedMotion": {
+    "motion": "still"
+  },
+  "errors": []
+}

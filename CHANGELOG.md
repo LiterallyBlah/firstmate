@@ -10,6 +10,11 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- The ship deck's crow's nest sits snug over the sail. A trimmed generated mast, 32 px shorter, brings the
+  nest down to 23 rows above the yard instead of 55, so the long bare stretch of pole between them is gone.
+  The sail, the mast's foot and every crewmate stay where they were, and the nest still sways. The deck's fit
+  needs 32 fewer rows above the hull, so in a wide, short pane the ship is drawn a little larger again.
+
 - Answer a crewmate from the ship deck. When one of the first mate's suggestions is about a crewmate's
   work — it names its task id, its pull request (`web#42` or the URL) or its agent id — that sailor wears a
   small white speech bubble with three dots over its state badge, bobbing gently, and the legend counts them.
