@@ -7,7 +7,6 @@ import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { STERN } from "./deck-wake";
 import { cycleFrame } from "./deck-variants";
 import { advanceWater, CALM_WATER } from "./deck-water";
 import { shipElement, shipFile, shipManifest, shipWater } from "../test/ship-pack";
@@ -65,10 +64,10 @@ describe("the animated water as the ship pack has it", () => {
     expect(foam.span).toEqual(art.placement.foam.clipX);
     expect(foam.span).toEqual(shipElement("foam-still", "strip").span);
     expect(sizeOf(foam.frames.sprites[0]!.image)[0]).toBe(art.placement.foam.repeatWidth);
-    // The wake's anchor on the stern's water contact, the code wake's own stern.
+    // The wake's anchor on the stern's water contact, on the waterline.
     expect(wake.anchor).toEqual(art.placement.wake.anchor);
     expect(wake.at).toEqual(art.placement.wake.worldAnchor);
-    expect(wake.at).toEqual([STERN.x, STERN.y]);
+    expect(wake.at[1]).toBe(shipWater().waterline);
     expect([wake.at[0] - wake.anchor[0], wake.at[1] - wake.anchor[1]]).toEqual(art.placement.wake.topLeft);
   });
 

@@ -44,7 +44,14 @@ export interface DeckStage {
   exits: ReadonlyMap<string, Exit>;
   /** Props, where each stands — their feet — and the sprite each is drawn with, registered at `feet`. */
   props: ReadonlyArray<{ id: string; x: number; y: number; image: string; rect: readonly [number, number, number, number] | null; feet: readonly [number, number] }>;
+  /** The pieces that stand on a row, or in front of everything (`null`), where each is: the depth order's (`deckLayers`). */
+  pieces: ReadonlyArray<{ id: string; x: number; y: number; baseline: number | null }>;
+  /** The veil behind a focused worker, and how a worker whose feed is lost is greyed: tint and alpha. */
+  palette: { veil: number; staleTint: number; staleAlpha: number };
 }
+
+/** `#RRGGBB` as a number. */
+const colour = (hex: string) => Number.parseInt(hex.slice(1), 16);
 
 const point = ([x, y]: readonly [number, number]): Point => ({ x, y });
 
@@ -90,6 +97,10 @@ export function compileStage(manifest: SettingManifest): DeckStage {
     entry: point(portals.entry.at),
     exits,
     props: stage.props.map((prop) => ({ id: prop.id, x: prop.at[0], y: prop.at[1], image: prop.sprite.image, rect: prop.sprite.rect ?? null, feet: prop.feet })),
+    pieces: stage.pieces.flatMap((piece) =>
+      piece.baseline === null || typeof piece.baseline === "number" ? [{ id: piece.id, x: piece.at[0], y: piece.at[1], baseline: piece.baseline }] : [],
+    ),
+    palette: { veil: colour(manifest.palette.veil), staleTint: colour(manifest.palette.staleTint), staleAlpha: manifest.palette.staleAlpha },
   };
 }
 
