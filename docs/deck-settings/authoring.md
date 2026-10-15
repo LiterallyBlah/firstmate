@@ -39,8 +39,8 @@ seconds dark, hidden in lite and still).
    props, depth pieces, cast pose roles and entry/departure paths before laying out the manifest. Existing
    `art/settings/ship/setting.json` is a complete reference, not a requirement to use ship names or channels.
 2. Author the stage, zones and portals against those pixels. Every post, entry endpoint and exit queue must
-   be on open, reachable floor; a walk-in's source may be off-floor. Packing zones need enough visible space. Set the fit box to contain every part and
-   effect. Define cast lanes/looks/roles, `copy` for the pane and zone descriptions, and optional ambience,
+   be on open, reachable floor; a walk-in's source may be off-floor. Packing zones need enough visible space.
+   Set the fit box to contain every part and effect. Define cast lanes/looks/roles, `copy` for the pane and zone descriptions, and optional ambience,
    day phases and atmosphere channels. Name each PNG in `images` with dimensions and SHA-256. The total
    image budget is 1,000,000 bytes; no unused image, source file or script belongs in the pack.
 3. Run `npm run lint:deck-packs`. It checks all installed packs: strict schema, references and capabilities,
@@ -72,8 +72,8 @@ ties in manifest order. Existing holders keep their places. Pose fidgets may nam
 a key without one uses the settled pose, and all use the settled mirror rule. Still/stale workers keep
 their settled role. Every lane must define every named fidget pose.
 
-`walk-in@1` is supported as of step 9b. Phase tint and phase frames still require separate engine PRs. Keep choreography finite;
-do not add hooks to work around a missing behavior. The actual office art and installable pack remain
+`walk-in@1` is supported as of step 9b. Phase tint and phase frames still require separate engine PRs.
+Keep choreography finite; do not add hooks to work around a missing behavior. The actual office art and installable pack remain
 pending. The draft contains no placeholder pixels and cannot be selected as an installed pack.
 
 ## Walking entry

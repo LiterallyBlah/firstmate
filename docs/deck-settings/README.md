@@ -363,3 +363,8 @@ there is no `class`. The package still serves 331,187 bytes under `art/`, with n
 Generic tests cover retargeting, reversal/return, sink coexistence, reduced motion, independent effects,
 full/lite frame sizes, paused time and invalid references/geometry. The authored office pack still awaits
 the two remaining engine reviews and the separately commissioned art; it will be a data/art-only PR.
+
+Gate: **81/81 pixel-identical** to main `7842eee`, with no flakes or page errors and matching canvas metadata.
+Full suite: 77 files, 1,000 tests passed, three skipped. Typecheck, pack lint (32 tests) and `git diff --check`
+pass. The client grows by 3,301 bytes, parses in Hermes and has no `class`. Package art remains 331,187 bytes;
+the draft, tests and documentation are excluded. Evidence is in `compile-results.json` and `gate-results.json`.
