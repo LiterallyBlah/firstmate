@@ -11,10 +11,12 @@
  * `client/deck-sky.ts`); this file keeps only where the water is and where a gull flies.
  *
  * - **Ship** — bobs a pixel up and down over about six seconds, crew and all; the sea does not.
- * - **Masthead** — the crow's nest and topmast, cut from the hull, sway a pixel each way behind the bob.
+ * - **Masthead** — the crow's nest and topmast, cut from the hull (or the tall mast's top rows), sway a pixel
+ *   each way behind the bob.
  * - **Lanterns** — three, on the stern post, the quarterdeck's front post and the mast, flickering on
  *   three out-of-step sines.
- * - **Gulls** — now and then one crosses the sky at the masthead's height, flapping in bursts and gliding.
+ * - **Gulls** — now and then one crosses the sky at the short masthead's height, about halfway up the tall
+ *   mast, flapping in bursts and gliding.
  */
 import { DECK_WIDTH } from "./deck-scene";
 
@@ -63,7 +65,7 @@ export function mastSway(seconds: number): number {
   return Math.max(-1, Math.min(1, Math.round(Math.sin((seconds * TAU) / 6.2 - 1.0) * 1.3)));
 }
 
-/** The masthead cut from the hull to sway: the crow's nest and topmast, above the mast piece. */
+/** The masthead cut from the hull to sway: the short rig's crow's nest and topmast, above the mast piece. */
 export const MASTHEAD = { x: 188, y: 0, width: 54, height: 48 } as const;
 
 /** A lantern: where its lamp hangs (the top of its bail), and the depth row it is drawn at. */
@@ -118,8 +120,9 @@ export const GULL_LOWEST = 40;
 
 /**
  * The gulls in the sky at `seconds`: one now and then crosses from one side to the other at about the
- * masthead's height, its height drifting, flapping for a second in every three and gliding between.
- * It flies behind the ship, so one that meets the masthead passes behind it, and low enough that its
+ * short masthead's height (halfway up the tall mast), its height drifting, flapping for a second in every
+ * three and gliding between.
+ * It flies behind the ship, so one that meets the mast passes behind it, and low enough that its
  * whole sprite is inside the deck's frame: a pane that fits the deck's height still shows it.
  * Deterministic: slot k's gull, if it flies at all, leaves at a time and side drawn from k.
  */
