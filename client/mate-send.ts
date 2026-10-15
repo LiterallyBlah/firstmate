@@ -4,7 +4,8 @@
  * message in flight at a time per first mate, and a failure is reported the
  * same way whichever sent it. What the first mate does with a message that
  * arrives mid-turn is the daemon's (`server/send.ts`); what the captain sees
- * go out is the transcript, which echoes the message like any other.
+ * go out is the transcript, which echoes the message like any other, with
+ * the images it carried from `./sent-images`.
  *
  * The gate is in module scope, not component state, so it is shared by the
  * chat and the surface, and a phone switching tabs mid-send — which unmounts
@@ -18,6 +19,7 @@ import type { CaptainMessage } from "../shared/attachments";
 import { askMate, askMateCommand, type MateCommand } from "../shared/fleet";
 import { requestUpdate, type UpdateStatus } from "../shared/update";
 import { errorText } from "./format";
+import { keepSentImages, sentImages } from "./sent-images";
 
 /** One task at a time; a second started while the first runs is refused. */
 export interface SendGate {
@@ -100,7 +102,15 @@ export function useMateSender(mateId: string): MateSender {
 
   return {
     sending,
-    send: (message, onFailure) => deliver(() => ask(message), onFailure),
+    send: (message, onFailure) =>
+      deliver(() => {
+        // Its images are kept for the transcript before it goes, so they show as the daemon echoes it.
+        const outgoing = keepSentImages(message);
+        return ask(outgoing).catch((caught: unknown) => {
+          if (outgoing.messageId !== undefined) sentImages.forget(outgoing.messageId);
+          throw caught;
+        });
+      }, onFailure),
     command: (command) => deliver(() => askCommand({ command, args: "" })),
     update: (token, onResult, onFailure) => deliver(() => update({ token }).then(onResult), onFailure),
   };

@@ -319,6 +319,14 @@ describe("askMate", () => {
     await expect(readFile(String(upload?.path), "utf8")).resolves.toBe("hello");
   });
 
+  it("sends with the chat's message id, which the timeline keeps as the message's clientMessageId", async () => {
+    await updateFirstmateConfig({ mateAgentId: "old-mate" });
+    const { paseo, sent } = fakePaseo({ "old-mate": { ...oldMate, status: "idle" } });
+    const png = { data: Buffer.from("png bytes").toString("base64"), mimeType: "image/png" };
+    await askMate(paseo, { text: "this trail", images: [png], messageId: "firstmate-captain-abc-1" });
+    expect(sent[0]?.options).toMatchObject({ images: [png], messageId: "firstmate-captain-abc-1" });
+  });
+
   it("writes nothing when there is no first mate to send to", async () => {
     const { paseo, sent } = fakePaseo({});
     const notes = { fileName: "notes.txt", mimeType: "text/plain", data: "aGVsbG8=" };

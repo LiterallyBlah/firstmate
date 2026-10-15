@@ -55,10 +55,18 @@ export const FilePartSchema = z.object({
 });
 export type FilePart = z.infer<typeof FilePartSchema>;
 
+/**
+ * The `messageId` the chat gives a message that carries images. The daemon keeps only a message's words
+ * in its timeline, so the chat keeps the images itself, under this id, and finds them again by the
+ * timeline item's `clientMessageId` — as Paseo's own app keeps them on its local copy of the message.
+ */
+export const CAPTAIN_MESSAGE_ID_PREFIX = "firstmate-captain-";
+
 /** The captain's message: words, attachments, or both — never neither. */
 export const CaptainMessageSchema = z
   .object({
     text: z.string(),
+    messageId: z.string().regex(new RegExp(`^${CAPTAIN_MESSAGE_ID_PREFIX}[A-Za-z0-9-]{1,80}$`)).optional(),
     images: z.array(ImagePartSchema).max(MAX_ATTACHMENTS).optional(),
     files: z.array(FilePartSchema).max(MAX_ATTACHMENTS).optional(),
   })
