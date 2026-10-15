@@ -67,8 +67,18 @@ The FirstMate sidebar entry is your Home: chat, a board overview, Home files and
 beside Paseo's native tabs. Crew is the grouped task list; Deck uses your selected scene setting.
 Return with **FirstMate Home**. Paseo controls closing, ordering and arranging the tabs.
 
-**Terminal & browser** opens the home workspace; select an existing native tab or use Paseo's `+`
-launcher there. Browser needs the desktop app. These native panes are not embedded in FirstMate.
+**Shared terminal** reuses the home workspace's terminal named **FirstMate shared**, or creates it
+with the daemon's default shell. Select that terminal in the workspace that opens. The first mate
+can find the same terminal by name and use Paseo's terminal tools. If several have that name, choose
+and rename them in Paseo; FirstMate will not guess. Creation never runs on reload or tab restoration.
+
+**New browser** asks for an HTTP(S) URL and creates a native tab in the desktop app. The first mate
+can discover the same page through Paseo's browser tools when those tools and the desktop automation
+connection are available. It does not create a browser shared across devices; localhost is the
+desktop running the browser.
+
+**Terminal & browser** opens the home workspace so you can select an existing native tab. Use this
+shortcut to return to an existing browser: **New browser** always creates another. These native panes are not embedded in FirstMate.
 Paseo's current plugin API cannot focus an existing terminal/browser by ID, and its browser opener
 creates a new browser without returning its ID. Exact shared-tab reuse is deferred to a future
 upstream API change. No Paseo fork is needed for these workspace panels and shortcuts.
@@ -76,6 +86,8 @@ upstream API change. No Paseo fork is needed for these workspace panels and shor
 Launch a first mate in its home before using the shortcuts. A fleet panel opened from another
 workspace links back to the FirstMate workspace instead of showing fleet work under that workspace.
 On phones, Crew and Board work as workspace panels; Deck explains its wide-web/desktop requirement.
+The shared-tools instructions reach an untouched charter on reload; edited charters use the usual
+comparison/update flow, and a running first mate needs to reread its charter.
 
 ## Switching the first mate's provider or model
 

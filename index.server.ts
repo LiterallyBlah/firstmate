@@ -1,4 +1,6 @@
 import type { PluginServerContext } from "@getpaseo/plugin/server";
+import { ensureSharedTerminal as ensureSharedTerminalRpc } from "./shared/native-tools";
+import { ensureSharedTerminal } from "./server/native-tools";
 
 import { migrateLegacyFiles, readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./server/config";
 import { nameHomeOnce } from "./server/home-name";
@@ -83,6 +85,7 @@ import {
 } from "./shared/remote-crew";
 
 export default function contribute(server: PluginServerContext) {
+  server.handle(ensureSharedTerminalRpc, ({ workspaceId }, { paseo }) => ensureSharedTerminal(paseo, workspaceId));
   const updates = new UpdateService();
   server.handle(checkUpdate, () => updates.check());
   server.handle(requestUpdate, ({ token }, { paseo }) => updates.request(token, (text, beforeSend) => askMate(paseo, { text }, beforeSend)));

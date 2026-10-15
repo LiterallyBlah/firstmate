@@ -58,6 +58,14 @@ function App() {
         openWorkspace(input) {
           window.navigationCalls.push({ workspace: input });
         },
+        ...(params.has("desktop")
+          ? {
+              openBrowser(input) {
+                if (window.browserFailure) throw new Error("Browser host is unavailable");
+                window.navigationCalls.push({ browser: input });
+              },
+            }
+          : {}),
       }}
     />
   );

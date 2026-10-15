@@ -84,6 +84,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/fleet.tsx`            | The screen: header, banners, chat/board split, compact tabs, the shared fleet query.       |
 | `client/workspace-panels.tsx`, `shell.ts`, `hub-launcher.tsx` | Home registration, the Deck/Board/Crew workspace destinations and Home's jump-shortcuts. |
 | `client/fleet-query.ts`       | The shared fleet request and cache, used by Home, workspace panels and the sidebar.       |
+| `shared/native-tools.ts`, `server/native-tools.ts`, `client/native-tools.tsx` | The shared terminal's identity and explicit creation/reuse, and the native browser URL dialog. |
 | `client/screen.ts`            | The screen's id, and the count of working, ready and idle crewmates on its sidebar row. Pure. |
 | `client/sidebar.tsx`          | The sidebar item: the FirstMate row and its badge.                                         |
 | `client/chat.tsx`             | The first mate's conversation, folded to the words, and the composer.                      |
@@ -156,6 +157,31 @@ routes, renderer imports, raw frames, iframe terminals or a copied browser to br
 
 `docs/shell-phase1/` has the fixture render checks, review evidence and bundle/Hermes check. Fixtures
 exercise real views with synthetic host APIs; they are not claims of an installed desktop/device test.
+
+**Native resource creation (slice 2).** Home's **Shared terminal** calls `firstmate.native.terminal`
+with the displayed workspace id. Inside the same lifecycle lock used for role/home changes, the
+server rereads the config, resolves the live mate, checks both its cwd and the workspace's canonical
+directory against the home, refuses archiving workspaces, and lists terminals in that workspace.
+Exactly one named `SHARED_TERMINAL_NAME` (`FirstMate shared`) is reused; none creates a default-shell
+terminal with no command or keys; multiple matches are refused with instructions to select/rename.
+An offline/failed listing never means "missing". Every explicit retry lists again, including after an
+uncertain create response. Closing Home, reloading, restoring tabs and changing devices do not launch,
+kill or replay anything. A terminal killed or renamed by the captain is only replaced on another
+explicit Shared terminal press. The captain selects the terminal in Paseo after workspace navigation.
+
+**New browser** is a separate explicit action, disabled without `navigation.openBrowser`. Its dialog
+accepts absolute HTTP(S) URLs and explains that it creates a new tab; Cancel creates nothing.
+Paseo owns the new local browser's view/profile and opens it in the home workspace. The plugin stores
+no browser ID, URL registry or false cross-device handle. Existing tabs use **Terminal & browser**.
+The client gates duplicate submissions and reports native API failures; a completed terminal request
+does not navigate if Home (or that home workspace's controls) has unmounted.
+
+The charter's shared-tools section teaches the mate to discover the same terminal by workspace/name
+and the same browser via `browser_list_tabs`, then use the IDs returned by those tools. The terminal
+name is rendered from the same shared constant. Browser sharing is conditional on browser tools and
+a connected desktop automation host, not a capability the plugin enables. Localhost is the desktop,
+and another device's browser is a different page. Edited charters retain their usual compare/update
+path; a running mate must reread its charter to receive the new guidance.
 
 ## The plugin never dispatches a crewmate
 

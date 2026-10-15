@@ -21,6 +21,7 @@
  * for a setting left open and one for a setting chosen.
  */
 import { CREW_LABELS } from "../shared/fleet";
+import { SHARED_TERMINAL_NAME } from "../shared/native-tools";
 import { TEMPLATES, fill, readTemplate, withoutNotes, type TemplatePath } from "./templates";
 
 export interface CharterValues {
@@ -63,6 +64,7 @@ export async function renderCharter(values: CharterValues, charter?: string): Pr
     projectLabel: CREW_LABELS.project,
     crewProviderRule,
     crewModeRule,
+    sharedTerminalName: SHARED_TERMINAL_NAME,
   });
   return `${fill(agents, { charter: body.trim() }).trimEnd()}\n`;
 }
