@@ -23,7 +23,8 @@
  *   painting over the cloth. Without it, the short rig is drawn bare, as before the sail.
  * - **The sail** (`art/ship-deck/sails/`), fitted to the tall mast, hangs only on it: its yard on the mast's
  *   lashing point under the crow's nest. It alternates its rest and billow states every `frameMs` (850 ms)
- *   while the deck moves, and rests under reduced motion. It rides the ship's bob but not the masthead's
+ *   while the deck moves — quicker, and billowed longer, as the crew's work freshens the wind
+ *   (`client/deck-atmosphere.ts`) — and rests under reduced motion. It rides the ship's bob but not the masthead's
  *   sway, and hangs behind the crew.
  * - **The plank** is the generated board (`art/ship-deck/plank/`) at its placement, where it decoded; the
  *   board drawn in code (`client/deck-plank.ts`) stands in for it otherwise, so a sailor never walks out on nothing.
@@ -123,9 +124,17 @@ export function mastLayout(
   };
 }
 
-/** Which of the sail's states shows `seconds` into the scene: alternating while the deck moves, the rest frame while it is still. */
-export function sailFrame(seconds: number, sail: { frames: number; frameMs: number }, moving: boolean): number {
+/**
+ * Which of the sail's states shows `seconds` into the scene: alternating while the deck moves, the rest frame while
+ * it is still. `billow` is the share of each cycle past the rest frame, shared evenly by the others: by default
+ * every state has `frameMs`, and a fresher wind (`client/deck-atmosphere.ts`) holds the cloth out longer.
+ */
+export function sailFrame(seconds: number, sail: { frames: number; frameMs: number }, moving: boolean, billow?: number): number {
   if (!moving || sail.frames <= 1 || !Number.isFinite(seconds)) return 0;
-  const step = Math.floor((seconds * 1000) / sail.frameMs) % sail.frames;
-  return step < 0 ? step + sail.frames : step;
+  const cycle = (seconds * 1000) / (sail.frameMs * sail.frames);
+  const phase = cycle - Math.floor(cycle);
+  const even = (sail.frames - 1) / sail.frames;
+  const out = Math.max(0.05, Math.min(0.95, billow !== undefined && Number.isFinite(billow) ? billow : even));
+  if (phase < 1 - out) return 0;
+  return Math.min(sail.frames - 1, 1 + Math.floor(((phase - (1 - out)) / out) * (sail.frames - 1)));
 }
