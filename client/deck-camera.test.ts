@@ -26,14 +26,20 @@ import {
   WHOLE_DECK,
 } from "./deck-camera";
 import { applyCrew, createCrew, crewFigures } from "./deck-crew";
-import { inRestArea } from "./deck-geometry";
+import { inRects } from "./deck-geometry";
 import { figureBox, sailorAt, toCanvas, toDeck } from "./deck-hover";
 import { fitDeck } from "./deck-pixi";
-import { DECK_HEIGHT, DECK_WIDTH, type DeckSailor, type DeckState } from "./deck-scene";
-import { shipViews } from "../test/ship-pack";
+import { type DeckSailor, type DeckState } from "./deck-scene";
+import { shipStage, shipViews } from "../test/ship-pack";
+
+
+// The ship's stage, under the names its constants had in the deck's code.
+const stage = shipStage();
+const restOverflow = stage.zones.get("rest")!.overflow as { areas: ReadonlyArray<readonly [number, number, number, number]>; spacing: readonly [number, number] };
+const inRestArea = (point: { x: number; y: number }) => inRects(restOverflow.areas, point);
 
 const manifest = shipViews().art;
-const deck = { width: DECK_WIDTH, height: DECK_HEIGHT };
+const deck = { width: shipStage().width, height: shipStage().height };
 const still = { x: 0, y: 0 };
 
 function sailor(key: string, state: DeckState): DeckSailor {
@@ -67,18 +73,18 @@ describe("where the focus panel goes", () => {
 
 describe("the camera's shot", () => {
   const screen = { width: 900, height: 500 };
-  const base = fitDeck(screen, deck, 2);
+  const base = fitDeck(screen, deck, 2, shipStage().fit.margin);
   const layout = focusLayout(screen);
   const point = { x: 60, y: 90 };
 
   it("is the exact fit on the whole deck, wherever it last looked", () => {
-    expect(cameraFit(base, WHOLE_DECK, layout, 2)).toEqual(base);
-    expect(cameraFit(base, { amount: 0, point: { x: 300, y: 10 } }, layout, 2)).toEqual(base);
+    expect(cameraFit(base, WHOLE_DECK, layout, 2, shipStage().actorHeight)).toEqual(base);
+    expect(cameraFit(base, { amount: 0, point: { x: 300, y: 10 } }, layout, 2, shipStage().actorHeight)).toEqual(base);
   });
 
   it("closes in on the sailor: enlarged within the zoom's bounds, at the layout's anchor", () => {
-    const fit = cameraFit(base, { amount: 1, point }, layout, 2);
-    expect(fit.scale).toBe(focusScale(base, layout));
+    const fit = cameraFit(base, { amount: 1, point }, layout, 2, shipStage().actorHeight);
+    expect(fit.scale).toBe(focusScale(base, layout, shipStage().actorHeight));
     expect(fit.scale).toBeGreaterThanOrEqual(base.scale * FOCUS_ZOOM_MIN);
     expect(fit.scale).toBeLessThanOrEqual(base.scale * FOCUS_ZOOM_MAX);
     const at = toCanvas(point, fit, still);
@@ -92,7 +98,7 @@ describe("the camera's shot", () => {
     const from = toCanvas(point, base, still);
     let scale = 0;
     for (let step = 0; step <= 20; step += 1) {
-      const fit = cameraFit(base, shotBetween(WHOLE_DECK, { amount: 1, point }, step / 20), layout, 2);
+      const fit = cameraFit(base, shotBetween(WHOLE_DECK, { amount: 1, point }, step / 20), layout, 2, shipStage().actorHeight);
       expect(fit.scale).toBeGreaterThanOrEqual(scale);
       scale = fit.scale;
       const at = toCanvas(point, fit, still);
@@ -130,9 +136,9 @@ describe("the camera's shot", () => {
       { width: 480, height: 600 },
       { width: 333.5, height: 260.25 },
     ]) {
-      const resized = fitDeck(size, deck, 1.5);
+      const resized = fitDeck(size, deck, 1.5, shipStage().fit.margin);
       const laid = focusLayout(size);
-      const fit = cameraFit(resized, { amount: 1, point }, laid, 1.5);
+      const fit = cameraFit(resized, { amount: 1, point }, laid, 1.5, shipStage().actorHeight);
       const at = toCanvas(point, fit, still);
       expect(Math.abs(at.x - laid.anchor.x), JSON.stringify(size)).toBeLessThanOrEqual(1);
       expect(Math.abs(at.y - laid.anchor.y), JSON.stringify(size)).toBeLessThanOrEqual(1);
@@ -142,7 +148,7 @@ describe("the camera's shot", () => {
   });
 
   it("knows what part of the world shows, for laying the sea, sky and veil over it", () => {
-    const fit = cameraFit(base, { amount: 1, point }, layout, 2);
+    const fit = cameraFit(base, { amount: 1, point }, layout, 2, shipStage().actorHeight);
     const visible = visibleWorld(fit, screen);
     expect(visible.left).toBeLessThan(point.x);
     expect(visible.right).toBeGreaterThan(point.x);
@@ -174,7 +180,7 @@ describe("what a click and the keyboard do to the focus", () => {
 
 describe("the sailor under the pointer, through the zoomed camera", () => {
   it("finds every sailor — two dozen resting off the working deck among them — focused on any one, and closes in on its middle", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     const states: DeckState[] = [
       "working", "working", "working", "waiting", "waiting", "blocked", "blocked",
       ...Array.from({ length: 24 }, () => "idle" as const),
@@ -183,12 +189,12 @@ describe("the sailor under the pointer, through the zoomed camera", () => {
     const figures = crewFigures(crew, 0, { still: true });
     expect(figures.filter((figure) => figure.state === "idle").every((figure) => inRestArea({ x: figure.x, y: figure.row }))).toBe(true);
     const screen = { width: 760, height: 460 };
-    const base = fitDeck(screen, deck, 2);
+    const base = fitDeck(screen, deck, 2, shipStage().fit.margin);
     const layout = focusLayout(screen);
     const bob = { x: 0, y: 1 };
     for (const focused of figures) {
       const point = boxMiddle(figureBox(focused, manifest)!);
-      const fit = cameraFit(base, { amount: 1, point }, layout, 2);
+      const fit = cameraFit(base, { amount: 1, point }, layout, 2, shipStage().actorHeight);
       // The focused sailor stands at the anchor: a click there is on it.
       const onIt = sailorAt(figures, manifest, toDeck(toCanvas(point, fit, bob), fit, bob));
       expect(onIt, focused.key).not.toBeNull();

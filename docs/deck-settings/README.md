@@ -79,3 +79,37 @@ Gate: every shot pixel-identical to main.
 
 The per-feature harnesses under `docs/ship-deck-*/` drove the RPCs and modules of their own PRs, and are kept
 as those PRs' evidence; they are not maintained through the migration. This gate is how the deck is checked.
+
+## Step 3 — the stage, floor, zones and portal marks from the pack
+
+- **`client/deck-stage.ts`** compiles a pack's stage once (`compileStage`): its size and fit box, the floor, the
+  zones each activity state sends a worker to (`zoneOf`), the entry, the exits and their marks, the props. The
+  compiled stage rides with the art (`DeckArtImage.stage`) into `startDeck`; there is no module-level "the setting".
+- **`client/deck-geometry.ts`** is any setting's floor: `createFloor` from the pack's areas, obstacles (props'
+  footprints included) and grid, and `walkable`, `areaAt`, `findPath`, `sharedSpot` and `restSpot` take it.
+  The grid and the open points are cached on the floor, not the module. An area marked `spill: false` (the ship's
+  stairs) is crossed but never crowded onto.
+- **The crew** (`createCrew(stage, …)`) reserves posts in its state's zone — `ordered` zones fill in order,
+  `nearest` ones by distance (in order when placed at once) — and overflows `beside` a post or `pack`s into the
+  zone's areas, at the zone's spacing; it rises at the entry, sinks at the hatch exit, queues at the plank's `foot`
+  mark (`queue.spacing`, new in the format), and walks at the floor's pace.
+- **The plank's marks** are the pack's (`plankExit` and `plankPixels` take them); its timeline is still code
+  until step 7, its code-drawn board until step 5. **The scene** carries no size; **the fit** is `deckBox(stage, …)`
+  with the pack's fit box and margin; **the hover label** hangs from its zone's `labelFloor`; **the focus shot**
+  sizes to `stage.actorHeight`; the gull, the sky and the code wake take the stage's width.
+- **Deleted from code**: `DECK_WIDTH`, `DECK_HEIGHT`, `DECK_PROPS`, `WALKABLE`, `OBSTACLES`, `ANCHORS`, `HATCH`,
+  `REST_AREAS`, `REST_SPACING`, `PLACES`, `WALK_SPEED`, `PLANK`, `PLANK_SEA_BOTTOM`, `REST_LABEL_ROW`,
+  `FOCUS_FIGURE_HEIGHT`, the fit's 0.96 and the grid's bounds. `client/ship-pack.test.ts` lost their checks; the
+  ship's own tests read them off the pack.
+- **The pack linter gained the floor** (`test/deck-settings.test.ts`, from `deck-motion.test.ts`'s pixel checks,
+  for any setting): every walkable point on the backdrop and hidden behind a front piece only on a `spill: false`
+  area; every post, the entry, every exit and queue on open floor; everything reachable from everything else and
+  never far round; a packing zone's posts in its areas and apart, no other zone's there; the fit taking in every
+  part, the flyby's whole sprite and every effect where its choreography puts it.
+- **The debug overlay**, `overlay.mjs`: the deck drawn still, and over it the pack's floor, obstacles, posts by
+  zone with ids and facing, overflow areas, label floors, the entry, every exit's marks and the fit box, placed
+  with the deck's own fit ([`overlay-ship.png`](overlay-ship.png)). Run after `compile.mjs`.
+
+![The ship's stage over its deck](overlay-ship.png)
+
+Gate: every shot pixel-identical to main. Client bundle +115 bytes; Hermes parses it; no `class`.

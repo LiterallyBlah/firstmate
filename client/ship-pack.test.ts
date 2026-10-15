@@ -3,22 +3,19 @@
  * still holds both: read as the old manifests (`legacyViews`) it is those manifests exactly as last served (kept in
  * `docs/ship-deck-art/legacy/`), and every number in it is the constant in the deck's code it replaces. Each step of
  * the move to a scene engine that deletes a constant deletes its check here; the pack is the source from then on.
+ * Step 3 took the stage, floor, zones and portal marks: the engine reads those from the pack now.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { BREATH_MS, BREATH_ROWS, FADE_MS, HATCH_MS, PLACES, SHARK_MOUTH, STATE_POSES, STEP_MS, WALK_SPEED, breathSink, idleMotion } from "./deck-crew";
+import { BREATH_MS, BREATH_ROWS, FADE_MS, HATCH_MS, SHARK_MOUTH, STATE_POSES, STEP_MS, breathSink, idleMotion } from "./deck-crew";
 import { HEAVE, LANTERNS, MASTHEAD, GULL_LOWEST, GULL_SLOT_SECONDS, HORIZON, SEA_FALLBACK, WATERLINE, lanternFlicker, mastSway, shipBob } from "./deck-ambient";
 import { ATMOSPHERE, STORM_SHADE } from "./deck-atmosphere";
-import { FOCUS_FIGURE_HEIGHT } from "./deck-camera";
 import { CLOUD_LANES, CLOUD_MARGIN, CLOUD_TOP_MIN } from "./deck-clouds";
 import { FOAM_SPAN, FOAM_TOP } from "./deck-environment";
-import { ANCHORS, HATCH, OBSTACLES, REST_AREAS, REST_SPACING, WALKABLE } from "./deck-geometry";
-import { REST_LABEL_ROW } from "./deck-hover";
 import { environmentImagePaths, extrasImagePaths } from "./deck-legacy";
 import { DeckArtManifestSchema, DeckEnvironmentManifestSchema, DeckExtrasManifestSchema } from "./deck-legacy-schema";
-import { deckBox } from "./deck-pixi";
 import {
   BOB_UP_MS,
   CHOMP_AT,
@@ -29,10 +26,8 @@ import {
   HOP_MS,
   IMPACT_AT,
   JUMP_MS,
-  PLANK,
   PLANK_DEPARTURES,
   PLANK_EXIT_MS,
-  PLANK_SEA_BOTTOM,
   PLANK_WALK_MS,
   PLUNGE_MS,
   SPLASH_FRAMES,
@@ -41,7 +36,7 @@ import {
   SWIM_ROWS,
   TEETER_MS,
 } from "./deck-plank";
-import { DECK_HEIGHT, DECK_PROPS, DECK_WIDTH, DECK_STATES } from "./deck-scene";
+import { DECK_STATES } from "./deck-scene";
 import { SKY_FADE_MINUTES, skyHorizonRow } from "./deck-sky";
 import { mastLayout } from "./deck-extras";
 import { shipManifest, shipViews } from "../test/ship-pack";
@@ -49,7 +44,6 @@ import { shipManifest, shipViews } from "../test/ship-pack";
 const legacy = (name: string): unknown => JSON.parse(readFileSync(fileURLToPath(new URL(`../docs/ship-deck-art/legacy/${name}`, import.meta.url)), "utf8"));
 const ship = shipManifest();
 const hex = (value: number) => `#${value.toString(16).toUpperCase().padStart(6, "0")}`;
-const xy = (point: { x: number; y: number }) => [point.x, point.y];
 
 describe("the ship's pack, read as the manifests the deck drew from", () => {
   it("is the atlas's manifest as last served, but for its generation notes", () => {
@@ -72,16 +66,6 @@ describe("the ship's pack, read as the manifests the deck drew from", () => {
 });
 
 describe("the ship's pack, against the deck's constants", () => {
-  it("has the hull's size, the fit's reach, the focus shot's figure and the props where they stand", () => {
-    expect(ship.stage.size).toEqual([DECK_WIDTH, DECK_HEIGHT]);
-    const tall = deckBox({ width: DECK_WIDTH, height: DECK_HEIGHT }, shipViews().extras.mast!.position[1]);
-    expect([ship.stage.fit.top, ship.stage.fit.bottom]).toEqual([tall.top, tall.height]);
-    expect(ship.stage.fit.bottom).toBe(PLANK_SEA_BOTTOM);
-    expect(ship.stage.actorHeight).toBe(FOCUS_FIGURE_HEIGHT);
-    expect(ship.stage.props.map((prop) => ({ name: prop.id, x: prop.at[0], y: prop.at[1] }))).toEqual(DECK_PROPS);
-    for (const prop of ship.stage.props) expect(prop.obstacle, prop.id).toEqual(OBSTACLES.find((obstacle) => obstacle.name === prop.id)!.rect);
-  });
-
   it("has the tall mast cut as the deck cuts it, and the hull's own masthead to fall back on", () => {
     const { art, extras } = shipViews();
     const layout = mastLayout(extras.mast!, art.pieces.mast!, extras.sail);
@@ -127,20 +111,9 @@ describe("the ship's pack, against the deck's constants", () => {
     }
   });
 
-  it("has the walkable deck, its obstacles, the stations, helm, bow and rest, and the hatch", () => {
-    expect(ship.floor.areas.map((area) => area.polygon)).toEqual(WALKABLE.map((area) => area.polygon));
-    expect(ship.floor.areas.map((area) => area.id)).toEqual(WALKABLE.map((area) => area.name.replaceAll(" ", "-")));
-    const props = new Set<string>(DECK_PROPS.map((prop) => prop.name));
-    expect(ship.floor.obstacles.map((obstacle) => ({ name: obstacle.id, rect: obstacle.rect }))).toEqual(OBSTACLES.filter((obstacle) => !props.has(obstacle.name)));
-    expect(ship.floor.walkSpeed).toBe(WALK_SPEED);
-    expect(ship.zones.byState).toEqual(PLACES);
-    const posts = ship.zones.zones.flatMap((zone) => zone.posts.map((post) => ({ id: post.id, place: zone.id, x: post.at[0], y: post.at[1], facing: post.facing })));
-    expect([...posts].sort((a, b) => ANCHORS.findIndex((anchor) => anchor.id === a.id) - ANCHORS.findIndex((anchor) => anchor.id === b.id))).toEqual(ANCHORS);
-    const rest = ship.zones.zones.find((zone) => zone.id === "rest")!;
-    expect(rest.overflow).toEqual({ kind: "pack", areas: REST_AREAS, spacing: [REST_SPACING.x, REST_SPACING.y], fallback: [6, 3] });
-    expect(rest.labelFloor).toBe(REST_LABEL_ROW);
-    expect(ship.portals.entry).toEqual({ kind: "rise", at: xy(HATCH), ms: HATCH_MS });
-    expect(ship.portals.exits.hatch).toEqual({ kind: "sink", at: xy(HATCH), ms: HATCH_MS });
+  it("goes up and down the hatch, and fades out under reduced motion, on the deck's timing", () => {
+    expect(ship.portals.entry.ms).toBe(HATCH_MS);
+    expect(ship.portals.exits.hatch).toMatchObject({ kind: "sink", ms: HATCH_MS });
     expect(ship.portals.still.fadeMs).toBe(FADE_MS);
   });
 
@@ -174,8 +147,8 @@ describe("the ship's pack, against the deck's constants", () => {
   it("walks the plank on the deck's own timeline, to the shark at its mouth", () => {
     const plank = ship.portals.exits.plank!;
     if (plank.kind !== "choreography") throw new Error("the plank is a choreography");
-    expect(plank.marks).toEqual({ foot: xy(PLANK.foot), rail: xy(PLANK.rail), tip: xy(PLANK.tip), water: [PLANK.tip.x, PLANK.water] });
-    expect(Math.round(((PLANK.tip.y - PLANK.rail.y) / ship.floor.walkSpeed) * 1000)).toBe(PLANK_WALK_MS);
+    // The walk out along the board, at the floor's pace between its marks, is still a constant of the timeline.
+    expect(Math.round(((plank.marks.tip![1] - plank.marks.rail![1]) / ship.floor.walkSpeed) * 1000)).toBe(PLANK_WALK_MS);
     const lengths = plank.actor.map((segment) => (segment.ms === "walk" ? PLANK_WALK_MS : segment.ms));
     const ends = (event: string) => lengths.slice(0, plank.actor.findIndex((segment) => segment.event === event) + 1).reduce((sum, ms) => sum + ms, 0);
     expect(lengths.slice(0, 4)).toEqual([HOP_MS, PLANK_WALK_MS, TEETER_MS, JUMP_MS]);

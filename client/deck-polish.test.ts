@@ -9,13 +9,13 @@ import { describe, expect, it } from "vitest";
 import { BADGE_GLYPHS, BADGE_SIZE, badgeInk, badgePixels, dozeAt, DOZE_PERIOD_MS, DOZE_RISE_MS, INK_DARK, INK_LIGHT } from "./deck-badges";
 import { applyCrew, createCrew, crewFigures, type Figure } from "./deck-crew";
 import { walkable } from "./deck-geometry";
-import { figureBox, hoverChanged, hoverOf, labelPlacement, LABEL_GAP, LABEL_MARGIN, LABEL_ROOM, REST_LABEL_ROW, sailorAt, toCanvas, toDeck, type DeckHover } from "./deck-hover";
+import { figureBox, hoverChanged, hoverOf, labelPlacement, LABEL_GAP, LABEL_MARGIN, LABEL_ROOM, sailorAt, toCanvas, toDeck, type DeckHover } from "./deck-hover";
 import { fitDeck } from "./deck-pixi";
-import { DECK_HEIGHT, DECK_STATES, DECK_WIDTH, type DeckSailor, type DeckState } from "./deck-scene";
-import { shipViews } from "../test/ship-pack";
+import { DECK_STATES, type DeckSailor, type DeckState } from "./deck-scene";
+import { shipStage, shipViews } from "../test/ship-pack";
 
 const manifest = shipViews().art;
-const deck = { width: DECK_WIDTH, height: DECK_HEIGHT };
+const deck = { width: shipStage().width, height: shipStage().height };
 
 describe("resizing the pane", () => {
   const resolutions = [1, 1.25, 1.5, 2, 3];
@@ -24,11 +24,11 @@ describe("resizing the pane", () => {
     for (const resolution of resolutions) {
       let previous: number | null = null;
       for (let width = 200; width <= 2400; width += 1) {
-        const { scale } = fitDeck({ width, height: 900 }, deck, resolution);
+        const { scale } = fitDeck({ width, height: 900 }, deck, resolution, shipStage().fit.margin);
         if (previous !== null) {
           expect(scale, `${width} px at ${resolution}×`).toBeGreaterThanOrEqual(previous);
           // One CSS pixel more of pane is never more than a fraction of a pixel more of ship.
-          expect((scale - previous) * DECK_WIDTH, `${width} px at ${resolution}×`).toBeLessThan(1);
+          expect((scale - previous) * shipStage().width, `${width} px at ${resolution}×`).toBeLessThan(1);
         }
         previous = scale;
       }
@@ -38,29 +38,29 @@ describe("resizing the pane", () => {
   it("fills the same share of the pane at any width", () => {
     for (const resolution of resolutions) {
       for (const width of [320, 480, 665, 666, 750, 999, 1000, 1064, 1065, 1440, 2200]) {
-        const { scale, x } = fitDeck({ width, height: 2000 }, deck, resolution);
-        expect((DECK_WIDTH * scale) / width, `${width} px at ${resolution}×`).toBeCloseTo(0.96, 5);
+        const { scale, x } = fitDeck({ width, height: 2000 }, deck, resolution, shipStage().fit.margin);
+        expect((shipStage().width * scale) / width, `${width} px at ${resolution}×`).toBeCloseTo(0.96, 5);
         // Centred, to a device pixel.
-        expect(Math.abs(x - (width - DECK_WIDTH * scale) / 2)).toBeLessThanOrEqual(0.5 / resolution + 1e-9);
+        expect(Math.abs(x - (width - shipStage().width * scale) / 2)).toBeLessThanOrEqual(0.5 / resolution + 1e-9);
       }
     }
   });
 
   it("no longer drops a third of the ship's size a pixel past each whole-device-pixel step", () => {
     // The old fit held 1.5 CSS px an art pixel from 666 to 1000 px of pane at 2×, then 1.0 at 665.
-    const wide = fitDeck({ width: 666, height: 900 }, deck, 2).scale;
-    const narrow = fitDeck({ width: 665, height: 900 }, deck, 2).scale;
+    const wide = fitDeck({ width: 666, height: 900 }, deck, 2, shipStage().fit.margin).scale;
+    const narrow = fitDeck({ width: 665, height: 900 }, deck, 2, shipStage().fit.margin).scale;
     expect(narrow / wide).toBeGreaterThan(0.99);
     // And at 125 %, from 2.4 at 1065 px to 1.6 at 1064 px.
-    expect(fitDeck({ width: 1064, height: 900 }, deck, 1.25).scale / fitDeck({ width: 1065, height: 900 }, deck, 1.25).scale).toBeGreaterThan(0.99);
+    expect(fitDeck({ width: 1064, height: 900 }, deck, 1.25, shipStage().fit.margin).scale / fitDeck({ width: 1065, height: 900 }, deck, 1.25, shipStage().fit.margin).scale).toBeGreaterThan(0.99);
   });
 
   it("follows a short pane by its height, just as smoothly", () => {
-    let previous = fitDeck({ width: 4000, height: 79 }, deck, 2).scale;
+    let previous = fitDeck({ width: 4000, height: 79 }, deck, 2, shipStage().fit.margin).scale;
     for (let height = 80; height <= 900; height += 1) {
-      const { scale } = fitDeck({ width: 4000, height }, deck, 2);
+      const { scale } = fitDeck({ width: 4000, height }, deck, 2, shipStage().fit.margin);
       expect(scale).toBeGreaterThanOrEqual(previous);
-      expect((scale - previous) * DECK_HEIGHT).toBeLessThan(1.01);
+      expect((scale - previous) * shipStage().height).toBeLessThan(1.01);
       previous = scale;
     }
   });
@@ -119,14 +119,14 @@ describe("the sailor under the pointer", () => {
   });
 
   it("is found through the same fit and bob the frame was drawn with, both ways", () => {
-    const fit = fitDeck({ width: 777, height: 500 }, deck, 1.25);
+    const fit = fitDeck({ width: 777, height: 500 }, deck, 1.25, shipStage().fit.margin);
     const bob = { x: 0, y: -1 };
     const point = { x: 123, y: 98 };
     const back = toDeck(toCanvas(point, fit, bob), fit, bob);
     expect(back.x).toBeCloseTo(point.x);
     expect(back.y).toBeCloseTo(point.y);
     const one = figure("a", 123, 98);
-    const hover = hoverOf(one, manifest, fit, bob, { width: 777, height: 500 });
+    const hover = hoverOf(one, manifest, fit, bob, { width: 777, height: 500 }, shipStage().zoneOf(one.state).labelFloor);
     expect(hover).toMatchObject({ key: "a", width: 777, height: 500 });
     expect(hover.x).toBeCloseTo(fit.x + (123 + bob.x) * fit.scale);
     expect(hover.bottom).toBeCloseTo(fit.y + (98 + bob.y) * fit.scale);
@@ -136,7 +136,7 @@ describe("the sailor under the pointer", () => {
   });
 
   it("finds every sailor of a crew as the deck places it, by pointing at its middle", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     const states: DeckState[] = ["working", "working", "waiting", "waiting", "blocked", "blocked", "idle", "idle"];
     applyCrew(crew, states.map((state, index) => sailor(`s${index}`, state)), { snap: true });
     const figures = crewFigures(crew, 0, { still: true });
@@ -165,27 +165,27 @@ describe("the sailor under the pointer", () => {
   });
 
   it("gives a sleeper a floor under the near rail to hang its label from, and the crew at work none", () => {
-    const fit = fitDeck({ width: 1200, height: 900 }, deck, 1);
+    const fit = fitDeck({ width: 1200, height: 900 }, deck, 1, shipStage().fit.margin);
     const bob = { x: 0, y: 1 };
     const canvas = { width: 1200, height: 900 };
-    const asleep = hoverOf(figure("a", 132, 117, { pose: "side-idle" }), manifest, fit, bob, canvas);
-    expect(asleep.floor).toBeCloseTo(toCanvas({ x: 132, y: REST_LABEL_ROW }, fit, bob).y);
+    const asleep = hoverOf(figure("a", 132, 117, { pose: "side-idle" }), manifest, fit, bob, canvas, shipStage().zoneOf(figure("a", 132, 117, { pose: "side-idle" }).state).labelFloor);
+    expect(asleep.floor).toBeCloseTo(toCanvas({ x: 132, y: shipStage().zones.get("rest")!.labelFloor! }, fit, bob).y);
     expect(asleep.floor!).toBeGreaterThan(asleep.bottom);
-    expect(hoverOf(figure("w", 194, 106, { state: "working", pose: "hauling" }), manifest, fit, bob, canvas).floor).toBeNull();
+    expect(hoverOf(figure("w", 194, 106, { state: "working", pose: "hauling" }), manifest, fit, bob, canvas, shipStage().zoneOf(figure("w", 194, 106, { state: "working", pose: "hauling" }).state).labelFloor).floor).toBeNull();
   });
 
   it("hangs a sleeper's label under every sailor on deck: no sailor stands, or is drawn, that low", () => {
-    for (let y = REST_LABEL_ROW - 2; y < DECK_HEIGHT; y += 1) {
-      for (let x = 0; x < DECK_WIDTH; x += 1) expect(walkable(x, y), `${x},${y}`).toBe(false);
+    for (let y = shipStage().zones.get("rest")!.labelFloor! - 2; y < shipStage().height; y += 1) {
+      for (let x = 0; x < shipStage().width; x += 1) expect(walkable(shipStage().floor, x, y), `${x},${y}`).toBe(false);
     }
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     const states: DeckState[] = ["working", "waiting", "blocked"];
     applyCrew(
       crew,
       [...states.flatMap((state) => Array.from({ length: 8 }, (_, index) => sailor(`${state}${index}`, state))), ...Array.from({ length: 20 }, (_, index) => sailor(`i${index}`, "idle"))],
       { snap: true },
     );
-    for (const one of crewFigures(crew, 0, { still: false })) expect(figureBox(one, manifest)!.bottom, one.key).toBeLessThanOrEqual(REST_LABEL_ROW);
+    for (const one of crewFigures(crew, 0, { still: false })) expect(figureBox(one, manifest)!.bottom, one.key).toBeLessThanOrEqual(shipStage().zones.get("rest")!.labelFloor!);
   });
 });
 
@@ -262,7 +262,7 @@ describe("each state's badge", () => {
 
 describe("the figures the renderer draws", () => {
   it("carry each sailor's seed, so idle sailors doze out of step", () => {
-    const crew = createCrew();
+    const crew = createCrew(shipStage());
     applyCrew(crew, [sailor("a", "idle"), sailor("b", "idle")], { snap: true });
     const seeds = crewFigures(crew, 0, { still: true }).map((one) => one.seed);
     expect(seeds[0]).not.toBe(seeds[1]);

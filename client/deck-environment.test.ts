@@ -31,7 +31,7 @@ import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { DECK_FLASH_ATTRIBUTE, DECK_MOTION_ATTRIBUTE, DECK_SKY_ATTRIBUTE, DECK_WEATHER_ATTRIBUTE, deckBox, fitDeck, startDeck, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
 import { SKY_REFRESH_MS } from "./deck-sky";
 import { deckScene, depthOf, type DeckScene, type DeckSailor, type DeckState } from "./deck-scene";
-import { shipViews } from "../test/ship-pack";
+import { shipStage, shipViews } from "../test/ship-pack";
 
 const theme = {
   colors: {
@@ -265,7 +265,7 @@ async function start(
   const host = { appendChild() {}, clientWidth: 800, clientHeight: 400 };
   const drawing = await startDeck(
     pixi,
-    { image: { atlas: true }, manifest: deckManifest, environment: art, extras: options.extras ?? null },
+    { stage: shipStage(), image: { atlas: true }, manifest: deckManifest, environment: art, extras: options.extras ?? null },
     host,
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
@@ -699,7 +699,7 @@ describe("the camera closing in on a focused sailor", () => {
     const hovers: Array<DeckHover | null> = [];
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: scene(), onHover: (hover) => hovers.push(hover) });
     deck.advance(16);
-    const base = fitDeck({ width: 800, height: 400 }, deckBox({ width: 426, height: 161 }, -80), 1);
+    const base = fitDeck({ width: 800, height: 400 }, deckBox(shipStage(), -80), 1, shipStage().fit.margin);
     expect(worldFit(deck)).toEqual(base);
     deck.drawing.focus("b");
     const veil = one(deck.app.stage, "veil");
@@ -783,7 +783,7 @@ describe("the camera closing in on a focused sailor", () => {
     expect(Math.abs(at.x - narrow.anchor.x)).toBeLessThan(worldFit(deck).scale * 8);
     expect(Math.abs(at.y - narrow.anchor.y)).toBeLessThan(worldFit(deck).scale * 16);
     deck.drawing.focus(null);
-    expect(worldFit(deck)).toEqual(fitDeck({ width: 480, height: 600 }, deckBox({ width: 426, height: 161 }, -80), 1));
+    expect(worldFit(deck)).toEqual(fitDeck({ width: 480, height: 600 }, deckBox(shipStage(), -80), 1, shipStage().fit.margin));
     deck.drawing.destroy();
   });
 });
@@ -1175,7 +1175,7 @@ describe("the animated water on the deck", () => {
   });
 
   it("holds them on a software renderer's lite plan too, where the sea does not drift", () => {
-    const scenery = createScenery(pixi, environment, null, 0, drawnWater(extras));
+    const scenery = createScenery(pixi, shipStage(), environment, null, 0, drawnWater(extras));
     scenery.layout({ left: 0, right: 426, top: -80, bottom: 240 });
     const lite = { level: "lite", animate: true, fps: 12, ambient: false } as const;
     for (const seconds of [0, 0.25, 0.5, 0.75, 1]) {
@@ -1477,7 +1477,7 @@ describe("the heavy weather on the deck, at the top of the dial", () => {
 
   it("on a software renderer's lite plan shows the variants still, on their elements' first frames, and never flashes", () => {
     const water = drawnWater(stormy);
-    const scenery = createScenery(pixi, environment, drawnClouds(stormy), 0, water, { variants: drawnVariants(stormy, water), flashes: drawnFlashes(stormy) });
+    const scenery = createScenery(pixi, shipStage(), environment, drawnClouds(stormy), 0, water, { variants: drawnVariants(stormy, water), flashes: drawnFlashes(stormy) });
     scenery.layout({ left: 0, right: 426, top: -80, bottom: 240 });
     const lite = { level: "lite", animate: true, fps: 12, ambient: false } as const;
     for (let seconds = 0; seconds < 120; seconds += 0.1) {

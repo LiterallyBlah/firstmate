@@ -5,8 +5,8 @@
  * already filed into columns — the same query the board, the panels and the sidebar share — so a
  * sailor goes where its card's column says, and the column rules stay in `server/fleet.ts`.
  *
- * Four places on deck, from the column (`PLACES` in `client/deck-crew.ts`, the anchors in
- * `client/deck-geometry.ts`):
+ * Four states, from the column, each sent to its zone by the setting (`zones.byState`, read by
+ * `client/deck-stage.ts`) — on the ship:
  *
  * - **working** — Working, hauling at the stations amidships, round the mast and the stores;
  * - **waiting** — Ready (finished, waiting on the first mate) and Working with the `waiting` note (a
@@ -24,8 +24,8 @@
  * when the pointer is over it (`sailorCaption`). Where it stands, and its walk there, are
  * `client/deck-crew.ts`'s.
  *
- * **Coordinates are the art's.** The deck is the hull's own logical pixels (the ship pack's
- * backdrop, 426 × 161): the bow on the left, the quarterdeck and helm on the right. A sailor's `x, y`
+ * **Coordinates are the setting's.** The deck is the stage's own logical pixels (the ship's backdrop,
+ * 426 × 161: the bow on the left, the quarterdeck and helm on the right). A sailor's `x, y`
  * is where its feet are. **Depth is the deck row**: `depthOf` orders props, sailors and the hull's own
  * depth pieces (the mast, bollards, the near rail) by the row each stands on, every frame, so a sailor
  * walking behind the mast is hidden by it and one passing in front of it covers it.
@@ -33,24 +33,13 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 
 import type { FleetCard } from "../shared/fleet";
-import type { DeckArtManifest, DeckPropName } from "./deck-legacy";
+import type { DeckArtManifest } from "./deck-legacy";
 import type { Figure } from "./deck-crew";
 import type { DeckDeparture } from "./deck-plank";
 import { cardHeadline } from "./format";
 
 export const DECK_STATES = ["working", "waiting", "blocked", "idle"] as const;
 export type DeckState = (typeof DECK_STATES)[number];
-
-/** The deck's own coordinates: the hull's logical pixels. The canvas scales them to fit. */
-export const DECK_WIDTH = 426;
-export const DECK_HEIGHT = 161;
-
-/** Props on deck, where each stands: out of the anchors' way, and their feet blocked to walkers (`OBSTACLES`). */
-export const DECK_PROPS: ReadonlyArray<{ name: DeckPropName; x: number; y: number }> = [
-  { name: "barrel", x: 252, y: 88 },
-  { name: "crate", x: 306, y: 90 },
-  { name: "rope", x: 178, y: 115 },
-];
 
 export interface DeckPalette {
   sea: string;
@@ -101,8 +90,6 @@ export interface DeckSailor {
 }
 
 export interface DeckScene {
-  width: number;
-  height: number;
   palette: DeckPalette;
   sailors: DeckSailor[];
   /** Why each card on the board but not on deck is not, by card key: how a sailor that was there leaves. */
@@ -253,8 +240,6 @@ export function deckScene(
     }
   }
   return {
-    width: DECK_WIDTH,
-    height: DECK_HEIGHT,
     palette: deckPalette(theme),
     sailors,
     departures,
@@ -276,16 +261,16 @@ export function depthOf(row: number | null, rank: 0 | 1): number {
 export type DeckLayer =
   | { kind: "ship" }
   | { kind: "piece"; name: string }
-  | { kind: "prop"; name: DeckPropName; x: number; y: number }
+  | { kind: "prop"; name: string; x: number; y: number }
   | { kind: "sailor"; figure: Figure };
 
 /**
  * Everything on deck in the order it is drawn, back to front: the hull, then props, sailors and the
  * hull's depth pieces by `depthOf`, and last the near rail. Ties go left to right.
  */
-export function deckLayers(figures: readonly Figure[], pieces: DeckArtManifest["pieces"]): DeckLayer[] {
+export function deckLayers(figures: readonly Figure[], pieces: DeckArtManifest["pieces"], props: ReadonlyArray<{ id: string; x: number; y: number }>): DeckLayer[] {
   const sorted: Array<{ layer: DeckLayer; depth: number; x: number }> = [];
-  for (const prop of DECK_PROPS) sorted.push({ layer: { kind: "prop", ...prop }, depth: depthOf(prop.y, 0), x: prop.x });
+  for (const prop of props) sorted.push({ layer: { kind: "prop", name: prop.id, x: prop.x, y: prop.y }, depth: depthOf(prop.y, 0), x: prop.x });
   for (const figure of figures) sorted.push({ layer: { kind: "sailor", figure }, depth: depthOf(figure.row, 0), x: figure.x });
   for (const [name, piece] of Object.entries(pieces)) sorted.push({ layer: { kind: "piece", name }, depth: depthOf(piece.baseline, 1), x: piece.x });
   sorted.sort((a, b) => a.depth - b.depth || a.x - b.x);

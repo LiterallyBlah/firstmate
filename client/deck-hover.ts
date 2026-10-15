@@ -10,9 +10,9 @@
  * A sailor is hit by the box its sprite is drawn in this frame, its badge (and reply marker) above it included, and the
  * frontmost wins: the same order the deck draws in, so the sailor you see is the sailor you get.
  *
- * A resting sailor's label hangs under the near rail rather than over its head (`REST_LABEL_ROW`): the
- * rest areas pack sleepers close, and a label over one would cover the others' badges and the crew at
- * work beside them.
+ * A sailor in a zone with a label floor (the setting's `labelFloor`: on the ship, the rest areas) has its label
+ * hang from that row, under the near rail, rather than over its head: the rest areas pack sleepers close, and a
+ * label over one would cover the others' badges and the crew at work beside them.
  */
 import type { DeckArtManifest } from "./deck-legacy";
 import { ASK_GAP, ASK_SIZE, BADGE_GAP, BADGE_SIZE } from "./deck-badges";
@@ -52,8 +52,8 @@ export interface DeckHover {
   width: number;
   height: number;
   /**
-   * For a sailor at rest, the canvas row its label may hang from instead: just under the near rail
-   * (`REST_LABEL_ROW`), where no sailor ever stands, so the label covers no one. Null for the others.
+   * For a sailor in a zone with a label floor, the canvas row its label may hang from instead: on the ship, just
+   * under the near rail, where no sailor ever stands, so the label covers no one. Null for the others.
    */
   floor: number | null;
 }
@@ -200,19 +200,23 @@ export function sailorAt(
   return best;
 }
 
-/** What the canvas reports for `figure`: where its badge (or its reply marker, `mark`, over it) and feet are on the canvas. */
+/**
+ * What the canvas reports for `figure`: where its badge (or its reply marker, `mark`, over it) and feet are on the
+ * canvas, and the canvas row of `labelFloor` (its zone's, in stage rows) when it has one.
+ */
 export function hoverOf(
   figure: Figure,
   manifest: DeckArtManifest,
   fit: DeckFit,
   bob: DeckOffset,
   canvas: { width: number; height: number },
+  labelFloor: number | null,
   mark?: AskMark,
 ): DeckHover {
   const box = figureBox(figure, manifest, mark);
   const top = toCanvas({ x: figure.x, y: box?.top ?? figure.y }, fit, bob);
   const feet = toCanvas({ x: figure.x, y: figure.row }, fit, bob);
-  const floor = figure.state === "idle" ? toCanvas({ x: figure.x, y: REST_LABEL_ROW }, fit, bob).y : null;
+  const floor = labelFloor === null ? null : toCanvas({ x: figure.x, y: labelFloor }, fit, bob).y;
   return { key: figure.key, x: top.x, top: top.y, bottom: feet.y, width: canvas.width, height: canvas.height, floor };
 }
 
@@ -238,14 +242,6 @@ export const LABEL_MARGIN = 8;
 export const LABEL_GAP = 6;
 /** The room above a sailor the label needs before it goes above rather than below. */
 export const LABEL_ROOM = 120;
-
-/**
- * The deck row a resting sailor's label hangs from: a row under the near rail's top along the rest
- * areas and under every sailor's feet (the walkable deck ends at row 119), so a label hung there covers
- * the hull's side and nothing on deck — not the sleepers packed round the one hovered, not the crew at
- * work beside them, not the sail, the mast or another sailor's badge.
- */
-export const REST_LABEL_ROW = 122;
 
 /**
  * Where the label sits on the canvas: for a sailor at rest, under the near rail when the canvas has room

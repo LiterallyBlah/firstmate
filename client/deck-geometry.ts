@@ -1,25 +1,21 @@
 /**
- * Where a sailor can stand and walk on hull C, and how it gets from one place to another. Pure.
+ * Where a worker can stand and walk on a setting's floor, and how it gets from one place to another. Pure.
  *
- * Everything is in the deck's own coordinates (the ship pack's backdrop, 426 × 161) and
- * is a sailor's **feet**: the row a sailor's feet are on is also its depth (`client/deck-scene.ts`).
+ * Everything is in the stage's own coordinates (the setting's `stage.size`) and is a worker's **feet**: the
+ * row a worker's feet are on is also its depth (`client/deck-scene.ts`). The floor comes from the setting pack
+ * (`floor` in `shared/deck-setting.ts`), compiled once by `createFloor`; nothing here knows which setting it is.
  *
- * - **The walkable deck** is three polygons read off the atlas: the main deck from the bow to the foot
- *   of the stairs, the stairs, and the quarterdeck in front of the wheel. The main deck and the
- *   quarterdeck meet only on the stairs, so a sailor bound for the helm climbs them. The stairs are part
- *   of the hull's `near` depth piece, so a sailor on them is drawn behind their balustrade.
- * - **Obstacles** are the feet of what stands on deck: the mast's foot, the bollards, the props and the
- *   wheel. A path never crosses one.
- * - **Anchors** are the named places a state sends a sailor to, each with the way it faces there.
- *   `client/deck-crew.ts` reserves them, one sailor each.
- * - **The rest areas** are where idle crew go, off the working deck: the foredeck by the hatch, between
- *   the bow and the stations, and the foot of the quarterdeck stairs. Their anchors are spaced so every
- *   sleeper's badge stays in sight, and past them `restSpot` packs more in without covering one.
- * - **Paths** are A* over a 2-pixel grid of the walkable deck, then pulled tight: a corner is kept only
- *   where the straight line past it would leave the deck.
+ * - **The walkable floor** is the setting's polygons, as feet. An area marked `spill: false` (the ship's stairs,
+ *   behind the near rail's balustrade) is walked across but never crowded onto.
+ * - **Obstacles** are the feet of what stands on the floor: the setting's own, and each prop's footprint. A
+ *   path never crosses one.
+ * - **Paths** are A* over the setting's grid of the walkable floor, then pulled tight: a corner is kept only
+ *   where the straight line past it would leave the floor.
+ * - **Crowds**: `sharedSpot` stands one more worker beside a taken post, `restSpot` packs one into a zone's
+ *   overflow areas; both search the floor's open points, never a `spill: false` area.
  *
- * `client/ship-deck.test.ts` holds all of it to the atlas's own pixels: every anchor and every walkable
- * cell on the hull, every path between any two anchors on the deck all the way.
+ * The pack linter (`test/deck-settings.test.ts`) holds every setting's floor to its own backdrop's pixels: every
+ * walkable point on it, every post and mark on open floor, every post and the entry reachable from every other.
  */
 
 export interface Point {
@@ -27,88 +23,54 @@ export interface Point {
   y: number;
 }
 
-/** Which way a sailor faces at its anchor. The side poses are drawn facing right. */
+/** Which way a worker faces at its post. The side poses are drawn facing right. */
 export type Facing = "left" | "right" | "front";
 
-/** The places on deck an application state sends a sailor to. */
-export type AnchorPlace = "station" | "rest" | "helm" | "bow";
-
+/** A post: a named place a zone sends a worker to, with the way it faces there. */
 export interface Anchor extends Point {
   id: string;
-  place: AnchorPlace;
+  /** The zone it belongs to. */
+  place: string;
   facing: Facing;
 }
 
-/** The hatch: where a new crewmate climbs up from, and an archived one goes back down. */
-export const HATCH: Point = { x: 140, y: 104 };
-
 type Polygon = ReadonlyArray<readonly [number, number]>;
+type Rect = readonly [number, number, number, number];
 
-/**
- * The walkable deck, as feet positions. Read from the atlas (`docs/ship-deck-motion/README.md` has the
- * map): the far bulwark's foot is about row 86, the near rail runs from (47, 96) at the bow to row 121
- * amidships, the stairs fill x 322–358 below row 89, and the quarterdeck is open from row 90 (in front
- * of the wheel's foot) to row 96 (behind its front rail).
- */
-export const WALKABLE: ReadonlyArray<{ name: string; polygon: Polygon }> = [
-  { name: "main deck", polygon: [[54, 89], [320, 86], [320, 119], [117, 119], [60, 98]] },
-  { name: "stairs", polygon: [[314, 104], [352, 89], [362, 90], [362, 96], [326, 117], [314, 118]] },
-  { name: "quarterdeck", polygon: [[356, 90], [403, 90], [401, 96], [356, 96]] },
-];
+/** A setting's floor, compiled: its areas, obstacles and pathing grid, and what is worked out from them once, on first use. */
+export interface Floor {
+  readonly areas: ReadonlyArray<{ id: string; polygon: Polygon; spill: boolean }>;
+  readonly obstacles: ReadonlyArray<{ id: string; rect: Rect }>;
+  /** The grid's cell, its top left, and how many cells across and down. */
+  readonly cell: number;
+  readonly left: number;
+  readonly top: number;
+  readonly columns: number;
+  readonly rows: number;
+  /** Walking pace, stage pixels a second. */
+  readonly walkSpeed: number;
+  readonly cache: { cells: Uint8Array | null; open: Point[] | null };
+}
 
-/** Feet-space rectangles nobody walks through: [x, y, width, height]. */
-export const OBSTACLES: ReadonlyArray<{ name: string; rect: readonly [number, number, number, number] }> = [
-  { name: "mast", rect: [200, 102, 24, 11] },
-  { name: "bollard-bow-aft", rect: [74, 89, 13, 7] },
-  { name: "bollard-gunwale-fore", rect: [269, 114, 10, 8] },
-  { name: "bollard-gunwale-aft", rect: [291, 114, 10, 8] },
-  { name: "barrel", rect: [244, 84, 16, 7] },
-  { name: "crate", rect: [298, 85, 17, 7] },
-  { name: "rope", rect: [170, 112, 17, 6] },
-  { name: "wheel", rect: [360, 86, 20, 4] },
-];
-
-/**
- * The anchors, in order of preference within each place. The stations surround the mast and the
- * deck's stores; the helm spots are on the quarterdeck around the wheel; the bow spots are forward of
- * the hatch, round the bow's bollard. The rest spots are in the rest areas, filled in this order so a
- * few sleepers stand apart and a crowd stays tidy: the foredeck's front row along the near rail, its
- * back row nineteen rows behind (head and badge clear of the front row), the foot of the stairs, and
- * only then the gaps between the foredeck's rows.
- */
-export const ANCHORS: readonly Anchor[] = [
-  { id: "mast-fore", place: "station", x: 194, y: 106, facing: "right" },
-  { id: "mast-aft", place: "station", x: 230, y: 106, facing: "left" },
-  { id: "barrel", place: "station", x: 238, y: 91, facing: "right" },
-  { id: "crate", place: "station", x: 290, y: 94, facing: "right" },
-  { id: "rope", place: "station", x: 164, y: 116, facing: "right" },
-  { id: "hatch-side", place: "station", x: 166, y: 97, facing: "left" },
-  { id: "mast-far", place: "station", x: 212, y: 94, facing: "front" },
-  { id: "rest-1", place: "rest", x: 132, y: 117, facing: "front" },
-  { id: "rest-2", place: "rest", x: 120, y: 117, facing: "front" },
-  { id: "rest-3", place: "rest", x: 144, y: 117, facing: "front" },
-  { id: "rest-4", place: "rest", x: 132, y: 98, facing: "front" },
-  { id: "rest-5", place: "rest", x: 120, y: 98, facing: "front" },
-  { id: "rest-6", place: "rest", x: 144, y: 98, facing: "front" },
-  { id: "rest-7", place: "rest", x: 312, y: 117, facing: "front" },
-  { id: "rest-8", place: "rest", x: 312, y: 98, facing: "front" },
-  { id: "rest-9", place: "rest", x: 316, y: 107, facing: "front" },
-  { id: "rest-10", place: "rest", x: 126, y: 107, facing: "front" },
-  { id: "rest-11", place: "rest", x: 138, y: 107, facing: "front" },
-  { id: "rest-12", place: "rest", x: 126, y: 89, facing: "front" },
-  { id: "rest-13", place: "rest", x: 138, y: 89, facing: "front" },
-  { id: "helm-1", place: "helm", x: 386, y: 92, facing: "front" },
-  { id: "helm-2", place: "helm", x: 366, y: 94, facing: "front" },
-  { id: "helm-3", place: "helm", x: 397, y: 94, facing: "front" },
-  { id: "helm-4", place: "helm", x: 376, y: 95, facing: "front" },
-  { id: "bow-1", place: "bow", x: 94, y: 98, facing: "front" },
-  { id: "bow-2", place: "bow", x: 70, y: 94, facing: "front" },
-  { id: "bow-3", place: "bow", x: 106, y: 108, facing: "front" },
-  { id: "bow-4", place: "bow", x: 84, y: 103, facing: "front" },
-];
-
-export function anchorsAt(place: AnchorPlace): Anchor[] {
-  return ANCHORS.filter((anchor) => anchor.place === place);
+export function createFloor(spec: {
+  areas: ReadonlyArray<{ id: string; polygon: Polygon; spill?: boolean | undefined }>;
+  obstacles: ReadonlyArray<{ id: string; rect: Rect }>;
+  grid: { cell: number; bounds: Rect };
+  walkSpeed: number;
+}): Floor {
+  const [left, top, width, height] = spec.grid.bounds;
+  const { cell } = spec.grid;
+  return {
+    areas: spec.areas.map((area) => ({ id: area.id, polygon: area.polygon, spill: area.spill !== false })),
+    obstacles: spec.obstacles,
+    cell,
+    left,
+    top,
+    columns: Math.ceil(width / cell),
+    rows: Math.ceil(height / cell),
+    walkSpeed: spec.walkSpeed,
+    cache: { cells: null, open: null },
+  };
 }
 
 function inPolygon(polygon: Polygon, x: number, y: number): boolean {
@@ -121,69 +83,67 @@ function inPolygon(polygon: Polygon, x: number, y: number): boolean {
   return inside;
 }
 
-/** Whether a sailor's feet can be at this point: on the walkable deck and clear of every obstacle. */
-export function walkable(x: number, y: number): boolean {
-  if (!WALKABLE.some((area) => inPolygon(area.polygon, x, y))) return false;
-  return !OBSTACLES.some(({ rect: [rx, ry, rw, rh] }) => x >= rx && x < rx + rw && y >= ry && y < ry + rh);
+/** Whether a point is inside any of `rects` ([x, y, width, height]). */
+export function inRects(rects: readonly Rect[], point: Point): boolean {
+  return rects.some(([x, y, width, height]) => point.x >= x && point.x < x + width && point.y >= y && point.y < y + height);
 }
 
-/** The walkable area's name at a point, or null: the stairs are drawn behind their balustrade. */
-export function areaAt(x: number, y: number): string | null {
-  return WALKABLE.find((area) => inPolygon(area.polygon, x, y))?.name ?? null;
+/** Whether a worker's feet can be at this point: on the walkable floor and clear of every obstacle. */
+export function walkable(floor: Floor, x: number, y: number): boolean {
+  if (!floor.areas.some((area) => inPolygon(area.polygon, x, y))) return false;
+  return !floor.obstacles.some(({ rect: [rx, ry, rw, rh] }) => x >= rx && x < rx + rw && y >= ry && y < ry + rh);
 }
 
-/** Whether the straight line from `a` to `b` stays on the walkable deck, checked every half pixel. */
-export function clearLine(a: Point, b: Point): boolean {
+/** The walkable area at a point, or null. */
+export function areaAt(floor: Floor, x: number, y: number): { id: string; spill: boolean } | null {
+  return floor.areas.find((area) => inPolygon(area.polygon, x, y)) ?? null;
+}
+
+/** Whether the straight line from `a` to `b` stays on the walkable floor, checked every half pixel. */
+export function clearLine(floor: Floor, a: Point, b: Point): boolean {
   const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) * 2));
   for (let step = 0; step <= steps; step += 1) {
     const t = step / steps;
-    if (!walkable(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)) return false;
+    if (!walkable(floor, a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)) return false;
   }
   return true;
 }
 
-const CELL = 2;
-const GRID_X = 40;
-const GRID_Y = 80;
-const COLUMNS = Math.ceil((424 - GRID_X) / CELL);
-const ROWS = Math.ceil((126 - GRID_Y) / CELL);
-
-let gridCache: Uint8Array | null = null;
-
-/** The walkable deck as cells: 1 where the cell's centre is walkable. Made once. */
-function grid(): Uint8Array {
-  if (gridCache !== null) return gridCache;
-  const cells = new Uint8Array(COLUMNS * ROWS);
-  for (let row = 0; row < ROWS; row += 1) {
-    for (let column = 0; column < COLUMNS; column += 1) {
-      const centre = cellCentre(column, row);
-      cells[row * COLUMNS + column] = walkable(centre.x, centre.y) ? 1 : 0;
+/** The walkable floor as cells: 1 where the cell's centre is walkable. Made once. */
+function grid(floor: Floor): Uint8Array {
+  if (floor.cache.cells !== null) return floor.cache.cells;
+  const cells = new Uint8Array(floor.columns * floor.rows);
+  for (let row = 0; row < floor.rows; row += 1) {
+    for (let column = 0; column < floor.columns; column += 1) {
+      const centre = cellCentre(floor, column, row);
+      cells[row * floor.columns + column] = walkable(floor, centre.x, centre.y) ? 1 : 0;
     }
   }
-  gridCache = cells;
+  floor.cache.cells = cells;
   return cells;
 }
 
-function cellCentre(column: number, row: number): Point {
-  return { x: GRID_X + column * CELL + CELL / 2, y: GRID_Y + row * CELL + CELL / 2 };
+function cellCentre(floor: Floor, column: number, row: number): Point {
+  return { x: floor.left + column * floor.cell + floor.cell / 2, y: floor.top + row * floor.cell + floor.cell / 2 };
 }
 
 /** The walkable cell nearest a point, searched outward ring by ring, or -1 when there is none near. */
-function nearestCell(point: Point): number {
-  const cells = grid();
-  const column = Math.floor((point.x - GRID_X) / CELL);
-  const row = Math.floor((point.y - GRID_Y) / CELL);
+function nearestCell(floor: Floor, point: Point): number {
+  const cells = grid(floor);
+  const { columns, rows } = floor;
+  const column = Math.floor((point.x - floor.left) / floor.cell);
+  const row = Math.floor((point.y - floor.top) / floor.cell);
   let best = -1;
   let bestDistance = Number.POSITIVE_INFINITY;
   for (let radius = 0; radius < 12 && best < 0; radius += 1) {
     for (let r = row - radius; r <= row + radius; r += 1) {
       for (let c = column - radius; c <= column + radius; c += 1) {
-        if (r < 0 || c < 0 || r >= ROWS || c >= COLUMNS || cells[r * COLUMNS + c] !== 1) continue;
-        const centre = cellCentre(c, r);
+        if (r < 0 || c < 0 || r >= rows || c >= columns || cells[r * columns + c] !== 1) continue;
+        const centre = cellCentre(floor, c, r);
         const distance = Math.hypot(centre.x - point.x, centre.y - point.y);
         if (distance < bestDistance) {
           bestDistance = distance;
-          best = r * COLUMNS + c;
+          best = r * columns + c;
         }
       }
     }
@@ -203,16 +163,17 @@ const NEIGHBOURS: ReadonlyArray<readonly [number, number, number]> = [
 ];
 
 /** A* over the cells, 8-way, never cutting a blocked corner. The cells from start to goal, or null. */
-function search(start: number, goal: number): number[] | null {
-  const cells = grid();
+function search(floor: Floor, start: number, goal: number): number[] | null {
+  const cells = grid(floor);
+  const { columns, rows } = floor;
   const cost = new Float64Array(cells.length).fill(Number.POSITIVE_INFINITY);
   const from = new Int32Array(cells.length).fill(-1);
   const closed = new Uint8Array(cells.length);
-  const goalColumn = goal % COLUMNS;
-  const goalRow = Math.floor(goal / COLUMNS);
+  const goalColumn = goal % columns;
+  const goalRow = Math.floor(goal / columns);
   const estimate = (cell: number) => {
-    const dx = Math.abs((cell % COLUMNS) - goalColumn);
-    const dy = Math.abs(Math.floor(cell / COLUMNS) - goalRow);
+    const dx = Math.abs((cell % columns) - goalColumn);
+    const dy = Math.abs(Math.floor(cell / columns) - goalRow);
     return Math.max(dx, dy) + (Math.SQRT2 - 1) * Math.min(dx, dy);
   };
   // A binary heap of [priority, cell]: a few thousand cells at most.
@@ -255,15 +216,15 @@ function search(start: number, goal: number): number[] | null {
       return cellsOnPath;
     }
     closed[cell] = 1;
-    const column = cell % COLUMNS;
-    const row = Math.floor(cell / COLUMNS);
+    const column = cell % columns;
+    const row = Math.floor(cell / columns);
     for (const [dx, dy, step] of NEIGHBOURS) {
       const c = column + dx;
       const r = row + dy;
-      if (c < 0 || r < 0 || c >= COLUMNS || r >= ROWS) continue;
-      const next = r * COLUMNS + c;
+      if (c < 0 || r < 0 || c >= columns || r >= rows) continue;
+      const next = r * columns + c;
       if (cells[next] !== 1 || closed[next] === 1) continue;
-      if (dx !== 0 && dy !== 0 && (cells[row * COLUMNS + c] !== 1 || cells[r * COLUMNS + column] !== 1)) continue;
+      if (dx !== 0 && dy !== 0 && (cells[row * columns + c] !== 1 || cells[r * columns + column] !== 1)) continue;
       const through = cost[cell]! + step;
       if (through < cost[next]!) {
         cost[next] = through;
@@ -276,28 +237,28 @@ function search(start: number, goal: number): number[] | null {
 }
 
 /**
- * The way from `from` to `to` on the walkable deck: the corners to walk through, ending at `to`
- * itself. Empty when already there. A point off the deck (a sailor caught mid-step) starts from the
- * nearest walkable cell. When there is no way at all, the one straight step, so nobody is stranded.
+ * The way from `from` to `to` on the walkable floor: the corners to walk through, ending at `to` itself. Empty
+ * when already there. A point off the floor (a worker caught mid-step) starts from the nearest walkable cell.
+ * When there is no way at all, the one straight step, so nobody is stranded.
  */
-export function findPath(from: Point, to: Point): Point[] {
+export function findPath(floor: Floor, from: Point, to: Point): Point[] {
   if (Math.hypot(to.x - from.x, to.y - from.y) < 0.5) return [];
-  if (walkable(from.x, from.y) && clearLine(from, to)) return [{ x: to.x, y: to.y }];
-  const start = nearestCell(from);
-  const goal = nearestCell(to);
-  const cells = start < 0 || goal < 0 ? null : search(start, goal);
+  if (walkable(floor, from.x, from.y) && clearLine(floor, from, to)) return [{ x: to.x, y: to.y }];
+  const start = nearestCell(floor, from);
+  const goal = nearestCell(floor, to);
+  const cells = start < 0 || goal < 0 ? null : search(floor, start, goal);
   if (cells === null) return [{ x: to.x, y: to.y }];
-  const corners: Point[] = cells.map((cell) => cellCentre(cell % COLUMNS, Math.floor(cell / COLUMNS)));
+  const corners: Point[] = cells.map((cell) => cellCentre(floor, cell % floor.columns, Math.floor(cell / floor.columns)));
   corners.push({ x: to.x, y: to.y });
   // Pull the string tight: from each kept point, skip ahead to the furthest point still in sight.
   const tight: Point[] = [];
-  let at: Point = walkable(from.x, from.y) ? from : corners[0]!;
+  let at: Point = walkable(floor, from.x, from.y) ? from : corners[0]!;
   if (at !== from) tight.push(at);
   let index = at === from ? 0 : 1;
   while (index < corners.length) {
     let furthest = index;
     for (let ahead = corners.length - 1; ahead > index; ahead -= 1) {
-      if (clearLine(at, corners[ahead]!)) {
+      if (clearLine(floor, at, corners[ahead]!)) {
         furthest = ahead;
         break;
       }
@@ -320,37 +281,34 @@ export function pathLength(from: Point, path: readonly Point[]): number {
   return length;
 }
 
-let openDeck: Point[] | null = null;
-
-/** Every other walkable pixel off the stairs, made once: where a crowd can spill. */
-function openDeckPoints(): Point[] {
-  if (openDeck !== null) return openDeck;
+/** Every other walkable pixel across the grid, off any area a crowd may not spill onto, made once: where a crowd can stand. */
+function openPoints(floor: Floor): Point[] {
+  if (floor.cache.open !== null) return floor.cache.open;
   const points: Point[] = [];
-  for (let y = 80; y < 126; y += 1) {
-    for (let x = 40; x < 424; x += 2) {
-      const area = areaAt(x, y);
-      if (area !== null && area !== "stairs" && walkable(x, y)) points.push({ x, y });
+  for (let y = floor.top; y < floor.top + floor.rows * floor.cell; y += 1) {
+    for (let x = floor.left; x < floor.left + floor.columns * floor.cell; x += floor.cell) {
+      const area = areaAt(floor, x, y);
+      if (area !== null && area.spill && walkable(floor, x, y)) points.push({ x, y });
     }
   }
-  openDeck = points;
+  floor.cache.open = points;
   return points;
 }
 
 /**
- * A spot at an anchor for one more sailor: the anchor itself while nobody stands there, else the
- * nearest open spot beside it on the same deck, never within a few pixels of another taken spot and
- * never on the stairs, where the balustrade would hide a sailor's legs. Only when that deck is full —
- * a crowd at the helm, say — does it spill onto the nearest other deck. The anchor itself when the
- * whole ship is full.
+ * A spot at a post for one more worker: the post itself while nobody stands within `spacing` of it, else the
+ * nearest open spot beside it on the same area, never within `spacing` of another taken spot and never on an area
+ * a crowd may not spill onto. Only when that area is full does it spill onto the nearest other one. The post itself
+ * when the whole floor is full.
  */
-export function sharedSpot(anchor: Point, taken: readonly Point[]): Point {
-  const crowded = (spot: Point) => taken.some((other) => Math.abs(other.x - spot.x) < 6 && Math.abs(other.y - spot.y) < 3);
+export function sharedSpot(floor: Floor, anchor: Point, taken: readonly Point[], spacing: readonly [number, number]): Point {
+  const crowded = (spot: Point) => taken.some((other) => Math.abs(other.x - spot.x) < spacing[0] && Math.abs(other.y - spot.y) < spacing[1]);
   if (!crowded(anchor)) return { x: anchor.x, y: anchor.y };
-  const area = areaAt(anchor.x, anchor.y);
-  const cost = (spot: Point) => Math.hypot((spot.x - anchor.x) / 2, spot.y - anchor.y) + (areaAt(spot.x, spot.y) === area ? 0 : 1000);
+  const area = areaAt(floor, anchor.x, anchor.y)?.id ?? null;
+  const cost = (spot: Point) => Math.hypot((spot.x - anchor.x) / 2, spot.y - anchor.y) + ((areaAt(floor, spot.x, spot.y)?.id ?? null) === area ? 0 : 1000);
   let best: Point | null = null;
   let bestCost = Number.POSITIVE_INFINITY;
-  for (const spot of openDeckPoints()) {
+  for (const spot of openPoints(floor)) {
     const value = cost(spot);
     if (value < bestCost && !crowded(spot)) {
       best = spot;
@@ -361,39 +319,22 @@ export function sharedSpot(anchor: Point, taken: readonly Point[]): Point {
 }
 
 /**
- * The rest areas, as feet-space rectangles [x, y, width, height]: the foredeck between the bow's spots
- * and the stations by the hatch, and the main deck's aft end between the crate's station and the
- * stairs. A sleeper standing anywhere in them covers no anchor of another place.
+ * Where a worker packed into a zone's overflow stands: the post itself while it stands `spacing` clear of every
+ * taken spot, else the open spot in the overflow `areas` nearest it that does. Only when the areas hold no such spot
+ * does it settle for the closer `fallback` spacing, still in the areas; the post itself when even that is gone.
  */
-export const REST_AREAS: ReadonlyArray<readonly [number, number, number, number]> = [
-  [120, 86, 29, 34],
-  [310, 95, 9, 25],
-];
-
-/**
- * How far apart sleepers stand: a badge's width across or its height (tail and gap included) down,
- * so no sleeper's badge is covered by another sleeper. The rest anchors keep it among themselves.
- */
-export const REST_SPACING = { x: 8, y: 9 } as const;
-
-/** Whether a point is in a rest area. */
-export function inRestArea(point: Point): boolean {
-  return REST_AREAS.some(([x, y, width, height]) => point.x >= x && point.x < x + width && point.y >= y && point.y < y + height);
-}
-
-/**
- * Where a sleeper stands at a rest anchor: the anchor itself while it stands `REST_SPACING` clear of
- * every taken spot, else the open spot in the rest areas nearest it that does. Only when the rest areas
- * hold no such spot does it settle for `sharedSpot`'s closer spacing, still in
- * the rest areas; the anchor itself when even that is gone. Never on the working deck.
- */
-export function restSpot(anchor: Point, taken: readonly Point[]): Point {
-  for (const spacing of [REST_SPACING, { x: 6, y: 3 }]) {
-    const crowded = (spot: Point) => taken.some((other) => Math.abs(other.x - spot.x) < spacing.x && Math.abs(other.y - spot.y) < spacing.y);
+export function restSpot(
+  floor: Floor,
+  overflow: { areas: readonly Rect[]; spacing: readonly [number, number]; fallback: readonly [number, number] },
+  anchor: Point,
+  taken: readonly Point[],
+): Point {
+  for (const spacing of [overflow.spacing, overflow.fallback]) {
+    const crowded = (spot: Point) => taken.some((other) => Math.abs(other.x - spot.x) < spacing[0] && Math.abs(other.y - spot.y) < spacing[1]);
     let best: Point | null = null;
     let bestCost = Number.POSITIVE_INFINITY;
-    for (const spot of openDeckPoints()) {
-      if (!inRestArea(spot)) continue;
+    for (const spot of openPoints(floor)) {
+      if (!inRects(overflow.areas, spot)) continue;
       const cost = Math.hypot(spot.x - anchor.x, spot.y - anchor.y);
       if (cost < bestCost && !crowded(spot)) {
         best = spot;
