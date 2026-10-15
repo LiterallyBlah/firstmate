@@ -78,7 +78,7 @@ function sailor(key: string, state: DeckState): DeckSailor {
 }
 
 function figure(key: string, x: number, row: number, overrides: Partial<Figure> = {}): Figure {
-  return { key, label: key, state: "idle", stale: false, look: "base", outfit: "base", x, y: row, row, pose: "leaning", flip: false, reveal: 1, moving: false, seed: 0, sink: 0, ...overrides };
+  return { key, label: key, state: "idle", stale: false, look: "base", outfit: "base", x, y: row, row, pose: "leaning", flip: false, reveal: 1, moving: false, seed: 0, sink: 0, departing: false, layer: "deck", alpha: 1, ...overrides };
 }
 
 describe("the sailor under the pointer", () => {

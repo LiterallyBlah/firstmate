@@ -293,7 +293,7 @@ describe("the generated environment on the deck", () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0) });
     deck.advance(16);
     const worldLayer = one(deck.app.stage, "world");
-    expect(worldLayer.children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "veil", "spot"]);
+    expect(worldLayer.children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot"]);
     // Nobody focused: no veil, an empty spotlight.
     expect(one(worldLayer, "veil").visible).toBe(false);
     expect(one(worldLayer, "spot").children).toHaveLength(0);
@@ -408,7 +408,7 @@ describe("the generated environment on the deck", () => {
   it("without its environment, draws a plain sea at the horizon and the waterline, and no sky or gull", async () => {
     const deck = await start(null, { now: new Date(2026, 9, 14, 12, 0) });
     deck.advance(16);
-    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "veil", "spot"]);
+    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot"]);
     expect(byLabel(deck.app.stage, "sky:under")).toEqual([]);
     expect(byLabel(deck.app.stage, "gull")).toEqual([]);
     expect(deck.app.canvas.attributes.get(DECK_SKY_ATTRIBUTE)).toBe("none");
@@ -711,6 +711,91 @@ describe("the camera closing in on a focused sailor", () => {
     expect(Math.abs(at.y - narrow.anchor.y)).toBeLessThan(worldFit(deck).scale * 16);
     deck.drawing.focus(null);
     expect(worldFit(deck)).toEqual(fitDeck({ width: 480, height: 600 }, { width: 426, height: 161 }, 1));
+    deck.drawing.destroy();
+  });
+});
+
+describe("the plank and the shark on the deck", () => {
+  const now = new Date(2026, 9, 14, 12, 0);
+
+  it("lays the plank in front of the near rail, and the sea's layer for whoever goes off it between the near sea and the veil", async () => {
+    const deck = await start(environment, { now, extras, scene: crewScene([["a", "working"]]) });
+    deck.advance(0);
+    const plank = one(one(deck.app.stage, "deck"), "plank") as FakeGraphics;
+    expect(plank.zIndex).toBeGreaterThan(one(deck.app.stage, "piece:near").zIndex);
+    expect(plank.shapes.length).toBeGreaterThan(0);
+    expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot"]);
+    deck.drawing.destroy();
+  });
+
+  it("walks a departing sailor off the plank into the sea, where the shark takes it, and clears the sea after", async () => {
+    const deck = await start(environment, { now, extras, scene: crewScene([["a", "working"], ["b", "idle"]]) });
+    deck.advance(0);
+    deck.drawing.update(crewScene([["b", "idle"]]));
+    const overboard = one(deck.app.stage, "overboard");
+    const sharks = new Set<string>();
+    const splashes = new Set<string>();
+    let swam = false;
+    let walkedPlank = false;
+    for (let frame = 0; frame < 900; frame += 1) {
+      deck.advance(34);
+      const onPlank = one(deck.app.stage, "deck").children.find((child) => child.label.startsWith("a~"));
+      if (onPlank !== undefined && onPlank.zIndex > one(deck.app.stage, "plank").zIndex) walkedPlank = true;
+      if (overboard.children.some((child) => child.label.startsWith("a~"))) swam = true;
+      for (const child of overboard.children) {
+        if (!child.visible) continue;
+        if (child.label === "shark") sharks.add(texturePath(child));
+        if (child.label === "splash") splashes.add(texturePath(child));
+      }
+    }
+    expect(walkedPlank).toBe(true);
+    expect(swam).toBe(true);
+    expect(sharks).toEqual(new Set(["shark/fin.png", "shark/surface.png", "shark/chomp.png", "shark/submerge.png"]));
+    expect(splashes).toEqual(new Set(["splash/impact.png", "splash/burst.png"]));
+    // Gone: no sailor, shark or splash left in the sea, and only `b` on deck.
+    expect(overboard.children).toEqual([]);
+    expect(byLabel(deck.app.stage, "a")).toEqual([]);
+    expect(byLabel(deck.app.stage, "b")).toHaveLength(1);
+    deck.drawing.destroy();
+  });
+
+  it("without the shark's art still sends the sailor over, and draws no shark", async () => {
+    const plain = { manifest: extrasManifest, images: new Map([...extras.images].filter(([path]) => !path.startsWith("shark/"))) };
+    const deck = await start(environment, { now, extras: plain, scene: crewScene([["a", "working"]]) });
+    deck.advance(0);
+    deck.drawing.update(crewScene([]));
+    const overboard = one(deck.app.stage, "overboard");
+    let swam = false;
+    for (let frame = 0; frame < 900; frame += 1) {
+      deck.advance(34);
+      if (overboard.children.some((child) => child.label.startsWith("a~"))) swam = true;
+      expect(overboard.children.filter((child) => child.label === "shark" && child.visible)).toEqual([]);
+    }
+    expect(swam).toBe(true);
+    expect(overboard.children).toEqual([]);
+    deck.drawing.destroy();
+  });
+
+  it("under reduced motion fades a departing sailor out where it stood, drawn again only until it has gone", async () => {
+    const deck = await start(environment, { now, extras, scene: crewScene([["a", "working"]]), reducedMotion: true });
+    expect(deck.pending()).toBe(0);
+    deck.drawing.update(crewScene([]));
+    const fades = deck.timers.filter((timer) => timer.ms < 1000);
+    expect(fades).toHaveLength(1);
+    const fade = fades[0]!;
+    const alphas: number[] = [];
+    for (let tick = 0; tick < 40 && !fade.stopped; tick += 1) {
+      const ghost = byLabel(deck.app.stage, "deck")[0]!.children.find((child) => child.label.startsWith("a~"));
+      if (ghost !== undefined) alphas.push((ghost.children[1] as FakeSprite).alpha);
+      fade.run();
+    }
+    expect(fade.stopped).toBe(true);
+    expect(alphas.length).toBeGreaterThan(5);
+    expect(alphas).toEqual([...alphas].sort((x, y) => y - x));
+    expect(byLabel(deck.app.stage, "overboard")[0]!.children).toEqual([]);
+    expect(byLabel(deck.app.stage, "deck")[0]!.children.some((child) => child.label.startsWith("a"))).toBe(false);
+    // No frame loop at any point.
+    expect(deck.pending()).toBe(0);
     deck.drawing.destroy();
   });
 });
