@@ -46,5 +46,14 @@
       { "id": "twin-bank", "texture": "clouds/twin-bank.png", "size": [80, 24], "pixelsPerSecond": 0.4 }
     ]
   },
-  "plank": { "texture": "plank/plank.png", "size": [18, 22], "position": [241, 120] }
+  "plank": { "texture": "plank/plank.png", "size": [18, 22], "position": [241, 120] },
+  "mast": {
+    "texture": "mast/tall-mast.png",
+    "size": [48, 224],
+    "position": [187, -112],
+    "sway": 52,
+    "clears": [125, 0, 141, 68],
+    "replaces": "mast",
+    "sail": [154, 10]
+  }
 }

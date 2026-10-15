@@ -60,6 +60,9 @@ export const PLANK = {
   width: 12,
 } as const;
 
+/** The row below the lowest the shark and the splash reach at the water (`extras.json`'s `exit`): their ripple ends two rows under it. */
+export const PLANK_SEA_BOTTOM = PLANK.water + 3;
+
 /**
  * The plank's pixels, top to bottom, in the hull's own colours: [x, y, width, height, colour, alpha]. Two
  * boards side by side with a seam between them, widening towards the viewer, their end two rows thick, and
