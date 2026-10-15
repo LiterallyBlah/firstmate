@@ -7,6 +7,9 @@ Four incremental reviewed PRs, rebased on `origin/main`, never merged by this wo
 3. Reply shark: a pack-authored attention carrier with a speech bubble opening Converse for its worker.
 4. Ship polish: generated foam, gull, sea and expressive crew art; phase tint and climbing.
 
-Each slice records its intentional visual changes, exact screenshot expectations, art provenance and review. Sources stay under `docs/ship-deck-art/enrichment/`; only registered, hashed runtime PNGs go under `art/settings/ship/`. Run typecheck, the full suite, pack lint, Paseo/Hermes compilation (no class) and the 81-shot gate; wait for green CI before reporting a PR complete.
+Each slice records its intentional visual changes, exact screenshot expectations, art provenance and review. Sources stay under `docs/ship-deck-art/`; only registered, hashed runtime PNGs go under `art/settings/ship/`. Run typecheck, the full suite, pack lint, Paseo/Hermes compilation (no class) and the 81-shot gate; wait for green CI before reporting a PR complete. Each completed slice is a READY, non-draft PR. Wait for the captain to merge it, then rebase onto the latest `origin/main` before building the next slice; never stack unmerged slices.
 
 Starting main: scene migration and global selector already landed. Weather uses existing `cycle@1`, `variants@1` and `flash@1`; no new DSL or setting-specific runtime branch is needed. Reduced motion remains calm. New capabilities, if needed for subsequent slices, are generic and versioned.
+
+Weather: [PR #64](https://github.com/LiterallyBlah/firstmate/pull/64) merged as `3cc12d1`.
+Idle below deck: `fm/deck-enrichment-02`, based on that merge; review in [below-deck-review.md](below-deck-review.md).

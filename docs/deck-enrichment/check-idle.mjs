@@ -35,6 +35,8 @@ export async function checkIdle(view, manifest) {
     await view.keyboard.press("Escape");
     await panel.waitFor({ state: "hidden" });
   };
+  // Let the previous fixture's calm departure fades finish before recording the settled room.
+  await view.waitForTimeout(manifest.portals.still.fadeMs);
   await view.mouse.move(5, 895);
   await view.screenshot({ path: join(here, "below-deck-crowd.png"), clip: box });
   const names = [];
