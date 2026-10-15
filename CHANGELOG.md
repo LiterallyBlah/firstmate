@@ -10,6 +10,10 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- The plugin installs about 11 MB lighter. The ship deck's art now ships only the frames the deck draws (about
+  300 KB); the generation sources, prompts, provenance and review renders that made them stay in the repository's
+  `docs/ship-deck-art/`. The deck looks and moves exactly as before.
+
 - A busy fleet sails into a storm. When four or more crewmates are working, the deck's calm scene cross-fades into
   generated heavy weather: the clouds darken into thunderheads, an overcast greys the daytime sky, the sea turns
   rough with whitecaps, a heavier wake churns astern, spray breaks at the bow, and with six working a faint fork of

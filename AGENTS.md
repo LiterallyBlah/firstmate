@@ -66,7 +66,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-loop.ts`         | When the deck draws: 30 fps at most, paused while hidden, still under reduced motion.     |
 | `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated, the atlas, environment and extras decoded; every failure a status. |
 | `client/deck-pixi.ts`         | The deck, its sail, depth pieces, props, plank and sailor sprites, and the sea's layer of sharks and splashes, drawn with Pixi, handed in through a narrow `PixiModule`. |
-| `art/ship-deck/`, `docs/ship-deck-art/build-art.py` | The deck's art: one atlas and its manifest, built mechanically from the approved generated PNGs; the generated environment and `environment.json`; the sail, crew looks, shark and splash, the animated water (`water/`) and `extras.json`. |
+| `art/ship-deck/`, `docs/ship-deck-art/` | The deck's art as shipped — only the frames it serves and the manifests that name them: the atlas and `deck.json`, the environment and `environment.json`, the sail, crew looks, shark and splash, the animated water and the weather and `extras.json` — and, unshipped, everything that made them: sources, prompts, provenance, reviews, `build-art.py`. |
 | `shared/attachments.ts`       | What the captain can attach: the message's shape, image-or-file by Paseo's rules, the size cap. |
 | `server/uploads.ts`           | An attached file written to `$PASEO_HOME/uploads/`, described as Paseo's `uploaded_file`.     |
 | `server/cli.ts`               | `paseo stop` and `paseo project rename`, for what the SDK does not have.                   |
@@ -292,8 +292,13 @@ client code:
 
 - **The art is served the same way.** `art/ship-deck/deck.png` (one atlas, about 84 KB) and `deck.json`
   (its manifest, checked against `DeckArtManifestSchema`) go through `firstmate.deck.art`. They are fetched and decoded once a session alongside Pixi, never bundled.
-  `docs/ship-deck-art/build-art.py` rebuilds them from the generated sources; `art/ship-deck/README.md`
+  `docs/ship-deck-art/build-art.py` rebuilds them from the generated sources; `docs/ship-deck-art/README.md`
   says where those came from and what still needs a pixel artist.
+- **`art/` ships only what the deck draws.** `package.json`'s `files` names all of `art/`, so a generation
+  source or a review render left there goes to every install: before they moved, about 11 MB of them did,
+  against about 300 KB served. Sources, prompts, provenance, verification records and review renders go
+  in `docs/ship-deck-art/`, under the same relative path; `server/ship-deck.test.ts` fails on any file under
+  `art/` that no served manifest names, or on a name with no file.
 - **Depth is the deck row.** Scene coordinates are the hull's own pixels, and a sailor's `x, y` is its
   feet. The hull is the backdrop (in slices, so the masthead can sway). Its mast, bollards and near rail
   are cut out again as pieces, each with the row it stands on, and `depthOf` orders props, sailors and
@@ -373,7 +378,7 @@ starts.
 - **Every state wears a badge** (`client/deck-badges.ts`): ▶ working, hourglass waiting, ! blocked, Z idle,
   in the state's colour, drawn in the sailor's own layer so the pieces in front cover it, and the same
   badge keys the legend. An idle sailor breathes out a z under motion. The badge stands in for state poses
-  the art lacks; a pixel artist's moving poses would carry state better (`art/ship-deck/README.md`). The
+  the art lacks; a pixel artist's moving poses would carry state better (`docs/ship-deck-art/README.md`). The
   canvas harness's 2D reference draws the badges too, so the still comparison stays exact.
 - **Replies hang over the crewmate they name** (`client/deck-replies.ts`, `docs/ship-deck-replies/README.md`).
   A first mate's suggestion whose label or prompt names a card's task id, pull request or agent id is that
@@ -445,7 +450,7 @@ starts.
   (`ImageBitmap`s), each a sprite tinted to its slot of the phase palette, crossfaded by `skyBlend`'s `t`. A
   multiply cannot brighten, and the afternoon palette is lighter than the source. A cloud that will not cut is
   left out with a warning, like any extra.
-- **What still wants an artist** is in `art/ship-deck/ENVIRONMENT.md`: the foam's scallops are regular and
+- **What still wants an artist** is in `docs/ship-deck-art/ENVIRONMENT.md`: the foam's scallops are regular and
   not fitted to hull C's curve, and the gull's wing sweep is approximate. The hull and sea are not tinted
   for night.
 

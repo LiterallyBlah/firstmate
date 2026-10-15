@@ -92,7 +92,7 @@ about 5 KB more of it, the cloth occluder no longer among it, and the client bun
   fills and slackens, would make it sail. Above the yard the mast is bare to the nest: a topsail would fill it.
 - **The seam where it sways**: the topmast moves a pixel against the shaft at hull row -60, as the old
   masthead did at row 48. An artist-cut joint (a cap or a band there) would hide it.
-- **The plank**'s rivets and knot are small clusters at game scale (`art/ship-deck/plank/README.md`).
+- **The plank**'s rivets and knot are small clusters at game scale (`docs/ship-deck-art/plank/README.md`).
 
 ## Reproducing
 

@@ -72,7 +72,7 @@ export const loadDeckArt = defineRpc({
 export type DeckArt = z.infer<typeof loadDeckArt.output>;
 
 /**
- * `firstmate.deck.environment` — the generated sea, sky and gull (`art/ship-deck/ENVIRONMENT.md`): the
+ * `firstmate.deck.environment` — the generated sea, sky and gull (`docs/ship-deck-art/ENVIRONMENT.md`): the
  * parts of `environment.json` the deck draws with, and each image it names, base64. Separate from the atlas so a deck whose environment fails to load
  * still draws its ship and crew, on a plain sea (`client/deck-mount.ts`).
  */
@@ -152,11 +152,11 @@ export const loadDeckEnvironment = defineRpc({
 export type DeckEnvironment = z.infer<typeof loadDeckEnvironment.output>;
 
 /**
- * `firstmate.deck.extras` — the tall mast and its sail (`art/ship-deck/mast/README.md`, `art/ship-deck/sails/README.md`),
- * the crew's extra looks (`art/ship-deck/assets-2/README.md`), the plank's board (`art/ship-deck/plank/README.md`),
- * the shark and splash that see a sailor off the plank (`art/ship-deck/shark/README.md`), the clouds that
- * drift across the sky (`art/ship-deck/clouds/README.md`), and the animated sea, foam and wake
- * (`art/ship-deck/water/README.md`):
+ * `firstmate.deck.extras` — the tall mast and its sail (`docs/ship-deck-art/mast/README.md`, `docs/ship-deck-art/sails/README.md`),
+ * the crew's extra looks (`docs/ship-deck-art/assets-2/README.md`), the plank's board (`docs/ship-deck-art/plank/README.md`),
+ * the shark and splash that see a sailor off the plank (`docs/ship-deck-art/shark/README.md`), the clouds that
+ * drift across the sky (`docs/ship-deck-art/clouds/README.md`), and the animated sea, foam and wake
+ * (`docs/ship-deck-art/water/README.md`):
  * the parts of `art/ship-deck/extras.json` the deck draws with, and each image it names, base64. Apart from
  * the atlas and the environment, and not needed to
  * draw: the client keeps whatever of it decodes, so a missing sail is the bare mast and a missing look is
@@ -198,7 +198,7 @@ export const DeckExtrasManifestSchema = z.object({
     .array(z.object({ id: z.string().regex(/^[a-z0-9-]+$/), texture: ArtPath }))
     .refine((looks) => new Set(looks.map((look) => look.id)).size === looks.length, "each crew look needs its own id"),
   /**
-   * The way off by the plank (`art/ship-deck/shark/README.md`): the shark's four keys and the splash's two,
+   * The way off by the plank (`docs/ship-deck-art/shark/README.md`): the shark's four keys and the splash's two,
    * each a `size` image whose `anchor` is where it meets the water. `mouth` is the shark's open mouth from
    * that anchor, drawn facing right. Without it, or without an image of it, a sailor still walks the plank
    * and drops into the sea, and the shark or the splash is simply not drawn.
@@ -215,7 +215,7 @@ export const DeckExtrasManifestSchema = z.object({
     })
     .optional(),
   /**
-   * The sky's drifting clouds (`art/ship-deck/clouds/README.md`): neutral sprites in three colours,
+   * The sky's drifting clouds (`docs/ship-deck-art/clouds/README.md`): neutral sprites in three colours,
    * `palette` — shadow, body, highlight — each recoloured to the same slot of the showing sky phase's
    * entry in `stages`, and drifted right at about `pixelsPerSecond` sky pixels a second. Without it, or
    * without a sprite's image, the sky has fewer clouds or none (`client/deck-clouds.ts`).
@@ -231,13 +231,13 @@ export const DeckExtrasManifestSchema = z.object({
     })
     .optional(),
   /**
-   * The plank's generated board (`art/ship-deck/plank/README.md`), a `size` image drawn with its upper left
+   * The plank's generated board (`docs/ship-deck-art/plank/README.md`), a `size` image drawn with its upper left
    * at `position` on the hull in place of the board drawn in code. Without it, or without its image, the
    * code board stays.
    */
   plank: z.object({ texture: ArtPath, size: Size, position: z.tuple([z.number().int(), z.number().int()]) }).optional(),
   /**
-   * The tall mast (`art/ship-deck/mast/README.md`): a `size` image drawn with its upper left at `position`
+   * The tall mast (`docs/ship-deck-art/mast/README.md`): a `size` image drawn with its upper left at `position`
    * on the hull, reaching above the hull's top row into the sky, in place of the hull's own short rig —
    * its crow's nest, upper mast and stays, all of it within `clears` ([x, y, width, height], open sky
    * besides), which is left out of the hull. Its top `sway` rows (the crow's nest and the topmast) sway as the
@@ -255,7 +255,7 @@ export const DeckExtrasManifestSchema = z.object({
     })
     .optional(),
   /**
-   * The animated water (`art/ship-deck/water/README.md`): each part `frames`, images of `frameSize` played in
+   * The animated water (`docs/ship-deck-art/water/README.md`): each part `frames`, images of `frameSize` played in
    * order every `frameMs` and looped, the first held while the deck is still. The `sea` tiles both ways from
    * the horizon and drifts right; the `foam` lies across the waterline from `top`, repeating sideways
    * within `span` ([left, right)) and drifting; the `wake` is one sprite, its `anchor` on `position` at the

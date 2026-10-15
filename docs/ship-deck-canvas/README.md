@@ -9,7 +9,7 @@ the plugin-side half: the Deck pane, behind `FIRSTMATE_SHIP_DECK`, drawn from th
 
 The canvas first drew placeholder shapes. It now draws the captain-approved generated art: hull C's deck,
 a sailor sprite per live crewmate and three props. The deck is depth-layered, so a sailor behind the mast,
-a bollard or the near rail is hidden by it. `art/ship-deck/README.md` covers where the art comes from,
+a bollard or the near rail is hidden by it. `docs/ship-deck-art/README.md` covers where the art comes from,
 how it is made and how good it is.
 
 ## How it is wired

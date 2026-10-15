@@ -1,5 +1,5 @@
 /**
- * The generated environment drawn with Pixi (`art/ship-deck/ENVIRONMENT.md`): the sky behind the ship,
+ * The generated environment drawn with Pixi (`docs/ship-deck-art/ENVIRONMENT.md`): the sky behind the ship,
  * following the local time of day, its stars at night, a gull now and then, and the scrolling sea with
  * foam at the hull's waterline. `client/deck-pixi.ts` puts `back` behind the ship and `front` in front of
  * it; the arithmetic is `client/deck-sky.ts`, and when a gull flies is `client/deck-ambient.ts`.

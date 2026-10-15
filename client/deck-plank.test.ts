@@ -45,6 +45,8 @@ import {
 import type { DeckSailor, DeckState } from "./deck-scene";
 
 const art = (path: string) => new URL(`../art/ship-deck/${path}`, import.meta.url);
+/** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */
+const sources = (path: string) => new URL(`../docs/ship-deck-art/${path}`, import.meta.url);
 const manifest = DeckArtManifestSchema.parse(JSON.parse(readFileSync(art("deck.json"), "utf8")));
 const extras = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(art("extras.json"), "utf8")));
 
@@ -441,7 +443,7 @@ describe("the shark and splash, as served", () => {
   it("names the four shark keys and the two splashes, each its size, with the art's own anchors and mouth", () => {
     const exit = extras.exit!;
     // The art's manifest is written with a byte-order mark.
-    const source = JSON.parse(readFileSync(art("shark/manifest.json"), "utf8").replace(/^﻿/, "")) as {
+    const source = JSON.parse(readFileSync(sources("shark/manifest.json"), "utf8").replace(/^﻿/, "")) as {
       shark: { anchor: [number, number]; bite: { relativeToWaterAnchor: [number, number] } };
       splash: { anchor: [number, number] };
     };

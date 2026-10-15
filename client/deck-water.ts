@@ -1,5 +1,5 @@
 /**
- * The deck's animated water (`art/ship-deck/water/README.md`): the generated sea, the foam at the hull's
+ * The deck's animated water (`docs/ship-deck-art/water/README.md`): the generated sea, the foam at the hull's
  * waterline and the wake astern, served with the extras (`extras.json`'s `water`, `firstmate.deck.extras`).
  * Pure: which parts can be drawn, which frame each shows, how far the water has drifted, and where the wake
  * sits. The sprites are `client/deck-environment.ts`'s.

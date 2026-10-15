@@ -23,7 +23,7 @@
  * - **Where the water is.** The sailor drops into the sea straight below the plank's tip: as far in front
  *   of the hull's waterline as the tip is in front of the rail, so the splash and the shark are in the near
  *   sea (row 168), outside the ship's bob. The shark's art is anchored at its water contact
- *   (`art/ship-deck/shark/README.md`); its mouth is placed over the sailor, and it comes from the left or
+ *   (`docs/ship-deck-art/shark/README.md`); its mouth is placed over the sailor, and it comes from the left or
  *   the right by turns (`side`), mirrored about its anchor.
  */
 import type { SailorPose } from "../shared/ship-deck";
@@ -139,7 +139,7 @@ export const SWIM_ROWS = 11;
 export const FIN_AT = IMPACT_AT + 120;
 export const FIN_MS = 560;
 export const FIN_RUN = 40;
-/** The shark's keys after the fin, each for its time (`art/ship-deck/shark/manifest.json`'s sequence). */
+/** The shark's keys after the fin, each for its time (`docs/ship-deck-art/shark/manifest.json`'s sequence). */
 export const SURFACE_MS = 160;
 export const CHOMP_MS = 180;
 export const SUBMERGE_MS = 200;

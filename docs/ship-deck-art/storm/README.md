@@ -3,7 +3,7 @@
 Generated assets for high atmosphere on branch `fm/deck-storm-art`, based on `origin/main` at `cd9b12c`.
 This is an assets-only handoff: no renderer, loading/schema, installation or PR changes.
 
-The runtime [manifest](../../../art/ship-deck/storm/manifest.json) records each frame, size, timing,
+The runtime [manifest](manifest.json) records each frame, size, timing,
 palette, transparency, intensity ramp and calm-asset mapping. The 19 runtime PNGs total **43,086 bytes**
 (42.1 KiB). Only those PNGs and the manifest are added under shipped `art/`; no duplicate strips.
 All ten generation sources, prompts, mechanical cleanup recipes and review renders are here in `docs/`.
