@@ -1,8 +1,10 @@
 # The deck as a scene engine and setting packs: the migration's gate
 
-The Deck is being split into a setting-independent **scene engine** and the ship as a pure-data **setting
-pack** (`art/settings/ship/setting.json` and the PNGs it names), in nine reviewed steps. Every step has to
-draw the ship exactly as main does. This folder is the check that holds each step to that.
+The Deck is a setting-independent **scene engine** with two pure-data **setting packs**:
+`art/settings/ship/` and `art/settings/office/`, each a `setting.json` and the PNGs it names. The nine-step
+migration and its reviewed capability slices are recorded below. Every step must draw the ship exactly
+as main does; this folder holds that gate. [Authoring a third setting](authoring.md) uses the same format,
+closed versioned catalogue, pack linter and debug overlay.
 
 ## The gate: the ship, pixel for pixel, against main
 
@@ -418,3 +420,40 @@ Gate: **81/81 pixel-identical** to main `f792e8d`, with no flakes or page errors
 Full suite: 79 files, 1,019 tests passed, three skipped. Typecheck, pack lint (36 tests) and `git diff --check`
 pass. Client growth is 1,230 bytes; Hermes parses it and the bundle has no `class`. Package art remains
 331,187 bytes, with the staged office art, tests and documentation excluded. Evidence is recorded beside this file.
+
+## Step 9e — office pack: the data-only extensibility proof
+
+- `art/settings/office/` contains a complete format-1 manifest and the **26 PNGs / 99 frames** commissioned
+  in PR #55, copied byte-for-byte from `docs/settings/office/art/`. The manifest fills their real SHA-256
+  digests, supplies explicit full-image prop rectangles and reuses the open door frame as a static depth
+  piece. **No runtime source, ship pack or art pixels change in this step.**
+- The existing server scan and global picker discover **The office** without registration code. Its
+  stable desks, typing poses, printer/help/break zones, walking lift entry, finite door/confetti departure,
+  city phases, room/body tint and local-hour clock use only the reviewed catalogue. The installed manifest
+  is authoritative; the original art contract and null-digest draft remain historical records outside the package.
+- [The office runtime review](../settings/office/RUNTIME-REVIEW.md) records full/lite/still rendering,
+  local time, desk depth, focus, entry/departure and hidden pause, with no browser errors. A reduced-motion
+  night view fits 41 colleagues including 24 idle workers, holds clock frame zero and remains pixel-static.
+  The actual global selection, missing-pack fallback/return and authoring overlay pass too.
+- The package now has two JSON/PNG settings, **532,249 bytes under `art/`** including both manifests.
+  Office image bytes are **168,155**, below the per-pack 1 MB cap. Tests, documentation, art sources and
+  historical drafts remain excluded. There is no bundled art and no new JavaScript in this pack PR.
+
+The migration's final structure is a setting-independent scene engine (`client/deck-*`), a strict shared
+schema and closed versioned catalogue (`shared/deck-setting.ts`), a confined pack server
+(`server/deck-settings.ts`), and `art/settings/{ship,office}/`. The pack linter, generic render harness and
+debug overlay support both. All five decisions are preserved: code-drawn plank/wake retired, fully calm
+reduced motion, global `deckSetting` defaulting to ship with a future resolver seam, no external pack
+installer, and engine-owned intensity.
+
+[A third setting](authoring.md) commissions registered art, supplies only a manifest and its named PNGs,
+computes derived values/hashes offline, and passes the linter, overlay/runtime review and existing ship gate.
+Discovery needs no code changes. A missing behaviour must first land in a separate generic engine PR;
+manifests cannot add expressions, callbacks or executable code.
+
+Full suite: **79 files, 1,034 tests passed, three skipped**. Typecheck, all **51 pack-lint checks** and
+`git diff --check` pass. Both compiled bundles keep their exact sizes (client 619,801; server 334,637 bytes),
+the client bundle is byte-identical to main `17c9e27`, Hermes parses it and it contains no `class`.
+The final ship gate is **81/81 pixel-identical** to that same main, with no flakes or page errors and
+matching canvas metadata throughout. `compile-results.json` and `gate-results.json` record the tested
+pack commit `d6f406c`; the following evidence/documentation commit changes no runtime inputs.
