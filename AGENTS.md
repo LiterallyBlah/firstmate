@@ -42,14 +42,15 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/send.ts`              | Sending to an agent without interrupting its turn where the provider allows (`"steer"`), and each send's receipt. |
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
-| `server/ship-deck.ts`, `shared/ship-deck.ts` | What the ship deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail and the crew's looks. |
+| `server/ship-deck.ts`, `shared/ship-deck.ts` | What the ship deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.art` serving `art/ship-deck/`, `firstmate.deck.environment` serving its generated sea, sky and gull, `firstmate.deck.extras` serving the sail, the crew's looks and the plank's shark and splash. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the focused sailor's panel and keys, the legend of badges and counts. |
 | `client/deck-camera.ts`       | The camera: the exact fit or a shot closed in on a focused sailor, the eased zoom between, where the focus panel goes; what a click or an arrow does to the focus. Pure. |
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z. Pure. |
 | `client/deck-hover.ts`        | The sailor under the pointer, by the box it is drawn in; canvas ↔ deck coordinates; where its label goes. Pure. |
 | `client/deck-scene.ts`        | Cards → sailors on hull C, by column, greyed when their feed is lost, each with its hover caption; the depth order of everything on deck; whether the screen offers the Deck. Pure. |
 | `client/deck-geometry.ts`     | Hull C's walkable deck, its obstacles and named anchors; A* paths; a spot beside a shared anchor. Pure. |
-| `client/deck-crew.ts`         | The crew in motion: anchors reserved, the state shown at once and walked to after, the hatch, idle motion and the at-ease breath, each sailor's look, each frame's poses. Pure. |
+| `client/deck-crew.ts`         | The crew in motion: anchors reserved, the state shown at once and walked to after, the hatch, the queue for the plank and each departure's clock, idle motion and the at-ease breath, each sailor's look, each frame's poses. Pure. |
+| `client/deck-plank.ts`        | The plank and the way off by it: which departures take it (`PLANK_DEPARTURES`), its pixels, and one departure's walk, jump, splash and shark as a function of time. Pure. |
 | `client/deck-extras.ts`       | The sail and the crew's looks: which looks there are, who wears which (by agent id), the sail's billow, whether it is drawn. Pure. |
 | `client/deck-wake.ts`         | The wake astern and the bow and stern waves' arms, as runs of foam pixels scrolled with the sea. Pure. |
 | `client/deck-ambient.ts`      | The bob, the masthead's sway, the lanterns, where the water is and when a gull flies, as functions of the clock; the motion plan. Pure. |
@@ -57,8 +58,8 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-environment.ts`  | The generated sky, stars, gull, sea and foam, and the wake, drawn with Pixi, behind and in front of the ship; a plain sea (with its wake) without them. |
 | `client/deck-loop.ts`         | When the deck draws: 30 fps at most, paused while hidden, still under reduced motion.     |
 | `client/deck-mount.ts`        | The canvas put into a react-native-web view; WebGL probed; Pixi's served build evaluated, the atlas, environment and extras decoded; every failure a status. |
-| `client/deck-pixi.ts`         | The deck, its sail, depth pieces, props and sailor sprites drawn with Pixi, handed in through a narrow `PixiModule`. |
-| `art/ship-deck/`, `docs/ship-deck-art/build-art.py` | The deck's art: one atlas and its manifest, built mechanically from the approved generated PNGs; the generated environment and `environment.json`; the sail and crew looks and `extras.json`. |
+| `client/deck-pixi.ts`         | The deck, its sail, depth pieces, props, plank and sailor sprites, and the sea's layer of sharks and splashes, drawn with Pixi, handed in through a narrow `PixiModule`. |
+| `art/ship-deck/`, `docs/ship-deck-art/build-art.py` | The deck's art: one atlas and its manifest, built mechanically from the approved generated PNGs; the generated environment and `environment.json`; the sail, crew looks, shark and splash and `extras.json`. |
 | `shared/attachments.ts`       | What the captain can attach: the message's shape, image-or-file by Paseo's rules, the size cap. |
 | `server/uploads.ts`           | An attached file written to `$PASEO_HOME/uploads/`, described as Paseo's `uploaded_file`.     |
 | `server/cli.ts`               | `paseo stop` and `paseo project rename`, for what the SDK does not have.                   |
@@ -321,8 +322,17 @@ starts.
 - **Depth is set every frame.** The deck's layer sorts by `zIndex` from `depthOf(row, rank)`, so a
   walking sailor goes behind the mast while its feet are on or behind the mast's row and in front after.
 - **The hatch.** Crew already aboard when the Deck opens are simply there. A crewmate that joins later
-  climbs out of the hatch (its sprite cropped to the rows above the grate) and walks to its anchor; one
-  whose card leaves the deck walks back and climbs down.
+  climbs out of the hatch (its sprite cropped to the rows above the grate) and walks to its anchor.
+- **The plank** (`client/deck-plank.ts`, `docs/ship-deck-plank/README.md`). One whose card leaves the deck
+  walks to the plank over the gunwale amidships, queues there in the order they left, and goes over the side
+  one at a time: out along it, a jump, a splash, a shark. The scene says why each card is off the deck
+  (`departureOf`: done, failed, closed; removed when gone from the board) and `PLANK_DEPARTURES` alone decides
+  who takes the plank — the rest walk back to the hatch and climb down. From the plank's foot a sailor is a
+  `Departure`, off the crew and on its own clock under a new key, so a card that comes back meanwhile is a
+  new sailor from the hatch. A departing sailor has no badge or mark and is never under the pointer. The
+  plank is code, drawn in front of the near rail; off its end the sailor, the shark and the splash are in
+  the `overboard` layer over the near sea, outside the bob. Under reduced motion a departure fades where it
+  stood, redrawn by a timer only while something fades.
 - **Stale never reads idle.** A failing fleet load (`fleet.error`) greys the whole crew, a remote host
   offline greys its workers: the last state stays, the sprite greys, the mark goes hollow, idle motion
   stops, and the pane says the feed is lost.
@@ -396,7 +406,7 @@ starts.
 ### The sail, the wake, the crew's looks and the sailor at ease (`docs/ship-deck-tweaks/README.md` has the evidence)
 
 - **Served apart, and kept image by image.** `art/ship-deck/extras.json` names the sail's two-state strip,
-  the mast occluder and six crew looks (about 31 KB); `firstmate.deck.extras` sends them, checked against
+  the mast occluder, six crew looks, and the plank's four shark keys and two splashes (about 35 KB); `firstmate.deck.extras` sends them, checked against
   `DeckExtrasManifestSchema`, whose paths cannot leave `art/ship-deck/`.
   `decodeExtras` keeps whatever decodes: no sail without both its strip and the occluder, and a look that
   failed is not handed out. A whole failure is a bare mast and the atlas's two outfits, with a warning.

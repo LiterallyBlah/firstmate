@@ -52,6 +52,7 @@ import {
   deckOffered,
   deckScene,
   deckState,
+  departureOf,
   sailorCaption,
   sailorIdentity,
   type DeckScene,
@@ -212,6 +213,12 @@ describe("the deck's scene", () => {
     });
   });
 
+  it("says why each card off the deck is off it, which is how a sailor that stood there leaves", () => {
+    const scene = deckScene([...fixture, card("f2", "failed", { status: "closed" })], theme);
+    expect(scene.departures).toEqual({ q1: "closed", d1: "done", c1: "closed", followed: "closed", f2: "failed" });
+    expect(departureOf(card("d2", "done", { status: "closed" }))).toBe("done");
+  });
+
   it("draws one sailor per live crewmate from a fixture fleet, saying only what each is doing", () => {
     const scene = deckScene(fixture, theme);
     expect(scene.counts).toEqual({ working: 2, waiting: 2, blocked: 2, idle: 2 });
@@ -333,6 +340,9 @@ describe("the deck's art", () => {
       moving: true,
       seed: 0,
       sink: 0,
+      departing: false,
+      layer: "deck",
+      alpha: 1,
     });
     const figures = [at(211, 111, "before-mast"), at(211, 100, "behind-mast"), at(80, 94, "behind-bollard"), at(80, 95, "before-bollard")];
     const order = deckLayers(figures, manifest.pieces).map((layer) =>
@@ -1054,7 +1064,7 @@ describe("the sail and the crew's looks, decoded", () => {
     const root = fileURLToPath(new URL("..", import.meta.url));
     const extras = await readDeckExtras(async () => root);
     const all = await decodeExtras(extras, (png) => Promise.resolve({ png }));
-    expect([...all.images.keys()]).toHaveLength(8);
+    expect([...all.images.keys()]).toHaveLength(14);
     const missing: string[] = [];
     const { ["crew-variants/03-navigator.png"]: _navigator, ...without } = extras.images;
     const some = await decodeExtras(
@@ -1063,7 +1073,7 @@ describe("the sail and the crew's looks, decoded", () => {
       (path) => missing.push(path),
     );
     expect(missing.sort()).toEqual(["crew-variants/03-navigator.png", "sails/main-sail.png"]);
-    expect([...some.images.keys()]).toHaveLength(6);
+    expect([...some.images.keys()]).toHaveLength(12);
     expect(some.manifest).toBe(extras.manifest);
   });
 });

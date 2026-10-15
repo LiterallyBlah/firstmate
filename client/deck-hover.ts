@@ -64,9 +64,9 @@ export function badgeTop(figure: Figure, manifest: DeckArtManifest): number {
   return figure.y - standing.feet[1] - BADGE_GAP - BADGE_SIZE.height;
 }
 
-/** Whether a figure shows its badge: once it is out of the hatch. */
+/** Whether a figure shows its badge: once it is out of the hatch, and until it leaves the crew. */
 export function showsBadge(figure: Figure): boolean {
-  return figure.reveal >= 1;
+  return figure.reveal >= 1 && !figure.departing;
 }
 
 /** A sailor's box on deck this frame, in deck pixels, its badge included; null while under the hatch. */
@@ -97,11 +97,12 @@ export function toCanvas(point: { x: number; y: number }, fit: DeckFit, bob: Dec
   return { x: fit.x + (point.x + bob.x) * fit.scale, y: fit.y + (point.y + bob.y) * fit.scale };
 }
 
-/** The sailor at deck point `point`, frontmost first, or null. */
+/** The sailor at deck point `point`, frontmost first, or null. One on its way out (`departing`) has no card to show. */
 export function sailorAt(figures: readonly Figure[], manifest: DeckArtManifest, point: { x: number; y: number }): Figure | null {
   let best: Figure | null = null;
   let bestDepth = -Infinity;
   for (const figure of figures) {
+    if (figure.departing) continue;
     const box = figureBox(figure, manifest);
     if (box === null) continue;
     if (point.x < box.left || point.x >= box.right || point.y < box.top || point.y >= box.bottom) continue;

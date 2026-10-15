@@ -16,7 +16,9 @@
  *   the seventh sleeper at the foot of the quarterdeck stairs too.
  *
  * Only live crew stand on deck: a local crewmate Paseo has not closed, or a remote worker that is
- * crew, not a followed session. Queued and Done cards, and cards with no worker, are left off.
+ * crew, not a followed session. Queued and Done cards, and cards with no worker, are left off. A card
+ * that leaves the deck says why (`departureOf`: done, failed or closed; a card gone from the board is
+ * removed), and `client/deck-plank.ts` decides from that how its sailor goes.
  *
  * The scene says only what each sailor is doing, and who it is: its `caption`, what the deck shows
  * when the pointer is over it (`sailorCaption`). Where it stands, and its walk there, are
@@ -33,6 +35,7 @@ import type { PluginTheme } from "@getpaseo/plugin";
 import type { FleetCard } from "../shared/fleet";
 import type { DeckArtManifest, DeckPropName } from "../shared/ship-deck";
 import type { Figure } from "./deck-crew";
+import type { DeckDeparture } from "./deck-plank";
 import { cardHeadline } from "./format";
 
 export const DECK_STATES = ["working", "waiting", "blocked", "idle"] as const;
@@ -95,6 +98,8 @@ export interface DeckScene {
   height: number;
   palette: DeckPalette;
   sailors: DeckSailor[];
+  /** Why each card on the board but not on deck is not, by card key: how a sailor that was there leaves. */
+  departures: Record<string, DeckDeparture>;
   counts: Record<DeckState, number>;
   /** How many of the sailors are stale. */
   stale: number;
@@ -125,6 +130,13 @@ export function deckState(card: FleetCard): DeckState | null {
     case "done":
       return null;
   }
+}
+
+/** Why a card's sailor is not on deck: its work done, failed, or its worker closed (or never there). */
+export function departureOf(card: FleetCard): DeckDeparture {
+  if (card.column === "done") return "done";
+  if (card.column === "failed") return "failed";
+  return "closed";
 }
 
 /** The longest the hover label's line runs before it is cut with an ellipsis. */
@@ -204,9 +216,11 @@ export function deckPalette(theme: PluginTheme): DeckPalette {
  */
 export function deckScene(cards: readonly FleetCard[], theme: PluginTheme, options: { feedStale?: boolean } = {}): DeckScene {
   const byState = new Map<DeckState, FleetCard[]>(DECK_STATES.map((state) => [state, []]));
+  const departures: Record<string, DeckDeparture> = {};
   for (const card of cards) {
     const state = deckState(card);
     if (state !== null) byState.get(state)?.push(card);
+    else departures[card.key] = departureOf(card);
   }
   const sailors: DeckSailor[] = [];
   const counts = Object.fromEntries(DECK_STATES.map((state) => [state, 0])) as Record<DeckState, number>;
@@ -229,6 +243,7 @@ export function deckScene(cards: readonly FleetCard[], theme: PluginTheme, optio
     height: DECK_HEIGHT,
     palette: deckPalette(theme),
     sailors,
+    departures,
     counts,
     stale: sailors.filter((sailor) => sailor.stale).length,
   };
