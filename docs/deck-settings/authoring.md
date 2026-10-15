@@ -63,9 +63,10 @@ seconds dark, hidden in lite and still).
    review the PR and wait for CI. New capabilities need their own generic tests and reviewed engine PRs;
    the subsequent setting-pack PR contains data and art only, no TypeScript.
 
-## The second setting
+## The installed examples
 
-The office's [art contract and uninstalled draft](../settings/office/README.md) specify the commissioned
+The ship and office are installed under `art/settings/`, each with only a manifest and its PNGs.
+The office's [art contract, historical draft and review](../settings/office/README.md) specify its commissioned
 assets and layout. `stable-posts@1` and `pose-fidgets@1` are supported as of step 9a. Stable assignment
 hashes agent identity to a preferred post; collisions choose the nearest free post to that preference,
 ties in manifest order. Existing holders keep their places. Pose fidgets may name a pose on each key;
@@ -74,8 +75,15 @@ their settled role. Every lane must define every named fidget pose.
 
 `walk-in@1` is supported as of step 9b, `phase-tint@1` as of step 9c and `phase-frames@1` as of step 9d.
 Keep choreography finite; do not add hooks to work around a missing behavior. The office's commissioned
-art is delivered under `docs/settings/office/art/`; final pack wiring remains pending. The draft cannot be selected
-as an installed pack.
+art is recorded under `docs/settings/office/art/` and copied unchanged into its installed pack. The historical
+draft cannot be selected; `art/settings/office/setting.json` is the complete manifest the engine serves.
+
+A third built-in setting follows the same process: commission its own registered sprites, author a format-1
+manifest using this catalogue, compute hashes and derived geometry offline, and add its folder under
+`art/settings/`. Discovery and the global picker require no registration code. Run pack lint, the debug overlay,
+full/lite/still and interaction checks, typecheck/the full suite and the ship gate. Any genuinely new behaviour
+must land as a separate generic, versioned engine PR before the data-only pack. Packs cannot define behaviours,
+change intensity semantics or install external code; per-project selection remains a future resolver change.
 
 ## Walking entry
 

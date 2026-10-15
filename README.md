@@ -426,7 +426,20 @@ the home, the backlog, and a folder of its own to remember what it has already r
 `pr-watch`, a new version of FirstMate replaces it; once you have, yours is kept, and Watches says when
 FirstMate's has changed. The first mate adds or changes a watch only when you say so.
 
-## The ship deck
+## Deck settings: ship and office
+
+Choose **Ship's deck** (the default) or **The office** in Settings > Plugins > FirstMate > Deck setting.
+The choice applies to the whole fleet. Both use the same scene engine, crew states, badges, interactions,
+focus controls and motion rules; each setting is a JSON manifest plus PNGs in `art/settings/`.
+
+The office places working colleagues at stable desks, waiting colleagues by the printer, blocked colleagues
+at the help desk and idle colleagues in the break area. New colleagues walk in from the lift; departures use
+finite door and confetti effects. The city and room colours follow the local day, and the wall clock shows
+the hour. Reduced motion stays calm, with the clock on its first frame. The office art was commissioned
+separately; its contract and provenance are in `docs/settings/office/`.
+
+To author another built-in setting, follow [the pack authoring guide](docs/deck-settings/authoring.md).
+The format and behaviour catalogue are closed and versioned; packs contain no code or expressions.
 
 A ship's-deck view of the crew: one sailor per live crewmate on the deck of a pixel-art ship, drawn by PixiJS on a WebGL canvas, standing where its card's column puts it. **Working** sailors
 haul at the stations amidships. **Waiting** (Ready, or waiting on a job) stand by the helm.
@@ -436,7 +449,7 @@ so the working deck shows only the crew at work. Pointing at a sleeper labels it
 the label covers no one. Each crewmate wears one of eight looks, chosen by its agent, so the same crewmate always looks the same. When a
 crewmate's state changes, its mark changes at once and the sailor walks to its new place; a new crewmate
 climbs up through the hatch and one that leaves climbs back down. The ship sails: it bobs on a gently
-shimmering sea with a churned wake trailing astern, its sail billows, the masthead sways, the lanterns flicker and a gull
+shimmering sea, its sail billows, the masthead sways, the lanterns flicker and a gull
 crosses now and then. If the board's feed is lost, the
 crew greys where it last stood rather than turning idle. The deck is depth-layered: a sailor behind the
 mast or a bollard is hidden by it. It draws at most 30 frames a second, nothing while the window is
