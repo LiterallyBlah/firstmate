@@ -51,6 +51,16 @@ function png(a) {const data=PNG.sync.write({width:a.w,height:a.h,data:a.data,gam
 function save(rel,a) {const dest=path.join(out,rel);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,png(a));images.set(rel,a);}
 function reviewSave(rel,a) {fs.writeFileSync(path.join(review,rel),png(a));}
 function strip(frames) {const a=canvas(frames[0].w*frames.length,frames[0].h);frames.forEach((f,i)=>paste(a,f,i*f.w,0));return a;}
+function registerFeet(figure) {
+  for(let width=figure.w;width>0;width--){
+    const f=width===figure.w?figure:nearest(figure,width,figure.h),xs=[];
+    for(let x=0;x<f.w;x++)if(pix(f,x,f.h-1)[3])xs.push(x);
+    const centre=(Math.min(...xs)+Math.max(...xs)+1)/2,left=Math.round(12-centre);
+    if(left<0||left+f.w>24)continue;
+    const frame=canvas(24,32);paste(frame,f,left,32-f.h);return frame;
+  }
+  throw Error('Cannot register cast feet without clipping');
+}
 
 // Source crops are allowed; delivered cells are always full contract size.
 const castFrames = new Map();
@@ -66,7 +76,7 @@ for(const name of ['navy','teal','ochre','plum','rust','slate']) {
     if(name==='rust')for(let y=Math.floor(figure.h*.33);y<figure.h*.64;y++)for(let x=0;x<figure.w;x++){
       const c=pix(figure,x,y);if(c[3]&&c.slice(0,3).join()===base[9].slice(0,3).join())put(figure,x,y,base[23]);
     }
-    const frame=canvas(24,32);paste(frame,figure,Math.round(12-figure.w/2),32-figure.h);frames.push(frame);
+    frames.push(registerFeet(figure));
   }
   // Register the typing pair precisely. Only its small hand rectangle can change.
   const typingB=copy(frames[5]);
