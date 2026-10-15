@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 1,
+  "kind": "ship-deck-tall-mast",
+  "baseCommit": "92e1e4c72e1ad15e238513c2b9042e0a86704e73",
+  "coordinateSystem": "Top-left origin; integer hull C logical pixels; nearest-neighbour display; paths relative to this manifest",
+  "reference": {
+    "atlas": "../deck.png",
+    "manifest": "../deck.json",
+    "sha256": "557209a06bb266fa79b09ff985cf9558145b95382d0842bb55717a43980cff9b",
+    "hullSize": [
+      426,
+      161
+    ],
+    "crewHeight": 32
+  },
+  "palette": {
+    "source": "All 48 opaque RGB values from shipped deck.png",
+    "colours": [
+      "#0E121E",
+      "#151E2D",
+      "#182B47",
+      "#1A1417",
+      "#1D314E",
+      "#1F3554",
+      "#22395A",
+      "#271E1D",
+      "#2C4869",
+      "#2D2B30",
+      "#31211D",
+      "#3E2921",
+      "#492D22",
+      "#4F3427",
+      "#5D3626",
+      "#613A28",
+      "#624130",
+      "#72412A",
+      "#7E472D",
+      "#7F422B",
+      "#815C43",
+      "#834C2D",
+      "#834D31",
+      "#8B4F2F",
+      "#915230",
+      "#9B5A33",
+      "#9E6139",
+      "#A56235",
+      "#A86636",
+      "#A8693B",
+      "#AD6938",
+      "#AD6D3D",
+      "#B16F3D",
+      "#B57642",
+      "#BB7B44",
+      "#BF854C",
+      "#C17F46",
+      "#C5864B",
+      "#C6884C",
+      "#C7894C",
+      "#C88C50",
+      "#C9894C",
+      "#CD8F50",
+      "#CE9659",
+      "#D39151",
+      "#DCA35B",
+      "#DD9954",
+      "#E8CCA6"
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "transparentBackgroundConfirmed": true,
+    "dither": false,
+    "scope": "Runtime assets tall-mast.png and mast-occluder.png; unnormalized source is provenance only"
+  },
+  "mast": {
+    "texture": "tall-mast.png",
+    "size": [
+      48,
+      224
+    ],
+    "positionHull": [
+      187,
+      -112
+    ],
+    "anchorLocal": [
+      24,
+      222
+    ],
+    "anchorHull": [
+      211,
+      110
+    ],
+    "baseline": 110,
+    "shaftWidth": 9,
+    "shaftHullXInclusive": [
+      207,
+      215
+    ],
+    "footWidth": 19,
+    "footHullXInclusive": [
+      202,
+      220
+    ],
+    "opaqueBoundsXYWH": [
+      6,
+      2,
+      37,
+      222
+    ],
+    "topHullY": -110,
+    "originalTopHullY": 1,
+    "addedHeightUpward": 111,
+    "tipToBaseline": 220,
+    "originalTipToBaseline": 109,
+    "originalLowerSection": {
+      "atlasFrame": [
+        405,
+        187,
+        19,
+        39
+      ],
+      "hullPosition": [
+        202,
+        73
+      ],
+      "spritePosition": [
+        15,
+        185
+      ],
+      "pixelIdentical": true
+    },
+    "crowsNest": {
+      "boundsLocalXYWH": [
+        6,
+        22,
+        37,
+        23
+      ],
+      "boundsHullXYWH": [
+        193,
+        -90,
+        37,
+        23
+      ],
+      "description": "Wooden elliptical basket, dark interior and navy lower hoop; pole continues above it"
+    },
+    "riggingAttachmentPoints": {
+      "local": [
+        [
+          16,
+          46
+        ],
+        [
+          32,
+          46
+        ]
+      ],
+      "hull": [
+        [
+          203,
+          -66
+        ],
+        [
+          219,
+          -66
+        ]
+      ],
+      "description": "Small generated side lugs below basket; ropes supplied by integration"
+    }
+  },
+  "sail": {
+    "existingTexture": "../sails/main-sail.png",
+    "frameSize": [
+      114,
+      27
+    ],
+    "frames": 2,
+    "recommendedPositionHull": [
+      154,
+      -15
+    ],
+    "localYardPivot": [
+      57,
+      3
+    ],
+    "yardPivotHull": [
+      211,
+      -12
+    ],
+    "yardPivotMastLocal": [
+      24,
+      100
+    ],
+    "clearShaftRangeLocalYInclusive": [
+      49,
+      184
+    ],
+    "description": "Use either existing frame at native scale. Existing cloth is a low reefed sail; larger replacement cloth remains an integration choice. No sail or yard baked into mast."
+  },
+  "occluder": {
+    "texture": "mast-occluder.png",
+    "size": [
+      19,
+      64
+    ],
+    "positionHull": [
+      202,
+      48
+    ],
+    "baseline": 110,
+    "opaqueFromHullY": 73,
+    "pixelIdenticalTo": "../sails/mast-occluder.png",
+    "description": "Exact original lower mast depth overlay. Upper mast is behind crew and new sail; original lower piece still covers crew crossing behind mast."
+  },
+  "integration": {
+    "removeOldBakedMastAndRigging": true,
+    "drawOrder": [
+      "Hull with old nest/upper mast/ropes removed",
+      "New mast at [187,-112] behind sail and crew",
+      "Existing or re-fitted sail and rigging",
+      "Depth-sorted crew and lower mast occluder, baseline 110"
+    ],
+    "bounds": "Allow negative hull y. Existing 426x161 ship rectangle must not clip the mast; tip is y=-110.",
+    "preview": "fit-preview.png",
+    "previewSize": [
+      1704,
+      608
+    ],
+    "previewDescription": "2x review: original left, proposed right, shared deck baseline. Same existing sail and 32px crew. Only upper old rig is cleared; deck-edge rope remnants remain; new long ropes are deliberately omitted. Not a runtime texture."
+  },
+  "provenance": {
+    "tool": "image_gen__imagegen",
+    "mode": "built-in",
+    "backendModel": "Not disclosed",
+    "calls": 1,
+    "generatedDate": "2026-10-15",
+    "promptFile": "prompts.json",
+    "sourceFile": "source/generated-mast.png",
+    "sourceSize": [
+      734,
+      2142
+    ],
+    "sourceSha256": "956a1ac57e1a1d2e17baf801f6fcd27f92d81e5de50dde6121ab524ee76ba06c",
+    "sourceAlphaBoundsExclusive": [
+      251,
+      52,
+      482,
+      2085
+    ],
+    "normalization": {
+      "implementation": "C# System.Drawing; mechanical cleanup of generated art, no procedural drawing",
+      "sampleTransform": {
+        "sourceXOrigin": 214.55555555555554,
+        "sourcePixelsPerOutputX": 6.222222222222222,
+        "sourceYOrigin": 52,
+        "sourcePixelsPerOutputY": 9.24090909090909,
+        "outputYOrigin": 2
+      },
+      "sampledOutputRowsInclusive": [
+        2,
+        184
+      ],
+      "method": "For each output pixel, floor-bounded source block; retain if at least half the block has alpha >=128; channel median of retained RGB; nearest squared-RGB match to exact deck palette; binary alpha; no dithering.",
+      "lowerSection": "Original deck.json mast depth piece rows 25..63 copied without changes to mast local [15,185] and occluder [0,25]. Generated source foot is not used."
+    }
+  },
+  "verdict": "usable",
+  "limitations": [
+    "Mechanical downsampling retains some uneven wood-grain clusters at enlarged scales, consistent with shipped generated deck art.",
+    "The build worker must remove the old baked nest/upper rig, refit long ropes and allow negative hull y. This assets-only branch does not change the running deck."
+  ],
+  "verification": "verification.json"
+}

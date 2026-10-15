@@ -493,9 +493,9 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     const head = one(ship, "masthead") as FakeSprite;
     const shaft = one(ship, "mast") as FakeSprite;
     expect([texturePath(head), texturePath(shaft)]).toEqual(["mast/tall-mast.png", "mast/tall-mast.png"]);
-    expect([head.position.y, head.texture.frame.y, head.texture.frame.height]).toEqual([-112, 0, 52]);
+    expect([head.position.y, head.texture.frame.y, head.texture.frame.height]).toEqual([-80, 0, 52]);
     expect(Math.abs(head.position.x - 187)).toBeLessThanOrEqual(1);
-    expect([shaft.position.x, shaft.position.y, shaft.texture.frame.y, shaft.texture.frame.height]).toEqual([187, -60, 52, 172]);
+    expect([shaft.position.x, shaft.position.y, shaft.texture.frame.y, shaft.texture.frame.height]).toEqual([187, -28, 52, 140]);
     // The taller sail on it, at its yard's lashing point, one 114 × 84 state of its strip.
     const sail = one(ship, "sail") as FakeSprite;
     expect([sail.position.x, sail.position.y]).toEqual([154, -15]);
@@ -506,7 +506,7 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     const depth = one(deck.app.stage, "piece:mast:tall") as FakeSprite;
     expect(texturePath(depth)).toBe("mast/tall-mast.png");
     expect([depth.position.x, depth.position.y, depth.zIndex]).toEqual([187, 69, depthOf(110, 1)]);
-    expect([depth.texture.frame.y, depth.texture.frame.height]).toEqual([181, 43]);
+    expect([depth.texture.frame.y, depth.texture.frame.height]).toEqual([149, 43]);
     expect(sail.position.y + sail.texture.frame.height).toBe(depth.position.y);
     expect(byLabel(deck.app.stage, "piece:near")).toHaveLength(1);
     deck.drawing.destroy();
@@ -521,7 +521,7 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     for (let frame = 0; frame < 300; frame += 1) {
       deck.advance(34);
       sways.add(head.position.x - 187);
-      expect([shaft.position.x, shaft.position.y, head.position.y]).toEqual([187, -60, -112]);
+      expect([shaft.position.x, shaft.position.y, head.position.y]).toEqual([187, -28, -80]);
     }
     expect(sways).toEqual(new Set([-1, 0, 1]));
     deck.drawing.destroy();
@@ -688,7 +688,7 @@ describe("the camera closing in on a focused sailor", () => {
     const hovers: Array<DeckHover | null> = [];
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: scene(), onHover: (hover) => hovers.push(hover) });
     deck.advance(16);
-    const base = fitDeck({ width: 800, height: 400 }, deckBox({ width: 426, height: 161 }, -112), 1);
+    const base = fitDeck({ width: 800, height: 400 }, deckBox({ width: 426, height: 161 }, -80), 1);
     expect(worldFit(deck)).toEqual(base);
     deck.drawing.focus("b");
     const veil = one(deck.app.stage, "veil");
@@ -772,7 +772,7 @@ describe("the camera closing in on a focused sailor", () => {
     expect(Math.abs(at.x - narrow.anchor.x)).toBeLessThan(worldFit(deck).scale * 8);
     expect(Math.abs(at.y - narrow.anchor.y)).toBeLessThan(worldFit(deck).scale * 16);
     deck.drawing.focus(null);
-    expect(worldFit(deck)).toEqual(fitDeck({ width: 480, height: 600 }, deckBox({ width: 426, height: 161 }, -112), 1));
+    expect(worldFit(deck)).toEqual(fitDeck({ width: 480, height: 600 }, deckBox({ width: 426, height: 161 }, -80), 1));
     deck.drawing.destroy();
   });
 });

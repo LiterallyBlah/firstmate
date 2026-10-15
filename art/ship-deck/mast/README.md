@@ -1,37 +1,43 @@
-# Taller mast for hull C
+# Trimmed tall mast for hull C
 
-**Verdict: usable.** Generated with the built-in `image_gen__imagegen`, then mechanically sampled to the shipped deck's pixel grid and exact palette. The crow's nest sits well above the crew, with room for the existing yard and sail below it. The foot and lower shaft are copied pixel-for-pixel from hull C so the deck join stays exact.
+**Verdict: usable.** The crow's nest is 32 logical pixels lower, with 23 clear rows between the basket bottom and fixed yard pivot instead of 55. Tip-to-deck-baseline height is 188 px, compared with 220 px for the previous tall mast and 109 px for the original short mast.
 
-This is an assets-only handoff from `92e1e4c72e1ad15e238513c2b9042e0a86704e73`. No runtime wiring or existing art was changed. No plugin was installed or reloaded.
+Assets-only handoff on `fm/deck-mast-trim`, based on `0355284c5ce6e97f30cd79cdd1906103b6979777`. Eight built-in `image_gen__imagegen` edits were compared; candidate 6 supplies the shortened wood join. The shipped masthead, complete nest and lugs are preserved pixel-for-pixel, as is everything from the yard down through the foot. No art was hand-drawn in code.
 
-| Asset | Dimensions | Placement in hull coordinates |
+| Property | Previous tall mast | Trimmed tall mast |
 | --- | --- | --- |
-| `tall-mast.png` | 48 x 224 | Top-left **(187, -112)**; local anchor **(24, 222)** maps to hull **(211, 110)** |
-| `mast-occluder.png` | 19 x 64 | **(202, 48)**, depth baseline **110**; identical pixels to the existing sail occluder |
-| `fit-preview.png` | 1704 x 608 | Review only: original left, proposed right, both enlarged 2x |
+| Texture | 48 x 224 | **48 x 192** |
+| Texture origin in hull | (187, -112) | **(187, -80)** |
+| Local base anchor | (24, 222) | **(24, 190)** |
+| Base anchor in hull | (211, 110) | **(211, 110), unchanged** |
+| Tip in hull | y=-110 | **y=-78** |
+| Nest bounds in hull, XYWH | (193, -90, 37, 23) | **(193, -58, 37, 23)** |
+| Yard pivot in hull | (211, -12) | **(211, -12), unchanged** |
+| Yard pivot in mast texture | (24, 100) | **(24, 68)** |
+| Basket-to-yard clear rows | 55 | **23** |
 
-Both runtime sprites have binary transparency (alpha 0/255), no background, no dithering and no RGB colours outside the exact 48-colour `deck.png` palette. The mast uses 43 of those colours. One art pixel equals one hull pixel; enlarge with nearest-neighbour sampling.
+The 23-row interval is hull y=-35 through -13 inclusive, below the basket and above the yard pivot. The retained small lugs occupy its first few rows; 19 rows are clear pole below the lugs. The nest itself is 23 px high. The 9 px shaft still occupies hull x207..215; the 19 px foot still occupies x202..220. The opaque mast spans 190 rows including the foot below baseline. All yard-to-foot pixels retain their exact hull positions.
 
-## Fit and height
+## Sail and integration
 
-The main shaft occupies **hull x207..215 inclusive (9 px)**, with its 19 px foot at **x202..220**. Its top is now **hull y=-110**, compared with the original tip at **y=1**: **111 px added upward**. Tip-to-baseline height increases from 109 to 220 px. The sprite continues to hull y111, matching the original foot's bottom edge. Hull rows 73..111 of the lower depth piece are pixel-identical to the original.
+The current `../sails/main-sail.png` is a 228 x 84 strip containing two **114 x 84** frames. It is unchanged, at hull **(154, -15)**; its local yard pivot **(57, 3)** remains hull **(211, -12)**, exactly **122 px above baseline 110**. The sail manifest's old mast-local coordinate (24,100) refers to the previous mast; this manifest supersedes that mast-local coordinate only.
 
-The crow's nest occupies sprite **[6,22,37,23]**, or hull **[193,-90,37,23]** (x, y, width, height). Small side attachment lugs are centered around sprite **(16,46)** and **(32,46)**, mapping to hull **(203,-66)** and **(219,-66)**. The mast tip extends above the basket. Long rigging is left to the build worker.
+Apply the mast's new **size [48,192] and position [187,-80]** when integrating. `../extras.json` remains unchanged and still describes the previous 48 x 224 mast at (187,-112); replacing only the PNG under that origin would lift the foot incorrectly. The [manifest](manifest.json) contains the exact `integration.metadataToApply`. Retain the sail placement, foot anchor, crew scale and occluder. Any nest rigging must follow the lowered attachment points at hull (203,-34) and (219,-34).
 
-## Sail and compositing handoff
+`mast-occluder.png` is unchanged at 19 x 64, positioned at hull (202,48), depth baseline 110. No wiring, PR, install or reload is part of this branch.
 
-The existing `../sails/main-sail.png` has two 114 x 27 frames. The preview places either frame at **hull (154,-15)**, without scaling. Its local yard lashing pivot **(57,3)** then meets the new pole at **hull (211,-12)** / **mast-local (24,100)**. This is 61 px above the old sail position. There is a continuous clear shaft from local y49 through y184, so the build worker can adjust that position or refit the cloth. No yard or cloth is baked into this mast.
+## Review assets
 
-Remove the old baked crow's nest, upper mast and old diagonal ropes when compositing the replacement. Draw the new mast behind the sail and crew, then use the supplied lower mast occluder in the existing depth pass at baseline 110. The original sail occluder can also be reused: the included copy is pixel-identical. Crew passing behind the foot retain the existing occlusion.
+- [fit-preview.png](fit-preview.png): 1704 x 608, current tall mast left and trimmed mast right, both at 2x with the same current tall sail, hull and crew.
+- [fit-native.png](fit-native.png): 426 x 304, trimmed fit at native resolution; hull offset (0,130).
+- [candidates-3x.png](candidates-3x.png): eight normalized candidates, left to right 1 through 8. Only the generated join varies; candidate 6 is selected.
 
-Allow negative hull y in scene bounds and masthead motion; the original 426 x 161 hull rectangle would clip this sprite. Keep the foot fixed while fitting any sway or rigging. The preview is a static fitting study, not a replacement hull: old rope remnants at the deck edge remain, and new long ropes have not been added. It uses identical shipped 32 px crew on both sides to make the height comparison clear.
+These are transparent static fitting studies, not runtime textures. They reuse the sail's existing fitting study, which omits long rigging. Native and 2x views show a snug nest-to-sail gap and an unchanged sail/deck relationship. No runtime motion or rope-fitting claim is made.
 
-## Provenance and checks
+## Generation and cleanup
 
-[Manifest](manifest.json) records coordinates, palette, normalization, provenance and verdict. [Prompts](prompts.json) records the exact single built-in generation call and its reference crop. The tool does not disclose its backend model. [Source PNG](source/generated-mast.png) is the unmodified 734 x 2142 generated artwork, retained for provenance and resampling; it is **not a runtime sprite** and is not constrained to the final palette.
+[prompts.json](prompts.json) records all eight exact prompts, source hashes and sampling crops. The built-in tool does not disclose its backend model. [source/generated-trim-06.png](source/generated-trim-06.png) is the unmodified selected 887 x 1774 generated output. Its raw palette and partial alpha are provenance only. The previous mast, original raw generation, manifest and prompt are retained under `source/`.
 
-Cleanup used C# `System.Drawing`: majority coverage at alpha >=128, median opaque RGB per source block, and nearest squared-RGB mapping to the deck's 48 colours. The generated shaft was normalized to nine logical pixels, with no hand drawing. The original lower mast was copied in for an exact join; the generated foot was discarded. The manifest records the exact sampling transform and source hash.
+Mechanical C# `System.Drawing` cleanup samples source crop **[414,443,59,177]** into **9 x 19** pixels at new mast **[20,49]**. Each floor-bounded block requires majority alpha >=128, takes median opaque RGB per channel and maps to the nearest squared-RGB colour from the shipped 48-colour palette. Alpha becomes binary, with no dithering or smoothing. Previous rows **0..48** are copied to **0..48**; previous rows **100..223** are copied to **68..191**. No generated nest or foot replaces the original.
 
-[Verification](verification.json) records exhaustive checks after independently reloading the PNGs: no partial alpha, no colours outside the deck palette, exact shaft width, exact lower section and occluder, anchor arithmetic, sail pivot and SHA-256 hashes. The normalized mast and side-by-side preview were visually inspected. No application tests were run for this assets-only addition.
-
-At native scale the sprite is usable with the current deck art. Mechanical sampling leaves some uneven wood-grain clusters when enlarged, as in the shipped assets. Runtime clipping, rope fitting and motion remain integration work, rather than defects concealed by the verdict.
+[verification.json](verification.json) records independent exhaustive checks of the saved PNG: binary alpha, exact palette membership, shaft width, preserved nest and lower shaft, unchanged occluder, base/yard anchor arithmetic and unchanged sail hashes. The generated join has slight grain variation at large zoom, consistent with the shipped art. Application tests were not run for this assets-only change.

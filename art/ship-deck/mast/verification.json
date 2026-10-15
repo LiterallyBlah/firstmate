@@ -1,97 +1,89 @@
 {
-  "checkedAtUtc": "2026-10-15T09:04:18.1868821Z",
-  "method": "Independent System.Drawing reload and exhaustive pixel checks",
+  "checkedAtUtc": "2026-10-15T10:09:49.5229519Z",
+  "method": "Independent System.Drawing reload; exhaustive saved-pixel checks against shipped atlas and previous mast",
   "passed": true,
-  "deckPaletteSize": 48,
-  "deckSha256": "557209a06bb266fa79b09ff985cf9558145b95382d0842bb55717a43980cff9b",
-  "sourceSha256": "956a1ac57e1a1d2e17baf801f6fcd27f92d81e5de50dde6121ab524ee76ba06c",
-  "assets": [
-    {
-      "file": "tall-mast.png",
-      "size": [
-        48,
-        224
-      ],
-      "sha256": "9d6941ec15d65610bfafdf44d4d106b05428243b7d4e1b81a363e769ead00739",
-      "opaquePixels": 2623,
-      "transparentPixels": 8129,
-      "partialAlphaPixels": 0,
-      "coloursUsed": 43,
-      "outsideDeckPalettePixels": 0,
-      "opaqueBoundsXYWH": [
-        6,
-        2,
-        37,
-        222
-      ]
-    },
-    {
-      "file": "mast-occluder.png",
-      "size": [
-        19,
-        64
-      ],
-      "sha256": "ef5fbe0c1114f1897f7e20f0a9e4533770300ff75c3fb3541b71a9986c00e190",
-      "opaquePixels": 464,
-      "transparentPixels": 752,
-      "partialAlphaPixels": 0,
-      "coloursUsed": 38,
-      "outsideDeckPalettePixels": 0,
-      "opaqueBoundsXYWH": [
-        0,
-        25,
-        19,
-        39
-      ]
-    }
-  ],
-  "originalLowerMastMismatchPixels": 0,
-  "originalSailOccluderMismatchPixels": 0,
-  "shaftWidthMismatchPixels": 0,
-  "shaftCheck": "Every row 49..209 contains exactly local x20..28; maps to hull x207..215",
-  "baseAnchorCheck": {
-    "position": [
-      187,
-      -112
+  "checks": {
+    "expectedDimensions": true,
+    "paletteIsExactShippedPalette": true,
+    "binaryAlpha": true,
+    "preservedMastheadNestAndLugs": true,
+    "preservedYardToFoot": true,
+    "originalAtlasFootExact": true,
+    "shaftWidthExact": true,
+    "generatedJoinDiffersFromOld": true,
+    "occluderUnchanged": true,
+    "baseAnchorFixed": true,
+    "yardAnchorFixed": true,
+    "sailUnchanged": true,
+    "generatedSourceMatchesManifest": true,
+    "heightBetweenOriginalAndTall": true,
+    "nestGapOneNestHeight": true,
+    "previousMastMatchesBaseCommit": true,
+    "sailAndRuntimeMetadataUnchangedFromBase": true
+  },
+  "asset": {
+    "file": "tall-mast.png",
+    "size": [
+      48,
+      192
     ],
-    "sprite": [
-      24,
-      222
-    ],
-    "baseline": 110,
-    "hull": [
-      211,
-      110
+    "sha256": "88a7f4d26ba0aef9b903c40e27f17e9e7c1b5a048abceaeaba22c665d949a0ee",
+    "opaquePixels": 2335,
+    "transparentPixels": 6881,
+    "partialAlphaPixels": 0,
+    "coloursUsed": 43,
+    "outsideDeckPalettePixels": 0,
+    "opaqueBoundsXYWH": [
+      6,
+      2,
+      37,
+      190
     ]
   },
-  "heightCheck": {
-    "oldTipHullY": 1,
-    "oldTipToBaseline": 109,
-    "newTipHullY": -110,
-    "newTipToBaseline": 220,
-    "addedUpwardPixels": 111
-  },
-  "sailPivotCheck": {
-    "mastLocalPivot": [
+  "preservedTopMismatchPixels": 0,
+  "preservedLowerMismatchPixels": 0,
+  "originalAtlasLowerMismatchPixels": 0,
+  "shaftMismatchPixels": 0,
+  "generatedJoinChangedPixels": 137,
+  "occluderSha256": "ef5fbe0c1114f1897f7e20f0a9e4533770300ff75c3fb3541b71a9986c00e190",
+  "sailSha256": "964182d527bb3cebc6f5b797db75bc2153de2dfacd51b809517813faa1686a0c",
+  "sailManifestSha256": "02090d58fe4026b99c66af308ac18234c91dbe9ab72ca0237ed902aed6540f64",
+  "sourceSha256": "435b52caf04efb87423127dbd9c9e0d5bf7bfdcdbacee88a3d8024624070a4ba",
+  "positions": {
+    "mastOriginHull": [
+      187,
+      -80
+    ],
+    "baseAnchorLocal": [
       24,
-      100
+      190
     ],
-    "frameSize": [
-      114,
-      27
+    "baseAnchorHull": [
+      211,
+      110
     ],
-    "localPivot": [
-      57,
-      3
+    "nestHullXYWH": [
+      193,
+      -58,
+      37,
+      23
     ],
-    "hullPivot": [
+    "yardPivotLocal": [
+      24,
+      68
+    ],
+    "yardPivotHull": [
       211,
       -12
     ],
-    "framePositionHull": [
-      154,
-      -15
-    ]
+    "yardHeightAboveBaseline": 122,
+    "tipHullY": -78,
+    "tipToBaseline": 188,
+    "previousTipToBaseline": 220,
+    "originalTipToBaseline": 109,
+    "nestToYardClearRows": 23,
+    "previousNestToYardClearRows": 55
   },
-  "visualReview": "Inspected the normalized 4x mast and 2x side-by-side hull fit with identical 32px crew and existing sail. Preview only; runtime integration not performed."
+  "visualReview": "Inspected all eight normalized candidate joins at 3x, candidate 6 selected. Inspected before/after hull fit at 2x and final native preview: shorter gap, unchanged sail/deck relationship. Static only; no runtime install or motion/rigging validation.",
+  "sailManifestHashNormalization": "UTF-8 with LF line endings, matching repository blob; Windows checkout may use CRLF."
 }
