@@ -61,9 +61,7 @@ import type { DeckDrawing, DeckHost } from "./deck-mount";
 import { depthOf, type DeckScene, type DeckState } from "./deck-scene";
 import type { DeckAmbience } from "./deck-ambience";
 import type { DrifterMasks } from "./deck-clouds";
-import { createScenery, type DeckEnvironmentImages } from "./deck-environment";
-import { drawnVariants } from "./deck-variants";
-import { drawnWater } from "./deck-water";
+import { createScenery, type CodeWakeSpot } from "./deck-environment";
 import { plankPixels, type SharkFrame, type SplashFrame } from "./deck-plank";
 import type { DeckStage } from "./deck-stage";
 import { localMinute, SKY_REFRESH_MS } from "./deck-sky";
@@ -165,9 +163,9 @@ export interface PixiModule {
 /**
  * The deck's art as the mount hands it over: the setting's stage, cast and ambience, compiled (`client/deck-stage.ts`,
  * `client/deck-cast.ts`, `client/deck-ambience.ts`); every image of the pack that decoded, by id, and each drifter's
- * slot masks by image id; the decoded backdrop image, and where its pieces are in it; the still sea and foam, or null
- * when they could not be loaded; and the sail, the tall mast and the rest of the extras, as many of them as decoded,
- * or null.
+ * slot masks by image id, and where the wake drawn in code stands in for the pack's (until step 5c retires it); the
+ * decoded backdrop image, and where its pieces are in it; and the sail, the tall mast and the rest of the extras, as
+ * many of them as decoded, or null.
  */
 export interface DeckArtImage {
   stage: DeckStage;
@@ -175,9 +173,9 @@ export interface DeckArtImage {
   ambience: DeckAmbience;
   images: ReadonlyMap<string, unknown>;
   masks: ReadonlyMap<string, DrifterMasks>;
+  codeWake?: CodeWakeSpot | null;
   image: unknown;
   manifest: DeckArtManifest;
-  environment: DeckEnvironmentImages | null;
   extras: DeckExtrasImages | null;
 }
 
@@ -535,14 +533,13 @@ export async function startDeck(
   world.label = "world";
   app.stage.addChild(world);
 
-  // The ambience and the far sea behind the hull; the near sea and the foam in front of its waterline. The drifters are
-  // laid out from the clock's second the deck opens at, so each opening has its own sky. Over the water, the extras'
-  // weather layers as the crew gets busy: the heavy weather (`client/deck-variants.ts`).
-  const water = drawnWater(art.extras);
+  // The ambience: the sky and the far sea behind the hull; the near sea, the wake and the foam in front of its
+  // waterline, each under its weather's variants as the crew gets busy (`client/deck-variants.ts`). The drifters are
+  // laid out from the clock's second the deck opens at, so each opening has its own sky.
   const scenery = createScenery(
     pixi,
     stage,
-    { ambience: art.ambience, images: art.images, masks: art.masks, environment: art.environment, water, layers: { variants: drawnVariants(art.extras, water) } },
+    { ambience: art.ambience, images: art.images, masks: art.masks, codeWake: art.codeWake ?? null },
     Math.floor(environment.clock().getTime() / 1000),
   );
 

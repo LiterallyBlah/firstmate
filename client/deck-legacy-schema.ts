@@ -20,57 +20,22 @@ export const DeckArtManifestSchema = z.object({
 });
 export type DeckArtManifest = z.infer<typeof DeckArtManifestSchema>;
 
-/**
- * The generated still sea and foam (`docs/ship-deck-art/ENVIRONMENT.md`). Apart from the atlas so a deck whose
- * environment fails to load still draws its ship and crew, on a plain sea (`client/deck-mount.ts`). The record has the
- * sky and the gull too, which the pack draws itself now: parsing it leaves them out.
- */
 /** A file inside the pack: a relative path to a PNG, never climbing out. */
 const ArtPath = z
   .string()
   .regex(/^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.png$/i, "an image must be a relative .png path inside its pack");
 const Size = z.tuple([z.number().int().positive(), z.number().int().positive()]);
 const Point = z.tuple([z.number().int(), z.number().int()]);
-const HexColour = z.string().regex(/^#[0-9a-f]{6}$/i, "a colour must be #RRGGBB");
-/** A cloud's three colours, shadow to highlight. */
-const CloudPalette = z.tuple([HexColour, HexColour, HexColour]);
-
-export const DeckEnvironmentManifestSchema = z.object({
-  /** The water: one opaque tile repeating both ways, scrolled sideways in whole pixels. */
-  sea: z.object({
-    texture: ArtPath,
-    period: Size,
-    animation: z.object({ xPixelsPerSecond: z.number().positive() }),
-  }),
-  /** The foam at the hull's waterline: a transparent strip repeating sideways. */
-  foam: z.object({ texture: ArtPath, period: z.number().int().positive(), xPixelsPerSecond: z.number().positive() }),
-});
-export type DeckEnvironmentManifest = z.infer<typeof DeckEnvironmentManifestSchema>;
 
 /**
  * The extras: the tall mast and its sail (`docs/ship-deck-art/mast/README.md`, `docs/ship-deck-art/sails/README.md`),
  * the plank's board (`docs/ship-deck-art/plank/README.md`),
- * the shark and splash that see a sailor off the plank (`docs/ship-deck-art/shark/README.md`), and the animated sea,
- * foam and wake (`docs/ship-deck-art/water/README.md`):
+ * and the shark and splash that see a sailor off the plank (`docs/ship-deck-art/shark/README.md`):
  * not needed to draw: the client keeps whatever of it decodes, so a missing sail is the bare mast (`client/deck-mount.ts`).
- * The record has the clouds, the sky's mood and the flashes too, which the pack draws itself now: parsing it leaves
- * them out, but for the clouds' variants among the rest.
+ * The record has the clouds, the sky's mood, the flashes, the animated water and the weather over it too, which the
+ * pack draws itself now: parsing it leaves them out. So does the environment's record, whose sky, gull, still sea
+ * and foam are the pack's now.
  */
-const Id = z.string().regex(/^[a-z0-9-]+$/);
-const uniqueIds = (items: ReadonlyArray<{ id: string }>) => new Set(items.map((item) => item.id)).size === items.length;
-/** A cloud's colours under each sky phase. */
-const CloudStages = z.record(z.string(), CloudPalette);
-/**
- * A value over the weather's intensity: points [intensity, value], intensity rising, eased between them and held
- * past either end (`curveAt` in `client/deck-variants.ts`).
- */
-const Curve = z
-  .array(z.tuple([z.number().min(0).max(1), z.number().nonnegative()]))
-  .min(1)
-  .refine((points) => points.every((point, index) => index === 0 || point[0] > points[index - 1]![0]), "a curve's intensities must rise");
-/** An opacity over the weather's intensity, 0 to 1. */
-const Opacity = Curve.refine((points) => points.every((point) => point[1] <= 1), "an opacity is at most 1");
-
 export const DeckExtrasManifestSchema = z.object({
   /**
    * The sail: `frames` states of `frameSize` side by side in one strip, drawn at `position` on the hull
@@ -124,62 +89,6 @@ export const DeckExtrasManifestSchema = z.object({
       clears: z.tuple([z.number().int(), z.number().int(), z.number().int().positive(), z.number().int().positive()]),
       replaces: z.string(),
     })
-    .optional(),
-  /**
-   * The animated water (`docs/ship-deck-art/water/README.md`): each part `frames`, images of `frameSize` played in
-   * order every `frameMs` and looped, the first held while the deck is still. The `sea` tiles both ways from
-   * the horizon and drifts right; the `foam` lies across the waterline from `top`, repeating sideways
-   * within `span` ([left, right)) and drifting; the `wake` is one sprite, its `anchor` on `position` at the
-   * stern, never drifting. Each part stands in for the environment's tile, its foam strip and the wake drawn
-   * in code; a part with a frame missing is not drawn, and the one it would replace is (`client/deck-water.ts`).
-   */
-  water: z
-    .object({
-      sea: z.object({ frames: z.array(ArtPath).min(1), frameSize: Size, frameMs: z.number().positive(), xPixelsPerSecond: z.number().nonnegative() }),
-      foam: z.object({
-        frames: z.array(ArtPath).min(1),
-        frameSize: Size,
-        frameMs: z.number().positive(),
-        top: z.number().int(),
-        span: z.tuple([z.number().int(), z.number().int()]),
-        xPixelsPerSecond: z.number().nonnegative(),
-      }),
-      wake: z.object({ frames: z.array(ArtPath).min(1), frameSize: Size, frameMs: z.number().positive(), anchor: Point, position: Point }),
-    })
-    .optional(),
-  /**
-   * Layers over the scene that follow the deck's weather (`client/deck-variants.ts`): each
-   * fades in and out along its own `opacity` curve over the weather's intensity (`client/deck-atmosphere.ts`, 0 an
-   * idle crew, 1 a busy fleet), so how and when a setting's weather comes in is data, here, and not code. None of them
-   * is drawn under reduced motion. The heavy weather (the ship pack's `storm/`) is the first set of them.
-   *
-   * - `variants` — a second set of frames over one of the scene's elements (`variantOf`): the animated water's `sea`
-   *   tile, `foam` strip or `wake`, a `cycle:<id>`, or a `cloud:<id>`, on that element's own clock, frame for
-   *   frame — so its frames must be as many as the element's and its `frameSize` the element's, or it is not drawn.
-   *   `over` draws it over the whole element (opaque art); `crossfade` fades the element out as it comes in. A cloud's
-   *   variant is three slot colours like the clouds, so it names its own `palette` and `stages`.
-   * - `cycles` — a sprite whose frames loop on the water's clock, its `anchor` on `position`, in front of the hull's waterline.
-   */
-  variants: z
-    .array(
-      z
-        .object({
-          id: Id,
-          variantOf: z.string().regex(/^(sea|foam|wake|cycle:[a-z0-9-]+|cloud:[a-z0-9-]+)$/, "a variant is of sea, foam, wake, cycle:<id> or cloud:<id>"),
-          frames: z.array(ArtPath).min(1),
-          frameSize: Size,
-          blend: z.enum(["over", "crossfade"]),
-          opacity: Opacity,
-          palette: CloudPalette.optional(),
-          stages: CloudStages.optional(),
-        })
-        .refine((variant) => !variant.variantOf.startsWith("cloud:") || (variant.palette !== undefined && variant.stages !== undefined), "a cloud's variant needs its palette and stages"),
-    )
-    .refine(uniqueIds, "each variant needs its own id")
-    .optional(),
-  cycles: z
-    .array(z.object({ id: Id, frames: z.array(ArtPath).min(1), frameSize: Size, frameMs: z.number().positive(), anchor: Point, position: Point, opacity: Opacity }))
-    .refine(uniqueIds, "each cycle needs its own id")
     .optional(),
 });
 export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;

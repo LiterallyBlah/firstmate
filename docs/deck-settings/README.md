@@ -174,3 +174,30 @@ it; no `class`.
   ambience's back slot is drawn behind all of the sea and its front slot in front of it.
 
 Gate: every shot pixel-identical to main. Client bundle +5,045 bytes; Hermes parses it; no `class`.
+
+## Step 5b — the sea, foam, wake and spindrift from the pack
+
+- **`compileAmbience` takes every kind now**: tiles, strips and cycles join the sky's elements. Each needs all its
+  frames; its variants are left out one at a time when a frame did not arrive or they do not line up — as many frames
+  as the element, each its frame size. The ship's still sea and foam are what they always were in the pack, the
+  animated ones' `fallback`: drawn only in their place, and **under their name** (`AmbientElement.place`, so the
+  scene graph's `sea:back` is the sea whichever art fills it). **A tile is never a hole**: one with neither its own art
+  nor its fallback's is filled flat with the pack's `fallbackFill` across its bands (`flats`).
+- **The behaviours read the pack**: `tile@1` — frames on its clock, repeated both ways in each band from the band's row
+  on one tile origin (the second band's first row cut to line up), drifting whole pixels at `drift.pxPerSecond` on its
+  clock; `strip@1` — frames repeated within `span` from `top`, cut into as many crops as the span can need; `cycle@1` —
+  frames at `at` less `anchor`, at its opacity's level (the wake's the `wake` channel, the spray's a curve). Each in
+  its slot by `order`, under its variants, holding its first frame and drift on a lite or still deck as it says.
+- **Deleted from code**: `HORIZON`, `WATERLINE`, `SEA_FALLBACK`, `FOAM_SPAN`, `FOAM_TOP`, `FOAM_HEIGHT`,
+  `environmentComplete`, `drawnWater`, `drawnVariants`, `variantsOf`, `waterFrame`, `waterDrift` and `wakeTopLeft`;
+  the legacy views lose the environment's still sea and foam (the whole environment view) and the extras' animated
+  water, variants and cycles. The atmosphere's clocks are read by the names the pack gives them (`clockOf`).
+- **The code wake stays one more step**: where the pack's wake did not load it stands in its place (`codeWakeSpot`,
+  the front cycle whose opacity reads a channel), with its own waterline, until 5c retires it.
+- **What changes, and only where art fails to load**: before, the animated water stood in front of a still sea that
+  had to load whole, so a missing still tile was a flat sea under everything even with the animated sea there. Now
+  each element falls back on its own: the animated sea draws without the still one, the foam with the sea flat. The
+  spindrift's label is its id (`spindrift`, was `cycle:spindrift`), and the sea's bands are `sea:back` and `sea:front`
+  (were `sea:far` and `sea:near`).
+
+Gate: every shot pixel-identical to main. Client bundle −5,189 bytes against main; Hermes parses it; no `class`.

@@ -9,11 +9,10 @@ import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
 import { extrasImagePaths } from "./deck-legacy";
-import { WATERLINE } from "./deck-ambient";
 import { applyCrew, createCrew, crewFigures } from "./deck-crew";
 import { drawnPlank, drawnSail, sailFrame, type DeckExtrasImages } from "./deck-extras";
 import type { DeckSailor, DeckState } from "./deck-scene";
-import { BOW, CHURN_LENGTH, STERN, WAKE_ARMS, wakeRuns } from "./deck-wake";
+import { BOW, CHURN_LENGTH, STERN, WAKE_ARMS, WATERLINE, wakeRuns } from "./deck-wake";
 import { shipCast, shipFile, shipManifest, shipStage, shipViews } from "../test/ship-pack";
 import { availableLooks, breathSink as castBreathSink, laneOf, lookFor, settledPose, standing } from "./deck-cast";
 

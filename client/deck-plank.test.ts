@@ -8,7 +8,6 @@ import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
-import { WATERLINE } from "./deck-ambient";
 import {
   FADE_MS,
   SHARK_MOUTH,
@@ -40,10 +39,12 @@ import {
   type PlankMoment,
 } from "./deck-plank";
 import type { DeckSailor, DeckState } from "./deck-scene";
-import { shipCast, shipFile, shipPlankMarks, shipStage, shipViews } from "../test/ship-pack";
+import { shipCast, shipFile, shipPlankMarks, shipStage, shipViews, shipWater } from "../test/ship-pack";
 
 // The ship's cast, under the names its constants had in the deck's code.
 const FRONT_ROWS = shipCast().standRows;
+// The ship's waterline: its sea's front band.
+const WATERLINE = shipWater().waterline;
 
 
 // The ship's stage, under the names its constants had in the deck's code.
