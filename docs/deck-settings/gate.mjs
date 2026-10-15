@@ -4,7 +4,7 @@
  *
  * Run `node docs/ship-deck-canvas/compile.mjs` first: it compiles both checkouts with Paseo's own plugin
  * compiler (and checks Hermes and `class`), writing `.generated/{main,branch}.client.js`. This script then
- * takes origin/main as files (as compile.mjs does), answers each checkout's deck RPCs from that checkout's own
+ * takes the compiler's pinned main commit as files, answers each checkout's deck RPCs from that checkout's own
  * server code and art (`DECK_RPCS` below knows every contract either side has), and renders each bundle in
  * headless Edge through one host (`host.jsx`) that imports neither's deck code. Every scenario is rendered for
  * both, screenshot by screenshot at the same moments, and the screenshots are compared pixel for pixel:
@@ -21,7 +21,8 @@
  * `.generated/gate/`, and the scenario is rendered again on both sides: a GPU now and then rasterizes one edge pixel
  * of a still frame differently, and a difference that does not come back is recorded as `flake` (with what it was)
  * rather than failing the gate, while one that does fails it. `RERENDER=0` turns that off. Writes
- * `gate-results.json` here and exits non-zero unless every shot is identical.
+ * `gate-results.json` here and exits non-zero unless every shot is identical or matches both exact hashes in
+ * `expected-changes.json`, with a reviewed explanation. Intended changes never bypass canvas metadata checks.
  */
 import { execFileSync } from "node:child_process";
 import { createServer } from "node:http";
@@ -33,6 +34,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { crc32, deflateSync, inflateSync } from "node:zlib";
 import { createHash } from "node:crypto";
+import { expectedChange } from "./expected-changes.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "../..");
@@ -53,6 +55,10 @@ const MASK_TOOLBAR = process.env.MASK_TOOLBAR === "1";
 mkdirSync(join(failures, "shots"), { recursive: true });
 /** `ONLY=a,b` renders only the scenarios named. */
 const ONLY = process.env.ONLY?.split(",") ?? null;
+// Reviewed additions: exact main AND branch hashes; no masks, tolerances or scenario exemptions.
+const expectedPath = join(here, "expected-changes.json");
+const expected = existsSync(expectedPath) ? JSON.parse(await readFile(expectedPath, "utf8")).shots : {};
+const compiled = JSON.parse(await readFile(join(generated, "compiled-inputs.json"), "utf8"));
 
 for (const bundle of ["main", "branch"]) {
   if (!existsSync(join(generated, `${bundle}.client.js`))) throw new Error(`no ${bundle} bundle: run node docs/ship-deck-canvas/compile.mjs first`);
@@ -84,7 +90,7 @@ await build({
 const mainDir = join(tmpdir(), `firstmate-gate-main-${process.pid}`);
 rmSync(mainDir, { recursive: true, force: true });
 mkdirSync(mainDir, { recursive: true });
-execFileSync("git", ["-C", root, "archive", "--format=tar", "-o", join(mainDir, "main.tar"), "origin/main"]);
+execFileSync("git", ["-C", root, "archive", "--format=tar", "-o", join(mainDir, "main.tar"), compiled.mainRevision]);
 execFileSync("tar", ["-xf", "main.tar"], { cwd: mainDir });
 symlinkSync(join(root, "node_modules"), join(mainDir, "node_modules"), "junction");
 const commit = (ref) => execFileSync("git", ["-C", root, "rev-parse", "--short", ref], { encoding: "utf8" }).trim();
@@ -295,6 +301,7 @@ async function open(browser, tree, { theme = "dark", working = null, reducedMoti
 
 async function realWait(view, predicate) {
   for (let attempt = 0; attempt < 600; attempt += 1) {
+    if (errors.length > 0) throw new Error(`page errors: ${JSON.stringify(errors)}`);
     if (await view.evaluate(predicate)) return;
     await view.waitForTimeout(50);
   }
@@ -475,12 +482,13 @@ async function render(browser, tree, scenario) {
   await scenario.run(view, async function (name) {
     shots.push([name, await shot(view)]);
     facts.push(await canvasFacts(view));
+    if (process.env.PROGRESS === "1") console.log(`captured ${tree} ${scenario.name}/${name}`);
   });
   await view.context().close();
   return { shots, facts };
 }
 
-const results = { base: `origin/main ${commit("origin/main")}`, branch: `HEAD ${commit("HEAD")}`, maskToolbar: MASK_TOOLBAR, control: null, scenarios: [] };
+const results = { base: `compiled main ${commit(compiled.mainRevision)}`, branch: `HEAD ${commit("HEAD")}`, compiledBranch: compiled.branchRevision, maskToolbar: MASK_TOOLBAR, control: null, scenarios: [] };
 let identical = true;
 /** Differences that did not come back on a second render. */
 const flakes = [];
@@ -525,9 +533,11 @@ async function run(browser, scenario) {
         flakes.push({ scenario: label, shot: name, ...flake });
       }
     }
-    shots.push({ shot: name, ...outcome, ...(flake === null ? {} : { flake }), canvas: branch.facts[index], canvasMatchesMain: JSON.stringify(main.facts[index]) === JSON.stringify(branch.facts[index]) });
-    if (!outcome.identical) identical = false;
-    console.log(`${outcome.identical ? (flake === null ? "same" : "same (flake)") : "DIFF"}  ${label} ${name}${outcome.identical ? (flake === null ? "" : ` — ${flake.differingPixels} px in ${flake.box} the first time, gone on re-render`) : ` — ${outcome.differingPixels} px in ${outcome.box}`}`);
+    const intentional = expectedChange(expected, `${label}/${name}`, outcome);
+    const canvasMatchesMain = JSON.stringify(main.facts[index]) === JSON.stringify(branch.facts[index]);
+    shots.push({ shot: name, ...outcome, ...(flake === null ? {} : { flake }), ...(intentional === null ? {} : { intentional }), canvas: branch.facts[index], canvasMatchesMain });
+    if ((!outcome.identical && intentional === null) || !canvasMatchesMain) identical = false;
+    console.log(`${outcome.identical ? (flake === null ? "same" : "same (flake)") : intentional === null ? "DIFF" : "expected"}  ${label} ${name}${outcome.identical ? (flake === null ? "" : ` — ${flake.differingPixels} px in ${flake.box} the first time, gone on re-render`) : ` — ${outcome.differingPixels} px in ${outcome.box}`}`);
   }
   results.scenarios.push({ scenario: label, options: scenario.options, shots });
 }
@@ -554,8 +564,10 @@ try {
 results.pageErrors = errors;
 results.flakes = flakes;
 results.shots = results.scenarios.reduce((sum, scenario) => sum + scenario.shots.length, 0);
-results.identical = identical && errors.length === 0;
+results.passed = identical && errors.length === 0;
+results.identical = results.scenarios.every((scenario) => scenario.shots.every((shot) => shot.identical)) && errors.length === 0;
+results.intentionalShots = results.scenarios.reduce((sum, scenario) => sum + scenario.shots.filter((shot) => shot.intentional !== undefined).length, 0);
 if (results.control !== null) results.controlIdentical = results.control.every((entry) => entry.identical);
 await writeFile(join(here, "gate-results.json"), `${JSON.stringify(results, null, 2)}\n`);
-console.log(`${results.shots} shots: ${results.identical ? "pixel-identical to main" : "NOT identical"}${errors.length > 0 ? `; page errors: ${errors.join(" | ")}` : ""}`);
-if (!results.identical || results.controlIdentical === false) process.exitCode = 1;
+console.log(`${results.shots} shots: ${results.passed ? (results.identical ? "pixel-identical to main" : `PASS, ${results.intentionalShots} exact reviewed additions`) : "FAIL"}${errors.length > 0 ? `; page errors: ${errors.join(" | ")}` : ""}`);
+if (!results.passed || results.controlIdentical === false) process.exitCode = 1;

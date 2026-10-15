@@ -32,10 +32,12 @@ const { compilePlugin } = await import(pathToFileURL(compilerPath).href);
 const paseoVersion = JSON.parse(readFileSync(resolve(dirname(compilerPath), "../../../../package.json"), "utf8")).version;
 
 // origin/main as files, with this checkout's node_modules beside it (main needs nothing it lacks).
+// Worktrees share refs: another worker may fetch while a render is running. Pin the archive and its evidence.
+const mainRevision = execFileSync("git", ["-C", root, "rev-parse", "origin/main"], { encoding: "utf8" }).trim();
 const mainDir = join(tmpdir(), `firstmate-main-${process.pid}`);
 rmSync(mainDir, { recursive: true, force: true });
 mkdirSync(mainDir, { recursive: true });
-execFileSync("git", ["-C", root, "archive", "--format=tar", "-o", join(mainDir, "main.tar"), "origin/main"]);
+execFileSync("git", ["-C", root, "archive", "--format=tar", "-o", join(mainDir, "main.tar"), mainRevision]);
 execFileSync("tar", ["-xf", "main.tar"], { cwd: mainDir }); // relative: GNU tar reads "C:" as a host
 symlinkSync(join(root, "node_modules"), join(mainDir, "node_modules"), "junction");
 const commit = (ref) => execFileSync("git", ["-C", root, "rev-parse", "--short", ref], { encoding: "utf8" }).trim();
@@ -100,7 +102,7 @@ assert.match(hermes.vendoredPixi, /^refused/, "Hermes refuses Pixi without the c
 
 const results = {
   paseoCompiler: paseoVersion,
-  main: { commit: commit("origin/main"), clientBytes: main.clientBytes, serverBytes: main.serverBytes, ms: main.ms },
+  main: { commit: commit(mainRevision), clientBytes: main.clientBytes, serverBytes: main.serverBytes, ms: main.ms },
   branch: { commit: commit("HEAD"), clientBytes: branch.clientBytes, serverBytes: branch.serverBytes, ms: branch.ms },
   clientGrowthBytes: branch.clientBytes - main.clientBytes,
   vendoredPixiBytes: readFileSync(join(root, "vendor/pixi.min.js")).length,
@@ -108,4 +110,5 @@ const results = {
   hermesParse: hermes,
 };
 writeFileSync(join(here, "compile-results.json"), JSON.stringify(results, null, 2) + "\n");
+writeFileSync(join(generated, "compiled-inputs.json"), JSON.stringify({ mainRevision, branchRevision: commit("HEAD") }) + "\n");
 console.log(JSON.stringify(results, null, 2));

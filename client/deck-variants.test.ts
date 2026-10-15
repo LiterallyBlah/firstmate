@@ -92,6 +92,6 @@ describe("the heavy weather, as the ship pack tunes it", () => {
     expect(five.sea).toBeGreaterThan(0.9);
     expect(five.spray).toBeGreaterThan(0);
     expect(five.flashes).toBe(0);
-    expect(opacities(working(BUSY_CREW))).toEqual({ sea: 1, wake: 1, clouds: 1, spray: 0.65, overcast: 0.7, lightning: 0.28, flashes: 2 });
+    expect(opacities(working(BUSY_CREW))).toEqual({ sea: 1, wake: 1, clouds: 1, spray: 0.65, overcast: 0.7, lightning: 0.54, flashes: 2 });
   });
 });

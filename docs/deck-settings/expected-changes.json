@@ -1,0 +1,361 @@
+{
+  "review": "docs/deck-enrichment/weather-review.md",
+  "base": "compiled main 0ff23d7",
+  "shots": {
+    "moving-noon/0.4s": {
+      "main": "fa2af157f9ceff60",
+      "branch": "0aadf27e983266bd",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-noon/1s": {
+      "main": "af6aa6354f2f4636",
+      "branch": "47bfc97e837be35c",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-noon/2.5s": {
+      "main": "5d6163a53738679f",
+      "branch": "b542c25ae54c504f",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-noon/5s": {
+      "main": "b699a65d90300d6e",
+      "branch": "ee93c7757cb4228f",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-noon/10s": {
+      "main": "85f9975b3fbccbd4",
+      "branch": "9147b8bc35826133",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-noon/25s": {
+      "main": "03bfdd3f29a9972e",
+      "branch": "ff7106e1d694b67b",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-noon/49s": {
+      "main": "461982156ad5a6d9",
+      "branch": "0d7e7d122036a814",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-noon/73s": {
+      "main": "486d374eb82169fe",
+      "branch": "1d68a53e5aa5bfcf",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/0.4s": {
+      "main": "9593ee514282566a",
+      "branch": "5b56046de8339774",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/5.4s": {
+      "main": "f1dced84ccc064b2",
+      "branch": "e1d503eb78bfa929",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/10.4s": {
+      "main": "e932af6a7b3161be",
+      "branch": "161c6c1270107003",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/15.4s": {
+      "main": "cc16479f8d2e28b4",
+      "branch": "420e0df4acba36a5",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/20.4s": {
+      "main": "1d414ec56a86993d",
+      "branch": "fe72d225ea9a5eea",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/25.4s": {
+      "main": "9f3c3aafbe50cecc",
+      "branch": "3ef4631e247c37f2",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/30.4s": {
+      "main": "b509261a33f1cc7d",
+      "branch": "d31d01e9359f9b3b",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/flash-33.5s": {
+      "main": "56cff29db1e06944",
+      "branch": "96a67cc1319b0fa2",
+      "reason": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges."
+    },
+    "moving-storm/flash-33.6s": {
+      "main": "20ea6d7ff9d291b9",
+      "branch": "ef141a40f5271e11",
+      "reason": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges."
+    },
+    "moving-storm/35.4s": {
+      "main": "cc371d35c3410366",
+      "branch": "1d7456f3307f84a6",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/40.4s": {
+      "main": "c9a51e1f0911819b",
+      "branch": "e34258605a923647",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/45.4s": {
+      "main": "6377d2d8d394d12e",
+      "branch": "06f632eceeef5d45",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/flash-48.9s": {
+      "main": "40924f00d3bdecf4",
+      "branch": "3177665d568861ab",
+      "reason": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges."
+    },
+    "moving-storm/flash-49.0s": {
+      "main": "8b60d59b6e285a49",
+      "branch": "63b0e678818c6af7",
+      "reason": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges."
+    },
+    "moving-storm/50.4s": {
+      "main": "8c9232f4ab10c0cf",
+      "branch": "fc59ac1893adb309",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/55.4s": {
+      "main": "12d89a1ad822be9a",
+      "branch": "8cd029e4bf283ca6",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/60.4s": {
+      "main": "fc955a43dc53b403",
+      "branch": "d9794d42592575e5",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/65.4s": {
+      "main": "266ce041dd1d8edc",
+      "branch": "de069ff16bc4ce0c",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/70.4s": {
+      "main": "9cd61a26bb1811c3",
+      "branch": "a3d6e20f1c7d1497",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/75.4s": {
+      "main": "7b0b49778fcdf76c",
+      "branch": "3ec42e419ca6e65e",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/80.4s": {
+      "main": "7b98279ab159cc06",
+      "branch": "c27f1bd1cd4da94d",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/85.4s": {
+      "main": "19b40ae7053cb22c",
+      "branch": "4199d83448a18b5a",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/90.4s": {
+      "main": "0bf2bed2d6e610a9",
+      "branch": "c0aed8c4ce9ab11c",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/95.4s": {
+      "main": "8671e9285a83797c",
+      "branch": "9573922ab07ce540",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/100.4s": {
+      "main": "9697e4339f300030",
+      "branch": "0f14dceabeb38c75",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/105.4s": {
+      "main": "31ee35e95a21a9a0",
+      "branch": "7480096144ab5d7d",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/110.4s": {
+      "main": "a34fb5c31ad3f2c2",
+      "branch": "f6b50e03d07cbf37",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/115.4s": {
+      "main": "ebac7fe032044cf6",
+      "branch": "b34cfd60924b6fe2",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-storm/120.4s": {
+      "main": "9f623266a32f4a36",
+      "branch": "2a3684aca39cacfa",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-night/0.4s": {
+      "main": "6ec1921ad282bb70",
+      "branch": "5e290cd109d1f799",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-night/10s": {
+      "main": "6ab1ae942e663787",
+      "branch": "d7b8b30581e69140",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/aboard": {
+      "main": "fa2af157f9ceff60",
+      "branch": "0aadf27e983266bd",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/changed": {
+      "main": "2e15899d50ed32fb",
+      "branch": "ee54c0411e47c322",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/walking-1000ms": {
+      "main": "475d0cefd4193ee4",
+      "branch": "f3e962fc94926bc5",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/walking-2000ms": {
+      "main": "40bdb92a8d6b77ea",
+      "branch": "a88f96ed18185ac4",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/walking-3000ms": {
+      "main": "13aaf4ed97f898d4",
+      "branch": "72137f7818c74de7",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/walking-5000ms": {
+      "main": "be51124b4457c79e",
+      "branch": "aed125e0cf4adce0",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/walking-8000ms": {
+      "main": "261aa05cae37841b",
+      "branch": "4a319f4993dcf634",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/arrived": {
+      "main": "a93d934b665f6a08",
+      "branch": "20e53b759e40c553",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/hatch-200ms": {
+      "main": "70a20366717c4f00",
+      "branch": "d70a2f1daf54fbf1",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/hatch-400ms": {
+      "main": "e678a0573415e4de",
+      "branch": "2f1a8aed03986edc",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/hatch-700ms": {
+      "main": "dd6bd5a656f83742",
+      "branch": "20148cf15471e928",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/hatch-1500ms": {
+      "main": "5a4cdc12fb7c5cbb",
+      "branch": "b540df767ad72ee3",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/hatch-3000ms": {
+      "main": "4df1f8052c94035a",
+      "branch": "f1be557559057965",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-300ms": {
+      "main": "0d1127f9d2b47a89",
+      "branch": "93ee62048db2beb1",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-800ms": {
+      "main": "4762c07a8db57b86",
+      "branch": "6221c53535e63df4",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-1400ms": {
+      "main": "3cce11c24b6602d1",
+      "branch": "fa30de6c0dac417b",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-2000ms": {
+      "main": "d311711ca4ab28ca",
+      "branch": "75d4eae0ee44fd79",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-2400ms": {
+      "main": "6e76fb697501106e",
+      "branch": "46b022afc80c6ebb",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-2700ms": {
+      "main": "739e87f75331580b",
+      "branch": "85aeaf40f7af6a2f",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-3000ms": {
+      "main": "60c9d9b4e2cf7b63",
+      "branch": "1878b80f3f10ee4d",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-3300ms": {
+      "main": "24b3b5917ff2f4a8",
+      "branch": "1c494993641c595e",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-3600ms": {
+      "main": "9f46b91deb464ce1",
+      "branch": "c874302cebe026f9",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-4000ms": {
+      "main": "defec5ace7687072",
+      "branch": "ce6ebd310041e978",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-4600ms": {
+      "main": "6a9fae86b4d61660",
+      "branch": "b7041a09c29a8d8f",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-5400ms": {
+      "main": "4886eb98780d1f61",
+      "branch": "ce889ea3c4c9b053",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/leaving-7000ms": {
+      "main": "85b38eb3ff892b9c",
+      "branch": "c1e0f96b1e1696fa",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "moving-crew/after": {
+      "main": "c83e382bcbc9107a",
+      "branch": "00f6f68f432dc8e0",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "focus/100ms": {
+      "main": "51b6d87f57c6b8d5",
+      "branch": "a24a5f1f014ab6e5",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "focus/back-out": {
+      "main": "d6c4a8ba8b111d2a",
+      "branch": "816fb1d8190edf4b",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "lite-software-renderer/0.4s": {
+      "main": "535949cf32be003b",
+      "branch": "6c56fadd49bbf021",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "lite-software-renderer/2s": {
+      "main": "a2566bdf8cff092a",
+      "branch": "3b22298b35e9c2ac",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    },
+    "lite-software-renderer/6s": {
+      "main": "5beebeee73c876c8",
+      "branch": "2cac375d3dc22378",
+      "reason": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged."
+    }
+  }
+}
