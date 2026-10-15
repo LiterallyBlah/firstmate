@@ -29,4 +29,38 @@ in a differently named pack; renderer tests cover depth, hover/click/focus, imag
 state changes, texture cleanup and removal. Source art, prompt and normalization records are in
 [the art directory](../ship-deck-art/below-deck/README.md), outside shipped `art/`.
 
-Validation and reviewed screenshot evidence will be recorded here before the PR is marked ready.
+The compiled browser check clicks all 24 portholes, verifies their distinct worker focus panels, sends one
+worker back to work and rest, removes a focused worker, and replaces the entire room in one poll. All
+targets remain reachable with the right identity and no clickable ghosts. The check uses real compiled
+client code, deck RPCs and packaged PNGs; only the host fleet is a fixture. Reproduce with
+`CHECK_IDLE=1 node docs/deck-settings/render.mjs '?setting=ship'` after compiling. Its results and crowded
+room image are [recorded here](below-deck-interactions.json) and [here](below-deck-crowd.png).
+
+Local validation: **88 files, 1,075 tests passed, three skipped**; typecheck and all **51 pack-lint checks**
+pass. Paseo's compiler builds both bundles; Hermes parses the client, with no `class`, bundled Pixi or
+embedded PNGs. Client growth is **2,020 bytes**. `npm pack --dry-run` contains **559,579 art bytes** and
+excludes tests, documentation and source art. No tests or timeouts were disabled.
+
+The first complete capture compares implementation `70f3cd7` with merged main `3cc12d1`: **81 shots**,
+matching canvas metadata throughout and no browser errors. Each difference was inspected in the full
+frames and difference sheets before recording exact main/branch hash pairs in
+[`expected-changes.json`](../deck-settings/expected-changes.json). All 81 contain intentional changes,
+including the below-deck legend; the gate uses no masks, tolerance or omitted scenarios.
+
+| Frames | Reviewed intentional differences |
+| --- | --- |
+| 8 still views | Idle bodies leave the deck; hull portholes, their badges and the legend replace them, including busy/all-idle and stale-feed views. |
+| 8 moving noon, 2 night, 3 lite | The same replacement, with cast fidgets and breathing absent from stationary handles. |
+| 29 storm frames | Four idle bodies become hull handles. Sea creatures, lightning timing, sky and sea pixels remain unchanged. |
+| 27 crew transitions | Rest travel follows the new room; handles appear when settled. The existing hatch, active workers and departure effects remain unchanged. |
+| 4 focus frames | Idle background figures and handles move under the existing veil. Focused worker, camera and panel remain unchanged. |
+
+A second independent full render **passes all 81 shots**, reproducing every reviewed hash pair, with no
+flakes or browser errors and matching canvas metadata throughout. Results are in
+[`gate-results.json`](../deck-settings/gate-results.json); the matching compiler evidence is in
+[`compile-results.json`](../deck-settings/compile-results.json). Run with `SAVE=1 RERENDER=0` after
+compiling to reproduce the unmasked comparison. The following evidence commit changes no runtime inputs.
+
+Self-review of the complete code, pack, art and screenshot diff is complete. The implementation's
+[Windows and Ubuntu CI](https://github.com/LiterallyBlah/firstmate/actions/runs/38819645779) passes.
+The PR is published READY only after those checks also pass on its final pushed evidence commit.
