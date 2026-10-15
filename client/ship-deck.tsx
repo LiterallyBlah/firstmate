@@ -40,6 +40,7 @@ import { Platform, ScrollView, Text, View } from "react-native";
 
 import type { FleetCard, Suggestion } from "../shared/fleet";
 import { DEFAULT_DECK_SETTING, loadDeckEngine, loadDeckSetting } from "../shared/deck-rpc";
+import { LOADING_DECK, type DeckPresentation } from "./deck-setting";
 import { badgeInk, badgePixels, BADGE_SIZE } from "./deck-badges";
 import { focusLayout, nextFocus, stepFocus } from "./deck-camera";
 import { labelPlacement, type DeckHover } from "./deck-hover";
@@ -48,13 +49,6 @@ import { answeredReplies, bubblePlacement, repliesByCard, type DeckRegion } from
 import { DECK_STATES, deckScene, type DeckSailor, type DeckState } from "./deck-scene";
 import { DeckAskMarker, ReplyBubble, ReplyOptions } from "./reply-bubble";
 
-/** Where each state stands on deck, for the legend. */
-export const DECK_PLACES: Record<DeckState, string> = {
-  working: "hauling amidships",
-  waiting: "by the helm",
-  blocked: "in the bow",
-  idle: "resting off watch",
-};
 
 /** A state's badge, drawn as on deck, `pixel` points an art pixel: the legend's key to the sailors' heads. */
 export function DeckBadge({ state, colour, pixel = 2 }: { state: DeckState; colour: string; pixel?: number }) {
@@ -185,22 +179,29 @@ export function bubbleRegion(size: { width: number; height: number }, focused: b
 }
 
 /** What the pane says where the canvas would be, or null while it draws. */
-export function deckStatusText(status: DeckStatus): string | null {
+export function deckStatusText(status: DeckStatus, presentation: DeckPresentation = LOADING_DECK): string | null {
+  const noun = presentation.copy.noun;
+  const subject = noun[0]!.toUpperCase() + noun.slice(1);
   switch (status.kind) {
     case "drawing":
       return null;
     case "starting":
-      return "Raising the deck…";
+      return presentation.copy.starting;
     case "failed":
-      return `The ship deck could not start: ${status.message}`;
+      return `${subject} could not start: ${status.message}`;
     case "unsupported":
       return status.reason === "no-webgl"
-        ? "This display has no WebGL, so the ship deck cannot draw. The Crew board shows everything it would."
-        : "The ship deck draws only in the Paseo desktop app. The Crew board shows everything it would.";
+        ? `This display has no WebGL, so ${noun} cannot draw. The Crew board shows everything it would.`
+        : `${subject} draws only in the Paseo desktop app. The Crew board shows everything it would.`;
   }
 }
 
-export function ShipDeckView({
+/** A changed pack id starts a fresh mount, including focus, hover, pending loads and the engine closure. */
+export function ShipDeckView(props: Parameters<typeof DeckView>[0]) {
+  return <DeckView key={props.setting ?? DEFAULT_DECK_SETTING} {...props} />;
+}
+
+function DeckView({
   cards,
   theme,
   stale = false,
@@ -211,6 +212,7 @@ export function ShipDeckView({
   onReply,
   replyBlocked = null,
   setting = DEFAULT_DECK_SETTING,
+  onFailure,
 }: {
   cards: readonly FleetCard[];
   theme: PluginTheme;
@@ -233,6 +235,8 @@ export function ShipDeckView({
   os?: string;
   /** The setting pack drawn, by id (`shared/deck-setting.ts`). */
   setting?: string;
+  /** Selection may fall back when a non-default pack fails to load. */
+  onFailure?: () => void;
 }) {
   const answered = useSyncExternalStore(answeredReplies.subscribe, answeredReplies.version);
   const offers = onReply !== undefined;
@@ -412,12 +416,16 @@ export function ShipDeckView({
     return () => keys.removeEventListener("keydown", onKey);
   }, [web]);
 
+  useEffect(() => { if (status.kind === "failed") onFailure?.(); }, [status.kind, onFailure]);
+
+  const presentation = status.kind === "drawing" ? status.presentation ?? LOADING_DECK : LOADING_DECK;
+  const { copy, places } = presentation;
   const { colors } = theme;
   const crew = scene.sailors.length;
   const lost = scene.stale === 0 ? "" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
   const asked = speakers.size === 0 ? "" : `, ${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you to pick`;
   const summary = `${DECK_STATES.map((state) => `${scene.counts[state]} ${state}`).join(", ")}${asked}${lost}`;
-  const note = deckStatusText(status);
+  const note = deckStatusText(status, presentation);
   // A sailor with replies waiting speaks in its bubble instead of wearing the label.
   const hovered =
     hover === null || status.kind !== "drawing" || open || speakers.has(hover.key)
@@ -434,10 +442,10 @@ export function ShipDeckView({
   return (
     <View style={{ flex: 1, minHeight: 0, padding: 12, gap: 8 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Ship deck</Text>
+        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>{copy.title}</Text>
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
           {status.kind === "drawing"
-            ? `Drawn with ${status.renderer === "webgl" ? "WebGL" : status.renderer} · ${crew} on deck`
+            ? `Drawn with ${status.renderer === "webgl" ? "WebGL" : status.renderer} · ${crew} ${copy.aboard}`
             : ""}
         </Text>
       </View>
@@ -445,7 +453,7 @@ export function ShipDeckView({
         <Text style={{ color: colors.statusWarning, fontSize: 12 }}>
           {stale
             ? "The crew's feed is lost: the deck shows where everyone last stood, greyed."
-            : `${scene.stale === 1 ? "One sailor's host is" : `${scene.stale} sailors' hosts are`} out of reach: greyed where last seen.`}
+            : `${scene.stale === 1 ? `One ${copy.actor.one}'s host is` : `${scene.stale} ${copy.actor.many}' hosts are`} out of reach: greyed where last seen.`}
         </Text>
       )}
       <View
@@ -463,7 +471,7 @@ export function ShipDeckView({
           <View
             ref={host}
             accessibilityRole="image"
-            accessibilityLabel={`Ship deck: ${summary}${focusable && crew > 0 ? ". Arrow keys focus a sailor." : ""}`}
+            accessibilityLabel={`${copy.title}: ${summary}${focusable && crew > 0 ? `. Arrow keys focus a ${copy.actor.one}.` : ""}`}
             focusable={focusable && status.kind === "drawing" && crew > 0}
             onLayout={(event) => setSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })}
             style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
@@ -519,7 +527,7 @@ export function ShipDeckView({
           <View key={state} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <DeckBadge state={state} colour={scene.palette.states[state]} />
             <Text style={{ color: colors.foreground, fontSize: 12 }}>{`${scene.counts[state]} ${state}`}</Text>
-            <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{DECK_PLACES[state]}</Text>
+            <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{places[state]}</Text>
           </View>
         ))}
         {speakers.size === 0 ? null : (
@@ -539,8 +547,8 @@ export function ShipDeckView({
       {status.kind === "drawing" && crew > 0 ? (
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
           {focusable
-            ? "Point at a sailor to see who it is; click one to focus it and act on it."
-            : "Point at a sailor to see who it is and what it is on."}
+            ? `Point at a ${copy.actor.one} to see who it is; click one to focus it and act on it.`
+            : `Point at a ${copy.actor.one} to see who it is and what it is on.`}
         </Text>
       ) : null}
     </View>

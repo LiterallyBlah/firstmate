@@ -44,6 +44,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
 | `shared/deck-setting.ts`      | A deck setting pack's format, `firstmate.deck-setting` 1: the manifest's schema, every reference it must resolve (`settingProblems`), the closed, versioned behaviour catalogue (`ENGINE_CAPABILITIES`) and what a pack uses. Server and tests only. |
 | `shared/deck-rpc.ts`, `server/deck-settings.ts` | What the Deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.settings` listing the packs under `art/settings/` (and which this engine can draw), `firstmate.deck.setting` serving one whole — manifest and images — confined to its folder and capped. |
+| `client/deck-setting.ts`, `deck-setting-query.ts`, `deck-setting-view.tsx` | Global selection: the fleet resolver, shared installed-pack metadata, fallback notice and one resolved id passed into the engine. Pack-owned presentation words travel with the drawing. |
 | `test/deck-legacy.ts`, `test/deck-legacy-schema.ts` | Historical art manifest adapters and schemas, used only by regression tests; excluded from the shipped package. |
 | `client/ship-deck.tsx`        | The Deck pane: the canvas's view, its status in words, the hovered sailor's label, the focused sailor's panel and keys, the legend of badges and counts. |
 | `client/deck-camera.ts`       | The camera: the exact fit or a shot closed in on a focused sailor, the eased zoom between, where the focus panel goes; what a click or an arrow does to the focus. Pure. |
@@ -347,6 +348,7 @@ what those look like and where they are. The ship is the first pack, `art/settin
   pack lists what it uses in `requires`, which must equal what it uses (`capabilitiesUsed`). A new behaviour is an
   engine change, setting-agnostic, added only when a shipped setting uses it — never `if (setting.id === …)`.
   `choreography@1` is the one most likely to grow: hold it to segments, events and effect keys.
+  Every manifest object has a strict shape: undeclared fields, including script/expression hooks, fail validation.
 - **Atmosphere is compiled per pack** (`compileAtmosphere`, `client/deck-atmosphere.ts`): `atmosphere.table`
   interpolates any named channels, `clocks` binds animation names to pace channels, and `delivered` supplies every
   channel's calm value. Tables have strictly increasing intensities and the same channels in every row. Clocks advance
@@ -370,17 +372,25 @@ what those look like and where they are. The ship is the first pack, `art/settin
   and its floor against its own backdrop: every walkable point on it, posts and marks on open floor and in sight,
   everything reachable from everything else, the fit taking in every part, flyby and effect, and two dozen workers
   packed into each packing zone, each in sight and in the pointer's reach.
-  `docs/deck-settings/overlay.mjs` draws a pack's floor, posts, zones, marks and fit box over its deck, for authoring.
+  Run it with `npm run lint:deck-packs`. `node docs/deck-settings/render.mjs '?setting=ship&overlay=1'` draws
+  the selected pack's floor, posts, zones, marks and fit box over its own deck. See `docs/deck-settings/authoring.md`.
 - **No module-level "the setting"**: the stage is compiled per pack (`compileStage`, `client/deck-stage.ts`) and
   handed to the crew, the geometry and the renderer; caches are keyed by id (`packOnce` in `client/deck-mount.ts`)
   or held on the compiled floor; and the view takes the id as a prop (`setting`, the default
   `DEFAULT_DECK_SETTING`), so choosing one globally now and per project later changes neither the engine nor the format.
+- **Global selection** lives in `displaySettings.deckSetting`, default `ship`, chosen in Settings > Plugins >
+  FirstMate > Deck setting. The picker lists installed pack previews, disabling incompatible choices with their
+  reason. `resolveDeckSetting(display, scope, installed)` handles the fleet scope now; a future project resolver
+  changes selection alone. Missing, incompatible or failed choices fall back to ship with a notice, leaving the
+  saved choice intact. A changed resolved id remounts the view, clearing focus, hover and pending loads. The canvas
+  records that actual id in `data-firstmate-deck-setting`; pane/actor/zone words come from the pack's `copy`.
 - **Every drawn part now comes from the pack.** Steps 3?7 moved the stage, floor, zones, cast, ambience,
   furniture, atmosphere and portals into data. `client/deck-choreography.ts` compiles finite actor segments
   and effect tracks; `portals.byDeparture` routes departures, queues release on named events, and rise/sink/fade
   durations belong to the pack. No runtime reads the old art manifests. Historical adapters and frozen timeline
   expectations live under `test/` and are excluded from the package. Every step is held to the 81-shot
-  pixel-identical gate in `docs/deck-settings/gate.mjs`; global selection and final catalogue/authoring work follow.
+  pixel-identical gate in `docs/deck-settings/gate.mjs`. Step 8 adds global selection; step 9's second setting
+  requires commissioned art and separately reviewed generic capabilities before its data-only pack can land.
 
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
 

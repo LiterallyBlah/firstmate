@@ -1,6 +1,6 @@
 {
-  "base": "origin/main 8cba678",
-  "branch": "HEAD 1bc6990",
+  "base": "origin/main 38b5464",
+  "branch": "HEAD c65eef6",
   "control": null,
   "scenarios": [
     {
@@ -18,12 +18,13 @@
           "sha": "b1664ed43b4ee95e",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "still",
             "data-firstmate-deck-weather": "still",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -41,12 +42,13 @@
           "sha": "af2c0b13d2f54aed",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "still",
             "data-firstmate-deck-weather": "still",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -65,12 +67,13 @@
           "sha": "b60af3eca50ac5c6",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "still",
             "data-firstmate-deck-weather": "still",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "night"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -88,12 +91,13 @@
           "sha": "4ce05b53626655ec",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "still",
             "data-firstmate-deck-weather": "still",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "dawn"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -111,12 +115,13 @@
           "sha": "47208ddd65df18c7",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "still",
             "data-firstmate-deck-weather": "still",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "night"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -135,12 +140,13 @@
           "sha": "37811d686ed16aec",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "still",
             "data-firstmate-deck-weather": "still",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -159,12 +165,13 @@
           "sha": "9616bed9f6631d3c",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "still",
             "data-firstmate-deck-weather": "still",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -181,12 +188,13 @@
           "sha": "6aaa9be70c2ad108",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "still",
             "data-firstmate-deck-weather": "still",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -204,12 +212,13 @@
           "sha": "09904224270fef35",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "1s",
@@ -218,12 +227,13 @@
           "sha": "dc1afbb263a39dc0",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "2.5s",
@@ -232,12 +242,13 @@
           "sha": "966f211eb691bb5f",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "5s",
@@ -246,12 +257,13 @@
           "sha": "5b68aa35398b1d5f",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "10s",
@@ -260,12 +272,13 @@
           "sha": "07e58c519a622d28",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "25s",
@@ -274,12 +287,13 @@
           "sha": "d1c7f18eb914ae64",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "49s",
@@ -288,12 +302,13 @@
           "sha": "4b2a0deb5469b1e9",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "73s",
@@ -302,12 +317,13 @@
           "sha": "ce0e00297c3ccca4",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -325,12 +341,13 @@
           "sha": "088c3f3e7a071567",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "5.4s",
@@ -339,12 +356,13 @@
           "sha": "e35bc3104089eddf",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "10.4s",
@@ -353,12 +371,13 @@
           "sha": "9129ce50d8b5d1e8",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "15.4s",
@@ -367,12 +386,13 @@
           "sha": "7ea5c3cae3cbf23e",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "20.4s",
@@ -381,12 +401,13 @@
           "sha": "ddd5d0baa4e06309",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "25.4s",
@@ -395,12 +416,13 @@
           "sha": "45ad5e752dfd156d",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "30.4s",
@@ -409,12 +431,13 @@
           "sha": "0680c7f8ce865790",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "flash-33.5s",
@@ -423,12 +446,13 @@
           "sha": "86fe781f622b4e1f",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "lightning",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "flash-33.6s",
@@ -437,12 +461,13 @@
           "sha": "5ecf3ffa5a4e8937",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "lightning",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "35.4s",
@@ -451,12 +476,13 @@
           "sha": "c6d03c39edb2ff0c",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "40.4s",
@@ -465,12 +491,13 @@
           "sha": "b2df87af19934cfc",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "45.4s",
@@ -479,12 +506,13 @@
           "sha": "0714438af42e8e4f",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "flash-48.9s",
@@ -493,12 +521,13 @@
           "sha": "09b6c63b861d27a4",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "lightning",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "flash-49.0s",
@@ -507,12 +536,13 @@
           "sha": "6a54cbd592c16416",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "lightning",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "50.4s",
@@ -521,12 +551,13 @@
           "sha": "12b335d59e783fba",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "55.4s",
@@ -535,12 +566,13 @@
           "sha": "049836e00db97bf6",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "60.4s",
@@ -549,12 +581,13 @@
           "sha": "ffc80714b603718a",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "65.4s",
@@ -563,12 +596,13 @@
           "sha": "de0d04bd57907b58",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "70.4s",
@@ -577,12 +611,13 @@
           "sha": "5afd244a17149a06",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "75.4s",
@@ -591,12 +626,13 @@
           "sha": "bcc9c0d0b6f84efa",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "80.4s",
@@ -605,12 +641,13 @@
           "sha": "05de7d0f46c96728",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "85.4s",
@@ -619,12 +656,13 @@
           "sha": "bba524da2e22b09f",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "90.4s",
@@ -633,12 +671,13 @@
           "sha": "74cb7324569b1db7",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "95.4s",
@@ -647,12 +686,13 @@
           "sha": "78d450a6587ffdcd",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "100.4s",
@@ -661,12 +701,13 @@
           "sha": "66d246505db31a48",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "105.4s",
@@ -675,12 +716,13 @@
           "sha": "a83f8df6ad7b4a04",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "110.4s",
@@ -689,12 +731,13 @@
           "sha": "5b3df91efe839836",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "115.4s",
@@ -703,12 +746,13 @@
           "sha": "d1beeb7feac2cbfe",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "120.4s",
@@ -717,12 +761,13 @@
           "sha": "2341cd542048645d",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -740,12 +785,13 @@
           "sha": "baea7945034e826f",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "night"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "10s",
@@ -754,12 +800,13 @@
           "sha": "637f252fb7065bd7",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "night"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -777,12 +824,13 @@
           "sha": "09904224270fef35",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "changed",
@@ -791,12 +839,13 @@
           "sha": "bba599bdfeb5deab",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "walking-1000ms",
@@ -805,12 +854,13 @@
           "sha": "7a5667cb62a5d327",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.91",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "walking-2000ms",
@@ -819,12 +869,13 @@
           "sha": "7860d757967a9c04",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.94",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "walking-3000ms",
@@ -833,12 +884,13 @@
           "sha": "cddbc76c6e7c2d73",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.95",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "walking-5000ms",
@@ -847,12 +899,13 @@
           "sha": "b1c9bce047adaa62",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.98",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "walking-8000ms",
@@ -861,12 +914,13 @@
           "sha": "3ebe83b545547a05",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.99",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "arrived",
@@ -875,12 +929,13 @@
           "sha": "55f85a2dc5425da5",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "hatch-200ms",
@@ -889,12 +944,13 @@
           "sha": "8d9b16392cc9daa5",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "hatch-400ms",
@@ -903,12 +959,13 @@
           "sha": "9e4326d355ea9ee4",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "hatch-700ms",
@@ -917,12 +974,13 @@
           "sha": "c647f5a1de5ed478",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "hatch-1500ms",
@@ -931,12 +989,13 @@
           "sha": "18eeff4de13ecb14",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "hatch-3000ms",
@@ -945,12 +1004,13 @@
           "sha": "a92706df3d5e94ef",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-300ms",
@@ -959,12 +1019,13 @@
           "sha": "9dff28fce0818896",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-800ms",
@@ -973,12 +1034,13 @@
           "sha": "7f1a42c9f304840c",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-1400ms",
@@ -987,12 +1049,13 @@
           "sha": "0621d25fc96f1b05",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-2000ms",
@@ -1001,12 +1064,13 @@
           "sha": "fda278e9d6f41004",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-2400ms",
@@ -1015,12 +1079,13 @@
           "sha": "527b0580a3f1fc99",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-2700ms",
@@ -1029,12 +1094,13 @@
           "sha": "4c97687289a2cad8",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-3000ms",
@@ -1043,12 +1109,13 @@
           "sha": "48a5644bc1a243c6",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-3300ms",
@@ -1057,12 +1124,13 @@
           "sha": "e0bbdc8518d361c0",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-3600ms",
@@ -1071,12 +1139,13 @@
           "sha": "d677103431432a4f",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-4000ms",
@@ -1085,12 +1154,13 @@
           "sha": "7b1d270cd0b2f223",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-4600ms",
@@ -1099,12 +1169,13 @@
           "sha": "60f8279ffb4e17b3",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-5400ms",
@@ -1113,12 +1184,13 @@
           "sha": "4d69a1ecc975080f",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "leaving-7000ms",
@@ -1127,12 +1199,13 @@
           "sha": "f738a178e95430e7",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "after",
@@ -1141,12 +1214,13 @@
           "sha": "3c22511f564e1530",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "1.00",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -1164,12 +1238,13 @@
           "sha": "3a4ab78152ead398",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "300ms",
@@ -1178,12 +1253,13 @@
           "sha": "8cbccdd0553c582d",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "1.5s",
@@ -1192,12 +1268,13 @@
           "sha": "cbb3cc9931aafdbf",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "back-out",
@@ -1206,12 +1283,13 @@
           "sha": "3cef78d73e83b5a1",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "full",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     },
@@ -1228,12 +1306,13 @@
           "sha": "e2210f1610fca548",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "lite",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "2s",
@@ -1242,12 +1321,13 @@
           "sha": "d160cb11572df684",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "lite",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         },
         {
           "shot": "6s",
@@ -1256,12 +1336,13 @@
           "sha": "7ec627e0e9ea98bb",
           "canvas": {
             "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
             "data-firstmate-deck-motion": "lite",
             "data-firstmate-deck-weather": "0.88",
             "data-firstmate-deck-flash": "",
             "data-firstmate-deck-sky": "midday"
           },
-          "canvasMatchesMain": true
+          "canvasMatchesMain": false
         }
       ]
     }

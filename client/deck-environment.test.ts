@@ -9,6 +9,7 @@
  * the snap under reduced motion, and a resize while focused. And the weather, livelier as more of the crew works. Whether WebGL paints it is the browser
  * harnesses' (`docs/ship-deck-environment/`, `docs/ship-deck-tweaks/`, `docs/ship-deck-focus/`).
  */
+import { deckPresentation } from "./deck-setting";
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import type { PluginTheme } from "@getpaseo/plugin";
@@ -357,7 +358,7 @@ async function start(
   const { images, masks, ambience, parts } = packImages(options, art, atlas);
   const drawing = await startDeck(
     pixi,
-    { stage: shipStage(), cast: shipCast(), parts, ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, effects: shipManifest().effects },
+    { stage: shipStage(), cast: shipCast(), parts, ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, effects: shipManifest().effects, presentation: deckPresentation(shipManifest()) },
     host,
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },

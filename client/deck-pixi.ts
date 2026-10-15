@@ -49,6 +49,7 @@
  * prop, piece and lantern once and for every sailor on every frame, so a sailor walking aft passes
  * behind the mast, the bollards and the stairs' balustrade, and in front of them on its way back.
  */
+import type { DeckPresentation } from "./deck-setting";
 import type { SettingManifest } from "../shared/deck-setting";
 import { availableLooks, laneOf, standing, type DeckCast } from "./deck-cast";
 import type { MotionPlan } from "./deck-ambient";
@@ -176,6 +177,7 @@ export interface DeckArtImage {
   masks: ReadonlyMap<string, DrifterMasks>;
   image: unknown;
   effects: SettingManifest["effects"];
+  presentation: DeckPresentation;
 }
 
 /** What the deck needs to decide when to move: a frame scheduler and the motion signals; and what time it is. */
@@ -455,6 +457,7 @@ export async function startDeck(
   canvas.style.top = "0";
   canvas.style.imageRendering = "pixelated";
   canvas.setAttribute(DECK_CANVAS_ATTRIBUTE, app.renderer.name);
+  canvas.setAttribute("data-firstmate-deck-setting", art.presentation.id);
   host.appendChild(app.canvas);
 
   const { stage, cast, parts } = art;
@@ -919,6 +922,7 @@ export async function startDeck(
 
   return {
     renderer: app.renderer.name,
+    presentation: art.presentation,
     update(next) {
       if (next.palette.sea !== current.palette.sea) app.renderer.background.color = next.palette.sea;
       if (next.palette !== current.palette) {

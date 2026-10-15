@@ -13,13 +13,16 @@ import type { PluginTheme } from "@getpaseo/plugin";
 import { FlatList, Icon, Modal, TextInput } from "@getpaseo/plugin/client/react-native";
 import { SettingsRow } from "@getpaseo/plugin/client/ui";
 import { useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 
 export interface PickerOption {
   label: string;
   value: string;
   /** A second, muted line: the language of a voice, the provider of a model. */
   detail?: string;
+  disabled?: boolean;
+  /** Optional data URL or image URI, shown beside the option. */
+  preview?: string;
 }
 
 interface OptionPickerProps {
@@ -151,12 +154,16 @@ export function OptionPicker(props: OptionPickerProps) {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={item.detail === undefined ? item.label : `${item.label}, ${item.detail}`}
+                disabled={item.disabled === true}
+                accessibilityState={{ disabled: item.disabled === true, selected: item.value === value }}
                 onPress={() => {
+                  if (item.disabled === true) return;
                   onSelect(item.value);
                   setOpen(false);
                 }}
-                style={[styles.row, item.value === value ? styles.rowSelected : null]}
+                style={[styles.row, item.value === value ? styles.rowSelected : null, item.disabled === true ? styles.triggerDisabled : null]}
               >
+                {item.preview === undefined ? null : <Image source={{ uri: item.preview }} style={{ width: 64, height: 40 }} resizeMode="contain" accessibilityLabel={`${item.label} preview`} />}
                 <View style={styles.rowText}>
                   <Text style={styles.rowLabel}>{item.label}</Text>
                   {item.detail === undefined ? null : <Text style={styles.rowDetail}>{item.detail}</Text>}
