@@ -38,12 +38,12 @@ describe("the ship's stage, compiled", () => {
   });
 
   it("stands the tall mast's own rows in for the mast piece at its row, and the plank just in front of the near rail", () => {
-    const { pieces, overDepth } = compileParts(ship, all);
+    const { pieces, pieceDepths } = compileParts(ship, all);
     const byId = new Map(pieces.map((piece) => [piece.id, piece]));
     expect(byId.get("mast")).toEqual({ id: "mast", cut: { image: "mast-tall-mast", rect: [0, 149, 48, 43] }, at: [187, 69], depth: depthOf(110, 1), by: "tall-mast" });
     expect(byId.get("near")!.depth).toBe(depthOf(null, 1));
     expect(byId.get("plank")).toMatchObject({ cut: { image: "plank-plank", rect: [0, 0, 18, 22] }, at: [241, 120], depth: depthOf(null, 1) + 1, by: null });
-    expect(overDepth).toBe(depthOf(null, 1) + 1);
+    expect(pieceDepths.get("plank")).toBe(depthOf(null, 1) + 1);
   });
 
   it("without the tall mast, has the hull's own masthead sway in the topmast's place, cut round it alone, and no sail", () => {
@@ -58,7 +58,7 @@ describe("the ship's stage, compiled", () => {
   it("leaves out an optional piece whose image did not arrive, and says when one that is not optional did not", () => {
     const boardless = compileParts(ship, without("plank-plank"));
     expect(boardless.pieces.map((piece) => piece.id)).not.toContain("plank");
-    expect(boardless.overDepth).toBe(depthOf(null, 1) + 1);
+    expect(boardless.pieceDepths.get("plank")).toBe(depthOf(null, 1) + 1);
     expect(boardless.required).toEqual([]);
     expect(compileParts(ship, without("deck")).required).toEqual(["deck"]);
   });
@@ -111,4 +111,16 @@ describe("how the stage moves", () => {
       b: [[-1, 2, 3, 3]],
     });
   });
+});
+
+it("resolves named piece depths independently of manifest order, including missing images, and refuses cycles", () => {
+  const manifest = structuredClone(ship);
+  manifest.stage.pieces.push({ ...manifest.stage.pieces[0]!, id: "extra", baseline: { over: "plank" }, optional: true, sprite: { image: "plank-plank" } });
+  manifest.stage.pieces.reverse();
+  const compiled = compileParts(manifest, all);
+  expect(compiled.pieceDepths.get("extra")).toBe(depthOf(null, 1) + 2);
+  expect(compiled.pieces.find((piece) => piece.id === "extra")!.depth).toBe(compiled.pieceDepths.get("extra"));
+  expect(compileParts(manifest, without("plank-plank")).pieceDepths.get("extra")).toBe(depthOf(null, 1) + 2);
+  manifest.stage.pieces.find((piece) => piece.id === "near")!.baseline = { over: "extra" };
+  expect(() => compileParts(manifest, all)).toThrow("cyclic piece depth");
 });

@@ -5,6 +5,7 @@
  * and two decks two settings.
  */
 import type { ActivityState, SettingManifest } from "../shared/deck-setting";
+import { compileChoreography, type Choreography, type DeckDeparture } from "./deck-choreography";
 import { createFloor, type Anchor, type Floor, type Point } from "./deck-geometry";
 
 type Rect = readonly [number, number, number, number];
@@ -23,9 +24,7 @@ export interface Zone {
 }
 
 /** A way off the stage: back down where it came up (`sink`), or a choreography from its queue's mark. */
-export type Exit =
-  | { kind: "sink"; at: Point }
-  | { kind: "choreography"; marks: Readonly<Record<string, Point>>; queue: { at: Point; spacing: readonly [number, number] } };
+export type Exit = { kind: "sink"; at: Point; ms: number } | Choreography;
 
 export interface DeckStage {
   /** The stage's logical pixels: the backdrop's size. */
@@ -41,6 +40,9 @@ export interface DeckStage {
   zoneOf(state: ActivityState): Zone;
   /** Where a worker comes up onto the stage. */
   entry: Point;
+  entryMs: number;
+  fadeMs: number;
+  byDeparture: Readonly<Record<DeckDeparture, string>>;
   exits: ReadonlyMap<string, Exit>;
   /** Props, where each stands — their feet — and the sprite each is drawn with, registered at `feet`. */
   props: ReadonlyArray<{ id: string; x: number; y: number; image: string; rect: readonly [number, number, number, number] | null; feet: readonly [number, number] }>;
@@ -73,12 +75,8 @@ export function compileStage(manifest: SettingManifest): DeckStage {
     Object.entries(portals.exits).map(([id, exit]): [string, Exit] => [
       id,
       exit.kind === "sink"
-        ? { kind: "sink", at: point(exit.at) }
-        : {
-            kind: "choreography",
-            marks: Object.fromEntries(Object.entries(exit.marks).map(([mark, at]) => [mark, point(at)])),
-            queue: { at: point(exit.marks[exit.queue.at]!), spacing: exit.queue.spacing },
-          },
+        ? { kind: "sink", at: point(exit.at), ms: exit.ms }
+        : compileChoreography(exit, floor.walkSpeed, manifest.effects),
     ]),
   );
   return {
@@ -95,6 +93,9 @@ export function compileStage(manifest: SettingManifest): DeckStage {
     zones: compiledZones,
     zoneOf: (state) => compiledZones.get(zones.byState[state])!,
     entry: point(portals.entry.at),
+    entryMs: portals.entry.ms,
+    fadeMs: portals.still.fadeMs,
+    byDeparture: portals.byDeparture,
     exits,
     props: stage.props.map((prop) => ({ id: prop.id, x: prop.at[0], y: prop.at[1], image: prop.sprite.image, rect: prop.sprite.rect ?? null, feet: prop.feet })),
     pieces: stage.pieces.flatMap((piece) =>
@@ -104,7 +105,7 @@ export function compileStage(manifest: SettingManifest): DeckStage {
   };
 }
 
-/** A choreography exit, or an error: the engine's plank is still looked up by name until its timeline is data. */
+/** Look up a compiled choreography by its pack-defined id. */
 export function choreography(stage: DeckStage, id: string): Extract<Exit, { kind: "choreography" }> {
   const exit = stage.exits.get(id);
   if (exit?.kind !== "choreography") throw new Error(`the setting has no choreography called ${id}`);
