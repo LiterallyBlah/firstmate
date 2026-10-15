@@ -1,4 +1,7 @@
-/** Full-height columns in one horizontal row; on phones they stack in one scroll view. */
+/**
+ * Full-height columns in one horizontal row; on phones they stack in one scroll view. A card with a worker has
+ * its 💬 in its title row, which opens the worker's conversation beside the columns.
+ */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { Icon } from "@getpaseo/plugin/client/react-native";
 import { useMemo, useState } from "react";
@@ -6,7 +9,8 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type { ColumnId, FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
-import { CrewCard, watchOpener } from "./card";
+import { CrewCard } from "./card";
+import { watchKey } from "./host-tabs";
 import { COLUMNS, columnTone, DONE_SHOWN, doneCards, groupCards, moveColumn } from "./format";
 
 let allDoneShown = false;
@@ -20,7 +24,9 @@ export interface BoardProps {
   theme: PluginTheme;
   compact: boolean;
   density: BoardDensity;
-  onWatch: (key: string) => void;
+  /** The worker whose conversation is open, by `watchKey`. */
+  conversing: string | null;
+  onConverse: (key: string) => void;
   onToggleColumn: (id: ColumnId) => void;
   onReorder: (order: ColumnId[]) => void;
   onChanged: () => void;
@@ -66,6 +72,7 @@ export function Board(props: BoardProps) {
   };
 
   function renderCard(card: FleetCard) {
+    const key = watchKey(card);
     return (
       <CrewCard
         key={card.key}
@@ -73,7 +80,9 @@ export function Board(props: BoardProps) {
         theme={theme}
         compact={compact}
         density={density}
-        opener={watchOpener(card, props.onWatch)}
+        opener={null}
+        onConverse={key === null ? null : () => props.onConverse(key)}
+        conversing={key !== null && key === props.conversing}
         onChanged={props.onChanged}
       />
     );

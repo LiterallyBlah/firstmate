@@ -45,7 +45,7 @@ Since the import, this copy has added:
   measurements. `remote-watch` reports each finished turn and new permission once, including sessions
   the first mate follows ([PR #1](https://github.com/LiterallyBlah/firstmate/pull/1),
   [PR #2](https://github.com/LiterallyBlah/firstmate/pull/2)).
-- **Remote work on the board:** remote workers share the crew columns, with host tabs, Watch,
+- **Remote work on the board:** remote workers share the crew columns, with host tabs, Converse,
   Steer, Interrupt and End, permission details and card times corrected for measured clock skew.
   Followed sessions are marked separately and cannot be ended from the board
   ([PR #3](https://github.com/LiterallyBlah/firstmate/pull/3)).
@@ -212,22 +212,30 @@ fm/fix-knots-kmh".](docs/board.png)
 Each card is a worker, a backlog item, or both. At rest it shows only what you need at a glance: the
 title, the worker's state, its project and host as small tags, when it last moved, and one line of
 its latest status — a permission it waits on, an error, your call it waits for, or its own status line,
-whichever matters most. Press it for the rest — task id, kind, mode, model, the full status line, the
-pull request — and its actions:
+whichever matters most — and a **💬**.
 
-- **Watch** — the worker's card beside everything it is doing, live, in place of the board: the brief
-  it was given, its reasoning, each command and file it touched (press one for what it ran and what
-  came back), its plan, and its replies. Anything it is waiting on — a question, a permission — is
-  answered there. The chat with the first mate stays beside it; **Crew** takes you back to the board,
-  and **Open in Paseo** shows the worker's whole session.
-- **Steer** — a word straight to the worker. It counts as coming from you, and the first mate is told
-  what you said and what the worker answered.
+**💬 Converse** opens the worker's conversation in a drawer beside the list or board (over it, where the
+pane is too narrow; the whole Crew tab on a phone), with the chat with the first mate still on the left.
+You see what it was told and what it said — **YOU** marks your own messages, tool calls fold into one
+line, and **Activity** shows every command, file and thought — and you reply in the box at its foot:
+Enter sends, Shift+Enter is a new line. A question or permission it is waiting on is answered right
+there. The first mate hears what you said and what the worker answered, in one note per conversation
+once it goes quiet for two minutes, not one per message. **Esc** or ✕ puts you back where you were.
+**⋯** holds its details and Interrupt, Relaunch and End; **↗** opens it in Paseo, for what only Paseo has —
+the model and mode, the worktree's files, terminals. What you type in Paseo's own tab is not relayed to
+the first mate.
+
+Press the card itself for the rest — task id, kind, mode, model, the full status line, the pull request —
+and its actions:
+
+- **Steer** — a word straight to the worker, without opening its conversation. It counts as coming from
+  you, and the first mate is told what you said and what the worker answered.
 - **Interrupt** — stops the worker's current turn.
 - **Relaunch** — asks the first mate for a fresh worker in the same worktree, with your note. The work
   on disk carries over; the conversation does not.
 - **End** — archives the worker. Its workspace and worktree are left exactly as they are.
 
-![Watching a worker: the chat with the first mate stays on the left; in the board's place, the worker's
+![An earlier version of the conversation view, then called Watch: the chat with the first mate stays on the left; in the board's place, the worker's
 card with its actions beside its live transcript — the brief it was given, then Read, Edit and Shell
 rows for each step (npm test among them), its notes between them, and a spinner on the step under
 way.](docs/watch.png)
@@ -338,8 +346,8 @@ Remote work is on the board with the local crew. A backlog item that names its h
 `(host: …)`, or `(on-host: …)`, by serverId, label or both — is matched to its worker on that host
 by the agent id it records or the worker's `firstmate.task` label, and filed by the worker's live
 status and last status line, refreshed about once a minute; a worker with no item gets a card of its
-own. Each card names its host. **Watch** shows the worker's recent activity, read from the host every
-ten seconds; **Steer**, **Interrupt** and **End** go to the worker through the same bridge, and are off
+own. Each card names its host. **💬** shows the worker's recent activity, read from the host every
+ten seconds, and replies to it from the box at its foot; **Steer**, **Interrupt** and **End** go to the worker through the same bridge, and are off
 while its host is unreachable. **Relaunch** is off for remote workers: ask the first mate, which writes
 the new brief there. A session the first mate only follows — one of your own, listed in
 `data/remote-follow.json` — is marked as followed and never offered End. A card spells out each
@@ -437,10 +445,11 @@ board and polls nothing of its own. The art is generated and cleaned up by scrip
 
 **Click a sailor to work from the deck.** The camera zooms in on it, the rest of the deck dims, and a small
 panel beside it shows that crewmate's card: its state, project and host, its status line and anything waiting
-on you, and the card's own buttons — Watch, Steer, Interrupt, Relaunch, End — which do exactly what they do on
+on you, and the card's own buttons — Converse, Steer, Interrupt, Relaunch, End — which do exactly what they do on
 the board, End's confirmation included. Esc, the panel's ✕, or a click anywhere else on the deck pulls the
 camera back out. From the keyboard, Tab to the deck and press an arrow key or Enter; Tab then stays in the
-panel until Esc. Under reduced motion the camera snaps instead of zooming. Watch takes you to the Crew pane.
+panel until Esc. Under reduced motion the camera snaps instead of zooming. Converse takes you to the Crew pane, with the
+worker's conversation open.
 
 The header's Crew/Files switch has **Deck** in the desktop app's wide layout; there is nothing to turn on.
 On a phone or a narrow window it is not offered, and a display without WebGL gets a plain sentence instead
@@ -472,12 +481,12 @@ proven before install.
   requests, but merging needs your word (or `+yolo` on that project), and a worker's worktree is only
   cleaned up after its work has landed.
 - **A worker you prompt by hand** in its own tab is not watched by anyone until the first mate next
-  reviews the fleet (it keeps a half-hourly check while work is under way). Steer from the board
-  instead, and the first mate hears about it.
+  reviews the fleet (it keeps a half-hourly check while work is under way). Reply from its 💬 on the
+  board instead, and the first mate hears about it.
 - **The first mate's model, thinking and mode** are changed from its own tab in Paseo, not from the
   board.
 - **Attachments** — images, files — go to the first mate from its own tab, not from the panel's chat.
-- **Watch shows a worker's latest activity**, not its whole history; a long-running worker's earlier
+- **Converse shows a worker's latest activity**, not its whole history; a long-running worker's earlier
   work is in its own session in Paseo.
 - It does not reproduce firstmate's second mates, relay to X and Discord, away mode, or the
   `no-mistakes` pipeline (`reviewed-PR` stands in for the last).

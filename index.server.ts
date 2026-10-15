@@ -32,7 +32,7 @@ import {
   restartMate,
   oneAtATime,
   requireNoMigration,
-  queueMateNote,
+  queueBurstNote,
   flushMateNotes,
 } from "./server/mate";
 import { cancelMigration, migrateMate, migrationTargets } from "./server/migration";
@@ -74,7 +74,7 @@ import { checkUpdate, requestUpdate } from "./shared/update";
 import { readRemotes, syncRemotes, reportRemoteSyncError } from "./shared/remotes";
 import { readBacklog } from "./server/home";
 import { remoteTaskQueries } from "./server/remote-cards";
-import { exitRemoteCrew, interruptRemoteCrew, remoteCrewLogs, remoteSteerText, steerRemoteCrew } from "./server/remote-crew";
+import { exitRemoteCrew, interruptRemoteCrew, remoteCrewLogs, remoteSteerMessage, remoteSteerNote, steerRemoteCrew } from "./server/remote-crew";
 import {
   exitRemoteCrew as exitRemoteCrewRpc,
   interruptRemoteCrew as interruptRemoteCrewRpc,
@@ -194,10 +194,18 @@ export default function contribute(server: PluginServerContext) {
       throw error;
     }
     receipt?.settle("sent");
-    // The plugin cannot see that worker's turn end, so the first mate hears of it now; the words are already sent.
+    // The plugin cannot see that worker's turn end, so the first mate hears of it without the answer, in one
+    // note for the whole burst of steers to that worker; the words are already sent.
     try {
-      await queueMateNote(paseo, await remoteSteerText(sent.host, sent.worker, sent.text),
-        receipt === undefined ? undefined : { source: "remote-steer", relates: [receipt.messageId] });
+      await queueBurstNote(
+        paseo,
+        {
+          key: `remote:${serverId}:${agentId}`,
+          part: await remoteSteerMessage(sent.text),
+          render: (parts) => remoteSteerNote(sent.host, sent.worker, parts),
+        },
+        { source: "remote-steer", relates: receipt === undefined ? [] : [receipt.messageId] },
+      );
     } catch (error) {
       console.error(`[firstmate] could not tell the first mate about the captain's words to ${agentId}:`, error);
     }

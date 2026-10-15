@@ -28,7 +28,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/crew-report.ts`       | A crewmate's closing status line (`done: PR …`) → state and text.                          |
 | `server/fleet.ts`             | The board: first mate, crew by label, backlog, status lines → cards in columns.            |
 | `server/remote-cards.ts`      | Remote work as cards: a backlog line's host resolved, joined to its worker, filed by the same rules. Pure. |
-| `server/remote-crew.ts`, `shared/remote-crew.ts` | A remote card's Steer, Interrupt, End and Watch, through `RemoteService.request`. |
+| `server/remote-crew.ts`, `shared/remote-crew.ts` | A remote card's Steer, Interrupt, End and its Converse log, through `RemoteService.request`. |
 | `server/remotes.ts`, `shared/remotes.ts` | Saved remote hosts: the daemon-side connections, the minute poll, the helper's request queue. |
 | `server/mate.ts`              | Launching, adopting and releasing the first mate; carrying the captain's words to it.      |
 | `server/crew.ts`              | Steer, interrupt, end, relaunch one crewmate; the relay that tells the first mate about a steer. |
@@ -87,7 +87,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `shared/files.ts`, `server/files.ts` | The home as files: list, read, write — confined to the home, saved against the version opened. |
 | `client/files.tsx`            | The Files view: the home's folders, a text editor, a Markdown preview.                     |
 | `client/open-file.ts`         | The file open in the Files view, and what a save changes about it. Pure.                   |
-| `client/permission-card.tsx`  | What an agent is waiting on — a question, a permission, a plan — answered in the chat or in Watch. |
+| `client/permission-card.tsx`  | What an agent is waiting on — a question, a permission, a plan — answered in the chat or in Converse. |
 | `client/questions.ts`         | The question form's rules, ported from Paseo's own card. Pure.                             |
 | `client/keyboard.ts`          | How far the on-screen keyboard covers a view, measured in window coordinates.              |
 | `client/keys.ts`              | Enter sends, Shift+Enter is a new line — web and wide layouts only, as in Paseo. Pure.     |
@@ -99,11 +99,12 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/suggestion-fold.ts`   | Whether a folded suggestion card cuts its text, measured against an invisible twin. Pure. |
 | `client/watches.tsx`          | The Watches header button and dialog: schedule, last run and output, and on/off switches. |
 | `client/mate-send.ts`         | Sending to the first mate — Send, Bearings, Ahoy, a suggestion — one message at a time.    |
-| `client/crewmate.tsx`         | Watch: one crewmate's card beside its live transcript, in the board's place.               |
-| `client/remote-worker.tsx`    | Watch for a remote worker: its card beside its recent log, re-read every ten seconds.      |
+| `client/converse.tsx`         | Converse: a worker's conversation in a drawer beside the crew — read it, steer it, answer what it waits on. Remote workers by their log. |
+| `client/conversation-rows.ts` | Activity rows → the drawer's Conversation view (words first, tool runs folded), and the captain's sends until the transcript shows them. Pure. |
+| `client/converse-layout.ts`   | Whether the drawer docks beside the crew or covers it, and which worker a `watchKey` names. Pure. |
 | `client/host-tabs.ts`, `host-tab-row.tsx` | The board's host tabs: All, this machine, each saved host; what each shows. The rules are pure. |
 | `client/remotes.tsx`          | A selected host's compact, expandable health line and the shared remote snapshot query. |
-| `client/activity-rows.ts`     | Timeline entries → Watch rows, machinery kept: reasoning, tool detail, the latest plan. Pure. |
+| `client/activity-rows.ts`     | Timeline entries → the drawer's Activity rows, machinery kept: reasoning, tool detail, the latest plan, whose prompts are the captain's. Pure. |
 | `client/mate-controls.tsx`    | The context meter, Compact and Restart (with its confirmation), at the end of the chat's buttons. |
 | `client/context-meter.tsx`    | How full the first mate's context is: Paseo's ring, built from views; the numbers in a tooltip. |
 | `client/follow-end.ts`        | A streaming transcript that follows its end, brings a new request into view, jumps back.   |
@@ -174,6 +175,18 @@ Two gaps, and what fills them:
   one. The first turn to end is not always the answer: the one that was running may end first, and a
   provider that cannot steer cancels it. A steer whose send failed is taken back, so it is never
   relayed as said.
+
+  **One note per burst, not per message.** A conversation in the Converse drawer would otherwise wake
+  the first mate once a line. `queueBurstNote` (`server/mate.ts`) keys the note by worker and holds it
+  in `mateNotes` with `burst.holdUntil`: each further exchange with that worker is merged into it
+  (re-rendered from its `parts`, `templates/messages/steer-relay.md` around one
+  `steer-relay-exchange.md` each), and each new steer (`extendBurstNote`) or exchange pushes the hold
+  to `BURST_QUIET_MS` (two minutes) from now, never past `BURST_MAX_MS` (ten) from the first. Only a
+  note that has stopped holding is sent, and only a holding one is merged into, so a part can never
+  join a note a send already took. The 15-second note timer delivers it; other notes pass a holding
+  one. Remote steers burst the same way (`remote:<serverId>:<agentId>`, `remote-steer-message.md`
+  each). The config survives a reload, so a held note does too; a merge records `note-queued` again
+  under the same id with the whole burst's relates.
 - **Nothing wakes a first mate whose crew went quiet.** The charter has it keep one `create_heartbeat`
   while work is under way.
 
@@ -247,7 +260,10 @@ calls to the old ones exactly, and `receipts.test.ts` a prepared home byte for b
   path if the journal throws, and `observedWrite` passes the write's own result and errors on untouched.
 - **Sends** go through `sendWithoutInterrupting`/`observedSend` with a `receipt` (channel, actor). Ids the
   plugin already gave (opening, handover, notes, watches, inspections) are kept; a steer, an ask and
-  `/compact` get `firstmate-<channel>-<uuid>`, never starting `firstmate-watch-`. A remote steer's id does
+  `/compact` get `firstmate-<channel>-<uuid>`, never starting `firstmate-watch-`. **A board steer is the
+  one send that differs with the journal off**: it always carries `firstmate-crew-steer-<uuid>`
+  (`CAPTAIN_STEER_MESSAGE_ID_PREFIX`), so the Converse drawer can label the captain's words "You"
+  (`receipt-paths.test.ts` holds that on purpose). A remote steer's id does
   not travel to the host (`carried: false`). A board steer's id rides in `CaptainSteers` to the relay,
   which records `steer-read` and a `note-queued` naming it.
 - **Generations** are recorded where the plugin changes the first mate (launch, restart, adopt, release,
@@ -556,9 +572,9 @@ records its agent id costs nothing.
 target and credential handling, one attempt — and only to a worker the last poll found this first mate
 owning on that host (`server/remote-crew.ts`). Steer is `send <id> -- <words>`: after `--`, as the helper sends a prompt,
 the request path keeps the words out of its option checks and puts its own flags before them, and the CLI
-reads them as text even when they start with a dash. Interrupt `stop`, End `archive`, Watch `logs --filter text`, re-read every
+reads them as text even when they start with a dash. Interrupt `stop`, End `archive`, Converse `logs --filter text`, re-read every
 ten seconds while open. The plugin cannot see a remote turn end, so a steer is relayed to the first mate
-at once (`templates/messages/remote-steer.md`) rather than with the answer. Relaunch is drawn disabled
+without the answer (`templates/messages/remote-steer.md`), in one note per burst of steers to that worker. Relaunch is drawn disabled
 with its reason: a new worker there needs a brief only the first mate can write. Steer, Interrupt and
 End are off while the host is unreachable, and End always on a followed session. Errors are the request path's own — the remote CLI's
 message, redacted — and anything still shaped like a password or pairing link becomes "Remote command failed".
@@ -630,7 +646,7 @@ an error, else the captain's call (`hold`), else the status line, else what an i
 worker or a queued one waiting on another says. So a crewmate held for the captain reads "Captain's
 call: …" at rest and its "Done: PR …" only when open. Everything else — kind, task id, blocked-by,
 mode, since, model, the agent id, every one of those lines in full, the pull request, the report path —
-is in the open card, above its actions; the Watch view and the workspace panels open it already.
+is in the open card, above its actions; the Converse drawer's ⋯ and the workspace panels open it already.
 Pressing the card is still the only way in, and its accessibility label carries the title, status,
 project, host and that one line, since the clipped text is not read out.
 
@@ -1008,14 +1024,45 @@ A row per crewmate was tried and dropped after the captain used it: a backlog ti
 notes, and Paseo's row draws its label with no line limit, so the rows were paragraphs; one count says
 what the sidebar needs to.
 
-## Watching a crewmate
+## Conversing with a crewmate
 
-A card's **Watch** shows that crewmate in the board's place — the right-hand pane, or the Crew tab on a
-phone — so the chat with the first mate stays beside it: its card, with the board's actions, and its
-live transcript. Pressing *Crew* again, or the view's own back button, returns to the board; the
-crewmate being watched is kept in module scope like the open tab. *Open in Paseo* is in the view's
-bar, not on the card — the card's first action is the caller's (`CardOpener`), so the board says
-Watch and the workspace panels, already beside the agent, say Open.
+Every card and list row with a worker has a **💬** at rest (`MessagesSquare`), a sibling of the card's
+toggle — pressing it never folds the card, and pressing the card still only expands it. It opens the
+**Converse drawer** (`client/converse.tsx`) in the right-hand pane: **docked** beside the list or board
+when the pane fits both (`drawerDocks`: 380 pt of drawer and 300 of surface), with ✕; **over** them
+when it does not, with a back button named after the view ("‹ List"); filling the Crew tab on a phone
+("‹ Crew"). The surface underneath stays mounted (`display: none` when covered), so Esc, ✕ or back
+return to it scrolled where it was, and focus goes back to the 💬 (`converseButtonId`,
+`focusWebElement`). The open worker is `watching` in module scope; its 💬 is lit. Pressing *Crew* again
+also closes it. The deck's focus panel still opens it through `watchOpener` (now labelled Converse),
+which moves the pane to Crew — the deck's own entry is a later change, kept out of the deck's files.
+
+The drawer is a non-modal `complementary` region named "Conversation with ‹title›". Top to bottom:
+the title, state chip and tags; the glance — status line, captain's call, error, link, one line each;
+**↗** Open in Paseo, an icon now, local workers only, for what only Paseo has; **⋯** for the card's
+details and actions (`presentation: "drawer"`: always open, no title, no Steer); **Conversation |
+Activity**; the transcript; and the composer. Its Esc is bound in the capture phase, since a text box
+keeps its key presses.
+
+The **composer** is the steer: the same `firstmate.crew.steer` and `firstmate.remote-crew.steer` the card
+used, so the relay and its bursts are unchanged. Enter sends and Shift+Enter is a new line on the web in
+a wide layout (`isSendKey`), and the composer takes focus there as the drawer opens; on a phone nothing
+does. The draft is kept per worker in the chat's `drafts` store (`converse:<watchKey>`). A send shows at
+the foot as *sending*, then *sent* until the transcript has a prompt with its words (`unseenSends`
+counts, so a repeat is not taken as delivered by the first), or *Not sent* with Retry, the words going
+back to the box. While the worker runs, ■ Interrupt sits by Send and the hint says a message joins the
+turn or restarts it, as the provider allows; while it waits on a request, the hint points at it.
+
+**Conversation** (`conversationRows`) folds the Activity rows: prompts and replies in full, labelled
+**YOU** for a prompt carrying the captain's steer id, **PROMPT** for any other (the first mate's, or typed
+in Paseo — nothing in the timeline says which), **WORKER** for replies; reasoning left out; a run of tool
+calls one line that opens to the calls; the plan one line. **Activity** is what Watch was. The choice is
+kept in module scope.
+
+A remote worker's drawer reads `paseo logs --filter text` through the remote request path every ten
+seconds, as Watch did: no tool calls, its permissions answered on the host, no ↗ (whether the app knows
+that host is not something the plugin can see). Its composer is off, with the reason, while the host is
+unreachable or not saved.
 
 The transcript is `useAgentTimeline` on the crewmate, the tail of 200 projected entries, turned into
 rows by `activityRows`. Where the chat folds the first mate's machinery away, this keeps it: reasoning,
@@ -1031,7 +1078,7 @@ entry once the tail is full; a key built from either remounts the row, which clo
 detail just as its output arrives.
 
 **Text rows preserve the projected timeline's message boundaries.** `continuesText` in
-`client/transcript-rows.ts`, shared with Watch, joins only adjacent text entries with consecutive
+`client/transcript-rows.ts`, shared with Converse, joins only adjacent text entries with consecutive
 sequence ranges and matching provider, turn id and (for assistant text) message id. It checks the
 previous timeline entry, not the previous visible row, so hidden reasoning and removed plans do not
 join unrelated replies. The daemon already merges continuous streaming chunks; no separator is added
