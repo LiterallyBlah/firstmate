@@ -83,13 +83,23 @@ export async function remoteCrewLogs(
   return { text: text.trim().slice(-MAX_LOG_CHARS), readAt: new Date().toISOString() };
 }
 
-/** What the first mate is told after the captain steers a remote worker (`templates/messages/remote-steer.md`). */
-export function remoteSteerText(host: RemoteHost, worker: RemoteWorker, captain: string): Promise<string> {
+/** One steer to a remote worker, as its note carries it (`templates/messages/remote-steer-message.md`). */
+export function remoteSteerMessage(captain: string): Promise<string> {
+  return message(TEMPLATES.remoteSteerMessage, { captain });
+}
+
+/** What the first mate is told after a burst of the captain's steers to a remote worker, oldest first (`templates/messages/remote-steer.md`). */
+export function remoteSteerNote(host: RemoteHost, worker: RemoteWorker, messages: readonly string[]): Promise<string> {
   return message(TEMPLATES.remoteSteer, {
     agentId: worker.id,
     title: worker.name,
     host: host.label,
     serverId: host.serverId,
-    captain,
+    messages: messages.join("\n"),
   });
+}
+
+/** The note for one steer alone. */
+export async function remoteSteerText(host: RemoteHost, worker: RemoteWorker, captain: string): Promise<string> {
+  return remoteSteerNote(host, worker, [await remoteSteerMessage(captain)]);
 }

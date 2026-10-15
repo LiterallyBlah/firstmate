@@ -8,7 +8,26 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ## [Unreleased]
 
+### Added
+
+- **Converse with a worker in one press.** Every card and list row with a worker has a 💬 that opens its
+  conversation in a drawer beside the list or board — over it where the pane is narrow, the whole Crew tab on a
+  phone — while the first-mate chat stays on the left. It shows the worker's words first (YOU for your own
+  messages, tool calls folded to a line, Activity for everything), answers a waiting question or permission in
+  place, and replies from a box at its foot: Enter sends, Shift+Enter is a new line, Esc goes back exactly where
+  you were. Reading and replying from List or Board now takes 2 presses instead of 4, and the round trip 3
+  instead of 5. Its details and Interrupt, Relaunch and End sit behind ⋯; Open in Paseo is a small ↗ for what
+  only Paseo has. It replaces Watch; the deck's focus panel opens it too.
+
 ### Changed
+
+- **The first mate hears about a conversation once, not once a message.** What you say to a worker from the
+  board, and what it answers, is relayed in one note per worker once the conversation has been quiet for two
+  minutes (ten at most), so a back-and-forth costs the first mate one turn. Remote steers are gathered the same
+  way.
+
+- **Your steers are tagged as yours** in the worker's timeline, receipt journal on or off, so the conversation
+  can say which messages were yours.
 
 - The plugin installs about 11 MB lighter. The ship deck's art now ships only the frames the deck draws (about
   300 KB); the generation sources, prompts, provenance and review renders that made them stay in the repository's

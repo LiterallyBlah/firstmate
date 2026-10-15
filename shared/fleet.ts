@@ -195,6 +195,17 @@ export function isWatchMessageId(id: string | null | undefined): boolean {
   return typeof id === "string" && id.startsWith(WATCH_MESSAGE_ID_PREFIX);
 }
 
+/**
+ * How the captain's own steers are told from every other prompt in a crewmate's timeline: each is sent
+ * with a `messageId` starting with this, journal on or off, so the Converse drawer can label it "You".
+ * Never the watch prefix, so a steer is never folded as a watch message.
+ */
+export const CAPTAIN_STEER_MESSAGE_ID_PREFIX = "firstmate-crew-steer-";
+
+export function isCaptainSteerId(id: string | null | undefined): boolean {
+  return typeof id === "string" && id.startsWith(CAPTAIN_STEER_MESSAGE_ID_PREFIX);
+}
+
 /** The home's folder of watch scripts, relative to the home. */
 export const WATCHES_DIR = "watches";
 
@@ -322,7 +333,22 @@ export const FirstmateConfigSchema = z.object({
   migration: MateMigrationSchema.nullable().default(null),
   previousMateIds: z.array(z.string()).default([]),
   /** Crew notes awaiting delivery; removed only after a successful send. */
-  mateNotes: z.array(z.object({ id: z.string(), text: z.string() })).default([]),
+  mateNotes: z.array(z.object({
+    id: z.string(),
+    text: z.string(),
+    /**
+     * A note that gathers a burst of the captain's exchanges with one worker (`queueBurstNote`):
+     * held until `holdUntil`, and until then each new exchange is merged into it instead of
+     * queued after it. `parts` are what `text` was rendered from; `relates` the receipt ids.
+     */
+    burst: z.object({
+      key: z.string(),
+      parts: z.array(z.string()),
+      relates: z.array(z.string()).default([]),
+      startedAt: z.string(),
+      holdUntil: z.string(),
+    }).optional(),
+  })).default([]),
 });
 export type FirstmateConfig = z.infer<typeof FirstmateConfigSchema>;
 

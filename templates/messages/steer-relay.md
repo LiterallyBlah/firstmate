@@ -1,11 +1,6 @@
-<!-- Sent to the first mate when a turn the captain started from the board (Steer) ends. {{title}} is the crewmate's title, or its id; {{captain}} is what the captain said; {{response}} is the crewmate's answer, from steer-relay-clipped.md when it is long and steer-relay-no-answer.md when there is none. -->
+<!-- Sent to the first mate after the captain steers a crewmate from the board (Steer, or the Converse drawer). One note covers a whole burst: every exchange with that crewmate until the conversation goes quiet. {{agentId}} is the crewmate's id and {{title}} its title, or its id; {{exchanges}} is one steer-relay-exchange.md per exchange, oldest first. -->
 
 <firstmate-board>
 The captain spoke to crewmate {{agentId}} ({{title}}) directly from the FirstMate board. Their words are authoritative: reconcile the brief and the backlog with them.
-<captain-message>
-{{captain}}
-</captain-message>
-<agent-response>
-{{response}}
-</agent-response>
+{{exchanges}}
 </firstmate-board>

@@ -305,14 +305,92 @@ export async function queueMateNote(
   await flushMateNotes(paseo).catch((error: unknown) => console.error("[firstmate] crew note queued for retry:", error));
 }
 
-export function flushMateNotes(paseo: PaseoApi): Promise<void> {
+/** A burst note waits this long after its latest exchange or steer before it goes to the first mate. */
+export const BURST_QUIET_MS = 2 * 60 * 1000;
+/** And never longer than this after its first, so a long conversation is still reported as it goes. */
+export const BURST_MAX_MS = 10 * 60 * 1000;
+
+type MateNote = FirstmateConfig["mateNotes"][number];
+
+/** Whether a note is still gathering its burst: not yet due, and so never in a send's hands. */
+function holding(note: MateNote, now: number): boolean {
+  return note.burst !== undefined && Date.parse(note.burst.holdUntil) > now;
+}
+
+function holdUntil(startedAt: string, now: number): string {
+  return new Date(Math.min(now + BURST_QUIET_MS, Date.parse(startedAt) + BURST_MAX_MS)).toISOString();
+}
+
+/**
+ * Coalesces the captain's conversation with one worker into one note, so a burst of messages costs the
+ * first mate one turn rather than one per message. `key` names the worker; `part` is this exchange, and
+ * `render` turns every part of the burst, oldest first, into the note's text. A note still holding for
+ * `key` takes the part and holds on; otherwise a new one is queued, held for `BURST_QUIET_MS`.
+ *
+ * A note is merged into only while it holds, and `flushMateNotes` sends only notes that have stopped
+ * holding — so a part can never be merged into a note that a send has already taken.
+ */
+export async function queueBurstNote(
+  paseo: PaseoApi,
+  burst: { key: string; part: string; render: (parts: readonly string[]) => Promise<string> },
+  receipt: { source: "steer-relay" | "remote-steer"; relates: readonly string[] },
+  now: () => number = Date.now,
+): Promise<void> {
+  const queued = await serialized("firstmate.mate.notes", async () => {
+    const config = await readFirstmateConfig();
+    const at = now();
+    const open = config.mateNotes.find((note) => note.burst?.key === burst.key && holding(note, at));
+    if (open?.burst !== undefined) {
+      const parts = [...open.burst.parts, burst.part];
+      const relates = [...open.burst.relates, ...receipt.relates];
+      const merged: MateNote = {
+        id: open.id,
+        text: await burst.render(parts),
+        burst: { ...open.burst, parts, relates, holdUntil: holdUntil(open.burst.startedAt, at) },
+      };
+      await updateFirstmateConfig({ mateNotes: config.mateNotes.map((note) => (note.id === open.id ? merged : note)) });
+      return { id: merged.id, text: merged.text, relates };
+    }
+    const startedAt = new Date(at).toISOString();
+    const note: MateNote = {
+      id: `firstmate-note-${randomUUID()}`,
+      text: await burst.render([burst.part]),
+      burst: { key: burst.key, parts: [burst.part], relates: [...receipt.relates], startedAt, holdUntil: holdUntil(startedAt, at) },
+    };
+    await updateFirstmateConfig({ mateNotes: [...config.mateNotes, note] });
+    return { id: note.id, text: note.text, relates: [...receipt.relates] };
+  });
+  // A merge records the note again under the same id, with the whole burst's text and relates: the latest wins.
+  recordNoteQueued(queued.id, receipt.source, queued.text, queued.relates);
+  await flushMateNotes(paseo).catch((error: unknown) => console.error("[firstmate] crew note queued for retry:", error));
+}
+
+/**
+ * The captain has just steered `key` again: a burst note still holding for it waits the quiet period
+ * from now, so the answer to this steer joins it rather than following it in a note of its own.
+ */
+export async function extendBurstNote(key: string, now: () => number = Date.now): Promise<void> {
+  await serialized("firstmate.mate.notes", async () => {
+    const config = await readFirstmateConfig();
+    const at = now();
+    const open = config.mateNotes.find((note) => note.burst?.key === key && holding(note, at));
+    if (open?.burst === undefined) return;
+    const burst = { ...open.burst, holdUntil: holdUntil(open.burst.startedAt, at) };
+    if (burst.holdUntil === open.burst.holdUntil) return;
+    await updateFirstmateConfig({ mateNotes: config.mateNotes.map((note) => (note.id === open.id ? { ...open, burst } : note)) });
+  });
+}
+
+export function flushMateNotes(paseo: PaseoApi, now: () => number = Date.now): Promise<void> {
   return oneAtATime(async () => {
     const config = await readFirstmateConfig();
-    if (config.migration !== null || config.mateLaunch !== null || config.mateNotes.length === 0) return;
+    if (config.migration !== null || config.mateLaunch !== null) return;
+    // Notes still gathering a burst wait; the 15-second note timer comes back for them.
+    const note = config.mateNotes.find((entry) => !holding(entry, now()));
+    if (note === undefined) return;
     const { agent } = await resolveMate(paseo, config);
     if (agent === null || isMidTurn(agent)) return;
     // One note per idle turn: a second send may replace the first on providers without steer.
-    const note = config.mateNotes[0]!;
     await sendWithoutInterrupting(paseo, agent.id, note.text, { messageId: note.id }, { channel: "mate-note", actor: "plugin", mateRecipient: true });
     await serialized("firstmate.mate.notes", async () => {
       const latest = await readFirstmateConfig();

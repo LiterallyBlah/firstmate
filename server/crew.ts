@@ -8,16 +8,20 @@
  *
  * Steering goes straight to the crewmate — the captain's words are
  * authoritative, as if typed into its tab — and the first mate hears about it
- * when that turn ends, through `CaptainSteers` and the `turn_ended` hook.
+ * when that turn ends, through `CaptainSteers` and the `turn_ended` hook:
+ * one note for a whole burst of steers to that crewmate (`queueBurstNote`),
+ * so a conversation in the Converse drawer does not cost a first-mate turn a line.
  */
+import { randomUUID } from "node:crypto";
+
 import type { PluginLifecycleRegistration } from "@getpaseo/plugin/server";
 
-import { CREW_LABELS } from "../shared/fleet";
+import { CAPTAIN_STEER_MESSAGE_ID_PREFIX, CREW_LABELS } from "../shared/fleet";
 import { stopAgent } from "./cli";
 import { closingText, fetchLiveAgent } from "./fleet";
 import type { PaseoAgent, PaseoApi } from "./host-types";
-import { askMate, queueMateNote } from "./mate";
-import { receiptJournal, receiptMessageId } from "./receipts";
+import { askMate, extendBurstNote, queueBurstNote } from "./mate";
+import { receiptJournal } from "./receipts";
 import { sendWithoutInterrupting } from "./send";
 import { TEMPLATES, message } from "./templates";
 
@@ -53,7 +57,7 @@ export class CaptainSteers {
 
   constructor(private readonly now: () => number = Date.now) {}
 
-  /** `messageId` is the steer's receipt id, when the receipt journal is on; it changes nothing here. */
+  /** `messageId` is the steer's own id (`CAPTAIN_STEER_MESSAGE_ID_PREFIX`); it changes nothing here. */
   record(agentId: string, text: string, messageId?: string): void {
     this.pending.set(agentId, [...this.fresh(agentId), { text, at: this.now(), messageId }]);
   }
@@ -89,18 +93,24 @@ export class CaptainSteers {
 /**
  * Recorded before the send, so a turn that ends the instant the message lands
  * still finds it; taken back if the send fails.
+ *
+ * Every steer carries an id of its own into the crewmate's timeline, journal on
+ * or off, so the Converse drawer can say which prompts were the captain's. That
+ * is the one thing a send does differently with the journal off since the
+ * journal existed (`receipt-paths.test.ts` holds it). A burst note still
+ * gathering for this crewmate waits for the answer to this steer too.
  */
 export async function steerCrew(paseo: PaseoApi, steers: CaptainSteers, agentId: string, text: string): Promise<void> {
   await requireCrew(paseo, agentId);
-  // With the receipt journal on, the steer carries an id of its own into the crewmate's timeline.
-  const messageId = receiptMessageId("crew-steer");
+  const messageId = `${CAPTAIN_STEER_MESSAGE_ID_PREFIX}${randomUUID()}`;
   steers.record(agentId, text, messageId);
   try {
-    await sendWithoutInterrupting(paseo, agentId, text, messageId === undefined ? {} : { messageId }, { channel: "crew-steer", actor: "captain" });
+    await sendWithoutInterrupting(paseo, agentId, text, { messageId }, { channel: "crew-steer", actor: "captain" });
   } catch (error) {
     steers.forget(agentId, text);
     throw error;
   }
+  await extendBurstNote(agentId).catch((error: unknown) => console.error("[firstmate] could not hold the steer relay for its answer:", error));
 }
 
 export async function interruptCrew(paseo: PaseoApi, agentId: string): Promise<void> {
@@ -128,31 +138,37 @@ export async function relaunchCrew(paseo: PaseoApi, agentId: string, note: strin
   return askMate(paseo, { text: await relaunchText(agent, note) });
 }
 
-/** What the first mate is told when a turn the captain started from the board ends (`templates/messages/steer-relay.md`). */
-export async function relayText(
-  agent: { id: string; title: string | null },
-  captain: readonly string[],
-  answer: string | null,
-): Promise<string> {
+/** One exchange: what the captain said and what the turn that read it answered (`templates/messages/steer-relay-exchange.md`). */
+export async function relayExchange(captain: readonly string[], answer: string | null): Promise<string> {
   const response =
     answer === null
       ? await message(TEMPLATES.steerRelayNoAnswer)
       : answer.length <= MAX_RELAYED_CHARS
         ? answer
         : await message(TEMPLATES.steerRelayClipped, { answer: answer.slice(0, MAX_RELAYED_CHARS) });
-  return message(TEMPLATES.steerRelay, {
-    agentId: agent.id,
-    title: agent.title ?? agent.id,
-    captain: captain.join("\n\n"),
-    response,
-  });
+  return message(TEMPLATES.steerRelayExchange, { captain: captain.join("\n\n"), response });
+}
+
+/** The note for a burst of exchanges with one crewmate, oldest first (`templates/messages/steer-relay.md`). */
+export function relayNote(agent: { id: string; title: string | null }, exchanges: readonly string[]): Promise<string> {
+  return message(TEMPLATES.steerRelay, { agentId: agent.id, title: agent.title ?? agent.id, exchanges: exchanges.join("\n") });
+}
+
+/** What the first mate is told about one turn the captain started from the board, alone in its note. */
+export async function relayText(
+  agent: { id: string; title: string | null },
+  captain: readonly string[],
+  answer: string | null,
+): Promise<string> {
+  return relayNote(agent, [await relayExchange(captain, answer)]);
 }
 
 /**
  * Paseo tells the first mate when a crewmate *it* prompted finishes. A turn
  * the captain started from the board was prompted by nobody Paseo knows to
  * notify, so this hook does it: when that turn ends, the first mate gets what
- * the captain said and what the crewmate answered.
+ * the captain said and what the crewmate answered — merged with the burst's
+ * other exchanges into one note, sent once the conversation goes quiet.
  */
 export function registerSteerRelay(
   server: PluginLifecycleRegistration,
@@ -174,7 +190,12 @@ export function registerSteerRelay(
       });
     }
     try {
-      await queueMateNote(paseo, await relayText(event.agent, captain, closingText(event.timeline)), { source: "steer-relay", relates: ids });
+      const agent = { id: event.agent.id, title: event.agent.title };
+      await queueBurstNote(
+        paseo,
+        { key: agent.id, part: await relayExchange(captain, closingText(event.timeline)), render: (parts) => relayNote(agent, parts) },
+        { source: "steer-relay", relates: ids },
+      );
     } catch (error) {
       read.forEach((entry) => steers.record(event.agent.id, entry.text, entry.messageId));
       console.error(`[firstmate] could not tell the first mate about the captain's words to ${event.agent.id}:`, error);

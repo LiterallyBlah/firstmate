@@ -1,5 +1,6 @@
 /**
- * A crewmate's timeline, turned into the rows the Watch view draws.
+ * A crewmate's timeline, turned into the rows the Converse drawer's Activity view draws
+ * (and, folded by `conversation-rows.ts`, its Conversation view).
  *
  * The chat folds the first mate's machinery away, because the captain is
  * talking to it. Watching a crewmate is the opposite: the machinery is the
@@ -7,6 +8,7 @@
  * what came back, and the plan — the latest one only, since each update
  * restates the whole list.
  */
+import { isCaptainSteerId } from "../shared/fleet";
 import { clip, continuesText, injectedSummary, pushCompaction, rowKey, toolDisplayName, type TimelineEntry } from "./transcript-rows";
 
 type TimelineItem = TimelineEntry["item"];
@@ -17,7 +19,8 @@ type TodoItem = Extract<TimelineItem, { type: "todo" }>["items"][number];
 export type PlanStatus = "pending" | "in_progress" | "completed";
 
 export type ActivityRow =
-  | { key: string; kind: "prompt"; text: string }
+  /** `captain`: the captain's own steer, by its id (`isCaptainSteerId`); every other prompt is the first mate's or typed in Paseo. */
+  | { key: string; kind: "prompt"; text: string; captain: boolean }
   | { key: string; kind: "reply"; text: string }
   | { key: string; kind: "reasoning"; text: string }
   | {
@@ -216,7 +219,11 @@ export function activityRows(entries: readonly TimelineEntry[]): ActivityRow[] {
     switch (item.type) {
       case "user_message": {
         const summary = injectedSummary(item.text, item.clientMessageId);
-        rows.push(summary === null ? { key, kind: "prompt", text: item.text } : { key, kind: "event", text: summary });
+        rows.push(
+          summary === null
+            ? { key, kind: "prompt", text: item.text, captain: isCaptainSteerId(item.clientMessageId) }
+            : { key, kind: "event", text: summary },
+        );
         break;
       }
       case "assistant_message":
