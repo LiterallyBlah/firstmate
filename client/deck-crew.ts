@@ -55,7 +55,7 @@ export const HATCH_MS = 700;
 export const FADE_MS = 600;
 /** The rows of the front poses (`deck.json`), which the plank's sequence crops at the water. */
 export const FRONT_ROWS = 32;
-/** The shark's mouth from its water anchor, facing right (`art/ship-deck/shark/manifest.json`'s `bite`), until the extras say otherwise. */
+/** The shark's mouth from its water anchor, facing right (`docs/ship-deck-art/shark/manifest.json`'s `bite`), until the extras say otherwise. */
 export const SHARK_MOUTH: readonly [number, number] = [13, -22];
 
 type Phase = "arriving" | "walking" | "settled" | "leaving" | "sinking";

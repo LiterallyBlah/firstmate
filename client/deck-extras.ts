@@ -1,5 +1,5 @@
 /**
- * The deck's extras (`art/ship-deck/assets-2/README.md`): the tall mast and its sail, the plank's board and the
+ * The deck's extras (`docs/ship-deck-art/assets-2/README.md`): the tall mast and its sail, the plank's board and the
  * crew's six extra looks — bosun, old salt, navigator, carpenter, rigger, deckhand — served by
  * `firstmate.deck.extras`, which also sends the shark (`client/deck-plank.ts`) and the sky's clouds
  * (`client/deck-clouds.ts`). Pure: which looks there are, who wears which, which of the sail's two states

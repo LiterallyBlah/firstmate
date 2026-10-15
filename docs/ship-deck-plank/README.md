@@ -36,7 +36,7 @@ From the poll that takes the card off the deck:
 
 The plank, the sailor walking it and the ship ride the bob; from the jump on, the sailor, the shark and the
 splash are in the `overboard` layer over the near sea, outside the bob, anchored in the water as the shark's
-art asks (`art/ship-deck/shark/README.md`).
+art asks (`docs/ship-deck-art/shark/README.md`).
 
 ## Several at once
 
@@ -106,7 +106,7 @@ unchanged; in a wider, shorter pane a row or two of the shark's ripple is cut.
 - **Poses**: there is no jump, fall or swim pose in the atlas. The sailor jumps in a walking pose, and swims
   as its front view cut at the water. A leap with arms up, a flailing fall, and a treading-water head would
   carry the gag.
-- **The shark** has four keys and no inbetweens (`art/ship-deck/shark/README.md`): the fin slides rather than
+- **The shark** has four keys and no inbetweens (`docs/ship-deck-art/shark/README.md`): the fin slides rather than
   swims, and there is no jaw-closing frame. A fin wake, a lunge inbetween and a closing bite would smooth it.
 - **The splash** is the same two keys at the landing and the bite; a bigger bite burst and some ripples
   that spread after would help.

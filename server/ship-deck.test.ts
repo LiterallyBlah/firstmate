@@ -2,14 +2,14 @@
  * What the ship deck's RPCs serve: Pixi's vendored build, the atlas, the generated environment and the
  * extras — with no switch: the Deck is a standard part of the screen, and the fleet load carries nothing for it.
  */
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { FleetSchema, type Fleet } from "../shared/fleet";
-import { DeckArtManifestSchema, DeckExtrasManifestSchema, environmentImagePaths, extrasImagePaths } from "../shared/ship-deck";
+import { DeckArtManifestSchema, DeckEnvironmentManifestSchema, DeckExtrasManifestSchema, environmentImagePaths, extrasImagePaths } from "../shared/ship-deck";
 import {
   DECK_ATLAS,
   DECK_ENVIRONMENT_DIR,
@@ -240,8 +240,8 @@ describe("the sail and the crew's looks the daemon serves", () => {
       expect(overlay.size).toEqual(environment.sky.size);
       expect(size(overlay.texture)).toEqual(overlay.size);
     }
-    // Only the runtime frames and the hand-off's manifest ship under art/: the generation sources stay in docs/.
-    expect(readdirSync(join(root, DECK_ENVIRONMENT_DIR, "storm"), { recursive: true }).filter((file) => !String(file).endsWith(".png") && String(file).includes("."))).toEqual(["manifest.json"]);
+    // Only the runtime frames ship under art/: the hand-off's manifest stays with the generation sources in docs/.
+    expect(readdirSync(join(root, DECK_ENVIRONMENT_DIR, "storm"), { recursive: true }).filter((file) => !String(file).endsWith(".png") && String(file).includes("."))).toEqual([]);
   });
 
   it("stands the tall mast on the mast piece it replaces, at its size, its foot on that piece's last row", () => {
@@ -270,5 +270,42 @@ describe("the sail and the crew's looks the daemon serves", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("the art the package ships", () => {
+  const root = fileURLToPath(new URL("..", import.meta.url));
+
+  /** Every file under `directory`, as a path from `root` with forward slashes. */
+  function filesUnder(directory: string): string[] {
+    return readdirSync(join(root, directory), { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => join(entry.parentPath, entry.name).slice(root.length).replaceAll("\\", "/").replace(/^\//, ""))
+      .sort();
+  }
+
+  it("is only what the deck serves: every file under art/ is named by a manifest the daemon reads, and every name has a file", () => {
+    const environment = DeckEnvironmentManifestSchema.parse(JSON.parse(readFileSync(join(root, DECK_ENVIRONMENT_MANIFEST), "utf8")));
+    const extras = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(join(root, DECK_EXTRAS_MANIFEST), "utf8")));
+    const served = new Set([
+      DECK_ATLAS,
+      DECK_MANIFEST,
+      DECK_ENVIRONMENT_MANIFEST,
+      DECK_EXTRAS_MANIFEST,
+      ...[...environmentImagePaths(environment), ...extrasImagePaths(extras)].map((path) => `${DECK_ENVIRONMENT_DIR}/${path}`),
+    ]);
+    // Generation sources, prompts, provenance and review renders belong in docs/ship-deck-art/, which is not shipped.
+    expect(filesUnder("art")).toEqual([...served].sort());
+  });
+
+  it("is small: the frames the deck draws with, well under half a megabyte", () => {
+    const bytes = filesUnder("art").reduce((sum, file) => sum + statSync(join(root, file)).size, 0);
+    expect(bytes).toBeLessThan(400_000);
+  });
+
+  it("ships through `files`, while the art's sources and reviews under docs/ do not", () => {
+    const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { files: string[] };
+    expect(manifest.files).toContain("art/");
+    expect(manifest.files.some((entry) => entry.startsWith("docs"))).toBe(false);
   });
 });

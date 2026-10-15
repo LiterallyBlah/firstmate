@@ -433,7 +433,7 @@ crosses now and then. If the board's feed is lost, the
 crew greys where it last stood rather than turning idle. The deck is depth-layered: a sailor behind the
 mast or a bollard is hidden by it. It draws at most 30 frames a second, nothing while the window is
 hidden, and holds still if the system asks for reduced motion. It reads the same cards as the
-board and polls nothing of its own. The art is generated and cleaned up by script (`art/ship-deck/README.md`).
+board and polls nothing of its own. The art is generated and cleaned up by script (`docs/ship-deck-art/README.md`).
 
 **Click a sailor to work from the deck.** The camera zooms in on it, the rest of the deck dims, and a small
 panel beside it shows that crewmate's card: its state, project and host, its status line and anything waiting
