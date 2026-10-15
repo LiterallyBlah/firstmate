@@ -1,9 +1,4 @@
-/**
- * The zod contracts of the manifests the deck's art was once served in: what the records in
- * `docs/ship-deck-art/legacy/` are read with (`client/ship-pack.test.ts`), and the shape of what is left of them,
- * the extras' shark and splash, that `legacyViews` (`client/deck-legacy.ts`) still produces until step 7. Types only,
- * for the engine: nothing here is in the client bundle.
- */
+/** Historical manifest schemas for the art records in docs/ship-deck-art/legacy/. Test-only, excluded from the package. */
 import { z } from "zod";
 
 /** A rectangle in the atlas: x, y, width, height, in atlas pixels. */

@@ -32,7 +32,6 @@
  */
 import type { DeckEngineSource, DeckSetting } from "../shared/deck-rpc";
 import type { SettingManifest } from "../shared/deck-setting";
-import { extrasImagePaths, legacyViews, type DeckExtrasImages, type DeckExtrasManifest } from "./deck-legacy";
 import { compileAmbience } from "./deck-ambience";
 import { compileAtmosphere } from "./deck-atmosphere";
 import { cloudSlotMasks, type DrifterMasks } from "./deck-clouds";
@@ -382,20 +381,6 @@ export function decodePack(setting: DeckSetting, decode: (png: string) => Promis
 }
 
 /**
- * The extras — the plank's shark and splash — with every image that decoded; one that did not is left out, and
- * `onMissing` hears which. Never refused: the deck draws whatever arrived.
- */
-export function extrasImages(manifest: DeckExtrasManifest, image: (path: string) => unknown, onMissing: (path: string, error: unknown) => void = function () {}): DeckExtrasImages {
-  const images = new Map<string, unknown>();
-  for (const path of extrasImagePaths(manifest)) {
-    const decoded = image(path);
-    if (decoded === undefined) onMissing(path, new Error(`${path} did not decode`));
-    else images.set(path, decoded);
-  }
-  return { manifest, images };
-}
-
-/**
  * Every drifter's image that decoded, and each of its variants', cut into its three slot masks by its palette, by
  * image id (`client/deck-clouds.ts`). One that will not cut is left out like a missing image, and `onFailed` hears it.
  */
@@ -433,19 +418,15 @@ export function drifterMasks(
 
 /**
  * The art the engine draws from a decoded pack: its stage, cast and ambience compiled, each drifter cut into its masks,
- * and the parts not yet drawn from the pack itself read as the manifests they were drawn from before packs
- * (`legacyViews`). The backdrop's image it cannot draw without; an ambience element, a look and an extra are each
- * left out on their own. `warn` hears what is missing.
+ * and its effect definitions. The backdrop is required; an ambience element, look or effect frame is
+ * left out on its own. `warn` hears what is missing.
  */
 export function packArt(
   pack: DecodedPack,
   warn: (message: string, error: unknown) => void = function () {},
   cutCloud: CutCloud = cutCloudMasks,
 ): Promise<DeckArtImage> {
-  const views = legacyViews(pack.manifest);
-  const ids = new Map([...views.paths].map(([id, path]) => [path, id]));
-  const image = (path: string) => pack.images.get(ids.get(path) ?? "");
-  const pathOf = (id: string) => views.paths.get(id) ?? id;
+  const pathOf = (id: string) => pack.manifest.images[id]?.path ?? id;
   const backdrop = pack.manifest.stage.backdrop.sprite.image;
   const atlas = pack.images.get(backdrop);
   if (atlas === undefined) return Promise.reject(pack.failed.get(backdrop) ?? new Error(`the setting's ${backdrop} did not load`));
@@ -455,7 +436,8 @@ export function packArt(
   if (lacking !== undefined) return Promise.reject(pack.failed.get(lacking) ?? new Error(`the setting's ${lacking} did not load`));
   for (const id of parts.missing) warn(`[firstmate] the deck's ${pathOf(id)} did not load; drawing without it:`, pack.failed.get(id));
   const cast = compileCast(pack.manifest);
-  const extras = extrasImages(views.extras, image, (path, error) => warn(`[firstmate] the deck's ${path} did not load; drawing without it:`, pack.failed.get(ids.get(path) ?? "") ?? error));
+  const effectImages = new Set(Object.values(pack.manifest.effects).flatMap((effect) => Object.values(effect.frames).map((sprite) => sprite.image)));
+  for (const id of effectImages) if (!pack.images.has(id)) warn(`[firstmate] the deck's ${pathOf(id)} did not load; drawing without it:`, pack.failed.get(id));
   const uncut = new Map<string, unknown>();
   return drifterMasks(pack, cutCloud, (id, error) => uncut.set(id, error)).then(function (masks) {
     const ambience = compileAmbience(
@@ -470,7 +452,7 @@ export function packArt(
       const failed = pack.failed.get(look.image);
       if (failed !== undefined) warn(`[firstmate] the deck's ${pathOf(look.image)} did not load; drawing without it:`, failed);
     }
-    return { stage: compileStage(pack.manifest), cast, parts, ambience, atmosphere: compileAtmosphere(pack.manifest), images: pack.images, masks, image: atlas, extras };
+    return { stage: compileStage(pack.manifest), cast, parts, ambience, atmosphere: compileAtmosphere(pack.manifest), images: pack.images, masks, image: atlas, effects: pack.manifest.effects };
   });
 }
 

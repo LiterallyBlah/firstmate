@@ -259,3 +259,29 @@ Gate: **81/81 pixel-identical** to main, with no flakes or page errors. Client b
 no `class`. Full suite: 70 files, 956 tests passed, three skipped (`npm test -- --maxWorkers=2`; default concurrency
 hit a pre-existing remote-service polling race). Typecheck, the pack linter and `git diff --check` pass; this repo
 has no separate lint script. Results are recorded in `gate-results.json` and `compile-results.json`.
+
+## Step 7 ? portals, choreography and effects from the pack
+
+- `client/deck-choreography.ts` compiles a finite timeline per exit/drift: segments, named end events,
+  distance-derived walks, line/arc/ballistic paths, cast cycles, jiggle, cropped reveal, bob and layer transitions.
+  `start` is the implicit event at zero. No expressions or callbacks are accepted. Event names are unique;
+  bob references an earlier event; zero-length walks and overlapping keys in a track are rejected.
+- `client/deck-crew.ts` routes by `portals.byDeparture`, with independent queues released on the selected
+  choreography's event. Entry, sink and reduced-motion fade timings come from the pack. A rise/sink reversing
+  mid-way preserves its crop and duration. Departures keep separate keys and clocks when a card returns.
+- Effects are generic named definitions and tracks: whole images or sprite rectangles, named anchors, optional
+  X-point alignment, side mirroring, approach distance and explicit positive `order` above actors in the effects
+  slot. The ship's only data additions are order 1 for the shark and 2 for the splash. A failed frame is omitted
+  alone; later keys still draw. Actor layers are `floor`, `{ front: pieceId }` and `effects`; piece depths remain
+  available even when an optional piece image is missing.
+- Removed runtime `deck-plank.ts`, `PLANK_DEPARTURES`, fixed portal/timeline constants, shark mouth fallback,
+  and the legacy extras adapter. Historical manifest views and schemas moved to `test/`, outside the package.
+  `deck-choreography.test.ts` retains the ship's sequence/queue/crop/art checks. A SHA-256 fixture captured from
+  main's old sampler checks **every millisecond from 0 through 2631** for both sides and all three drifts.
+  Separate engine tests use arbitrary names, alternate durations, two independent exits and a sink-only pack.
+
+Gate: **81/81 pixel-identical** to main, with no flakes or page errors. Full suite: 71 files, 966 tests passed,
+three skipped (`npm test -- --maxWorkers=2`). Typecheck, pack linter and `git diff --check` pass; no separate lint
+script exists. Client bundle ?2,146 bytes; Hermes parses it; no `class`. The npm pack dry-run excludes the
+retired runtime and all test-only legacy files. Results are in `gate-results.json` and `compile-results.json`.
+No new art was needed.

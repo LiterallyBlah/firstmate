@@ -290,6 +290,8 @@ const Choreography = z.object({
   effects: z.array(
     z.object({
       effect: Id,
+      /** Depth above actors in the effects slot. */
+      order: Positive,
       /** `side`: mirrored when it comes from the right. */
       mirror: z.literal("side").optional(),
       keys: z.array(
@@ -612,12 +614,37 @@ export function settingProblems(manifest: SettingManifest): string[] {
   for (const [id, exit] of Object.entries(manifest.portals.exits)) {
     if (exit.kind !== "choreography") continue;
     const marks = new Set(Object.keys(exit.marks));
-    const events = new Set(exit.actor.flatMap((segment) => (segment.event === undefined ? [] : [segment.event])));
+    const names = ["start", ...exit.actor.flatMap((segment) => segment.event === undefined ? [] : [segment.event])];
+    unique(`events in exit ${id}`, names);
+    const events = new Set(names);
+    const prior = new Set(["start"]);
     for (const mark of [exit.queue.at, ...exit.actor.flatMap((segment) => (segment.to === undefined ? [] : [segment.to.mark]))]) if (!marks.has(mark)) missing("mark", mark, `exit ${id}`);
     if (!events.has(exit.queue.release)) missing("event", exit.queue.release, `exit ${id}'s queue`);
     for (const segment of exit.actor) {
-      if (segment.bob !== undefined && !events.has(segment.bob.since)) missing("event", segment.bob.since, `exit ${id}`);
+      if (segment.bob !== undefined && !prior.has(segment.bob.since)) missing("earlier event", segment.bob.since, `exit ${id}`);
+      if (segment.event !== undefined) prior.add(segment.event);
       if (typeof segment.layer === "object" && !manifest.stage.pieces.some((piece) => piece.id === (segment.layer as { front: string }).front)) missing("piece", segment.layer.front, `exit ${id}`);
+    }
+    // Resolve the finite timelines for validation: zero-length walks and overlapping effect keys are ambiguous.
+    for (const drift of new Set(exit.alternate.drift)) {
+      const times = new Map<string, number>([["start", 0]]);
+      let from: readonly [number, number] | undefined = exit.marks[exit.queue.at];
+      let time = 0;
+      for (const segment of exit.actor) {
+        const mark = segment.to === undefined ? from : exit.marks[segment.to.mark];
+        if (mark === undefined || from === undefined) continue; // missing references already reported above
+        const to = [mark[0] + (segment.to?.drift === true ? drift : 0), mark[1]] as const;
+        const ms = segment.ms === "walk" ? Math.round(Math.hypot(to[0] - from[0], to[1] - from[1]) / manifest.floor.walkSpeed * 1000) : segment.ms;
+        if (ms <= 0) problems.push(`exit ${id} has a zero-length walk for drift ${drift}`);
+        time += ms;
+        if (segment.event !== undefined) times.set(segment.event, time);
+        from = to;
+      }
+      for (const effect of exit.effects) {
+        const keys = effect.keys.map((key) => ({ start: (times.get(key.at.event) ?? 0) + key.at.plusMs, ms: key.ms })).sort((a, b) => a.start - b.start);
+        for (let index = 1; index < keys.length; index++) if (keys[index]!.start < keys[index - 1]!.start + keys[index - 1]!.ms)
+          problems.push(`exit ${id} has overlapping keys for effect ${effect.effect}`);
+      }
     }
     for (const effect of exit.effects) {
       const def = manifest.effects[effect.effect];
@@ -639,6 +666,16 @@ export function settingProblems(manifest: SettingManifest): string[] {
   unique("pieces", pieces);
   for (const piece of manifest.stage.pieces) {
     if (piece.baseline !== null && typeof piece.baseline === "object" && !pieces.includes(piece.baseline.over)) missing("piece", piece.baseline.over, `piece ${piece.id}`);
+  }
+  for (const piece of manifest.stage.pieces) {
+    const seen = new Set<string>();
+    let current: typeof piece | undefined = piece;
+    while (current !== undefined && current.baseline !== null && typeof current.baseline === "object") {
+      if (seen.has(current.id)) { problems.push(`cyclic piece depth at ${current.id}`); break; }
+      seen.add(current.id);
+      const over: string = current.baseline.over;
+      current = manifest.stage.pieces.find((other) => other.id === over);
+    }
   }
   for (const part of manifest.stage.parts) if (part.replacesPiece !== undefined && !pieces.includes(part.replacesPiece.piece)) missing("piece", part.replacesPiece.piece, `part ${part.id}`);
   for (const light of manifest.stage.lights) if (manifest.stage.lightStyles[light.style] === undefined) missing("light style", light.style, `light ${light.id}`);

@@ -3,20 +3,18 @@
  * against the hull's own pixels, the queue at its foot, a card that comes back, reduced motion's fade, and
  * the shark and splash art as served.
  */
+import { createHash } from "node:crypto";
+import golden from "../test/ship-choreography-golden.json";
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
 import {
-  FADE_MS,
-  SHARK_MOUTH,
   applyCrew,
   createCrew,
   crewFigures,
   fading,
-  plankEffects,
-  plankFree,
   stepCrew,
   stepDepartures,
   type Crew,
@@ -26,6 +24,7 @@ import { findPath, walkable } from "./deck-geometry";
 import { sailorAt, showsBadge } from "./deck-hover";
 import { fitDeck } from "./deck-pixi";
 import {
+  FADE_MS, SHARK_MOUTH, plankEffects, plankFree, legacyLayer,
   CHOMP_AT,
   exitFor,
   FIN_AT,
@@ -35,7 +34,7 @@ import {
   plankExit,
   type DeckDeparture,
   type PlankMoment,
-} from "./deck-plank";
+} from "../test/ship-choreography";
 import type { DeckSailor, DeckState } from "./deck-scene";
 import { shipCast, shipFile, shipManifest, shipPlankMarks, shipStage, shipViews, shipWater } from "../test/ship-pack";
 
@@ -263,7 +262,7 @@ describe("one departure's sequence", () => {
 });
 
 describe("the crew leaving by the plank", () => {
-  const sea = (figures: Figure[]) => figures.filter((figure) => figure.layer === "sea");
+  const sea = (figures: Figure[]) => figures.filter((figure) => figure.layer === "effects");
 
   it("walks a departing sailor to the plank by the deck's paths, sends it over, and leaves nothing behind", () => {
     const crew = createCrew(shipStage(), shipCast());
@@ -282,7 +281,7 @@ describe("the crew leaving by the plank", () => {
     const layers = new Set<string>();
     let sharks = 0;
     run(crew, 20_000, () => {
-      for (const figure of crewFigures(crew, 0, { still: false })) if (figure.key.startsWith("a")) layers.add(figure.layer);
+      for (const figure of crewFigures(crew, 0, { still: false })) if (figure.key.startsWith("a")) layers.add(legacyLayer(figure.layer));
       sharks = Math.max(sharks, plankEffects(crew).filter((effect) => effect.shark !== null).length);
     });
     expect([...layers]).toEqual(["deck", "rail", "sea"]);
@@ -306,7 +305,7 @@ describe("the crew leaving by the plank", () => {
     const sharkKeys = new Set<string>();
     const sides = new Map<string, number>();
     run(crew, 40_000, () => {
-      const onPlank = crewFigures(crew, 0, { still: false }).filter((figure) => figure.layer === "rail");
+      const onPlank = crewFigures(crew, 0, { still: false }).filter((figure) => typeof figure.layer === "object" && figure.layer.front === "plank");
       expect(onPlank.length).toBeLessThanOrEqual(1);
       const sharks = plankEffects(crew).filter((effect) => effect.shark !== null);
       expect(sharks.length).toBeLessThanOrEqual(1);
@@ -394,7 +393,7 @@ describe("leaving under reduced motion", () => {
           x: before.x,
           y: before.y,
           pose: before.pose,
-          layer: "deck",
+          layer: "floor",
           departing: true,
         });
         alphas.push(ghost.alpha);
@@ -416,16 +415,16 @@ describe("leaving under reduced motion", () => {
     let caught = false;
     for (let at = 0; at < 30_000 && !caught; at += 33) {
       stepCrew(crew, 33);
-      caught = plankEffects(crew).some((effect) => effect.shark?.frame === "fin") && crewFigures(crew, 0, { still: false }).some((figure) => figure.layer === "sea");
+      caught = plankEffects(crew).some((effect) => effect.shark?.frame === "fin") && crewFigures(crew, 0, { still: false }).some((figure) => figure.layer === "effects");
     }
     expect(caught).toBe(true);
-    const swimmer = crewFigures(crew, 0, { still: false }).find((figure) => figure.layer === "sea")!;
+    const swimmer = crewFigures(crew, 0, { still: false }).find((figure) => figure.layer === "effects")!;
     applyCrew(crew, [sailor("c")], { snap: true });
     expect(plankEffects(crew)).toEqual([]);
     expect(crew.departures.every((departure) => departure.kind === "fade")).toBe(true);
     expect(crew.walkers.has("a") || crew.walkers.has("b")).toBe(false);
     const ghost = crewFigures(crew, 0, { still: true }).find((figure) => figure.key === swimmer.key)!;
-    expect({ x: ghost.x, y: ghost.y, reveal: ghost.reveal, layer: ghost.layer }).toEqual({ x: swimmer.x, y: swimmer.y, reveal: swimmer.reveal, layer: "sea" });
+    expect({ x: ghost.x, y: ghost.y, reveal: ghost.reveal, layer: ghost.layer }).toEqual({ x: swimmer.x, y: swimmer.y, reveal: swimmer.reveal, layer: "effects" });
     stepDepartures(crew, FADE_MS);
     expect(crew.departures).toEqual([]);
     expect(crewFigures(crew, 0, { still: true }).map((figure) => figure.key)).toEqual(["c"]);
@@ -473,6 +472,16 @@ describe("the shark and splash, as served", () => {
       const fit = fitDeck({ width, height }, { width: 426, height: 161 }, 2, shipStage().fit.margin);
       const visibleBottom = (height - fit.y) / fit.scale;
       expect(PLANK.water + lowest, `${width}x${height}`).toBeLessThan(visibleBottom);
+    }
+  });
+});
+
+describe("ship choreography migration golden", () => {
+  it("matches the pre-migration timeline at every millisecond for both sides and every drift", () => {
+    for (const sample of golden.samples) {
+      const hash = createHash("sha256");
+      for (let t = 0; t <= PLANK_EXIT_MS; t++) hash.update(JSON.stringify(plankExit(t, { side: sample.side as -1 | 1, drift: sample.drift })) + "\n");
+      expect(hash.digest("hex"), JSON.stringify(sample)).toBe(sample.sha256);
     }
   });
 });
