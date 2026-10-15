@@ -7,17 +7,18 @@ import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { DeckExtrasManifestSchema, extrasImagePaths } from "../shared/ship-deck";
+import { extrasImagePaths } from "./deck-legacy";
 import { HORIZON, WATERLINE } from "./deck-ambient";
 import { FOAM_SPAN } from "./deck-environment";
 import type { DeckExtrasImages } from "./deck-extras";
 import { STERN } from "./deck-wake";
 import { CALM_WATER, drawnWater, wakeTopLeft, waterDrift, waterFrame } from "./deck-water";
+import { shipFile, shipViews } from "../test/ship-pack";
 
-const artFile = (path: string) => new URL(`../art/ship-deck/${path}`, import.meta.url);
+const artFile = (path: string) => shipFile(path);
 /** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */
 const sources = (path: string) => new URL(`../docs/ship-deck-art/${path}`, import.meta.url);
-const manifest = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(artFile("extras.json"), "utf8")));
+const manifest = shipViews().extras;
 const water = manifest.water!;
 const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
 

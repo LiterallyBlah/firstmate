@@ -8,7 +8,6 @@ import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
-import { DeckArtManifestSchema } from "../shared/ship-deck";
 import {
   DECK_FPS,
   GULL_LOWEST,
@@ -30,6 +29,7 @@ import { browserMotion } from "./deck-mount";
 import { isSoftwareRenderer } from "./deck-pixi";
 import { PLANK } from "./deck-plank";
 import { deckLayers, depthOf, type DeckSailor, type DeckState } from "./deck-scene";
+import { shipFile, shipViews } from "../test/ship-pack";
 import {
   ANCHORS,
   HATCH,
@@ -82,8 +82,8 @@ function decodePng(file: Buffer): { width: number; height: number; alpha: (x: nu
   return { width, height, alpha: (x, y) => pixels[y * stride + x * 4 + 3] ?? 0 };
 }
 
-const manifest = DeckArtManifestSchema.parse(JSON.parse(readFileSync(new URL("../art/ship-deck/deck.json", import.meta.url), "utf8")));
-const atlas = decodePng(readFileSync(new URL("../art/ship-deck/deck.png", import.meta.url)));
+const manifest = shipViews().art;
+const atlas = decodePng(readFileSync(shipFile("deck.png")));
 function opaque(frame: readonly number[], x: number, y: number): boolean {
   const [fx = 0, fy = 0, fw = 0, fh = 0] = frame;
   const px = Math.floor(x);

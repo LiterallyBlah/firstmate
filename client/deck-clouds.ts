@@ -23,13 +23,13 @@
  *   them, night dims them blue. A white mask per slot, tinted, draws that with no shader.
  * - **Still when the deck is.** They drift only while the sea scrolls (`MotionPlan.ambient`): not under reduced
  *   motion, not on a software renderer. Their colours still follow the clock.
- * - **Variants over them** (`extras.json`'s `variants`, `variantOf: "cloud:<id>"`): a second sprite of the same size in
+ * - **Variants over them** (the pack's `variants` on its drifting sprites, `variantOf: "cloud:<id>"` in the extras view): a second sprite of the same size in
  *   the same container — the same lane, drift and wrap — in its own three colours by sky phase, cross-faded in by the
  *   weather (`client/deck-variants.ts`). The heavy weather's thunderheads are these.
  * - **Faster in a fresher wind.** The deck hands `cloudX` the wind's own clock, not the scene's
  *   (`client/deck-atmosphere.ts`): it runs faster the more of the crew is working, without a jump when it changes.
  */
-import type { DeckExtrasManifest, SkyPhaseId } from "../shared/ship-deck";
+import type { DeckExtrasManifest, SkyPhaseId } from "./deck-legacy";
 import { hashUnit } from "./deck-ambient";
 import type { DeckExtrasImages } from "./deck-extras";
 import type { Variant } from "./deck-variants";

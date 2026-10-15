@@ -1,7 +1,7 @@
 /**
  * The deck's extras (`docs/ship-deck-art/assets-2/README.md`): the tall mast and its sail, the plank's board and the
  * crew's six extra looks — bosun, old salt, navigator, carpenter, rigger, deckhand — served by
- * `firstmate.deck.extras`, which also sends the shark (`client/deck-plank.ts`) and the sky's clouds
+ * the setting pack (`firstmate.deck.setting`), which also has the shark (`client/deck-plank.ts`) and the sky's clouds
  * (`client/deck-clouds.ts`). Pure: which looks there are, who wears which, which of the sail's two states
  * shows, and how the tall mast is cut. The sprites
  * are `client/deck-pixi.ts`'s.
@@ -16,20 +16,20 @@
  * - **A look is drawn with the atlas's frames.** Each extra look is a texture the atlas's size with every
  *   pose at exactly the atlas's own crew rectangles and feet, so it is drawn, hit-tested and badged with the
  *   base lane's frames (`lookLane`).
- * - **The tall mast** (`art/ship-deck/mast/`) stands in for the hull's own short one where it decoded: the
+ * - **The tall mast** (`art/settings/ship/mast/`) stands in for the hull's own short one where it decoded: the
  *   hull's crow's nest, upper mast and stays are left out (`clears`), the mast is drawn behind the sail and
  *   the crew with its crow's nest and topmast swaying as the masthead did, and its own rows below the sail
  *   are the mast's depth piece (`mastLayout`), so the mast is still drawn over a sailor behind it without
  *   painting over the cloth. Without it, the short rig is drawn bare, as before the sail.
- * - **The sail** (`art/ship-deck/sails/`), fitted to the tall mast, hangs only on it: its yard on the mast's
+ * - **The sail** (`art/settings/ship/sails/`), fitted to the tall mast, hangs only on it: its yard on the mast's
  *   lashing point under the crow's nest. It alternates its rest and billow states every `frameMs` (850 ms)
  *   while the deck moves — quicker, and billowed longer, as the crew's work freshens the wind
  *   (`client/deck-atmosphere.ts`) — and rests under reduced motion. It rides the ship's bob but not the masthead's
  *   sway, and hangs behind the crew.
- * - **The plank** is the generated board (`art/ship-deck/plank/`) at its placement, where it decoded; the
+ * - **The plank** is the generated board (`art/settings/ship/plank/`) at its placement, where it decoded; the
  *   board drawn in code (`client/deck-plank.ts`) stands in for it otherwise, so a sailor never walks out on nothing.
  */
-import type { DeckArtManifest, DeckExtrasManifest, SailorOutfit } from "../shared/ship-deck";
+import type { DeckArtManifest, DeckExtrasManifest, SailorOutfit } from "./deck-legacy";
 
 /** The extras as the mount hands them over: what the manifest says, and each image that decoded. */
 export interface DeckExtrasImages {

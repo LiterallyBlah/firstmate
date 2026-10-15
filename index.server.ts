@@ -15,8 +15,8 @@ import { pageTimeline, registerReceiptObservers } from "./server/receipt-observe
 import { newAction, receiptJournal } from "./server/receipts";
 import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
-import { readDeckArt, readDeckEngine, readDeckEnvironment, readDeckExtras } from "./server/ship-deck";
-import { loadDeckArt, loadDeckEngine, loadDeckEnvironment, loadDeckExtras } from "./shared/ship-deck";
+import { listDeckSettings, readDeckEngine, readDeckSetting } from "./server/deck-settings";
+import { listDeckSettings as listDeckSettingsRpc, loadDeckEngine, loadDeckSetting } from "./shared/deck-rpc";
 import { findFiles, listDirectory, readTextFile, requireHome, writeTextFile } from "./server/files";
 import { CHARTER_FILE, NEW_CHARTER_FILE, acknowledgeCharter, writeNewCharter } from "./server/charter-file";
 import { isHomeReady, prepareHome, removeSuggestion } from "./server/home";
@@ -251,14 +251,10 @@ export default function contribute(server: PluginServerContext) {
 
   // The receipt journal's read-only timeline pages; refused while FIRSTMATE_RECEIPT_JOURNAL is off. See server/receipts.ts.
   server.handle(pageReceiptTimeline, async (input, { paseo }) => pageTimeline(paseo, await readFirstmateConfig(), input));
-  // PixiJS's browser build for the ship deck. See server/ship-deck.ts.
+  // PixiJS's browser build for the Deck, and the setting packs it draws, from art/settings/. See server/deck-settings.ts.
   server.handle(loadDeckEngine, () => readDeckEngine());
-  // The deck's art: the atlas and its manifest from art/ship-deck/.
-  server.handle(loadDeckArt, () => readDeckArt());
-  // The generated sea, sky and gull from art/ship-deck/environment.json.
-  server.handle(loadDeckEnvironment, () => readDeckEnvironment());
-  // The sail and the crew's extra looks from art/ship-deck/extras.json.
-  server.handle(loadDeckExtras, () => readDeckExtras());
+  server.handle(listDeckSettingsRpc, () => listDeckSettings());
+  server.handle(loadDeckSetting, ({ id }) => readDeckSetting(id));
 
   const unregisterRelay = registerSteerRelay(server, steers);
   // A crewmate whose finish the first mate has been told about leaves Paseo's "Ready to review"; see server/crew-seen.ts.

@@ -31,7 +31,7 @@
  *   and breathes: its head and shoulders settle a pixel and rise again every four seconds or so
  *   (`breathSink`), while its feet stay planted. The drawn badge and the drifting z say the rest.
  */
-import type { SailorOutfit, SailorPose } from "../shared/ship-deck";
+import type { SailorOutfit, SailorPose } from "./deck-legacy";
 import { ATLAS_LOOKS, lookFor, lookLane } from "./deck-extras";
 import { anchorsAt, findPath, HATCH, restSpot, sharedSpot, type Anchor, type AnchorPlace, type Facing, type Point } from "./deck-geometry";
 import { exitFor, IMPACT_AT, PLANK, PLANK_EXIT_MS, plankExit, type DeckDeparture, type PlankLayer, type SharkFrame, type SplashFrame } from "./deck-plank";
@@ -53,7 +53,7 @@ export const STEP_MS = 150;
 export const HATCH_MS = 700;
 /** A departing sailor's fade under reduced motion. */
 export const FADE_MS = 600;
-/** The rows of the front poses (`deck.json`), which the plank's sequence crops at the water. */
+/** The rows of the front poses (the pack's lanes), which the plank's sequence crops at the water. */
 export const FRONT_ROWS = 32;
 /** The shark's mouth from its water anchor, facing right (`docs/ship-deck-art/shark/manifest.json`'s `bite`), until the extras say otherwise. */
 export const SHARK_MOUTH: readonly [number, number] = [13, -22];

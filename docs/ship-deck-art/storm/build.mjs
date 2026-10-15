@@ -7,7 +7,7 @@ import { deflateSync } from 'node:zlib';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { PNG } = require('../../../.local/storm-tools/node_modules/pngjs');
-const root = 'art/ship-deck/storm';
+const root = 'art/settings/ship/storm';
 const docs = 'docs/ship-deck-art/storm';
 const read = p => PNG.sync.read(fs.readFileSync(p));
 const source = id => read(`${docs}/source/${id}.png`);
@@ -133,7 +133,7 @@ for(let i=0;i<2;i++){
 // Register sky bands to the calm geometry: median generated colour for each original
 // pixel colour-region, then exact palette mapping. This is tonal transfer, not painting.
 const skySrc=source('sky'),skySample=sample(skySrc,[0,0,skySrc.width,skySrc.height],512,320,skyPalette,128);
-const calmSky=read('art/ship-deck/sky/midday.png'),groups=new Map();
+const calmSky=read('art/settings/ship/sky/midday.png'),groups=new Map();
 for(let y=0;y<320;y++)for(let x=0;x<512;x++){
   const k=hex(pixel(calmSky,x,y));if(!groups.has(k))groups.set(k,[[],[],[]]);
   const c=pixel(skySample,x,y);for(let i=0;i<3;i++)groups.get(k)[i].push(c[i]);
@@ -151,7 +151,7 @@ for(let i=0;i<4;i++)paste(contact,scale(read(`${root}/spray/frame-${i}.png`),2),
 for(let i=0;i<2;i++)paste(contact,scale(read(`${root}/lightning/frame-${i}.png`),2),740+i*90,350);
 paste(contact,sky,0,450);saveReview(contact,'contact.png');
 const tiled=blank(512,256);for(let y=0;y<2;y++)for(let x=0;x<2;x++)paste(tiled,seas[0],x*256,y*128);saveReview(scale(tiled,2),'sea-repeat-2x.png');
-const deck=read('art/ship-deck/deck.png');const hull=blank(426,161);for(let y=0;y<161;y++)for(let x=0;x<426;x++)put(hull,x,y,pixel(deck,x,y));
+const deck=read('art/settings/ship/deck.png');const hull=blank(426,161);for(let y=0;y<161;y++)for(let x=0;x<426;x++)put(hull,x,y,pixel(deck,x,y));
 function scene(intensity,phase=0){
   const out=blank(768,384),hullX=70,hullY=83,horizon=hullY+96,waterline=hullY+151;
   // Fixed review camera; original sky pixels above its source horizon row 213.
@@ -161,13 +161,13 @@ function scene(intensity,phase=0){
     put(out,x,y,[...c.slice(0,3).map((v,i)=>Math.round(v*(1-w)+s[i]*w)),255]);
   }
   const cloudIds=Object.keys(cloudSizes);
-  cloudIds.forEach((id,i)=>{const c=read(`art/ship-deck/clouds/${id}.png`),s=read(`${root}/clouds/${id}.png`);const merged=blank(c.width,c.height);paste(merged,c,0,0,1-intensity);paste(merged,s,0,0,intensity);paste(out,merged,30+i*145,25+(i%3)*28);});
-  const calm=read(`art/ship-deck/water/sea/frame-${phase%4}.png`),storm=seas[phase%4];
+  cloudIds.forEach((id,i)=>{const c=read(`art/settings/ship/clouds/${id}.png`),s=read(`${root}/clouds/${id}.png`);const merged=blank(c.width,c.height);paste(merged,c,0,0,1-intensity);paste(merged,s,0,0,intensity);paste(out,merged,30+i*145,25+(i%3)*28);});
+  const calm=read(`art/settings/ship/water/sea/frame-${phase%4}.png`),storm=seas[phase%4];
   function water(start){for(let y=start;y<384;y++)for(let x=0;x<768;x++){const a=pixel(calm,x%256,(y-horizon)%128),b=pixel(storm,x%256,(y-horizon)%128);put(out,x,y,[...a.slice(0,3).map((v,i)=>Math.round(v*(1-intensity)+b[i]*intensity)),255]);}}
   water(horizon);paste(out,hull,hullX,hullY);water(waterline);
-  paste(out,read(`art/ship-deck/water/wake/frame-${phase%3}.png`),hullX+384,hullY+143,1-intensity);
+  paste(out,read(`art/settings/ship/water/wake/frame-${phase%3}.png`),hullX+384,hullY+143,1-intensity);
   paste(out,read(`${root}/wake/frame-${phase%3}.png`),hullX+384,hullY+143,intensity);
-  const foam=read(`art/ship-deck/water/foam/frame-${phase%3}.png`);
+  const foam=read(`art/settings/ship/water/foam/frame-${phase%3}.png`);
   for(let y=0;y<16;y++)for(let x=68;x<392;x++){const c=pixel(foam,x%256,y);if(c[3])put(out,hullX+x,hullY+142+y,c);}
   if(intensity>0){paste(out,read(`${root}/spray/frame-${phase%4}.png`),hullX+68-20,waterline-26,intensity*.65);paste(out,read(`${root}/spray/frame-${phase%4}.png`),580,310,intensity*.6);}
   return out;
@@ -192,5 +192,5 @@ apng(Array.from({length:3},(_,i)=>read(`${root}/wake/frame-${i}.png`)),[240],'wa
 apng([...Array.from({length:4},(_,i)=>read(`${root}/spray/frame-${i}.png`)),blank(64,32)],[120,120,120,120,1800],'spray-cycle.png');
 apng([read(`${root}/lightning/frame-0.png`),read(`${root}/lightning/frame-1.png`),blank(32,48)],[80,120,18000],'lightning-cycle.png');
 const reviewSources=JSON.parse(fs.readFileSync(`${docs}/prompts.json`,'utf8'));
-fs.writeFileSync(`${docs}/provenance.json`,JSON.stringify({tool:'image_gen__imagegen (built-in)',backendModel:'not disclosed by tool',date:'2026-10-15',calls:reviewSources.length,sourceRoot:docs,sourceImages:reviewSources.map(r=>({id:r.id,path:r.source,sha256:sha(`${docs}/${r.source}`)})),prompts:'prompts.json',cleanup:'cleanup.json',references:['art/ship-deck/deck.png','art/ship-deck/environment.json','docs/ship-deck-art/water/review/contact.png','docs/ship-deck-art/clouds/review/contact-3x.png','art/ship-deck/sky/midday.png'].map(p=>({path:p,sha256:sha(p)})),authorship:'Generated artwork; mechanical crop, registration, block sampling, alpha cleanup, fixed palette mapping, seam reconciliation and sky colour-region registration. No shapes drawn in code.',license:'Repository MIT; AI-generated, no claim of human authorship or exclusive copyright; no third-party reference art.'},null,2)+'\n');
+fs.writeFileSync(`${docs}/provenance.json`,JSON.stringify({tool:'image_gen__imagegen (built-in)',backendModel:'not disclosed by tool',date:'2026-10-15',calls:reviewSources.length,sourceRoot:docs,sourceImages:reviewSources.map(r=>({id:r.id,path:r.source,sha256:sha(`${docs}/${r.source}`)})),prompts:'prompts.json',cleanup:'cleanup.json',references:['art/settings/ship/deck.png','docs/ship-deck-art/legacy/environment.json','docs/ship-deck-art/water/review/contact.png','docs/ship-deck-art/clouds/review/contact-3x.png','art/settings/ship/sky/midday.png'].map(p=>({path:p,sha256:sha(p)})),authorship:'Generated artwork; mechanical crop, registration, block sampling, alpha cleanup, fixed palette mapping, seam reconciliation and sky colour-region registration. No shapes drawn in code.',license:'Repository MIT; AI-generated, no claim of human authorship or exclusive copyright; no third-party reference art.'},null,2)+'\n');
 console.log(JSON.stringify({runtimeFiles:outputs.length,runtimePngBytes:outputs.reduce((s,p)=>s+fs.statSync(`${root}/${p}`).size,0),outputs},null,2));

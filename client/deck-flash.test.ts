@@ -6,11 +6,12 @@ import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { DeckExtrasManifestSchema, extrasImagePaths } from "../shared/ship-deck";
+import { extrasImagePaths } from "./deck-legacy";
 import type { DeckExtrasImages } from "./deck-extras";
 import { CLOUD_TUCK, drawnFlashes, FLASH_CAP_PER_MINUTE, flashAt, flashSalt, underCloud } from "./deck-flash";
+import { shipViews } from "../test/ship-pack";
 
-const manifest = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(new URL("../art/ship-deck/extras.json", import.meta.url), "utf8")));
+const manifest = shipViews().extras;
 const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
 const lightning = manifest.flashes![0]!;
 const salt = flashSalt(lightning.id);

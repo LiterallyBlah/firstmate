@@ -1,54 +1,20 @@
 /**
- * The ship deck's four RPCs, answered by `server/ship-deck.ts`:
- *
- * - `firstmate.deck.engine` — PixiJS's browser build, as text, for the client to evaluate in a web
- *   renderer (`client/deck-mount.ts`). It reads `vendor/pixi.min.js` in the plugin's folder and nothing else.
- * - `firstmate.deck.art` — the deck's art: one atlas PNG, base64, and the manifest that says where the
- *   hull, its depth pieces, each sailor's pose and each prop are in it. Read from `art/ship-deck/` in the
- *   plugin's folder; built by `docs/ship-deck-art/build-art.py`.
- * - `firstmate.deck.environment` — the generated sea, sky and gull: each image, base64, and what
- *   `art/ship-deck/environment.json` says about drawing them. See below.
- * - `firstmate.deck.extras` — the sail, the crew's extra looks, the shark, the splash, the sky's clouds, the animated water and
- *   the weather layers over it all (`variants`, `cycles`, `mood`, `flashes`): each
- *   image, base64, and what `art/ship-deck/extras.json` says about drawing them. See the last note.
+ * The zod contracts of the three manifests the deck's art was once served in (`client/deck-legacy.ts`): what
+ * `legacyViews` must produce, and what the records in `docs/ship-deck-art/legacy/` are checked against
+ * (`client/ship-pack.test.ts`). Types only, for the engine: nothing here is in the client bundle.
  */
-import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 
-export const loadDeckEngine = defineRpc({
-  name: "firstmate.deck.engine",
-  input: z.object({}),
-  /** `version` is Pixi's, read from the build's own banner; the client checks the namespace says the same. */
-  output: z.object({ version: z.string(), source: z.string() }),
-});
-export type DeckEngineSource = z.infer<typeof loadDeckEngine.output>;
+import { DECK_PROP_NAMES, GULL_POSES, SAILOR_POSES, SKY_PHASES, type DeckPropName, type SailorPose, type SkyPhaseId } from "./deck-legacy";
 
 /** A rectangle in the atlas: x, y, width, height, in atlas pixels. */
 const Frame = z.tuple([z.number().int(), z.number().int(), z.number().int().positive(), z.number().int().positive()]);
 /** A sprite's frame and where it stands: its feet, in whole pixels from the frame's top left. */
 const Standing = z.object({ frame: Frame, feet: z.tuple([z.number().int(), z.number().int()]) });
 
-export const SAILOR_POSES = [
-  "front-idle",
-  "front-walk-a",
-  "front-walk-b",
-  "side-idle",
-  "side-walk-a",
-  "side-walk-b",
-  "hauling",
-  "leaning",
-  "waiting",
-] as const;
-export type SailorPose = (typeof SAILOR_POSES)[number];
-export const SAILOR_OUTFITS = ["base", "outfit"] as const;
-export type SailorOutfit = (typeof SAILOR_OUTFITS)[number];
-export const DECK_PROP_NAMES = ["barrel", "crate", "rope"] as const;
-export type DeckPropName = (typeof DECK_PROP_NAMES)[number];
-
 const Poses = z.object(Object.fromEntries(SAILOR_POSES.map((pose) => [pose, Standing])) as Record<SailorPose, typeof Standing>);
 
 export const DeckArtManifestSchema = z.object({
-  atlas: z.object({ width: z.number().int().positive(), height: z.number().int().positive(), colours: z.number().int() }),
   /** The whole hull: the backdrop every sailor stands on. Its size is the deck's coordinate space. */
   ship: z.object({ frame: Frame }),
   /**
@@ -59,38 +25,22 @@ export const DeckArtManifestSchema = z.object({
   pieces: z.record(z.string(), z.object({ frame: Frame, x: z.number().int(), y: z.number().int(), baseline: z.number().int().nullable() })),
   crew: z.object({ base: Poses, outfit: Poses }),
   props: z.object(Object.fromEntries(DECK_PROP_NAMES.map((name) => [name, Standing])) as Record<DeckPropName, typeof Standing>),
-  sources: z.record(z.string(), z.object({ file: z.string(), sha256: z.string() })),
 });
 export type DeckArtManifest = z.infer<typeof DeckArtManifestSchema>;
 
-export const loadDeckArt = defineRpc({
-  name: "firstmate.deck.art",
-  input: z.object({}),
-  /** `png` is the atlas, base64; the client decodes it once a session. */
-  output: z.object({ png: z.string(), manifest: DeckArtManifestSchema }),
-});
-export type DeckArt = z.infer<typeof loadDeckArt.output>;
-
 /**
- * `firstmate.deck.environment` — the generated sea, sky and gull (`docs/ship-deck-art/ENVIRONMENT.md`): the
- * parts of `environment.json` the deck draws with, and each image it names, base64. Separate from the atlas so a deck whose environment fails to load
- * still draws its ship and crew, on a plain sea (`client/deck-mount.ts`).
+ * The generated sea, sky and gull (`docs/ship-deck-art/ENVIRONMENT.md`). Apart from the atlas so a deck whose
+ * environment fails to load still draws its ship and crew, on a plain sea (`client/deck-mount.ts`).
  */
-/** A file inside `art/ship-deck/`: a relative path to a PNG, never climbing out. */
+/** A file inside the pack: a relative path to a PNG, never climbing out. */
 const ArtPath = z
   .string()
-  .regex(/^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.png$/i, "an environment image must be a relative .png path inside art/ship-deck/");
+  .regex(/^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.png$/i, "an image must be a relative .png path inside its pack");
 const Size = z.tuple([z.number().int().positive(), z.number().int().positive()]);
 const Point = z.tuple([z.number().int(), z.number().int()]);
 const HexColour = z.string().regex(/^#[0-9a-f]{6}$/i, "a colour must be #RRGGBB");
 /** A cloud's three colours, shadow to highlight. */
 const CloudPalette = z.tuple([HexColour, HexColour, HexColour]);
-
-/** The six sky phases, in the order of the day. */
-export const SKY_PHASES = ["dawn", "morning", "midday", "afternoon", "dusk", "night"] as const;
-export type SkyPhaseId = (typeof SKY_PHASES)[number];
-export const GULL_POSES = ["up", "mid", "down"] as const;
-export type GullPose = (typeof GULL_POSES)[number];
 
 const MINUTES_PER_DAY = 1440;
 
@@ -131,35 +81,13 @@ export const DeckEnvironmentManifestSchema = z.object({
 });
 export type DeckEnvironmentManifest = z.infer<typeof DeckEnvironmentManifestSchema>;
 
-/** Every image the manifest names, once each, in a stable order. */
-export function environmentImagePaths(manifest: DeckEnvironmentManifest): string[] {
-  const paths = [
-    manifest.sea.texture,
-    manifest.foam.texture,
-    ...manifest.sky.phases.map((phase) => phase.path),
-    ...manifest.sky.overlays.map((overlay) => overlay.path),
-    manifest.gull.sheet,
-  ];
-  return [...new Set(paths)];
-}
-
-export const loadDeckEnvironment = defineRpc({
-  name: "firstmate.deck.environment",
-  input: z.object({}),
-  /** `images` maps each path the manifest names to that PNG, base64. */
-  output: z.object({ manifest: DeckEnvironmentManifestSchema, images: z.record(z.string(), z.string()) }),
-});
-export type DeckEnvironment = z.infer<typeof loadDeckEnvironment.output>;
-
 /**
- * `firstmate.deck.extras` — the tall mast and its sail (`docs/ship-deck-art/mast/README.md`, `docs/ship-deck-art/sails/README.md`),
+ * The extras: the tall mast and its sail (`docs/ship-deck-art/mast/README.md`, `docs/ship-deck-art/sails/README.md`),
  * the crew's extra looks (`docs/ship-deck-art/assets-2/README.md`), the plank's board (`docs/ship-deck-art/plank/README.md`),
  * the shark and splash that see a sailor off the plank (`docs/ship-deck-art/shark/README.md`), the clouds that
  * drift across the sky (`docs/ship-deck-art/clouds/README.md`), and the animated sea, foam and wake
  * (`docs/ship-deck-art/water/README.md`):
- * the parts of `art/ship-deck/extras.json` the deck draws with, and each image it names, base64. Apart from
- * the atlas and the environment, and not needed to
- * draw: the client keeps whatever of it decodes, so a missing sail is the bare mast and a missing look is
+ * not needed to draw: the client keeps whatever of it decodes, so a missing sail is the bare mast and a missing look is
  * one fewer to hand out (`client/deck-mount.ts`).
  */
 const Id = z.string().regex(/^[a-z0-9-]+$/);
@@ -192,7 +120,7 @@ export const DeckExtrasManifestSchema = z.object({
   }),
   /**
    * The crew's extra looks: each a texture the atlas's size holding every pose at exactly the atlas's
-   * own crew rectangles and feet (`deck.json`), so a look is drawn with the base lane's frames.
+   * own crew rectangles and feet (the pack's lanes), so a look is drawn with the base lane's frames.
    */
   crew: z
     .array(z.object({ id: z.string().regex(/^[a-z0-9-]+$/), texture: ArtPath }))
@@ -280,7 +208,7 @@ export const DeckExtrasManifestSchema = z.object({
    * Layers over the scene that follow the deck's weather (`client/deck-variants.ts`, `client/deck-flash.ts`): each
    * fades in and out along its own `opacity` curve over the weather's intensity (`client/deck-atmosphere.ts`, 0 an
    * idle crew, 1 a busy fleet), so how and when a setting's weather comes in is data, here, and not code. None of them
-   * is drawn under reduced motion. The heavy weather (`art/ship-deck/storm/`) is the first set of them.
+   * is drawn under reduced motion. The heavy weather (the ship pack's `storm/`) is the first set of them.
    *
    * - `variants` — a second set of frames over one of the scene's elements (`variantOf`): the animated water's `sea`
    *   tile, `foam` strip or `wake`, a `cycle:<id>`, or a `cloud:<id>`, on that element's own clock, frame for
@@ -336,26 +264,3 @@ export const DeckExtrasManifestSchema = z.object({
 });
 export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;
 
-/** Every image the extras manifest names, once each, in a stable order. */
-export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
-  const exit = manifest.exit === undefined ? [] : [...Object.values(manifest.exit.shark.frames), ...Object.values(manifest.exit.splash.frames)];
-  const clouds = manifest.clouds?.sprites.map((sprite) => sprite.texture) ?? [];
-  const plank = manifest.plank === undefined ? [] : [manifest.plank.texture];
-  const mast = manifest.mast === undefined ? [] : [manifest.mast.texture];
-  const water = manifest.water === undefined ? [] : [...manifest.water.sea.frames, ...manifest.water.foam.frames, ...manifest.water.wake.frames];
-  const weather = [
-    ...(manifest.variants ?? []).flatMap((variant) => variant.frames),
-    ...(manifest.cycles ?? []).flatMap((cycle) => cycle.frames),
-    ...(manifest.mood?.overlays ?? []).map((overlay) => overlay.texture),
-    ...(manifest.flashes ?? []).flatMap((flash) => flash.frames),
-  ];
-  return [...new Set([manifest.sail.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds, ...plank, ...mast, ...water, ...weather])];
-}
-
-export const loadDeckExtras = defineRpc({
-  name: "firstmate.deck.extras",
-  input: z.object({}),
-  /** `images` maps each path the manifest names to that PNG, base64. */
-  output: z.object({ manifest: DeckExtrasManifestSchema, images: z.record(z.string(), z.string()) }),
-});
-export type DeckExtras = z.infer<typeof loadDeckExtras.output>;

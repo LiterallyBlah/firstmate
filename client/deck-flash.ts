@@ -1,5 +1,5 @@
 /**
- * Moments of weather (`extras.json`'s `flashes`): a sprite shown now and then for a fraction of a second — the heavy
+ * Moments of weather (the setting pack's `flash` elements): a sprite shown now and then for a fraction of a second — the heavy
  * weather's distant lightning is the first — as pure functions: whether one is showing, which frame, and where it
  * stands. Seeded from the scene's clock as the gulls are (`gullsAt` in `client/deck-ambient.ts`), so the same moment
  * always looks the same, and drawn by `client/deck-environment.ts`.
@@ -13,7 +13,7 @@
  *   cloud the likelier, its lower edge at or above the sky's horizon, so the fork comes out of a cloud and never meets
  *   the sea. No cloud in view with room under it, no flash.
  */
-import type { DeckExtrasManifest } from "../shared/ship-deck";
+import type { DeckExtrasManifest } from "./deck-legacy";
 import { hashUnit } from "./deck-ambient";
 import type { DeckExtrasImages } from "./deck-extras";
 import { curveAt, type Curve } from "./deck-variants";

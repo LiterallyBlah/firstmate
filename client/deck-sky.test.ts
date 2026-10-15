@@ -1,13 +1,14 @@
 /**
  * The deck's day and night: which of the generated skies shows at a local time of day, with the clock
  * handed in; how smoothly one becomes the next; where the sky sits behind the ship; and the sea's,
- * foam's and gull's timing — all against the real `art/ship-deck/environment.json`.
+ * foam's and gull's timing — all against the ship pack's own (`art/settings/ship/setting.json`).
  */
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { DeckEnvironmentManifestSchema, SKY_PHASES, type DeckEnvironmentManifest } from "../shared/ship-deck";
+import { SKY_PHASES, type DeckEnvironmentManifest } from "./deck-legacy";
+import { shipManifest, shipViews } from "../test/ship-pack";
 import { HORIZON } from "./deck-ambient";
 import { FOAM_HEIGHT, FOAM_SPAN, foamSegments } from "./deck-environment";
 import { DECK_WIDTH } from "./deck-scene";
@@ -24,10 +25,7 @@ import {
   type SkyBlend,
 } from "./deck-sky";
 
-const raw = JSON.parse(readFileSync(new URL("../art/ship-deck/environment.json", import.meta.url), "utf8")) as {
-  assets: Array<{ path: string; size: [number, number] }>;
-};
-const manifest: DeckEnvironmentManifest = DeckEnvironmentManifestSchema.parse(raw);
+const manifest: DeckEnvironmentManifest = shipViews().environment;
 const phases = manifest.sky.phases;
 const phaseId = (blend: SkyBlend) => phases[dominantPhase(blend)]!.id;
 
@@ -185,7 +183,7 @@ describe("the sea, the foam and the gull, by the manifest", () => {
 
   it("cuts the foam across the hull's waterline only, in at most three pieces, seamless round the repeat", () => {
     const period = manifest.foam.period;
-    expect(FOAM_HEIGHT).toBe(raw.assets.find((asset) => asset.path === manifest.foam.texture)!.size[1]);
+    expect(FOAM_HEIGHT).toBe(Object.values(shipManifest().images).find((image) => image.path === manifest.foam.texture)!.size[1]);
     for (let offset = 0; offset < period; offset += 1) {
       const segments = foamSegments(FOAM_SPAN, period, offset);
       expect(segments.length).toBeLessThanOrEqual(3);
