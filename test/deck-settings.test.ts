@@ -5,7 +5,9 @@
  * variant lined up with what it lays over, every drifting sprite in its palette's colours, and the whole small
  * enough to send — and its floor read against its own backdrop's pixels: every walkable point on the backdrop and
  * hidden only where a crowd may not spill, every post and mark on open floor, everything reachable from everything
- * else, and the fit taking in every part, flyby and effect. A new setting is held to all of it by being there.
+ * else, and the fit taking in every part, flyby and effect — and its crowds: two dozen workers packed into a zone,
+ * each in its areas, in sight, clear of the crew at work and in the pointer's reach. A new setting is held to all of
+ * it by being there.
  */
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -17,6 +19,11 @@ import { ENGINE_FORMAT_VERSION, SettingManifestSchema, capabilitiesUsed, setting
 import { PACK_BYTES_MAX, SETTING_MANIFEST, SETTINGS_DIR } from "../server/deck-settings";
 import { areaAt, findPath, inRects, pathLength, walkable, type Point } from "../client/deck-geometry";
 import { compileStage } from "../client/deck-stage";
+import { compileCast } from "../client/deck-cast";
+import { applyCrew, createCrew, crewFigures, type Figure } from "../client/deck-crew";
+import { badgeTop, figureBox, sailorAt, type DeckBox } from "../client/deck-hover";
+import { BADGE_SIZE } from "../client/deck-badges";
+import type { DeckSailor, DeckState } from "../client/deck-scene";
 import { decodePng, type Pixels } from "./png";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -24,6 +31,13 @@ const settings = join(root, SETTINGS_DIR);
 const packs = readdirSync(settings).filter((name) => statSync(join(settings, name)).isDirectory());
 
 type Sprite = { image: string; rect?: readonly [number, number, number, number] | undefined };
+
+/** A worker on the stage, as the scene hands it over. */
+function worker(key: string, state: DeckState): DeckSailor {
+  return { key, label: key, state, identity: `agent-${key}`, stale: false, caption: { title: key, status: state, project: null, host: "This machine", line: null, stale: null } };
+}
+
+const STATES = ["working", "waiting", "blocked", "idle"] as const;
 
 /** Every point a walk from `from` along `path` passes, a half pixel apart. */
 function walkPoints(from: Point, path: readonly Point[]): Point[] {
@@ -253,6 +267,46 @@ describe.each(packs)("the %s pack", (id) => {
         for (const post of posts.filter((other) => other.place !== zone.id)) expect(inRects(areas, post), `${post.id} in ${zone.id}'s areas`).toBe(false);
         for (const a of zone.posts) {
           for (const b of zone.posts) if (a !== b) expect(Math.abs(a.x - b.x) >= spacing[0] || Math.abs(a.y - b.y) >= spacing[1], `${a.id} ${b.id}`).toBe(true);
+        }
+      }
+    });
+
+    it("packs two dozen workers into each packing zone: each in its areas, in sight, clear of the crew at work, and in the pointer's reach", () => {
+      const cast = compileCast(manifest);
+      const overlaps = (a: DeckBox, b: DeckBox) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      /** Whether the pointer finds `figure` somewhere on its badge. */
+      const reachable = (figures: readonly Figure[], figure: Figure) => {
+        const top = badgeTop(figure, cast);
+        for (let y = top; y < top + BADGE_SIZE.height; y += 1) {
+          for (let x = figure.x - 3; x <= figure.x + 3; x += 1) if (sailorAt(figures, cast, { x: x + 0.5, y: y + 0.5 })?.key === figure.key) return true;
+        }
+        return false;
+      };
+      for (const zone of stage.zones.values()) {
+        if (zone.overflow.kind !== "pack") continue;
+        const { areas } = zone.overflow;
+        const state = STATES.find((each) => stage.zoneOf(each).id === zone.id);
+        if (state === undefined) continue;
+        // Every post of every other state's zone held: the most crowded stage there is.
+        const others = STATES.filter((each) => stage.zoneOf(each).id !== zone.id).flatMap((each) => stage.zoneOf(each).posts.map((_, index) => worker(`${each}-${index}`, each)));
+        for (const count of [1, zone.posts.length, 24]) {
+          const crew = createCrew(stage, cast);
+          const packed = Array.from({ length: count }, (_, index) => worker(`packed-${String(index).padStart(2, "0")}`, state));
+          applyCrew(crew, [...others, ...packed], { snap: true });
+          const figures = crewFigures(crew, 0, { still: true });
+          const inZone = figures.filter((figure) => figure.key.startsWith("packed-"));
+          const awake = figures.filter((figure) => !figure.key.startsWith("packed-"));
+          expect(new Set(inZone.map((figure) => `${figure.x},${figure.row}`)).size, `${zone.id}: ${count}`).toBe(count);
+          for (const figure of inZone) {
+            const feet = { x: figure.x, y: figure.row };
+            expect(inRects(areas, feet), `${zone.id} ${count}: ${figure.key} in its areas`).toBe(true);
+            expect(walkable(floor, feet.x, feet.y)).toBe(true);
+            expect(hidden(feet), `${zone.id} ${count}: ${figure.key} hidden`).toBe(false);
+            const box = figureBox(figure, cast)!;
+            for (const other of awake) expect(overlaps(box, figureBox(other, cast)!), `${zone.id} ${count}: ${figure.key} on ${other.key}`).toBe(false);
+            expect(reachable(figures, figure), `${zone.id} ${count}: ${figure.key} out of reach`).toBe(true);
+          }
+          for (const other of awake) expect(reachable(figures, other), `${zone.id} ${count}: ${other.key} out of reach`).toBe(true);
         }
       }
     });

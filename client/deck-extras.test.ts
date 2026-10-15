@@ -8,18 +8,35 @@ import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
-import { SAILOR_POSES, extrasImagePaths } from "./deck-legacy";
+import { extrasImagePaths } from "./deck-legacy";
 import { WATERLINE } from "./deck-ambient";
-import { BREATH_MS, BREATH_ROWS, STATE_POSES, applyCrew, breathSink, createCrew, crewFigures, looksFore } from "./deck-crew";
-import { ATLAS_LOOKS, crewLooks, drawnPlank, drawnSail, lookFor, lookLane, sailFrame, type DeckExtrasImages } from "./deck-extras";
+import { applyCrew, createCrew, crewFigures } from "./deck-crew";
+import { drawnPlank, drawnSail, sailFrame, type DeckExtrasImages } from "./deck-extras";
 import type { DeckSailor, DeckState } from "./deck-scene";
 import { BOW, CHURN_LENGTH, STERN, WAKE_ARMS, wakeRuns } from "./deck-wake";
-import { shipFile, shipManifest, shipStage, shipViews } from "../test/ship-pack";
+import { shipCast, shipFile, shipManifest, shipStage, shipViews } from "../test/ship-pack";
+import { availableLooks, breathSink as castBreathSink, laneOf, lookFor, settledPose, standing } from "./deck-cast";
+
+// The ship's cast, under the names its constants had in the deck's code.
+const STATE_POSES = Object.fromEntries((["working", "waiting", "blocked", "idle"] as const).map((state) => [state, shipCast().settled[state].pose])) as Record<DeckState, string>;
+const BREATH_ROWS = shipCast().breath!.rows;
+const BREATH_MS = shipCast().breath!.periodMs;
+const SAILOR_POSES = [...shipCast().lanes.get("base")!.keys()];
+const ATLAS_LOOKS = shipCast().looks.filter((look) => !look.optional).map((look) => look.id);
+const looksFore = (seed: number) => settledPose(shipCast(), "idle", "front", seed).flip;
+const breathSink = (seed: number, nowMs: number) => castBreathSink(shipCast(), seed, nowMs);
+const lookLane = (look: string) => laneOf(shipCast(), look);
+/** The looks to hand out when these extras' images arrived: the cast's that must draw, and each other one whose image is among them. */
+const crewLooks = (extras: { images: ReadonlyMap<string, unknown> } | null) => availableLooks(shipCast(), (image) => extras?.images.has(shipViews().paths.get(image) ?? "") ?? false);
 
 const art = (path: string) => shipFile(path);
 const deck = shipViews().art;
 const manifest = shipViews().extras;
-const extras: DeckExtrasImages = { manifest, images: new Map(extrasImagePaths(manifest).map((path) => [path, { image: path }])) };
+/** The extra looks' images: the cast's, decoded with the rest of the pack, and handed to the deck beside the extras'. */
+const lookPaths = shipCast()
+  .looks.filter((look) => look.optional)
+  .map((look) => shipViews().paths.get(look.image)!);
+const extras: DeckExtrasImages = { manifest, images: new Map([...extrasImagePaths(manifest), ...lookPaths].map((path) => [path, { image: path }])) };
 
 /** A PNG's size and the alpha of any pixel: RGBA, 8 bits, no interlace, as the art pipeline writes them. */
 function decodePng(file: Buffer): { width: number; height: number; alpha: (x: number, y: number) => number } {
@@ -72,13 +89,13 @@ function sailor(key: string, state: DeckState = "idle", identity = `agent-${key}
 
 describe("the sail and the crew's looks, as served", () => {
   it("fit the atlas: every look the atlas's size, with every pose drawn at the base lane's frames and nothing outside them", () => {
-    const frames = SAILOR_POSES.flatMap((pose) => [deck.crew.base[pose].frame, deck.crew.outfit[pose].frame]);
+    const frames = SAILOR_POSES.flatMap((pose) => [standing(shipCast(), "base", pose).frame, standing(shipCast(), "outfit", pose).frame]);
     const inside = (x: number, y: number) => frames.some(([fx, fy, fw, fh]) => x >= fx && x < fx + fw && y >= fy && y < fy + fh);
-    for (const look of manifest.crew) {
-      const png = decodePng(readFileSync(art(look.texture)));
+    for (const look of shipCast().looks.filter((each) => each.image !== shipManifest().stage.backdrop.sprite.image)) {
+      const png = decodePng(readFileSync(art(shipManifest().images[look.image]!.path)));
       expect([png.width, png.height], look.id).toEqual(shipManifest().images[shipManifest().stage.backdrop.sprite.image]!.size);
       for (const pose of SAILOR_POSES) {
-        const [fx, fy, fw, fh] = deck.crew.base[pose].frame;
+        const [fx, fy, fw, fh] = standing(shipCast(), "base", pose).frame;
         let opaque = 0;
         for (let y = fy; y < fy + fh; y += 1) for (let x = fx; x < fx + fw; x += 1) if (png.alpha(x, y) === 255) opaque += 1;
         expect(opaque, `${look.id} ${pose}`).toBeGreaterThan(40);
@@ -130,18 +147,18 @@ describe("who wears which look", () => {
 
   it("keeps a sailor's look by its agent id: from poll to poll, as others come and go, and on any deck it opens on", () => {
     const looks = crewLooks(extras);
-    const crew = createCrew(shipStage(), looks);
+    const crew = createCrew(shipStage(), shipCast(), looks);
     applyCrew(crew, [sailor("a", "working"), sailor("b", "idle")], { snap: true });
     const before = crew.walkers.get("a")!.look;
     expect(before).toBe(lookFor("agent-a", looks));
     applyCrew(crew, [sailor("a", "blocked"), sailor("c"), sailor("d")], { snap: false });
     applyCrew(crew, [sailor("a", "waiting"), sailor("c")], { snap: false });
     expect(crew.walkers.get("a")!.look).toBe(before);
-    const alone = createCrew(shipStage(), looks);
+    const alone = createCrew(shipStage(), shipCast(), looks);
     applyCrew(alone, [sailor("a", "idle")], { snap: true });
     expect(alone.walkers.get("a")!.look).toBe(before);
     const figure = crewFigures(crew, 0, { still: true }).find((each) => each.key === "a")!;
-    expect([figure.look, figure.outfit]).toEqual([before, lookLane(before)]);
+    expect([figure.look, figure.lane]).toEqual([before, lookLane(before)]);
     // Relaunched — the same card, a new agent — it dresses as the new agent.
     const other = Array.from({ length: 50 }, (_, index) => `agent-new-${index}`).find((id) => lookFor(id, looks) !== before)!;
     applyCrew(crew, [sailor("a", "waiting", other), sailor("c")], { snap: false });
@@ -149,7 +166,7 @@ describe("who wears which look", () => {
   });
 
   it("without any extra look, wears the atlas's two outfits as before", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, ["a", "b", "c"].map((key) => sailor(key)), { snap: true });
     expect([...crew.walkers.values()].every((walker) => walker.look === "base" || walker.look === "outfit")).toBe(true);
   });
@@ -248,7 +265,7 @@ describe("a sailor at ease", () => {
   });
 
   it("looks fore or aft along the rail by its seed, and breathes: head and shoulders settle a pixel and rise, feet planted", () => {
-    const crew = createCrew(shipStage());
+    const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, Array.from({ length: 6 }, (_, index) => sailor(`idle-${index}`)), { snap: true });
     const flips = new Set(crewFigures(crew, 0, { still: true }).map((figure) => figure.flip));
     expect(flips).toEqual(new Set([true, false]));
@@ -269,9 +286,9 @@ describe("a sailor at ease", () => {
     expect(out / (BREATH_MS / 10)).toBeGreaterThan(0.4);
     expect(out / (BREATH_MS / 10)).toBeLessThan(0.6);
     for (let at = 0; at < BREATH_MS; at += 100) expect(crewFigures(crew, at, { still: true }).every((figure) => figure.sink === 0)).toBe(true);
-    const busy = createCrew(shipStage());
+    const busy = createCrew(shipStage(), shipCast());
     applyCrew(busy, [sailor("w", "working"), sailor("b", "blocked"), sailor("q", "waiting")], { snap: true });
     for (let at = 0; at < BREATH_MS; at += 100) expect(crewFigures(busy, at, { still: false }).every((figure) => figure.sink === 0)).toBe(true);
-    expect(BREATH_ROWS).toBeLessThan(deck.crew.base["side-idle"].frame[3] / 2);
+    expect(BREATH_ROWS).toBeLessThan(standing(shipCast(), "base", "side-idle").frame[3] / 2);
   });
 });

@@ -13,23 +13,6 @@ import type { DeckArtManifest, DeckEnvironmentManifest, DeckExtrasManifest } fro
 
 export type { DeckArtManifest, DeckEnvironmentManifest, DeckExtrasManifest } from "./deck-legacy-schema";
 
-export const SAILOR_POSES = [
-  "front-idle",
-  "front-walk-a",
-  "front-walk-b",
-  "side-idle",
-  "side-walk-a",
-  "side-walk-b",
-  "hauling",
-  "leaning",
-  "waiting",
-] as const;
-export type SailorPose = (typeof SAILOR_POSES)[number];
-export const SAILOR_OUTFITS = ["base", "outfit"] as const;
-export type SailorOutfit = (typeof SAILOR_OUTFITS)[number];
-export const DECK_PROP_NAMES = ["barrel", "crate", "rope"] as const;
-export type DeckPropName = (typeof DECK_PROP_NAMES)[number];
-
 /** The six sky phases, in the order of the day. */
 export const SKY_PHASES = ["dawn", "morning", "midday", "afternoon", "dusk", "night"] as const;
 export type SkyPhaseId = (typeof SKY_PHASES)[number];
@@ -61,7 +44,7 @@ export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
     ...(manifest.mood?.overlays ?? []).map((overlay) => overlay.texture),
     ...(manifest.flashes ?? []).flatMap((flash) => flash.frames),
   ];
-  return [...new Set([manifest.sail.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds, ...plank, ...mast, ...water, ...weather])];
+  return [...new Set([manifest.sail.texture, ...exit, ...clouds, ...plank, ...mast, ...water, ...weather])];
 }
 
 /** The three manifests a pack is read as, and each of its images' path by id. */
@@ -129,11 +112,8 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
   const frames = (behaviour: { frames: { sprites: ReadonlyArray<{ image: string }> } }) => behaviour.frames.sprites.map((sprite) => path(sprite.image));
   const frameSize = (behaviour: { frames: { sprites: ReadonlyArray<{ image: string }> } }) => size(behaviour.frames.sprites[0]!.image);
 
-  // The atlas: the backdrop, the pieces on it, the crew's two lanes, the props.
-  const { stage, cast } = manifest;
-  const atlas = stage.backdrop.sprite.image;
-  const lane = (name: string) =>
-    Object.fromEntries(Object.entries(cast.lanes[name] ?? {}).map(([pose, standing]) => [pose, { frame: [...standing.rect], feet: pair(standing.feet) }])) as DeckArtManifest["crew"]["base"];
+  // The atlas: the backdrop and the pieces on it. Its crew and props are the cast's and the stage's now.
+  const { stage } = manifest;
   const art: DeckArtManifest = {
     ship: { frame: rect(stage.backdrop.sprite) },
     pieces: Object.fromEntries(
@@ -143,8 +123,6 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
           : [],
       ),
     ),
-    crew: { base: lane("base"), outfit: lane("outfit") },
-    props: Object.fromEntries(stage.props.map((prop) => [prop.id, { frame: rect(prop.sprite), feet: pair(prop.feet) }])) as DeckArtManifest["props"],
   };
 
   // The environment: the sky and its stars, the still sea and foam the animated ones fall back to, the gull.
@@ -197,7 +175,6 @@ export function legacyViews(manifest: SettingManifest): LegacyViews {
       position: pair(sail.at),
       frameMs: sailFrames.frameMs,
     },
-    crew: cast.looks.filter((look) => look.image !== atlas).map((look) => ({ id: look.id, texture: path(look.image) })),
     ...(shark === undefined || splash === undefined
       ? {}
       : {

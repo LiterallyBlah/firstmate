@@ -332,7 +332,7 @@ describe("the deck's art", () => {
       state: "working",
       stale: false,
       look: "base",
-      outfit: "base",
+      lane: "base",
       x,
       y: y - 1,
       row: y,
@@ -736,8 +736,9 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
 
     const partial = await packArt(await failing(["sky-dusk", "crew-variants-03-navigator"]), warn, cut);
     expect(partial.environment).toBeNull();
-    expect(partial.extras!.images.has("crew-variants/03-navigator.png")).toBe(false);
-    expect(partial.extras!.images.has("crew-variants/01-bosun.png")).toBe(true);
+    // A look is the cast's: its image is the pack's, by id, and one that did not decode is not handed out.
+    expect(partial.images.has("crew-variants-03-navigator")).toBe(false);
+    expect(partial.images.has("crew-variants-01-bosun")).toBe(true);
     expect(warnings).toEqual([
       "[firstmate] the deck's sky and sea did not load; drawing a plain sea:",
       "[firstmate] the deck's crew-variants/03-navigator.png did not load; drawing without it:",
@@ -1217,7 +1218,7 @@ describe("the sail and the crew's looks, decoded", () => {
     const image = (path: string) => ({ png: images[ids.get(path)!] });
     const cut = (image: unknown, size: readonly [number, number], palette?: readonly string[]) => Promise.resolve([image, size, palette?.[0] ?? "mask"] as const);
     const all = await extrasImages(extras, image, undefined, cut);
-    expect([...all.images.keys()]).toHaveLength(49);
+    expect([...all.images.keys()]).toHaveLength(43);
     // Every cloud cut into its masks, from its own decoded image, at its manifest size; each thunderhead by its own palette.
     expect([...all.cloudMasks!.keys()]).toEqual([
       ...extras.clouds!.sprites.map((cloud) => cloud.texture),
@@ -1226,7 +1227,7 @@ describe("the sail and the crew's looks, decoded", () => {
     expect(all.cloudMasks!.get("clouds/puff.png")).toEqual([{ png: images["clouds-puff"] }, [36, 14], "#A8B9BD"]);
     expect(all.cloudMasks!.get("storm/clouds/puff.png")).toEqual([{ png: images["storm-clouds-puff"] }, [36, 14], "#1D314E"]);
     const missing: string[] = [];
-    const gone = new Set(["crew-variants/03-navigator.png", "clouds/wisp.png", "sails/main-sail.png"]);
+    const gone = new Set(["clouds/wisp.png", "sails/main-sail.png"]);
     const some = await extrasImages(
       extras,
       (path) => (gone.has(path) ? undefined : image(path)),
@@ -1234,8 +1235,8 @@ describe("the sail and the crew's looks, decoded", () => {
       (image, size) => (size[0] === 62 ? Promise.reject(new Error("no canvas")) : cut(image, size)),
     );
     // A cloud that did not arrive or would not cut is left out like any other image.
-    expect(missing.sort()).toEqual(["clouds/cumulus.png", "clouds/wisp.png", "crew-variants/03-navigator.png", "sails/main-sail.png", "storm/clouds/cumulus.png"]);
-    expect([...some.images.keys()]).toHaveLength(46);
+    expect(missing.sort()).toEqual(["clouds/cumulus.png", "clouds/wisp.png", "sails/main-sail.png", "storm/clouds/cumulus.png"]);
+    expect([...some.images.keys()]).toHaveLength(41);
     expect([...some.cloudMasks!.keys()]).toEqual([
       "clouds/puff.png",
       "clouds/long-bank.png",
