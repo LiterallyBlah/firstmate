@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "kind": "ship-deck-tall-sail",
+  "baseCommit": "7f7a00c360975fb09531e7efe69825e811c3aaf8",
+  "coordinateSystem": "Top-left origin; integer hull C logical pixels; nearest-neighbour display; paths relative to this manifest",
+  "reference": {
+    "atlas": "../deck.png",
+    "sha256": "557209a06bb266fa79b09ff985cf9558145b95382d0842bb55717a43980cff9b",
+    "hullSize": [
+      426,
+      161
+    ],
+    "crewHeight": 32,
+    "mastBranch": "fm/deck-mast-art",
+    "mastCommit": "f09fb4ec6f4a9b5bc79493669fdb30636eafccf6",
+    "mastManifest": "../mast/manifest.json (from mast branch)",
+    "originalSail": {
+      "frameSize": [
+        114,
+        27
+      ],
+      "frames": 2,
+      "positionHull": [
+        154,
+        46
+      ],
+      "frameMs": 850
+    },
+    "supersedes": "../assets-2/manifest.json sails.main-sail only; historical manifest describes the original short sail"
+  },
+  "palette": {
+    "source": "All 48 opaque RGB values from deck.png",
+    "colours": [
+      "#0E121E",
+      "#151E2D",
+      "#182B47",
+      "#1A1417",
+      "#1D314E",
+      "#1F3554",
+      "#22395A",
+      "#271E1D",
+      "#2C4869",
+      "#2D2B30",
+      "#31211D",
+      "#3E2921",
+      "#492D22",
+      "#4F3427",
+      "#5D3626",
+      "#613A28",
+      "#624130",
+      "#72412A",
+      "#7E472D",
+      "#7F422B",
+      "#815C43",
+      "#834C2D",
+      "#834D31",
+      "#8B4F2F",
+      "#915230",
+      "#9B5A33",
+      "#9E6139",
+      "#A56235",
+      "#A86636",
+      "#A8693B",
+      "#AD6938",
+      "#AD6D3D",
+      "#B16F3D",
+      "#B57642",
+      "#BB7B44",
+      "#BF854C",
+      "#C17F46",
+      "#C5864B",
+      "#C6884C",
+      "#C7894C",
+      "#C88C50",
+      "#C9894C",
+      "#CD8F50",
+      "#CE9659",
+      "#D39151",
+      "#DCA35B",
+      "#DD9954",
+      "#E8CCA6"
+    ],
+    "usedColours": 38,
+    "alpha": [
+      0,
+      255
+    ],
+    "transparentBackgroundConfirmed": true,
+    "dither": false,
+    "scope": "main-sail.png, rest.png, billow.png, hull-c-frame-0.png, hull-c-frame-1.png, mast-occluder.png. Generated sources are unnormalized provenance, not runtime textures."
+  },
+  "sail": {
+    "texture": "main-sail.png",
+    "size": [
+      228,
+      84
+    ],
+    "frameSize": [
+      114,
+      84
+    ],
+    "frames": [
+      {
+        "id": "rest",
+        "frame": [
+          0,
+          0,
+          114,
+          84
+        ],
+        "image": "rest.png"
+      },
+      {
+        "id": "billow",
+        "frame": [
+          114,
+          0,
+          114,
+          84
+        ],
+        "image": "billow.png"
+      }
+    ],
+    "positionHull": [
+      154,
+      -15
+    ],
+    "localYardPivot": [
+      57,
+      3
+    ],
+    "yardPivotHull": [
+      211,
+      -12
+    ],
+    "yardPivotMastLocal": [
+      24,
+      100
+    ],
+    "mastPositionHull": [
+      187,
+      -112
+    ],
+    "widthUnchanged": true,
+    "heightIncrease": 57,
+    "heightRatioToOriginal": 3.111111111111111,
+    "coverageHullXYWH": [
+      154,
+      -15,
+      114,
+      84
+    ],
+    "lowestPossibleHullY": 68,
+    "occluderOpaqueFromHullY": 73,
+    "clearRowsBeforeOccluder": 4,
+    "yardIncluded": true,
+    "yardAndAttachmentLockedRowsInclusive": [
+      0,
+      7
+    ],
+    "lockedCornerRegionsXYWH": [
+      [
+        0,
+        8,
+        12,
+        76
+      ],
+      [
+        102,
+        8,
+        12,
+        76
+      ]
+    ],
+    "description": "Generated unfurled cream sail and horizontal wooden yard. Same 114-pixel span and center attachment as the short sail. Taller canvas reaches just above the original deck clearance."
+  },
+  "animation": {
+    "frameCount": 2,
+    "sequence": [
+      0,
+      1
+    ],
+    "frameMs": 850,
+    "reducedMotionFrame": 0,
+    "differencePixels": 922,
+    "attachmentMotion": "Inherit ship bob. Keep yard pivot attached to the new mast; no independent sail translation. If mast sway is added later, transform the attached yard with it.",
+    "description": "Subtle lower panel/shadow shift and roughly 2-3px center hem lift; identical generated yard and fixed corner strips."
+  },
+  "overlays": {
+    "images": [
+      "hull-c-frame-0.png",
+      "hull-c-frame-1.png"
+    ],
+    "size": [
+      426,
+      176
+    ],
+    "positionHull": [
+      0,
+      -15
+    ],
+    "sailPositionLocal": [
+      154,
+      0
+    ],
+    "description": "Alternative expanded full-hull-coordinate overlays; draw instead of the strip, never both. Their height/origin differ from old 426x161 overlays to preserve negative-y sail pixels."
+  },
+  "occluder": {
+    "texture": "mast-occluder.png",
+    "size": [
+      19,
+      64
+    ],
+    "positionHull": [
+      202,
+      48
+    ],
+    "baseline": 110,
+    "unchanged": true,
+    "pixelIdenticalTo": "fm/deck-mast-art:art/ship-deck/mast/mast-occluder.png"
+  },
+  "integration": {
+    "requiredAssetDependency": "Tall mast from fm/deck-mast-art; not duplicated in this branch",
+    "metadataToApply": {
+      "texture": "sails/main-sail.png",
+      "frameSize": [
+        114,
+        84
+      ],
+      "frames": 2,
+      "position": [
+        154,
+        -15
+      ],
+      "frameMs": 850
+    },
+    "drawOrder": [
+      "Hull with old baked upper mast/nest/rigging removed",
+      "Tall mast at hull [187,-112]",
+      "Taller sail at hull [154,-15]",
+      "Depth-sorted crew and unchanged lower mast occluder at hull [202,48], baseline 110"
+    ],
+    "bounds": "Allow negative hull y; sail top is -15, mast tip is -110.",
+    "runtimeWiringChanged": false,
+    "warning": "extras.json still describes the old 114x27 short-sail frames. Apply this manifest's frameSize and position when integrating the tall mast; this assets-only branch alone is not a runtime-ready merge."
+  },
+  "provenance": {
+    "tool": "image_gen__imagegen",
+    "mode": "built-in",
+    "backendModel": "Not disclosed",
+    "calls": 2,
+    "generatedDate": "2026-10-15",
+    "promptFile": "prompts.json",
+    "sources": [
+      {
+        "file": "source/generated-rest.png",
+        "size": [
+          1460,
+          1077
+        ],
+        "alpha128BoundsXYWH": [
+          140,
+          148,
+          1182,
+          732
+        ],
+        "sha256": "ee818332b022fbbe1027ef676aa8d23a1003238850f7bb96e354909e1ed4e797"
+      },
+      {
+        "file": "source/generated-billow.png",
+        "size": [
+          1460,
+          1077
+        ],
+        "alpha128BoundsXYWH": [
+          138,
+          146,
+          1186,
+          709
+        ],
+        "sha256": "2b0c7ecbc69b5c0934d359fe9b1684104f95edff83f1436190d3af4f2936f7bd"
+      }
+    ],
+    "normalization": {
+      "implementation": "C# System.Drawing; mechanical cleanup of image-generator artwork, no procedural drawing",
+      "sharedCropXYWH": [
+        140,
+        148,
+        1182,
+        732
+      ],
+      "outputSize": [
+        114,
+        84
+      ],
+      "method": "Each destination pixel samples a floor-bounded source block. Retain if at least half the block has alpha >=128; median opaque RGB per channel; nearest squared-RGB distance to exact deck palette; binary alpha; no dithering.",
+      "registration": "Both sources use frame 0's crop, preserving the generated hem movement. Frame 1 copies frame 0 rows 0..7 and x0..11/x102..113 below them to fix yard and corner ties. Original lower mast occluder remains unchanged.",
+      "scale": "One output pixel equals one hull pixel; 32px standing crew. Never smooth when enlarging."
+    }
+  },
+  "review": {
+    "contact": "contact-4x.png",
+    "fit": "fit-preview-2x.png",
+    "fitSize": [
+      2556,
+      608
+    ],
+    "fitColumns": [
+      "Tall mast + old short sail",
+      "Tall mast + taller rest frame",
+      "Tall mast + taller billow frame"
+    ],
+    "native": [
+      "fit-native-0.png",
+      "fit-native-1.png"
+    ],
+    "nativeSize": [
+      426,
+      304
+    ],
+    "nativeHullOffset": [
+      0,
+      130
+    ],
+    "description": "Static fitting studies only. Old upper rig cleared for comparison, no new long ropes. Same 32px crew and tall mast in every column."
+  },
+  "verification": "verification.json",
+  "verdict": "usable",
+  "limitations": [
+    "Two-frame stylized cloth breathing, not a physically authored sail simulation.",
+    "Median palette normalization leaves some uneven seam/wood clusters at large zoom, consistent with shipped generated assets.",
+    "Tall mast, rope fitting and the frame-size/position metadata must be integrated together; no application install, reload or runtime validation was performed."
+  ]
+}

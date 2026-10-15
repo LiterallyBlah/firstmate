@@ -1,0 +1,105 @@
+﻿{
+    "result":  "pass",
+    "verificationDate":  "2026-10-15",
+    "method":  "Independent PNG reload and exhaustive pixel comparisons using C# System.Drawing",
+    "runtimeAssets":  {
+                          "main-sail.png":  {
+                                                "size":  [
+                                                             228,
+                                                             84
+                                                         ],
+                                                "opaquePixels":  14875,
+                                                "transparentPixels":  4277,
+                                                "partialAlpha":  0,
+                                                "offPalette":  0,
+                                                "coloursUsed":  38,
+                                                "sha256":  "964182d527bb3cebc6f5b797db75bc2153de2dfacd51b809517813faa1686a0c"
+                                            },
+                          "rest.png":  {
+                                           "size":  [
+                                                        114,
+                                                        84
+                                                    ],
+                                           "opaquePixels":  7507,
+                                           "transparentPixels":  2069,
+                                           "partialAlpha":  0,
+                                           "offPalette":  0,
+                                           "coloursUsed":  38,
+                                           "sha256":  "941abc5ee873cf19b850e3ee128489989d76b5ef68847a1c54a3013db1d678b0"
+                                       },
+                          "billow.png":  {
+                                             "size":  [
+                                                          114,
+                                                          84
+                                                      ],
+                                             "opaquePixels":  7368,
+                                             "transparentPixels":  2208,
+                                             "partialAlpha":  0,
+                                             "offPalette":  0,
+                                             "coloursUsed":  38,
+                                             "sha256":  "baa3b8fff7204a3381bd16ee8096d0fac3093a37bb7a2e8c2ef7d269d86f6b2e"
+                                         },
+                          "hull-c-frame-0.png":  {
+                                                     "size":  [
+                                                                  426,
+                                                                  176
+                                                              ],
+                                                     "opaquePixels":  7507,
+                                                     "transparentPixels":  67469,
+                                                     "partialAlpha":  0,
+                                                     "offPalette":  0,
+                                                     "coloursUsed":  38,
+                                                     "sha256":  "519f8cc3366dd1af6c863b35d61434f6d3d708ef0ebf4415c901849214b7ce50"
+                                                 },
+                          "hull-c-frame-1.png":  {
+                                                     "size":  [
+                                                                  426,
+                                                                  176
+                                                              ],
+                                                     "opaquePixels":  7368,
+                                                     "transparentPixels":  67608,
+                                                     "partialAlpha":  0,
+                                                     "offPalette":  0,
+                                                     "coloursUsed":  38,
+                                                     "sha256":  "bd714ad336cef6399b7cd8aedf7a7251da0885cd09a3fc8017b4015b6fbf9f42"
+                                                 },
+                          "mast-occluder.png":  {
+                                                    "size":  [
+                                                                 19,
+                                                                 64
+                                                             ],
+                                                    "opaquePixels":  464,
+                                                    "transparentPixels":  752,
+                                                    "partialAlpha":  0,
+                                                    "offPalette":  0,
+                                                    "coloursUsed":  38,
+                                                    "sha256":  "ef5fbe0c1114f1897f7e20f0a9e4533770300ff75c3fb3541b71a9986c00e190"
+                                                }
+                      },
+    "checks":  {
+                   "frame0MatchesStandalone":  true,
+                   "frame1MatchesStandalone":  true,
+                   "yardAndTopFixed":  true,
+                   "leftCornerRegionFixed":  true,
+                   "rightCornerRegionFixed":  true,
+                   "overlay0Exact":  true,
+                   "overlay1Exact":  true,
+                   "occluderMatchesMastBranch":  true,
+                   "hullAndMastPivotMatchDependency":  true,
+                   "manifestAndSourceHashesValid":  true
+               },
+    "differencePixels":  922,
+    "framePixels":  9576,
+    "differenceFraction":  0.096282372598162067,
+    "sourceSha256":  {
+                         "generated-rest.png":  "ee818332b022fbbe1027ef676aa8d23a1003238850f7bb96e354909e1ed4e797",
+                         "generated-billow.png":  "2b0c7ecbc69b5c0934d359fe9b1684104f95edff83f1436190d3af4f2936f7bd"
+                     },
+    "generationCalls":  2,
+    "visualReview":  [
+                         "Both generated sources",
+                         "4x contact sheet",
+                         "Native composites and 2x tall-mast comparison"
+                     ],
+    "scope":  "Asset checks and static compositing only. No application runtime, install or reload."
+}
