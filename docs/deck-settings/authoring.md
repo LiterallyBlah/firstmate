@@ -17,7 +17,7 @@ or capabilities as incompatible, with a reason. The pane falls back to ship and 
 | --- | --- |
 | Layout and workers | `stage`, `floor`, `zones`, `stable-posts`, `cast`, `pose-fidgets` |
 | Portals and effects | `rise`, `walk-in`, `sink`, `choreography` |
-| Stage motion and light | `bob`, `sway`, `cycle`, `flicker` |
+| Stage motion and light | `phase-tint`, `bob`, `sway`, `cycle`, `flicker` |
 | Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `strip`, `variants` |
 | Time and activity | `day-cycle`, `atmosphere` |
 
@@ -72,9 +72,10 @@ ties in manifest order. Existing holders keep their places. Pose fidgets may nam
 a key without one uses the settled pose, and all use the settled mirror rule. Still/stale workers keep
 their settled role. Every lane must define every named fidget pose.
 
-`walk-in@1` is supported as of step 9b. Phase tint and phase frames still require separate engine PRs.
-Keep choreography finite; do not add hooks to work around a missing behavior. The actual office art and installable pack remain
-pending. The draft contains no placeholder pixels and cannot be selected as an installed pack.
+`walk-in@1` is supported as of step 9b and `phase-tint@1` as of step 9c. Phase frames still require a separate
+engine PR. Keep choreography finite; do not add hooks to work around a missing behavior. The office's commissioned
+art is delivered under `docs/settings/office/art/`; final pack wiring remains pending. The draft cannot be selected
+as an installed pack.
 
 ## Walking entry
 
@@ -101,3 +102,20 @@ card reverses again continuously. First mount and reduced motion place actors di
 without portal effects. Turning reduced motion on discards entry effects and snaps present actors to posts;
 an actor removed at that moment fades at its current position. Lite uses the same walk on its existing
 lower frame budget, and hidden scenes retain their paused simulation clock.
+
+## Phase tint
+
+`stage.tintByPhase` maps day-phase ids to `#RRGGBB` multipliers, for example
+`{ "dusk": "#D8C0B0", "night": "#8C94B0" }`. It requires `phase-tint@1` and a `dayCycle` defining every
+named phase. Omitted phases use white (the original art); an empty map, unknown phase or non-RGB colour is invalid.
+The engine blends each RGB channel with the same eased day blend as the backdrop, rounded to whole bytes.
+It reads the local wall clock, including the midnight wrap; an invalid/throwing clock uses `dayCycle.fallback`.
+
+The tint multiplies the stage backdrop, parts, props, depth pieces, lights and actor bodies in the floor/piece
+layers. A focused body keeps its tint in the spotlight; stale tint multiplies with phase tint. Badges, state marks,
+reply indicators and the focus veil retain their engine colours. Ambience and the separate effects slot keep their
+own colours, including actors that move into that slot. No parent shared with interaction graphics is tinted.
+
+Phase tint is independent of intensity and motion. Full/lite frames read the same wall clock; reduced motion
+refreshes it on the existing minute timer, with no animation loop, bob, weather variants or flash. Hidden scenes
+do not redraw. No extra timer, expression, shader hook or setting-specific branch is needed.
