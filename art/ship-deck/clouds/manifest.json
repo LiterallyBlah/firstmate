@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "count": 5,
+  "pathsRelativeTo": "art/ship-deck/clouds/",
+  "coordinateSystem": "Top-left origin, one texture pixel per deck logical pixel; nearest-neighbour rendering.",
+  "reference": {
+    "baseCommit": "faf516db8d306aa597d00dddb2af7e6afabb2e9a",
+    "palette": "../environment.json#/palette",
+    "deckAtlas": "../deck.png",
+    "hullSize": [
+      426,
+      161
+    ],
+    "crewHeight": 32,
+    "gullFrame": [
+      32,
+      32
+    ],
+    "gullVisibleWidth": [
+      20,
+      23
+    ],
+    "skySize": [
+      512,
+      320
+    ]
+  },
+  "palette": {
+    "colours": [
+      "#A8B9BD",
+      "#BECAC6",
+      "#D9D4BE"
+    ],
+    "roles": [
+      "shadow",
+      "body",
+      "highlight"
+    ],
+    "policy": "Exact subset of the existing 64-colour environment palette. No palette additions. Muted light grey with a pale cream highlight, not pure white."
+  },
+  "alpha": {
+    "type": "binary",
+    "values": [
+      0,
+      255
+    ],
+    "transparentBackgroundConfirmed": true,
+    "transparentRgb": [
+      0,
+      0,
+      0
+    ],
+    "minimumTransparentPadding": 2
+  },
+  "assets": [
+    {
+      "id": "wisp",
+      "path": "wisp.png",
+      "size": [
+        44,
+        12
+      ],
+      "sha256": "07b8f2326843536f117abb77a547872c878f9e3140cefd037d6d95ad85303d6b",
+      "visibleWidthTarget": 40,
+      "anchor": "top-left",
+      "verdict": "usable",
+      "review": "Tiny two-lobed wisp; thin trailing end is intentionally only one logical pixel high.",
+      "source": 1
+    },
+    {
+      "id": "puff",
+      "path": "puff.png",
+      "size": [
+        36,
+        14
+      ],
+      "sha256": "28153ccb6c225f9732c7821018da1176735c208c2e375634bad229453543aae5",
+      "visibleWidthTarget": 32,
+      "anchor": "top-left",
+      "verdict": "usable",
+      "review": "Small rising puff; three lobes simplify at this scale but retain a distinct silhouette.",
+      "source": 2
+    },
+    {
+      "id": "cumulus",
+      "path": "cumulus.png",
+      "size": [
+        62,
+        21
+      ],
+      "sha256": "84a839fe34166f5aa31e73cbad9fb1e1593dd1dd1bdfc643579ecad2a78b1aa0",
+      "visibleWidthTarget": 58,
+      "anchor": "top-left",
+      "verdict": "usable",
+      "review": "Medium central dome; broad tonal clusters read at native size.",
+      "source": 3
+    },
+    {
+      "id": "long-bank",
+      "path": "long-bank.png",
+      "size": [
+        92,
+        25
+      ],
+      "sha256": "e80da50cd48312f7fa0ef619613a39f1c8c6e7b90d5dbd7dcf418bcda13e4958",
+      "visibleWidthTarget": 88,
+      "anchor": "top-left",
+      "verdict": "usable",
+      "review": "Broad low bank; stepped underside and uneven lobes are usable for slow background drift.",
+      "source": 4
+    },
+    {
+      "id": "twin-bank",
+      "path": "twin-bank.png",
+      "size": [
+        80,
+        24
+      ],
+      "sha256": "879a02ddc7753f41bea5356286fd1dd788130036f034ba5b7bde8a438e18a462",
+      "visibleWidthTarget": 76,
+      "anchor": "top-left",
+      "verdict": "usable",
+      "review": "Twin bank with deep saddle; elongated flat base is visible at enlarged review scale, acceptable as a small background sprite.",
+      "source": 5
+    }
+  ],
+  "tint": {
+    "preferred": "Palette replacement preserving alpha, with input slots [shadow, body, highlight]. Maps below use only existing environment colours; no additional PNG variants needed.",
+    "stagePalettes": {
+      "dawn": [
+        "#927F8B",
+        "#C7987D",
+        "#DFBB96"
+      ],
+      "morning": [
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "midday": [
+        "#A8B9BD",
+        "#BECAC6",
+        "#D9D4BE"
+      ],
+      "afternoon": [
+        "#BECAC6",
+        "#D9D4BE",
+        "#F1DEC0"
+      ],
+      "dusk": [
+        "#536E87",
+        "#7C7183",
+        "#B38B88"
+      ],
+      "night": [
+        "#1D314E",
+        "#2C4869",
+        "#45617A"
+      ]
+    },
+    "transition": "Use the same from/to/t as client/deck-sky.ts skyBlend (the 90-minute eased fade before each anchor). Interpolate each mapped RGB slot once or crossfade registered tint variants. Intermediate RGB may be outside the fixed palette, as with the existing sky blend.",
+    "alternative": "A multiplicative sprite tint can dim/warm the neutral source while preserving shading, but will not reproduce these exact maps. Do not flatten to one silhouette colour.",
+    "opacity": 1
+  },
+  "drift": {
+    "layer": "Above sky and stars, behind gull, sea, ship and crew.",
+    "placement": "Upper sky, approximately rows 20-110 in the 512x320 sky source; keep cloud bottoms above source row 150. Follow the sky transform rather than stretching to viewport width.",
+    "pixelsPerSecond": [
+      0.3,
+      0.45,
+      0.35,
+      0.55,
+      0.4
+    ],
+    "units": "sky logical pixels per second",
+    "direction": "right",
+    "wrap": "Individual transparent sprites, not continuous edge-to-edge tiles. Keep a 32px offscreen margin; wrap each sprite only after its entire alpha bounds leave the visible sky. Period = visible width + sprite canvas width + 64. x = visibleLeft - spriteWidth - 32 + positiveModulo(seed + floor(seconds * speed), period). Give each cloud a different seed and height; keep dimensions and height stable on wrap.",
+    "sampling": "Nearest-neighbour, no mipmaps, integer logical positions. Use the same overall sky transform as other environment art.",
+    "reducedMotion": "Freeze cloud positions in still/lite modes; retain time-of-day colour updates."
+  },
+  "provenance": "provenance.json",
+  "verification": "verification.json",
+  "previews": [
+    "review/contact-3x.png",
+    "review/six-stages.png"
+  ],
+  "previewCaveat": "Static asset composites, not a running plugin test. The existing environment preview's gull remains visible at dusk/night although live code hides it; cloud layering does not change that preview."
+}
