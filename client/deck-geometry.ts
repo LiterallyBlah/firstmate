@@ -1,7 +1,7 @@
 /**
  * Where a sailor can stand and walk on hull C, and how it gets from one place to another. Pure.
  *
- * Everything is in the deck's own coordinates (`art/ship-deck/deck.json`'s ship frame, 426 × 161) and
+ * Everything is in the deck's own coordinates (the ship pack's backdrop, 426 × 161) and
  * is a sailor's **feet**: the row a sailor's feet are on is also its depth (`client/deck-scene.ts`).
  *
  * - **The walkable deck** is three polygons read off the atlas: the main deck from the bow to the foot

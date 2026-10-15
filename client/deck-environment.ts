@@ -30,7 +30,7 @@
  * greyer over the sky and the clouds. Without it, the art's own timing at the scene's clock.
  *
  * **The weather layers** (`client/deck-variants.ts`, `client/deck-flash.ts`) follow the weather's intensity, each
- * along its own curve from `extras.json`, and none is drawn while it is at nothing or on a still deck:
+ * along its own curve from the setting pack, and none is drawn while it is at nothing or on a still deck:
  *
  * - a **variant** over the sea (`sea:far:<id>`, `sea:near:<id>` over each band), the foam (`foam:<id>`), the wake
  *   (`wake:<id>`), a cycle or a cloud (its own three masks in the cloud's container), on that element's own frame,
@@ -47,7 +47,7 @@
  * Every texture is cut from its own image once, except the foam's crops, which are made as the scroll
  * first reaches them and kept: at most a few hundred small objects on twenty images' sources.
  */
-import { environmentImagePaths, GULL_POSES, type DeckEnvironmentManifest, type GullPose } from "../shared/ship-deck";
+import { environmentImagePaths, GULL_POSES, type DeckEnvironmentManifest, type GullPose } from "./deck-legacy";
 import { gullsAt, HORIZON, SEA_FALLBACK, WATERLINE, type MotionPlan } from "./deck-ambient";
 import { deliveredWeather, moodTint, shade, type Weather } from "./deck-atmosphere";
 import { cloudColours, cloudField, cloudX, variantPalette, type CloudImages } from "./deck-clouds";
@@ -81,7 +81,7 @@ export interface VisibleWorld {
 
 /** Where the foam runs: the hull's width where it meets the water, and a few pixels of wake past each end. */
 export const FOAM_SPAN = { left: 68, right: 392 } as const;
-/** The foam strip's height, as `environment.json` lists its file: transparent above and below the foam, never repeated down. */
+/** The still foam strip's height, as the ship pack declares its image: transparent above and below the foam, never repeated down. */
 export const FOAM_HEIGHT = 16;
 /** The foam strip's top row: its densest rows, 6 to 10, lie on the waterline and just below it. */
 export const FOAM_TOP = WATERLINE - 6;

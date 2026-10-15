@@ -24,8 +24,8 @@
  * when the pointer is over it (`sailorCaption`). Where it stands, and its walk there, are
  * `client/deck-crew.ts`'s.
  *
- * **Coordinates are the art's.** The deck is the hull's own logical pixels (`art/ship-deck/deck.json`'s
- * ship frame, 426 × 161): the bow on the left, the quarterdeck and helm on the right. A sailor's `x, y`
+ * **Coordinates are the art's.** The deck is the hull's own logical pixels (the ship pack's
+ * backdrop, 426 × 161): the bow on the left, the quarterdeck and helm on the right. A sailor's `x, y`
  * is where its feet are. **Depth is the deck row**: `depthOf` orders props, sailors and the hull's own
  * depth pieces (the mast, bollards, the near rail) by the row each stands on, every frame, so a sailor
  * walking behind the mast is hidden by it and one passing in front of it covers it.
@@ -33,7 +33,7 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 
 import type { FleetCard } from "../shared/fleet";
-import type { DeckArtManifest, DeckPropName } from "../shared/ship-deck";
+import type { DeckArtManifest, DeckPropName } from "./deck-legacy";
 import type { Figure } from "./deck-crew";
 import type { DeckDeparture } from "./deck-plank";
 import { cardHeadline } from "./format";

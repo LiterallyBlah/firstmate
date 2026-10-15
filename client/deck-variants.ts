@@ -1,11 +1,11 @@
 /**
- * The deck's weather layers (`extras.json`'s `variants`, `cycles` and `mood`, served by `firstmate.deck.extras`), as
+ * The deck's weather layers (the setting pack's `variants`, `cycle`s and sky `overlay`s, served by `firstmate.deck.setting`), as
  * pure functions: a curve's value at an intensity, and which layers can be drawn over what. The sprites are
  * `client/deck-environment.ts`'s; the moments of weather — lightning — are `client/deck-flash.ts`'s.
  *
  * Nothing here is about a storm. A setting's weather is data: each layer names what it lays over and an `opacity`
  * curve over the weather's intensity (`client/deck-atmosphere.ts`), and this draws whatever the data says. The heavy
- * weather (`art/ship-deck/storm/`) is the first such set: a rough sea over the sea, a heavy wake over the wake,
+ * weather (`art/settings/ship/storm/`) is the first such set: a rough sea over the sea, a heavy wake over the wake,
  * thunderheads over the clouds, an overcast in the sky's mood, and spindrift at the bow.
  *
  * - **A variant rides its element's clock.** It is a second set of frames over a scene element — the animated water's
@@ -18,7 +18,7 @@
  * - **Never under reduced motion.** The scenery is handed no intensity on a still deck (`Weather.intensity`), and draws
  *   none of these. On a software renderer they show, each on its element's first frame, at their opacity.
  */
-import type { DeckExtrasManifest } from "../shared/ship-deck";
+import type { DeckExtrasManifest } from "./deck-legacy";
 import type { DeckExtrasImages } from "./deck-extras";
 import type { DrawnWater } from "./deck-water";
 

@@ -8,7 +8,6 @@ import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { DeckArtManifestSchema } from "../shared/ship-deck";
 import {
   boxMiddle,
   cameraFit,
@@ -31,8 +30,9 @@ import { inRestArea } from "./deck-geometry";
 import { figureBox, sailorAt, toCanvas, toDeck } from "./deck-hover";
 import { fitDeck } from "./deck-pixi";
 import { DECK_HEIGHT, DECK_WIDTH, type DeckSailor, type DeckState } from "./deck-scene";
+import { shipViews } from "../test/ship-pack";
 
-const manifest = DeckArtManifestSchema.parse(JSON.parse(readFileSync(new URL("../art/ship-deck/deck.json", import.meta.url), "utf8")));
+const manifest = shipViews().art;
 const deck = { width: DECK_WIDTH, height: DECK_HEIGHT };
 const still = { x: 0, y: 0 };
 

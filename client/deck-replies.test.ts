@@ -8,7 +8,6 @@ import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import type { FleetCard, Suggestion } from "../shared/fleet";
-import { DeckArtManifestSchema } from "../shared/ship-deck";
 import { ASK_GLYPH, ASK_LIFT_MS, ASK_SIZE, BADGE_GLYPHS, BADGE_SIZE, askFramePixels, askLift, askPixels } from "./deck-badges";
 import { PLACES, applyCrew, createCrew, crewFigures, type Figure } from "./deck-crew";
 import { anchorsAt, REST_SPACING } from "./deck-geometry";
@@ -25,8 +24,9 @@ import {
   replyBlockedText,
 } from "./deck-replies";
 import type { DeckSailor, DeckState } from "./deck-scene";
+import { shipViews } from "../test/ship-pack";
 
-const manifest = DeckArtManifestSchema.parse(JSON.parse(readFileSync(new URL("../art/ship-deck/deck.json", import.meta.url), "utf8")));
+const manifest = shipViews().art;
 
 function card(key: string, extra: Partial<FleetCard> = {}): FleetCard {
   return {

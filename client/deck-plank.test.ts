@@ -8,7 +8,6 @@ import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
-import { DeckArtManifestSchema, DeckExtrasManifestSchema } from "../shared/ship-deck";
 import { WATERLINE } from "./deck-ambient";
 import {
   FADE_MS,
@@ -43,12 +42,13 @@ import {
   type PlankMoment,
 } from "./deck-plank";
 import type { DeckSailor, DeckState } from "./deck-scene";
+import { shipFile, shipViews } from "../test/ship-pack";
 
-const art = (path: string) => new URL(`../art/ship-deck/${path}`, import.meta.url);
+const art = (path: string) => shipFile(path);
 /** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */
 const sources = (path: string) => new URL(`../docs/ship-deck-art/${path}`, import.meta.url);
-const manifest = DeckArtManifestSchema.parse(JSON.parse(readFileSync(art("deck.json"), "utf8")));
-const extras = DeckExtrasManifestSchema.parse(JSON.parse(readFileSync(art("extras.json"), "utf8")));
+const manifest = shipViews().art;
+const extras = shipViews().extras;
 
 /** Enough of PNG for the art here (8-bit RGBA, not interlaced): each pixel as 0xRRGGBB and its alpha. */
 function decodePng(file: Buffer): { width: number; height: number; at: (x: number, y: number) => { rgb: number; alpha: number } } {

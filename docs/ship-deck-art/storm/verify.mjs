@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const {PNG}=require('../../../.local/storm-tools/node_modules/pngjs');
-const root='art/ship-deck/storm',docs='docs/ship-deck-art/storm';
-const env=JSON.parse(fs.readFileSync('art/ship-deck/environment.json','utf8'));
+const root='art/settings/ship/storm',docs='docs/ship-deck-art/storm';
+const env=JSON.parse(fs.readFileSync('docs/ship-deck-art/legacy/environment.json','utf8'));
 const palette=[...env.palette.deckColours,...env.palette.environmentExtension];
 const manifest=JSON.parse(fs.readFileSync(`${docs}/manifest.json`,'utf8'));
 const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
@@ -34,7 +34,7 @@ for(const group of manifest.assets){
     if(group.tileAxes?.includes('y'))assert(yEqual,file+' vertical repeat seam');
     if(group.alpha==='binary')assert(x0>=2&&y0>=2&&x1<p.width-2&&y1<p.height-2,file+' clear border');
     let calmDimensionsMatch=null;
-    if(group.calmFrames){const calm=read('art/ship-deck/'+group.calmFrames[group.frames.indexOf(file)]);assert.equal(calm.width,p.width);assert.equal(calm.height,p.height);calmDimensionsMatch=true;}
+    if(group.calmFrames){const calm=read('art/settings/ship/'+group.calmFrames[group.frames.indexOf(file)]);assert.equal(calm.width,p.width);assert.equal(calm.height,p.height);calmDimensionsMatch=true;}
     reports.push({path:file,size:[p.width,p.height],bytes:fs.statSync(full).size,sha256:hash(full),paletteExact:true,colours:[...colors].sort(),alpha:[...alphas].sort((a,b)=>a-b),transparentPixels:transparent,transparentRgbZero:true,visibleBounds:[x0,y0,x1+1,y1+1],oppositeColumnsEqual:xEqual,oppositeRowsEqual:yEqual,calmDimensionsMatch});
   }
   framesById.set(group.id,frames);
@@ -56,6 +56,6 @@ assert.deepEqual(actual,reports.map(r=>r.path).sort(),'Only declared runtime fra
 const prov=JSON.parse(fs.readFileSync(`${docs}/provenance.json`,'utf8'));
 for(const src of prov.sourceImages)assert.equal(hash(`${docs}/${src.path}`),src.sha256);
 const wakeAnchors=framesById.get('heavy-wake').map(p=>p.data[(8*p.width+8)*4+3]);assert(wakeAnchors.every(a=>a===255),'stern anchor is inside all heavy wake frames');
-const summary={passed:true,runtimePngCount:reports.length,runtimePngBytes:reports.reduce((s,r)=>s+r.bytes,0),paletteSource:'art/ship-deck/environment.json',paletteSize:palette.length,wakeAnchorOpaqueAllFrames:true,sourceHashesVerified:prov.sourceImages.length,checks:['exact dimensions and matching calm canvases','exact palette membership','binary/opaque alpha','zero transparent RGB','two-pixel transparent sprite border','sea opposing rows and columns equal','distinct cyclic phases including last-to-first','declared runtime files only','generated source hashes','opaque stern anchor'],assets:reports,transitions,visualReview:{staticContact:true,seaRepeat2x2:true,calmBlendStorm:true,allFourCompositePhases:true,runtimePluginTest:false,notes:'Generated sea/wake key poses morph; numeric edge equality does not establish fluid continuity. Visual repeat/composite inspection complements it.'}};
+const summary={passed:true,runtimePngCount:reports.length,runtimePngBytes:reports.reduce((s,r)=>s+r.bytes,0),paletteSource:'docs/ship-deck-art/legacy/environment.json',paletteSize:palette.length,wakeAnchorOpaqueAllFrames:true,sourceHashesVerified:prov.sourceImages.length,checks:['exact dimensions and matching calm canvases','exact palette membership','binary/opaque alpha','zero transparent RGB','two-pixel transparent sprite border','sea opposing rows and columns equal','distinct cyclic phases including last-to-first','declared runtime files only','generated source hashes','opaque stern anchor'],assets:reports,transitions,visualReview:{staticContact:true,seaRepeat2x2:true,calmBlendStorm:true,allFourCompositePhases:true,runtimePluginTest:false,notes:'Generated sea/wake key poses morph; numeric edge equality does not establish fluid continuity. Visual repeat/composite inspection complements it.'}};
 fs.writeFileSync(`${docs}/verification.json`,JSON.stringify(summary,null,2)+'\n');
 console.log(JSON.stringify({passed:true,runtimePngCount:summary.runtimePngCount,runtimePngBytes:summary.runtimePngBytes,transitions},null,2));

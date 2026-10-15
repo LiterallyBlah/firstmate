@@ -22,7 +22,7 @@
  * - **The top end can be a storm, in data.** The scenery is handed the eased intensity itself (`Weather.intensity`),
  *   and the extras' weather layers — variants over the sea, wake and clouds, cycles, the sky's mood overlays, flashes —
  *   each fade in along their own curve over it (`client/deck-variants.ts`, `client/deck-flash.ts`). Their thresholds
- *   are in `art/ship-deck/extras.json`, beside the art, not here; this table only paces and sizes the calm scene.
+ *   are in the setting pack (`art/settings/ship/setting.json`), beside the art, not here; this table only paces and sizes the calm scene.
  */
 import { advanceWater, type WaterClock, type WaterMotion } from "./deck-water";
 import type { DeckSailor, DeckState } from "./deck-scene";
@@ -57,7 +57,7 @@ export interface AtmosphereParams {
 /**
  * The weather at a few intensities, lowest first, interpolated between — the one place to tune it. Idle is
  * glassy: slower than the art's own timing, a short wake. Two crewmates working is the art as delivered. A busy fleet is spirited: a quick choppy sea, a fresh breeze, the sail snapping, a full wake and
- * a slightly moodier sky. Energetic, never a storm on its own: the heavy weather over the top end is `extras.json`'s.
+ * a slightly moodier sky. Energetic, never a storm on its own: the heavy weather over the top end is the setting pack's.
  */
 export const ATMOSPHERE: ReadonlyArray<{ at: number } & AtmosphereParams> = [
   { at: 0, water: { pace: 0.5, drift: 0.5 }, wind: 0.5, sail: 0.55, billow: 0.4, swell: 0.8, heave: 1, wake: 0.55, mood: 0 },

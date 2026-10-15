@@ -1,0 +1,89 @@
+/**
+ * The setting format's own rules, on the ship's manifest and copies of it broken one way at a time: everything a
+ * manifest names must be there, `requires` must say what it uses, and an engine that lacks a capability or the
+ * format says so rather than drawing half of it.
+ */
+import { describe, expect, it } from "vitest";
+
+import {
+  ENGINE_CAPABILITIES,
+  ENGINE_FORMAT_VERSION,
+  SettingManifestSchema,
+  capabilitiesUsed,
+  incompatibility,
+  settingImageIds,
+  settingProblems,
+  type SettingManifest,
+} from "./deck-setting";
+import { loadDeckSetting } from "./deck-rpc";
+import { shipImages, shipManifest } from "../test/ship-pack";
+
+/** A copy of the ship's manifest, changed. */
+function broken(change: (manifest: SettingManifest) => void): SettingManifest {
+  const copy = structuredClone(shipManifest());
+  change(copy);
+  return copy;
+}
+
+describe("a setting manifest", () => {
+  it("is whole for the ship: nothing it names is missing, and it needs exactly what it uses", () => {
+    expect(settingProblems(shipManifest())).toEqual([]);
+    expect(capabilitiesUsed(shipManifest())).toEqual(shipManifest().requires);
+    // The ship uses every behaviour the engine has: it is the setting they were made for.
+    expect(capabilitiesUsed(shipManifest())).toEqual([...ENGINE_CAPABILITIES]);
+  });
+
+  it("names every image it draws with once, the backdrop first", () => {
+    const ids = settingImageIds(shipManifest());
+    expect(ids[0]).toBe("deck");
+    expect(new Set(ids).size).toBe(ids.length);
+    expect([...ids].sort()).toEqual(Object.keys(shipManifest().images).sort());
+  });
+
+  it("is refused when it names what it does not have", () => {
+    const cases: Array<[string, (manifest: SettingManifest) => void, string]> = [
+      ["an image", (manifest) => delete manifest.images["sky-dusk"], 'image "sky-dusk"'],
+      ["a pose", (manifest) => (manifest.cast.roles.stand = "cartwheel"), 'pose "cartwheel"'],
+      ["a zone", (manifest) => (manifest.zones.byState.idle = "hammock"), 'zone "hammock"'],
+      ["an exit", (manifest) => (manifest.portals.byDeparture.done = "lift"), 'exit "lift"'],
+      ["a mark", (manifest) => delete (manifest.portals.exits.plank as { marks: Record<string, unknown> }).marks.tip, 'mark "tip"'],
+      ["an effect", (manifest) => delete manifest.effects.shark, 'effect "shark"'],
+      ["a clock", (manifest) => delete manifest.atmosphere!.clocks.wind, 'clock "wind"'],
+      ["a day phase", (manifest) => (manifest.dayCycle!.night = "midnight"), 'day phase "midnight"'],
+      ["a fallback", (manifest) => (manifest.ambience.find((element) => element.id === "sea")!.fallback = "puddle"), 'element "puddle"'],
+      ["a piece", (manifest) => (manifest.stage.parts[0]!.replacesPiece!.piece = "bowsprit"), 'piece "bowsprit"'],
+    ];
+    for (const [what, change, says] of cases) {
+      const problems = settingProblems(broken(change));
+      expect(problems.some((problem) => problem.includes(says)), `${what}: ${problems.join("; ")}`).toBe(true);
+      expect(SettingManifestSchema.safeParse(broken(change)).success, what).toBe(false);
+    }
+  });
+
+  it("is refused when its words leave a zone out, or two things share an id", () => {
+    expect(settingProblems(broken((manifest) => delete manifest.copy.zones.rest))).toContain('copy.zones has no words for zone "rest"');
+    expect(settingProblems(broken((manifest) => manifest.stage.pieces.push(manifest.stage.pieces[0]!)))).toContain('two pieces are called "near"');
+  });
+
+  it("is refused when `requires` does not say what it uses, either way", () => {
+    expect(settingProblems(broken((manifest) => manifest.requires.pop()))[0]).toMatch(/^requires says/);
+    expect(settingProblems(broken((manifest) => manifest.ambience.splice(manifest.ambience.findIndex((element) => element.id === "gull"), 1)))[0]).toMatch(/flyby@1/);
+  });
+
+  it("travels as `firstmate.deck.setting` sends it", () => {
+    const payload = { manifest: shipManifest(), images: shipImages() };
+    expect(loadDeckSetting.output.parse(payload)).toEqual(payload);
+  });
+});
+
+describe("whether this engine can draw a setting", () => {
+  it("can draw one in its format that needs only what it has", () => {
+    expect(incompatibility({ formatVersion: ENGINE_FORMAT_VERSION, requires: [...ENGINE_CAPABILITIES] })).toBeNull();
+    expect(incompatibility({ formatVersion: 1, requires: ["stage@1"] })).toBeNull();
+  });
+
+  it("says why not for a newer format, or a behaviour it does not have", () => {
+    expect(incompatibility({ formatVersion: ENGINE_FORMAT_VERSION + 1, requires: [] })).toBe(`it is format ${ENGINE_FORMAT_VERSION + 1}; this FirstMate draws format ${ENGINE_FORMAT_VERSION}`);
+    expect(incompatibility({ formatVersion: 1, requires: ["stage@1", "walkers@1", "drifters@2"] })).toBe("it needs walkers@1, drifters@2, which this FirstMate does not have");
+  });
+});
