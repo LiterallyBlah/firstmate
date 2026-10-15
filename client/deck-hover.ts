@@ -9,6 +9,10 @@
  *
  * A sailor is hit by the box its sprite is drawn in this frame, its badge above it included, and the
  * frontmost wins: the same order the deck draws in, so the sailor you see is the sailor you get.
+ *
+ * A resting sailor's label hangs under the near rail rather than over its head (`REST_LABEL_ROW`): the
+ * rest areas pack sleepers close, and a label over one would cover the others' badges and the crew at
+ * work beside them.
  */
 import type { DeckArtManifest } from "../shared/ship-deck";
 import { BADGE_GAP, BADGE_SIZE } from "./deck-badges";
@@ -47,6 +51,11 @@ export interface DeckHover {
   /** The canvas's size, for placing the label inside it. */
   width: number;
   height: number;
+  /**
+   * For a sailor at rest, the canvas row its label may hang from instead: just under the near rail
+   * (`REST_LABEL_ROW`), where no sailor ever stands, so the label covers no one. Null for the others.
+   */
+  floor: number | null;
 }
 
 /** Where a sailor's badge goes: its top, in deck pixels from the feet's row, for a sprite drawn at `figure`. */
@@ -110,7 +119,8 @@ export function hoverOf(figure: Figure, manifest: DeckArtManifest, fit: DeckFit,
   const box = figureBox(figure, manifest);
   const top = toCanvas({ x: figure.x, y: box?.top ?? figure.y }, fit, bob);
   const feet = toCanvas({ x: figure.x, y: figure.row }, fit, bob);
-  return { key: figure.key, x: top.x, top: top.y, bottom: feet.y, width: canvas.width, height: canvas.height };
+  const floor = figure.state === "idle" ? toCanvas({ x: figure.x, y: REST_LABEL_ROW }, fit, bob).y : null;
+  return { key: figure.key, x: top.x, top: top.y, bottom: feet.y, width: canvas.width, height: canvas.height, floor };
 }
 
 /**
@@ -120,7 +130,13 @@ export function hoverOf(figure: Figure, manifest: DeckArtManifest, fit: DeckFit,
 export function hoverChanged(previous: DeckHover | null, next: DeckHover | null): boolean {
   if (previous === null || next === null) return previous !== next;
   if (previous.key !== next.key || previous.width !== next.width || previous.height !== next.height) return true;
-  return Math.abs(previous.x - next.x) > 2 || Math.abs(previous.top - next.top) > 2 || Math.abs(previous.bottom - next.bottom) > 2;
+  if ((previous.floor === null) !== (next.floor === null)) return true;
+  return (
+    Math.abs(previous.x - next.x) > 2 ||
+    Math.abs(previous.top - next.top) > 2 ||
+    Math.abs(previous.bottom - next.bottom) > 2 ||
+    Math.abs((previous.floor ?? 0) - (next.floor ?? 0)) > 2
+  );
 }
 
 /** The label's widest, and the room it keeps from the canvas's edges and from the sailor. */
@@ -131,13 +147,25 @@ export const LABEL_GAP = 6;
 export const LABEL_ROOM = 120;
 
 /**
- * Where the label sits on the canvas: above the sailor's badge when there is room, else below its feet;
- * centred on it across, but never past the canvas's edges. Given as `bottom` above, so its height need
- * not be measured.
+ * The deck row a resting sailor's label hangs from: a row under the near rail's top along the rest
+ * areas and under every sailor's feet (the walkable deck ends at row 119), so a label hung there covers
+ * the hull's side and nothing on deck — not the sleepers packed round the one hovered, not the crew at
+ * work beside them, not the sail, the mast or another sailor's badge.
+ */
+export const REST_LABEL_ROW = 122;
+
+/**
+ * Where the label sits on the canvas: for a sailor at rest, under the near rail when the canvas has room
+ * for it there; otherwise above the sailor's badge when there is room, else below its feet. Centred on
+ * the sailor across, but never past the canvas's edges. Given as `bottom` above, so its height need not
+ * be measured.
  */
 export function labelPlacement(hover: DeckHover): { left: number; width: number; top?: number; bottom?: number } {
   const width = Math.max(120, Math.min(LABEL_WIDTH, hover.width - LABEL_MARGIN * 2));
   const left = Math.round(Math.max(LABEL_MARGIN, Math.min(hover.x - width / 2, hover.width - width - LABEL_MARGIN)));
+  if (hover.floor !== null && hover.height - hover.floor - LABEL_GAP - LABEL_MARGIN >= LABEL_ROOM) {
+    return { left, width, top: Math.round(hover.floor + LABEL_GAP) };
+  }
   if (hover.top >= LABEL_ROOM) return { left, width, bottom: Math.round(hover.height - hover.top + LABEL_GAP) };
   return { left, width, top: Math.round(hover.bottom + LABEL_GAP) };
 }

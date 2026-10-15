@@ -1,0 +1,51 @@
+{
+  "note": "The earlier harnesses run on this branch (after node docs/ship-deck-canvas/compile.mjs). Their own screenshots and results were left as committed.",
+  "tweaks": {
+    "passed": true,
+    "still": {
+      "artPixelsCompared": 31549,
+      "matching": 31549,
+      "sailStillFrames": 1
+    },
+    "motion": {
+      "motion": "full",
+      "sailStates": 12,
+      "wakeStates": 12,
+      "drawsInASecond": 31
+    },
+    "breathingSailors": 2,
+    "breathAllSettleWithFeetStill": true,
+    "errors": []
+  },
+  "polish": {
+    "passed": true,
+    "errors": [],
+    "hover": {
+      "sailors": 12,
+      "labelledAsThemselves": 11,
+      "missed": [
+        "work-2 found work-1: two working neighbours at the mast"
+      ],
+      "asCommittedBeforeThisChange": {
+        "labelledAsThemselves": 9,
+        "missed": [
+          "work-0 found idle-1",
+          "work-1 found idle-2",
+          "work-2 found work-1"
+        ]
+      }
+    }
+  },
+  "environment": {
+    "passed": true,
+    "errors": []
+  },
+  "default": {
+    "passed": false,
+    "why": "Its first step asserts the screen is main's but for the Deck segment, written when origin/main still had the FIRSTMATE_SHIP_DECK switch; main now has the segment too. It stops there, before any deck is drawn."
+  },
+  "motion": {
+    "passed": false,
+    "why": "Its first step asserts no Deck button with the switch off, which the de-flag removed. It stops there; the still-deck pixel comparison it would make next is also the tweaks harness's, which passes."
+  }
+}

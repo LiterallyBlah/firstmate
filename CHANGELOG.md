@@ -10,6 +10,15 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- Idle crew go off watch on the ship deck. An idle or parked crewmate walks off the working deck to a rest
+  area — the foredeck by the hatch, and past six sleepers the foot of the quarterdeck stairs — and dozes there
+  with its z, instead of standing at the near rail in front of the crew at work. Given work, it walks back
+  to a station. The rest spots fill in a set order so a crowd stays tidy, every sleeper's badge stays in
+  sight and under the pointer, and none stands over a working, waiting or blocked sailor. A sleeper's hover
+  label hangs below the deck's rail instead of over its head, so it covers neither the other sleepers nor
+  the crew at work; on a canvas too short for that it goes where any label goes. The legend reads "resting
+  off watch".
+
 - The ship deck is a standard part of FirstMate, no longer a preview behind `FIRSTMATE_SHIP_DECK`. In the
   desktop app's wide layout the header's Crew/Files switch always has **Deck**; a phone or a narrow window is
   not offered it, and a display without WebGL is told in words why it cannot draw. The switch is gone and
