@@ -29,6 +29,8 @@
  *   scrolling repeat into a few sprites a frame, so it never runs out past the span.
  * - **A cycle** (`cycle@1`, the wake and the spindrift) — one sprite, its anchor on its point, its frames in turn, its
  *   opacity its level (the wake's the weather's wake channel, the spindrift's a curve over intensity).
+ * - **Phase frames** (`phase-frames@1`) — one anchored sprite selected by the local hour or minute, modulo its
+ *   frame count. Independent of simulation time and intensity; held at frame zero or hidden in reduced motion.
  *
  * Each runs, holds still (its first frame, no drift) or is not drawn as its element says for a software renderer and
  * reduced motion (`elementMotion`). A tile, strip or cycle has its **variants** over it (`client/deck-variants.ts`):
@@ -53,6 +55,7 @@ import { flybyPose, flybysAt, type MotionPlan } from "./deck-ambient";
 import { clockOf, deliveredWeather, levelAt, shade, tintToward, type DeckAtmosphere, type Weather } from "./deck-atmosphere";
 import { cloudColours, cloudField, cloudX, hexColour, variantPalette, type DrifterMasks } from "./deck-clouds";
 import { flashAt, flashSalt, underCloud } from "./deck-flash";
+import { phaseFrameAt } from "./deck-phase-frames";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
 import { backdropPlacement, dayBlend, dominantPhase, NO_DAY, scrollOffset, type DayBlend, type Placement } from "./deck-sky";
 import { cycleFrame, curvePeak, opacityAt, variantBlend, type Variant } from "./deck-variants";
@@ -290,6 +293,17 @@ function ambienceLayers(
     return { element, poses, sprites };
   });
 
+  // Wall-clock frames: one anchored sprite, with no simulation clock, interpolation or intensity binding.
+  const phaseFrames = elementsOf(ambience, "phase-frames").map(function (element) {
+    const { behaviour } = element;
+    const frames = behaviour.frames.map((frame) => spriteTexture(cut, frame, ambience.sizes));
+    const sprite = new pixi.Sprite(frames[0]!);
+    sprite.label = element.place;
+    sprite.position.set(behaviour.at[0] - behaviour.anchor[0], behaviour.at[1] - behaviour.anchor[1]);
+    views.set(element.id, own(element, [sprite]));
+    return { element, frames, sprite };
+  });
+
   // The water: tiles, strips and cycles, each its own layer; a tile with nothing to draw it, filled flat.
   const placedLayer = <Layer extends SlotViews>(id: string, layer: Layer) => {
     views.set(id, layer);
@@ -389,6 +403,11 @@ function ambienceLayers(
         sprite.scale.set(place.scale);
       }
       for (const layer of water) layer.draw(seconds, plan, weather);
+      for (const { element, frames, sprite } of phaseFrames) {
+        const motion = elementMotion(element, plan);
+        sprite.visible = motion !== "hide";
+        sprite.texture = frames[phaseFrameAt(element.behaviour, minute, motion === "run")]!;
+      }
       for (const { element, poses, sprites } of flybys) {
         const { behaviour } = element;
         const flying = elementMotion(element, plan) === "run" && blend.night < behaviour.nightBelow ? flybysAt(seconds, stage.width, behaviour) : [];

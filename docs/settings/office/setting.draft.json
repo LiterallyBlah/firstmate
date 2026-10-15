@@ -1,8 +1,6 @@
 {
   "status": "not-installable",
-  "pendingCapabilities": [
-    "phase-frames@1"
-  ],
+  "pendingCapabilities": [],
   "manifest": {
     "format": "firstmate.deck-setting",
     "formatVersion": 1,

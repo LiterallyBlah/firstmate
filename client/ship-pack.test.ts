@@ -50,6 +50,8 @@ function imagesOf(behaviour: AmbienceBehaviour): string[] {
       return [behaviour.image];
     case "flash":
       return behaviour.frames.map((frame) => frame.sprite.image);
+    case "phase-frames":
+      return behaviour.frames.map((frame) => frame.image);
     case "drifters":
       return behaviour.sprites.flatMap((sprite) => [sprite.image, ...(sprite.variants ?? []).flatMap((variant) => variant.frames.map((frame) => frame.image))]);
     case "flyby":

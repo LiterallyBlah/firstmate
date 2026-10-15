@@ -18,7 +18,8 @@ import { describe, expect, it } from "vitest";
 import { extrasImagePaths, type DeckExtrasImages } from "../test/deck-legacy";
 import { compileParts } from "./deck-parts";
 import { BUSY_CREW, compileAtmosphere, deliveredWeather, shade } from "./deck-atmosphere";
-import { compileAmbience } from "./deck-ambience";
+import { compileAmbience, type DeckAmbience } from "./deck-ambience";
+import type { SettingManifest } from "../shared/deck-setting";
 import { cloudPeriod, hexColour, type DrifterMasks } from "./deck-clouds";
 import { createScenery, type SceneryArt } from "./deck-environment";
 import { ASK_PAPER, askPixels } from "./deck-badges";
@@ -214,6 +215,8 @@ const elementImages = (id: string) =>
           return [behaviour.image];
         case "flash":
           return behaviour.frames.map((frame) => frame.sprite.image);
+        case "phase-frames":
+          return behaviour.frames.map((frame) => frame.image);
         case "drifters":
           return behaviour.sprites.flatMap((sprite) => [sprite.image, ...(sprite.variants ?? []).map((variant) => variant.frames[0]!.image)]);
         case "flyby":
@@ -305,10 +308,14 @@ function world(options: { reducedMotion?: boolean; hidden?: boolean; now: Date }
     },
   };
   const timers: Array<{ ms: number; run: () => void; stopped: boolean }> = [];
+  const listeners = new Set<() => void>();
   const signals: MotionSignals = {
     reducedMotion: () => state.reducedMotion,
     documentHidden: () => state.hidden,
-    subscribe: () => () => {},
+    subscribe(callback) {
+      listeners.add(callback);
+      return () => { listeners.delete(callback); };
+    },
   };
   const motion: DeckMotionEnvironment = {
     scheduler,
@@ -327,6 +334,7 @@ function world(options: { reducedMotion?: boolean; hidden?: boolean; now: Date }
     state,
     motion,
     timers,
+    signal: () => { for (const listener of listeners) listener(); },
     /** Runs the frames due, `ms` on. */
     advance(ms: number) {
       clock += ms;
@@ -349,6 +357,7 @@ async function start(
     without?: readonly string[];
     scene?: DeckScene;
     stage?: DeckStage;
+    ambience?: DeckAmbience;
     onHover?: (hover: DeckHover | null) => void;
     onSelect?: (key: string | null) => void;
   },
@@ -360,7 +369,7 @@ async function start(
   const { images, masks, ambience, parts } = packImages(options, art, atlas);
   const drawing = await startDeck(
     pixi,
-    { stage: options.stage ?? shipStage(), cast: shipCast(), parts, ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, effects: shipManifest().effects, presentation: deckPresentation(shipManifest()) },
+    { stage: options.stage ?? shipStage(), cast: shipCast(), parts, ambience: options.ambience ?? ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, effects: shipManifest().effects, presentation: deckPresentation(shipManifest()) },
     host,
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
@@ -387,6 +396,89 @@ const one = (root: FakeContainer, label: string) => {
   return node;
 };
 const texturePath = (sprite: FakeContainer) => ((sprite as FakeSprite).texture.source.resource as { image: string }).image;
+
+describe("wall-clock frame layers", () => {
+  const definition = (): SettingManifest => ({
+    ...shipManifest(), dayCycle: undefined,
+    ambience: [
+      { id: "hour", slot: "front", order: 2, lite: "run", still: "first-frame", behaviour: {
+        kind: "phase-frames", by: "local-hour", at: [100, 60], anchor: [5, 5],
+        frames: Array.from({ length: 12 }, (_, i) => ({ image: "deck", rect: [i * 10, 0, 10, 10] })),
+      } },
+      { id: "minute", slot: "back", order: 0, lite: "freeze", still: "hide", behaviour: {
+        kind: "phase-frames", by: "local-minute", at: [40, 30], anchor: [0, 0],
+        frames: Array.from({ length: 6 }, (_, i) => ({ image: "deck", rect: [i * 10, 10, 10, 10] })),
+      } },
+      { id: "hidden-in-lite", slot: "front", order: 1, lite: "hide", still: "hide", behaviour: {
+        kind: "phase-frames", by: "local-hour", at: [80, 30], anchor: [0, 0], frames: [{ image: "deck" }],
+      } },
+    ],
+  });
+  const compiled = () => compileAmbience(definition(), () => true);
+  const frame = (root: FakeContainer, id: string) => (one(root, id) as FakeSprite).texture.frame.x;
+
+  it("anchors each sprite in slot order, follows local time in full/lite, and keeps reduced motion calm", () => {
+    const art = { ...sceneryArt({}), ambience: compiled() };
+    const scenery = createScenery(pixi, shipStage(), art);
+    const other = createScenery(pixi, shipStage(), art);
+    const front = scenery.front as unknown as FakeContainer, back = scenery.back as unknown as FakeContainer;
+    const full = { level: "full", animate: true, fps: 30, ambient: true } as const;
+    scenery.layout({ left: -10, right: 440, top: -80, bottom: 240 });
+    expect(front.children.map((child) => child.label)).toEqual(["hidden-in-lite", "hour"]);
+    expect(back.children.map((child) => child.label)).toEqual(["minute"]);
+    expect(one(front, "hour").position).toMatchObject({ x: 95, y: 55 });
+    scenery.draw(9999, full, 13 * 60 + 5, { ...deliveredWeather(art.atmosphere, 9999), intensity: 1 });
+    expect(frame(front, "hour")).toBe(10);
+    expect(frame(back, "minute")).toBe(50);
+    expect(one(front, "hour").tint).toBe(0xffffff);
+    other.draw(0, full, 4 * 60);
+    expect(frame(other.front as unknown as FakeContainer, "hour")).toBe(40);
+    expect(frame(front, "hour")).toBe(10);
+    scenery.draw(0, { ...full, level: "lite", fps: 12, ambient: false }, 23 * 60 + 59);
+    expect(frame(front, "hour")).toBe(110);
+    expect(frame(back, "minute")).toBe(0);
+    expect(one(front, "hidden-in-lite").visible).toBe(false);
+    scenery.draw(0, { level: "still", animate: false, fps: 0, ambient: false }, 23 * 60 + 59);
+    expect(frame(front, "hour")).toBe(0);
+    expect(one(back, "minute").visible).toBe(false);
+    scenery.draw(0, full, 0);
+    expect(frame(front, "hour")).toBe(0);
+    scenery.draw(0, full, NaN);
+    expect(frame(back, "minute")).toBe(0);
+    const textures = [one(front, "hour"), one(back, "minute")] as FakeSprite[];
+    scenery.destroy(); other.destroy();
+    expect(textures.every((sprite) => sprite.texture.destroyed && sprite.texture.source.destroyed)).toBe(true);
+  });
+
+  it("shares the renderer's wall clock and pause path, with no new timer or animation in still mode", async () => {
+    const deck = await start(null, { now: new Date(2026, 9, 15, 10, 5), ambience: compiled() });
+    deck.advance(34);
+    expect(frame(deck.app.stage, "hour")).toBe(100);
+    deck.state.hidden = true;
+    deck.signal();
+    deck.state.now = new Date(2026, 9, 15, 11, 6);
+    const before = renders;
+    deck.advance(60_000);
+    expect(renders).toBe(before);
+    expect(frame(deck.app.stage, "hour")).toBe(100);
+    deck.state.hidden = false;
+    deck.signal();
+    deck.advance(34);
+    expect(frame(deck.app.stage, "hour")).toBe(110);
+    deck.state.reducedMotion = true;
+    deck.signal();
+    deck.advance(34);
+    expect(frame(deck.app.stage, "hour")).toBe(0);
+    expect(one(deck.app.stage, "minute").visible).toBe(false);
+    expect(deck.pending()).toBe(0);
+    expect(deck.timers.map((timer) => timer.ms)).toEqual([SKY_REFRESH_MS]);
+    deck.state.now = new Date(2026, 9, 15, 15, 20);
+    deck.timers[0]!.run();
+    expect(frame(deck.app.stage, "hour")).toBe(0);
+    deck.drawing.destroy();
+    expect(deck.timers.every((timer) => timer.stopped)).toBe(true);
+  });
+});
 
 describe("the generated environment on the deck", () => {
   it("draws back to front: sky, overcast, stars, gull, far sea; then the ship and its crew; then the near sea and the foam", async () => {

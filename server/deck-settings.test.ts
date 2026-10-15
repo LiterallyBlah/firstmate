@@ -113,8 +113,8 @@ describe("the Pixi build the daemon serves", () => {
 describe("the settings the daemon serves", () => {
   it("lists the ship, which this engine draws", async () => {
     const settings = await listDeckSettings(async () => root);
-    expect(settings.map((setting) => setting.id)).toEqual(["ship"]);
-    const [ship] = settings;
+    expect(settings.map((setting) => setting.id)).toContain("ship");
+    const ship = settings.find((setting) => setting.id === "ship");
     expect(ship).toMatchObject({ id: "ship", name: "Ship's deck", version: "1.0.0", formatVersion: 1, compatible: true, reason: null, preview: null });
     // Small enough to send whole: the bundle carries none of it.
     expect(ship!.bytes).toBeGreaterThan(200_000);
@@ -137,7 +137,7 @@ describe("the settings the daemon serves", () => {
   });
 
   it("reads only a pack it found, by an id that is a folder's name", async () => {
-    await expect(readDeckSetting("office", async () => root)).rejects.toThrow("no deck setting called office");
+    await expect(readDeckSetting("missing-test-setting", async () => root)).rejects.toThrow("no deck setting called missing-test-setting");
     await expect(readDeckSetting("../ship", async () => root)).rejects.toThrow("no deck setting called");
   });
 
