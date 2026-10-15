@@ -9,6 +9,8 @@ type Phase = "arriving" | "walking" | "settled" | "leaving" | "sinking";
 
 export interface Walker {
   key: string;
+  /** Agent identity, independent of its card key, for stable post assignment. */
+  identity: string;
   label: string;
   state: DeckState;
   /** What it wears: an atlas outfit or an extra look, by its agent id. */
@@ -111,12 +113,18 @@ function reserve(crew: Crew, walker: Walker, byPreference: boolean): void {
   const free = anchors.filter((anchor) => holders(anchor) === 0);
   let chosen: Anchor;
   if (free.length > 0) {
-    chosen =
-      byPreference || zone.assign === "ordered"
+    // Stable collisions are measured from the identity's preferred post, never its current position.
+    // Equal distances retain manifest order; existing holders keep their posts until their next reservation.
+    const preferred = zone.assign === "stable" ? anchors[seedOf(walker.identity) % anchors.length]! : null;
+    if (preferred !== null) {
+      chosen = free.reduce((best, anchor) => Math.hypot(anchor.x - preferred.x, anchor.y - preferred.y) < Math.hypot(best.x - preferred.x, best.y - preferred.y) ? anchor : best);
+    } else {
+      chosen = byPreference || zone.assign === "ordered"
         ? free[0]!
         : free.reduce((best, anchor) =>
             Math.hypot(anchor.x - walker.x, anchor.y - walker.y) < Math.hypot(best.x - walker.x, best.y - walker.y) ? anchor : best,
           );
+    }
   } else {
     chosen = anchors.reduce((best, anchor) => (holders(anchor) < holders(best) ? anchor : best));
   }
@@ -231,6 +239,7 @@ export function applyCrew(
     if (existing === undefined) {
       const walker: Walker = {
         key: sailor.key,
+        identity: sailor.identity,
         label: sailor.label,
         state: sailor.state,
         look: lookFor(sailor.identity, crew.looks),
@@ -257,12 +266,14 @@ export function applyCrew(
       continue;
     }
     existing.label = sailor.label;
+    const reassigned = existing.identity !== sailor.identity && crew.stage.zoneOf(sailor.state).assign === "stable";
+    existing.identity = sailor.identity;
     // A relaunched crewmate keeps its card but is a new agent, and dresses as one.
     existing.look = lookFor(sailor.identity, crew.looks);
     existing.stale = sailor.stale;
     existing.asks = sailor.asks === true;
     const returning = existing.phase === "leaving" || existing.phase === "sinking";
-    if (existing.state === sailor.state && !returning) {
+    if (existing.state === sailor.state && !returning && !reassigned) {
       if (snap && existing.phase !== "settled") place(existing);
       continue;
     }
@@ -448,6 +459,7 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
         const motion = fidgetAt(cast, walker.state, walker.facing, walker.seed, nowMs);
         dx = motion.dx;
         dy = motion.dy;
+        pose = motion.pose ?? pose;
         if (walker.state === cast.breath?.state) sink = breathSink(cast, walker.seed, nowMs);
       }
     }

@@ -1,0 +1,1702 @@
+{
+  "status": "not-installable",
+  "pendingCapabilities": [
+    "walk-in@1",
+    "phase-tint@1",
+    "phase-frames@1"
+  ],
+  "manifest": {
+    "format": "firstmate.deck-setting",
+    "formatVersion": 1,
+    "id": "office",
+    "name": "The office",
+    "version": "0.1.0",
+    "requires": [
+      "stage@1",
+      "floor@1",
+      "zones@1",
+      "stable-posts@1",
+      "cast@1",
+      "pose-fidgets@1",
+      "walk-in@1",
+      "choreography@1",
+      "phase-tint@1",
+      "cycle@1",
+      "backdrop-cycle@1",
+      "overlay@1",
+      "flyby@1",
+      "variants@1",
+      "phase-frames@1",
+      "day-cycle@1",
+      "atmosphere@1"
+    ],
+    "preview": "preview",
+    "copy": {
+      "pane": "Office",
+      "tooltip": "Show the crew as colleagues in an office.",
+      "title": "Office",
+      "noun": "the office",
+      "starting": "Opening the office...",
+      "aboard": "in the office",
+      "actor": {
+        "one": "colleague",
+        "many": "colleagues"
+      },
+      "zones": {
+        "desks": "at their desks",
+        "printer": "waiting at the printer",
+        "help": "at the help desk",
+        "break": "in the break room"
+      }
+    },
+    "images": {
+      "room": {
+        "path": "room.png",
+        "size": [
+          420,
+          240
+        ],
+        "sha256": null
+      },
+      "desk-front": {
+        "path": "desk-front.png",
+        "size": [
+          260,
+          22
+        ],
+        "sha256": null
+      },
+      "printer": {
+        "path": "props/printer.png",
+        "size": [
+          20,
+          24
+        ],
+        "sha256": null
+      },
+      "help-desk": {
+        "path": "props/help-desk.png",
+        "size": [
+          32,
+          24
+        ],
+        "sha256": null
+      },
+      "coffee-counter": {
+        "path": "props/coffee-counter.png",
+        "size": [
+          32,
+          28
+        ],
+        "sha256": null
+      },
+      "colleague-navy": {
+        "path": "cast/navy.png",
+        "size": [
+          240,
+          32
+        ],
+        "sha256": null
+      },
+      "colleague-teal": {
+        "path": "cast/teal.png",
+        "size": [
+          240,
+          32
+        ],
+        "sha256": null
+      },
+      "colleague-ochre": {
+        "path": "cast/ochre.png",
+        "size": [
+          240,
+          32
+        ],
+        "sha256": null
+      },
+      "colleague-plum": {
+        "path": "cast/plum.png",
+        "size": [
+          240,
+          32
+        ],
+        "sha256": null
+      },
+      "colleague-rust": {
+        "path": "cast/rust.png",
+        "size": [
+          240,
+          32
+        ],
+        "sha256": null
+      },
+      "colleague-slate": {
+        "path": "cast/slate.png",
+        "size": [
+          240,
+          32
+        ],
+        "sha256": null
+      },
+      "city-dawn": {
+        "path": "city/dawn.png",
+        "size": [
+          420,
+          180
+        ],
+        "sha256": null
+      },
+      "city-morning": {
+        "path": "city/morning.png",
+        "size": [
+          420,
+          180
+        ],
+        "sha256": null
+      },
+      "city-midday": {
+        "path": "city/midday.png",
+        "size": [
+          420,
+          180
+        ],
+        "sha256": null
+      },
+      "city-afternoon": {
+        "path": "city/afternoon.png",
+        "size": [
+          420,
+          180
+        ],
+        "sha256": null
+      },
+      "city-dusk": {
+        "path": "city/dusk.png",
+        "size": [
+          420,
+          180
+        ],
+        "sha256": null
+      },
+      "city-night": {
+        "path": "city/night.png",
+        "size": [
+          420,
+          180
+        ],
+        "sha256": null
+      },
+      "city-lights": {
+        "path": "city/lights.png",
+        "size": [
+          420,
+          180
+        ],
+        "sha256": null
+      },
+      "pigeon": {
+        "path": "pigeon.png",
+        "size": [
+          72,
+          16
+        ],
+        "sha256": null
+      },
+      "clock": {
+        "path": "clock.png",
+        "size": [
+          192,
+          16
+        ],
+        "sha256": null
+      },
+      "coffee-steam": {
+        "path": "coffee-steam.png",
+        "size": [
+          48,
+          20
+        ],
+        "sha256": null
+      },
+      "quiet-floor": {
+        "path": "background/quiet.png",
+        "size": [
+          248,
+          18
+        ],
+        "sha256": null
+      },
+      "busy-floor": {
+        "path": "background/busy.png",
+        "size": [
+          248,
+          18
+        ],
+        "sha256": null
+      },
+      "lift-doors": {
+        "path": "effects/lift-doors.png",
+        "size": [
+          96,
+          48
+        ],
+        "sha256": null
+      },
+      "confetti": {
+        "path": "effects/confetti.png",
+        "size": [
+          144,
+          40
+        ],
+        "sha256": null
+      },
+      "preview": {
+        "path": "preview.png",
+        "size": [
+          210,
+          120
+        ],
+        "sha256": null
+      }
+    },
+    "stage": {
+      "size": [
+        420,
+        240
+      ],
+      "fit": {
+        "top": 0,
+        "bottom": 240,
+        "margin": 0.96
+      },
+      "actorHeight": 40,
+      "tintByPhase": {
+        "dawn": "#D8C0B0",
+        "morning": "#FFFFFF",
+        "midday": "#FFFFFF",
+        "afternoon": "#FFFFFF",
+        "dusk": "#D8C0B0",
+        "night": "#8C94B0"
+      },
+      "backdrop": {
+        "sprite": {
+          "image": "room"
+        }
+      },
+      "parts": [],
+      "pieces": [
+        {
+          "id": "desk-row-1",
+          "sprite": {
+            "image": "desk-front"
+          },
+          "at": [
+            24,
+            96
+          ],
+          "baseline": 108
+        },
+        {
+          "id": "desk-row-2",
+          "sprite": {
+            "image": "desk-front"
+          },
+          "at": [
+            24,
+            126
+          ],
+          "baseline": 138
+        }
+      ],
+      "props": [
+        {
+          "id": "printer",
+          "sprite": {
+            "image": "printer"
+          },
+          "feet": [
+            10,
+            24
+          ],
+          "at": [
+            352,
+            84
+          ],
+          "obstacle": [
+            342,
+            78,
+            20,
+            6
+          ]
+        },
+        {
+          "id": "help-desk",
+          "sprite": {
+            "image": "help-desk"
+          },
+          "feet": [
+            16,
+            24
+          ],
+          "at": [
+            310,
+            112
+          ],
+          "obstacle": [
+            294,
+            106,
+            32,
+            6
+          ]
+        },
+        {
+          "id": "coffee-counter",
+          "sprite": {
+            "image": "coffee-counter"
+          },
+          "feet": [
+            16,
+            28
+          ],
+          "at": [
+            330,
+            138
+          ],
+          "obstacle": [
+            314,
+            130,
+            32,
+            8
+          ]
+        }
+      ],
+      "lightStyles": {},
+      "lights": []
+    },
+    "floor": {
+      "areas": [
+        {
+          "id": "open-plan",
+          "polygon": [
+            [
+              20,
+              88
+            ],
+            [
+              400,
+              88
+            ],
+            [
+              400,
+              236
+            ],
+            [
+              20,
+              236
+            ]
+          ]
+        }
+      ],
+      "obstacles": [
+        {
+          "id": "desks-back",
+          "rect": [
+            26,
+            92,
+            244,
+            8
+          ]
+        },
+        {
+          "id": "desks-front",
+          "rect": [
+            26,
+            122,
+            244,
+            8
+          ]
+        }
+      ],
+      "grid": {
+        "cell": 2,
+        "bounds": [
+          20,
+          88,
+          380,
+          148
+        ]
+      },
+      "walkSpeed": 28
+    },
+    "zones": {
+      "byState": {
+        "working": "desks",
+        "waiting": "printer",
+        "blocked": "help",
+        "idle": "break"
+      },
+      "zones": [
+        {
+          "id": "desks",
+          "assign": "stable",
+          "overflow": {
+            "kind": "beside",
+            "spacing": [
+              8,
+              4
+            ]
+          },
+          "posts": [
+            {
+              "id": "desk-1",
+              "at": [
+                44,
+                102
+              ],
+              "facing": "right"
+            },
+            {
+              "id": "desk-2",
+              "at": [
+                84,
+                102
+              ],
+              "facing": "right"
+            },
+            {
+              "id": "desk-3",
+              "at": [
+                124,
+                102
+              ],
+              "facing": "right"
+            },
+            {
+              "id": "desk-4",
+              "at": [
+                164,
+                102
+              ],
+              "facing": "right"
+            },
+            {
+              "id": "desk-5",
+              "at": [
+                204,
+                102
+              ],
+              "facing": "right"
+            },
+            {
+              "id": "desk-6",
+              "at": [
+                244,
+                102
+              ],
+              "facing": "right"
+            },
+            {
+              "id": "desk-7",
+              "at": [
+                44,
+                132
+              ],
+              "facing": "right"
+            },
+            {
+              "id": "desk-8",
+              "at": [
+                84,
+                132
+              ],
+              "facing": "right"
+            },
+            {
+              "id": "desk-9",
+              "at": [
+                124,
+                132
+              ],
+              "facing": "right"
+            },
+            {
+              "id": "desk-10",
+              "at": [
+                164,
+                132
+              ],
+              "facing": "right"
+            },
+            {
+              "id": "desk-11",
+              "at": [
+                204,
+                132
+              ],
+              "facing": "right"
+            },
+            {
+              "id": "desk-12",
+              "at": [
+                244,
+                132
+              ],
+              "facing": "right"
+            }
+          ]
+        },
+        {
+          "id": "printer",
+          "assign": "nearest",
+          "overflow": {
+            "kind": "beside",
+            "spacing": [
+              8,
+              6
+            ]
+          },
+          "posts": [
+            {
+              "id": "printer-1",
+              "at": [
+                350,
+                96
+              ],
+              "facing": "front"
+            },
+            {
+              "id": "printer-2",
+              "at": [
+                366,
+                96
+              ],
+              "facing": "front"
+            },
+            {
+              "id": "printer-3",
+              "at": [
+                382,
+                96
+              ],
+              "facing": "front"
+            }
+          ]
+        },
+        {
+          "id": "help",
+          "assign": "nearest",
+          "overflow": {
+            "kind": "beside",
+            "spacing": [
+              8,
+              6
+            ]
+          },
+          "posts": [
+            {
+              "id": "help-1",
+              "at": [
+                286,
+                114
+              ],
+              "facing": "front"
+            },
+            {
+              "id": "help-2",
+              "at": [
+                286,
+                126
+              ],
+              "facing": "front"
+            }
+          ]
+        },
+        {
+          "id": "break",
+          "assign": "ordered",
+          "labelFloor": 238,
+          "overflow": {
+            "kind": "pack",
+            "areas": [
+              [
+                20,
+                176,
+                380,
+                60
+              ]
+            ],
+            "spacing": [
+              26,
+              44
+            ],
+            "fallback": [
+              20,
+              22
+            ]
+          },
+          "posts": [
+            {
+              "id": "break-1",
+              "at": [
+                40,
+                184
+              ],
+              "facing": "front"
+            },
+            {
+              "id": "break-2",
+              "at": [
+                92,
+                184
+              ],
+              "facing": "front"
+            },
+            {
+              "id": "break-3",
+              "at": [
+                144,
+                184
+              ],
+              "facing": "front"
+            },
+            {
+              "id": "break-4",
+              "at": [
+                196,
+                184
+              ],
+              "facing": "front"
+            },
+            {
+              "id": "break-5",
+              "at": [
+                248,
+                184
+              ],
+              "facing": "front"
+            },
+            {
+              "id": "break-6",
+              "at": [
+                300,
+                184
+              ],
+              "facing": "front"
+            },
+            {
+              "id": "break-7",
+              "at": [
+                352,
+                184
+              ],
+              "facing": "front"
+            },
+            {
+              "id": "break-8",
+              "at": [
+                376,
+                228
+              ],
+              "facing": "front"
+            }
+          ]
+        }
+      ]
+    },
+    "cast": {
+      "lanes": {
+        "colleague": {
+          "stand": {
+            "rect": [
+              0,
+              0,
+              24,
+              32
+            ],
+            "feet": [
+              12,
+              32
+            ]
+          },
+          "walk-front-a": {
+            "rect": [
+              24,
+              0,
+              24,
+              32
+            ],
+            "feet": [
+              12,
+              32
+            ]
+          },
+          "walk-front-b": {
+            "rect": [
+              48,
+              0,
+              24,
+              32
+            ],
+            "feet": [
+              12,
+              32
+            ]
+          },
+          "walk-side-a": {
+            "rect": [
+              72,
+              0,
+              24,
+              32
+            ],
+            "feet": [
+              12,
+              32
+            ]
+          },
+          "walk-side-b": {
+            "rect": [
+              96,
+              0,
+              24,
+              32
+            ],
+            "feet": [
+              12,
+              32
+            ]
+          },
+          "seated-type-a": {
+            "rect": [
+              120,
+              0,
+              24,
+              32
+            ],
+            "feet": [
+              12,
+              32
+            ]
+          },
+          "seated-type-b": {
+            "rect": [
+              144,
+              0,
+              24,
+              32
+            ],
+            "feet": [
+              12,
+              32
+            ]
+          },
+          "stand-cup": {
+            "rect": [
+              168,
+              0,
+              24,
+              32
+            ],
+            "feet": [
+              12,
+              32
+            ]
+          },
+          "hand-on-head": {
+            "rect": [
+              192,
+              0,
+              24,
+              32
+            ],
+            "feet": [
+              12,
+              32
+            ]
+          },
+          "lounge": {
+            "rect": [
+              216,
+              0,
+              24,
+              32
+            ],
+            "feet": [
+              12,
+              32
+            ]
+          }
+        }
+      },
+      "looks": [
+        {
+          "id": "navy",
+          "image": "colleague-navy",
+          "lane": "colleague",
+          "optional": false
+        },
+        {
+          "id": "teal",
+          "image": "colleague-teal",
+          "lane": "colleague",
+          "optional": true
+        },
+        {
+          "id": "ochre",
+          "image": "colleague-ochre",
+          "lane": "colleague",
+          "optional": true
+        },
+        {
+          "id": "plum",
+          "image": "colleague-plum",
+          "lane": "colleague",
+          "optional": true
+        },
+        {
+          "id": "rust",
+          "image": "colleague-rust",
+          "lane": "colleague",
+          "optional": true
+        },
+        {
+          "id": "slate",
+          "image": "colleague-slate",
+          "lane": "colleague",
+          "optional": true
+        }
+      ],
+      "roles": {
+        "stand": "stand",
+        "walkFront": [
+          "walk-front-a",
+          "walk-front-b"
+        ],
+        "walkSide": [
+          "walk-side-a",
+          "walk-side-b"
+        ],
+        "rise": 1,
+        "stepMs": 180,
+        "settled": {
+          "working": {
+            "pose": "seated-type-a",
+            "mirror": "facing"
+          },
+          "waiting": {
+            "pose": "stand-cup",
+            "mirror": "seed"
+          },
+          "blocked": {
+            "pose": "hand-on-head",
+            "mirror": "none"
+          },
+          "idle": {
+            "pose": "lounge",
+            "mirror": "seed"
+          }
+        }
+      },
+      "fidgets": {
+        "working": {
+          "periodMs": 500,
+          "seedMs": 41,
+          "keys": [
+            {
+              "fromMs": 0,
+              "dx": 0,
+              "dy": 0,
+              "pose": "seated-type-a"
+            },
+            {
+              "fromMs": 250,
+              "dx": 0,
+              "dy": 0,
+              "pose": "seated-type-b"
+            }
+          ]
+        },
+        "waiting": null,
+        "blocked": null,
+        "idle": null
+      }
+    },
+    "portals": {
+      "entry": {
+        "kind": "walk-in",
+        "from": [
+          404,
+          112
+        ],
+        "at": [
+          392,
+          112
+        ]
+      },
+      "still": {
+        "fadeMs": 600
+      },
+      "byDeparture": {
+        "done": "lift-confetti",
+        "failed": "lift",
+        "closed": "lift",
+        "removed": "lift"
+      },
+      "exits": {
+        "lift": {
+          "kind": "choreography",
+          "marks": {
+            "queue": [
+              392,
+              112
+            ],
+            "door": [
+              404,
+              112
+            ]
+          },
+          "queue": {
+            "at": "queue",
+            "release": "reopened",
+            "spacing": [
+              8,
+              6
+            ]
+          },
+          "alternate": {
+            "side": [
+              -1
+            ],
+            "drift": [
+              0
+            ]
+          },
+          "actor": [
+            {
+              "ms": "walk",
+              "to": {
+                "mark": "door"
+              },
+              "path": "line",
+              "pose": {
+                "cycle": "walkSide"
+              },
+              "layer": "floor",
+              "moving": true,
+              "event": "inside"
+            },
+            {
+              "ms": 600,
+              "pose": "stand",
+              "layer": "floor",
+              "moving": false,
+              "gone": true,
+              "event": "closed"
+            },
+            {
+              "ms": 300,
+              "pose": "stand",
+              "layer": "floor",
+              "moving": false,
+              "gone": true,
+              "event": "reopened"
+            }
+          ],
+          "effects": [
+            {
+              "effect": "lift-doors",
+              "order": 1,
+              "keys": [
+                {
+                  "frame": "half",
+                  "at": {
+                    "event": "inside",
+                    "plusMs": 0
+                  },
+                  "ms": 150,
+                  "place": {
+                    "mark": "door"
+                  }
+                },
+                {
+                  "frame": "closed",
+                  "at": {
+                    "event": "inside",
+                    "plusMs": 150
+                  },
+                  "ms": 450,
+                  "place": {
+                    "mark": "door"
+                  }
+                },
+                {
+                  "frame": "half",
+                  "at": {
+                    "event": "closed",
+                    "plusMs": 0
+                  },
+                  "ms": 150,
+                  "place": {
+                    "mark": "door"
+                  }
+                },
+                {
+                  "frame": "open",
+                  "at": {
+                    "event": "closed",
+                    "plusMs": 150
+                  },
+                  "ms": 150,
+                  "place": {
+                    "mark": "door"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "lift-confetti": {
+          "kind": "choreography",
+          "marks": {
+            "queue": [
+              392,
+              112
+            ],
+            "door": [
+              404,
+              112
+            ]
+          },
+          "queue": {
+            "at": "queue",
+            "release": "reopened",
+            "spacing": [
+              8,
+              6
+            ]
+          },
+          "alternate": {
+            "side": [
+              -1
+            ],
+            "drift": [
+              0
+            ]
+          },
+          "actor": [
+            {
+              "ms": "walk",
+              "to": {
+                "mark": "door"
+              },
+              "path": "line",
+              "pose": {
+                "cycle": "walkSide"
+              },
+              "layer": "floor",
+              "moving": true,
+              "event": "inside"
+            },
+            {
+              "ms": 600,
+              "pose": "stand",
+              "layer": "floor",
+              "moving": false,
+              "gone": true,
+              "event": "closed"
+            },
+            {
+              "ms": 300,
+              "pose": "stand",
+              "layer": "floor",
+              "moving": false,
+              "gone": true,
+              "event": "reopened"
+            }
+          ],
+          "effects": [
+            {
+              "effect": "lift-doors",
+              "order": 1,
+              "keys": [
+                {
+                  "frame": "half",
+                  "at": {
+                    "event": "inside",
+                    "plusMs": 0
+                  },
+                  "ms": 150,
+                  "place": {
+                    "mark": "door"
+                  }
+                },
+                {
+                  "frame": "closed",
+                  "at": {
+                    "event": "inside",
+                    "plusMs": 150
+                  },
+                  "ms": 450,
+                  "place": {
+                    "mark": "door"
+                  }
+                },
+                {
+                  "frame": "half",
+                  "at": {
+                    "event": "closed",
+                    "plusMs": 0
+                  },
+                  "ms": 150,
+                  "place": {
+                    "mark": "door"
+                  }
+                },
+                {
+                  "frame": "open",
+                  "at": {
+                    "event": "closed",
+                    "plusMs": 150
+                  },
+                  "ms": 150,
+                  "place": {
+                    "mark": "door"
+                  }
+                }
+              ]
+            },
+            {
+              "effect": "confetti",
+              "order": 2,
+              "keys": [
+                {
+                  "frame": "pop",
+                  "at": {
+                    "event": "inside",
+                    "plusMs": 0
+                  },
+                  "ms": 120,
+                  "place": {
+                    "mark": "door"
+                  }
+                },
+                {
+                  "frame": "spread",
+                  "at": {
+                    "event": "inside",
+                    "plusMs": 120
+                  },
+                  "ms": 180,
+                  "place": {
+                    "mark": "door"
+                  }
+                },
+                {
+                  "frame": "fall",
+                  "at": {
+                    "event": "inside",
+                    "plusMs": 300
+                  },
+                  "ms": 240,
+                  "place": {
+                    "mark": "door"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "effects": {
+      "lift-doors": {
+        "size": [
+          32,
+          48
+        ],
+        "points": {
+          "anchor": [
+            16,
+            48
+          ]
+        },
+        "frames": {
+          "open": {
+            "image": "lift-doors",
+            "rect": [
+              0,
+              0,
+              32,
+              48
+            ]
+          },
+          "half": {
+            "image": "lift-doors",
+            "rect": [
+              32,
+              0,
+              32,
+              48
+            ]
+          },
+          "closed": {
+            "image": "lift-doors",
+            "rect": [
+              64,
+              0,
+              32,
+              48
+            ]
+          }
+        }
+      },
+      "confetti": {
+        "size": [
+          48,
+          40
+        ],
+        "points": {
+          "anchor": [
+            36,
+            40
+          ]
+        },
+        "frames": {
+          "pop": {
+            "image": "confetti",
+            "rect": [
+              0,
+              0,
+              48,
+              40
+            ]
+          },
+          "spread": {
+            "image": "confetti",
+            "rect": [
+              48,
+              0,
+              48,
+              40
+            ]
+          },
+          "fall": {
+            "image": "confetti",
+            "rect": [
+              96,
+              0,
+              48,
+              40
+            ]
+          }
+        }
+      }
+    },
+    "ambience": [
+      {
+        "id": "window-sky",
+        "slot": "back",
+        "order": 0,
+        "behaviour": {
+          "kind": "backdrop-cycle",
+          "size": [
+            420,
+            180
+          ],
+          "phases": {
+            "dawn": "city-dawn",
+            "morning": "city-morning",
+            "midday": "city-midday",
+            "afternoon": "city-afternoon",
+            "dusk": "city-dusk",
+            "night": "city-night"
+          },
+          "placement": {
+            "horizonRow": 120,
+            "stageRow": 70
+          }
+        },
+        "lite": "run",
+        "still": "first-frame"
+      },
+      {
+        "id": "city-lights",
+        "slot": "back",
+        "order": 1,
+        "behaviour": {
+          "kind": "overlay",
+          "image": "city-lights",
+          "space": "window-sky",
+          "alpha": "night"
+        },
+        "lite": "run",
+        "still": "first-frame"
+      },
+      {
+        "id": "pigeon",
+        "slot": "back",
+        "order": 2,
+        "behaviour": {
+          "kind": "flyby",
+          "poses": {
+            "up": {
+              "image": "pigeon",
+              "rect": [
+                0,
+                0,
+                24,
+                16
+              ]
+            },
+            "level": {
+              "image": "pigeon",
+              "rect": [
+                24,
+                0,
+                24,
+                16
+              ]
+            },
+            "down": {
+              "image": "pigeon",
+              "rect": [
+                48,
+                0,
+                24,
+                16
+              ]
+            }
+          },
+          "sequence": [
+            "up",
+            "level",
+            "down",
+            "level"
+          ],
+          "frameMs": 125,
+          "glide": "level",
+          "size": [
+            24,
+            16
+          ],
+          "anchor": [
+            12,
+            8
+          ],
+          "slotS": 24,
+          "chance": 0.5,
+          "start": [
+            1,
+            8
+          ],
+          "speed": 26,
+          "margin": 24,
+          "rows": [
+            28,
+            52
+          ],
+          "wobble": {
+            "px": 1,
+            "rate": 2
+          },
+          "flap": {
+            "everyS": 3,
+            "forS": 1
+          },
+          "nightBelow": 0.5,
+          "most": 1
+        },
+        "lite": "hide",
+        "still": "hide"
+      },
+      {
+        "id": "background-team",
+        "slot": "back",
+        "order": 3,
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "quiet-floor",
+                "rect": [
+                  0,
+                  0,
+                  248,
+                  18
+                ]
+              }
+            ],
+            "frameMs": 1000
+          },
+          "at": [
+            24,
+            68
+          ],
+          "anchor": [
+            0,
+            0
+          ],
+          "variants": [
+            {
+              "id": "busy",
+              "frames": [
+                {
+                  "image": "busy-floor"
+                }
+              ],
+              "blend": "crossfade",
+              "opacity": [
+                [
+                  0.3,
+                  0
+                ],
+                [
+                  0.8,
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        "lite": "run",
+        "still": "first-frame"
+      },
+      {
+        "id": "wall-clock",
+        "slot": "front",
+        "order": 0,
+        "behaviour": {
+          "kind": "phase-frames",
+          "frames": [
+            {
+              "image": "clock",
+              "rect": [
+                0,
+                0,
+                16,
+                16
+              ]
+            },
+            {
+              "image": "clock",
+              "rect": [
+                16,
+                0,
+                16,
+                16
+              ]
+            },
+            {
+              "image": "clock",
+              "rect": [
+                32,
+                0,
+                16,
+                16
+              ]
+            },
+            {
+              "image": "clock",
+              "rect": [
+                48,
+                0,
+                16,
+                16
+              ]
+            },
+            {
+              "image": "clock",
+              "rect": [
+                64,
+                0,
+                16,
+                16
+              ]
+            },
+            {
+              "image": "clock",
+              "rect": [
+                80,
+                0,
+                16,
+                16
+              ]
+            },
+            {
+              "image": "clock",
+              "rect": [
+                96,
+                0,
+                16,
+                16
+              ]
+            },
+            {
+              "image": "clock",
+              "rect": [
+                112,
+                0,
+                16,
+                16
+              ]
+            },
+            {
+              "image": "clock",
+              "rect": [
+                128,
+                0,
+                16,
+                16
+              ]
+            },
+            {
+              "image": "clock",
+              "rect": [
+                144,
+                0,
+                16,
+                16
+              ]
+            },
+            {
+              "image": "clock",
+              "rect": [
+                160,
+                0,
+                16,
+                16
+              ]
+            },
+            {
+              "image": "clock",
+              "rect": [
+                176,
+                0,
+                16,
+                16
+              ]
+            }
+          ],
+          "by": "local-hour",
+          "at": [
+            286,
+            78
+          ],
+          "anchor": [
+            8,
+            8
+          ]
+        },
+        "lite": "run",
+        "still": "first-frame"
+      },
+      {
+        "id": "coffee-steam",
+        "slot": "front",
+        "order": 1,
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "coffee-steam",
+                "rect": [
+                  0,
+                  0,
+                  16,
+                  20
+                ]
+              },
+              {
+                "image": "coffee-steam",
+                "rect": [
+                  16,
+                  0,
+                  16,
+                  20
+                ]
+              },
+              {
+                "image": "coffee-steam",
+                "rect": [
+                  32,
+                  0,
+                  16,
+                  20
+                ]
+              }
+            ],
+            "frameMs": 300
+          },
+          "at": [
+            330,
+            114
+          ],
+          "anchor": [
+            8,
+            20
+          ],
+          "opacity": {
+            "channel": "steam"
+          }
+        },
+        "lite": "freeze",
+        "still": "first-frame"
+      }
+    ],
+    "dayCycle": {
+      "phases": [
+        {
+          "id": "dawn",
+          "localMinute": 330
+        },
+        {
+          "id": "morning",
+          "localMinute": 480
+        },
+        {
+          "id": "midday",
+          "localMinute": 720
+        },
+        {
+          "id": "afternoon",
+          "localMinute": 960
+        },
+        {
+          "id": "dusk",
+          "localMinute": 1110
+        },
+        {
+          "id": "night",
+          "localMinute": 1260
+        }
+      ],
+      "fadeMinutes": 90,
+      "night": "night",
+      "fallback": "midday"
+    },
+    "atmosphere": {
+      "clocks": {},
+      "table": [
+        {
+          "at": 0,
+          "steam": 0.3
+        },
+        {
+          "at": 1,
+          "steam": 1
+        }
+      ],
+      "delivered": {
+        "steam": 0.6
+      }
+    },
+    "palette": {
+      "fallbackFill": "#3A3F4A",
+      "veil": "#0B0E14",
+      "staleTint": "#8A9096",
+      "staleAlpha": 0.6
+    }
+  }
+}

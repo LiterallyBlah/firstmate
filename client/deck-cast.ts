@@ -103,15 +103,15 @@ export function settledPose(cast: DeckCast, state: ActivityState, facing: Facing
   return { pose, flip: mirror === "facing" ? facing === "left" : mirror === "seed" ? seed % 2 === 1 : false };
 }
 
-/** A worker's fidget at its post, in whole pixels: the key of its state's loop in force at `nowMs`. A pure function of the clock. */
-export function fidgetAt(cast: DeckCast, state: ActivityState, facing: Facing, seed: number, nowMs: number): { dx: number; dy: number } {
+/** The key of a state's loop at `nowMs`: whole-pixel offsets and, optionally, a pose override. Still/stale workers skip this. */
+export function fidgetAt(cast: DeckCast, state: ActivityState, facing: Facing, seed: number, nowMs: number): { dx: number; dy: number; pose?: string } {
   const fidget = cast.fidgets[state];
   if (fidget === null) return { dx: 0, dy: 0 };
   const t = nowMs + seed * fidget.seedMs;
   const at = ((t % fidget.periodMs) + fidget.periodMs) % fidget.periodMs;
   let key = fidget.keys[0]!;
   for (const each of fidget.keys) if (each.fromMs <= at) key = each;
-  return { dx: key.towardFacing === true && facing === "left" ? -key.dx : key.dx, dy: key.dy };
+  return { dx: key.towardFacing === true && facing === "left" ? -key.dx : key.dx, dy: key.dy, ...(key.pose === undefined ? {} : { pose: key.pose }) };
 }
 
 /** Whether a worker settled in the breath's state is on its out-breath, its top rows a pixel lower: 1 or 0. */
