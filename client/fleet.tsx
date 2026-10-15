@@ -1,14 +1,14 @@
 /**
- * The FirstMate surface: the conversation with the first mate beside the
- * board of its crew.
+ * FirstMate Home (chat, board overview, home files and launcher) and its
+ * dedicated workspace views. Paseo owns the Deck, Board and Crew tabs.
  *
  * Everything on it comes from one RPC, `firstmate.fleet.load`, polled at the
  * interval in the display settings and refetched right after any action. The
  * chat reads the first mate's timeline directly and streams.
  *
- * Suggestions occupy one line above the crew; watches open from the header.
- * The default List groups tasks by urgency in one scroll container. The Board
- * option keeps full-height columns in one horizontal row on wide screens.
+ * Suggestions occupy one line above the crew; watches open from Home's header.
+ * Crew groups tasks by urgency in one scroll container. Board keeps full-height
+ * columns in one horizontal row on wide screens. Deck uses the setting engine.
  *
  * With remote hosts saved, a row of host tabs sits above the columns — All,
  * this machine, then each host — and filters them to that host's cards; a
@@ -27,7 +27,7 @@
 import type { PluginScreenProps } from "@getpaseo/plugin/client";
 import { useRpc, useSettings } from "@getpaseo/plugin/client";
 import { Icon, useToast } from "@getpaseo/plugin/client/react-native";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
@@ -35,7 +35,6 @@ import {
   acknowledgeCharter,
   compareCharter,
   enableAgentTools,
-  loadFleet,
   markMateSeen,
   removeSuggestion,
   type ColumnId,
@@ -70,19 +69,19 @@ import { WatchButton } from "./watches";
 import { UpdateButton } from "./update-button";
 import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
 import { focusWebElement } from "./web";
+import { HubLauncher } from "./hub-launcher";
+import { chatIsVisible, FLEET_PANELS, homeWorkspace, type FleetShell, type FleetView } from "./shell";
+import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
-export const FLEET_QUERY_KEY = ["firstmate", "fleet"] as const;
+export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
-let cachedFleet: Fleet | null = null;
 type Tab = "chat" | "board" | "files";
 let cachedTab: Tab = "chat";
-/** What the right-hand pane shows on a wide layout: the crew, the home's files, or — switched on — the ship deck. */
-type RightPane = "board" | "files" | "deck";
+/** Home has an overview and its own files; full views live in Paseo workspace tabs. */
+type RightPane = "board" | "files";
 let cachedRightPane: RightPane = "board";
-/** The worker whose conversation is open in the Converse drawer, by `watchKey`: its agent id, or `remote:<serverId>:<id>`. */
-let cachedWatching: string | null = null;
-/** List's completed-task choice survives view switches and surface remounts. */
-let cachedShowDone = false;
+/** Independent view state survives reopening without carrying a drawer into another tab or host. */
+const viewState = new Map<string, { watching: string | null; showDone: boolean }>();
 
 /**
  * A surface is given no way to open a settings screen, so the entry lends it
@@ -97,30 +96,34 @@ export function bindSettingsOpener(opener: ((id: string) => void) | null): void 
 const DEFAULT_DISPLAY: DisplaySettings = displaySettings.schema.parse({});
 const SAVE_DELAY_MS = 400;
 
-/**
- * The fleet query, shared by the screen, the workspace panels and the sidebar item so they poll once
- * between them.
- */
-export function useFleet(pollSeconds: number) {
-  const load = useRpc(loadFleet);
-  return useQuery({
-    queryKey: FLEET_QUERY_KEY,
-    queryFn: function () {
-      return load({}).then((fleet) => {
-        cachedFleet = fleet;
-        return fleet;
-      });
-    },
-    refetchInterval: pollSeconds * 1000,
-    ...(cachedFleet === null ? {} : { placeholderData: cachedFleet }),
-  });
-}
-
 function paneName(pane: RightPane): string {
-  return pane === "files" ? "Files" : pane === "deck" ? "Deck" : "Crew";
+  return pane === "files" ? "Home files" : "Board";
 }
 
-export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
+type FleetSurfaceProps = PluginScreenProps & {
+  view?: FleetView;
+  workspaceId?: string;
+  shell?: FleetShell;
+};
+
+/** A key makes even host/workspace prop changes start from that destination's own view state. */
+export function FleetSurface(props: FleetSurfaceProps) {
+  const key = JSON.stringify([props.host?.id, props.workspaceId, props.view ?? "home"]);
+  return <FleetViewBody key={key} {...props} stateKey={key} />;
+}
+
+function FleetViewBody({
+  theme,
+  layout,
+  navigation,
+  params,
+  view,
+  workspaceId,
+  shell,
+  stateKey,
+}: FleetSurfaceProps & { stateKey: string }) {
+  const home = view === undefined;
+  const remembered = viewState.get(stateKey);
   const [width, setWidth] = useState(0);
   const compact = layout.compact || (width > 0 && width < MIN_SPLIT_WIDTH);
   const enable = useRpc(enableAgentTools);
@@ -138,10 +141,10 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   const [share, setShare] = useState<number | null>(null);
   const [tab, setTabState] = useState<Tab>(cachedTab);
   const [rightPane, setRightPaneState] = useState(cachedRightPane);
-  const [watching, setWatchingState] = useState(cachedWatching);
+  const [watching, setWatchingState] = useState(remembered?.watching ?? null);
   /** The right-hand pane's width, which decides whether the drawer docks beside the crew or covers it. */
   const [paneWidth, setPaneWidth] = useState(0);
-  const [showDone, setShowDone] = useState(cachedShowDone);
+  const [showDone, setShowDone] = useState(remembered?.showDone ?? false);
   const [enabling, setEnabling] = useState(false);
   const [charterBusy, setCharterBusy] = useState(false);
   /** A file the Files view should open; not kept across a remount, or it would open again on return. */
@@ -149,6 +152,8 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
 
   const fleet = useFleet(values.pollSeconds);
   const data = fleet.data ?? null;
+  const homeWorkspaceId = homeWorkspace(data);
+  const crewView = view === "crew" ? "list" : "board";
   const remoteHosts = useRemotes().data?.hosts ?? [];
   const hostTab = shownHostTab(values.hostTab, remoteHosts);
 
@@ -157,11 +162,11 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   }, [queryClient]);
 
   const shownTab = tab;
-  /** The ship deck, offered in the desktop app's wide layout. A pane left on it falls back to Crew where it is not. */
+  /** Deck has a dedicated destination; unsupported clients explain its availability there. */
   const deck = deckOffered(Platform.OS, compact);
-  const pane: RightPane = rightPane === "deck" && !deck ? "board" : rightPane;
+  const pane: RightPane = rightPane;
   /** The drawer sits beside the list or board, rather than over it, on a wide pane with room for both. */
-  const docked = !compact && drawerDocks(paneWidth);
+  const docked = view !== "deck" && !compact && drawerDocks(paneWidth);
 
   /**
    * Layout changes are drawn at once and saved behind, batched: a save is
@@ -174,12 +179,15 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   displayRef.current = display;
   const pending = useRef<Partial<DisplaySettings>>({});
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => {
-    clearTimeout(saveTimer.current);
-    // Opening another screen can unmount this one before the batching delay.
-    // A completed drag must still reach the existing host settings document.
-    if (Object.keys(pending.current).length > 0) flush(0);
-  }, []);
+  useEffect(
+    () => () => {
+      clearTimeout(saveTimer.current);
+      // Opening another screen can unmount this one before the batching delay.
+      // A completed drag must still reach the existing host settings document.
+      if (Object.keys(pending.current).length > 0) flush(0);
+    },
+    [],
+  );
 
   function flush(attempt: number): void {
     const current = displayRef.current;
@@ -216,6 +224,12 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     });
   }, [display]);
 
+  useEffect(() => {
+    if (!home || params?.chat !== "show" || display.status !== "ready") return;
+    setTab("chat");
+    if (values.chatCollapsed) save({ chatCollapsed: false });
+  }, [home, params?.chat, display.status]);
+
   function setTab(next: Tab): void {
     // As with the wide layout's Crew switch: pressing Crew again goes back to the board.
     if (next === "board" && tab === "board") setWatching(null);
@@ -232,8 +246,8 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
 
   /** Opens a worker's conversation, or closes it (`null`) and gives focus back to the 💬 that opened it. */
   function setWatching(next: string | null): void {
-    const previous = cachedWatching;
-    cachedWatching = next;
+    const previous = watching;
+    viewState.set(stateKey, { watching: next, showDone });
     setWatchingState(next);
     if (next === null && previous !== null) focusWebElement(converseButtonId(previous));
   }
@@ -309,7 +323,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   const mateSender = useMateSender(mate?.id ?? "");
 
   /**
-   * While this surface is open the captain is looking at the first mate, so
+   * While Home's chat is visible the captain is looking at the first mate, so
    * its "finished" flag is cleared the way opening it in Paseo would clear it,
    * and its workspace reads as done in the sidebar. Keyed by `updatedAt`, so a
    * turn that ends while the panel is open is cleared too, and a clear that
@@ -318,7 +332,12 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
    */
   const markSeen = useRpc(markMateSeen);
   const unseen =
-    mate !== null && mate.requiresAttention && mate.pendingPermissions === 0 ? `${mate.id}:${mate.updatedAt}` : null;
+    chatIsVisible(view ?? "home", compact, tab, values.chatCollapsed) &&
+    mate !== null &&
+    mate.requiresAttention &&
+    mate.pendingPermissions === 0
+      ? `${mate.id}:${mate.updatedAt}`
+      : null;
   useEffect(() => {
     if (unseen === null) return;
     markSeen({})
@@ -344,9 +363,11 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
    * offered again if the send fails. Says whether it went.
    */
   function suggest(prompt: string): boolean {
-    if (mate === null || !mateSender.send(captainMessage(prompt, []), () => answeredReplies.unmark(prompt))) return false;
+    if (mate === null || !mateSender.send(captainMessage(prompt, []), () => answeredReplies.unmark(prompt)))
+      return false;
     answeredReplies.mark(prompt);
-    if (compact) setTab("chat");
+    if (!home) shell?.openHome();
+    else if (compact) setTab("chat");
     else if (values.chatCollapsed) save({ chatCollapsed: false });
     return true;
   }
@@ -466,16 +487,27 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   }
   if ((data?.homeGuests?.length ?? 0) > 0) {
     const guests = data!.homeGuests!;
-    banners.push(<Banner key="home-guests" theme={theme} tone="warning"
-      text={`${guests.length} other ${guests.length === 1 ? "chat is" : "chats are"} open in the FirstMate home. They are guests, not the configured first mate. Older chats may still remember the previous charter; the role guard does not revoke tool access.`}
-      actions={navigation === undefined ? [] : guests.slice(0, 3).map((guest, index) => ({
-        label: `${index + 1}: ${(guest.title ?? guest.id).slice(0, 24)}${(guest.title ?? guest.id).length > 24 ? "…" : ""}`, icon: "ExternalLink" as const,
-        onPress: () => navigation.openAgent({ agentId: guest.id }),
-      }))} />);
+    banners.push(
+      <Banner
+        key="home-guests"
+        theme={theme}
+        tone="warning"
+        text={`${guests.length} other ${guests.length === 1 ? "chat is" : "chats are"} open in the FirstMate home. They are guests, not the configured first mate. Older chats may still remember the previous charter; the role guard does not revoke tool access.`}
+        actions={
+          navigation === undefined
+            ? []
+            : guests.slice(0, 3).map((guest, index) => ({
+                label: `${index + 1}: ${(guest.title ?? guest.id).slice(0, 24)}${(guest.title ?? guest.id).length > 24 ? "…" : ""}`,
+                icon: "ExternalLink" as const,
+                onPress: () => navigation.openAgent({ agentId: guest.id }),
+              }))
+        }
+      />,
+    );
   }
   // The question itself is in the chat; the banner is for when the chat is
   // out of sight — folded away, or behind the Crew tab on a phone.
-  const chatHidden = compact ? shownTab !== "chat" : values.chatCollapsed;
+  const chatHidden = !chatIsVisible(view ?? "home", compact, shownTab, values.chatCollapsed);
   if (mate !== null && mate.pendingPermissions > 0 && chatHidden) {
     banners.push(
       <Banner
@@ -486,7 +518,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         action={{
           label: "Show",
           icon: "MessageSquare",
-          onPress: () => (compact ? setTab("chat") : save({ chatCollapsed: false })),
+          onPress: () => (!home ? shell?.openHome() : compact ? setTab("chat") : save({ chatCollapsed: false })),
         }}
       />,
     );
@@ -519,6 +551,37 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     banners.push(<Banner key={warning} theme={theme} tone="warning" text={warning} />);
   }
 
+  if (!home && (data === null || homeWorkspaceId === null || workspaceId !== homeWorkspaceId)) {
+    return (
+      <View style={[styles.screen, { padding: 16, gap: 12 }]}>
+        <Text style={styles.title}>{FLEET_PANELS[view].title}</Text>
+        <Text style={styles.meta}>
+          {data === null
+            ? fleet.error === null
+              ? "Loading FirstMate…"
+              : errorText(fleet.error)
+            : homeWorkspaceId === null
+              ? "Launch a first mate in its home to use this view."
+              : "This fleet view belongs to the FirstMate home workspace."}
+        </Text>
+        {shell === undefined ? null : (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <IconButton theme={theme} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
+            {homeWorkspaceId === null ? null : (
+              <IconButton
+                theme={theme}
+                icon="ExternalLink"
+                label={"Open " + FLEET_PANELS[view].title + " in FirstMate"}
+                showLabel
+                onPress={() => shell.openView(view, homeWorkspaceId)}
+              />
+            )}
+          </View>
+        )}
+      </View>
+    );
+  }
+
   const header = (
     <View style={styles.header}>
       <View style={styles.headerRow}>
@@ -536,38 +599,17 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           onOpenFile={openFile}
           onOpenAgent={navigation === undefined ? null : (agentId) => navigation.openAgent({ agentId })}
         />
-        {mate !== null &&
-        (compact ? shownTab === "board" : pane === "board" && !values.boardCollapsed) &&
-        (watching === null || docked) ? (
-          <Segmented
-            theme={theme}
-            value={values.crewView}
-            options={[
-              {
-                value: "list",
-                label: "List",
-                tooltip: "Show tasks in a grouped list.",
-              },
-              {
-                value: "board",
-                label: "Board",
-                tooltip: "Show tasks in columns by status.",
-              },
-            ]}
-            onChange={(crewView) => save({ crewView })}
-          />
-        ) : null}
         {data === null ? null : (
           <WatchButton watches={data.watches} theme={theme} onChanged={refresh} onOpenFile={openFile} />
         )}
-        {!compact && mate !== null && data !== null && !values.boardCollapsed ? (
+        {home && !compact && mate !== null && data !== null && !values.boardCollapsed ? (
           <Segmented
             theme={theme}
             value={pane}
             options={[
               {
                 value: "board",
-                label: `Crew (${data.cards.length})`,
+                label: `Board (${data.cards.length})`,
                 tooltip:
                   watching === null
                     ? "Show crew and backlog tasks."
@@ -575,17 +617,14 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
               },
               {
                 value: "files",
-                label: "Files",
+                label: "Home files",
                 tooltip: "Browse and edit files in the FirstMate home.",
               },
-              ...(deck
-                ? [{ value: "deck" as const, label: "Deck", tooltip: "Show the crew in the selected deck setting." }]
-                : []),
             ]}
             onChange={setRightPane}
           />
         ) : null}
-        {!compact && mate !== null ? (
+        {home && !compact && mate !== null ? (
           <>
             <IconButton
               icon={values.chatCollapsed ? "PanelLeftOpen" : "PanelLeftClose"}
@@ -636,18 +675,27 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             onPress={openMate}
           />
         )}
-        <View style={{ flexDirection: "row", gap: 8, marginLeft: compact ? "auto" : 0 }}>
-          <UpdateButton theme={theme} mateId={mate?.id ?? null} sender={mateSender} onSent={() => {
-            if (compact) setTab("chat");
-            else if (values.chatCollapsed) save({ chatCollapsed: false });
-          }} />
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 8,
+            marginLeft: compact ? "auto" : 0,
+          }}
+        >
+          <UpdateButton
+            theme={theme}
+            mateId={mate?.id ?? null}
+            sender={mateSender}
+            onSent={() => {
+              if (compact) setTab("chat");
+              else if (values.chatCollapsed) save({ chatCollapsed: false });
+            }}
+          />
           <IconButton
             icon="RefreshCw"
             label={fleet.isFetching ? "Refreshing" : "Refresh"}
             tooltip={
-              fleet.isFetching
-                ? "FirstMate status is refreshing."
-                : "Refresh the task board and first mate's status."
+              fleet.isFetching ? "FirstMate status is refreshing." : "Refresh the task board and first mate's status."
             }
             tooltipSide="bottom"
             tooltipAlign="end"
@@ -679,6 +727,9 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           ].join(" · ")}
         </Text>
       )}
+      {shell === undefined ? null : (
+        <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} />
+      )}
     </View>
   );
 
@@ -707,7 +758,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
   const tabs = hostTabs(data.cards, remoteHosts);
   const tabHost = remoteHosts.find((host) => host.serverId === hostTab) ?? null;
   const hostCards = data.cards.filter((card) => onTab(card, hostTab));
-  const tagCards = tagScopeCards(hostCards, values.crewView === "list" ? showDone : !values.collapsedColumns.includes("done"));
+  const tagCards = tagScopeCards(hostCards, crewView === "list" ? showDone : !values.collapsedColumns.includes("done"));
   const filteredCards = hostCards.filter((card) => matchesTags(card, values.tagFilter));
   const board = (
     <View style={{ flex: 1, minHeight: 0 }}>
@@ -728,10 +779,17 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
         onPick={suggest}
         onRemove={dismissSuggestion}
       />
-      <ItemTagFilter cards={tagCards} selected={values.tagFilter} theme={theme} onChange={(tagFilter) => save({ tagFilter })} />
+      <ItemTagFilter
+        cards={tagCards}
+        selected={values.tagFilter}
+        theme={theme}
+        onChange={(tagFilter) => save({ tagFilter })}
+      />
       {hostCards.length > 0 && filteredCards.length === 0 ? (
-        <Text style={{ color: theme.colors.foregroundMuted, padding: 12 }}>No items match the selected tags on this host.</Text>
-      ) : values.crewView === "list" ? (
+        <Text style={{ color: theme.colors.foregroundMuted, padding: 12 }}>
+          No items match the selected tags on this host.
+        </Text>
+      ) : crewView === "list" ? (
         <TaskList
           cards={filteredCards}
           theme={theme}
@@ -742,7 +800,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           onChanged={refresh}
           showDone={showDone}
           onShowDone={(next) => {
-            cachedShowDone = next;
+            viewState.set(stateKey, { watching, showDone: next });
             setShowDone(next);
           }}
         />
@@ -770,38 +828,122 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
     </View>
   );
   const chat = (
-    <MateChat key={mate.id} mate={mate} theme={theme} compact={compact} onChanged={refresh} onOpenFile={openFile} navigation={navigation} />
+    <MateChat
+      key={mate.id}
+      mate={mate}
+      theme={theme}
+      compact={compact}
+      onChanged={refresh}
+      onOpenFile={openFile}
+      navigation={navigation}
+    />
   );
   const watchedCard = watching === null ? null : (data.cards.find((card) => watchKey(card) === watching) ?? null);
   const watchedTarget = watching === null ? null : converseTarget(watching);
   /** Over the crew rather than beside it: a phone, or a pane too narrow for both. */
   const covered = watching !== null && !docked;
   // The list or board stays mounted under a drawer that covers it, so closing the drawer finds it scrolled where it was.
+  const conversation =
+    watching === null || watchedTarget === null ? null : (
+      <View style={docked ? { width: DRAWER_WIDTH, flexShrink: 0 } : { flex: 1, minWidth: 0 }}>
+        <ConverseDrawer
+          key={watching}
+          watchKey={watching}
+          card={watchedCard}
+          theme={theme}
+          compact={compact}
+          docked={docked}
+          backLabel={view === "deck" ? "Deck" : crewView === "list" ? "Crew" : "Board"}
+          onClose={() => setWatching(null)}
+          onOpen={
+            navigation === undefined || watchedTarget.kind !== "local"
+              ? null
+              : () => navigation.openAgent({ agentId: watchedTarget.agentId })
+          }
+          onChanged={refresh}
+        />
+      </View>
+    );
   const crew = (
     <View style={{ flex: 1, minHeight: 0, flexDirection: "row" }}>
       <View style={[{ flex: 1, minWidth: 0 }, covered ? { display: "none" } : null]}>{board}</View>
-      {watching === null || watchedTarget === null ? null : (
-        <View style={docked ? { width: DRAWER_WIDTH, flexShrink: 0 } : { flex: 1, minWidth: 0 }}>
-          <ConverseDrawer
-            key={watching}
-            watchKey={watching}
-            card={watchedCard}
-            theme={theme}
-            compact={compact}
-            docked={docked}
-            backLabel={compact ? "Crew" : values.crewView === "list" ? "List" : "Board"}
-            onClose={() => setWatching(null)}
-            onOpen={
-              navigation === undefined || watchedTarget.kind !== "local"
-                ? null
-                : () => navigation.openAgent({ agentId: watchedTarget.agentId })
-            }
-            onChanged={refresh}
-          />
-        </View>
-      )}
+      {conversation}
     </View>
   );
+
+  if (!home) {
+    return (
+      <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>{FLEET_PANELS[view].title}</Text>
+            <View style={styles.spacer} />
+            {shell === undefined ? null : (
+              <IconButton theme={theme} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
+            )}
+            <IconButton theme={theme} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
+          </View>
+        </View>
+        {fleet.error === null ? null : <Banner theme={theme} tone="danger" text={errorText(fleet.error)} />}
+        {mate.pendingPermissions === 0 ? null : (
+          <Banner
+            theme={theme}
+            tone="warning"
+            text="The first mate is waiting for your answer."
+            action={{
+              label: "Open Home",
+              icon: "MessageSquare",
+              onPress: () => shell?.openHome(),
+            }}
+          />
+        )}
+        <View style={{ flex: 1, minHeight: 0 }} onLayout={(event) => setPaneWidth(event.nativeEvent.layout.width)}>
+          {view !== "deck" ? (
+            crew
+          ) : watching !== null ? (
+            conversation
+          ) : !deck ? (
+            <Text style={styles.loading}>
+              Deck needs a wide web or desktop window. Open Crew or Board from FirstMate Home on this device.
+            </Text>
+          ) : (
+            <SelectedDeckView
+              setting={values.deckSetting}
+              cards={data.cards}
+              theme={theme}
+              stale={fleet.error !== null}
+              suggestions={data.suggestions}
+              replyBlocked={replyBlockedText({
+                mate: mate !== null,
+                sending: mateSender.sending,
+              })}
+              onReply={(reply) => {
+                if (suggest(reply.prompt))
+                  toast.show(`Sending to the first mate: ${reply.label}`, {
+                    variant: "success",
+                  });
+              }}
+              renderFocus={(card, close, replies) => (
+                <CrewCard
+                  card={card}
+                  theme={theme}
+                  compact={false}
+                  presentation="focus"
+                  onClose={close}
+                  replies={replies}
+                  // Converse replaces the scene until the drawer closes.
+                  opener={watchOpener(card, (key) => {
+                    setWatching(key);
+                  })}
+                  onChanged={refresh}
+                />
+              )}
+            />
+          )}
+        </View>
+      </View>
+    );
+  }
 
   if (compact) {
     const tabs: readonly Tab[] = ["chat", "board", "files"];
@@ -820,7 +962,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
               onPress={() => setTab(id)}
             >
               <Text style={[styles.tabText, shownTab === id ? styles.tabTextActive : null]} numberOfLines={1}>
-                {id === "chat" ? "First mate" : id === "board" ? `Crew (${data.cards.length})` : "Files"}
+                {id === "chat" ? "First mate" : id === "board" ? `Board (${data.cards.length})` : "Home files"}
               </Text>
             </Pressable>
           ))}
@@ -855,7 +997,12 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
             />
           </View>
         ) : (
-          <View nativeID="firstmate-chat-pane" style={values.boardCollapsed ? { flex: 1 } : { width: Math.round(chatShare * width), flexShrink: 0 }}>{chat}</View>
+          <View
+            nativeID="firstmate-chat-pane"
+            style={values.boardCollapsed ? { flex: 1 } : { width: Math.round(chatShare * width), flexShrink: 0 }}
+          >
+            {chat}
+          </View>
         )}
         {values.chatCollapsed || values.boardCollapsed ? null : (
           <ResizeHandle
@@ -880,39 +1027,7 @@ export function FleetSurface({ theme, layout, navigation }: PluginScreenProps) {
           </View>
         ) : (
           <View style={{ flex: 1, minWidth: 0 }} onLayout={(event) => setPaneWidth(event.nativeEvent.layout.width)}>
-            {pane === "board" ? (
-              crew
-            ) : pane === "deck" ? (
-              <SelectedDeckView
-                setting={values.deckSetting}
-                cards={data.cards}
-                theme={theme}
-                stale={fleet.error !== null}
-                suggestions={data.suggestions}
-                replyBlocked={replyBlockedText({ mate: mate !== null, sending: mateSender.sending })}
-                onReply={(reply) => {
-                  if (suggest(reply.prompt)) toast.show(`Sending to the first mate: ${reply.label}`, { variant: "success" });
-                }}
-                renderFocus={(card, close, replies) => (
-                  <CrewCard
-                    card={card}
-                    theme={theme}
-                    compact={false}
-                    presentation="focus"
-                    onClose={close}
-                    replies={replies}
-                    // Watch leaves the deck for the crew pane, where the board's Watch shows it.
-                    opener={watchOpener(card, (key) => {
-                      setWatching(key);
-                      setRightPane("board");
-                    })}
-                    onChanged={refresh}
-                  />
-                )}
-              />
-            ) : (
-              <FilesView theme={theme} compact={false} request={filesRequest} />
-            )}
+            {pane === "board" ? crew : <FilesView theme={theme} compact={false} request={filesRequest} />}
           </View>
         )}
       </View>
