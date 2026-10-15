@@ -37,6 +37,8 @@ interface OptionPickerProps {
   onSelect(value: string): void;
   theme: PluginTheme;
   compact: boolean;
+  /** A labelled trigger without a settings row, for a toolbar. */
+  inline?: boolean;
 }
 
 function withAlpha(color: string, alpha: string): string {
@@ -108,27 +110,37 @@ export function OptionPicker(props: OptionPickerProps) {
 
   const muted = theme.colors.foregroundMuted;
 
-  return (
-    <>
-      <SettingsRow label={props.label} {...(props.hint === undefined ? {} : { hint: props.hint })}>
+  const trigger = (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${props.label}: ${current?.label ?? (value === "" ? "not set" : value)}. Change`}
           disabled={props.disabled === true}
+          accessibilityState={{ disabled: props.disabled === true, expanded: open }}
           onPress={() => {
+            if (props.disabled === true) return;
             setQuery("");
             setOpen(true);
           }}
           style={[styles.trigger, props.disabled === true ? styles.triggerDisabled : null]}
         >
           <Text style={styles.triggerText} numberOfLines={1}>
+            {props.inline ? `${props.label}: ` : ""}
             {current?.label ?? (value === "" ? "Choose…" : value)}
           </Text>
           <Icon name="ChevronDown" size={14} color={muted} />
         </Pressable>
-      </SettingsRow>
+  );
+
+  return (
+    <>
+      {props.inline ? trigger : (
+        <SettingsRow label={props.label} {...(props.hint === undefined ? {} : { hint: props.hint })}>
+          {trigger}
+        </SettingsRow>
+      )}
       <Modal title={props.title} open={open} onOpenChange={setOpen}>
         <Modal.Content scrollable={false} style={styles.body} contentContainerStyle={styles.content}>
+          {props.inline && props.hint ? <Text style={styles.count}>{props.hint}</Text> : null}
           <TextInput
             value={query}
             onChangeText={setQuery}

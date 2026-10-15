@@ -47,6 +47,9 @@ const CONTROL = process.env.CONTROL === "1";
 const RERENDER = process.env.RERENDER !== "0";
 /** `SAVE=1` writes every shot of the branch to `.generated/gate/shots/`, to look at. */
 const SAVE = process.env.SAVE === "1";
+// A toolbar-only feature can intentionally change the header without changing any scene pixels.
+// Keep this opt-in and record it in the evidence; layout shifts below the header still fail.
+const MASK_TOOLBAR = process.env.MASK_TOOLBAR === "1";
 mkdirSync(join(failures, "shots"), { recursive: true });
 /** `ONLY=a,b` renders only the scenarios named. */
 const ONLY = process.env.ONLY?.split(",") ?? null;
@@ -319,7 +322,9 @@ async function steps(view, take, prefix, moments, from = 0) {
   }
 }
 
-const shot = (view) => view.screenshot();
+const shot = (view) => view.screenshot(MASK_TOOLBAR ? {
+  mask: [view.getByText("FirstMate", { exact: true }).locator("..").locator("..")],
+} : {});
 const canvasFacts = (view) =>
   view.evaluate(() => {
     const canvas = document.querySelector("canvas[data-firstmate-deck]");
@@ -473,7 +478,7 @@ async function render(browser, tree, scenario) {
   return { shots, facts };
 }
 
-const results = { base: `origin/main ${commit("origin/main")}`, branch: `HEAD ${commit("HEAD")}`, control: null, scenarios: [] };
+const results = { base: `origin/main ${commit("origin/main")}`, branch: `HEAD ${commit("HEAD")}`, maskToolbar: MASK_TOOLBAR, control: null, scenarios: [] };
 let identical = true;
 /** Differences that did not come back on a second render. */
 const flakes = [];
