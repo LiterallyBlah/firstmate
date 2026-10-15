@@ -201,3 +201,33 @@ Gate: every shot pixel-identical to main. Client bundle +5,045 bytes; Hermes par
   (were `sea:far` and `sea:near`).
 
 Gate: every shot pixel-identical to main. Client bundle −5,189 bytes against main; Hermes parses it; no `class`.
+
+## Step 5c — the stage's parts, pieces and lights from the pack; the plank and wake drawn in code retired
+
+- **`client/deck-parts.ts`** compiles a pack's stage furniture once, in `packArt` (`compileParts`): which **parts** are
+  drawn, under the ambience's rules (`resolveDrawn`, now shared) — the ship's tall mast, its topmast (which `needs`
+  the tall mast, and falls back to the hull's own masthead, drawn in the topmast's `place`), and the sail (which
+  needs the tall mast); what the backdrop is cut round (the drawn parts' `cutout`s, bounded); the **pieces**, each at
+  its row (`depthOf`), a drawn part's `replacesPiece` in its place (the tall mast's own rows for the mast piece), one
+  `{ over }` another just in front of it (the plank over the near rail); and the **lights**. A part or piece that is
+  not optional and did not load fails the stage as the backdrop does (`required`); any other is left out with a
+  warning. `top` is how high the drawn parts reach, for the fit.
+- **How it moves** is the pack's, by the same functions for any setting: the stage's bob (`bobAt`, `bob@1`), a part's
+  sway (`swayAt`, `sway@1`, on its clock with its phase and limit), a part's cycle held past its first frame for its
+  duty (`dutyFrame`, the sail's billow), and a light's flicker (`flickerAt`, `flicker@1`), its glow's alpha and its
+  glass's tint (`glassTint`), its glyph drawn by ink as runs (`glyphRects`). The weather hands them the sail's and the
+  swell's clocks and the billow and heave channels (`Weather` grew them, read by name: `clockOf`, `channelOf`). The
+  veil and the stale tint and alpha are the palette's (`DeckStage.palette`).
+- **Retired, per the captain's call (not baked to PNGs)**: the plank's board drawn in code (`plankPixels`,
+  `PLANK_COLOURS`) and the wake drawn in code (`client/deck-wake.ts`): without the plank's image there is no board,
+  without the wake's frames no wake.
+- **Deleted from code**: `MASTHEAD`, `LANTERNS`, `lanternFlicker`, `shipBob`, `mastSway`, `HEAVE`, `PLANK_DEPTH`,
+  `VEIL_COLOUR`, the stale tint, `mastLayout`, `drawnMast`, `drawnSail`, `drawnPlank`, `sailFrame` and
+  `client/deck-extras.ts`; the legacy views lose the atlas's view and the extras' sail, mast and plank — what is
+  left is the shark and splash, until step 7. Labels in the scene graph are the parts' places (`tall-mast`, `topmast`,
+  `sail`), `piece:<id>` (`piece:mast:tall-mast` for a stand-in) and `light:<id>`.
+- **What changes, and only where art fails to load**: the tall mast's rows standing in for the mast piece are cut as
+  the pack has them, below where the sail hangs, whether or not the sail loaded (before, without the sail they began
+  at the piece's own top).
+
+Gate: every shot pixel-identical to main. Client bundle −5,227 bytes against main; Hermes parses it; no `class`.

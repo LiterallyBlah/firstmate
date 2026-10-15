@@ -14,7 +14,8 @@ import { URL } from "node:url";
 import type { PluginTheme } from "@getpaseo/plugin";
 import { describe, expect, it } from "vitest";
 
-import { codeWakeSpot, extrasImagePaths } from "./deck-legacy";
+import { extrasImagePaths, type DeckExtrasImages } from "./deck-legacy";
+import { compileParts } from "./deck-parts";
 import { BUSY_CREW, deliveredWeather, shade } from "./deck-atmosphere";
 import { compileAmbience } from "./deck-ambience";
 import { cloudPeriod, hexColour, type DrifterMasks } from "./deck-clouds";
@@ -22,7 +23,6 @@ import { createScenery, type SceneryArt } from "./deck-environment";
 import { ASK_PAPER, askPixels } from "./deck-badges";
 import { FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout } from "./deck-camera";
 import { toCanvas } from "./deck-hover";
-import type { DeckExtrasImages } from "./deck-extras";
 import type { DeckHover } from "./deck-hover";
 import type { FrameScheduler, MotionSignals } from "./deck-loop";
 import { DECK_FLASH_ATTRIBUTE, DECK_MOTION_ATTRIBUTE, DECK_SKY_ATTRIBUTE, DECK_WEATHER_ATTRIBUTE, deckBox, fitDeck, startDeck, type DeckMotionEnvironment, type PixiModule } from "./deck-pixi";
@@ -53,7 +53,6 @@ const theme = {
   },
 } as unknown as PluginTheme;
 
-const deckManifest = shipViews().art;
 // The ship's water, under the names its constants had in the deck's code.
 const { horizon: HORIZON, waterline: WATERLINE } = shipWater();
 const FOAM_TOP = shipElement("foam-still", "strip").top;
@@ -279,13 +278,13 @@ function packImages(options: { extras?: Extras | null; without?: readonly string
     (id) => images.has(id),
     (id) => masks.has(id),
   );
-  return { images, masks, ambience };
+  return { images, masks, ambience, parts: compileParts(shipManifest(), (id) => images.has(id)) };
 }
 
 /** What the scenery is drawn from, for a test that draws it alone: the still sea and foam where `art` has them. */
 function sceneryArt(options: { extras?: Extras | null; without?: readonly string[]; art?: StillWater }): SceneryArt {
   const { images, masks, ambience } = packImages(options, options.art ?? null);
-  return { ambience, images, masks, codeWake: codeWakeSpot(shipManifest()) };
+  return { ambience, images, masks };
 }
 
 /** A hand-wound world: the clock, the frames, the minute timer, the motion signals. */
@@ -355,10 +354,10 @@ async function start(
   const host = { appendChild() {}, clientWidth: 800, clientHeight: 400 };
   // The pack's images by id, as the mount hands them over: the atlas, the ambience's, and whatever of the extras arrived.
   const atlas = { atlas: true };
-  const { images, masks, ambience } = packImages(options, art, atlas);
+  const { images, masks, ambience, parts } = packImages(options, art, atlas);
   const drawing = await startDeck(
     pixi,
-    { stage: shipStage(), cast: shipCast(), ambience, images, masks, codeWake: codeWakeSpot(shipManifest()), image: atlas, manifest: deckManifest, extras: options.extras ?? null },
+    { stage: shipStage(), cast: shipCast(), parts, ambience, images, masks, image: atlas, extras: options.extras ?? null },
     host,
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
@@ -398,7 +397,8 @@ describe("the generated environment on the deck", () => {
     const back = one(deck.app.stage, "scenery:back");
     // No clouds without their masks, and no lightning without clouds to stand under.
     expect(back.children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:overcast", "sky:stars", "gull", "gull", "sea:back"]);
-    expect(one(deck.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:front", "wake", "foam"]);
+    // No wake without its frames: the one drawn in code is retired.
+    expect(one(deck.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:front", "foam"]);
     // The crew's deck is inside the ship, so every sailor is in front of the sky and the far sea.
     expect(one(one(deck.app.stage, "ship"), "deck")).toBeDefined();
 
@@ -555,14 +555,19 @@ describe("the generated environment on the deck", () => {
 });
 
 const extrasManifest = shipViews().extras;
-/** The extras as the mount decodes them: each image a token naming its path. */
+/** The ship's parts and pieces, as the pack has them. */
+const stagePart = (id: string) => shipManifest().stage.parts.find((part) => part.id === id)!;
+const plankPiece = shipManifest().stage.pieces.find((piece) => piece.id === "plank")!;
 /** The extra looks' images: the cast's, decoded with the rest of the pack, and handed to the deck beside the extras'. */
 const lookPaths = shipCast()
   .looks.filter((look) => look.optional)
   .map((look) => shipViews().paths.get(look.image)!);
+/** The tall mast's, the sail's and the plank's images: what the extras once had of the stage. */
+const stagePaths = ["mast-tall-mast", "sails-main-sail", "plank-plank"].map(pathOf);
+/** The extras as a test hands them over — the shark and splash, the looks, the stage's own and the water — each a token naming its path. */
 const extras: DeckExtrasImages = {
   manifest: extrasManifest,
-  images: new Map([...extrasImagePaths(extrasManifest), ...lookPaths, ...animatedWater.map(pathOf)].map((path) => [path, { image: path }])),
+  images: new Map([...extrasImagePaths(extrasManifest), ...stagePaths, ...lookPaths, ...animatedWater.map(pathOf)].map((path) => [path, { image: path }])),
 };
 /** The extras without the tall mast's image: the hull's own short rig, as before it. */
 const shortRig: DeckExtrasImages = { manifest: extrasManifest, images: new Map([...extras.images].filter(([path]) => path !== "mast/tall-mast.png")) };
@@ -602,9 +607,9 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
     deck.advance(16);
     const ship = one(deck.app.stage, "ship");
-    expect(ship.children.map((child) => child.label)).toEqual(["hull:0", "hull:1", "hull:2", "mast", "masthead", "sail", "deck"]);
+    expect(ship.children.map((child) => child.label)).toEqual(["hull:0", "hull:1", "hull:2", "tall-mast", "topmast", "sail", "deck"]);
     // The hull's short rig — its crow's nest, upper mast and stays — is not drawn: the slices go round it.
-    const [cutX, , cutWidth, cutHeight] = extrasManifest.mast!.clears;
+    const [cutX, , cutWidth, cutHeight] = stagePart("tall-mast").cutout!;
     const slices = ["hull:0", "hull:1", "hull:2"].map((label) => one(ship, label) as FakeSprite);
     expect(slices.map((slice) => [slice.position.x, slice.position.y, slice.texture.frame.width, slice.texture.frame.height])).toEqual([
       [0, 0, cutX, 161],
@@ -612,8 +617,8 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
       [cutX + cutWidth, 0, 426 - cutX - cutWidth, 161],
     ]);
     // The tall mast in two: its crow's nest and topmast, which sway, and the rest down to its foot.
-    const head = one(ship, "masthead") as FakeSprite;
-    const shaft = one(ship, "mast") as FakeSprite;
+    const head = one(ship, "topmast") as FakeSprite;
+    const shaft = one(ship, "tall-mast") as FakeSprite;
     expect([texturePath(head), texturePath(shaft)]).toEqual(["mast/tall-mast.png", "mast/tall-mast.png"]);
     expect([head.position.y, head.texture.frame.y, head.texture.frame.height]).toEqual([-80, 0, 52]);
     expect(Math.abs(head.position.x - 187)).toBeLessThanOrEqual(1);
@@ -625,7 +630,7 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     expect([sail.texture.frame.width, sail.texture.frame.height]).toEqual([114, 84]);
     // Its rows below the sail's hem, on the mast's row, stand in for the mast piece: never over the cloth.
     expect(byLabel(deck.app.stage, "piece:mast")).toEqual([]);
-    const depth = one(deck.app.stage, "piece:mast:tall") as FakeSprite;
+    const depth = one(deck.app.stage, "piece:mast:tall-mast") as FakeSprite;
     expect(texturePath(depth)).toBe("mast/tall-mast.png");
     expect([depth.position.x, depth.position.y, depth.zIndex]).toEqual([187, 69, depthOf(110, 1)]);
     expect([depth.texture.frame.y, depth.texture.frame.height]).toEqual([149, 43]);
@@ -637,8 +642,8 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
   it("sways the tall mast's crow's nest a pixel each way and holds its shaft and foot still", async () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
     deck.advance(0);
-    const head = one(deck.app.stage, "masthead") as FakeSprite;
-    const shaft = one(deck.app.stage, "mast") as FakeSprite;
+    const head = one(deck.app.stage, "topmast") as FakeSprite;
+    const shaft = one(deck.app.stage, "tall-mast") as FakeSprite;
     const sways = new Set<number>();
     for (let frame = 0; frame < 300; frame += 1) {
       deck.advance(34);
@@ -653,8 +658,11 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: shortRig });
     deck.advance(16);
     const ship = one(deck.app.stage, "ship");
-    expect(ship.children.map((child) => child.label)).toEqual(["hull:0", "hull:1", "hull:2", "masthead", "deck"]);
-    const masthead = one(ship, "masthead") as FakeSprite;
+    // The hull's own masthead, in the topmast's place.
+    expect(ship.children.map((child) => child.label)).toEqual(["hull:0", "hull:1", "hull:2", "topmast", "deck"]);
+    const masthead = one(ship, "topmast") as FakeSprite;
+    const { frame } = (masthead as FakeSprite).texture;
+    expect([frame.x, frame.y, frame.width, frame.height]).toEqual([188, 0, 54, 48]);
     expect(Math.abs(masthead.position.x - 188)).toBeLessThanOrEqual(1);
     expect(masthead.position.y).toBe(0);
     const piece = one(deck.app.stage, "piece:mast") as FakeSprite;
@@ -671,7 +679,7 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     for (let frame = 0; frame < 120; frame += 1) {
       deck.advance(34);
       frames.add(sail.texture.frame.x);
-      expect([sail.position.x, sail.position.y]).toEqual(extrasManifest.sail.position);
+      expect([sail.position.x, sail.position.y]).toEqual(stagePart("sail").at);
     }
     expect(frames).toEqual(new Set([0, 114]));
     deck.drawing.destroy();
@@ -683,15 +691,15 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
   it("without the extras keeps the bare mast and its own piece; without the sail, the tall mast stands bare", async () => {
     const bare = await start(environment, { now: new Date(2026, 9, 14, 12, 0) });
     expect(byLabel(bare.app.stage, "sail")).toEqual([]);
-    expect(byLabel(bare.app.stage, "mast")).toEqual([]);
+    expect(byLabel(bare.app.stage, "tall-mast")).toEqual([]);
     expect(byLabel(bare.app.stage, "piece:mast")).toHaveLength(1);
     bare.drawing.destroy();
-    // The tall mast without its sail still stands, its own rows the depth piece from the mast piece's top.
+    // The tall mast without its sail still stands, its rows from below where the sail hangs the mast piece's, as the pack cuts them.
     const bareTall = { manifest: extrasManifest, images: new Map([...extras.images].filter(([path]) => path !== "sails/main-sail.png")) };
     const tall = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: bareTall });
     expect(byLabel(tall.app.stage, "sail")).toEqual([]);
-    expect(byLabel(tall.app.stage, "mast")).toHaveLength(1);
-    expect((one(tall.app.stage, "piece:mast:tall") as FakeSprite).position.y).toBe(48);
+    expect(byLabel(tall.app.stage, "tall-mast")).toHaveLength(1);
+    expect((one(tall.app.stage, "piece:mast:tall-mast") as FakeSprite).position.y).toBe(69);
     tall.drawing.destroy();
   });
 
@@ -748,44 +756,15 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     deck.drawing.destroy();
   });
 
-  it("without the generated wake, draws the code wake over the near sea, scrolling with the water, and still under reduced motion and on a plain sea", async () => {
-    const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0) });
-    deck.advance(0);
-    const wake = one(deck.app.stage, "wake") as FakeGraphics;
-    const drawn = new Set<string>();
-    for (let frame = 0; frame < 60; frame += 1) {
-      deck.advance(34);
-      expect(wake.shapes.length).toBeGreaterThan(20);
-      drawn.add(JSON.stringify(wake.shapes));
-    }
-    // Two seconds at ten pixels a second: about twenty different wakes, not sixty.
-    expect(drawn.size).toBeGreaterThan(10);
-    expect(drawn.size).toBeLessThan(30);
-    deck.drawing.destroy();
-
-    const still = await start(environment, { now: new Date(2026, 9, 14, 12, 0), reducedMotion: true });
-    const first = JSON.stringify((one(still.app.stage, "wake") as FakeGraphics).shapes);
-    still.state.now = new Date(2026, 9, 14, 12, 5);
-    still.timers[0]!.run();
-    expect(JSON.stringify((one(still.app.stage, "wake") as FakeGraphics).shapes)).toBe(first);
-    still.drawing.destroy();
-
-    const plain = await start(null, { now: new Date(2026, 9, 14, 12, 0) });
-    plain.advance(16);
-    expect(one(plain.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:front", "wake"]);
-    expect((one(plain.app.stage, "wake") as FakeGraphics).shapes.length).toBeGreaterThan(20);
-    plain.drawing.destroy();
-  });
-
   it("lets go of the sail's and the looks' textures and sources when torn down", async () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, scene: crewScene([["a", "working"], ["b", "idle"]]) });
     deck.advance(16);
     const sprites = [
       one(deck.app.stage, "sail"),
-      one(deck.app.stage, "mast"),
-      one(deck.app.stage, "masthead"),
-      one(deck.app.stage, "piece:mast:tall"),
-      one(deck.app.stage, "plank"),
+      one(deck.app.stage, "tall-mast"),
+      one(deck.app.stage, "topmast"),
+      one(deck.app.stage, "piece:mast:tall-mast"),
+      one(deck.app.stage, "piece:plank"),
       sailorSprites(deck.app.stage, "a").sprite,
     ] as FakeSprite[];
     deck.drawing.destroy();
@@ -906,21 +885,19 @@ describe("the plank and the shark on the deck", () => {
     const deck = await start(environment, { now, extras, scene: crewScene([["a", "working"]]) });
     deck.advance(0);
     // The generated board, at its placement, just in front of the near rail.
-    const plank = one(one(deck.app.stage, "deck"), "plank") as FakeSprite;
+    const plank = one(one(deck.app.stage, "deck"), "piece:plank") as FakeSprite;
     expect(texturePath(plank)).toBe("plank/plank.png");
-    expect([plank.position.x, plank.position.y]).toEqual(extrasManifest.plank!.position);
-    expect([plank.texture.frame.width, plank.texture.frame.height]).toEqual(extrasManifest.plank!.size);
+    expect([plank.position.x, plank.position.y]).toEqual(plankPiece.at);
+    expect([plank.texture.frame.width, plank.texture.frame.height]).toEqual(shipManifest().images[plankPiece.sprite.image]!.size);
     expect(plank.zIndex).toBeGreaterThan(one(deck.app.stage, "piece:near").zIndex);
     expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot"]);
     deck.drawing.destroy();
-    // Without the board's image, the board drawn in code, in the same place in the depth order.
+    // Without the board's image, no board: the one drawn in code is retired.
     const images = new Map([...extras.images].filter(([path]) => path !== "plank/plank.png"));
-    const coded = await start(environment, { now, extras: { manifest: extrasManifest, images }, scene: crewScene([["a", "working"]]) });
-    coded.advance(0);
-    const board = one(one(coded.app.stage, "deck"), "plank") as FakeGraphics;
-    expect(board.shapes.length).toBeGreaterThan(0);
-    expect(board.zIndex).toBe(plank.zIndex);
-    coded.drawing.destroy();
+    const boardless = await start(environment, { now, extras: { manifest: extrasManifest, images }, scene: crewScene([["a", "working"]]) });
+    boardless.advance(0);
+    expect(byLabel(boardless.app.stage, "piece:plank")).toEqual([]);
+    boardless.drawing.destroy();
   });
 
   it("walks a departing sailor off the plank into the sea, where the shark takes it, and clears the sea after", async () => {
@@ -935,7 +912,7 @@ describe("the plank and the shark on the deck", () => {
     for (let frame = 0; frame < 900; frame += 1) {
       deck.advance(34);
       const onPlank = one(deck.app.stage, "deck").children.find((child) => child.label.startsWith("a~"));
-      if (onPlank !== undefined && onPlank.zIndex > one(deck.app.stage, "plank").zIndex) walkedPlank = true;
+      if (onPlank !== undefined && onPlank.zIndex > one(deck.app.stage, "piece:plank").zIndex) walkedPlank = true;
       if (overboard.children.some((child) => child.label.startsWith("a~"))) swam = true;
       for (const child of overboard.children) {
         if (!child.visible) continue;
@@ -1294,10 +1271,10 @@ describe("the animated water on the deck", () => {
     scenery.destroy();
   });
 
-  it("falls back part by part: a missing wake frame is the code wake, a missing sea frame the environment's tile, a missing foam frame its strip", async () => {
+  it("falls back part by part: a missing wake frame is no wake, a missing sea frame the still tile, a missing foam frame its strip", async () => {
     const noWake = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: without("water/wake/frame-1.png") });
     noWake.advance(16);
-    expect((one(noWake.app.stage, "wake") as FakeGraphics).shapes.length).toBeGreaterThan(20);
+    expect(byLabel(noWake.app.stage, "wake")).toEqual([]);
     expect(texturePath(seaTiles(noWake.app.stage)[0]!)).toBe("water/sea/frame-0.png");
     noWake.drawing.destroy();
 

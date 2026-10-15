@@ -38,7 +38,6 @@ const stage = shipStage();
 const restOverflow = stage.zones.get("rest")!.overflow as { areas: ReadonlyArray<readonly [number, number, number, number]>; spacing: readonly [number, number] };
 const inRestArea = (point: { x: number; y: number }) => inRects(restOverflow.areas, point);
 
-const manifest = shipViews().art;
 const deck = { width: shipStage().width, height: shipStage().height };
 const still = { x: 0, y: 0 };
 

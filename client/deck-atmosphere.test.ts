@@ -1,12 +1,11 @@
 /**
  * The deck's weather by how busy the crew is (`client/deck-atmosphere.ts`): what counts as work, the table and
  * its interpolation, the easing, the clocks that let a pace change without a jump, and the still deck's calm.
- * The parts it drives — the sail's billow, the bob, the code wake — are checked here too; the deck drawing with it
+ * The parts it drives — the sail's billow, the bob and the sway — are checked here too; the deck drawing with it
  * is `client/deck-environment.test.ts`'s.
  */
 import { describe, expect, it } from "vitest";
 
-import { HEAVE, mastSway, shipBob } from "./deck-ambient";
 import {
   ACTIVITY_WEIGHTS,
   ATMOSPHERE,
@@ -24,9 +23,8 @@ import {
   weatherOf,
   type Atmosphere,
 } from "./deck-atmosphere";
-import { sailFrame } from "./deck-extras";
+import { bobAt, dutyFrame, swayAt } from "./deck-parts";
 import type { DeckState } from "./deck-scene";
-import { CHURN_LENGTH, STERN, wakeRuns } from "./deck-wake";
 import { advanceWater, CALM_WATER } from "./deck-water";
 import { cycleFrame } from "./deck-variants";
 import { hexColour } from "./deck-clouds";
@@ -83,7 +81,7 @@ describe("the weather table", () => {
     expect(idle.mood).toBe(0);
     const two = atmosphereAt(crewIntensity(working(2)));
     expect(two.water).toEqual(CALM_WATER);
-    expect([two.wind, two.sail, two.billow, two.swell, two.heave, two.mood]).toEqual([1, 1, 0.5, 1, HEAVE, 0]);
+    expect([two.wind, two.sail, two.billow, two.swell, two.heave, two.mood]).toEqual([1, 1, 0.5, 1, 1.2, 0]);
     const busy = atmosphereAt(1);
     expect(busy.water.pace).toBeGreaterThan(1.5);
     expect(busy.wind).toBeGreaterThan(2);
@@ -159,10 +157,22 @@ describe("the weather over time", () => {
     expect([still.water, still.wind, still.sail, still.swell]).toEqual([state.water, state.wind, state.sail, state.swell]);
   });
 
-  it("hands the scenery its clocks, its wake, its mood and the intensity its layers follow; the art's own weather, with no layers, when none is given", () => {
+  it("hands the deck its clocks, its wake, mood, billow and heave and the intensity its layers follow; the art's own weather, with no layers, when none is given", () => {
     const state = run(openingAtmosphere(1), 2, 1);
-    expect(weatherOf(state)).toEqual({ water: state.water, wind: state.wind, wake: atmosphereAt(1).wake, mood: atmosphereAt(1).mood, intensity: state.intensity });
-    expect(deliveredWeather(12)).toEqual({ water: { frames: 12, drift: 12 }, wind: 12, wake: 1, mood: 0, intensity: null });
+    const top = atmosphereAt(1);
+    expect(weatherOf(state)).toEqual({
+      water: state.water,
+      wind: state.wind,
+      sail: state.sail,
+      swell: state.swell,
+      wake: top.wake,
+      mood: top.mood,
+      billow: top.billow,
+      heave: top.heave,
+      intensity: state.intensity,
+    });
+    const delivered = atmosphereAt(2 / BUSY_CREW);
+    expect(deliveredWeather(12)).toEqual({ water: { frames: 12, drift: 12 }, wind: 12, sail: 12, swell: 12, wake: 1, mood: 0, billow: delivered.billow, heave: delivered.heave, intensity: null });
   });
 });
 
@@ -201,9 +211,10 @@ describe("a pack's levels and clocks, read off the weather", () => {
     expect(levelAt({ curve: [[0, 0.4]] }, deliveredWeather(7))).toBe(0);
   });
 
-  it("reads the water's, the wind's, or the scene's own clock", () => {
-    const clocked = { ...weather, water: { frames: 1, drift: 2 }, wind: 3 };
-    expect(["water-frames", "water-drift", "wind", "other"].map((clock) => clockOf(clocked, clock, 9))).toEqual([1, 2, 3, 9]);
+  it("reads the water's, the wind's, the sail's, the swell's, or the scene's own clock; the billow and the heave", () => {
+    const clocked = { ...weather, water: { frames: 1, drift: 2 }, wind: 3, sail: 4, swell: 5, billow: 0.6, heave: 1.4 };
+    expect(["water-frames", "water-drift", "wind", "sail", "swell", "other"].map((clock) => clockOf(clocked, clock, 9))).toEqual([1, 2, 3, 4, 5, 9]);
+    expect([levelAt({ channel: "billow" }, clocked), levelAt({ channel: "heave" }, clocked)]).toEqual([0.6, 1.4]);
   });
 });
 
@@ -218,36 +229,26 @@ describe("what the weather drives", () => {
   });
 
   it("holds the sail out longer in a fresher wind, and evenly by default", () => {
-    const sail = { frames: 2, frameMs: 850 };
+    const sail = { count: 2, frameMs: 850 };
     const share = (billow?: number) => {
       let out = 0;
-      for (let ms = 0; ms < 1700; ms += 10) out += sailFrame(ms / 1000, sail, true, billow);
+      for (let ms = 0; ms < 1700; ms += 10) out += dutyFrame(ms / 1000, sail, true, billow);
       return out / 170;
     };
     expect(share()).toBeCloseTo(0.5, 2);
     expect(share(0.5)).toBeCloseTo(0.5, 2);
     expect(share(0.65)).toBeCloseTo(0.65, 2);
-    expect(sailFrame(0.5, sail, false, 0.9)).toBe(0);
+    expect(dutyFrame(0.5, sail, false, 0.9)).toBe(0);
+    // Three frames: the first for the rest of the cycle, the others sharing its duty evenly.
+    const three = [0, 0.4, 0.7, 0.95].map((turn) => dutyFrame((turn * 3 * 100) / 1000, { count: 3, frameMs: 100 }, true, 0.5));
+    expect(three).toEqual([0, 0, 1, 2]);
   });
 
   it("bobs the ship a pixel more at the top of a livelier swell, the masthead still a pixel each way", () => {
-    const bobs = (heave: number) => new Set(Array.from({ length: 620 }, (_, tenth) => shipBob(tenth / 100, heave).y));
-    expect([...bobs(HEAVE)].sort()).toEqual([-1, 0, 1]);
+    const bobs = (heave: number) => new Set(Array.from({ length: 620 }, (_, tenth) => bobAt(tenth / 100, 6.2, heave)));
+    expect([...bobs(1.2)].sort()).toEqual([-1, 0, 1]);
     expect([...bobs(atmosphereAt(1).heave)].sort()).toEqual([-1, -2, 0, 1, 2].sort());
-    expect(shipBob(1.3)).toEqual(shipBob(1.3, HEAVE));
-    for (let tenth = 0; tenth < 620; tenth += 1) expect(Math.abs(mastSway(tenth / 100, atmosphereAt(1).heave))).toBeLessThanOrEqual(1);
-  });
-
-  it("runs the code wake shorter in a calm and all of it at full strength", () => {
-    const reach = { right: 1000, bottom: 1000 };
-    const furthest = (strength: number) =>
-      Math.max(
-        ...wakeRuns(0, reach, strength)
-          .filter((run) => run.y <= STERN.y + 3)
-          .map((run) => run.x + run.width),
-      );
-    expect(wakeRuns(0, reach)).toEqual(wakeRuns(0, reach, 1));
-    expect(furthest(1)).toBeGreaterThan(furthest(0.55));
-    expect(furthest(0.55)).toBeLessThanOrEqual(STERN.x + Math.round(CHURN_LENGTH * 0.55) + 1);
+    const sway = { periodS: 6.2, phase: -1, limit: 1 };
+    for (let tenth = 0; tenth < 620; tenth += 1) expect(Math.abs(swayAt(tenth / 100, sway, atmosphereAt(1).heave * 1.3))).toBeLessThanOrEqual(1);
   });
 });

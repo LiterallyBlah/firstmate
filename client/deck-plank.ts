@@ -8,9 +8,9 @@
  *   departure not in the set goes down the hatch as before.
  * - **The plank** sticks out over the near rail amidships, between the mast and the gunwale's bollards,
  *   towards the viewer: its top face runs down the screen from the gunwale (row 121) to its tip, its end
- *   is two rows thick. It is the generated board (`art/settings/ship/plank/`, served with the pack), placed on
- *   these same anchors, in the deck's layer just in front of the near rail, so it rides the bob. Where that
- *   image did not load, the board is drawn in code from the hull's own colours instead (`plankPixels`).
+ *   is two rows thick. It is the generated board (`art/settings/ship/plank/`), a piece of the pack drawn over the
+ *   near rail on these same anchors, in the deck's layer, so it rides the bob. Where that image did not load there
+ *   is no board: the one drawn in code is retired.
  * - **The walk.** A departing sailor walks the deck to the plank's foot (its `foot` mark, open deck behind the
  *   rail) by the deck's own paths. One at a time: the rest wait beside the foot, in the order they left,
  *   and the next steps up only once the one before has hit the water (`plankFree`), so two sharks are
@@ -57,64 +57,6 @@ export interface PlankMarks {
   tip: { x: number; y: number };
   water: { x: number; y: number };
 }
-
-/**
- * The board drawn in code where the generated one did not load, until it is retired: its top face at the rail,
- * `left` and `width`, widening by a pixel each side at each third of its length, towards the viewer.
- */
-const CODE_BOARD = { left: 244, width: 12 } as const;
-
-/**
- * The plank's pixels, top to bottom, in the hull's own colours: [x, y, width, height, colour, alpha]. Two
- * boards side by side with a seam between them, widening towards the viewer, their end two rows thick, and
- * the shadow they cast on the hull's side below and to the right, which is what says they stick out.
- */
-export function plankPixels(marks: PlankMarks): ReadonlyArray<readonly [number, number, number, number, number, number]> {
-  const top = marks.rail.y;
-  const bottom = marks.tip.y + 1;
-  const span = bottom - top;
-  const runs: Array<readonly [number, number, number, number, number, number]> = [];
-  const run = (x: number, y: number, width: number, height: number, colour: number, alpha = 1) => runs.push([x, y, width, height, colour, alpha]);
-  let left: number = CODE_BOARD.left;
-  let width: number = CODE_BOARD.width;
-  for (let y = top; y <= bottom; y += 1) {
-    // A pixel wider each side at each third, nearer the viewer.
-    const grow = Math.floor(((y - top) * 3) / (span + 1));
-    left = CODE_BOARD.left - grow;
-    width = CODE_BOARD.width + grow * 2;
-    const seam = left + Math.floor(width / 2);
-    run(left, y, 1, 1, PLANK_COLOURS.edge);
-    run(left + width - 1, y, 1, 1, PLANK_COLOURS.edge);
-    // Each board lit along its left edge, with a run of grain now and then.
-    const face = (y - top) % 6 === 4 ? PLANK_COLOURS.grain : PLANK_COLOURS.face;
-    run(left + 1, y, 1, 1, PLANK_COLOURS.light);
-    run(left + 2, y, seam - left - 2, 1, face);
-    run(seam, y, 1, 1, PLANK_COLOURS.seam);
-    run(seam + 1, y, 1, 1, PLANK_COLOURS.light);
-    run(seam + 2, y, left + width - 1 - seam - 2, 1, face);
-    // Its shadow on the hull, beside it.
-    if (y >= top + 2) run(left + width, y, 2, 1, PLANK_COLOURS.shadow, PLANK_SHADOW_ALPHA);
-  }
-  // The end of the boards, and the shadow under it.
-  run(left, bottom + 1, width, 2, PLANK_COLOURS.end);
-  run(left + Math.floor(width / 2), bottom + 1, 1, 2, PLANK_COLOURS.edge);
-  run(left, bottom + 3, width, 1, PLANK_COLOURS.edge);
-  run(left + width, bottom + 1, 2, 3, PLANK_COLOURS.shadow, PLANK_SHADOW_ALPHA);
-  run(left + 2, bottom + 4, width, 2, PLANK_COLOURS.shadow, PLANK_SHADOW_ALPHA);
-  return runs;
-}
-
-/** The hull's own colours (`art/settings/ship/deck.png`), for the plank; its shadow is the hull's darkest navy, half seen through. */
-export const PLANK_COLOURS = {
-  light: 0xdca35b,
-  face: 0xce9659,
-  grain: 0xc17f46,
-  seam: 0xa56235,
-  end: 0x72412a,
-  edge: 0x3e2921,
-  shadow: 0x0e121e,
-} as const;
-export const PLANK_SHADOW_ALPHA = 0.45;
 
 /** The step up over the gunwale from the foot. */
 export const HOP_MS = 160;

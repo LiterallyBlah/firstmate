@@ -1,20 +1,16 @@
 /**
- * The deck's ambient life, as pure functions of the scene clock: the sea, the ship's bob, the masthead's
- * sway, the lanterns' flicker and the odd flyby. Nothing here reads crew state, and nothing keeps state
- * of its own, so a frozen or stepped clock reproduces any frame (`docs/ship-deck-motion/render.mjs`).
+ * The deck's motion plan, and its odd flyby as a pure function of the scene clock. Nothing here reads crew state,
+ * and nothing keeps state of its own, so a frozen or stepped clock reproduces any frame
+ * (`docs/ship-deck-motion/render.mjs`).
  *
  * The ideas are the throwaway prototype's pass 3, redrawn for hull C's side-on view and kept cheap:
  * no shaders, so a software renderer pays only for sprites. Motion is whole art pixels, slow, and
  * small — the crew is what should catch the eye.
  *
  * The sea, the sky and the flyby's sprite are the setting's (`client/deck-ambience.ts`, drawn by
- * `client/deck-environment.ts`); this file keeps only where and when a flyby flies.
+ * `client/deck-environment.ts`), and the stage's bob, its parts' sway and its lights' flicker are the setting's
+ * parts' (`client/deck-parts.ts`); this file keeps only the plan and where and when a flyby flies.
  *
- * - **Ship** — bobs a pixel up and down over about six seconds, crew and all; the sea does not.
- * - **Masthead** — the crow's nest and topmast, cut from the hull (or the tall mast's top rows), sway a pixel
- *   each way behind the bob.
- * - **Lanterns** — three, on the stern post, the quarterdeck's front post and the mast, flickering on
- *   three out-of-step sines.
  * - **A flyby** (`flyby@1`, the ship's gull) — now and then one crosses the stage in its rows, flapping in bursts
  *   and gliding; when, where and how fast are the pack's.
  */
@@ -51,49 +47,6 @@ export function motionPlan(options: { reducedMotion: boolean; software: boolean;
     fps: options.software ? LITE_FPS : DECK_FPS,
     ambient: !options.software,
   };
-}
-
-const TAU = Math.PI * 2;
-
-/** How far the ship bobs, in art pixels each way before rounding: a pixel, most of the time. */
-export const HEAVE = 1.2;
-
-/**
- * The ship's bob, in whole pixels: up and down a pixel over about six seconds. A livelier sea (`heave`, from the
- * deck's weather in `client/deck-atmosphere.ts`) lifts it a pixel more at the top of each swell.
- */
-export function shipBob(seconds: number, heave = HEAVE): { x: number; y: number } {
-  return { x: 0, y: Math.round(Math.sin((seconds * TAU) / 6.2) * heave) };
-}
-
-/** The masthead's sway, in whole pixels, a beat behind the bob: -1, 0 or 1, held longer at the ends in a livelier sea. */
-export function mastSway(seconds: number, heave = HEAVE): number {
-  return Math.max(-1, Math.min(1, Math.round(Math.sin((seconds * TAU) / 6.2 - 1.0) * 1.3 * (heave / HEAVE))));
-}
-
-/** The masthead cut from the hull to sway: the short rig's crow's nest and topmast, above the mast piece. */
-export const MASTHEAD = { x: 188, y: 0, width: 54, height: 48 } as const;
-
-/** A lantern: where its lamp hangs (the top of its bail), and the depth row it is drawn at. */
-export interface Lantern {
-  x: number;
-  y: number;
-  /** The row it is drawn at: the mast's lantern in front of the mast, the others just over the hull. */
-  row: number;
-  seed: number;
-}
-
-export const LANTERNS: readonly Lantern[] = [
-  { x: 410, y: 50, row: 80, seed: 0.0 },
-  { x: 344, y: 48, row: 80, seed: 2.3 },
-  { x: 211, y: 70, row: 110, seed: 4.9 },
-];
-
-/** A lantern's brightness, about 0.6 to 1: two out-of-step sines and a fast flutter, never a rhythm. */
-export function lanternFlicker(seconds: number, seed: number): number {
-  const value =
-    0.8 + 0.1 * Math.sin(seconds * 7.1 + seed) + 0.06 * Math.sin(seconds * 13.7 + seed * 2) + 0.04 * Math.sin(seconds * 29 + seed * 5);
-  return Math.max(0, Math.min(1, value));
 }
 
 /** A tiny deterministic random number from an integer, 0 to 1. */

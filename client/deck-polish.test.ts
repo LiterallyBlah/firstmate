@@ -15,7 +15,6 @@ import { fitDeck } from "./deck-pixi";
 import { DECK_STATES, type DeckSailor, type DeckState } from "./deck-scene";
 import { shipCast, shipStage, shipViews } from "../test/ship-pack";
 
-const manifest = shipViews().art;
 const deck = { width: shipStage().width, height: shipStage().height };
 
 describe("resizing the pane", () => {
