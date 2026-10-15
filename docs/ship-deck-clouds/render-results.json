@@ -1,0 +1,41 @@
+{
+  "day": {
+    "0530-dawn": {
+      "sky": "dawn",
+      "motion": "full"
+    },
+    "0800-morning": {
+      "sky": "morning",
+      "motion": "full"
+    },
+    "1200-midday": {
+      "sky": "midday",
+      "motion": "full"
+    },
+    "1600-afternoon": {
+      "sky": "afternoon",
+      "motion": "full"
+    },
+    "1830-dusk": {
+      "sky": "dusk",
+      "motion": "full"
+    },
+    "2015-dusk-to-night": {
+      "sky": "night",
+      "motion": "full"
+    },
+    "0200-night": {
+      "sky": "night",
+      "motion": "full"
+    }
+  },
+  "drift": {
+    "motion": "full",
+    "skyChanged": true
+  },
+  "reducedMotion": {
+    "motion": "still",
+    "skyChanged": false
+  },
+  "errors": []
+}

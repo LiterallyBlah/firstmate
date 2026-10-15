@@ -27,5 +27,23 @@
       "anchor": [24, 32],
       "frames": { "impact": "splash/impact.png", "burst": "splash/burst.png" }
     }
+  },
+  "clouds": {
+    "palette": ["#A8B9BD", "#BECAC6", "#D9D4BE"],
+    "stages": {
+      "dawn": ["#927F8B", "#C7987D", "#DFBB96"],
+      "morning": ["#A8B9BD", "#BECAC6", "#D9D4BE"],
+      "midday": ["#A8B9BD", "#BECAC6", "#D9D4BE"],
+      "afternoon": ["#BECAC6", "#D9D4BE", "#F1DEC0"],
+      "dusk": ["#536E87", "#7C7183", "#B38B88"],
+      "night": ["#1D314E", "#2C4869", "#45617A"]
+    },
+    "sprites": [
+      { "id": "wisp", "texture": "clouds/wisp.png", "size": [44, 12], "pixelsPerSecond": 0.3 },
+      { "id": "puff", "texture": "clouds/puff.png", "size": [36, 14], "pixelsPerSecond": 0.45 },
+      { "id": "cumulus", "texture": "clouds/cumulus.png", "size": [62, 21], "pixelsPerSecond": 0.35 },
+      { "id": "long-bank", "texture": "clouds/long-bank.png", "size": [92, 25], "pixelsPerSecond": 0.55 },
+      { "id": "twin-bank", "texture": "clouds/twin-bank.png", "size": [80, 24], "pixelsPerSecond": 0.4 }
+    ]
   }
 }

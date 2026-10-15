@@ -198,15 +198,16 @@ describe("the sail and the crew's looks the daemon serves", () => {
     await withEnvironment({ FIRSTMATE_SHIP_DECK: "0" }, () => expect(readDeckExtras(async () => root)).resolves.toBeDefined());
   });
 
-  it("on, is the sail, its occluder, six looks and the plank's shark and splash, byte for byte, and small enough to send whole", async () => {
+  it("on, is the sail, its occluder, six looks, the plank's shark and splash and five clouds, byte for byte, and small enough to send whole", async () => {
     const extras = await readDeckExtras(async () => root);
     const paths = extrasImagePaths(extras.manifest);
     expect(Object.keys(extras.images)).toEqual(paths);
-    expect(paths).toHaveLength(14);
+    expect(paths).toHaveLength(19);
     for (const path of paths) {
       expect(Buffer.from(extras.images[path]!, "base64").equals(readFileSync(join(root, DECK_ENVIRONMENT_DIR, path))), path).toBe(true);
     }
     expect(extras.manifest.crew.map((look) => look.id)).toEqual(["bosun", "old-salt", "navigator", "carpenter", "rigger", "deckhand"]);
+    expect(extras.manifest.clouds?.sprites.map((cloud) => cloud.id)).toEqual(["wisp", "puff", "cumulus", "long-bank", "twin-bank"]);
     const total = Object.values(extras.images).reduce((sum, png) => sum + png.length, 0);
     expect(total).toBeLessThan(60_000);
   });
