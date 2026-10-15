@@ -307,3 +307,12 @@ No new art was needed.
   `CHECK_SELECTION=1` also exercises missing-pack fallback and return to the original choice in Edge.
   [Authoring a built-in setting](authoring.md) records the format, tools and the second-setting workflow:
   commission art, review any generic capabilities first, then land a data/art-only pack. No new art is added.
+
+Gate: **81/81 pixel-identical** to main `38b5464`, with no flakes or page errors. Full suite: 74 files,
+978 tests passed, three skipped (`npm test -- --maxWorkers=2`). Typecheck, `npm run lint:deck-packs`
+(26 tests) and `git diff --check` pass. The final client bundle is +6,314 bytes, parses in Hermes and contains
+no `class`. The Edge selection smoke check and selected-pack render/overlay pass without page errors;
+[`render-ship.png`](render-ship.png) and [`overlay-ship.png`](overlay-ship.png) record them. Gate canvas
+metadata now includes the selected id, so its metadata equality flag differs from older main; all pixels match.
+The package dry-run has 331,187 bytes under `art/` and excludes tests and documentation. Build and gate
+evidence is in `compile-results.json` and `gate-results.json`.
