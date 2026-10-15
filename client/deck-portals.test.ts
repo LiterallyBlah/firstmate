@@ -1,7 +1,7 @@
 /** Engine contracts with arbitrary portal/effect/pose names and reused test frames; no second setting's art. */
 import { describe, expect, it } from "vitest";
 import { compileChoreography, choreographyAt } from "./deck-choreography";
-import { applyCrew, createCrew, crewFigures, departureEffects, exitFree, stepCrew, stepDepartures } from "./deck-crew";
+import { applyCrew, createCrew, crewFigures, portalEffects, exitFree, stepCrew, stepDepartures } from "./deck-crew";
 import { compileCast } from "./deck-cast";
 import { compileStage } from "./deck-stage";
 import { SettingManifestSchema, settingProblems, type SettingManifest } from "../shared/deck-setting";
@@ -88,7 +88,7 @@ describe("portals without ship-specific names", () => {
     applyCrew(crew, [], { snap: true });
     stepDepartures(crew, 125);
     expect(crewFigures(crew, 0, { still: true })[0]!.alpha).toBe(0.5);
-    expect(departureEffects(crew)).toEqual([]);
+    expect(portalEffects(crew)).toEqual([]);
     stepDepartures(crew, 125);
     expect(crew.departures).toEqual([]);
   });

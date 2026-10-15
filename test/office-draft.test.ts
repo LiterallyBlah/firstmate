@@ -9,6 +9,7 @@ import { compileCast } from "../client/deck-cast";
 import { applyCrew, createCrew, crewFigures } from "../client/deck-crew";
 import { badgeTop, figureBox, sailorAt } from "../client/deck-hover";
 import type { DeckSailor } from "../client/deck-scene";
+import { walkingEntryProblems } from "./deck-entry";
 
 const read = (name: string) => JSON.parse(readFileSync(new URL(`../docs/settings/office/${name}`, import.meta.url), "utf8"));
 interface Asset { id: string; path: string; size: [number, number]; frameSize: [number, number]; frames: string[]; anchor: [number, number]; palette: string }
@@ -16,12 +17,11 @@ const contract = read("art-contract.json") as { assets: Asset[]; palettes: Recor
 const draft = read("setting.draft.json");
 
 // Only the already supported portion is parsed. These explicit test substitutions are never emitted as a pack:
-// zero digests are sentinels, and rise is not the intended office entry. Remaining capabilities get their own PRs.
+// zero digests are sentinels. Remaining capabilities get their own PRs.
 function supportedDraft(): SettingManifest {
   const manifest = structuredClone(draft.manifest);
   for (const image of Object.values(manifest.images) as Array<{ sha256: string }>) image.sha256 = "0".repeat(64);
   delete manifest.stage.tintByPhase;
-  manifest.portals.entry = { kind: "rise", at: manifest.portals.entry.at, ms: 1 };
   manifest.ambience = manifest.ambience.filter((element: { behaviour: { kind: string } }) => element.behaviour.kind !== "phase-frames");
   manifest.requires = capabilitiesUsed(manifest);
   return SettingManifestSchema.parse(manifest);
@@ -32,7 +32,7 @@ it("keeps the office visibly incomplete and outside the installed pack scan", ()
   expect(existsSync(new URL("../art/settings/office", import.meta.url))).toBe(false);
   expect(SettingManifestSchema.safeParse(draft.manifest).success).toBe(false);
   expect(incompatibility(draft.manifest)).toContain(draft.pendingCapabilities.join(", "));
-  expect(draft.pendingCapabilities).toEqual(["walk-in@1", "phase-tint@1", "phase-frames@1"]);
+  expect(draft.pendingCapabilities).toEqual(["phase-tint@1", "phase-frames@1"]);
   for (const image of Object.values(draft.manifest.images) as Array<{ sha256: unknown }>) expect(image.sha256).toBeNull();
 });
 
@@ -74,6 +74,7 @@ it("has a valid supported manifest core with poses and effect frames registered 
 
 it("connects all proposed posts and portal queues without walking through furniture", () => {
   const manifest = supportedDraft();
+  expect(walkingEntryProblems(manifest)).toEqual([]);
   const floor = createFloor({ ...manifest.floor, obstacles: [...manifest.floor.obstacles, ...manifest.stage.props.map((prop) => ({ id: prop.id, rect: prop.obstacle }))] });
   const points = [...manifest.zones.zones.flatMap((zone) => zone.posts.map((post) => post.at)), manifest.portals.entry.at,
     ...Object.values(manifest.portals.exits).flatMap((exit) => exit.kind === "choreography" ? [exit.marks[exit.queue.at]!] : [exit.at])].map(([x, y]) => ({ x, y }));

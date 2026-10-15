@@ -314,7 +314,7 @@ describe("the crew leaving by the plank", () => {
         sides.set(effect.key, effect.shark!.flip ? 1 : -1);
       }
     });
-    expect([...sharkKeys].map((key) => key.split("~")[0]).sort()).toEqual(keys);
+    expect([...sharkKeys].map((key) => key.replace(/^exit:/, "").split("~")[0]).sort()).toEqual(keys);
     // The sharks take turns coming from the left and the right.
     expect(new Set(sides.values())).toEqual(new Set([-1, 1]));
     expect(crew.walkers.size).toBe(0);

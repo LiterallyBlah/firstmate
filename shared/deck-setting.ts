@@ -16,6 +16,7 @@
  * and the row it is on is its depth. `docs/deck-settings/README.md` explains the format and how to author a pack.
  */
 import { z } from "zod";
+import { walkInChoreography } from "./deck-portals";
 
 /** The format this engine reads, and the newest it can draw. */
 export const SETTING_FORMAT = "firstmate.deck-setting";
@@ -33,6 +34,7 @@ export const ENGINE_CAPABILITIES = [
   "cast@1",
   "pose-fidgets@1",
   "rise@1",
+  "walk-in@1",
   "sink@1",
   "choreography@1",
   "bob@1",
@@ -311,8 +313,11 @@ const Choreography = z.strictObject({
   ),
 });
 const Portals = z.strictObject({
-  /** `rise@1`: up through a hatch at `at`, cropped, over `ms`. */
-  entry: z.strictObject({ kind: z.literal("rise"), at: Point, ms: Ms }),
+  /** `rise@1` crops at `at`; `walk-in@1` walks the authored corridor to the floor, then waits for any effects. */
+  entry: z.discriminatedUnion("kind", [
+    z.strictObject({ kind: z.literal("rise"), at: Point, ms: Ms }),
+    z.strictObject({ kind: z.literal("walk-in"), from: Point, at: Point, effects: Choreography.shape.effects.optional() }),
+  ]),
   /** `sink@1` back down, or `choreography@1`. */
   exits: z.record(Id, z.union([z.strictObject({ kind: z.literal("sink"), at: Point, ms: Ms }), Choreography])),
   byDeparture: z.strictObject({ done: Id, failed: Id, closed: Id, removed: Id }),
@@ -616,7 +621,9 @@ export function settingProblems(manifest: SettingManifest): string[] {
   for (const [state, zone] of Object.entries(manifest.zones.byState)) if (!zones.has(zone)) missing("zone", zone, `zones.byState.${state}`);
   for (const zone of zones) if (manifest.copy.zones[zone] === undefined) problems.push(`copy.zones has no words for zone "${zone}"`);
   for (const [why, exit] of Object.entries(manifest.portals.byDeparture)) if (manifest.portals.exits[exit] === undefined) missing("exit", exit, `portals.byDeparture.${why}`);
-  for (const [id, exit] of Object.entries(manifest.portals.exits)) {
+  const timelines = Object.entries(manifest.portals.exits);
+  if (manifest.portals.entry.kind === "walk-in") timelines.push(["(entry)", walkInChoreography(manifest.portals.entry)]);
+  for (const [id, exit] of timelines) {
     if (exit.kind !== "choreography") continue;
     const marks = new Set(Object.keys(exit.marks));
     const names = ["start", ...exit.actor.flatMap((segment) => segment.event === undefined ? [] : [segment.event])];
