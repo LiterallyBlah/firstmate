@@ -58,8 +58,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-geometry.ts`     | Any setting's floor (`createFloor`): walkable areas and obstacles, A* paths, a spot beside a shared post, a place packed into a zone's overflow. Pure; its caches are per floor. |
 | `client/deck-crew.ts`         | The crew in motion, on its setting's stage and in its cast: posts reserved, the state shown at once and walked to after, the hatch, the queue for the plank and each departure's clock, each frame's pose, fidget and breath. Pure. |
 | `client/deck-plank.ts`        | The plank and the way off by it: which departures take it (`PLANK_DEPARTURES`), its pixels, and one departure's walk, jump, splash and shark as a function of time. Pure. |
-| `client/deck-water.ts`        | How lively the water is (`WaterMotion`) and its own clock (`WaterClock`, `advanceWater`): how fast the frames play and the water drifts. Pure. |
-| `client/deck-atmosphere.ts`   | The weather by how busy the crew is: working crew → an eased intensity → one table of the sea's, wind's, sail's, bob's and wake's liveliness and the sky's mood; each animation's own clock. Pure. |
+| `client/deck-atmosphere.ts`   | Engine-owned intensity → the pack's compiled table of named channels and clocks (`compileAtmosphere`); calm values under reduced motion. Pure. |
 | `client/deck-ambience.ts`     | A setting's ambience compiled from its pack: which elements are drawn — each left out on its own when its images did not arrive, with what is drawn in it or under it, a fallback only in its source's place (and named for it), a tile with neither filled flat, variants and drifters a sprite at a time — and how each moves on a lite or still deck (`elementMotion`). Pure, per pack. |
 | `client/deck-variants.ts`     | The weather layers' arithmetic: curves over intensity, how an element shares its place with its variants, which frame of a looping set shows. Pure. |
 | `client/deck-flash.ts`        | Moments of weather (`flash@1`, the ship's lightning): seeded flashes at a rate from data, capped; where one stands under a drifter. Pure. |
@@ -348,6 +347,14 @@ what those look like and where they are. The ship is the first pack, `art/settin
   pack lists what it uses in `requires`, which must equal what it uses (`capabilitiesUsed`). A new behaviour is an
   engine change, setting-agnostic, added only when a shipped setting uses it — never `if (setting.id === …)`.
   `choreography@1` is the one most likely to grow: hold it to segments, events and effect keys.
+- **Atmosphere is compiled per pack** (`compileAtmosphere`, `client/deck-atmosphere.ts`): `atmosphere.table`
+  interpolates any named channels, `clocks` binds animation names to pace channels, and `delivered` supplies every
+  channel's calm value. Tables have strictly increasing intensities and the same channels in every row. Clocks advance
+  by step times pace; they never jump when pace changes. Reduced motion holds live clocks and supplies null intensity,
+  disabling variants, curve-driven layers and flashes. Packs without atmosphere have no named channels or clocks.
+- **Flash caps are engine rules**, including for future packs: at most two frames and 3500 ms total, opacity ≤ 0.6,
+  at least four seconds dark between flashes, none in lite or still. Format 1 permits one flash element per pack;
+  supporting multiple emitters needs a shared scheduler capability first so they cannot evade the global interval.
 - **The engine keeps what must read the same everywhere**: cards → workers and their four states, badges, marks,
   legend, hover label, focus panel, reply bubble, the motion plan (full, lite, still; paused when hidden), reduced
   motion staying calm, flash caps, and intensity — how busy the fleet is (`ACTIVITY_WEIGHTS`, `BUSY_CREW`). A pack
@@ -374,7 +381,8 @@ what those look like and where they are. The ship is the first pack, `art/settin
   and deletes those constants and their checks — step 3 took the stage, floor, zones and portal marks, step 4 the cast,
   step 5a the sky, its overlays, the lightning, the clouds and the gull (`client/deck-ambience.ts`), step 5b the sea,
   foam, wake and spindrift, step 5c the stage's parts, pieces and lights and its bob and sway (`client/deck-parts.ts`),
-  retiring the plank and the wake drawn in code. **Every step
+  retiring the plank and the wake drawn in code; step 6 the atmosphere's channels, clocks and calm values,
+  deleting the water-only clock module. **Every step
   is held to the gate**: the ship pixel-identical to main's, still and moving (`docs/deck-settings/gate.mjs`).
 
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
@@ -465,7 +473,7 @@ what those look like and where they are. The ship is the first pack, `art/settin
   hull's own masthead's in the topmast's place where the tall mast did not load.
 - **The weather follows the work** (`client/deck-atmosphere.ts`, `docs/ship-deck-atmosphere/README.md`). Working
   crew (waiting a quarter, blocked, idle and greyed not at all; local and remote) make an intensity, eased over a
-  few seconds; `ATMOSPHERE` maps it to multiples of the art's own timing — glassy at idle, the art as delivered
+  few seconds; the pack's `atmosphere.table` maps it to multiples of the art's own timing — glassy at idle, the art as delivered
   with two working, spirited at six. **A speed that changes needs its own clock**: each animation is handed a
   clock advanced by step × pace, never the scene's clock times a pace, which would jump the sea and the clouds
   whenever the crew changed. Reduced motion draws exactly as before (`deliveredWeather`).

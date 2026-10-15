@@ -8,7 +8,9 @@
  *   into slots of a minute over `FLASH_CAP_PER_MINUTE`, and a slot has its flash when its seed falls under the rate's
  *   share of the cap, at a seeded point in the slot's first half. So however the data is tuned there are never more
  *   than the cap a minute, and two never come closer than half a slot.
- * - **Only while its element runs** (`elementMotion`): the ship's never under reduced motion or on a software renderer.
+ * - **Engine caps**: two frames, 3500 ms total (leaving at least four seconds dark between slots), opacity at most
+ *   0.6, and never in lite or still. The renderer caps the opacity after multiplying the frame's share.
+ *   The format permits one flash element so independent emitters cannot defeat the interval cap.
  * - **Under drifters** (`under`): it stands behind one in view, its anchor tucked under the drifter's underside, the
  *   wider the likelier, its lower edge at or above their backdrop's horizon, so the ship's fork comes out of a cloud and
  *   never meets the sea. None in view with room under it, no flash.
@@ -51,8 +53,8 @@ export function flashAt(
   const rate = Math.max(0, Math.min(FLASH_CAP_PER_MINUTE, curveAt(flash.perMinute, intensity)));
   if (rate <= 0) return null;
   const slotMs = 60_000 / FLASH_CAP_PER_MINUTE;
-  const { frames } = flash;
-  const duration = frames.reduce((sum, frame) => sum + frame.ms, 0);
+  const frames = flash.frames.length > 2 ? flash.frames.slice(0, 2) : flash.frames;
+  const duration = Math.min(3500, frames.reduce((sum, frame) => sum + frame.ms, 0));
   const slot = Math.floor(ms / slotMs);
   for (let k = slot; k >= Math.max(0, slot - 1); k -= 1) {
     if (hashUnit(k * 7 + salt) >= rate / FLASH_CAP_PER_MINUTE) continue;

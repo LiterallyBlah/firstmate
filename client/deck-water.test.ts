@@ -8,7 +8,7 @@ import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { cycleFrame } from "./deck-variants";
-import { advanceWater, CALM_WATER } from "./deck-water";
+import { compileAtmosphere, openingAtmosphere, stepAtmosphere } from "./deck-atmosphere";
 import { shipElement, shipFile, shipManifest, shipWater } from "../test/ship-pack";
 
 /** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */
@@ -95,7 +95,7 @@ describe("the water's motion", () => {
   });
 
   it("is the art's own timing at calm water, and runs faster on its own clock at a livelier pace", () => {
-    expect(CALM_WATER).toEqual({ pace: 1, drift: 1 });
+    expect(shipManifest().atmosphere!.delivered).toMatchObject({ pace: 1, drift: 1 });
     expect([sea.drift.pxPerSecond, foam.drift.pxPerSecond]).toEqual([10, 6.25]);
     expect([sea.frames.clock, sea.drift.clock, foam.frames.clock, foam.drift.clock, wake.frames.clock]).toEqual([
       "water-frames",
@@ -105,8 +105,9 @@ describe("the water's motion", () => {
       "water-frames",
     ]);
     // Twice the pace, the frames come twice as fast; twice the drift, the sea slides twice as far.
-    const clock = advanceWater({ frames: 0, drift: 0 }, 0.24, { pace: 2, drift: 2 });
-    expect(cycleFrame(clock.frames, frames(sea), true)).toBe(2);
+    const atmosphere = compileAtmosphere({ atmosphere: { table: [{ at: 0, pace: 2, drift: 2 }], delivered: { pace: 1, drift: 1 }, clocks: { frames: "pace", drift: "drift" } } });
+    const { clocks: clock } = stepAtmosphere(atmosphere, openingAtmosphere(atmosphere), 240, 0, true);
+    expect(cycleFrame(clock.frames!, frames(sea), true)).toBe(2);
     expect(clock.drift).toBe(0.48);
   });
 });
