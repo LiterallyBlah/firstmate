@@ -18,7 +18,7 @@ node docs/deck-settings/gate.mjs         # needs Edge
 and art, and renders each compiled bundle in headless Edge through one host (`host.jsx`, `stubs.jsx`) that
 imports neither checkout's deck code — so the two can differ in every module and every RPC and still be
 compared. Each scenario is rendered for both at the same moments and the screenshots, the whole window, are
-compared pixel for pixel:
+compared pixel for pixel. The scenarios cover:
 
 The host now follows **Open Deck** into its registered workspace panel; older bundles with the internal
 Deck tab still work in the gate. For an intentional toolbar change, `MASK_TOOLBAR=1` masks only the Deck

@@ -18,7 +18,7 @@ changes from another client. No renderer or pack data changed.
 ```powershell
 npm.cmd ci
 npm.cmd ci --prefix docs/board-list
-npm.cmd test -- --maxWorkers=4
+npm.cmd test -- --maxWorkers=4 --testTimeout=15000
 npm.cmd run typecheck
 npm.cmd run lint:deck-packs
 node docs/ship-deck-canvas/compile.mjs
@@ -40,10 +40,19 @@ same viewport coordinates. It caught a one-pixel header growth in the first impl
 picker now uses the existing 28-point toolbar height. See [gate results](../deck-settings/gate-results.json)
 and [compiler results](../deck-settings/compile-results.json).
 
+Final validation: **82 test files, 1,044 tests passed, 3 skipped**; typecheck; **51 pack-lint checks**;
+changed-client-code formatting; Paseo compiler 0.11.0; both clients parsed by Hermes, **zero client
+`class` tokens**. All **81 shots were pixel-identical**, with no flakes or page errors. The gate ran
+against `1a473e1` while the source changes were still uncommitted; only formatting followed in the
+client. The subsequent rebase onto `0d2f672` changed remote-helper files only. Compilation, the full
+suite and the switcher browser checks were repeated on implementation commit `4b112f4`.
+
 Self-review covered global persistence, document revision conflicts, preservation of unrelated settings,
 duplicate saves, pack compatibility, scene remounting, toolbar geometry and the client bundle boundary.
 The first unbounded test run hit the existing remote-helper background-poll race; bounded concurrency
 passed the full suite without changing its expectations or remote code.
+Another local run alongside the GPU gate exceeded the existing five-second git-fixture timeout;
+the final run grants tests fifteen seconds. CI uses the repository's unchanged default test command.
 
 ![Scene picker](scene-picker.png)
 ![Office selected](office.png)
