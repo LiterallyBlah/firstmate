@@ -76,5 +76,135 @@
       "anchor": [8, 8],
       "position": [392, 151]
     }
-  }
+  },
+  "variants": [
+    {
+      "id": "rough-sea",
+      "variantOf": "sea",
+      "frames": ["storm/sea/frame-0.png", "storm/sea/frame-1.png", "storm/sea/frame-2.png", "storm/sea/frame-3.png"],
+      "frameSize": [256, 128],
+      "blend": "over",
+      "opacity": [[0.55, 0], [0.9, 1]]
+    },
+    {
+      "id": "heavy-wake",
+      "variantOf": "wake",
+      "frames": ["storm/wake/frame-0.png", "storm/wake/frame-1.png", "storm/wake/frame-2.png"],
+      "frameSize": [240, 96],
+      "blend": "crossfade",
+      "opacity": [[0.65, 0], [0.95, 1]]
+    },
+    {
+      "id": "storm-wisp",
+      "variantOf": "cloud:wisp",
+      "frames": ["storm/clouds/wisp.png"],
+      "frameSize": [44, 12],
+      "blend": "crossfade",
+      "opacity": [[0.5, 0], [0.85, 1]],
+      "palette": ["#1D314E", "#45617A", "#7795A5"],
+      "stages": {
+        "dawn": ["#1D314E", "#45617A", "#7C7183"],
+        "morning": ["#1D314E", "#45617A", "#7795A5"],
+        "midday": ["#1D314E", "#45617A", "#7795A5"],
+        "afternoon": ["#1D314E", "#45617A", "#7795A5"],
+        "dusk": ["#1D314E", "#2C4869", "#536E87"],
+        "night": ["#151E2D", "#1D314E", "#2C4869"]
+      }
+    },
+    {
+      "id": "storm-puff",
+      "variantOf": "cloud:puff",
+      "frames": ["storm/clouds/puff.png"],
+      "frameSize": [36, 14],
+      "blend": "crossfade",
+      "opacity": [[0.5, 0], [0.85, 1]],
+      "palette": ["#1D314E", "#45617A", "#7795A5"],
+      "stages": {
+        "dawn": ["#1D314E", "#45617A", "#7C7183"],
+        "morning": ["#1D314E", "#45617A", "#7795A5"],
+        "midday": ["#1D314E", "#45617A", "#7795A5"],
+        "afternoon": ["#1D314E", "#45617A", "#7795A5"],
+        "dusk": ["#1D314E", "#2C4869", "#536E87"],
+        "night": ["#151E2D", "#1D314E", "#2C4869"]
+      }
+    },
+    {
+      "id": "storm-cumulus",
+      "variantOf": "cloud:cumulus",
+      "frames": ["storm/clouds/cumulus.png"],
+      "frameSize": [62, 21],
+      "blend": "crossfade",
+      "opacity": [[0.5, 0], [0.85, 1]],
+      "palette": ["#1D314E", "#45617A", "#7795A5"],
+      "stages": {
+        "dawn": ["#1D314E", "#45617A", "#7C7183"],
+        "morning": ["#1D314E", "#45617A", "#7795A5"],
+        "midday": ["#1D314E", "#45617A", "#7795A5"],
+        "afternoon": ["#1D314E", "#45617A", "#7795A5"],
+        "dusk": ["#1D314E", "#2C4869", "#536E87"],
+        "night": ["#151E2D", "#1D314E", "#2C4869"]
+      }
+    },
+    {
+      "id": "storm-long-bank",
+      "variantOf": "cloud:long-bank",
+      "frames": ["storm/clouds/long-bank.png"],
+      "frameSize": [92, 25],
+      "blend": "crossfade",
+      "opacity": [[0.5, 0], [0.85, 1]],
+      "palette": ["#1D314E", "#45617A", "#7795A5"],
+      "stages": {
+        "dawn": ["#1D314E", "#45617A", "#7C7183"],
+        "morning": ["#1D314E", "#45617A", "#7795A5"],
+        "midday": ["#1D314E", "#45617A", "#7795A5"],
+        "afternoon": ["#1D314E", "#45617A", "#7795A5"],
+        "dusk": ["#1D314E", "#2C4869", "#536E87"],
+        "night": ["#151E2D", "#1D314E", "#2C4869"]
+      }
+    },
+    {
+      "id": "storm-twin-bank",
+      "variantOf": "cloud:twin-bank",
+      "frames": ["storm/clouds/twin-bank.png"],
+      "frameSize": [80, 24],
+      "blend": "crossfade",
+      "opacity": [[0.5, 0], [0.85, 1]],
+      "palette": ["#1D314E", "#45617A", "#7795A5"],
+      "stages": {
+        "dawn": ["#1D314E", "#45617A", "#7C7183"],
+        "morning": ["#1D314E", "#45617A", "#7795A5"],
+        "midday": ["#1D314E", "#45617A", "#7795A5"],
+        "afternoon": ["#1D314E", "#45617A", "#7795A5"],
+        "dusk": ["#1D314E", "#2C4869", "#536E87"],
+        "night": ["#151E2D", "#1D314E", "#2C4869"]
+      }
+    }
+  ],
+  "cycles": [
+    {
+      "id": "spindrift",
+      "frames": ["storm/spray/frame-0.png", "storm/spray/frame-1.png", "storm/spray/frame-2.png", "storm/spray/frame-3.png"],
+      "frameSize": [64, 32],
+      "frameMs": 120,
+      "anchor": [20, 26],
+      "position": [68, 151],
+      "opacity": [[0.75, 0], [1, 0.65]]
+    }
+  ],
+  "mood": {
+    "overlays": [{ "id": "overcast", "texture": "storm/sky/overcast.png", "size": [512, 320], "opacity": [[0.5, 0], [0.9, 0.7]] }]
+  },
+  "flashes": [
+    {
+      "id": "lightning",
+      "frames": ["storm/lightning/frame-0.png", "storm/lightning/frame-1.png"],
+      "frameSize": [32, 48],
+      "frameMs": [80, 120],
+      "frameAlpha": [1, 0.45],
+      "anchor": [16, 4],
+      "place": "under-cloud",
+      "opacity": [[0.92, 0], [1, 0.28]],
+      "perMinute": [[0.92, 0], [1, 2]]
+    }
+  ]
 }

@@ -1199,12 +1199,16 @@ describe("the sail and the crew's looks, decoded", () => {
   it("keeps every image that decodes and leaves out, by name, one that is missing or will not decode", async () => {
     const root = fileURLToPath(new URL("..", import.meta.url));
     const extras = await readDeckExtras(async () => root);
-    const cut = (image: unknown, size: readonly [number, number]) => Promise.resolve([image, size, "mask"] as const);
+    const cut = (image: unknown, size: readonly [number, number], palette?: readonly string[]) => Promise.resolve([image, size, palette?.[0] ?? "mask"] as const);
     const all = await decodeExtras(extras, (png) => Promise.resolve({ png }), undefined, cut);
-    expect([...all.images.keys()]).toHaveLength(30);
-    // Every cloud cut into its masks, from its own decoded image, at its manifest size.
-    expect([...all.cloudMasks!.keys()]).toEqual(extras.manifest.clouds!.sprites.map((cloud) => cloud.texture));
-    expect(all.cloudMasks!.get("clouds/puff.png")).toEqual([{ png: extras.images["clouds/puff.png"] }, [36, 14], "mask"]);
+    expect([...all.images.keys()]).toHaveLength(49);
+    // Every cloud cut into its masks, from its own decoded image, at its manifest size; each thunderhead by its own palette.
+    expect([...all.cloudMasks!.keys()]).toEqual([
+      ...extras.manifest.clouds!.sprites.map((cloud) => cloud.texture),
+      ...extras.manifest.variants!.filter((variant) => variant.variantOf.startsWith("cloud:")).map((variant) => variant.frames[0]),
+    ]);
+    expect(all.cloudMasks!.get("clouds/puff.png")).toEqual([{ png: extras.images["clouds/puff.png"] }, [36, 14], "#A8B9BD"]);
+    expect(all.cloudMasks!.get("storm/clouds/puff.png")).toEqual([{ png: extras.images["storm/clouds/puff.png"] }, [36, 14], "#1D314E"]);
     const missing: string[] = [];
     const { ["crew-variants/03-navigator.png"]: _navigator, ["clouds/wisp.png"]: _wisp, ...without } = extras.images;
     const some = await decodeExtras(
@@ -1214,9 +1218,17 @@ describe("the sail and the crew's looks, decoded", () => {
       (image, size) => (size[0] === 62 ? Promise.reject(new Error("no canvas")) : cut(image, size)),
     );
     // A cloud that did not arrive or would not cut is left out like any other image.
-    expect(missing.sort()).toEqual(["clouds/cumulus.png", "clouds/wisp.png", "crew-variants/03-navigator.png", "sails/main-sail.png"]);
-    expect([...some.images.keys()]).toHaveLength(27);
-    expect([...some.cloudMasks!.keys()]).toEqual(["clouds/puff.png", "clouds/long-bank.png", "clouds/twin-bank.png"]);
+    expect(missing.sort()).toEqual(["clouds/cumulus.png", "clouds/wisp.png", "crew-variants/03-navigator.png", "sails/main-sail.png", "storm/clouds/cumulus.png"]);
+    expect([...some.images.keys()]).toHaveLength(46);
+    expect([...some.cloudMasks!.keys()]).toEqual([
+      "clouds/puff.png",
+      "clouds/long-bank.png",
+      "clouds/twin-bank.png",
+      "storm/clouds/wisp.png",
+      "storm/clouds/puff.png",
+      "storm/clouds/long-bank.png",
+      "storm/clouds/twin-bank.png",
+    ]);
     expect(some.manifest).toBe(extras.manifest);
   });
 });

@@ -10,6 +10,14 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- A busy fleet sails into a storm. When four or more crewmates are working, the deck's calm scene cross-fades into
+  generated heavy weather: the clouds darken into thunderheads, an overcast greys the daytime sky, the sea turns
+  rough with whitecaps, a heavier wake churns astern, spray breaks at the bow, and with six working a faint fork of
+  distant lightning flickers behind the clouds about twice a minute. It eases in over a few seconds as the crew gets
+  busy and back out as it quiets. Three or fewer working looks exactly as before. At night the overcast never
+  brightens the sky; the stars simply go behind the thunderheads. Under reduced motion the deck stays calm however
+  busy the crew is, and a software renderer shows the storm still, with no spray movement or lightning.
+
 - The ship deck's weather follows the work. The more crewmates are working, the livelier the deck: the sea
   plays its waves and drifts faster, the clouds run before a fresher wind, the sail snaps quicker and stays
   filled longer, the ship rides the swell a little harder, the wake fills out, and with the whole fleet busy

@@ -31,6 +31,9 @@ window.setWorking = function setWorking(count) {
   window.fixtureFleet = withWorking(window.fixtureFleet, count);
 };
 
+/** The fixture fleet with `count` of its live crewmates working, for hosts built on this one. */
+window.atmosphereFleet = (count) => withWorking(window.fixtureFleet, count);
+
 window.atmosphereTable = function atmosphereTable(counts) {
   return counts.map(function (count) {
     const sailors = deckScene(withWorking(window.fixtureFleet, count).cards, window.fixtureTheme).sailors;
