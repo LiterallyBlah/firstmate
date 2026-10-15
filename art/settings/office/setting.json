@@ -299,13 +299,23 @@
           126
         ],
         "baseline": 138
+      },
+      {
+        "id": "lift-open",
+        "sprite": {
+          "image": "lift-doors",
+          "rect": [0, 0, 32, 48]
+        },
+        "at": [388, 64],
+        "baseline": 112
       }
     ],
     "props": [
       {
         "id": "printer",
         "sprite": {
-          "image": "printer"
+          "image": "printer",
+          "rect": [0, 0, 20, 24]
         },
         "feet": [
           10,
@@ -325,7 +335,8 @@
       {
         "id": "help-desk",
         "sprite": {
-          "image": "help-desk"
+          "image": "help-desk",
+          "rect": [0, 0, 32, 24]
         },
         "feet": [
           16,
@@ -345,7 +356,8 @@
       {
         "id": "coffee-counter",
         "sprite": {
-          "image": "coffee-counter"
+          "image": "coffee-counter",
+          "rect": [0, 0, 32, 28]
         },
         "feet": [
           16,

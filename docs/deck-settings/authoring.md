@@ -43,6 +43,9 @@ seconds dark, hidden in lite and still).
    Set the fit box to contain every part and effect. Define cast lanes/looks/roles, `copy` for the pane and zone descriptions, and optional ambience,
    day phases and atmosphere channels. Name each PNG in `images` with dimensions and SHA-256. The total
    image budget is 1,000,000 bytes; no unused image, source file or script belongs in the pack.
+   Give each prop an explicit sprite `rect`, including whole-image props: the current prop texture path
+   requires it. A doorway that stays open between finite effects needs an open-frame depth piece in the
+   stage; effects are temporary, not persistent door state.
 3. Run `npm run lint:deck-packs`. It checks all installed packs: strict schema, references and capabilities,
    file inventory/hashes/dimensions/crops, palettes and animation variants, floor pixels and paths, crowd
    visibility/hit targets, fit bounds including effects through their compiled timelines and alternatives.
