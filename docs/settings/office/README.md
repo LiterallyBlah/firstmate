@@ -2,13 +2,14 @@
 
 Status: **needs art**. This is the step-9 authoring scaffold, outside `art/settings/` and outside the npm
 package. It creates no pixels. `setting.draft.json` is an envelope around a proposed manifest, with null
-image digests and three pending capabilities; it is deliberately not installable. `art-contract.json`
+image digests and two pending capabilities; it is deliberately not installable. `art-contract.json`
 is the machine-readable delivery contract for **26 PNGs / 99 frames**. The tables below are its brief.
 
-The engine slice accompanying this draft adds `stable-posts@1` and `pose-fidgets@1`. Still required before
-the pack can ship: generic `walk-in@1`, `phase-tint@1`, `phase-frames@1`, then the commissioned art and its
+The engine supports `stable-posts@1`, `pose-fidgets@1` and `walk-in@1`. Still required before
+the pack can ship: generic `phase-tint@1`, `phase-frames@1`, then the commissioned art and its
 pixel checks. These are separate engine reviews followed by a data/art-only pack PR. The draft fields for
-those three capabilities are proposals, not accepted schema. No office branch belongs in the renderer.
+those two capabilities are proposals, not accepted schema. The draft's walking entry is now checked directly,
+including its off-floor corridor, actor fit and furniture clearance. No office branch belongs in the renderer.
 
 ## Coordinate and palette contract
 
@@ -86,7 +87,7 @@ It cannot check real opacity, palette pixels, hashes, compressed bytes, window s
 until art arrives. A test-only adapter substitutes sentinels for missing hashes and omits unsupported fields;
 it never writes or installs that adapted manifest. `npm run lint:deck-packs` includes these draft checks.
 
-After the commission: review and land the remaining three generic capabilities, fill real SHA-256 values,
+Review and land the remaining two generic capabilities. After the commission, fill real SHA-256 values,
 validate every PNG with the full pack linter, inspect office full/lite/still, entry/exit, focus and crowd views,
 then land `art/settings/office/` as an art/data-only PR. The ship must remain 81/81 pixel-identical at every
 engine slice. Global selection, calm reduced motion and engine-owned intensity remain unchanged.

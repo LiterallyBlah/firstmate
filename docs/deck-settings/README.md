@@ -344,3 +344,22 @@ two-pixel storm-frame flake at 65.4 seconds disappeared on the gate's automatic 
 `gate-results.json`. Full suite: 76 files, 988 tests passed, three skipped. Typecheck, pack lint (31 tests),
 focused worker-capability tests and `git diff --check` pass. Client bundle +635 bytes; Hermes parses it and
 there is no `class`. The package still serves 331,187 bytes under `art/`, with no office draft or tests included.
+
+## Step 9b — walking entry capability (office art still pending)
+
+- `walk-in@1` adds a straight, fully visible entry corridor from `from` to the floor endpoint `at`, at
+  the floor's walking pace. Only that endpoint enters pathfinding, so an off-floor source is never clamped
+  onto the grid. Directional poses, feet-row depth and unused frame time carry into the floor walk.
+- Optional finite effects reuse choreography compilation, reference checks and sampling. The closed marks
+  are `from`/`at`, the events `start`/`entered`; side is fixed at -1 and drift at 0. The actor waits at the
+  endpoint for any effect tail. Entry/exit effect keys are independent. No door state, hooks or pack code.
+- Mid-entry removal reverses progress continuously; return reverses again. Sink exit reversals retain their
+  crop even in a walking-entry pack. First mount/reduced motion snap to posts and discard entry effects;
+  removed walkers fade calmly. The existing frame budgets and hidden-scene pause remain engine-owned.
+- The linter checks corridor obstacle clearance, navigable endpoints, whole walking-frame fit and entry
+  effect bounds. The overlay shows the corridor. Office draft checks now consume its real walking entry;
+  only `phase-tint@1` and `phase-frames@1` remain proposed. The art contract and all ship pack data are unchanged.
+
+Generic tests cover retargeting, reversal/return, sink coexistence, reduced motion, independent effects,
+full/lite frame sizes, paused time and invalid references/geometry. The authored office pack still awaits
+the two remaining engine reviews and the separately commissioned art; it will be a data/art-only PR.

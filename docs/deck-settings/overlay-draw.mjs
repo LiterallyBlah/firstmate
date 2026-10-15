@@ -129,6 +129,13 @@ window.drawOverlay = function drawOverlay(manifest) {
     label(text, px(point.x) + 6, py(point.y) + 12, colour);
   };
   cross(stage.entry, "#ffffff", "entry");
+  if (stage.walkIn !== null) {
+    cross(stage.walkIn.from, "#ffffff", "entry.from");
+    g.beginPath();
+    g.moveTo(px(stage.walkIn.from.x), py(stage.walkIn.from.y));
+    g.lineTo(px(stage.entry.x), py(stage.entry.y));
+    g.stroke();
+  }
   for (const [id, exit] of stage.exits) {
     if (exit.kind === "sink") cross(exit.at, "#ffffff", `${id} (sink)`);
     else for (const [mark, at] of Object.entries(exit.marks)) cross(at, "#ff70d0", `${id}.${mark}`);

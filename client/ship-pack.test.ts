@@ -120,7 +120,7 @@ describe("the ship's pack, read as the manifests the deck drew from", () => {
 
 describe("the ship's pack, against the deck's constants", () => {
   it("goes up and down the hatch, and fades out under reduced motion, on the deck's timing", () => {
-    expect(ship.portals.entry.ms).toBe(HATCH_MS);
+    expect(ship.portals.entry).toMatchObject({ kind: "rise", ms: HATCH_MS });
     expect(ship.portals.exits.hatch).toMatchObject({ kind: "sink", ms: HATCH_MS });
     expect(ship.portals.still.fadeMs).toBe(FADE_MS);
   });

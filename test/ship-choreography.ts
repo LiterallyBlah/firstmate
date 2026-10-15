@@ -1,6 +1,6 @@
 /** Frozen ship expectations and adapters for migration regression tests; all sampling runs the generic engine. */
 import { choreographyAt, type ActorLayer } from "../client/deck-choreography";
-import { departureEffects, exitFree, type Crew } from "../client/deck-crew";
+import { portalEffects, exitFree, type Crew } from "../client/deck-crew";
 import { choreography } from "../client/deck-stage";
 import { shipStage, shipCast } from "./ship-pack";
 export type DeckDeparture = "done" | "failed" | "closed" | "removed";
@@ -70,7 +70,7 @@ export function plankExit(t: number, options: { side: -1 | 1; drift: number }): 
 export const plankFree = (crew: Crew) => exitFree(crew, "plank");
 export function plankEffects(crew: Crew) {
   const groups = new Map<string, { key: string; shark: PlankMoment["shark"]; splash: PlankMoment["splash"] }>();
-  for (const effect of departureEffects(crew)) {
+  for (const effect of portalEffects(crew)) {
     const key = effect.key.slice(0, effect.key.lastIndexOf(":"));
     let group = groups.get(key);
     if (group === undefined) { group = { key, shark: null, splash: null }; groups.set(key, group); }

@@ -31,7 +31,7 @@ export interface Walker {
   phase: Phase;
   /** How it leaves once its card is gone: the pack's chosen portal, or null while reversing an arrival. */
   exit: string | null;
-  /** Duration of the current rise/sink, retained when it reverses mid-way. */
+  /** Duration of the current entry/sink, retained when it reverses mid-way. */
   phaseDuration: number;
   /** Time spent in `arriving` or `sinking`. */
   phaseMs: number;
@@ -136,7 +136,26 @@ function reserve(crew: Crew, walker: Walker, byPreference: boolean): void {
 }
 
 function walkTo(crew: Crew, walker: Walker, target: Point): void {
-  walker.path = findPath(crew.stage.floor, walker, target);
+  // The authored corridor may start off-floor; only its endpoint belongs in floor navigation.
+  walker.path = findPath(crew.stage.floor, walkingEntry(crew, walker) ? crew.stage.entry : walker, target);
+}
+
+/** A sink exit remains a sink even in a pack with walking arrivals. Null exit means reversing the entry. */
+function walkingEntry(crew: Crew, walker: Walker): boolean {
+  return crew.stage.walkIn !== null && walker.exit === null && (walker.phase === "arriving" || walker.phase === "sinking");
+}
+
+const entryTime = (walker: Walker) => walker.phase === "sinking" ? walker.phaseDuration - walker.phaseMs : walker.phaseMs;
+
+function entryPosition(crew: Crew, walker: Walker): void {
+  const entry = crew.stage.walkIn!;
+  const u = Math.min(1, Math.max(0, entryTime(walker) / entry.walkMs));
+  const dx = crew.stage.entry.x - entry.from.x;
+  const dy = crew.stage.entry.y - entry.from.y;
+  walker.x = entry.from.x + dx * u;
+  walker.y = entry.from.y + dy * u;
+  const direction = walker.phase === "sinking" ? -1 : 1;
+  walker.facing = facingFor(direction * dx, direction * dy, walker.facing);
 }
 
 /** Each exit owns its queue and release event; independent exits never block one another. */
@@ -185,7 +204,7 @@ function depart(crew: Crew, walker: Walker, departure: DeckDeparture, snap: bool
     const settled = walker.phase === "settled" ? settledPose(crew.cast, walker.state, walker.facing, walker.seed) : null;
     const pose = settled?.pose ?? crew.cast.stand;
     const flip = settled?.flip ?? false;
-    const onLadder = walker.phase === "arriving" || walker.phase === "sinking";
+    const onLadder = !walkingEntry(crew, walker) && (walker.phase === "arriving" || walker.phase === "sinking");
     if (!onLadder) fadeOut(crew, walker, { pose, reveal: 1, layer: "floor", flip });
     return;
   }
@@ -193,12 +212,13 @@ function depart(crew: Crew, walker: Walker, departure: DeckDeparture, snap: bool
   walker.anchor = null;
   walker.endFacing = "front";
   if (walker.phase === "arriving") {
-    // Not yet out of the entry: straight back down.
-    walker.exit = null;
+    // Not yet out of the entry: reverse its progress without a position/crop jump.
+    // Retain a sink's id if this is already the reversal of that exit; it is still a crop, not a walk-in.
     walker.target = crew.stage.entry;
     walker.phase = "sinking";
     walker.phaseMs = walker.phaseDuration - walker.phaseMs;
     walker.path = [];
+    if (walkingEntry(crew, walker)) entryPosition(crew, walker);
     return;
   }
   walker.phase = "leaving";
@@ -260,6 +280,7 @@ export function applyCrew(
         seed: seedOf(sailor.key),
       };
       crew.walkers.set(sailor.key, walker);
+      if (walkingEntry(crew, walker)) entryPosition(crew, walker);
       reserve(crew, walker, snap);
       if (snap) place(walker);
       else walkTo(crew, walker, walker.target);
@@ -287,6 +308,7 @@ export function applyCrew(
       existing.phase = "walking";
     }
     reserve(crew, existing, false);
+    if (walkingEntry(crew, existing)) entryPosition(crew, existing);
     if (snap) place(existing);
     else walkTo(crew, existing, existing.target);
   }
@@ -336,7 +358,22 @@ export function stepCrew(crew: Crew, dtMs: number): void {
   // Nobody holds up the line who is no longer waiting in it.
   crew.queue = crew.queue.filter((key) => crew.walkers.get(key)?.phase === "leaving");
   for (const walker of [...crew.walkers.values()]) {
-    if (walker.phase === "arriving") {
+    let walkDt = dtMs;
+    if (walkingEntry(crew, walker)) {
+      const before = Math.min(crew.stage.walkIn!.walkMs, entryTime(walker));
+      const remaining = walker.phaseDuration - walker.phaseMs;
+      walker.phaseMs = Math.min(walker.phaseDuration, walker.phaseMs + dtMs);
+      walker.walkedMs += Math.abs(Math.min(crew.stage.walkIn!.walkMs, entryTime(walker)) - before);
+      entryPosition(crew, walker);
+      if (walker.phaseMs < walker.phaseDuration) continue;
+      if (walker.phase === "sinking") {
+        crew.walkers.delete(walker.key);
+        continue;
+      }
+      walkDt = Math.max(0, dtMs - remaining);
+      walker.phase = "walking";
+      walker.phaseMs = 0;
+    } else if (walker.phase === "arriving") {
       walker.phaseMs += dtMs;
       if (walker.phaseMs < walker.phaseDuration) continue;
       walker.phase = "walking";
@@ -354,8 +391,8 @@ export function stepCrew(crew: Crew, dtMs: number): void {
       walker.target = exit.queue.at;
       walkTo(crew, walker, walker.target);
     }
-    let budget = (crew.stage.floor.walkSpeed * dtMs) / 1000;
-    if (walker.path.length > 0) walker.walkedMs += dtMs;
+    let budget = (crew.stage.floor.walkSpeed * walkDt) / 1000;
+    if (walker.path.length > 0) walker.walkedMs += walkDt;
     while (budget > 0 && walker.path.length > 0) {
       const next = walker.path[0]!;
       const dx = next.x - walker.x;
@@ -430,7 +467,9 @@ export interface Figure {
 export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean }): Figure[] {
   const figures: Figure[] = [];
   for (const walker of crew.walkers.values()) {
-    const moving = (walker.phase === "walking" || walker.phase === "leaving") && walker.path.length > 0;
+    const entering = walkingEntry(crew, walker);
+    const moving = entering ? entryTime(walker) < crew.stage.walkIn!.walkMs
+      : (walker.phase === "walking" || walker.phase === "leaving") && walker.path.length > 0;
     const { cast } = crew;
     let pose: string;
     let flip = false;
@@ -438,7 +477,12 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
     let dy = 0;
     let reveal = 1;
     let sink = 0;
-    if (walker.phase === "arriving") {
+    if (entering) {
+      const step = moving ? walkPose(cast, walker.facing, walker.walkedMs) : null;
+      pose = step?.pose ?? cast.stand;
+      flip = step?.flip ?? false;
+      dy = -(step?.rise ?? 0);
+    } else if (walker.phase === "arriving") {
       pose = cast.stand;
       reveal = Math.min(1, walker.phaseMs / walker.phaseDuration);
     } else if (walker.phase === "sinking") {
@@ -517,8 +561,11 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
   return figures;
 }
 
-/** Effect tracks keyed independently, so multiple departures and repeated effects cannot share sprites. */
-export function departureEffects(crew: Crew) {
-  return crew.departures.flatMap((departure) => departure.kind !== "choreography" ? []
-    : departureMoment(crew, departure).effects.map((effect) => ({ ...effect, key: `${departure.key}:${effect.track}` })));
+/** Finite portal effects: independent keys for arrivals, departures and repeated tracks. */
+export function portalEffects(crew: Crew) {
+  const arrivals = crew.stage.walkIn === null ? [] : [...crew.walkers.values()].flatMap((walker) => !walkingEntry(crew, walker) ? []
+    : choreographyAt(crew.stage.walkIn!.choreography, entryTime(walker), { side: -1, drift: 0, cast: crew.cast, lane: laneOf(crew.cast, walker.look) })
+      .effects.map((effect) => ({ ...effect, key: `entry:${walker.key}:${effect.track}` })));
+  return [...arrivals, ...crew.departures.flatMap((departure) => departure.kind !== "choreography" ? []
+    : departureMoment(crew, departure).effects.map((effect) => ({ ...effect, key: `exit:${departure.key}:${effect.track}` })))];
 }
