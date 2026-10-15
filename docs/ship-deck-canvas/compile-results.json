@@ -1,16 +1,16 @@
 {
   "paseoCompiler": "0.11.0",
   "main": {
-    "commit": "9693516",
-    "clientBytes": 619801,
-    "serverBytes": 334637,
-    "ms": 6380
+    "commit": "0ff23d7",
+    "clientBytes": 649762,
+    "serverBytes": 343520,
+    "ms": 5110
   },
   "branch": {
-    "commit": "9693516",
-    "clientBytes": 619801,
-    "serverBytes": 334637,
-    "ms": 4920
+    "commit": "3d56e06",
+    "clientBytes": 649762,
+    "serverBytes": 343520,
+    "ms": 2006
   },
   "clientGrowthBytes": 0,
   "vendoredPixiBytes": 840663,

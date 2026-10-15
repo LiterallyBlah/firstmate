@@ -1,7 +1,8 @@
 {
-  "base": "origin/main 1a473e1",
-  "branch": "HEAD 59585c1",
-  "maskToolbar": true,
+  "base": "compiled main 0ff23d7",
+  "branch": "HEAD 3d56e06",
+  "compiledBranch": "3d56e06",
+  "maskToolbar": false,
   "control": null,
   "scenarios": [
     {
@@ -16,7 +17,7 @@
           "shot": "open",
           "identical": true,
           "differingPixels": 0,
-          "sha": "6ff73434438127ba",
+          "sha": "a585b88373191841",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -40,7 +41,7 @@
           "shot": "open",
           "identical": true,
           "differingPixels": 0,
-          "sha": "5094380b581c69a5",
+          "sha": "8887633f0ecd8e21",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -65,7 +66,7 @@
           "shot": "open",
           "identical": true,
           "differingPixels": 0,
-          "sha": "b2b664598e5d96d4",
+          "sha": "0e00c82c7a975490",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -89,7 +90,7 @@
           "shot": "open",
           "identical": true,
           "differingPixels": 0,
-          "sha": "66fe31cf6494bb2f",
+          "sha": "f18809b65cedb9de",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -113,7 +114,7 @@
           "shot": "open",
           "identical": true,
           "differingPixels": 0,
-          "sha": "73ebb811e283e262",
+          "sha": "787f7d8451a174e6",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -138,7 +139,7 @@
           "shot": "open",
           "identical": true,
           "differingPixels": 0,
-          "sha": "3c7246b575c07c38",
+          "sha": "0cf7094fd35f101b",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -163,7 +164,7 @@
           "shot": "open",
           "identical": true,
           "differingPixels": 0,
-          "sha": "5a20a6ad455d1961",
+          "sha": "de8d4875109394d4",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -186,7 +187,7 @@
           "shot": "lost",
           "identical": true,
           "differingPixels": 0,
-          "sha": "86f49b314729a08d",
+          "sha": "7ec2c48204293e51",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -208,9 +209,23 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "f530829a3af74398",
+          "identical": false,
+          "differingPixels": 40774,
+          "firstDifference": [
+            2411,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2627,
+            1618
+          ],
+          "sha": [
+            "fa2af157f9ceff60",
+            "0aadf27e983266bd"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -223,9 +238,23 @@
         },
         {
           "shot": "1s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "2688499bd0d638c2",
+          "identical": false,
+          "differingPixels": 44748,
+          "firstDifference": [
+            2468,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2610,
+            1618
+          ],
+          "sha": [
+            "af6aa6354f2f4636",
+            "47bfc97e837be35c"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -238,9 +267,23 @@
         },
         {
           "shot": "2.5s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "b9e7bfb9cec2d6ba",
+          "identical": false,
+          "differingPixels": 45763,
+          "firstDifference": [
+            2457,
+            1391
+          ],
+          "box": [
+            248,
+            1391,
+            2615,
+            1618
+          ],
+          "sha": [
+            "5d6163a53738679f",
+            "b542c25ae54c504f"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -253,9 +296,23 @@
         },
         {
           "shot": "5s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "63b7bb152630f280",
+          "identical": false,
+          "differingPixels": 45887,
+          "firstDifference": [
+            465,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2610,
+            1618
+          ],
+          "sha": [
+            "b699a65d90300d6e",
+            "ee93c7757cb4228f"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -268,9 +325,23 @@
         },
         {
           "shot": "10s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a96133ec8d1dc430",
+          "identical": false,
+          "differingPixels": 42395,
+          "firstDifference": [
+            2457,
+            1391
+          ],
+          "box": [
+            254,
+            1391,
+            2615,
+            1618
+          ],
+          "sha": [
+            "85f9975b3fbccbd4",
+            "9147b8bc35826133"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -283,9 +354,23 @@
         },
         {
           "shot": "25s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "47ccedb36619f61d",
+          "identical": false,
+          "differingPixels": 42833,
+          "firstDifference": [
+            2457,
+            1391
+          ],
+          "box": [
+            248,
+            1391,
+            2615,
+            1618
+          ],
+          "sha": [
+            "03bfdd3f29a9972e",
+            "ff7106e1d694b67b"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -298,9 +383,23 @@
         },
         {
           "shot": "49s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "2251a58bea345655",
+          "identical": false,
+          "differingPixels": 46934,
+          "firstDifference": [
+            465,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2627,
+            1618
+          ],
+          "sha": [
+            "461982156ad5a6d9",
+            "0d7e7d122036a814"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -313,9 +412,23 @@
         },
         {
           "shot": "73s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "22588467824a01cc",
+          "identical": false,
+          "differingPixels": 47210,
+          "firstDifference": [
+            2457,
+            1391
+          ],
+          "box": [
+            248,
+            1391,
+            2615,
+            1618
+          ],
+          "sha": [
+            "486d374eb82169fe",
+            "1d68a53e5aa5bfcf"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -337,9 +450,23 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "45d72fd7854205af",
+          "identical": false,
+          "differingPixels": 10032,
+          "firstDifference": [
+            1205,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1312,
+            809
+          ],
+          "sha": [
+            "9593ee514282566a",
+            "5b56046de8339774"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -352,9 +479,23 @@
         },
         {
           "shot": "5.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "f8741878e9a79d6c",
+          "identical": false,
+          "differingPixels": 11267,
+          "firstDifference": [
+            1228,
+            695
+          ],
+          "box": [
+            123,
+            695,
+            1307,
+            809
+          ],
+          "sha": [
+            "f1dced84ccc064b2",
+            "e1d503eb78bfa929"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -367,9 +508,23 @@
         },
         {
           "shot": "10.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "7453c135ffea64b5",
+          "identical": false,
+          "differingPixels": 10871,
+          "firstDifference": [
+            1214,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1304,
+            809
+          ],
+          "sha": [
+            "e932af6a7b3161be",
+            "161c6c1270107003"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -382,9 +537,23 @@
         },
         {
           "shot": "15.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a4f257e0aa4168a9",
+          "identical": false,
+          "differingPixels": 9901,
+          "firstDifference": [
+            1234,
+            681
+          ],
+          "box": [
+            123,
+            681,
+            1304,
+            809
+          ],
+          "sha": [
+            "cc16479f8d2e28b4",
+            "420e0df4acba36a5"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -397,9 +566,23 @@
         },
         {
           "shot": "20.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "614b5fdbfe00ffa9",
+          "identical": false,
+          "differingPixels": 11222,
+          "firstDifference": [
+            1228,
+            695
+          ],
+          "box": [
+            126,
+            695,
+            1307,
+            809
+          ],
+          "sha": [
+            "1d414ec56a86993d",
+            "fe72d225ea9a5eea"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -412,9 +595,23 @@
         },
         {
           "shot": "25.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "177398712c8b64cd",
+          "identical": false,
+          "differingPixels": 11239,
+          "firstDifference": [
+            232,
+            681
+          ],
+          "box": [
+            123,
+            681,
+            1312,
+            809
+          ],
+          "sha": [
+            "9f3c3aafbe50cecc",
+            "3ef4631e247c37f2"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -427,9 +624,23 @@
         },
         {
           "shot": "30.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "e421037aaf44546b",
+          "identical": false,
+          "differingPixels": 10445,
+          "firstDifference": [
+            1228,
+            695
+          ],
+          "box": [
+            123,
+            695,
+            1307,
+            809
+          ],
+          "sha": [
+            "b509261a33f1cc7d",
+            "d31d01e9359f9b3b"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -442,9 +653,23 @@
         },
         {
           "shot": "flash-33.5s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "7c380c0873a14897",
+          "identical": false,
+          "differingPixels": 12286,
+          "firstDifference": [
+            104,
+            338
+          ],
+          "box": [
+            87,
+            338,
+            1304,
+            809
+          ],
+          "sha": [
+            "56cff29db1e06944",
+            "96a67cc1319b0fa2"
+          ],
+          "intentional": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -457,9 +682,23 @@
         },
         {
           "shot": "flash-33.6s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "b46845644e7b8f7c",
+          "identical": false,
+          "differingPixels": 11934,
+          "firstDifference": [
+            101,
+            338
+          ],
+          "box": [
+            87,
+            338,
+            1304,
+            809
+          ],
+          "sha": [
+            "20ea6d7ff9d291b9",
+            "ef141a40f5271e11"
+          ],
+          "intentional": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -472,9 +711,23 @@
         },
         {
           "shot": "35.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "bfbfc2ee02e8c593",
+          "identical": false,
+          "differingPixels": 10709,
+          "firstDifference": [
+            1214,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1304,
+            809
+          ],
+          "sha": [
+            "cc371d35c3410366",
+            "1d7456f3307f84a6"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -487,9 +740,23 @@
         },
         {
           "shot": "40.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "3323384a0bf625cd",
+          "identical": false,
+          "differingPixels": 11282,
+          "firstDifference": [
+            232,
+            681
+          ],
+          "box": [
+            123,
+            681,
+            1304,
+            809
+          ],
+          "sha": [
+            "c9a51e1f0911819b",
+            "e34258605a923647"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -502,9 +769,23 @@
         },
         {
           "shot": "45.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "899fa3cff3becf6b",
+          "identical": false,
+          "differingPixels": 10903,
+          "firstDifference": [
+            1214,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1304,
+            809
+          ],
+          "sha": [
+            "6377d2d8d394d12e",
+            "06f632eceeef5d45"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -517,9 +798,23 @@
         },
         {
           "shot": "flash-48.9s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "2420704d5f99dbf7",
+          "identical": false,
+          "differingPixels": 12859,
+          "firstDifference": [
+            172,
+            338
+          ],
+          "box": [
+            123,
+            338,
+            1307,
+            809
+          ],
+          "sha": [
+            "40924f00d3bdecf4",
+            "3177665d568861ab"
+          ],
+          "intentional": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -532,9 +827,23 @@
         },
         {
           "shot": "flash-49.0s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "60c10c63d9e47e07",
+          "identical": false,
+          "differingPixels": 12390,
+          "firstDifference": [
+            172,
+            339
+          ],
+          "box": [
+            123,
+            339,
+            1304,
+            809
+          ],
+          "sha": [
+            "8b60d59b6e285a49",
+            "63b0e678818c6af7"
+          ],
+          "intentional": "Generated distant fork at the existing flash event; generated serpent and tentacles at the sea edges.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -547,9 +856,23 @@
         },
         {
           "shot": "50.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "e11bad30747cccc9",
+          "identical": false,
+          "differingPixels": 10545,
+          "firstDifference": [
+            1205,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1312,
+            809
+          ],
+          "sha": [
+            "8c9232f4ab10c0cf",
+            "fc59ac1893adb309"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -562,9 +885,23 @@
         },
         {
           "shot": "55.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "bc8ae04110cb498b",
+          "identical": false,
+          "differingPixels": 11899,
+          "firstDifference": [
+            232,
+            681
+          ],
+          "box": [
+            123,
+            681,
+            1307,
+            809
+          ],
+          "sha": [
+            "12d89a1ad822be9a",
+            "8cd029e4bf283ca6"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -577,9 +914,23 @@
         },
         {
           "shot": "60.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "be36985fce0f0d09",
+          "identical": false,
+          "differingPixels": 10888,
+          "firstDifference": [
+            1214,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1304,
+            809
+          ],
+          "sha": [
+            "fc955a43dc53b403",
+            "d9794d42592575e5"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -592,9 +943,23 @@
         },
         {
           "shot": "65.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "5cd9c20115545b6b",
+          "identical": false,
+          "differingPixels": 9917,
+          "firstDifference": [
+            1234,
+            681
+          ],
+          "box": [
+            123,
+            681,
+            1304,
+            809
+          ],
+          "sha": [
+            "266ce041dd1d8edc",
+            "de069ff16bc4ce0c"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -607,9 +972,23 @@
         },
         {
           "shot": "70.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "7cfa6fa1c667f401",
+          "identical": false,
+          "differingPixels": 11553,
+          "firstDifference": [
+            232,
+            681
+          ],
+          "box": [
+            123,
+            681,
+            1304,
+            809
+          ],
+          "sha": [
+            "9cd61a26bb1811c3",
+            "a3d6e20f1c7d1497"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -622,9 +1001,23 @@
         },
         {
           "shot": "75.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "7a422aac0184c9a2",
+          "identical": false,
+          "differingPixels": 10840,
+          "firstDifference": [
+            1205,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1312,
+            809
+          ],
+          "sha": [
+            "7b0b49778fcdf76c",
+            "3ec42e419ca6e65e"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -637,9 +1030,23 @@
         },
         {
           "shot": "80.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "b79ac2bab260ee6f",
+          "identical": false,
+          "differingPixels": 10365,
+          "firstDifference": [
+            1228,
+            695
+          ],
+          "box": [
+            123,
+            695,
+            1307,
+            809
+          ],
+          "sha": [
+            "7b98279ab159cc06",
+            "c27f1bd1cd4da94d"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -652,9 +1059,23 @@
         },
         {
           "shot": "85.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "7803fb5045a7b491",
+          "identical": false,
+          "differingPixels": 10629,
+          "firstDifference": [
+            1205,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1312,
+            809
+          ],
+          "sha": [
+            "19b40ae7053cb22c",
+            "4199d83448a18b5a"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -667,9 +1088,23 @@
         },
         {
           "shot": "90.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "15a09a6f974aaeec",
+          "identical": false,
+          "differingPixels": 10852,
+          "firstDifference": [
+            1234,
+            681
+          ],
+          "box": [
+            126,
+            681,
+            1304,
+            809
+          ],
+          "sha": [
+            "0bf2bed2d6e610a9",
+            "c0aed8c4ce9ab11c"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -682,9 +1117,23 @@
         },
         {
           "shot": "95.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "dfa706f5143785a2",
+          "identical": false,
+          "differingPixels": 9835,
+          "firstDifference": [
+            1214,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1304,
+            809
+          ],
+          "sha": [
+            "8671e9285a83797c",
+            "9573922ab07ce540"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -697,9 +1146,23 @@
         },
         {
           "shot": "100.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "ec4323104eb2a0d0",
+          "identical": false,
+          "differingPixels": 10682,
+          "firstDifference": [
+            1205,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1312,
+            809
+          ],
+          "sha": [
+            "9697e4339f300030",
+            "0f14dceabeb38c75"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -712,9 +1175,23 @@
         },
         {
           "shot": "105.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "8d3bb26401f3a7fe",
+          "identical": false,
+          "differingPixels": 12078,
+          "firstDifference": [
+            232,
+            681
+          ],
+          "box": [
+            123,
+            681,
+            1307,
+            809
+          ],
+          "sha": [
+            "31ee35e95a21a9a0",
+            "7480096144ab5d7d"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -727,9 +1204,23 @@
         },
         {
           "shot": "110.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "9b342e3b132db3c7",
+          "identical": false,
+          "differingPixels": 10096,
+          "firstDifference": [
+            1205,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1312,
+            809
+          ],
+          "sha": [
+            "a34fb5c31ad3f2c2",
+            "f6b50e03d07cbf37"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -742,9 +1233,23 @@
         },
         {
           "shot": "115.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "6a42fc19fddc5506",
+          "identical": false,
+          "differingPixels": 10577,
+          "firstDifference": [
+            1234,
+            681
+          ],
+          "box": [
+            123,
+            681,
+            1304,
+            809
+          ],
+          "sha": [
+            "ebac7fe032044cf6",
+            "b34cfd60924b6fe2"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -757,9 +1262,23 @@
         },
         {
           "shot": "120.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a345e61654ca632e",
+          "identical": false,
+          "differingPixels": 11529,
+          "firstDifference": [
+            232,
+            681
+          ],
+          "box": [
+            123,
+            681,
+            1304,
+            809
+          ],
+          "sha": [
+            "9f623266a32f4a36",
+            "2a3684aca39cacfa"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -781,9 +1300,23 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "2a69e7d0337888a4",
+          "identical": false,
+          "differingPixels": 10256,
+          "firstDifference": [
+            1205,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1312,
+            809
+          ],
+          "sha": [
+            "6ec1921ad282bb70",
+            "5e290cd109d1f799"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -796,9 +1329,23 @@
         },
         {
           "shot": "10s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "0dcfe799ad62a759",
+          "identical": false,
+          "differingPixels": 10661,
+          "firstDifference": [
+            1228,
+            695
+          ],
+          "box": [
+            123,
+            695,
+            1307,
+            809
+          ],
+          "sha": [
+            "6ab1ae942e663787",
+            "d7b8b30581e69140"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -820,9 +1367,23 @@
       "shots": [
         {
           "shot": "aboard",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "f530829a3af74398",
+          "identical": false,
+          "differingPixels": 40774,
+          "firstDifference": [
+            2411,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2627,
+            1618
+          ],
+          "sha": [
+            "fa2af157f9ceff60",
+            "0aadf27e983266bd"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -835,9 +1396,23 @@
         },
         {
           "shot": "changed",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "9ae211f918d6df8e",
+          "identical": false,
+          "differingPixels": 39535,
+          "firstDifference": [
+            2411,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2627,
+            1618
+          ],
+          "sha": [
+            "2e15899d50ed32fb",
+            "ee54c0411e47c322"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -850,9 +1425,23 @@
         },
         {
           "shot": "walking-1000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "d62e847dffcbc43c",
+          "identical": false,
+          "differingPixels": 44463,
+          "firstDifference": [
+            2468,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2610,
+            1618
+          ],
+          "sha": [
+            "475d0cefd4193ee4",
+            "f3e962fc94926bc5"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -865,9 +1454,23 @@
         },
         {
           "shot": "walking-2000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "add352d32371b1b5",
+          "identical": false,
+          "differingPixels": 45516,
+          "firstDifference": [
+            2457,
+            1391
+          ],
+          "box": [
+            248,
+            1391,
+            2615,
+            1618
+          ],
+          "sha": [
+            "40bdb92a8d6b77ea",
+            "a88f96ed18185ac4"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -880,9 +1483,23 @@
         },
         {
           "shot": "walking-3000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "42d401eba93f4321",
+          "identical": false,
+          "differingPixels": 40251,
+          "firstDifference": [
+            2428,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2610,
+            1618
+          ],
+          "sha": [
+            "13aaf4ed97f898d4",
+            "72137f7818c74de7"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -895,9 +1512,23 @@
         },
         {
           "shot": "walking-5000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "f329fb5efb13865e",
+          "identical": false,
+          "differingPixels": 42143,
+          "firstDifference": [
+            2468,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2610,
+            1618
+          ],
+          "sha": [
+            "be51124b4457c79e",
+            "aed125e0cf4adce0"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -910,9 +1541,23 @@
         },
         {
           "shot": "walking-8000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "cdecc1c514e80db7",
+          "identical": false,
+          "differingPixels": 41770,
+          "firstDifference": [
+            2468,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2610,
+            1618
+          ],
+          "sha": [
+            "261aa05cae37841b",
+            "4a319f4993dcf634"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -925,9 +1570,23 @@
         },
         {
           "shot": "arrived",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "5f0d75e8b53dac97",
+          "identical": false,
+          "differingPixels": 44758,
+          "firstDifference": [
+            2457,
+            1391
+          ],
+          "box": [
+            248,
+            1391,
+            2615,
+            1618
+          ],
+          "sha": [
+            "a93d934b665f6a08",
+            "20e53b759e40c553"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -940,9 +1599,23 @@
         },
         {
           "shot": "hatch-200ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "6ec12a90e2964ead",
+          "identical": false,
+          "differingPixels": 42236,
+          "firstDifference": [
+            2428,
+            1386
+          ],
+          "box": [
+            253,
+            1386,
+            2610,
+            1618
+          ],
+          "sha": [
+            "70a20366717c4f00",
+            "d70a2f1daf54fbf1"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -955,9 +1628,23 @@
         },
         {
           "shot": "hatch-400ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "85283beaafeb4cbc",
+          "identical": false,
+          "differingPixels": 41882,
+          "firstDifference": [
+            2428,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2610,
+            1618
+          ],
+          "sha": [
+            "e678a0573415e4de",
+            "2f1a8aed03986edc"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -970,9 +1657,23 @@
         },
         {
           "shot": "hatch-700ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "0590e82b2ef37870",
+          "identical": false,
+          "differingPixels": 39176,
+          "firstDifference": [
+            2428,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2610,
+            1618
+          ],
+          "sha": [
+            "dd6bd5a656f83742",
+            "20148cf15471e928"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -985,9 +1686,23 @@
         },
         {
           "shot": "hatch-1500ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "9a6e6e01d4824f2e",
+          "identical": false,
+          "differingPixels": 43910,
+          "firstDifference": [
+            2411,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2627,
+            1618
+          ],
+          "sha": [
+            "5a4cdc12fb7c5cbb",
+            "b540df767ad72ee3"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1000,9 +1715,23 @@
         },
         {
           "shot": "hatch-3000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a35b442920573dc0",
+          "identical": false,
+          "differingPixels": 44686,
+          "firstDifference": [
+            2457,
+            1391
+          ],
+          "box": [
+            248,
+            1391,
+            2615,
+            1618
+          ],
+          "sha": [
+            "4df1f8052c94035a",
+            "f1be557559057965"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1015,9 +1744,23 @@
         },
         {
           "shot": "leaving-300ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "9f2126058a5f0760",
+          "identical": false,
+          "differingPixels": 43677,
+          "firstDifference": [
+            2468,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2610,
+            1618
+          ],
+          "sha": [
+            "0d1127f9d2b47a89",
+            "93ee62048db2beb1"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1030,9 +1773,23 @@
         },
         {
           "shot": "leaving-800ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "40e11050c82779dd",
+          "identical": false,
+          "differingPixels": 48142,
+          "firstDifference": [
+            465,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2615,
+            1618
+          ],
+          "sha": [
+            "4762c07a8db57b86",
+            "6221c53535e63df4"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1045,9 +1802,23 @@
         },
         {
           "shot": "leaving-1400ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "bd758493368e5363",
+          "identical": false,
+          "differingPixels": 44414,
+          "firstDifference": [
+            465,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2610,
+            1618
+          ],
+          "sha": [
+            "3cce11c24b6602d1",
+            "fa30de6c0dac417b"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1060,9 +1831,23 @@
         },
         {
           "shot": "leaving-2000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "cc86949ca7b0fc8b",
+          "identical": false,
+          "differingPixels": 43104,
+          "firstDifference": [
+            2428,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2610,
+            1618
+          ],
+          "sha": [
+            "d311711ca4ab28ca",
+            "75d4eae0ee44fd79"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1075,9 +1860,23 @@
         },
         {
           "shot": "leaving-2400ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "e9b5f1b2c5056e8b",
+          "identical": false,
+          "differingPixels": 40087,
+          "firstDifference": [
+            2411,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2627,
+            1618
+          ],
+          "sha": [
+            "6e76fb697501106e",
+            "46b022afc80c6ebb"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1090,9 +1889,23 @@
         },
         {
           "shot": "leaving-2700ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "7a462226ac048259",
+          "identical": false,
+          "differingPixels": 39401,
+          "firstDifference": [
+            2411,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2627,
+            1618
+          ],
+          "sha": [
+            "739e87f75331580b",
+            "85aeaf40f7af6a2f"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1105,9 +1918,23 @@
         },
         {
           "shot": "leaving-3000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "968da3efa95f9dcd",
+          "identical": false,
+          "differingPixels": 44709,
+          "firstDifference": [
+            2411,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2627,
+            1618
+          ],
+          "sha": [
+            "60c9d9b4e2cf7b63",
+            "1878b80f3f10ee4d"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1120,9 +1947,23 @@
         },
         {
           "shot": "leaving-3300ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "ad7f998b8e7178db",
+          "identical": false,
+          "differingPixels": 43996,
+          "firstDifference": [
+            2468,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2610,
+            1618
+          ],
+          "sha": [
+            "24b3b5917ff2f4a8",
+            "1c494993641c595e"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1135,9 +1976,23 @@
         },
         {
           "shot": "leaving-3600ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a95c5d15bdfed95d",
+          "identical": false,
+          "differingPixels": 43379,
+          "firstDifference": [
+            2468,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2610,
+            1618
+          ],
+          "sha": [
+            "9f46b91deb464ce1",
+            "c874302cebe026f9"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1150,9 +2005,23 @@
         },
         {
           "shot": "leaving-4000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "dfc48d7c200735b4",
+          "identical": false,
+          "differingPixels": 47414,
+          "firstDifference": [
+            465,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2615,
+            1618
+          ],
+          "sha": [
+            "defec5ace7687072",
+            "ce6ebd310041e978"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1165,9 +2034,23 @@
         },
         {
           "shot": "leaving-4600ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "80ccadee65f3d0f8",
+          "identical": false,
+          "differingPixels": 45431,
+          "firstDifference": [
+            2457,
+            1391
+          ],
+          "box": [
+            248,
+            1391,
+            2615,
+            1618
+          ],
+          "sha": [
+            "6a9fae86b4d61660",
+            "b7041a09c29a8d8f"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1180,9 +2063,23 @@
         },
         {
           "shot": "leaving-5400ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "774b4d4ed666d583",
+          "identical": false,
+          "differingPixels": 39701,
+          "firstDifference": [
+            2428,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2610,
+            1618
+          ],
+          "sha": [
+            "4886eb98780d1f61",
+            "ce889ea3c4c9b053"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1195,9 +2092,23 @@
         },
         {
           "shot": "leaving-7000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "aca9141fa4d59b0c",
+          "identical": false,
+          "differingPixels": 45326,
+          "firstDifference": [
+            465,
+            1363
+          ],
+          "box": [
+            248,
+            1363,
+            2610,
+            1618
+          ],
+          "sha": [
+            "85b38eb3ff892b9c",
+            "c1e0f96b1e1696fa"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1210,9 +2121,23 @@
         },
         {
           "shot": "after",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a7cc4c467d4425ac",
+          "identical": false,
+          "differingPixels": 43211,
+          "firstDifference": [
+            2428,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2610,
+            1618
+          ],
+          "sha": [
+            "c83e382bcbc9107a",
+            "00f6f68f432dc8e0"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1234,9 +2159,23 @@
       "shots": [
         {
           "shot": "100ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "937ca81b7a535b91",
+          "identical": false,
+          "differingPixels": 42769,
+          "firstDifference": [
+            2427,
+            1384
+          ],
+          "box": [
+            220,
+            1384,
+            2647,
+            1622
+          ],
+          "sha": [
+            "51b6d87f57c6b8d5",
+            "a24a5f1f014ab6e5"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1251,7 +2190,7 @@
           "shot": "300ms",
           "identical": true,
           "differingPixels": 0,
-          "sha": "722e0879d4ba65bd",
+          "sha": "497707f5118e24fb",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1266,7 +2205,7 @@
           "shot": "1.5s",
           "identical": true,
           "differingPixels": 0,
-          "sha": "758287bc5421263b",
+          "sha": "cdba3fd790f615c0",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1279,9 +2218,23 @@
         },
         {
           "shot": "back-out",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a271db7d4c03137f",
+          "identical": false,
+          "differingPixels": 40282,
+          "firstDifference": [
+            2428,
+            1386
+          ],
+          "box": [
+            248,
+            1386,
+            2610,
+            1618
+          ],
+          "sha": [
+            "d6c4a8ba8b111d2a",
+            "816fb1d8190edf4b"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1302,9 +2255,23 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "821854101ef5d5b8",
+          "identical": false,
+          "differingPixels": 10117,
+          "firstDifference": [
+            1205,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1312,
+            809
+          ],
+          "sha": [
+            "535949cf32be003b",
+            "6c56fadd49bbf021"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1317,9 +2284,23 @@
         },
         {
           "shot": "2s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "3d54a4fe1f93c94a",
+          "identical": false,
+          "differingPixels": 10117,
+          "firstDifference": [
+            1205,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1312,
+            809
+          ],
+          "sha": [
+            "a2566bdf8cff092a",
+            "3b22298b35e9c2ac"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1332,9 +2313,23 @@
         },
         {
           "shot": "6s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "111820a60083372f",
+          "identical": false,
+          "differingPixels": 10120,
+          "firstDifference": [
+            1205,
+            692
+          ],
+          "box": [
+            123,
+            692,
+            1312,
+            809
+          ],
+          "sha": [
+            "5beebeee73c876c8",
+            "2cac375d3dc22378"
+          ],
+          "intentional": "Generated serpent and tentacles loom/surface with existing intensity; all other scene pixels unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1351,5 +2346,7 @@
   "pageErrors": [],
   "flakes": [],
   "shots": 81,
-  "identical": true
+  "passed": true,
+  "identical": false,
+  "intentionalShots": 71
 }
