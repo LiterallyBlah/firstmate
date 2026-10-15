@@ -27,7 +27,8 @@ import {
 import { sailFrame } from "./deck-extras";
 import type { DeckState } from "./deck-scene";
 import { CHURN_LENGTH, STERN, wakeRuns } from "./deck-wake";
-import { advanceWater, CALM_WATER, waterFrame } from "./deck-water";
+import { advanceWater, CALM_WATER } from "./deck-water";
+import { cycleFrame } from "./deck-variants";
 import { hexColour } from "./deck-clouds";
 import { shipElement } from "../test/ship-pack";
 
@@ -213,7 +214,7 @@ describe("what the weather drives", () => {
     expect(advanceWater(clock, -1, CALM_WATER)).toEqual(clock);
     expect(advanceWater(clock, Number.NaN, CALM_WATER)).toEqual(clock);
     const sea = { frames: [0, 1, 2, 3], frameMs: 240 };
-    expect(waterFrame(advanceWater({ frames: 0, drift: 0 }, 0.24, { pace: 2, drift: 1 }).frames, sea, true)).toBe(2);
+    expect(cycleFrame(advanceWater({ frames: 0, drift: 0 }, 0.24, { pace: 2, drift: 1 }).frames, sea, true)).toBe(2);
   });
 
   it("holds the sail out longer in a fresher wind, and evenly by default", () => {

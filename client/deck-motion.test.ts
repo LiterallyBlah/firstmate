@@ -11,7 +11,6 @@ import { describe, expect, it } from "vitest";
 import {
   DECK_FPS,
   flybysAt,
-  HORIZON,
   LANTERNS,
   LITE_FPS,
   lanternFlicker,
@@ -24,7 +23,7 @@ import { deckAnimator, MAX_STEP_MS, type FrameScheduler, type MotionSignals } fr
 import { browserMotion } from "./deck-mount";
 import { isSoftwareRenderer } from "./deck-pixi";
 import { deckLayers, depthOf, type DeckSailor, type DeckState } from "./deck-scene";
-import { shipCast, shipElement, shipFile, shipManifest, shipPlankMarks, shipStage, shipViews } from "../test/ship-pack";
+import { shipCast, shipElement, shipFile, shipManifest, shipPlankMarks, shipStage, shipViews, shipWater } from "../test/ship-pack";
 import {
   areaAt,
   clearLine,
@@ -523,7 +522,7 @@ describe("the ambient clock", () => {
         // The generated sprite's raised wing reaches 17 rows over the beak, its lowered one 9 under it:
         // the whole gull stays inside the deck's frame, and well above the horizon.
         expect(flyer.y - 17).toBeGreaterThanOrEqual(0);
-        expect(flyer.y + 9).toBeLessThan(HORIZON);
+        expect(flyer.y + 9).toBeLessThan(shipWater().horizon);
         expect(flyer.y).toBeLessThanOrEqual(gull.rows[1] + gull.wobble.px);
       }
       if (gulls.length > 0) seconds += 0.25;

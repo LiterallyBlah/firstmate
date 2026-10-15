@@ -7,14 +7,15 @@
  *   what it lacked. Its `fallback` is drawn in its place, and an element named as a fallback is drawn only there. One
  *   that `needs` another goes with it, and so does one drawn in another's space or under it: an overlay or drifters in
  *   a backdrop's pixels, a flash under drifters.
- * - **Drifters lose a sprite at a time**: one whose image did not arrive, or would not cut into its slot masks, is left
- *   out and the field is drawn from the rest. A sprite's variant is left out on its own when its frame did not arrive
- *   or cut, or is not one frame of the sprite's size.
+ * - **A tile is never a hole.** A tile none of whose art can be drawn — not its own, not its fallback's — is filled flat
+ *   with the pack's `fallbackFill` across its bands (`flats`), so the stage never stands on the theme's background.
+ * - **Variants are left out one at a time**: a tile's, strip's or cycle's when a frame of it did not arrive or it does
+ *   not line up — as many frames as its element, each the element's frame size — and the element stands as it is.
+ *   Drifters lose a sprite at a time too: one whose image did not arrive, or would not cut into its slot masks, is
+ *   left out and the field is drawn from the rest; a sprite's variant on its own when its frame did not arrive or
+ *   cut, or is not one frame of the sprite's size.
  * - **Motion by the element's own word** (`elementMotion`): a deck in full motion runs every element; on a software
  *   renderer (`lite`) and under reduced motion (`still`) each runs, holds still, or is not drawn, as it says.
- *
- * Until step 5b of the migration the sea, the foam, the wake and the cycles are read through the legacy views
- * (`client/deck-legacy.ts`); only the kinds in `FROM_PACK` are compiled here.
  */
 import type { AmbienceBehaviour, SettingManifest } from "../shared/deck-setting";
 import type { MotionPlan } from "./deck-ambient";
@@ -25,9 +26,11 @@ type Element = SettingManifest["ambience"][number];
 export type Behaviour<K extends Kind> = Extract<AmbienceBehaviour, { kind: K }>;
 export type DayCycle = NonNullable<SettingManifest["dayCycle"]>;
 
-/** An element the scenery draws: the pack's own, its drifters down to the sprites and variants that can be drawn. */
+/** An element the scenery draws: the pack's own, its variants and drifters down to those that can be drawn. */
 export interface AmbientElement<K extends Kind = Kind> {
   id: string;
+  /** The element whose place it is drawn in: its own id, or for a fallback the id of the element it stands in for. */
+  place: string;
   slot: Element["slot"];
   order: number;
   lite: Element["lite"];
@@ -38,6 +41,10 @@ export interface AmbientElement<K extends Kind = Kind> {
 export interface DeckAmbience {
   /** The elements drawn, back to front within each slot. */
   elements: readonly AmbientElement[];
+  /** The tiles with nothing to draw them with, filled flat with `fallbackFill` across their bands, in the same order. */
+  flats: ReadonlyArray<AmbientElement<"tile">>;
+  /** The pack's flat colour for a tile that cannot be drawn, as a number. */
+  fallbackFill: number;
   /** The pack's day, which the backdrops follow; null without one. */
   dayCycle: DayCycle | null;
   /** Every image something was left out for lacking, once each, in the pack's order. */
@@ -45,9 +52,6 @@ export interface DeckAmbience {
   /** Each image's size, as the pack declares it: a sprite without a rectangle is the whole image. */
   sizes: ReadonlyMap<string, readonly [number, number]>;
 }
-
-/** The kinds drawn from the pack itself; the rest are still the legacy views' until step 5b. */
-const FROM_PACK: ReadonlySet<Kind> = new Set<Kind>(["backdrop-cycle", "overlay", "flash", "drifters", "flyby"]);
 
 /** The elements of `kind`, in drawing order. */
 export function elementsOf<K extends Kind>(ambience: DeckAmbience, kind: K): Array<AmbientElement<K>> {
@@ -62,6 +66,10 @@ export function compileAmbience(manifest: SettingManifest, has: (image: string) 
   const missing = new Set<string>();
   const sizeOf = (sprite: { image: string; rect?: readonly [number, number, number, number] | undefined }) =>
     sprite.rect === undefined ? manifest.images[sprite.image]?.size : ([sprite.rect[2], sprite.rect[3]] as const);
+  const sameSize = (sprite: { image: string; rect?: readonly [number, number, number, number] | undefined }, size: readonly [number, number] | undefined) => {
+    const own = sizeOf(sprite);
+    return own !== undefined && size !== undefined && own[0] === size[0] && own[1] === size[1];
+  };
   /** Whether every image arrived, noting each that did not. */
   const arrived = (images: ReadonlyArray<string | undefined>, cut = false) =>
     images.filter(function (image) {
@@ -73,7 +81,7 @@ export function compileAmbience(manifest: SettingManifest, has: (image: string) 
   /** The element as it can be drawn, or null when what it is drawn from did not arrive. */
   function drawable(element: Element): AmbientElement | null {
     const { behaviour } = element;
-    const head = { id: element.id, slot: element.slot, order: element.order, lite: element.lite, still: element.still };
+    const head = { id: element.id, place: standsInFor.get(element.id) ?? element.id, slot: element.slot, order: element.order, lite: element.lite, still: element.still };
     switch (behaviour.kind) {
       case "backdrop-cycle": {
         const phases = manifest.dayCycle?.phases ?? [];
@@ -97,16 +105,26 @@ export function compileAmbience(manifest: SettingManifest, has: (image: string) 
           });
         return sprites.length > 0 ? { ...head, behaviour: { ...behaviour, sprites } } : null;
       }
-      default:
-        return null;
+      case "tile":
+      case "strip":
+      case "cycle": {
+        const { sprites } = behaviour.frames;
+        if (!arrived(sprites.map((sprite) => sprite.image))) return null;
+        // A variant rides its element's frame index: as many frames, each of the element's frame size.
+        const size = sizeOf(sprites[0]!);
+        const variants = (behaviour.variants ?? []).filter(
+          (variant) => variant.frames.length === sprites.length && variant.frames.every((frame) => sameSize(frame, size)) && arrived(variant.frames.map((frame) => frame.image)),
+        );
+        return { ...head, behaviour: { ...behaviour, variants } } as AmbientElement;
+      }
     }
   }
 
-  const inScope = manifest.ambience.filter((element) => FROM_PACK.has(element.behaviour.kind));
-  const own = new Map(inScope.map((element) => [element.id, drawable(element)]));
-  const scoped = new Set(own.keys());
+  const inScope = manifest.ambience;
   /** Who stands in for whom: each fallback, by the element it is drawn in place of. */
   const standsInFor = new Map(inScope.flatMap((element) => (element.fallback === undefined ? [] : [[element.fallback, element.id] as const])));
+  const own = new Map(inScope.map((element) => [element.id, drawable(element)]));
+  const scoped = new Set(own.keys());
   const needs = (element: Element) => [
     ...(element.needs ?? []),
     ...(element.behaviour.kind === "overlay" || element.behaviour.kind === "drifters" ? [element.behaviour.space] : []),
@@ -130,14 +148,26 @@ export function compileAmbience(manifest: SettingManifest, has: (image: string) 
     }
   }
   const drawn = shown();
-  const elements = inScope
-    .map((element, index) => ({ element, index }))
-    .filter(({ element }) => drawn.has(element.id))
-    .sort((a, b) => a.element.order - b.element.order || a.index - b.index)
-    .map(({ element }) => own.get(element.id)!);
+  const inOrder = (keep: (element: Element) => boolean) =>
+    inScope
+      .map((element, index) => ({ element, index }))
+      .filter(({ element }) => keep(element))
+      .sort((a, b) => a.element.order - b.element.order || a.index - b.index)
+      .map(({ element }) => element);
+  const elements = inOrder((element) => drawn.has(element.id)).map((element) => own.get(element.id)!);
+  // A tile, not itself a fallback, drawn neither itself nor by its fallback.
+  const flats = inOrder(
+    (element) =>
+      element.behaviour.kind === "tile" &&
+      !standsInFor.has(element.id) &&
+      !drawn.has(element.id) &&
+      (element.fallback === undefined || !drawn.has(element.fallback)),
+  ).map((element) => ({ id: element.id, place: element.id, slot: element.slot, order: element.order, lite: element.lite, still: element.still, behaviour: element.behaviour as Behaviour<"tile"> }));
   const order = Object.keys(manifest.images);
   return {
     elements,
+    flats,
+    fallbackFill: Number.parseInt(manifest.palette.fallbackFill.slice(1), 16),
     dayCycle: manifest.dayCycle ?? null,
     missing: [...missing].sort((a, b) => order.indexOf(a) - order.indexOf(b)),
     sizes: new Map(Object.entries(manifest.images).map(([id, image]) => [id, image.size])),

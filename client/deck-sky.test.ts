@@ -5,13 +5,13 @@
  */
 import { describe, expect, it } from "vitest";
 
-import type { DeckEnvironmentManifest } from "./deck-legacy";
-import { shipElement, shipManifest, shipStage, shipViews } from "../test/ship-pack";
-import { flybyPose, HORIZON } from "./deck-ambient";
-import { FOAM_HEIGHT, FOAM_SPAN, foamSegments } from "./deck-environment";
+import { shipElement, shipManifest, shipStage, shipWater } from "../test/ship-pack";
+import { flybyPose } from "./deck-ambient";
+import { foamSegments } from "./deck-environment";
 import { backdropPlacement, dayBlend, dominantPhase, localMinute, MINUTES_PER_DAY, scrollOffset, type DayBlend } from "./deck-sky";
 
-const manifest: DeckEnvironmentManifest = shipViews().environment;
+const HORIZON = shipWater().horizon;
+const sizeOf = (image: string) => shipManifest().images[image]!.size;
 const cycle = shipManifest().dayCycle!;
 const { phases, fadeMinutes } = cycle;
 const phaseId = (blend: DayBlend) => phases[dominantPhase(blend)]!.id;
@@ -167,10 +167,12 @@ describe("where a backdrop sits", () => {
 
 describe("the sea, the foam and the gull, by the pack", () => {
   it("scrolls the water a whole pixel at a time, round one tile, still at the scene clock's start", () => {
-    const [width] = manifest.sea.period;
-    expect(manifest.sea.animation.xPixelsPerSecond).toBe(10);
+    const sea = shipElement("sea-still", "tile");
+    const [width] = sizeOf(sea.frames.sprites[0]!.image);
+    expect(sea.drift.pxPerSecond).toBe(10);
+    expect(shipElement("sea", "tile").drift.pxPerSecond).toBe(10);
     for (let t = 0; t < 60; t += 0.37) {
-      const offset = scrollOffset(t, manifest.sea.animation.xPixelsPerSecond, width);
+      const offset = scrollOffset(t, sea.drift.pxPerSecond, width);
       expect(Number.isInteger(offset) && offset >= 0 && offset < width).toBe(true);
     }
     expect(scrollOffset(0.1, 10, width)).toBe(1);
@@ -179,19 +181,23 @@ describe("the sea, the foam and the gull, by the pack", () => {
   });
 
   it("cuts the foam across the hull's waterline only, in at most three pieces, seamless round the repeat", () => {
-    const period = manifest.foam.period;
-    expect(FOAM_HEIGHT).toBe(Object.values(shipManifest().images).find((image) => image.path === manifest.foam.texture)!.size[1]);
-    for (let offset = 0; offset < period; offset += 1) {
-      const segments = foamSegments(FOAM_SPAN, period, offset);
-      expect(segments.length).toBeLessThanOrEqual(3);
-      expect(segments[0]!.x).toBe(FOAM_SPAN.left);
-      const end = segments.at(-1)!;
-      expect(end.x + end.width).toBe(FOAM_SPAN.right);
-      for (const [index, segment] of segments.entries()) {
-        expect(segment.from + segment.width).toBeLessThanOrEqual(period);
-        // Each piece shows the strip at the world's own position less the scroll: the pattern never breaks.
-        expect(segment.from).toBe((((segment.x - offset) % period) + period) % period);
-        if (index > 0) expect(segment.x).toBe(segments[index - 1]!.x + segments[index - 1]!.width);
+    for (const id of ["foam", "foam-still"]) {
+      const foam = shipElement(id, "strip");
+      const period = sizeOf(foam.frames.sprites[0]!.image)[0];
+      const span = { left: foam.span[0], right: foam.span[1] };
+      for (let offset = 0; offset < period; offset += 1) {
+        const segments = foamSegments(span, period, offset);
+        expect(segments.length).toBeLessThanOrEqual(Math.ceil((span.right - span.left) / period) + 1);
+        expect(segments.length).toBeLessThanOrEqual(3);
+        expect(segments[0]!.x).toBe(span.left);
+        const end = segments.at(-1)!;
+        expect(end.x + end.width).toBe(span.right);
+        for (const [index, segment] of segments.entries()) {
+          expect(segment.from + segment.width).toBeLessThanOrEqual(period);
+          // Each piece shows the strip at the world's own position less the scroll: the pattern never breaks.
+          expect(segment.from).toBe((((segment.x - offset) % period) + period) % period);
+          if (index > 0) expect(segment.x).toBe(segments[index - 1]!.x + segments[index - 1]!.width);
+        }
       }
     }
   });

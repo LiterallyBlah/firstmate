@@ -1,11 +1,12 @@
 /**
- * The setting's scenery drawn with Pixi: its ambience behind the stage — for the ship, the sky of the local time of
- * day, its overcast and stars, the lightning, the drifting clouds and a gull now and then — and the scrolling sea with
- * foam at the hull's waterline. `client/deck-pixi.ts` puts `back` behind the stage and `front` in front of it; which
- * elements there are is the pack's (`client/deck-ambience.ts`), and the arithmetic is `client/deck-sky.ts`,
- * `client/deck-clouds.ts`, `client/deck-flash.ts` and `client/deck-ambient.ts`.
+ * The setting's scenery drawn with Pixi: its ambience, behind the stage and in front of it — for the ship, the sky of
+ * the local time of day, its overcast and stars, the lightning, the drifting clouds and a gull now and then behind the
+ * hull, and the scrolling sea across both, with the wake, the foam at the waterline and the spindrift in front.
+ * `client/deck-pixi.ts` puts `back` behind the stage and `front` in front of it; which elements there are is the pack's
+ * (`client/deck-ambience.ts`), and the arithmetic is `client/deck-sky.ts`, `client/deck-clouds.ts`,
+ * `client/deck-flash.ts`, `client/deck-ambient.ts` and `client/deck-variants.ts`.
  *
- * The ambience, each element of it in its slot in the pack's order, by its behaviour:
+ * Each element is drawn in its slot in the pack's order, by its behaviour:
  *
  * - **A backdrop cycle** (`backdrop-cycle@1`, the sky) — two of its day phases' backdrops, the earlier whole and the
  *   later over it at the day's blend, never two over transparency, so nothing drifting over it jumps in a fade. Placed
@@ -20,65 +21,49 @@
  *   has them.
  * - **A flyby** (`flyby@1`, the gull) — its poses, registered at its anchor, mirrored to fly left; never while the
  *   night's share is past its `nightBelow`.
+ * - **A tile** (`tile@1`, the sea) — its frames repeated both ways in each of its bands, every band from its own row
+ *   (`<id>:back` from the ship's horizon behind the hull, `<id>:front` from its waterline in front of it) and all of
+ *   them on one tile origin, so the second band's first row is cut to line up and the waterline is the hull's edge,
+ *   not a seam across the water. Every tile on the same frame, scrolled sideways a whole pixel at a time.
+ * - **A strip** (`strip@1`, the foam) — its frames repeated sideways within its span from its top row, cut from a
+ *   scrolling repeat into a few sprites a frame, so it never runs out past the span.
+ * - **A cycle** (`cycle@1`, the wake and the spindrift) — one sprite, its anchor on its point, its frames in turn, its
+ *   opacity its level (the wake's the weather's wake channel, the spindrift's a curve over intensity).
  *
- * Each runs, holds still or is not drawn as its element says for a software renderer and reduced motion
- * (`elementMotion`).
+ * Each runs, holds still (its first frame, no drift) or is not drawn as its element says for a software renderer and
+ * reduced motion (`elementMotion`). A tile, strip or cycle has its **variants** over it (`client/deck-variants.ts`):
+ * frame for frame on its frame and drift and place (`<id>:<variant>`, and per band for a tile), each faded in along its
+ * curve over the weather's intensity; the element is not drawn under a whole `over` variant, and fades under a
+ * `crossfade` one. None shows on a still deck, which has no intensity.
  *
- * The sea, until step 5b of the migration reads it from the pack, is the legacy views' (`client/deck-legacy.ts`):
+ * **The weather** (`client/deck-atmosphere.ts`) is handed to `draw` each frame: each clock an element names (the
+ * water's frames and drift, the wind), so a busier crew plays the sea's frames and drifts the sea, foam and clouds
+ * faster without a jump, and the channels levels read (the wake, the mood). Without it, the art's own timing at the
+ * scene's clock.
  *
- * - **Sea** — the 256 × 128 tile, repeated both ways from the horizon down, scrolled sideways a whole
- *   pixel at a time. The same tiles again in front of the hull from its waterline down, cut to line up,
- *   so the waterline is the hull's edge and not a seam across the water. With the extras' animated water
- *   (`client/deck-water.ts`), its four frames in turn, every tile on the same one.
- * - **Foam** — the strip across the hull's waterline only, cut from a scrolling repeat into at most three
- *   sprites a frame, so it never runs out into open water. The animated water's three frames where they
- *   loaded, three rows higher than the environment's generic strip, which is not fitted to hull C's curve.
- * - **Wake** — the animated water's stern wake, one sprite fixed at the stern over the near sea and under the
- *   foam, cycling its three frames. Where it did not load, the churn astern and the bow and stern waves' near
- *   arms drawn in code (`client/deck-wake.ts`), scrolling aft with the water, redrawn only when the scroll
- *   moves a whole pixel. Either is still under reduced motion and on a software renderer.
+ * **What is missing is never a hole**: an element that failed is left out by itself or stood in for by its fallback
+ * (the ship's still sea and foam), and a tile with neither is a flat `fallbackFill` across its bands. Until step 5c
+ * retires it, the ship's wake drawn in code (`client/deck-wake.ts`) stands in for its generated wake where that did
+ * not load, scrolling with the water, redrawn only when the scroll moves a whole pixel.
  *
- * **The weather** (`client/deck-atmosphere.ts`) is handed to `draw` each frame: the water's and the drifters' own
- * clocks, so a busier crew plays the sea's frames and drifts the sea, foam and clouds faster without a jump; how
- * much wake there is (the generated wake's opacity, the code wake's length); and the channels the backdrop's tint
- * reads. Without it, the art's own timing at the scene's clock.
- *
- * **The weather layers** over the water (`client/deck-variants.ts`) follow the weather's intensity, each along its own
- * curve from the setting pack, and none is drawn while it is at nothing or on a still deck:
- *
- * - a **variant** over the sea (`sea:far:<id>`, `sea:near:<id>` over each band), the foam (`foam:<id>`), the wake
- *   (`wake:<id>`) or a cycle, on that element's own frame, drift and place; the element is not drawn under a whole
- *   `over` variant, and fades under a `crossfade` one;
- * - a **cycle** (`cycle:<id>`), looping on the water's clock over the foam, in front of the hull's waterline and
- *   below the crew, who never stand that low.
- *
- * Without the still sea (it failed to load) the deck still draws: a flat sea of the pack's `fallbackFill` over the
- * theme's background — and the wake, on it. An ambience element that failed is left out by itself.
- *
- * Every texture is cut from its own image once, except the foam's crops, which are made as the scroll
- * first reaches them and kept: at most a few hundred small objects on a few dozen images' sources.
+ * Every texture is cut from its own image once, except a strip's crops, which are made as the scroll first reaches them
+ * and kept: at most a few hundred small objects on a few dozen images' sources.
  */
-import { environmentImagePaths, type DeckEnvironmentManifest } from "./deck-legacy";
 import { elementMotion, elementsOf, type AmbientElement, type DayCycle, type DeckAmbience } from "./deck-ambience";
-import { flybyPose, flybysAt, HORIZON, SEA_FALLBACK, WATERLINE, type MotionPlan } from "./deck-ambient";
+import { flybyPose, flybysAt, type MotionPlan } from "./deck-ambient";
 import { clockOf, deliveredWeather, levelAt, shade, tintToward, type Weather } from "./deck-atmosphere";
 import { cloudColours, cloudField, cloudX, hexColour, variantPalette, type DrifterMasks } from "./deck-clouds";
 import { flashAt, flashSalt, underCloud } from "./deck-flash";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
 import { backdropPlacement, dayBlend, dominantPhase, NO_DAY, scrollOffset, type DayBlend, type Placement } from "./deck-sky";
-import { cycleFrame, curvePeak, opacityAt, variantBlend, variantsOf, type DrawnVariants, type Variant } from "./deck-variants";
+import { cycleFrame, curvePeak, opacityAt, variantBlend, type Variant } from "./deck-variants";
 import { WAKE_COLOURS, WAKE_SPEED, wakeRuns } from "./deck-wake";
-import { CALM_WATER, wakeTopLeft, waterDrift, waterFrame, type DrawnWater, type WaterManifest } from "./deck-water";
 
-/** The still sea and foam as the mount hands them over: what the legacy view says, and each image it names, decoded. */
-export interface DeckEnvironmentImages {
-  manifest: DeckEnvironmentManifest;
-  images: ReadonlyMap<string, unknown>;
-}
-
-/** The weather layers over the water to draw, as the deck finds them in the extras: variants and cycles. */
-export interface WeatherLayers {
-  variants: DrawnVariants | null;
+/** Where the code wake stands in for the pack's own until step 5c retires it: that element's id, slot and order. */
+export interface CodeWakeSpot {
+  id: string;
+  slot: AmbientElement["slot"];
+  order: number;
 }
 
 /** What the scenery is drawn from. */
@@ -87,12 +72,8 @@ export interface SceneryArt {
   ambience: DeckAmbience;
   images: ReadonlyMap<string, unknown>;
   masks: ReadonlyMap<string, DrifterMasks>;
-  /** The still sea and foam, or null for the plain sea. */
-  environment: DeckEnvironmentImages | null;
-  /** The extras' animated sea, foam and wake, each drawn in place of the still one where it loaded. */
-  water: DrawnWater | null;
-  /** The extras' weather layers over the water, drawn as the weather's intensity says (`client/deck-variants.ts`). */
-  layers: WeatherLayers | null;
+  /** The element the wake drawn in code stands in for when it is not drawn, or null. */
+  codeWake?: CodeWakeSpot | null;
 }
 
 /** The part of the world the screen shows, in deck coordinates. */
@@ -103,19 +84,12 @@ export interface VisibleWorld {
   bottom: number;
 }
 
-/** Where the foam runs: the hull's width where it meets the water, and a few pixels of wake past each end. */
-export const FOAM_SPAN = { left: 68, right: 392 } as const;
-/** The still foam strip's height, as the ship pack declares its image: transparent above and below the foam, never repeated down. */
-export const FOAM_HEIGHT = 16;
-/** The foam strip's top row: its densest rows, 6 to 10, lie on the waterline and just below it. */
-export const FOAM_TOP = WATERLINE - 6;
-
 export interface Scenery {
-  /** Behind the stage: the ambience in the back slot, and the far sea. */
+  /** Behind the stage: the elements in the back slot, and the bands of tiles there. */
   readonly back: PixiContainer;
-  /** In front of the hull from its waterline down: the near sea, the wake and the foam, and the ambience in the front slot. */
+  /** In front of the stage: the elements in the front slot, and the bands of tiles there. */
   readonly front: PixiContainer;
-  /** Whether the generated sea is drawn, or the flat fallback. */
+  /** Whether a tile is drawn from its art, not filled flat. */
   readonly generated: boolean;
   /** Covers `visible`; cheap when it has not grown. */
   layout(visible: VisibleWorld): void;
@@ -130,14 +104,9 @@ export interface Scenery {
   destroy(): void;
 }
 
-/** Whether every image the still sea and foam name arrived, so the generated sea can be drawn. */
-export function environmentComplete(environment: DeckEnvironmentImages | null): environment is DeckEnvironmentImages {
-  return environment !== null && environmentImagePaths(environment.manifest).every((path) => environment.images.has(path));
-}
-
 /**
- * The foam's pieces across `span` at `offset`: where each starts on the deck, and the part of the
- * repeating strip it shows. The strip is anchored to the world, so it scrolls with the water.
+ * A strip's pieces across `span` at `offset`: where each starts on the deck, and the part of the repeating strip it
+ * shows. The strip is anchored to the world, so it scrolls with the water.
  */
 export function foamSegments(span: { left: number; right: number }, period: number, offset: number): Array<{ x: number; from: number; width: number }> {
   const segments: Array<{ x: number; from: number; width: number }> = [];
@@ -149,6 +118,7 @@ export function foamSegments(span: { left: number; right: number }, period: numb
   }
   return segments;
 }
+
 
 type Cut = (image: string, x: number, y: number, width: number, height: number) => PixiTexture;
 
@@ -194,34 +164,23 @@ export function createScenery(pixi: PixiModule, stage: StageSize, art: SceneryAr
   back.label = "scenery:back";
   const front = new pixi.Container();
   front.label = "scenery:front";
-  const { environment, water, layers } = art;
-  // The pack's images by id, the still sea's and the extras' by path: the two never share a name.
-  const cutter = textureCutter(
-    pixi,
-    (image) => art.images.get(image) ?? environment?.images.get(image) ?? water?.images.get(image) ?? layers?.variants?.images.get(image),
-  );
-  const ambience = ambienceLayers(pixi, stage, art.ambience, art.masks, cutter, seed);
-  const sea = environmentComplete(environment) ? generatedSea(pixi, stage, environment, water, layers, cutter.cut) : flatSea(pixi, stage, water, layers, cutter.cut);
-  // Until the sea is the pack's (step 5b), the ambience's back slot is behind all of it and its front slot in front.
-  back.addChild(...ambience.back, ...sea.back);
-  front.addChild(...sea.front, ...ambience.front);
+  const cutter = textureCutter(pixi, (image) => art.images.get(image));
+  const layers = ambienceLayers(pixi, stage, art.ambience, art.masks, cutter, seed, art.codeWake ?? null);
+  back.addChild(...layers.back);
+  front.addChild(...layers.front);
   return {
     back,
     front,
-    generated: sea.generated,
-    layout(visible) {
-      ambience.layout(visible);
-      sea.layout(visible);
-    },
+    generated: layers.generated,
+    layout: layers.layout,
     draw(seconds, plan, minute, weather = deliveredWeather(seconds)) {
-      const phase = ambience.draw(seconds, plan, minute, weather);
-      sea.draw(plan, weather);
-      return phase;
+      return layers.draw(seconds, plan, minute, weather);
     },
-    flashing: ambience.flashing,
+    flashing: layers.flashing,
     destroy: cutter.destroy,
   };
 }
+
 
 /** A sprite of the pack: a rectangle of its image, or the whole image at the size the pack declares. */
 function spriteTexture(cut: Cut, sprite: { image: string; rect?: readonly [number, number, number, number] | undefined }, sizes: DeckAmbience["sizes"]): PixiTexture {
@@ -254,15 +213,35 @@ interface DrifterLayer {
 /** The phases of the day in order, or none. */
 const phasesOf = (cycle: DayCycle | null) => cycle?.phases ?? [];
 
+/** What an element puts in each slot. */
+interface SlotViews {
+  back: PixiContainer[];
+  front: PixiContainer[];
+}
+
 /**
  * The ambience's layers: each element the pack's compiled ambience draws, built after what it is drawn in or under,
- * and put in its slot in the pack's order.
+ * each tile with nothing to draw it filled flat, and the code wake where it stands in; all of it put in its slot in
+ * the pack's order.
  */
-function ambienceLayers(pixi: PixiModule, stage: StageSize, ambience: DeckAmbience, masks: ReadonlyMap<string, DrifterMasks>, cutter: Cutter, seed: number) {
+function ambienceLayers(
+  pixi: PixiModule,
+  stage: StageSize,
+  ambience: DeckAmbience,
+  masks: ReadonlyMap<string, DrifterMasks>,
+  cutter: Cutter,
+  seed: number,
+  codeWake: CodeWakeSpot | null,
+) {
   const { cut } = cutter;
   const { dayCycle } = ambience;
   const phases = phasesOf(dayCycle);
-  const views = new Map<string, PixiContainer[]>();
+  const views = new Map<string, SlotViews>();
+  /** An element's views, all in its own slot. */
+  const own = (element: Pick<AmbientElement, "slot">, containers: PixiContainer[]): SlotViews => ({
+    back: element.slot === "back" ? containers : [],
+    front: element.slot === "front" ? containers : [],
+  });
 
   // Backdrops: the two phases of the blend, the later over the earlier.
   const backdrops = new Map<string, BackdropLayer>();
@@ -275,7 +254,7 @@ function ambienceLayers(pixi: PixiModule, stage: StageSize, ambience: DeckAmbien
     over.label = `${element.id}:over`;
     const layer: BackdropLayer = { element, textures, views: [under, over], place: { x: 0, y: 0, scale: 1 }, view: { left: 0, right: behaviour.size[0] }, tint: 0xffffff };
     backdrops.set(element.id, layer);
-    views.set(element.id, [under, over]);
+    views.set(element.id, own(element, [under, over]));
   }
 
   // Overlays, in their backdrop's placement.
@@ -285,7 +264,7 @@ function ambienceLayers(pixi: PixiModule, stage: StageSize, ambience: DeckAmbien
     const sprite = new pixi.Sprite(spriteTexture(cut, { image: behaviour.image }, ambience.sizes));
     sprite.label = `${space.element.id}:${element.id}`;
     if (behaviour.alpha !== "night") sprite.visible = false;
-    views.set(element.id, [sprite]);
+    views.set(element.id, own(element, [sprite]));
     return { element, space, sprite, peak: behaviour.alpha === "night" ? 0 : curvePeak(behaviour.alpha.curve) };
   });
 
@@ -294,7 +273,7 @@ function ambienceLayers(pixi: PixiModule, stage: StageSize, ambience: DeckAmbien
   for (const element of elementsOf(ambience, "drifters")) {
     const layer = drifterLayer(pixi, element, backdrops.get(element.behaviour.space)!, phases, masks, cutter, seed);
     drifters.set(element.id, layer);
-    views.set(element.id, [layer.container]);
+    views.set(element.id, own(element, [layer.container]));
   }
 
   // Flashes, under their drifters.
@@ -304,7 +283,7 @@ function ambienceLayers(pixi: PixiModule, stage: StageSize, ambience: DeckAmbien
     const sprite = new pixi.Sprite(frames[0]!);
     sprite.label = `flash:${element.id}`;
     sprite.visible = false;
-    views.set(element.id, [sprite]);
+    views.set(element.id, own(element, [sprite]));
     return { element, under: drifters.get(behaviour.under)!, frames, sprite, salt: flashSalt(element.id) };
   });
 
@@ -319,16 +298,43 @@ function ambienceLayers(pixi: PixiModule, stage: StageSize, ambience: DeckAmbien
       sprite.visible = false;
       return sprite;
     });
-    views.set(element.id, sprites);
+    views.set(element.id, own(element, sprites));
     return { element, poses, sprites };
   });
 
-  const inSlot = (slot: AmbientElement["slot"]) => ambience.elements.filter((element) => element.slot === slot).flatMap((element) => views.get(element.id) ?? []);
+  // The water: tiles, strips and cycles, each its own layer; a tile with nothing to draw it, filled flat.
+  const placedLayer = <Layer extends SlotViews>(id: string, layer: Layer) => {
+    views.set(id, layer);
+    return layer;
+  };
+  const tiles = elementsOf(ambience, "tile").map((element) => placedLayer(element.id, tileLayer(pixi, element, cut, ambience.sizes)));
+  const water: WaterLayer[] = [
+    ...tiles,
+    ...elementsOf(ambience, "strip").map((element) => placedLayer(element.id, stripLayer(pixi, element, cut, ambience.sizes))),
+    ...elementsOf(ambience, "cycle").map((element) => placedLayer(element.id, cycleLayer(pixi, element, cut, ambience.sizes))),
+  ];
+  const flats = ambience.flats.map((element) => ({ element, layer: flatLayer(pixi, element, ambience.fallbackFill) }));
+  // Until step 5c retires it, the wake drawn in code where the pack's did not load, in that wake's place.
+  const standIn =
+    codeWake === null || ambience.elements.some((element) => element.id === codeWake.id)
+      ? null
+      : codeWakeLayer(pixi, stage, codeWake.slot, tiles[0]?.drift ?? WAKE_SPEED);
+  water.push(...flats.map(({ layer }) => layer), ...(standIn === null ? [] : [standIn]));
+
+  // Every element's views by order, the flats and the code wake after what is drawn at the same order.
+  const placed = [
+    ...ambience.elements.map((element) => ({ order: element.order, views: views.get(element.id)! })),
+    ...flats.map(({ element, layer }) => ({ order: element.order, views: layer })),
+    ...(standIn === null || codeWake === null ? [] : [{ order: codeWake.order, views: standIn }]),
+  ].sort((a, b) => a.order - b.order);
+  const inSlot = (slot: AmbientElement["slot"]) => placed.flatMap(({ views: each }) => each[slot]);
 
   return {
     back: inSlot("back"),
     front: inSlot("front"),
+    generated: tiles.length > 0,
     layout(visible: VisibleWorld) {
+      for (const layer of water) layer.layout(visible);
       for (const layer of backdrops.values()) {
         const { behaviour } = layer.element;
         layer.place = backdropPlacement(visible, behaviour.size, behaviour.placement, stage.width);
@@ -400,6 +406,7 @@ function ambienceLayers(pixi: PixiModule, stage: StageSize, ambience: DeckAmbien
         sprite.position.set(place.x + spot.x * place.scale, place.y + spot.y * place.scale);
         sprite.scale.set(place.scale);
       }
+      for (const layer of water) layer.draw(seconds, plan, weather);
       for (const { element, poses, sprites } of flybys) {
         const { behaviour } = element;
         const flying = elementMotion(element, plan) === "run" && blend.night < behaviour.nightBelow ? flybysAt(seconds, stage.width, behaviour) : [];
@@ -528,26 +535,48 @@ function drifterLayer(
   };
 }
 
+/** A sprite's size: its rectangle's, or its whole image's as the pack declares it. */
+function spriteSize(sprite: { image: string; rect?: readonly [number, number, number, number] | undefined }, sizes: DeckAmbience["sizes"]): readonly [number, number] {
+  return sprite.rect === undefined ? (sizes.get(sprite.image) ?? [1, 1]) : [sprite.rect[2], sprite.rect[3]];
+}
+
+/** Within 0 to 1. */
+const unit = (value: number) => Math.max(0, Math.min(1, value));
+
+/** Which of `count` frames shows on `clock` at `frameMs` each while the element runs: its first while it does not. */
+function frameOn(weather: Weather, frames: { sprites: readonly unknown[]; frameMs: number; clock?: string | undefined }, seconds: number, run: boolean): number {
+  return cycleFrame(clockOf(weather, frames.clock, seconds), { frames: frames.sprites, frameMs: frames.frameMs }, run);
+}
+
+/** What one element of the water puts on the deck: its views in each slot, and how it lays itself out and draws. */
+interface WaterLayer {
+  readonly back: PixiContainer[];
+  readonly front: PixiContainer[];
+  layout(visible: VisibleWorld): void;
+  draw(seconds: number, plan: MotionPlan, weather: Weather): void;
+}
+
 /**
  * A sprite and its variants' sprites over it (`client/deck-variants.ts`), one frame index for all: `draw` puts every
  * one on the frame, the element's opacity times `strength`, each variant's by the weather's intensity.
  */
-function framedStack(pixi: PixiModule, label: string, frames: PixiTexture[], variants: readonly Variant[], cut: (path: string) => PixiTexture) {
+function framedStack(pixi: PixiModule, label: string, frames: PixiTexture[], variants: ReadonlyArray<{ variant: Variant; frames: PixiTexture[] }>) {
   const sprite = new pixi.Sprite(frames[0]!);
   sprite.label = label;
-  const layers = variants.map(function (variant) {
-    const over = new pixi.Sprite(cut(variant.frames[0]!));
+  const layers = variants.map(function ({ variant, frames: textures }) {
+    const over = new pixi.Sprite(textures[0]!);
     over.label = `${label}:${variant.id}`;
     over.visible = false;
-    return { over, frames: variant.frames.map(cut) };
+    return { over, frames: textures };
   });
+  const blends = variants.map(({ variant }) => variant);
   return {
     views: [sprite, ...layers.map((layer) => layer.over)],
     place(x: number, y: number) {
       for (const view of [sprite, ...layers.map((layer) => layer.over)]) view.position.set(x, y);
     },
     draw(frame: number, strength: number, intensity: number | null) {
-      const blend = variantBlend(variants, intensity);
+      const blend = variantBlend(blends, intensity);
       sprite.texture = frames[frame]!;
       sprite.alpha = strength * blend.base;
       sprite.visible = sprite.alpha > 0;
@@ -560,30 +589,246 @@ function framedStack(pixi: PixiModule, label: string, frames: PixiTexture[], var
   };
 }
 
-/** A wake on the deck: the generated one (`generatedWake`) or the one drawn in code (`codeWake`). */
-interface WakeLayer {
-  /** What it draws, back to front: the wake, and over the generated one its variants. */
-  readonly views: PixiContainer[];
-  layout(visible: VisibleWorld): void;
-  draw(weather: Weather, plan: MotionPlan, pixelsPerSecond: number): void;
+/**
+ * A cycle (`cycle@1`): one sprite, its anchor on its point, its frames in turn on its clock while it runs, at its
+ * opacity's level; its variants over it.
+ */
+function cycleLayer(pixi: PixiModule, element: AmbientElement<"cycle">, cut: Cut, sizes: DeckAmbience["sizes"]): WaterLayer {
+  const { behaviour } = element;
+  const textures = (sprites: ReadonlyArray<{ image: string; rect?: [number, number, number, number] | undefined }>) => sprites.map((sprite) => spriteTexture(cut, sprite, sizes));
+  const stack = framedStack(
+    pixi,
+    element.place,
+    textures(behaviour.frames.sprites),
+    (behaviour.variants ?? []).map((variant) => ({ variant, frames: textures(variant.frames) })),
+  );
+  stack.place(behaviour.at[0] - behaviour.anchor[0], behaviour.at[1] - behaviour.anchor[1]);
+  return {
+    back: element.slot === "back" ? stack.views : [],
+    front: element.slot === "front" ? stack.views : [],
+    layout() {},
+    draw(seconds, plan, weather) {
+      const motion = elementMotion(element, plan);
+      const strength = motion === "hide" ? 0 : unit(behaviour.opacity === undefined ? 1 : levelAt(behaviour.opacity, weather));
+      stack.draw(frameOn(weather, behaviour.frames, seconds, motion === "run"), strength, weather.intensity);
+    },
+  };
 }
 
 /**
- * The code wake's layer: its foam drawn as rectangles, again only when the sea has scrolled a whole pixel or
- * the screen shows more of the water than it did.
+ * A tile (`tile@1`): its frames repeated both ways in each band from the band's row, all on one tile origin, every tile
+ * on the same frame and the bands drifting together a whole pixel at a time; its variants a band of tiles over each band.
  */
-function codeWake(pixi: PixiModule, stage: StageSize): WakeLayer {
+function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, sizes: DeckAmbience["sizes"]) {
+  const { behaviour } = element;
+  const { sprites } = behaviour.frames;
+  const [tileWidth, tileHeight] = spriteSize(sprites[0]!, sizes);
+  // Each band's first row of tiles is cut to start where the band does, so every band shares the origin.
+  const bands = behaviour.bands.map((band) => ({ ...band, cut: (((band.fromRow - behaviour.origin) % tileHeight) + tileHeight) % tileHeight }));
+  const frameTextures = (sprite: { image: string; rect?: [number, number, number, number] | undefined }) => {
+    const whole = spriteTexture(cut, sprite, sizes);
+    const [x, y] = sprite.rect ?? [0, 0];
+    return { whole, cut: bands.map((band) => (band.cut === 0 ? whole : cut(sprite.image, x, y + band.cut, tileWidth, tileHeight - band.cut))) };
+  };
+  const frames = sprites.map(frameTextures);
+  const variants = behaviour.variants ?? [];
+  const container = (label: string, visible: boolean) => {
+    const made = new pixi.Container();
+    made.label = label;
+    made.visible = visible;
+    return made;
+  };
+  const holders = bands.map((band) => container(`${element.place}:${band.slot}`, true));
+  const over = variants.map((variant) => ({ frames: variant.frames.map(frameTextures), holders: bands.map((band) => container(`${element.place}:${band.slot}:${variant.id}`, false)) }));
+  let frame = 0;
+  /** Every tile: its band, whether it is that band's first row (cut to line up), and each variant's tile over it. */
+  let tiles: Array<{ band: number; sprite: PixiSprite; atCut: boolean; over: PixiSprite[] }> = [];
+  let tiled = { left: 0, right: 0, bottom: 0 };
+  const texture = (of: typeof frames, band: number, atCut: boolean) => (atCut ? of[frame]!.cut[band]! : of[frame]!.whole);
+
+  function tile(band: number, atCut: boolean, x: number, y: number): void {
+    const sprite = new pixi.Sprite(texture(frames, band, atCut));
+    sprite.position.set(x, y);
+    holders[band]!.addChild(sprite);
+    const layered = over.map(function (variant) {
+      const tile = new pixi.Sprite(texture(variant.frames, band, atCut));
+      tile.position.set(x, y);
+      variant.holders[band]!.addChild(tile);
+      return tile;
+    });
+    tiles.push({ band, sprite, atCut, over: layered });
+  }
+
+  const inSlot = (slot: string) => bands.flatMap((band, index) => (band.slot === slot ? [holders[index]!, ...over.map((variant) => variant.holders[index]!)] : []));
+  return {
+    back: inSlot("back"),
+    front: inSlot("front"),
+    drift: behaviour.drift.pxPerSecond,
+    layout(visible: VisibleWorld) {
+      if (tiles.length > 0 && visible.left >= tiled.left && visible.right <= tiled.right && visible.bottom <= tiled.bottom) return;
+      // A tile's width of slack either side, so a scroll of up to a tile never shows an edge.
+      tiled = { left: Math.floor(visible.left) - 8, right: Math.ceil(visible.right) + 8, bottom: Math.ceil(visible.bottom) + 8 };
+      for (const { band, sprite, over: layered } of tiles) {
+        holders[band]!.removeChild(sprite);
+        sprite.destroy();
+        layered.forEach(function (tile, index) {
+          over[index]!.holders[band]!.removeChild(tile);
+          tile.destroy();
+        });
+      }
+      tiles = [];
+      const first = Math.floor(tiled.left / tileWidth) * tileWidth - tileWidth;
+      for (let x = first; x < tiled.right + tileWidth; x += tileWidth) {
+        bands.forEach(function (band, index) {
+          if (band.cut === 0) {
+            for (let y = band.fromRow; y < tiled.bottom; y += tileHeight) tile(index, false, x, y);
+            return;
+          }
+          tile(index, true, x, band.fromRow);
+          for (let y = band.fromRow - band.cut + tileHeight; y < tiled.bottom; y += tileHeight) tile(index, false, x, y);
+        });
+      }
+    },
+    draw(seconds: number, plan: MotionPlan, weather: Weather) {
+      const motion = elementMotion(element, plan);
+      const run = motion === "run";
+      const drift = run ? scrollOffset(clockOf(weather, behaviour.drift.clock, seconds), behaviour.drift.pxPerSecond, tileWidth) : 0;
+      const mix = variantBlend(variants, weather.intensity);
+      for (const holder of holders) {
+        holder.position.set(drift, 0);
+        holder.visible = motion !== "hide" && mix.base > 0;
+        holder.alpha = mix.base;
+      }
+      over.forEach(function (variant, index) {
+        for (const holder of variant.holders) {
+          holder.position.set(drift, 0);
+          holder.alpha = mix.layers[index]!;
+          holder.visible = motion !== "hide" && holder.alpha > 0;
+        }
+      });
+      const next = frameOn(weather, behaviour.frames, seconds, run);
+      if (next !== frame) {
+        frame = next;
+        for (const tile of tiles) {
+          tile.sprite.texture = texture(frames, tile.band, tile.atCut);
+          tile.over.forEach((layered, index) => (layered.texture = texture(over[index]!.frames, tile.band, tile.atCut)));
+        }
+      }
+    },
+  };
+}
+
+/** A tile with nothing to draw it with: each band filled flat from its row down with the pack's `fallbackFill`. */
+function flatLayer(pixi: PixiModule, element: AmbientElement<"tile">, fill: number): WaterLayer {
+  const bands = element.behaviour.bands.map(function (band) {
+    const graphics: PixiGraphics = new pixi.Graphics();
+    graphics.label = `${element.place}:${band.slot}`;
+    return { band, graphics };
+  });
+  const inSlot = (slot: string) => bands.filter(({ band }) => band.slot === slot).map(({ graphics }) => graphics);
+  return {
+    back: inSlot("back"),
+    front: inSlot("front"),
+    layout(visible) {
+      const left = Math.floor(visible.left) - 8;
+      const width = Math.ceil(visible.right) + 8 - left;
+      const bottom = Math.ceil(visible.bottom) + 8;
+      for (const { band, graphics } of bands) graphics.clear().rect(left, band.fromRow, width, bottom - band.fromRow).fill(fill);
+    },
+    draw() {},
+  };
+}
+
+/**
+ * A strip (`strip@1`): its frames repeated sideways within its span from its top row, drifting with the world, cut from
+ * the repeat into a few sprites a frame; its variants' strips cut alike over it.
+ */
+function stripLayer(pixi: PixiModule, element: AmbientElement<"strip">, cut: Cut, sizes: DeckAmbience["sizes"]): WaterLayer {
+  const { behaviour } = element;
+  const [period, height] = spriteSize(behaviour.frames.sprites[0]!, sizes);
+  const span = { left: behaviour.span[0], right: behaviour.span[1] };
+  const crops = new Map<string, PixiTexture>();
+  type Sprite = { image: string; rect?: [number, number, number, number] | undefined };
+  function crop(sprites: readonly Sprite[], frame: number, from: number, width: number): PixiTexture {
+    const sprite = sprites[frame]!;
+    const [x, y] = sprite.rect ?? [0, 0];
+    const key = `${sprite.image}:${x}:${y}:${from}:${width}`;
+    let texture = crops.get(key);
+    if (texture === undefined) {
+      texture = cut(sprite.image, x + from, y, width, height);
+      crops.set(key, texture);
+    }
+    return texture;
+  }
+  // As many pieces as the span can need at any scroll: one a repeat across it, and one more.
+  const pieceCount = Math.ceil((span.right - span.left) / period) + 1;
+  const strip = (label: string, sprites: readonly Sprite[]) => {
+    const container = new pixi.Container();
+    container.label = label;
+    const pieces: PixiSprite[] = [];
+    for (let index = 0; index < pieceCount; index += 1) {
+      const sprite = new pixi.Sprite(crop(sprites, 0, 0, 1));
+      sprite.visible = false;
+      container.addChild(sprite);
+      pieces.push(sprite);
+    }
+    return { container, pieces, sprites };
+  };
+  const main = strip(element.place, behaviour.frames.sprites);
+  const variants = behaviour.variants ?? [];
+  const over = variants.map((variant) => strip(`${element.place}:${variant.id}`, variant.frames));
+  for (const layered of over) layered.container.visible = false;
+  const views = [main.container, ...over.map((layered) => layered.container)];
+  let drawn = "";
+  return {
+    back: element.slot === "back" ? views : [],
+    front: element.slot === "front" ? views : [],
+    layout() {},
+    draw(seconds, plan, weather) {
+      const motion = elementMotion(element, plan);
+      const run = motion === "run";
+      const lap = run ? scrollOffset(clockOf(weather, behaviour.drift.clock, seconds), behaviour.drift.pxPerSecond, period) : 0;
+      const frame = frameOn(weather, behaviour.frames, seconds, run);
+      const mix = variantBlend(variants, weather.intensity);
+      main.container.alpha = mix.base;
+      main.container.visible = motion !== "hide" && mix.base > 0;
+      over.forEach(function (layered, index) {
+        layered.container.alpha = mix.layers[index]!;
+        layered.container.visible = motion !== "hide" && layered.container.alpha > 0;
+      });
+      if (`${frame}:${lap}` === drawn) return;
+      const segments = foamSegments(span, period, lap);
+      for (const layered of [main, ...over]) {
+        layered.pieces.forEach(function (sprite, index) {
+          const segment = segments[index];
+          sprite.visible = segment !== undefined;
+          if (segment === undefined) return;
+          sprite.texture = crop(layered.sprites, frame, segment.from, segment.width);
+          sprite.position.set(segment.x, behaviour.top);
+        });
+      }
+      drawn = `${frame}:${lap}`;
+    },
+  };
+}
+
+/**
+ * The wake drawn in code, standing in for the pack's where that did not load until step 5c retires it: its foam drawn
+ * as rectangles, again only when the sea has scrolled a whole pixel or the screen shows more of the water than it did.
+ */
+function codeWakeLayer(pixi: PixiModule, stage: StageSize, slot: AmbientElement["slot"], speed: number): WaterLayer {
   const graphics: PixiGraphics = new pixi.Graphics();
   graphics.label = "wake";
   let reach = { right: stage.width, bottom: stage.height };
   let drawn: string | null = null;
   return {
-    views: [graphics],
-    layout(visible: VisibleWorld) {
+    back: slot === "back" ? [graphics] : [],
+    front: slot === "front" ? [graphics] : [],
+    layout(visible) {
       reach = { right: Math.ceil(visible.right), bottom: Math.ceil(visible.bottom) };
     },
-    draw(weather: Weather, plan: MotionPlan, pixelsPerSecond: number) {
-      const shift = plan.ambient && Number.isFinite(weather.water.drift) ? Math.floor(weather.water.drift * pixelsPerSecond) : 0;
+    draw(_seconds, plan, weather) {
+      const shift = plan.ambient && Number.isFinite(weather.water.drift) ? Math.floor(weather.water.drift * speed) : 0;
       // Its length in twentieths, so an easing weather redraws it a step at a time and not every frame.
       const strength = Math.round(weather.wake * 20) / 20;
       const key = `${shift}:${strength}:${reach.right}:${reach.bottom}`;
@@ -591,255 +836,6 @@ function codeWake(pixi: PixiModule, stage: StageSize): WakeLayer {
       drawn = key;
       graphics.clear();
       for (const run of wakeRuns(shift, reach, strength)) graphics.rect(run.x, run.y, run.width, 1).fill(WAKE_COLOURS[run.tone]);
-    },
-  };
-}
-
-/** The generated wake: one sprite at the stern, its frames in turn while the sea moves, never drifting; its variants over it. */
-function generatedWake(pixi: PixiModule, wake: WaterManifest["wake"], cut: Cut, variants: readonly Variant[]): WakeLayer {
-  const frame = (path: string) => cut(path, 0, 0, wake.frameSize[0], wake.frameSize[1]);
-  const stack = framedStack(pixi, "wake", wake.frames.map(frame), variants, frame);
-  const at = wakeTopLeft(wake);
-  stack.place(at.x, at.y);
-  return {
-    views: stack.views,
-    layout() {},
-    draw(weather, plan) {
-      stack.draw(waterFrame(weather.water.frames, wake, plan.ambient, CALM_WATER), Math.max(0, Math.min(1, weather.wake)), weather.intensity);
-    },
-  };
-}
-
-/** The wake to draw: the generated one where every frame of it decoded, with its variants; or the one drawn in code. */
-function wakeOf(pixi: PixiModule, stage: StageSize, water: DrawnWater | null, layers: WeatherLayers | null, cut: Cut): WakeLayer {
-  const wake = water?.wake ?? null;
-  return wake === null ? codeWake(pixi, stage) : generatedWake(pixi, wake, cut, variantsOf(layers?.variants ?? null, "wake"));
-}
-
-/** A cycle (`client/deck-variants.ts`): its frames looping on the water's clock at its place, its opacity by the weather. */
-function cycleLayer(pixi: PixiModule, cycle: NonNullable<DrawnVariants["cycles"]>[number], cut: Cut, variants: readonly Variant[]) {
-  const frame = (path: string) => cut(path, 0, 0, cycle.frameSize[0], cycle.frameSize[1]);
-  const stack = framedStack(pixi, `cycle:${cycle.id}`, cycle.frames.map(frame), variants, frame);
-  stack.place(cycle.position[0] - cycle.anchor[0], cycle.position[1] - cycle.anchor[1]);
-  return {
-    views: stack.views,
-    draw(weather: Weather, plan: MotionPlan) {
-      stack.draw(cycleFrame(weather.water.frames, cycle, plan.ambient), opacityAt(cycle.opacity, weather.intensity), weather.intensity);
-    },
-  };
-}
-
-/** The sea's layers: behind the stage and in front of its waterline. */
-interface SeaLayers {
-  readonly back: PixiContainer[];
-  readonly front: PixiContainer[];
-  readonly generated: boolean;
-  layout(visible: VisibleWorld): void;
-  draw(plan: MotionPlan, weather: Weather): void;
-}
-
-/**
- * The generated sea: the still tile or the animated one, both bands; the wake; the foam; the extras' weather layers over
- * them, and the cycles.
- */
-function generatedSea(pixi: PixiModule, stage: StageSize, environment: DeckEnvironmentImages, water: DrawnWater | null, layers: WeatherLayers | null, cut: Cut): SeaLayers {
-  const { manifest } = environment;
-  const variants = layers?.variants ?? null;
-
-  // The water: each frame of the tile — the animated sea's four, or the environment's one — and the same frame
-  // cut to start at the waterline for the near sea's first row, so both bands share one tile origin.
-  const sea = water?.sea ?? null;
-  const [tileWidth, tileHeight] = sea?.frameSize ?? manifest.sea.period;
-  const seaPaths = sea?.frames ?? [manifest.sea.texture];
-  const seaSpeed = sea === null ? manifest.sea.animation.xPixelsPerSecond : waterDrift(sea, CALM_WATER);
-  const nearFirstRow = (WATERLINE - HORIZON) % tileHeight;
-  const seaTextures = (path: string) => {
-    const whole = cut(path, 0, 0, tileWidth, tileHeight);
-    return { whole, fromWaterline: nearFirstRow === 0 ? whole : cut(path, 0, nearFirstRow, tileWidth, tileHeight - nearFirstRow) };
-  };
-  const seaFrames = seaPaths.map(seaTextures);
-  let seaFrame = 0;
-  const farSea = new pixi.Container();
-  farSea.label = "sea:far";
-  const nearSea = new pixi.Container();
-  nearSea.label = "sea:near";
-  // The sea's variants, frame for frame over the animated sea (`drawnVariants` holds them to its frames and size): a
-  // band of tiles over each band of it.
-  const seaVariants = sea === null ? [] : variantsOf(variants, "sea");
-  const seaOver = seaVariants.map(function (variant) {
-    const far = new pixi.Container();
-    far.label = `sea:far:${variant.id}`;
-    far.visible = false;
-    const near = new pixi.Container();
-    near.label = `sea:near:${variant.id}`;
-    near.visible = false;
-    return { far, near, frames: variant.frames.map(seaTextures) };
-  });
-  /** Every tile, whether it is the near sea's first row, cut at the waterline, and each variant's tile over it. */
-  let tiles: Array<{ parent: PixiContainer; sprite: PixiSprite; atWaterline: boolean; over: PixiSprite[] }> = [];
-  let tiled = { left: 0, right: 0, bottom: 0 };
-
-  // The foam: up to three crops of the repeating strip a frame, laid end to end across the hull — the animated
-  // water's frames from its own top and span, or the environment's one strip — and the same crops of each variant's.
-  const waterFoam = water?.foam ?? null;
-  const foamPaths = waterFoam?.frames ?? [manifest.foam.texture];
-  const foamPeriod = waterFoam?.frameSize[0] ?? manifest.foam.period;
-  const foamHeight = waterFoam?.frameSize[1] ?? FOAM_HEIGHT;
-  const foamTop = waterFoam?.top ?? FOAM_TOP;
-  const foamSpan = waterFoam === null ? FOAM_SPAN : { left: waterFoam.span[0], right: waterFoam.span[1] };
-  const foamSpeed = waterFoam === null ? manifest.foam.xPixelsPerSecond : waterDrift(waterFoam, CALM_WATER);
-  const foamCrops = new Map<string, PixiTexture>();
-  function foamCrop(paths: readonly string[], frame: number, from: number, width: number): PixiTexture {
-    const key = `${paths[frame]}:${from}:${width}`;
-    let texture = foamCrops.get(key);
-    if (texture === undefined) {
-      texture = cut(paths[frame]!, from, 0, width, foamHeight);
-      foamCrops.set(key, texture);
-    }
-    return texture;
-  }
-  const foamStrip = (label: string, paths: readonly string[]) => {
-    const container = new pixi.Container();
-    container.label = label;
-    const pieces: PixiSprite[] = [];
-    for (let index = 0; index < 3; index += 1) {
-      const sprite = new pixi.Sprite(foamCrop(paths, 0, 0, 1));
-      sprite.visible = false;
-      container.addChild(sprite);
-      pieces.push(sprite);
-    }
-    return { container, pieces, paths };
-  };
-  const foam = foamStrip("foam", foamPaths);
-  const foamVariants = waterFoam === null ? [] : variantsOf(variants, "foam");
-  const foamOver = foamVariants.map((variant) => foamStrip(`foam:${variant.id}`, variant.frames));
-  for (const strip of foamOver) strip.container.visible = false;
-  let foamDrawn = "";
-
-  const wake = wakeOf(pixi, stage, water, layers, cut);
-  const cycles = (variants?.cycles ?? []).map((cycle) => cycleLayer(pixi, cycle, cut, variantsOf(variants, `cycle:${cycle.id}`)));
-
-  function tile(parent: PixiContainer, atWaterline: boolean, x: number, y: number): void {
-    const textures = (frames: typeof seaFrames) => (atWaterline ? frames[seaFrame]!.fromWaterline : frames[seaFrame]!.whole);
-    const sprite = new pixi.Sprite(textures(seaFrames));
-    sprite.position.set(x, y);
-    parent.addChild(sprite);
-    const over = seaOver.map(function (band) {
-      const tile = new pixi.Sprite(textures(band.frames));
-      tile.position.set(x, y);
-      (parent === farSea ? band.far : band.near).addChild(tile);
-      return tile;
-    });
-    tiles.push({ parent, sprite, atWaterline, over });
-  }
-
-  return {
-    back: [farSea, ...seaOver.map((band) => band.far)],
-    front: [nearSea, ...seaOver.map((band) => band.near), ...wake.views, foam.container, ...foamOver.map((strip) => strip.container), ...cycles.flatMap((cycle) => cycle.views)],
-    generated: true,
-    layout(visible) {
-      wake.layout(visible);
-      if (tiles.length > 0 && visible.left >= tiled.left && visible.right <= tiled.right && visible.bottom <= tiled.bottom) return;
-      // A tile's width of slack either side, so a scroll of up to a tile never shows an edge.
-      tiled = { left: Math.floor(visible.left) - 8, right: Math.ceil(visible.right) + 8, bottom: Math.ceil(visible.bottom) + 8 };
-      for (const { parent, sprite, over } of tiles) {
-        parent.removeChild(sprite);
-        sprite.destroy();
-        over.forEach(function (tile, index) {
-          (parent === farSea ? seaOver[index]!.far : seaOver[index]!.near).removeChild(tile);
-          tile.destroy();
-        });
-      }
-      tiles = [];
-      const first = Math.floor(tiled.left / tileWidth) * tileWidth - tileWidth;
-      for (let x = first; x < tiled.right + tileWidth; x += tileWidth) {
-        for (let y = HORIZON; y < tiled.bottom; y += tileHeight) tile(farSea, false, x, y);
-        tile(nearSea, true, x, WATERLINE);
-        for (let y = WATERLINE - nearFirstRow + tileHeight; y < tiled.bottom; y += tileHeight) tile(nearSea, false, x, y);
-      }
-    },
-    draw(plan, weather) {
-      const { intensity } = weather;
-      // The sea: every tile on the same frame, both bands drifting together, its variants over it on the same frame and drift.
-      const drift = plan.ambient ? scrollOffset(weather.water.drift, seaSpeed, tileWidth) : 0;
-      const seaMix = variantBlend(seaVariants, intensity);
-      for (const band of [farSea, nearSea]) {
-        band.position.set(drift, 0);
-        band.visible = seaMix.base > 0;
-        band.alpha = seaMix.base;
-      }
-      seaOver.forEach(function (band, index) {
-        for (const over of [band.far, band.near]) {
-          over.position.set(drift, 0);
-          over.alpha = seaMix.layers[index]!;
-          over.visible = over.alpha > 0;
-        }
-      });
-      const nextSea = sea === null ? 0 : waterFrame(weather.water.frames, sea, plan.ambient, CALM_WATER);
-      if (nextSea !== seaFrame) {
-        seaFrame = nextSea;
-        for (const tile of tiles) {
-          tile.sprite.texture = tile.atWaterline ? seaFrames[seaFrame]!.fromWaterline : seaFrames[seaFrame]!.whole;
-          tile.over.forEach((over, index) => (over.texture = tile.atWaterline ? seaOver[index]!.frames[seaFrame]!.fromWaterline : seaOver[index]!.frames[seaFrame]!.whole));
-        }
-      }
-      wake.draw(weather, plan, seaSpeed);
-
-      const lap = plan.ambient ? scrollOffset(weather.water.drift, foamSpeed, foamPeriod) : 0;
-      const foamFrame = waterFoam === null ? 0 : waterFrame(weather.water.frames, waterFoam, plan.ambient, CALM_WATER);
-      const foamMix = variantBlend(foamVariants, intensity);
-      foam.container.alpha = foamMix.base;
-      foam.container.visible = foamMix.base > 0;
-      foamOver.forEach(function (strip, index) {
-        strip.container.alpha = foamMix.layers[index]!;
-        strip.container.visible = strip.container.alpha > 0;
-      });
-      if (`${foamFrame}:${lap}` !== foamDrawn) {
-        const segments = foamSegments(foamSpan, foamPeriod, lap);
-        for (const strip of [foam, ...foamOver]) {
-          strip.pieces.forEach(function (sprite, index) {
-            const segment = segments[index];
-            sprite.visible = segment !== undefined;
-            if (segment === undefined) return;
-            sprite.texture = foamCrop(strip.paths, foamFrame, segment.from, segment.width);
-            sprite.position.set(segment.x, foamTop);
-          });
-        }
-        foamDrawn = `${foamFrame}:${lap}`;
-      }
-      for (const cycle of cycles) cycle.draw(weather, plan);
-    },
-  };
-}
-
-/**
- * The sea without its still tile: a flat navy sea from the horizon, and again from the waterline in front of the hull,
- * with the wake — the generated one where it loaded with the extras, since it needs nothing of the still sea — and its
- * variants, and the cycles.
- */
-function flatSea(pixi: PixiModule, stage: StageSize, water: DrawnWater | null, layers: WeatherLayers | null, cut: Cut): SeaLayers {
-  const farSea: PixiGraphics = new pixi.Graphics();
-  farSea.label = "sea:far";
-  const nearSea: PixiGraphics = new pixi.Graphics();
-  nearSea.label = "sea:near";
-  const wake = wakeOf(pixi, stage, water, layers, cut);
-  const variants = layers?.variants ?? null;
-  const cycles = (variants?.cycles ?? []).map((cycle) => cycleLayer(pixi, cycle, cut, variantsOf(variants, `cycle:${cycle.id}`)));
-  return {
-    back: [farSea],
-    front: [nearSea, ...wake.views, ...cycles.flatMap((cycle) => cycle.views)],
-    generated: false,
-    layout(visible) {
-      const left = Math.floor(visible.left) - 8;
-      const width = Math.ceil(visible.right) + 8 - left;
-      const bottom = Math.ceil(visible.bottom) + 8;
-      farSea.clear().rect(left, HORIZON, width, bottom - HORIZON).fill(SEA_FALLBACK);
-      nearSea.clear().rect(left, WATERLINE, width, bottom - WATERLINE).fill(SEA_FALLBACK);
-      wake.layout(visible);
-    },
-    draw(plan, weather) {
-      wake.draw(weather, plan, WAKE_SPEED);
-      for (const cycle of cycles) cycle.draw(weather, plan);
     },
   };
 }
