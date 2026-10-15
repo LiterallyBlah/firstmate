@@ -10,6 +10,16 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Changed
 
+- Answer a crewmate from the ship deck. When one of the first mate's suggestions is about a crewmate's
+  work — it names its task id, its pull request (`web#42` or the URL) or its agent id — that sailor wears a
+  small white speech bubble with three dots over its state badge, bobbing gently, and the legend counts them.
+  Point at it and a speech bubble opens over its head instead of its label: the card's line ("Captain's
+  call: …") and each reply as a chip. A chip sends exactly what the same suggestion's button above the board
+  sends; the marker and bubble clear at once, and come back if the send fails. Focus the sailor and the same
+  replies are in its panel too, reachable from the keyboard. On a crowded deck a marker never covers another
+  sailor: it moves beside the badge, or edges the badge in white where there is no room. Still under reduced
+  motion.
+
 - The ship deck's mast is twice as tall. A generated tall mast stands in place of the old short one, its
   crow's nest high in the sky above the crew and swaying as before, and a generated sail three times as
   tall hangs from its yard and still billows; crew walking behind its foot are still hidden by it. The deck fits the taller mast and the

@@ -67,6 +67,8 @@ export interface Walker {
   /** What it wears: an atlas outfit or an extra look, by its agent id. */
   look: string;
   stale: boolean;
+  /** Replies wait for the captain over it (`DeckSailor.asks`). */
+  asks: boolean;
   x: number;
   y: number;
   /** The anchor reserved, by id; null while leaving. */
@@ -278,6 +280,7 @@ export function applyCrew(
         state: sailor.state,
         look: lookFor(sailor.identity, crew.looks),
         stale: sailor.stale,
+        asks: sailor.asks === true,
         x: HATCH.x,
         y: HATCH.y,
         anchor: null,
@@ -301,6 +304,7 @@ export function applyCrew(
     // A relaunched crewmate keeps its card but is a new agent, and dresses as one.
     existing.look = lookFor(sailor.identity, crew.looks);
     existing.stale = sailor.stale;
+    existing.asks = sailor.asks === true;
     const returning = existing.phase === "leaving" || existing.phase === "sinking";
     if (existing.state === sailor.state && !returning) {
       if (snap && existing.phase !== "settled") place(existing);
@@ -423,6 +427,8 @@ export interface Figure {
   label: string;
   state: DeckState;
   stale: boolean;
+  /** Replies wait for the captain over it: it wears the reply marker (`client/deck-badges.ts`). Absent is none. */
+  asks?: boolean;
   /** What it wears (`client/deck-extras.ts`). */
   look: string;
   /** Whose frames it is drawn, hit-tested and badged with: the look's lane of the atlas (`lookLane`). */
@@ -556,6 +562,7 @@ export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean
       label: walker.label,
       state: walker.state,
       stale: walker.stale,
+      asks: walker.asks,
       look: walker.look,
       outfit: lookLane(walker.look),
       x: Math.round(walker.x) + dx,

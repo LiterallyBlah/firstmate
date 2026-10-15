@@ -45,11 +45,11 @@
  */
 import type { DeckArtManifest, SailorPose } from "../shared/ship-deck";
 import { LANTERNS, lanternFlicker, MASTHEAD, mastSway, shipBob, type MotionPlan } from "./deck-ambient";
-import { BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
+import { ASK_PAPER, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, BREATH_ROWS, createCrew, crewFigures, fading, plankEffects, SHARK_MOUTH, stepCrew, stepDepartures, type Figure } from "./deck-crew";
 import { ATLAS_LOOKS, crewLooks, drawnMast, drawnPlank, drawnSail, lookLane, mastLayout, sailFrame, type DeckExtrasImages } from "./deck-extras";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
-import { badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type DeckFit, type DeckHover } from "./deck-hover";
+import { askMarks, badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type AskMark, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
 import type { DeckDrawing, DeckHost } from "./deck-mount";
 import { DECK_PROPS, depthOf, type DeckScene, type DeckState } from "./deck-scene";
@@ -381,7 +381,8 @@ export function deckBox(deck: { width: number; height: number }, rigTop: number)
 
 /**
  * One sailor's sprites: the state's mark under its feet, the figure itself, its head and shoulders apart
- * on an at-ease out-breath, its state's badge over its head, and an idle sailor's z.
+ * on an at-ease out-breath, its state's badge over its head, an idle sailor's z, and the reply marker over the
+ * badge while replies wait for the captain.
  */
 interface SailorSprites {
   root: PixiContainer;
@@ -391,6 +392,9 @@ interface SailorSprites {
   upper: PixiSprite;
   badge: PixiGraphics;
   doze: PixiGraphics;
+  ask: PixiGraphics;
+  /** What the reply marker was last drawn as: its form and the accent, or empty. */
+  asked: string;
   /** What the mark and badge were last drawn as, so they are redrawn only when the state, the feed or the hover changes. */
   marked: string;
   /** Which layer holds it: the deck's, the spotlight over the veil, or the sea's off the plank. */
@@ -409,6 +413,13 @@ function drawBadge(graphics: PixiGraphics, state: DeckState, colour: string): vo
   const ink = badgeInk(colour);
   graphics.clear();
   for (const pixel of badgePixels(state)) graphics.rect(pixel.x, pixel.y, 1, 1).fill(pixel.kind === "sign" ? sign : ink);
+}
+
+/** Draws the reply marker (`client/deck-badges.ts`) into `graphics`, its top left at the origin: the bubble, or the badge's frame. */
+function drawAsk(graphics: PixiGraphics, accent: string, mark: AskMark): void {
+  const dot = hexColour(accent);
+  graphics.clear();
+  for (const pixel of mark.framed ? askFramePixels() : askPixels(mark.flip)) graphics.rect(pixel.x, pixel.y, 1, 1).fill(pixel.kind === "bubble" ? ASK_PAPER : dot);
 }
 
 /** The plank's depth on the deck's layer: just in front of the near rail (`depthOf(null)`); whoever walks it is in front of it. */
@@ -584,6 +595,8 @@ export async function startDeck(
   const sailors = new Map<string, SailorSprites>();
   // What the last frame drew, for finding the sailor under the pointer between frames.
   let drawnFigures: Figure[] = [];
+  /** Where each reply marker hangs in that frame (`askMarks`). */
+  let drawnMarks: ReadonlyMap<string, AskMark> = new Map();
   let drawnBob = { x: 0, y: 0 };
   let drawnFit: DeckFit = { scale: 0, x: 0, y: 0 };
   let drawnLayout = "";
@@ -625,15 +638,18 @@ export async function startDeck(
       badge.label = "badge";
       const doze = new pixi.Graphics();
       doze.label = "doze";
-      root.addChild(mark, sprite, upper, badge, doze);
+      const ask = new pixi.Graphics();
+      ask.label = "ask";
+      ask.visible = false;
+      root.addChild(mark, sprite, upper, badge, doze, ask);
       deck.addChild(root);
-      sprites = { root, mark, sprite, upper, badge, doze, marked: "", parent: deck };
+      sprites = { root, mark, sprite, upper, badge, doze, ask, asked: "", marked: "", parent: deck };
       sailors.set(figure.key, sprites);
     }
     return sprites;
   }
 
-  function drawSailors(figures: readonly Figure[], nowMs: number, still: boolean): void {
+  function drawSailors(figures: readonly Figure[], marks: ReadonlyMap<string, AskMark>, nowMs: number, still: boolean): void {
     const present = new Set<string>();
     for (const figure of figures) {
       present.add(figure.key);
@@ -718,6 +734,20 @@ export async function startDeck(
         sprites.doze.position.set(Math.ceil(BADGE_SIZE.width / 2) + doze.dx, badgeY - 3 + doze.dy);
         sprites.doze.alpha = doze.alpha;
       }
+      // Replies wait for the captain: the marker where `askMarks` found room, bobbing a pixel now and then, or the
+      // badge's frame, pulsing; still under reduced motion.
+      const ask = marks.get(figure.key);
+      sprites.ask.visible = ask !== undefined;
+      if (ask !== undefined) {
+        const asked = `${ask.framed ? "frame" : ask.flip ? "left" : "bubble"}:${current.palette.ask}`;
+        if (sprites.asked !== asked) {
+          drawAsk(sprites.ask, current.palette.ask, ask);
+          sprites.asked = asked;
+        }
+        const lift = still ? 0 : askLift(figure.seed, nowMs);
+        sprites.ask.position.set(ask.left - figure.x, ask.top - figure.row - (ask.framed ? 0 : lift));
+        sprites.ask.alpha = ask.framed && lift > 0 ? 0.55 : 1;
+      }
     }
     for (const [key, sprites] of [...sailors.entries()]) {
       if (present.has(key)) continue;
@@ -800,11 +830,12 @@ export async function startDeck(
       glass.tint = level > 0.88 ? 0xffffff : level > 0.74 ? 0xf2dcb8 : 0xd8b890;
     }
     drawnFigures = crewFigures(crew, elapsedMs, { still: !moving });
+    drawnMarks = askMarks(drawnFigures, manifest);
     drawnBob = bob;
     spot.position.set(bob.x, bob.y);
     aim(elapsedMs, moving);
     findHover();
-    drawSailors(drawnFigures, elapsedMs, !moving);
+    drawSailors(drawnFigures, drawnMarks, elapsedMs, !moving);
     drawEffects();
     watchFades();
     canvas.setAttribute(DECK_MOTION_ATTRIBUTE, plan.level);
@@ -815,16 +846,21 @@ export async function startDeck(
   /**
    * Finds the sailor under the pointer in what was last drawn, and tells `onHover` when that sailor, or
    * its place on the canvas, changes. Says whether the sailor changed, so its ring is redrawn.
+   *
+   * While a sailor is focused, the report is instead where the focused sailor stands, and only while it
+   * wears the reply marker: the pane hangs its speech bubble there, through the zoom and every resize.
    */
   function findHover(): boolean {
     // While a sailor is focused its panel says who it is: no label, no ring, for anyone else.
     const figure =
-      pointer === null || drawnFit.scale <= 0 || focusKey !== null ? null : sailorAt(drawnFigures, manifest, toDeck(pointer, drawnFit, drawnBob));
+      pointer === null || drawnFit.scale <= 0 || focusKey !== null ? null : sailorAt(drawnFigures, manifest, toDeck(pointer, drawnFit, drawnBob), drawnMarks);
     canvas.style.cursor = figure === null ? "default" : "pointer";
     const key = figure?.key ?? null;
     const changed = key !== hoveredKey;
     hoveredKey = key;
-    const next = figure === null ? null : hoverOf(figure, manifest, drawnFit, drawnBob, app.screen);
+    const speaker = focusKey === null || drawnFit.scale <= 0 ? null : (drawnFigures.find((each) => each.key === focusKey && drawnMarks.has(each.key)) ?? null);
+    const shown = figure ?? speaker;
+    const next = shown === null ? null : hoverOf(shown, manifest, drawnFit, drawnBob, app.screen, drawnMarks.get(shown.key));
     if (hoverChanged(reported, next)) {
       reported = next;
       onHover(next);
@@ -921,7 +957,7 @@ export async function startDeck(
   }
   // A click names the sailor under it, found through the camera as drawn, or nobody; the pane decides what it does.
   function onClick(event: CanvasPointerEvent): void {
-    const figure = drawnFit.scale <= 0 ? null : sailorAt(drawnFigures, manifest, toDeck({ x: event.offsetX, y: event.offsetY }, drawnFit, drawnBob));
+    const figure = drawnFit.scale <= 0 ? null : sailorAt(drawnFigures, manifest, toDeck({ x: event.offsetX, y: event.offsetY }, drawnFit, drawnBob), drawnMarks);
     onSelect(figure?.key ?? null);
   }
   canvas.addEventListener?.("pointermove", onPointer);
