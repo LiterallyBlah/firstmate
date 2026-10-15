@@ -29,7 +29,9 @@ export const ENGINE_CAPABILITIES = [
   "stage@1",
   "floor@1",
   "zones@1",
+  "stable-posts@1",
   "cast@1",
+  "pose-fidgets@1",
   "rise@1",
   "sink@1",
   "choreography@1",
@@ -203,8 +205,8 @@ const Zones = z.strictObject({
     z.strictObject({
       id: Id,
       posts: z.array(z.strictObject({ id: Id, at: Point, facing: z.enum(["left", "right", "front"]) })).min(1),
-      /** `nearest`: the free post nearest the worker (the first, when it is placed at once); `ordered`: always the first free. */
-      assign: z.enum(["nearest", "ordered"]),
+      /** `nearest`: nearest the worker; `ordered`: first free; `stable`: identity-hashed preference, nearest free on collision. */
+      assign: z.enum(["nearest", "ordered", "stable"]),
       /**
        * Once every post is held: `beside` stands the worker by the least crowded post, `spacing` apart; `pack` packs
        * it into `areas`, `spacing` apart, then closer (`fallback`) when they are full.
@@ -224,8 +226,8 @@ const Fidget = z.strictObject({
   periodMs: Ms,
   /** The worker's seed shifts its fidget by this much, so a crowd is out of step. */
   seedMs: z.number().nonnegative(),
-  /** Whole-pixel offsets from each key's time on; `towardFacing` turns `dx` the way the worker faces. */
-  keys: z.array(z.strictObject({ fromMs: z.number().nonnegative(), dx: Px, dy: Px, towardFacing: z.boolean().optional() })).min(1),
+  /** Whole-pixel offsets; `towardFacing` turns `dx`. Optional `pose` swaps the settled pose, retaining its mirror rule. */
+  keys: z.array(z.strictObject({ fromMs: z.number().nonnegative(), dx: Px, dy: Px, towardFacing: z.boolean().optional(), pose: Id.optional() })).min(1),
 });
 const Settled = z.strictObject({ pose: Id, mirror: z.enum(["facing", "seed", "none"]) });
 const Cast = z.strictObject({
@@ -544,6 +546,8 @@ export function settingImageIds(manifest: SettingManifest): string[] {
 /** The capabilities a manifest uses: what its `requires` must say. */
 export function capabilitiesUsed(manifest: SettingManifest): string[] {
   const used = new Set<string>(["stage@1", "floor@1", "zones@1", "cast@1"]);
+  if (manifest.zones.zones.some((zone) => zone.assign === "stable")) used.add("stable-posts@1");
+  if (Object.values(manifest.cast.fidgets).some((fidget) => fidget?.keys.some((key) => key.pose !== undefined))) used.add("pose-fidgets@1");
   used.add(`${manifest.portals.entry.kind}@1`);
   for (const exit of Object.values(manifest.portals.exits)) used.add(`${exit.kind}@1`);
   if (manifest.stage.motion !== undefined) used.add("bob@1");
@@ -599,6 +603,7 @@ export function settingProblems(manifest: SettingManifest): string[] {
   // Poses: every lane has every pose a role or a choreography names.
   const { roles } = manifest.cast;
   const poses = new Set<string>([roles.stand, ...roles.walkFront, ...roles.walkSide, ...Object.values(roles.settled).map((settled) => settled.pose)]);
+  for (const fidget of Object.values(manifest.cast.fidgets)) for (const key of fidget?.keys ?? []) if (key.pose !== undefined) poses.add(key.pose);
   for (const exit of Object.values(manifest.portals.exits)) {
     if (exit.kind === "choreography") for (const segment of exit.actor) if (typeof segment.pose === "string") poses.add(segment.pose);
   }

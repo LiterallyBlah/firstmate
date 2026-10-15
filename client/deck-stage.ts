@@ -14,8 +14,8 @@ type Rect = readonly [number, number, number, number];
 export interface Zone {
   id: string;
   posts: readonly Anchor[];
-  /** `nearest`: the free post nearest the worker (the first, when it is placed at once); `ordered`: always the first free. */
-  assign: "nearest" | "ordered";
+  /** `nearest`: nearest the worker; `ordered`: first free; `stable`: identity-hashed preference, nearest free on collision. */
+  assign: "nearest" | "ordered" | "stable";
   overflow:
     | { kind: "beside"; spacing: readonly [number, number] }
     | { kind: "pack"; areas: readonly Rect[]; spacing: readonly [number, number]; fallback: readonly [number, number] };

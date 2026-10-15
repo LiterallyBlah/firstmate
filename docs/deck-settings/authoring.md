@@ -15,7 +15,7 @@ or capabilities as incompatible, with a reason. The pane falls back to ship and 
 
 | Capability group | Version 1 vocabulary |
 | --- | --- |
-| Layout and workers | `stage`, `floor`, `zones`, `cast` |
+| Layout and workers | `stage`, `floor`, `zones`, `stable-posts`, `cast`, `pose-fidgets` |
 | Portals and effects | `rise`, `sink`, `choreography` |
 | Stage motion and light | `bob`, `sway`, `cycle`, `flicker` |
 | Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `strip`, `variants` |
@@ -65,8 +65,13 @@ seconds dark, hidden in lite and still).
 
 ## The second setting
 
-The architecture report proposes an office. Its stable posts, richer pose fidgets, walking entry,
-phase tint and phase frames are design candidates, **not supported capabilities**. Confirm which are
-needed by the commissioned art, then add only those as generic, versioned engine changes used by that
-setting. Keep choreography finite. Do not add hooks to work around a missing behavior. The office's
-actual art and pack remain step 9; this migration step creates neither placeholder art nor an office pack.
+The office's [art contract and uninstalled draft](../settings/office/README.md) specify the commissioned
+assets and layout. `stable-posts@1` and `pose-fidgets@1` are supported as of step 9a. Stable assignment
+hashes agent identity to a preferred post; collisions choose the nearest free post to that preference,
+ties in manifest order. Existing holders keep their places. Pose fidgets may name a pose on each key;
+a key without one uses the settled pose, and all use the settled mirror rule. Still/stale workers keep
+their settled role. Every lane must define every named fidget pose.
+
+Walking entry, phase tint and phase frames still require separate engine PRs. Keep choreography finite;
+do not add hooks to work around a missing behavior. The actual office art and installable pack remain
+pending. The draft contains no placeholder pixels and cannot be selected as an installed pack.
