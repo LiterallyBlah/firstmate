@@ -24,8 +24,7 @@ import {
 } from "./deck-clouds";
 import { HORIZON } from "./deck-ambient";
 import { skyBlend, skyHorizonRow, skyPlacement } from "./deck-sky";
-import { DECK_WIDTH } from "./deck-scene";
-import { shipFile, shipViews } from "../test/ship-pack";
+import { shipFile, shipStage, shipViews } from "../test/ship-pack";
 
 const art = (path: string) => shipFile(path);
 /** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */
@@ -228,8 +227,8 @@ describe("the field of clouds", () => {
 
   it("keeps the lowest lanes in a pane that fits the deck's height, and every lane in a tall one", () => {
     // A pane exactly the deck's shape shows rows 0 down: the sky at its own scale, and its top 117 rows above the frame.
-    const fits = skyPlacement({ left: 0, right: DECK_WIDTH, top: 0 }, environment.sky.size, horizonRow);
-    const tall = skyPlacement({ left: -40, right: DECK_WIDTH + 40, top: -260 }, environment.sky.size, horizonRow);
+    const fits = skyPlacement({ left: 0, right: shipStage().width, top: 0 }, environment.sky.size, horizonRow, shipStage().width);
+    const tall = skyPlacement({ left: -40, right: shipStage().width + 40, top: -260 }, environment.sky.size, horizonRow, shipStage().width);
     for (let seed = 0; seed < 50; seed += 1) {
       const sky = field(seed);
       // The lowest two wholly in view, the third at least in part.

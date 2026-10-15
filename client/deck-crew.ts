@@ -7,13 +7,17 @@
  * lands, so its mark under the feet and the legend change at once; only its position waits for the
  * walk. A sailor whose state changes mid-walk turns round from wherever it is.
  *
- * - **Anchors are reserved.** A state sends its sailor to a place (`PLACES`), and the sailor takes the
- *   free anchor there nearest to it. When every anchor at a place is taken, it shares the least crowded
- *   one, standing beside whoever is there (`sharedSpot`), never on them.
- * - **Idle crew rest off the working deck.** An idle sailor walks to the rest areas (`REST_AREAS`) —
- *   the foredeck by the hatch, the foot of the quarterdeck stairs — and dozes there, so the stations,
- *   the helm and the bow show only the crew at work, waiting or stuck. Given work, it walks back. The
- *   rest spots fill in their own order, not the nearest first, so a crowd of sleepers stays tidy.
+ * Where everything is — the floor, the zones, the hatch and the plank's marks — is the setting's
+ * (`client/deck-stage.ts`), which the crew is made with: nothing here knows it is a ship.
+ *
+ * - **Posts are reserved.** A state sends its sailor to its zone (`zones.byState` in the setting), and
+ *   the sailor takes the free post there nearest to it. When every post in a zone is taken, it shares the
+ *   least crowded one, standing beside whoever is there (`sharedSpot`), never on them.
+ * - **Idle crew rest off the working deck.** The ship's idle zone packs its overflow into rest areas (its
+ *   `overflow` is `pack`) — the foredeck by the hatch, the foot of the quarterdeck stairs — and dozes
+ *   there, so the stations, the helm and the bow show only the crew at work, waiting or stuck. Given work, it
+ *   walks back. A zone `ordered` fills its posts in their own order, not the nearest first, so a crowd of
+ *   sleepers stays tidy.
  * - **The hatch.** A crewmate that joins after the deck opened climbs up through the hatch and walks to
  *   its anchor. The crew already aboard when the deck opens is simply there.
  * - **The plank.** One whose card leaves the deck (done, failed, closed, archived) walks to the plank,
@@ -33,20 +37,11 @@
  */
 import type { SailorOutfit, SailorPose } from "./deck-legacy";
 import { ATLAS_LOOKS, lookFor, lookLane } from "./deck-extras";
-import { anchorsAt, findPath, HATCH, restSpot, sharedSpot, type Anchor, type AnchorPlace, type Facing, type Point } from "./deck-geometry";
-import { exitFor, IMPACT_AT, PLANK, PLANK_EXIT_MS, plankExit, type DeckDeparture, type PlankLayer, type SharkFrame, type SplashFrame } from "./deck-plank";
+import { findPath, restSpot, sharedSpot, type Anchor, type Facing, type Point } from "./deck-geometry";
+import { exitFor, IMPACT_AT, PLANK_EXIT_MS, plankExit, type DeckDeparture, type PlankLayer, type PlankMarks, type SharkFrame, type SplashFrame } from "./deck-plank";
+import { choreography, type DeckStage } from "./deck-stage";
 import type { DeckSailor, DeckState } from "./deck-scene";
 
-/** Where each state sends its sailor. */
-export const PLACES: Record<DeckState, AnchorPlace> = {
-  working: "station",
-  waiting: "helm",
-  blocked: "bow",
-  idle: "rest",
-};
-
-/** Walking pace, in deck pixels a second: the length of the main deck in about nine seconds. */
-export const WALK_SPEED = 32;
 /** How long one step of the walk cycle shows. */
 export const STEP_MS = 150;
 /** Climbing up out of the hatch, and back down it. */
@@ -111,6 +106,12 @@ export interface Departure {
 }
 
 export interface Crew {
+  /** Where it all happens: the setting's floor, zones and portals. */
+  stage: DeckStage;
+  /** The plank's marks, from the setting's `plank` exit, and where and how far apart its queue waits. */
+  plank: { marks: PlankMarks; foot: Point; spacing: readonly [number, number] };
+  /** Where a sailor going back down the hatch makes for. */
+  hatch: Point;
   walkers: Map<string, Walker>;
   /** Sailors gone from the crew, still on their way out. */
   departures: Departure[];
@@ -126,8 +127,21 @@ export interface Crew {
   looks: readonly string[];
 }
 
-export function createCrew(looks: readonly string[] = ATLAS_LOOKS, mouth: readonly [number, number] = SHARK_MOUTH): Crew {
-  return { walkers: new Map(), departures: [], queue: [], serial: 0, mouth, started: false, looks: looks.length > 0 ? looks : ATLAS_LOOKS };
+export function createCrew(stage: DeckStage, looks: readonly string[] = ATLAS_LOOKS, mouth: readonly [number, number] = SHARK_MOUTH): Crew {
+  const { marks, queue } = choreography(stage, "plank");
+  const hatch = stage.exits.get("hatch");
+  return {
+    stage,
+    plank: { marks: { foot: marks.foot!, rail: marks.rail!, tip: marks.tip!, water: marks.water! }, foot: queue.at, spacing: queue.spacing },
+    hatch: hatch?.kind === "sink" ? hatch.at : stage.entry,
+    walkers: new Map(),
+    departures: [],
+    queue: [],
+    serial: 0,
+    mouth,
+    started: false,
+    looks: looks.length > 0 ? looks : ATLAS_LOOKS,
+  };
 }
 
 function seedOf(key: string): number {
@@ -142,15 +156,15 @@ function seedOf(key: string): number {
  * once they are all held it packs in beside them (`restSpot`), never in front of another's badge.
  */
 function reserve(crew: Crew, walker: Walker, byPreference: boolean): void {
-  const place = PLACES[walker.state];
-  const anchors = anchorsAt(place);
+  const zone = crew.stage.zoneOf(walker.state);
+  const anchors = zone.posts;
   const others = [...crew.walkers.values()].filter((other) => other !== walker && other.phase !== "leaving" && other.phase !== "sinking");
   const holders = (anchor: Anchor) => others.filter((other) => other.anchor === anchor.id).length;
   const free = anchors.filter((anchor) => holders(anchor) === 0);
   let chosen: Anchor;
   if (free.length > 0) {
     chosen =
-      byPreference || place === "rest"
+      byPreference || zone.assign === "ordered"
         ? free[0]!
         : free.reduce((best, anchor) =>
             Math.hypot(anchor.x - walker.x, anchor.y - walker.y) < Math.hypot(best.x - walker.x, best.y - walker.y) ? anchor : best,
@@ -161,11 +175,12 @@ function reserve(crew: Crew, walker: Walker, byPreference: boolean): void {
   walker.anchor = chosen.id;
   walker.endFacing = chosen.facing;
   const taken = others.map((other) => other.target);
-  walker.target = place === "rest" ? restSpot(chosen, taken) : sharedSpot(chosen, taken);
+  walker.target =
+    zone.overflow.kind === "pack" ? restSpot(crew.stage.floor, zone.overflow, chosen, taken) : sharedSpot(crew.stage.floor, chosen, taken, zone.overflow.spacing);
 }
 
-function walkTo(walker: Walker, target: Point): void {
-  walker.path = findPath(walker, target);
+function walkTo(crew: Crew, walker: Walker, target: Point): void {
+  walker.path = findPath(crew.stage.floor, walker, target);
 }
 
 /** Whether the plank is free: nobody on it or in the air off it. */
@@ -173,17 +188,17 @@ export function plankFree(crew: Crew): boolean {
   return !crew.departures.some((departure) => departure.kind === "plank" && departure.ms < IMPACT_AT);
 }
 
-const FOOT: Point = PLANK.foot;
-
-function atFoot(point: Point): boolean {
-  return Math.abs(point.x - FOOT.x) < 0.5 && Math.abs(point.y - FOOT.y) < 0.5;
+function atFoot(crew: Crew, point: Point): boolean {
+  const { foot } = crew.plank;
+  return Math.abs(point.x - foot.x) < 0.5 && Math.abs(point.y - foot.y) < 0.5;
 }
 
 /** Where a sailor waits for the plank: the foot for the first in line, else beside it, clear of the others waiting. */
 function queueSpot(crew: Crew, walker: Walker): Point {
-  if (crew.queue[0] === walker.key) return FOOT;
-  const taken = [FOOT, ...crew.queue.filter((key) => key !== walker.key).map((key) => crew.walkers.get(key)?.target ?? FOOT)];
-  return sharedSpot(FOOT, taken);
+  const { foot, spacing } = crew.plank;
+  if (crew.queue[0] === walker.key) return foot;
+  const taken = [foot, ...crew.queue.filter((key) => key !== walker.key).map((key) => crew.walkers.get(key)?.target ?? foot)];
+  return sharedSpot(crew.stage.floor, foot, taken, spacing);
 }
 
 /** Takes the first in line for the plank off the crew and over the side. */
@@ -233,7 +248,7 @@ function depart(crew: Crew, walker: Walker, departure: DeckDeparture, snap: bool
   if (walker.phase === "arriving") {
     // Not yet out of the hatch: straight back down.
     walker.exit = "hatch";
-    walker.target = HATCH;
+    walker.target = crew.hatch;
     walker.phase = "sinking";
     walker.phaseMs = HATCH_MS - walker.phaseMs;
     walker.path = [];
@@ -245,9 +260,9 @@ function depart(crew: Crew, walker: Walker, departure: DeckDeparture, snap: bool
     crew.queue.push(walker.key);
     walker.target = queueSpot(crew, walker);
   } else {
-    walker.target = HATCH;
+    walker.target = crew.hatch;
   }
-  walkTo(walker, walker.target);
+  walkTo(crew, walker, walker.target);
 }
 
 function place(walker: Walker): void {
@@ -281,10 +296,10 @@ export function applyCrew(
         look: lookFor(sailor.identity, crew.looks),
         stale: sailor.stale,
         asks: sailor.asks === true,
-        x: HATCH.x,
-        y: HATCH.y,
+        x: crew.stage.entry.x,
+        y: crew.stage.entry.y,
         anchor: null,
-        target: HATCH,
+        target: crew.stage.entry,
         path: [],
         facing: "front",
         endFacing: "front",
@@ -297,7 +312,7 @@ export function applyCrew(
       crew.walkers.set(sailor.key, walker);
       reserve(crew, walker, snap);
       if (snap) place(walker);
-      else walkTo(walker, walker.target);
+      else walkTo(crew, walker, walker.target);
       continue;
     }
     existing.label = sailor.label;
@@ -321,7 +336,7 @@ export function applyCrew(
     }
     reserve(crew, existing, false);
     if (snap) place(existing);
-    else walkTo(existing, existing.target);
+    else walkTo(crew, existing, existing.target);
   }
   for (const walker of [...crew.walkers.values()]) {
     if (seen.has(walker.key)) continue;
@@ -347,7 +362,7 @@ function facingFor(dx: number, dy: number, current: Facing): Facing {
 }
 
 function plankOptions(crew: Crew, departure: Departure) {
-  return { side: departure.side, drift: departure.drift, sailorHeight: FRONT_ROWS, mouth: crew.mouth };
+  return { side: departure.side, drift: departure.drift, sailorHeight: FRONT_ROWS, mouth: crew.mouth, marks: crew.plank.marks };
 }
 
 /** Moves the departures on by `dtMs`, and lets go of those that have finished. */
@@ -381,11 +396,11 @@ export function stepCrew(crew: Crew, dtMs: number): void {
     }
     if (walker.phase === "settled") continue;
     // The first in line for the plank makes for its foot once the one before is in the water.
-    if (walker.phase === "leaving" && walker.exit === "plank" && crew.queue[0] === walker.key && plankFree(crew) && !atFoot(walker.target)) {
-      walker.target = FOOT;
-      walkTo(walker, FOOT);
+    if (walker.phase === "leaving" && walker.exit === "plank" && crew.queue[0] === walker.key && plankFree(crew) && !atFoot(crew, walker.target)) {
+      walker.target = crew.plank.foot;
+      walkTo(crew, walker, crew.plank.foot);
     }
-    let budget = (WALK_SPEED * dtMs) / 1000;
+    let budget = (crew.stage.floor.walkSpeed * dtMs) / 1000;
     if (walker.path.length > 0) walker.walkedMs += dtMs;
     while (budget > 0 && walker.path.length > 0) {
       const next = walker.path[0]!;
@@ -409,7 +424,7 @@ export function stepCrew(crew: Crew, dtMs: number): void {
       if (walker.exit === "hatch") {
         walker.phase = "sinking";
         walker.phaseMs = 0;
-      } else if (crew.queue[0] === walker.key && plankFree(crew) && atFoot(walker)) {
+      } else if (crew.queue[0] === walker.key && plankFree(crew) && atFoot(crew, walker)) {
         board(crew, walker);
       }
       // Otherwise it waits its turn for the plank where it stands.

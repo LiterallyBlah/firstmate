@@ -1,0 +1,101 @@
+/**
+ * A setting's stage, compiled once from its pack (`shared/deck-setting.ts`) for the engine to run on: the stage's
+ * size and fit, the floor (`client/deck-geometry.ts`), the zones each activity state sends a worker to, the props, and
+ * the portals' marks. Pure, and per pack: nothing here is a module-level "the setting", so a deck can be any setting
+ * and two decks two settings.
+ */
+import type { ActivityState, SettingManifest } from "../shared/deck-setting";
+import { createFloor, type Anchor, type Floor, type Point } from "./deck-geometry";
+
+type Rect = readonly [number, number, number, number];
+
+/** A zone: its posts in order of preference, how one is chosen, and where a worker stands once they are all held. */
+export interface Zone {
+  id: string;
+  posts: readonly Anchor[];
+  /** `nearest`: the free post nearest the worker (the first, when it is placed at once); `ordered`: always the first free. */
+  assign: "nearest" | "ordered";
+  overflow:
+    | { kind: "beside"; spacing: readonly [number, number] }
+    | { kind: "pack"; areas: readonly Rect[]; spacing: readonly [number, number]; fallback: readonly [number, number] };
+  /** The row hover labels of workers here hang from, or null: over their heads. */
+  labelFloor: number | null;
+}
+
+/** A way off the stage: back down where it came up (`sink`), or a choreography from its queue's mark. */
+export type Exit =
+  | { kind: "sink"; at: Point }
+  | { kind: "choreography"; marks: Readonly<Record<string, Point>>; queue: { at: Point; spacing: readonly [number, number] } };
+
+export interface DeckStage {
+  /** The stage's logical pixels: the backdrop's size. */
+  width: number;
+  height: number;
+  /** The rows the exact fit takes in when a part reaches above the stage, and its margin. */
+  fit: { top: number; bottom: number; margin: number };
+  /** A worker's height with its badge, for the focus shot. */
+  actorHeight: number;
+  floor: Floor;
+  zones: ReadonlyMap<string, Zone>;
+  /** Where each activity state sends its worker. */
+  zoneOf(state: ActivityState): Zone;
+  /** Where a worker comes up onto the stage. */
+  entry: Point;
+  exits: ReadonlyMap<string, Exit>;
+  /** Props, where each stands: their feet. */
+  props: ReadonlyArray<{ id: string; x: number; y: number }>;
+}
+
+const point = ([x, y]: readonly [number, number]): Point => ({ x, y });
+
+export function compileStage(manifest: SettingManifest): DeckStage {
+  const { stage, floor, zones, portals } = manifest;
+  const compiledZones = new Map<string, Zone>(
+    zones.zones.map((zone) => [
+      zone.id,
+      {
+        id: zone.id,
+        posts: zone.posts.map((post) => ({ id: post.id, place: zone.id, x: post.at[0], y: post.at[1], facing: post.facing })),
+        assign: zone.assign,
+        overflow: zone.overflow,
+        labelFloor: zone.labelFloor ?? null,
+      },
+    ]),
+  );
+  const exits = new Map<string, Exit>(
+    Object.entries(portals.exits).map(([id, exit]): [string, Exit] => [
+      id,
+      exit.kind === "sink"
+        ? { kind: "sink", at: point(exit.at) }
+        : {
+            kind: "choreography",
+            marks: Object.fromEntries(Object.entries(exit.marks).map(([mark, at]) => [mark, point(at)])),
+            queue: { at: point(exit.marks[exit.queue.at]!), spacing: exit.queue.spacing },
+          },
+    ]),
+  );
+  return {
+    width: stage.size[0],
+    height: stage.size[1],
+    fit: stage.fit,
+    actorHeight: stage.actorHeight,
+    floor: createFloor({
+      areas: floor.areas,
+      obstacles: [...floor.obstacles, ...stage.props.map((prop) => ({ id: prop.id, rect: prop.obstacle }))],
+      grid: floor.grid,
+      walkSpeed: floor.walkSpeed,
+    }),
+    zones: compiledZones,
+    zoneOf: (state) => compiledZones.get(zones.byState[state])!,
+    entry: point(portals.entry.at),
+    exits,
+    props: stage.props.map((prop) => ({ id: prop.id, x: prop.at[0], y: prop.at[1] })),
+  };
+}
+
+/** A choreography exit, or an error: the engine's plank is still looked up by name until its timeline is data. */
+export function choreography(stage: DeckStage, id: string): Extract<Exit, { kind: "choreography" }> {
+  const exit = stage.exits.get(id);
+  if (exit?.kind !== "choreography") throw new Error(`the setting has no choreography called ${id}`);
+  return exit;
+}
