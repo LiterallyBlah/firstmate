@@ -1,39 +1,30 @@
 /**
- * The sky's clouds, as arithmetic: the served sprites hold exactly the three colours the masks cut them by, the
- * field is seeded and spread across lanes the deck can show, the drift wraps each cloud whole and out of view,
- * and the colours follow the sky's blend. How they sit in the scene is `client/deck-environment.test.ts`'s.
+ * The ship's clouds — drifters (`drifters@1`) — as arithmetic: the served sprites hold exactly the three colours the
+ * masks cut them by, the field is seeded and spread across lanes the deck can show, the drift wraps each cloud whole and
+ * out of view, and the colours follow the day's blend. How they sit in the scene is `client/deck-environment.test.ts`'s,
+ * and which are drawn `client/deck-ambience.test.ts`'s.
  */
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
-import { SKY_PHASES } from "./deck-legacy";
 import { cutCloudMasks } from "./deck-mount";
-import {
-  CLOUD_LANES,
-  CLOUD_MARGIN,
-  CLOUD_TOP_MIN,
-  cloudColours,
-  cloudField,
-  cloudPeriod,
-  cloudSlotMasks,
-  cloudX,
-  drawnClouds,
-  hexColour,
-} from "./deck-clouds";
+import { cloudColours, cloudField, cloudPeriod, cloudSlotMasks, cloudX, hexColour } from "./deck-clouds";
 import { HORIZON } from "./deck-ambient";
-import { skyBlend, skyHorizonRow, skyPlacement } from "./deck-sky";
-import { shipFile, shipStage, shipViews } from "../test/ship-pack";
+import { backdropPlacement, dayBlend } from "./deck-sky";
+import { shipElement, shipFile, shipManifest, shipStage } from "../test/ship-pack";
 
 const art = (path: string) => shipFile(path);
 /** The art's generation records, kept out of the package (`docs/ship-deck-art/`). */
 const sources = (path: string) => new URL(`../docs/ship-deck-art/${path}`, import.meta.url);
-const extras = shipViews().extras;
-const clouds = extras.clouds!;
-const environment = shipViews().environment;
-const [skyWidth] = environment.sky.size;
-const horizonRow = skyHorizonRow(environment.sky.size);
+const clouds = shipElement("clouds", "drifters");
+const sky = shipElement("sky", "backdrop-cycle");
+const cycle = shipManifest().dayCycle!;
+const pathOf = (image: string) => shipManifest().images[image]!.path;
+const [skyWidth] = sky.size;
+const { horizonRow } = sky.placement;
+const { margin } = clouds;
 const artManifest = JSON.parse(readFileSync(sources("clouds/manifest.json"), "utf8")) as {
   palette: { colours: string[] };
   tint: { stagePalettes: Record<string, string[]> };
@@ -80,21 +71,21 @@ function pixelsOf(path: string): { width: number; height: number; data: Uint8Arr
 describe("the clouds the deck is sent", () => {
   it("are the art's five sprites at their sizes, with its palette and its six stage palettes", () => {
     expect(clouds.sprites.map((sprite) => [sprite.id, `clouds/${artManifest.assets.find((asset) => asset.id === sprite.id)!.path}`])).toEqual(
-      clouds.sprites.map((sprite) => [sprite.id, sprite.texture]),
+      clouds.sprites.map((sprite) => [sprite.id, pathOf(sprite.image)]),
     );
     for (const sprite of clouds.sprites) {
-      const { width, height } = pixelsOf(sprite.texture);
+      const { width, height } = pixelsOf(pathOf(sprite.image));
       expect([width, height], sprite.id).toEqual(sprite.size);
       expect(sprite.size).toEqual(artManifest.assets.find((asset) => asset.id === sprite.id)!.size);
     }
     expect(clouds.palette).toEqual(artManifest.palette.colours);
-    for (const phase of SKY_PHASES) expect(clouds.stages[phase], phase).toEqual(artManifest.tint.stagePalettes[phase]);
+    for (const phase of cycle.phases) expect(clouds.byPhase[phase.id], phase.id).toEqual(artManifest.tint.stagePalettes[phase.id]);
   });
 
   it("hold only the palette's three colours, opaque, so the masks cover every pixel exactly once", () => {
     const palette = clouds.palette.map(hexColour);
     for (const sprite of clouds.sprites) {
-      const { data } = pixelsOf(sprite.texture);
+      const { data } = pixelsOf(pathOf(sprite.image));
       const masks = cloudSlotMasks(data, clouds.palette);
       let opaque = 0;
       for (let at = 0; at < data.length; at += 4) {
@@ -173,33 +164,39 @@ describe("cutting a cloud in the browser", () => {
 });
 
 describe("the field of clouds", () => {
-  const field = (seed: number) => cloudField(seed, clouds.sprites, skyWidth, horizonRow);
+  const field = (seed: number) => cloudField(seed, clouds.sprites, skyWidth, horizonRow, clouds);
 
   it("is the same sky for the same seed, and another for another", () => {
     expect(field(1_760_000_000)).toEqual(field(1_760_000_000));
     expect(field(1_760_000_001)).not.toEqual(field(1_760_000_000));
     expect(field(Number.NaN)).toEqual(field(0));
-    expect(cloudField(5, [], skyWidth, horizonRow)).toEqual([]);
+    expect(cloudField(5, [], skyWidth, horizonRow, clouds)).toEqual([]);
+  });
+
+  it("has a cloud a lane of the pack's, whatever the lanes", () => {
+    expect(cloudField(5, clouds.sprites, skyWidth, horizonRow, { ...clouds, lanes: [[30, 42]] })).toHaveLength(1);
+    const [high] = cloudField(5, clouds.sprites, skyWidth, horizonRow, { ...clouds, lanes: [[400, 400]], topMin: 9 });
+    expect(high!.row).toBe(9);
   });
 
   it("puts one cloud a lane, lowest first, inside the sky and above the horizon, never the lane below's twin", () => {
     for (let seed = 0; seed < 200; seed += 1) {
       const sky = field(seed * 7919);
-      expect(sky).toHaveLength(CLOUD_LANES.length);
+      expect(sky).toHaveLength(clouds.lanes.length);
       let below = -1;
       sky.forEach(function (cloud, lane) {
         const [width, height] = clouds.sprites[cloud.sprite]!.size;
-        const [low, high] = CLOUD_LANES[lane]!;
+        const [low, high] = clouds.lanes[lane]!;
         const lift = horizonRow - (cloud.row + height);
-        expect(cloud.row).toBeGreaterThanOrEqual(CLOUD_TOP_MIN);
-        if (cloud.row > CLOUD_TOP_MIN) {
+        expect(cloud.row).toBeGreaterThanOrEqual(clouds.topMin);
+        if (cloud.row > clouds.topMin) {
           expect(lift).toBeGreaterThanOrEqual(low - 1);
           expect(lift).toBeLessThanOrEqual(high + 1);
         }
         expect(cloud.sprite).not.toBe(below);
         below = cloud.sprite;
         expect(cloud.offset).toBeGreaterThanOrEqual(0);
-        expect(cloud.offset).toBeLessThan(cloudPeriod(skyWidth, width));
+        expect(cloud.offset).toBeLessThan(cloudPeriod(skyWidth, width, margin));
         // Slow: a fraction of a pixel a second, where the gull flies 26.
         expect(cloud.pixelsPerSecond).toBeGreaterThan(0.15);
         expect(cloud.pixelsPerSecond).toBeLessThan(0.8);
@@ -217,7 +214,7 @@ describe("the field of clouds", () => {
       if (clouds.sprites[sky[0]!.sprite]!.size[0] <= 44) lowSmall += 1;
       if (clouds.sprites[sky.at(-1)!.sprite]!.size[0] >= 80) highBig += 1;
       // Never all bunched: the starts fill most of the lap's sevenths.
-      const sevenths = new Set(sky.map((cloud) => Math.floor((cloud.offset / cloudPeriod(skyWidth, clouds.sprites[cloud.sprite]!.size[0])) * 7)));
+      const sevenths = new Set(sky.map((cloud) => Math.floor((cloud.offset / cloudPeriod(skyWidth, clouds.sprites[cloud.sprite]!.size[0], margin)) * 7)));
       expect(sevenths.size).toBeGreaterThanOrEqual(5);
     }
     expect(used.size).toBe(clouds.sprites.length);
@@ -227,8 +224,8 @@ describe("the field of clouds", () => {
 
   it("keeps the lowest lanes in a pane that fits the deck's height, and every lane in a tall one", () => {
     // A pane exactly the deck's shape shows rows 0 down: the sky at its own scale, and its top 117 rows above the frame.
-    const fits = skyPlacement({ left: 0, right: shipStage().width, top: 0 }, environment.sky.size, horizonRow, shipStage().width);
-    const tall = skyPlacement({ left: -40, right: shipStage().width + 40, top: -260 }, environment.sky.size, horizonRow, shipStage().width);
+    const fits = backdropPlacement({ left: 0, right: shipStage().width, top: 0 }, sky.size, sky.placement, shipStage().width);
+    const tall = backdropPlacement({ left: -40, right: shipStage().width + 40, top: -260 }, sky.size, sky.placement, shipStage().width);
     for (let seed = 0; seed < 50; seed += 1) {
       const sky = field(seed);
       // The lowest two wholly in view, the third at least in part.
@@ -246,17 +243,17 @@ describe("the field of clouds", () => {
 });
 
 describe("a cloud's drift", () => {
-  const [cloud] = cloudField(42, clouds.sprites, skyWidth, horizonRow);
+  const [cloud] = cloudField(42, clouds.sprites, skyWidth, horizonRow, clouds);
   const width = clouds.sprites[cloud!.sprite]!.size[0];
-  const period = cloudPeriod(skyWidth, width);
+  const period = cloudPeriod(skyWidth, width, margin);
 
   it("moves right a whole pixel at a time, and holds still when the deck does", () => {
-    const start = cloudX(cloud!, width, skyWidth, 0, true);
-    expect(start).toBe(-width - CLOUD_MARGIN + cloud!.offset);
-    expect(cloudX(cloud!, width, skyWidth, 600, false)).toBe(start);
+    const start = cloudX(cloud!, width, skyWidth, margin, 0, true);
+    expect(start).toBe(-width - margin + cloud!.offset);
+    expect(cloudX(cloud!, width, skyWidth, margin, 600, false)).toBe(start);
     let previous = start;
     for (let seconds = 0.5; seconds < 60; seconds += 0.5) {
-      const x = cloudX(cloud!, width, skyWidth, seconds, true);
+      const x = cloudX(cloud!, width, skyWidth, margin, seconds, true);
       expect(Number.isInteger(x)).toBe(true);
       const step = (((x - previous) % period) + period) % period;
       expect(step).toBeLessThanOrEqual(1);
@@ -267,13 +264,13 @@ describe("a cloud's drift", () => {
   it("wraps only once it is wholly out of the sky, and comes back in from wholly out on the other side", () => {
     const seen = new Set<number>();
     let wraps = 0;
-    let previous = cloudX(cloud!, width, skyWidth, 0, true);
+    let previous = cloudX(cloud!, width, skyWidth, margin, 0, true);
     const lap = period / cloud!.pixelsPerSecond;
     for (let seconds = 0; seconds < lap * 2.2; seconds += 0.25) {
-      const x = cloudX(cloud!, width, skyWidth, seconds, true);
+      const x = cloudX(cloud!, width, skyWidth, margin, seconds, true);
       seen.add(x);
-      expect(x).toBeGreaterThanOrEqual(-width - CLOUD_MARGIN);
-      expect(x).toBeLessThan(skyWidth + CLOUD_MARGIN);
+      expect(x).toBeGreaterThanOrEqual(-width - margin);
+      expect(x).toBeLessThan(skyWidth + margin);
       if (x < previous) {
         wraps += 1;
         // Out past the right edge, in from past the left: nowhere in view either side of the jump.
@@ -289,9 +286,9 @@ describe("a cloud's drift", () => {
 });
 
 describe("the clouds' colours", () => {
-  const phases = environment.sky.phases;
-  const at = (hours: number, minutes = 0) => cloudColours(clouds, phases, skyBlend(hours * 60 + minutes, phases));
-  const palette = (phase: (typeof SKY_PHASES)[number]) => clouds.stages[phase].map(hexColour);
+  const { phases } = cycle;
+  const at = (hours: number, minutes = 0) => cloudColours(clouds, phases, dayBlend(hours * 60 + minutes, cycle));
+  const palette = (phase: string) => clouds.byPhase[phase]!.map(hexColour);
 
   it("are each phase's own palette where it shows alone", () => {
     expect(at(12)).toEqual(palette("midday"));
@@ -301,11 +298,13 @@ describe("the clouds' colours", () => {
     expect(at(18, 30)).toEqual(palette("dusk"));
     expect(at(2)).toEqual(palette("night"));
     // A clock that will not say shows midday's sky, and its clouds.
-    expect(cloudColours(clouds, phases, skyBlend(null, phases))).toEqual(palette("midday"));
+    expect(cloudColours(clouds, phases, dayBlend(null, cycle))).toEqual(palette("midday"));
+    // A phase the pack gives no palette keeps the neutral one.
+    expect(cloudColours({ ...clouds, byPhase: {} }, phases, dayBlend(2 * 60, cycle))).toEqual(clouds.palette.map(hexColour));
   });
 
   it("fade from one to the next with the sky, slot by slot", () => {
-    const blend = skyBlend(20 * 60 + 15, phases);
+    const blend = dayBlend(20 * 60 + 15, cycle);
     expect(blend.t).toBeGreaterThan(0.3);
     expect(blend.t).toBeLessThan(0.7);
     const between = at(20, 15);
@@ -333,19 +332,3 @@ describe("the clouds' colours", () => {
   });
 });
 
-describe("which clouds are drawn", () => {
-  const images = new Map(clouds.sprites.map((sprite) => [sprite.texture, { image: sprite.texture }]));
-  const masks = (sprite: { texture: string }) => [sprite.texture, ["s", "b", "h"]] as const;
-
-  it("are those cut into masks, and none without the manifest's clouds or any mask", () => {
-    expect(drawnClouds(null)).toBeNull();
-    const { clouds: _clouds, ...bare } = extras;
-    expect(drawnClouds({ manifest: bare, images })).toBeNull();
-    expect(drawnClouds({ manifest: extras, images })).toBeNull();
-    expect(drawnClouds({ manifest: extras, images, cloudMasks: new Map() })).toBeNull();
-    const some = drawnClouds({ manifest: extras, images, cloudMasks: new Map(clouds.sprites.filter((sprite) => sprite.id !== "puff").map(masks)) });
-    expect(some?.manifest.sprites.map((sprite) => sprite.id)).toEqual(["wisp", "cumulus", "long-bank", "twin-bank"]);
-    expect(some?.masks.size).toBe(4);
-    expect(some?.manifest.stages).toBe(clouds.stages);
-  });
-});

@@ -1,17 +1,31 @@
 /**
- * The generated environment drawn with Pixi (`docs/ship-deck-art/ENVIRONMENT.md`): the sky behind the ship,
- * following the local time of day, its stars at night, a gull now and then, and the scrolling sea with
- * foam at the hull's waterline. `client/deck-pixi.ts` puts `back` behind the ship and `front` in front of
- * it; the arithmetic is `client/deck-sky.ts`, and when a gull flies is `client/deck-ambient.ts`.
+ * The setting's scenery drawn with Pixi: its ambience behind the stage — for the ship, the sky of the local time of
+ * day, its overcast and stars, the lightning, the drifting clouds and a gull now and then — and the scrolling sea with
+ * foam at the hull's waterline. `client/deck-pixi.ts` puts `back` behind the stage and `front` in front of it; which
+ * elements there are is the pack's (`client/deck-ambience.ts`), and the arithmetic is `client/deck-sky.ts`,
+ * `client/deck-clouds.ts`, `client/deck-flash.ts` and `client/deck-ambient.ts`.
  *
- * - **Sky** — two of the six registered backdrops, the earlier whole and the later over it at the
- *   blend's opacity, never two over transparency (the manifest's rule), so clouds never jump in a fade.
- *   Placed once per layout at the hull's pixel scale, centred on the ship, never tiled.
- * - **Stars** — the overlay, faded with the night's share, above the sky and behind everything else.
- * - **Clouds** — the extras' sprites, over the stars and behind the gull, in the sky's own placement and
- *   pixels, drifting right and tinted with the sky's blend (`client/deck-clouds.ts`). Only with a sky.
- * - **Gull** — the three-pose sprite, registered at the beak, mirrored to fly left. Behind the ship, in
- *   daylight only: no gull sets off while the stars are more than half out.
+ * The ambience, each element of it in its slot in the pack's order, by its behaviour:
+ *
+ * - **A backdrop cycle** (`backdrop-cycle@1`, the sky) — two of its day phases' backdrops, the earlier whole and the
+ *   later over it at the day's blend, never two over transparency, so nothing drifting over it jumps in a fade. Placed
+ *   once per layout at the stage's pixel scale, centred on the stage, never tiled; tinted towards its `tint` by its
+ *   level (the ship's mood: a shade greyer as the crew gets busy).
+ * - **An overlay** (`overlay@1`) — a sprite in a backdrop's placement: the stars, faded with the night's share and
+ *   hidden as far as the overcast shows; the overcast, along its curve over the weather's intensity, by day only and in
+ *   the backdrop's tint.
+ * - **A flash** (`flash@1`, the lightning) — now and then, under a drifter in view (`client/deck-flash.ts`).
+ * - **Drifters** (`drifters@1`, the clouds) — in a backdrop's own placement and pixels, drifting right on their clock
+ *   and coloured by the day and the backdrop's tint (`client/deck-clouds.ts`), each under its variants as the weather
+ *   has them.
+ * - **A flyby** (`flyby@1`, the gull) — its poses, registered at its anchor, mirrored to fly left; never while the
+ *   night's share is past its `nightBelow`.
+ *
+ * Each runs, holds still or is not drawn as its element says for a software renderer and reduced motion
+ * (`elementMotion`).
+ *
+ * The sea, until step 5b of the migration reads it from the pack, is the legacy views' (`client/deck-legacy.ts`):
+ *
  * - **Sea** — the 256 × 128 tile, repeated both ways from the horizon down, scrolled sideways a whole
  *   pixel at a time. The same tiles again in front of the hull from its waterline down, cut to line up,
  *   so the waterline is the hull's edge and not a seam across the water. With the extras' animated water
@@ -24,50 +38,61 @@
  *   arms drawn in code (`client/deck-wake.ts`), scrolling aft with the water, redrawn only when the scroll
  *   moves a whole pixel. Either is still under reduced motion and on a software renderer.
  *
- * **The weather** (`client/deck-atmosphere.ts`) is handed to `draw` each frame: the water's and the clouds' own
+ * **The weather** (`client/deck-atmosphere.ts`) is handed to `draw` each frame: the water's and the drifters' own
  * clocks, so a busier crew plays the sea's frames and drifts the sea, foam and clouds faster without a jump; how
- * much wake there is (the generated wake's opacity, the code wake's length); and the sky's mood, a tint a shade
- * greyer over the sky and the clouds. Without it, the art's own timing at the scene's clock.
+ * much wake there is (the generated wake's opacity, the code wake's length); and the channels the backdrop's tint
+ * reads. Without it, the art's own timing at the scene's clock.
  *
- * **The weather layers** (`client/deck-variants.ts`, `client/deck-flash.ts`) follow the weather's intensity, each
- * along its own curve from the setting pack, and none is drawn while it is at nothing or on a still deck:
+ * **The weather layers** over the water (`client/deck-variants.ts`) follow the weather's intensity, each along its own
+ * curve from the setting pack, and none is drawn while it is at nothing or on a still deck:
  *
  * - a **variant** over the sea (`sea:far:<id>`, `sea:near:<id>` over each band), the foam (`foam:<id>`), the wake
- *   (`wake:<id>`), a cycle or a cloud (its own three masks in the cloud's container), on that element's own frame,
- *   drift and place; the element is not drawn under a whole `over` variant, and fades under a `crossfade` one;
+ *   (`wake:<id>`) or a cycle, on that element's own frame, drift and place; the element is not drawn under a whole
+ *   `over` variant, and fades under a `crossfade` one;
  * - a **cycle** (`cycle:<id>`), looping on the water's clock over the foam, in front of the hull's waterline and
- *   below the crew, who never stand that low;
- * - a **mood overlay** (`sky:<id>`) over the time of day's sky and under the stars, tinted with the mood, faded out by
- *   the night's share so a night is never brightened; the stars go in as far as it would show by day;
- * - a **flash** (`flash:<id>`) over the stars and behind the clouds, only while the sea moves.
+ *   below the crew, who never stand that low.
  *
- * Without the environment (it failed to load, or names an image it did not send) the deck still draws:
- * a flat sea of the hull's navy over the theme's background, no sky, no gull — and the wake, on it.
+ * Without the still sea (it failed to load) the deck still draws: a flat sea of the pack's `fallbackFill` over the
+ * theme's background — and the wake, on it. An ambience element that failed is left out by itself.
  *
  * Every texture is cut from its own image once, except the foam's crops, which are made as the scroll
- * first reaches them and kept: at most a few hundred small objects on twenty images' sources.
+ * first reaches them and kept: at most a few hundred small objects on a few dozen images' sources.
  */
-import { environmentImagePaths, GULL_POSES, type DeckEnvironmentManifest, type GullPose } from "./deck-legacy";
-import { gullsAt, HORIZON, SEA_FALLBACK, WATERLINE, type MotionPlan } from "./deck-ambient";
-import { deliveredWeather, moodTint, shade, type Weather } from "./deck-atmosphere";
-import { cloudColours, cloudField, cloudX, variantPalette, type CloudImages } from "./deck-clouds";
-import { flashAt, flashSalt, underCloud, type Flash } from "./deck-flash";
+import { environmentImagePaths, type DeckEnvironmentManifest } from "./deck-legacy";
+import { elementMotion, elementsOf, type AmbientElement, type DayCycle, type DeckAmbience } from "./deck-ambience";
+import { flybyPose, flybysAt, HORIZON, SEA_FALLBACK, WATERLINE, type MotionPlan } from "./deck-ambient";
+import { clockOf, deliveredWeather, levelAt, shade, tintToward, type Weather } from "./deck-atmosphere";
+import { cloudColours, cloudField, cloudX, hexColour, variantPalette, type DrifterMasks } from "./deck-clouds";
+import { flashAt, flashSalt, underCloud } from "./deck-flash";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
-import { gullPose, scrollOffset, skyBlend, skyHorizonRow, skyPlacement, type SkyBlend } from "./deck-sky";
+import { backdropPlacement, dayBlend, dominantPhase, NO_DAY, scrollOffset, type DayBlend, type Placement } from "./deck-sky";
 import { cycleFrame, curvePeak, opacityAt, variantBlend, variantsOf, type DrawnVariants, type Variant } from "./deck-variants";
 import { WAKE_COLOURS, WAKE_SPEED, wakeRuns } from "./deck-wake";
 import { CALM_WATER, wakeTopLeft, waterDrift, waterFrame, type DrawnWater, type WaterManifest } from "./deck-water";
 
-/** The environment as the mount hands it over: what the manifest says, and each image it names, decoded. */
+/** The still sea and foam as the mount hands them over: what the legacy view says, and each image it names, decoded. */
 export interface DeckEnvironmentImages {
   manifest: DeckEnvironmentManifest;
   images: ReadonlyMap<string, unknown>;
 }
 
-/** The weather layers to draw, as the deck finds them in the extras: variants, cycles and mood overlays, and flashes. */
+/** The weather layers over the water to draw, as the deck finds them in the extras: variants and cycles. */
 export interface WeatherLayers {
   variants: DrawnVariants | null;
-  flashes: readonly Flash[];
+}
+
+/** What the scenery is drawn from. */
+export interface SceneryArt {
+  /** The setting's ambience (`client/deck-ambience.ts`), drawn from `images`, the pack's by id, and `masks`, by image id. */
+  ambience: DeckAmbience;
+  images: ReadonlyMap<string, unknown>;
+  masks: ReadonlyMap<string, DrifterMasks>;
+  /** The still sea and foam, or null for the plain sea. */
+  environment: DeckEnvironmentImages | null;
+  /** The extras' animated sea, foam and wake, each drawn in place of the still one where it loaded. */
+  water: DrawnWater | null;
+  /** The extras' weather layers over the water, drawn as the weather's intensity says (`client/deck-variants.ts`). */
+  layers: WeatherLayers | null;
 }
 
 /** The part of the world the screen shows, in deck coordinates. */
@@ -84,30 +109,28 @@ export const FOAM_SPAN = { left: 68, right: 392 } as const;
 export const FOAM_HEIGHT = 16;
 /** The foam strip's top row: its densest rows, 6 to 10, lie on the waterline and just below it. */
 export const FOAM_TOP = WATERLINE - 6;
-/** How many gulls can be in the sky at once (`gullsAt` looks at two slots). */
-const GULL_SPRITES = 2;
 
 export interface Scenery {
-  /** Behind the ship: the sky, the stars, the clouds, the gull and the far sea. */
+  /** Behind the stage: the ambience in the back slot, and the far sea. */
   readonly back: PixiContainer;
-  /** In front of the hull from its waterline down: the near sea, the wake and the foam. */
+  /** In front of the hull from its waterline down: the near sea, the wake and the foam, and the ambience in the front slot. */
   readonly front: PixiContainer;
-  /** Whether the generated environment is drawn, or the flat fallback sea. */
+  /** Whether the generated sea is drawn, or the flat fallback. */
   readonly generated: boolean;
   /** Covers `visible`; cheap when it has not grown. */
   layout(visible: VisibleWorld): void;
   /**
    * Draws it at `seconds` on the scene clock and `minute` of the local day, in `weather` (the art's own timing at
-   * `seconds` when not given); the sky drawn, or null without one.
+   * `seconds` when not given); the day phase whose backdrop shows most, or null without a backdrop.
    */
-  draw(seconds: number, plan: MotionPlan, minute: number | null, weather?: Weather): SkyBlend | null;
+  draw(seconds: number, plan: MotionPlan, minute: number | null, weather?: Weather): string | null;
   /** The flashes showing in what was last drawn, by id. */
   flashing(): string[];
   /** Lets go of its textures; `back` and `front` go with the stage they are on. */
   destroy(): void;
 }
 
-/** Whether every image the manifest names arrived, so the environment can be drawn whole. */
+/** Whether every image the still sea and foam name arrived, so the generated sea can be drawn. */
 export function environmentComplete(environment: DeckEnvironmentImages | null): environment is DeckEnvironmentImages {
   return environment !== null && environmentImagePaths(environment.manifest).every((path) => environment.images.has(path));
 }
@@ -127,7 +150,383 @@ export function foamSegments(span: { left: number; right: number }, period: numb
   return segments;
 }
 
-type Cut = (path: string, x: number, y: number, width: number, height: number) => PixiTexture;
+type Cut = (image: string, x: number, y: number, width: number, height: number) => PixiTexture;
+
+/** Cuts textures from decoded images, a source per image made once; `destroy` lets go of them all. */
+function textureCutter(pixi: PixiModule, images: (image: string) => unknown) {
+  const sources = new Map<string, PixiTextureSource>();
+  const made: PixiTexture[] = [];
+  return {
+    sources,
+    made,
+    cut(image: string, x: number, y: number, width: number, height: number): PixiTexture {
+      let source = sources.get(image);
+      if (source === undefined) {
+        source = new pixi.ImageSource({ resource: images(image) });
+        source.scaleMode = "nearest";
+        sources.set(image, source);
+      }
+      const texture = new pixi.Texture({ source, frame: new pixi.Rectangle(x, y, width, height) });
+      made.push(texture);
+      return texture;
+    },
+    destroy() {
+      for (const texture of made) texture.destroy();
+      for (const source of sources.values()) source.destroy();
+    },
+  };
+}
+
+type Cutter = ReturnType<typeof textureCutter>;
+
+/** The stage's size in its own pixels (`client/deck-stage.ts`): what the scenery is centred on and runs across. */
+export interface StageSize {
+  width: number;
+  height: number;
+}
+
+/**
+ * The scenery behind and in front of the stage, on a stage of `stage`'s size, from `art`. Drifters are laid out from
+ * `seed`, so each opening has its own sky.
+ */
+export function createScenery(pixi: PixiModule, stage: StageSize, art: SceneryArt, seed = 0): Scenery {
+  const back = new pixi.Container();
+  back.label = "scenery:back";
+  const front = new pixi.Container();
+  front.label = "scenery:front";
+  const { environment, water, layers } = art;
+  // The pack's images by id, the still sea's and the extras' by path: the two never share a name.
+  const cutter = textureCutter(
+    pixi,
+    (image) => art.images.get(image) ?? environment?.images.get(image) ?? water?.images.get(image) ?? layers?.variants?.images.get(image),
+  );
+  const ambience = ambienceLayers(pixi, stage, art.ambience, art.masks, cutter, seed);
+  const sea = environmentComplete(environment) ? generatedSea(pixi, stage, environment, water, layers, cutter.cut) : flatSea(pixi, stage, water, layers, cutter.cut);
+  // Until the sea is the pack's (step 5b), the ambience's back slot is behind all of it and its front slot in front.
+  back.addChild(...ambience.back, ...sea.back);
+  front.addChild(...sea.front, ...ambience.front);
+  return {
+    back,
+    front,
+    generated: sea.generated,
+    layout(visible) {
+      ambience.layout(visible);
+      sea.layout(visible);
+    },
+    draw(seconds, plan, minute, weather = deliveredWeather(seconds)) {
+      const phase = ambience.draw(seconds, plan, minute, weather);
+      sea.draw(plan, weather);
+      return phase;
+    },
+    flashing: ambience.flashing,
+    destroy: cutter.destroy,
+  };
+}
+
+/** A sprite of the pack: a rectangle of its image, or the whole image at the size the pack declares. */
+function spriteTexture(cut: Cut, sprite: { image: string; rect?: readonly [number, number, number, number] | undefined }, sizes: DeckAmbience["sizes"]): PixiTexture {
+  const [width, height] = sizes.get(sprite.image) ?? [1, 1];
+  const [x, y, w, h] = sprite.rect ?? [0, 0, width, height];
+  return cut(sprite.image, x, y, w, h);
+}
+
+/** A backdrop cycle on the deck: each day phase's texture, its two sprites, where it is placed, the part of it in view, and its tint. */
+interface BackdropLayer {
+  readonly element: AmbientElement<"backdrop-cycle">;
+  readonly textures: readonly PixiTexture[];
+  readonly views: readonly [PixiSprite, PixiSprite];
+  place: Placement;
+  /** The part of it that shows, in its own columns. */
+  view: { left: number; right: number };
+  tint: number;
+}
+
+/** A drifting field on the deck: its container, and where each of its sprites is, in its backdrop's pixels. */
+interface DrifterLayer {
+  readonly element: AmbientElement<"drifters">;
+  readonly space: BackdropLayer;
+  readonly container: PixiContainer;
+  places(): Array<{ x: number; row: number; width: number; height: number }>;
+  layout(): void;
+  draw(seconds: number, plan: MotionPlan, weather: Weather, blend: DayBlend): void;
+}
+
+/** The phases of the day in order, or none. */
+const phasesOf = (cycle: DayCycle | null) => cycle?.phases ?? [];
+
+/**
+ * The ambience's layers: each element the pack's compiled ambience draws, built after what it is drawn in or under,
+ * and put in its slot in the pack's order.
+ */
+function ambienceLayers(pixi: PixiModule, stage: StageSize, ambience: DeckAmbience, masks: ReadonlyMap<string, DrifterMasks>, cutter: Cutter, seed: number) {
+  const { cut } = cutter;
+  const { dayCycle } = ambience;
+  const phases = phasesOf(dayCycle);
+  const views = new Map<string, PixiContainer[]>();
+
+  // Backdrops: the two phases of the blend, the later over the earlier.
+  const backdrops = new Map<string, BackdropLayer>();
+  for (const element of elementsOf(ambience, "backdrop-cycle")) {
+    const { behaviour } = element;
+    const textures = phases.map((phase) => spriteTexture(cut, { image: behaviour.phases[phase.id]! }, ambience.sizes));
+    const under = new pixi.Sprite(textures[0]!);
+    under.label = `${element.id}:under`;
+    const over = new pixi.Sprite(textures[0]!);
+    over.label = `${element.id}:over`;
+    const layer: BackdropLayer = { element, textures, views: [under, over], place: { x: 0, y: 0, scale: 1 }, view: { left: 0, right: behaviour.size[0] }, tint: 0xffffff };
+    backdrops.set(element.id, layer);
+    views.set(element.id, [under, over]);
+  }
+
+  // Overlays, in their backdrop's placement.
+  const overlays = elementsOf(ambience, "overlay").map(function (element) {
+    const { behaviour } = element;
+    const space = backdrops.get(behaviour.space)!;
+    const sprite = new pixi.Sprite(spriteTexture(cut, { image: behaviour.image }, ambience.sizes));
+    sprite.label = `${space.element.id}:${element.id}`;
+    if (behaviour.alpha !== "night") sprite.visible = false;
+    views.set(element.id, [sprite]);
+    return { element, space, sprite, peak: behaviour.alpha === "night" ? 0 : curvePeak(behaviour.alpha.curve) };
+  });
+
+  // Drifters, each sprite its three slot masks, one over the other in a container placed in its backdrop's pixels.
+  const drifters = new Map<string, DrifterLayer>();
+  for (const element of elementsOf(ambience, "drifters")) {
+    const layer = drifterLayer(pixi, element, backdrops.get(element.behaviour.space)!, phases, masks, cutter, seed);
+    drifters.set(element.id, layer);
+    views.set(element.id, [layer.container]);
+  }
+
+  // Flashes, under their drifters.
+  const flashes = elementsOf(ambience, "flash").map(function (element) {
+    const { behaviour } = element;
+    const frames = behaviour.frames.map((frame) => spriteTexture(cut, frame.sprite, ambience.sizes));
+    const sprite = new pixi.Sprite(frames[0]!);
+    sprite.label = `flash:${element.id}`;
+    sprite.visible = false;
+    views.set(element.id, [sprite]);
+    return { element, under: drifters.get(behaviour.under)!, frames, sprite, salt: flashSalt(element.id) };
+  });
+
+  // Flybys: as many sprites as can be in the air at once, each registered at its anchor.
+  const flybys = elementsOf(ambience, "flyby").map(function (element) {
+    const { behaviour } = element;
+    const poses = new Map(Object.entries(behaviour.poses).map(([id, sprite]) => [id, spriteTexture(cut, sprite, ambience.sizes)]));
+    const sprites = Array.from({ length: behaviour.most }, function () {
+      const sprite = new pixi.Sprite(poses.get(behaviour.glide) ?? poses.values().next().value!);
+      sprite.label = element.id;
+      sprite.anchor.set(behaviour.anchor[0] / behaviour.size[0], behaviour.anchor[1] / behaviour.size[1]);
+      sprite.visible = false;
+      return sprite;
+    });
+    views.set(element.id, sprites);
+    return { element, poses, sprites };
+  });
+
+  const inSlot = (slot: AmbientElement["slot"]) => ambience.elements.filter((element) => element.slot === slot).flatMap((element) => views.get(element.id) ?? []);
+
+  return {
+    back: inSlot("back"),
+    front: inSlot("front"),
+    layout(visible: VisibleWorld) {
+      for (const layer of backdrops.values()) {
+        const { behaviour } = layer.element;
+        layer.place = backdropPlacement(visible, behaviour.size, behaviour.placement, stage.width);
+        for (const sprite of layer.views) {
+          sprite.position.set(layer.place.x, layer.place.y);
+          sprite.scale.set(layer.place.scale);
+        }
+        layer.view = { left: (visible.left - layer.place.x) / layer.place.scale, right: (visible.right - layer.place.x) / layer.place.scale };
+      }
+      for (const { space, sprite } of overlays) {
+        sprite.position.set(space.place.x, space.place.y);
+        sprite.scale.set(space.place.scale);
+      }
+      // Again here, not only in `draw`: a still deck's camera can lay the backdrop out anew without a draw after.
+      for (const layer of drifters.values()) layer.layout();
+    },
+    draw(seconds: number, plan: MotionPlan, minute: number | null, weather: Weather): string | null {
+      const { intensity } = weather;
+      const blend = dayCycle === null ? NO_DAY : dayBlend(minute, dayCycle);
+      let shown: string | null = null;
+      for (const layer of backdrops.values()) {
+        const { behaviour } = layer.element;
+        const { textures } = layer;
+        const [under, over] = layer.views;
+        // Its tint: the ship's sky a shade greyer as the crew gets busy.
+        const tint = behaviour.tint === undefined ? 0xffffff : tintToward(hexColour(behaviour.tint.to), levelAt(behaviour.tint.amount, weather));
+        if (tint !== layer.tint) {
+          layer.tint = tint;
+          under.tint = tint;
+          over.tint = tint;
+        }
+        const drawn = elementMotion(layer.element, plan) !== "hide";
+        under.texture = textures[blend.from]!;
+        under.visible = drawn;
+        over.texture = textures[blend.to]!;
+        over.alpha = blend.t;
+        over.visible = drawn && blend.to !== blend.from && blend.t > 0;
+        if (drawn) shown ??= phases[dominantPhase(blend)]?.id ?? null;
+      }
+      // The overlays: each at its alpha, then each hidden as far as those that hide it show by day.
+      const alphas = new Map(
+        overlays.map(({ element }) => [element.id, element.behaviour.alpha === "night" ? blend.night : opacityAt(element.behaviour.alpha.curve, intensity)]),
+      );
+      for (const { element, space, sprite } of overlays) {
+        const { behaviour } = element;
+        let alpha = alphas.get(element.id)!;
+        if (behaviour.dayOnly === true) alpha = alpha * (1 - blend.night);
+        if (behaviour.hiddenBy !== undefined && behaviour.hiddenBy.length > 0) {
+          let covered = 0;
+          for (const hider of overlays) if (behaviour.hiddenBy.includes(hider.element.id) && hider.peak > 0) covered = Math.max(covered, alphas.get(hider.element.id)! / hider.peak);
+          alpha = alpha * (1 - covered);
+        }
+        sprite.alpha = alpha;
+        sprite.visible = alpha > 0 && elementMotion(element, plan) !== "hide";
+        if (behaviour.tint === "space") sprite.tint = space.tint;
+      }
+      for (const layer of drifters.values()) layer.draw(seconds, plan, weather, blend);
+      for (const { element, under, frames, sprite, salt } of flashes) {
+        // A flash now and then, tucked under a drifter in view; only while it runs.
+        const { behaviour } = element;
+        const moment = elementMotion(element, plan) === "run" && intensity !== null ? flashAt(seconds, behaviour, intensity, salt) : null;
+        const alpha = moment === null ? 0 : opacityAt(behaviour.opacity, intensity) * moment.share;
+        const spot = moment === null || alpha <= 0 ? null : underCloud(under.places(), moment.slot, behaviour, under.space.element.behaviour.placement.horizonRow, under.space.view, salt);
+        sprite.visible = spot !== null;
+        if (moment === null || spot === null) continue;
+        const { place } = under.space;
+        sprite.texture = frames[moment.frame]!;
+        sprite.alpha = alpha;
+        sprite.position.set(place.x + spot.x * place.scale, place.y + spot.y * place.scale);
+        sprite.scale.set(place.scale);
+      }
+      for (const { element, poses, sprites } of flybys) {
+        const { behaviour } = element;
+        const flying = elementMotion(element, plan) === "run" && blend.night < behaviour.nightBelow ? flybysAt(seconds, stage.width, behaviour) : [];
+        sprites.forEach(function (sprite, index) {
+          const flyer = flying[index];
+          sprite.visible = flyer !== undefined;
+          if (flyer === undefined) return;
+          sprite.texture = poses.get(flyer.flapping ? flybyPose(flyer.age, behaviour) : behaviour.glide)!;
+          sprite.scale.set(flyer.flip ? -1 : 1, 1);
+          sprite.position.set(flyer.x, flyer.y);
+        });
+      }
+      return shown;
+    },
+    flashing: () => flashes.filter((each) => each.sprite.visible).map((each) => each.element.id),
+  };
+}
+
+/** The slot masks' names, shadow to highlight. */
+const SLOTS = ["shadow", "body", "highlight"] as const;
+
+/** A field of drifters over `space`, laid out from `seed`, coloured by the day's `phases`. */
+function drifterLayer(
+  pixi: PixiModule,
+  element: AmbientElement<"drifters">,
+  space: BackdropLayer,
+  phases: ReadonlyArray<{ id: string }>,
+  masks: ReadonlyMap<string, DrifterMasks>,
+  cutter: Cutter,
+  seed: number,
+): DrifterLayer {
+  const { behaviour } = element;
+  const { sprites } = behaviour;
+  const [skyWidth] = space.element.behaviour.size;
+  const { horizonRow } = space.element.behaviour.placement;
+  const container = new pixi.Container();
+  container.label = element.id;
+  const maskTextures = (image: string, size: readonly [number, number]) =>
+    masks.get(image)!.map(function (mask, slot) {
+      const source = new pixi.ImageSource({ resource: mask });
+      source.scaleMode = "nearest";
+      cutter.sources.set(`${image}#${slot}`, source);
+      const texture = new pixi.Texture({ source, frame: new pixi.Rectangle(0, 0, size[0], size[1]) });
+      cutter.made.push(texture);
+      return texture;
+    });
+  const slotTextures = sprites.map((sprite) => maskTextures(sprite.image, sprite.size));
+  // Each sprite's variants: the same size, so the same place in the same lane.
+  const variantTextures = sprites.map((sprite) => (sprite.variants ?? []).map((variant) => ({ variant, textures: maskTextures(variant.frames[0]!.image, sprite.size) })));
+  const field = cloudField(seed, sprites, skyWidth, horizonRow, behaviour).map(function (cloud) {
+    const holder = new pixi.Container();
+    holder.label = `${element.id}:${sprites[cloud.sprite]!.id}`;
+    const masked = (textures: PixiTexture[], prefix: string) =>
+      textures.map(function (texture, slot) {
+        const sprite = new pixi.Sprite(texture);
+        sprite.label = `${prefix}${SLOTS[slot]}`;
+        holder.addChild(sprite);
+        return sprite;
+      });
+    const slots = masked(slotTextures[cloud.sprite]!, `${element.id}:`);
+    const over = variantTextures[cloud.sprite]!.map(function ({ variant, textures }) {
+      const layered = masked(textures, `${element.id}:${variant.id}:`);
+      for (const mask of layered) mask.visible = false;
+      return { variant, masks: layered };
+    });
+    container.addChild(holder);
+    const [width, height] = sprites[cloud.sprite]!.size;
+    return { cloud, width, height, holder, slots, over };
+  });
+  let drift = { seconds: 0, drifting: false };
+  let tinted = "";
+  const x = (cloud: (typeof field)[number]["cloud"], width: number) => cloudX(cloud, width, skyWidth, behaviour.margin, drift.seconds, drift.drifting);
+  /** Puts each where its drift has it, in the backdrop's pixels at its placement: whole backdrop pixels. */
+  function place(): void {
+    const { place } = space;
+    for (const { cloud, width, holder } of field) {
+      holder.position.set(place.x + x(cloud, width) * place.scale, place.y + cloud.row * place.scale);
+      holder.scale.set(place.scale);
+    }
+  }
+  return {
+    element,
+    space,
+    container,
+    places: () => field.map(({ cloud, width, height }) => ({ x: x(cloud, width), row: cloud.row, width, height })),
+    layout: place,
+    draw(seconds, plan, weather, blend) {
+      // Drifting only while it runs, on its clock; recoloured when the day's blend or the backdrop's tint moves them.
+      const motion = elementMotion(element, plan);
+      container.visible = motion !== "hide";
+      drift = { seconds: clockOf(weather, behaviour.clock, seconds), drifting: motion === "run" };
+      place();
+      const colours = cloudColours(behaviour, phases, blend).map((colour) => shade(colour, space.tint));
+      const variantColours = new Map(
+        variantTextures
+          .flat()
+          .map(({ variant }) => [variant.id, cloudColours(variantPalette(variant, behaviour), phases, blend).map((colour) => shade(colour, space.tint))]),
+      );
+      const key = [...colours, ...[...variantColours.values()].flat()].join(":");
+      if (key !== tinted) {
+        tinted = key;
+        for (const { slots, over } of field) {
+          slots.forEach((sprite, slot) => (sprite.tint = colours[slot]!));
+          for (const { variant, masks } of over) masks.forEach((sprite, slot) => (sprite.tint = variantColours.get(variant.id)![slot]!));
+        }
+      }
+      // Each under its variants, as the weather has them.
+      for (const { slots, over } of field) {
+        if (over.length === 0) continue;
+        const mix = variantBlend(
+          over.map(({ variant }) => variant),
+          weather.intensity,
+        );
+        for (const sprite of slots) {
+          sprite.alpha = mix.base;
+          sprite.visible = mix.base > 0;
+        }
+        over.forEach(function ({ masks }, index) {
+          for (const sprite of masks) {
+            sprite.alpha = mix.layers[index]!;
+            sprite.visible = sprite.alpha > 0;
+          }
+        });
+      }
+    },
+  };
+}
 
 /**
  * A sprite and its variants' sprites over it (`client/deck-variants.ts`), one frame index for all: `draw` puts every
@@ -230,163 +629,22 @@ function cycleLayer(pixi: PixiModule, cycle: NonNullable<DrawnVariants["cycles"]
   };
 }
 
-/** Cuts textures from decoded images, a source per image made once; `destroy` lets go of them all. */
-function textureCutter(pixi: PixiModule, images: (path: string) => unknown) {
-  const sources = new Map<string, PixiTextureSource>();
-  const made: PixiTexture[] = [];
-  return {
-    sources,
-    made,
-    cut(path: string, x: number, y: number, width: number, height: number): PixiTexture {
-      let source = sources.get(path);
-      if (source === undefined) {
-        source = new pixi.ImageSource({ resource: images(path) });
-        source.scaleMode = "nearest";
-        sources.set(path, source);
-      }
-      const texture = new pixi.Texture({ source, frame: new pixi.Rectangle(x, y, width, height) });
-      made.push(texture);
-      return texture;
-    },
-    destroy() {
-      for (const texture of made) texture.destroy();
-      for (const source of sources.values()) source.destroy();
-    },
-  };
-}
-
-/** The stage's size in its own pixels (`client/deck-stage.ts`): what the scenery is centred on and runs across. */
-export interface StageSize {
-  width: number;
-  height: number;
+/** The sea's layers: behind the stage and in front of its waterline. */
+interface SeaLayers {
+  readonly back: PixiContainer[];
+  readonly front: PixiContainer[];
+  readonly generated: boolean;
+  layout(visible: VisibleWorld): void;
+  draw(plan: MotionPlan, weather: Weather): void;
 }
 
 /**
- * The scenery behind and in front of the ship, on a stage of `stage`'s size. `clouds`, when there are any, drift across the sky, laid out
- * from `seed`; without the environment's sky there is nowhere for them, and they are not drawn. `water` is the
- * extras' animated sea, foam and wake, each drawn in place of the environment's own where it loaded. `layers` are the
- * extras' weather layers, drawn over all of it as the weather's intensity says (`client/deck-variants.ts`).
+ * The generated sea: the still tile or the animated one, both bands; the wake; the foam; the extras' weather layers over
+ * them, and the cycles.
  */
-export function createScenery(
-  pixi: PixiModule,
-  stage: StageSize,
-  environment: DeckEnvironmentImages | null,
-  clouds: CloudImages | null = null,
-  seed = 0,
-  water: DrawnWater | null = null,
-  layers: WeatherLayers | null = null,
-): Scenery {
-  const back = new pixi.Container();
-  back.label = "scenery:back";
-  const front = new pixi.Container();
-  front.label = "scenery:front";
-  const extraImage = (path: string) => water?.images.get(path) ?? layers?.variants?.images.get(path);
-  if (!environmentComplete(environment)) return flatScenery(pixi, stage, back, front, water, layers, extraImage);
-
-  const { manifest, images } = environment;
-  const cutter = textureCutter(pixi, (path) => (images.has(path) ? images.get(path) : extraImage(path)));
-  const { sources, made, cut } = cutter;
+function generatedSea(pixi: PixiModule, stage: StageSize, environment: DeckEnvironmentImages, water: DrawnWater | null, layers: WeatherLayers | null, cut: Cut): SeaLayers {
+  const { manifest } = environment;
   const variants = layers?.variants ?? null;
-
-  // The sky: the two backdrops of the blend, and the stars over them.
-  const [skyWidth, skyHeight] = manifest.sky.size;
-  const phases = manifest.sky.phases.map((phase) => cut(phase.path, 0, 0, skyWidth, skyHeight));
-  const skyUnder = new pixi.Sprite(phases[0]!);
-  skyUnder.label = "sky:under";
-  const skyOver = new pixi.Sprite(phases[0]!);
-  skyOver.label = "sky:over";
-  const overlays = manifest.sky.overlays.map(function (overlay) {
-    const sprite = new pixi.Sprite(cut(overlay.path, 0, 0, overlay.size[0], overlay.size[1]));
-    sprite.label = "sky:stars";
-    return sprite;
-  });
-  // The sky's mood overlays, over the time of day's sky and under the stars: only those registered to the same sky.
-  const moods = (variants?.overlays ?? [])
-    .filter((overlay) => overlay.size[0] === skyWidth && overlay.size[1] === skyHeight)
-    .map(function (overlay) {
-      const sprite = new pixi.Sprite(cut(overlay.texture, 0, 0, skyWidth, skyHeight));
-      sprite.label = `sky:${overlay.id}`;
-      sprite.visible = false;
-      return { overlay, sprite, peak: curvePeak(overlay.opacity) };
-    });
-
-  // The clouds: each its three slot masks, one over the other in a container placed in the sky's pixels.
-  const horizonRow = skyHorizonRow(manifest.sky.size);
-  const cloudSprites = clouds?.manifest.sprites ?? [];
-  const cloudLayer = new pixi.Container();
-  cloudLayer.label = "clouds";
-  const maskTextures = (masks: readonly unknown[], key: string, size: readonly [number, number]) =>
-    masks.map(function (mask, slot) {
-      const source = new pixi.ImageSource({ resource: mask });
-      source.scaleMode = "nearest";
-      sources.set(`${key}#${slot}`, source);
-      const texture = new pixi.Texture({ source, frame: new pixi.Rectangle(0, 0, size[0], size[1]) });
-      made.push(texture);
-      return texture;
-    });
-  const cloudSlots = cloudSprites.map((sprite) => maskTextures(clouds!.masks.get(sprite.texture)!, sprite.texture, sprite.size));
-  // Each cloud's variants, where it has any: the same size, so the same place in the same lane.
-  const cloudVariants = cloudSprites.map((sprite) =>
-    (clouds?.variants?.get(sprite.id) ?? []).map(({ variant, masks }) => ({ variant, textures: maskTextures(masks, variant.frames[0]!, sprite.size) })),
-  );
-  const SLOTS = ["shadow", "body", "highlight"];
-  const field = cloudField(seed, cloudSprites, skyWidth, horizonRow).map(function (cloud) {
-    const container = new pixi.Container();
-    container.label = `cloud:${cloudSprites[cloud.sprite]!.id}`;
-    const masked = (textures: PixiTexture[], prefix: string) =>
-      textures.map(function (texture, slot) {
-        const sprite = new pixi.Sprite(texture);
-        sprite.label = `${prefix}${SLOTS[slot]}`;
-        container.addChild(sprite);
-        return sprite;
-      });
-    const slots = masked(cloudSlots[cloud.sprite]!, "cloud:");
-    const over = cloudVariants[cloud.sprite]!.map(function ({ variant, textures }) {
-      const masks = masked(textures, `cloud:${variant.id}:`);
-      for (const mask of masks) mask.visible = false;
-      return { variant, masks };
-    });
-    cloudLayer.addChild(container);
-    const [width, height] = cloudSprites[cloud.sprite]!.size;
-    return { cloud, width, height, container, slots, over };
-  });
-  let skyPlace = { x: 0, y: 0, scale: 1 };
-  let cloudTint = "";
-  let skyTint = 0xffffff;
-  let cloudDrift = { seconds: 0, drifting: false };
-  /** Puts each cloud where its drift has it, in the sky's pixels at the sky's placement: whole sky pixels. */
-  function placeClouds(): void {
-    for (const { cloud, width, container } of field) {
-      const x = cloudX(cloud, width, skyWidth, cloudDrift.seconds, cloudDrift.drifting);
-      container.position.set(skyPlace.x + x * skyPlace.scale, skyPlace.y + cloud.row * skyPlace.scale);
-      container.scale.set(skyPlace.scale);
-    }
-  }
-
-  // The flashes, over the stars and behind the clouds: `under-cloud` ones only where there are clouds to stand under.
-  const flashes = (field.length > 0 ? (layers?.flashes ?? []) : []).map(function (flash) {
-    const frames = flash.frames.map((path) => cut(path, 0, 0, flash.frameSize[0], flash.frameSize[1]));
-    const sprite = new pixi.Sprite(frames[0]!);
-    sprite.label = `flash:${flash.id}`;
-    sprite.visible = false;
-    return { flash, frames, sprite, salt: flashSalt(flash.id) };
-  });
-  /** The part of the sky that shows, in its own columns: where a flash may stand. */
-  let skyView = { left: 0, right: skyWidth };
-
-  // The gull: its three poses, registered at the beak.
-  const [gullWidth, gullHeight] = manifest.gull.frameSize;
-  const poses = new Map<GullPose, PixiTexture>(
-    manifest.gull.frames.map((frame) => [frame.id, cut(manifest.gull.sheet, frame.rect[0], frame.rect[1], frame.rect[2], frame.rect[3])]),
-  );
-  const gulls: PixiSprite[] = [];
-  for (let index = 0; index < GULL_SPRITES; index += 1) {
-    const sprite = new pixi.Sprite(poses.get("mid") ?? poses.get(GULL_POSES[0])!);
-    sprite.label = "gull";
-    sprite.anchor.set(manifest.gull.anchor[0] / gullWidth, manifest.gull.anchor[1] / gullHeight);
-    sprite.visible = false;
-    gulls.push(sprite);
-  }
 
   // The water: each frame of the tile — the animated sea's four, or the environment's one — and the same frame
   // cut to start at the waterline for the near sea's first row, so both bands share one tile origin.
@@ -461,26 +719,6 @@ export function createScenery(
   const wake = wakeOf(pixi, stage, water, layers, cut);
   const cycles = (variants?.cycles ?? []).map((cycle) => cycleLayer(pixi, cycle, cut, variantsOf(variants, `cycle:${cycle.id}`)));
 
-  back.addChild(
-    skyUnder,
-    skyOver,
-    ...moods.map((mood) => mood.sprite),
-    ...overlays,
-    ...flashes.map((flash) => flash.sprite),
-    ...(field.length > 0 ? [cloudLayer] : []),
-    ...gulls,
-    farSea,
-    ...seaOver.map((band) => band.far),
-  );
-  front.addChild(
-    nearSea,
-    ...seaOver.map((band) => band.near),
-    ...wake.views,
-    foam.container,
-    ...foamOver.map((strip) => strip.container),
-    ...cycles.flatMap((cycle) => cycle.views),
-  );
-
   function tile(parent: PixiContainer, atWaterline: boolean, x: number, y: number): void {
     const textures = (frames: typeof seaFrames) => (atWaterline ? frames[seaFrame]!.fromWaterline : frames[seaFrame]!.whole);
     const sprite = new pixi.Sprite(textures(seaFrames));
@@ -496,19 +734,10 @@ export function createScenery(
   }
 
   return {
-    back,
-    front,
+    back: [farSea, ...seaOver.map((band) => band.far)],
+    front: [nearSea, ...seaOver.map((band) => band.near), ...wake.views, foam.container, ...foamOver.map((strip) => strip.container), ...cycles.flatMap((cycle) => cycle.views)],
     generated: true,
     layout(visible) {
-      const place = skyPlacement(visible, manifest.sky.size, horizonRow, stage.width);
-      for (const sprite of [skyUnder, skyOver, ...moods.map((mood) => mood.sprite), ...overlays]) {
-        sprite.position.set(place.x, place.y);
-        sprite.scale.set(place.scale);
-      }
-      skyPlace = place;
-      skyView = { left: (visible.left - place.x) / place.scale, right: (visible.right - place.x) / place.scale };
-      // Again here, not only in `draw`: a still deck's camera can lay the sky out anew without a draw after.
-      placeClouds();
       wake.layout(visible);
       if (tiles.length > 0 && visible.left >= tiled.left && visible.right <= tiled.right && visible.bottom <= tiled.bottom) return;
       // A tile's width of slack either side, so a scroll of up to a tile never shows an edge.
@@ -529,86 +758,8 @@ export function createScenery(
         for (let y = WATERLINE - nearFirstRow + tileHeight; y < tiled.bottom; y += tileHeight) tile(nearSea, false, x, y);
       }
     },
-    draw(seconds, plan, minute, weather = deliveredWeather(seconds)) {
+    draw(plan, weather) {
       const { intensity } = weather;
-      const blend = skyBlend(minute, manifest.sky.phases);
-      // The sky's mood: the backdrops, and the clouds below, a shade greyer as the crew gets busy.
-      const tint = moodTint(weather.mood);
-      if (tint !== skyTint) {
-        skyTint = tint;
-        skyUnder.tint = tint;
-        skyOver.tint = tint;
-      }
-      skyUnder.texture = phases[blend.from]!;
-      skyOver.texture = phases[blend.to]!;
-      skyOver.alpha = blend.t;
-      skyOver.visible = blend.to !== blend.from && blend.t > 0;
-      // The mood's overlays over the day's sky, never over the night's; the stars go in as far as they would show by day.
-      let covered = 0;
-      for (const { overlay, sprite, peak } of moods) {
-        const alpha = opacityAt(overlay.opacity, intensity);
-        if (peak > 0) covered = Math.max(covered, alpha / peak);
-        sprite.alpha = alpha * (1 - blend.stars);
-        sprite.visible = sprite.alpha > 0;
-        sprite.tint = tint;
-      }
-      const stars = blend.stars * (1 - covered);
-      for (const sprite of overlays) {
-        sprite.alpha = stars;
-        sprite.visible = stars > 0;
-      }
-      if (clouds !== null && field.length > 0) {
-        // The clouds in the sky's pixels, whole ones, drifting only while the sea scrolls; recoloured when the sky's blend moves them.
-        cloudDrift = { seconds: weather.wind, drifting: plan.ambient };
-        placeClouds();
-        const colours = cloudColours(clouds.manifest, manifest.sky.phases, blend).map((colour) => shade(colour, tint));
-        const variantColours = new Map(
-          cloudVariants
-            .flat()
-            .map(({ variant }) => [variant.id, cloudColours(variantPalette(variant, clouds.manifest), manifest.sky.phases, blend).map((colour) => shade(colour, tint))]),
-        );
-        const key = [...colours, ...[...variantColours.values()].flat()].join(":");
-        if (key !== cloudTint) {
-          cloudTint = key;
-          for (const { slots, over } of field) {
-            slots.forEach((sprite, slot) => (sprite.tint = colours[slot]!));
-            for (const { variant, masks } of over) masks.forEach((sprite, slot) => (sprite.tint = variantColours.get(variant.id)![slot]!));
-          }
-        }
-        // Each cloud under its variants, as the weather has them.
-        for (const { slots, over } of field) {
-          if (over.length === 0) continue;
-          const mix = variantBlend(
-            over.map(({ variant }) => variant),
-            intensity,
-          );
-          for (const sprite of slots) {
-            sprite.alpha = mix.base;
-            sprite.visible = mix.base > 0;
-          }
-          over.forEach(function ({ masks }, index) {
-            for (const sprite of masks) {
-              sprite.alpha = mix.layers[index]!;
-              sprite.visible = sprite.alpha > 0;
-            }
-          });
-        }
-      }
-      for (const { flash, frames, sprite, salt } of flashes) {
-        // A flash now and then, tucked under a cloud in view; never while the sea is still.
-        const moment = plan.ambient && intensity !== null ? flashAt(seconds, flash, intensity, salt) : null;
-        const alpha = moment === null ? 0 : opacityAt(flash.opacity, intensity) * moment.share;
-        const places = () =>
-          field.map(({ cloud, width, height }) => ({ x: cloudX(cloud, width, skyWidth, cloudDrift.seconds, cloudDrift.drifting), row: cloud.row, width, height }));
-        const spot = moment === null || alpha <= 0 ? null : underCloud(places(), moment.slot, flash, horizonRow, skyView, salt);
-        sprite.visible = spot !== null;
-        if (moment === null || spot === null) continue;
-        sprite.texture = frames[moment.frame]!;
-        sprite.alpha = alpha;
-        sprite.position.set(skyPlace.x + spot.x * skyPlace.scale, skyPlace.y + spot.y * skyPlace.scale);
-        sprite.scale.set(skyPlace.scale);
-      }
-
       // The sea: every tile on the same frame, both bands drifting together, its variants over it on the same frame and drift.
       const drift = plan.ambient ? scrollOffset(weather.water.drift, seaSpeed, tileWidth) : 0;
       const seaMix = variantBlend(seaVariants, intensity);
@@ -657,50 +808,26 @@ export function createScenery(
         foamDrawn = `${foamFrame}:${lap}`;
       }
       for (const cycle of cycles) cycle.draw(weather, plan);
-
-      const flying = plan.ambient && blend.stars < 0.5 ? gullsAt(seconds, stage.width) : [];
-      gulls.forEach(function (sprite, index) {
-        const gull = flying[index];
-        sprite.visible = gull !== undefined;
-        if (gull === undefined) return;
-        sprite.texture = poses.get(gull.flapping ? gullPose(gull.age, manifest.gull) : "mid")!;
-        sprite.scale.set(gull.flip ? -1 : 1, 1);
-        sprite.position.set(gull.x, gull.y);
-      });
-      return blend;
     },
-    flashing: () => flashes.filter((each) => each.sprite.visible).map((each) => each.flash.id),
-    destroy: cutter.destroy,
   };
 }
 
 /**
- * The deck without its environment: a flat navy sea from the horizon, and again from the waterline in front of
- * the hull, with the wake — the generated one where it loaded with the extras, since it needs nothing of the environment
- * — and its variants, and the cycles.
+ * The sea without its still tile: a flat navy sea from the horizon, and again from the waterline in front of the hull,
+ * with the wake — the generated one where it loaded with the extras, since it needs nothing of the still sea — and its
+ * variants, and the cycles.
  */
-function flatScenery(
-  pixi: PixiModule,
-  stage: StageSize,
-  back: PixiContainer,
-  front: PixiContainer,
-  water: DrawnWater | null,
-  layers: WeatherLayers | null,
-  images: (path: string) => unknown,
-): Scenery {
+function flatSea(pixi: PixiModule, stage: StageSize, water: DrawnWater | null, layers: WeatherLayers | null, cut: Cut): SeaLayers {
   const farSea: PixiGraphics = new pixi.Graphics();
   farSea.label = "sea:far";
   const nearSea: PixiGraphics = new pixi.Graphics();
   nearSea.label = "sea:near";
-  const cutter = textureCutter(pixi, images);
-  const wake = wakeOf(pixi, stage, water, layers, cutter.cut);
+  const wake = wakeOf(pixi, stage, water, layers, cut);
   const variants = layers?.variants ?? null;
-  const cycles = (variants?.cycles ?? []).map((cycle) => cycleLayer(pixi, cycle, cutter.cut, variantsOf(variants, `cycle:${cycle.id}`)));
-  back.addChild(farSea);
-  front.addChild(nearSea, ...wake.views, ...cycles.flatMap((cycle) => cycle.views));
+  const cycles = (variants?.cycles ?? []).map((cycle) => cycleLayer(pixi, cycle, cut, variantsOf(variants, `cycle:${cycle.id}`)));
   return {
-    back,
-    front,
+    back: [farSea],
+    front: [nearSea, ...wake.views, ...cycles.flatMap((cycle) => cycle.views)],
     generated: false,
     layout(visible) {
       const left = Math.floor(visible.left) - 8;
@@ -710,12 +837,9 @@ function flatScenery(
       nearSea.clear().rect(left, WATERLINE, width, bottom - WATERLINE).fill(SEA_FALLBACK);
       wake.layout(visible);
     },
-    draw(seconds, plan, _minute, weather = deliveredWeather(seconds)) {
+    draw(plan, weather) {
       wake.draw(weather, plan, WAKE_SPEED);
       for (const cycle of cycles) cycle.draw(weather, plan);
-      return null;
     },
-    flashing: () => [],
-    destroy: cutter.destroy,
   };
 }

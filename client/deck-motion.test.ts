@@ -10,12 +10,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   DECK_FPS,
-  GULL_LOWEST,
-  GULL_SLOT_SECONDS,
+  flybysAt,
   HORIZON,
   LANTERNS,
   LITE_FPS,
-  gullsAt,
   lanternFlicker,
   mastSway,
   motionPlan,
@@ -26,7 +24,7 @@ import { deckAnimator, MAX_STEP_MS, type FrameScheduler, type MotionSignals } fr
 import { browserMotion } from "./deck-mount";
 import { isSoftwareRenderer } from "./deck-pixi";
 import { deckLayers, depthOf, type DeckSailor, type DeckState } from "./deck-scene";
-import { shipCast, shipFile, shipManifest, shipPlankMarks, shipStage, shipViews } from "../test/ship-pack";
+import { shipCast, shipElement, shipFile, shipManifest, shipPlankMarks, shipStage, shipViews } from "../test/ship-pack";
 import {
   areaAt,
   clearLine,
@@ -514,25 +512,37 @@ describe("the ambient clock", () => {
   });
 
   it("flies the odd gull, the same gulls for the same clock, at the masthead's height and never more than two", () => {
+    const gull = shipElement("gull", "flyby");
+    const gullsAt = (t: number) => flybysAt(t, shipStage().width, gull);
     let seconds = 0;
     for (let t = 0; t < 600; t += 0.25) {
-      const gulls = gullsAt(t, shipStage().width);
-      expect(gulls).toEqual(gullsAt(t, shipStage().width));
-      expect(gulls.length).toBeLessThanOrEqual(2);
-      for (const gull of gulls) {
+      const gulls = gullsAt(t);
+      expect(gulls).toEqual(gullsAt(t));
+      expect(gulls.length).toBeLessThanOrEqual(gull.most);
+      for (const flyer of gulls) {
         // The generated sprite's raised wing reaches 17 rows over the beak, its lowered one 9 under it:
         // the whole gull stays inside the deck's frame, and well above the horizon.
-        expect(gull.y - 17).toBeGreaterThanOrEqual(0);
-        expect(gull.y + 9).toBeLessThan(HORIZON);
-        expect(gull.y).toBeLessThanOrEqual(GULL_LOWEST + 3);
+        expect(flyer.y - 17).toBeGreaterThanOrEqual(0);
+        expect(flyer.y + 9).toBeLessThan(HORIZON);
+        expect(flyer.y).toBeLessThanOrEqual(gull.rows[1] + gull.wobble.px);
       }
       if (gulls.length > 0) seconds += 0.25;
     }
     // Now and then: some of the time, never most of it.
     expect(seconds).toBeGreaterThan(60);
     expect(seconds).toBeLessThan(400);
-    expect(gullsAt(0, shipStage().width)).toEqual([]);
-    expect(GULL_SLOT_SECONDS).toBeGreaterThan(15);
+    expect(gullsAt(0)).toEqual([]);
+    expect(gull.slotS).toBeGreaterThan(15);
+  });
+
+  it("looks far enough back for a crossing that outlasts its slot", () => {
+    const gull = shipElement("gull", "flyby");
+    // Slow enough that a crossing takes four and a half slots, and one sets off every slot: five in the air at once,
+    // each from wholly off one edge to wholly off the other.
+    const slow = { ...gull, speed: 5, chance: 1 };
+    const flyers = flybysAt(200, shipStage().width, slow);
+    expect(flyers).toHaveLength(5);
+    for (const flyer of flyers) expect(Math.abs(flyer.x - shipStage().width / 2)).toBeLessThanOrEqual(shipStage().width / 2 + gull.margin);
   });
 
   it("knows a software renderer from a GPU", () => {
