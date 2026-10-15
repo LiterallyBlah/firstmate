@@ -1,0 +1,73 @@
+﻿{
+    "existingPalette":  "pass, zero new colours",
+    "generationCalls":  2,
+    "stripFramePixelEquality":  "pass, all six individual frames match strip cells",
+    "visualQA":  "Native and 2x hull compositing plus 6x contact sheet; not a runtime integration test",
+    "result":  "pass",
+    "runtimeImages":  [
+                          {
+                              "transparentPadding":  true,
+                              "nonBinaryAlpha":  0,
+                              "path":  "shark/fin.png",
+                              "paletteViolations":  0,
+                              "transparentRGBViolations":  0,
+                              "opaquePixels":  322
+                          },
+                          {
+                              "transparentPadding":  true,
+                              "nonBinaryAlpha":  0,
+                              "path":  "shark/surface.png",
+                              "paletteViolations":  0,
+                              "transparentRGBViolations":  0,
+                              "opaquePixels":  721
+                          },
+                          {
+                              "transparentPadding":  true,
+                              "nonBinaryAlpha":  0,
+                              "path":  "shark/chomp.png",
+                              "paletteViolations":  0,
+                              "transparentRGBViolations":  0,
+                              "opaquePixels":  1253
+                          },
+                          {
+                              "transparentPadding":  true,
+                              "nonBinaryAlpha":  0,
+                              "path":  "shark/submerge.png",
+                              "paletteViolations":  0,
+                              "transparentRGBViolations":  0,
+                              "opaquePixels":  369
+                          },
+                          {
+                              "transparentPadding":  true,
+                              "nonBinaryAlpha":  0,
+                              "path":  "shark/strip.png",
+                              "paletteViolations":  0,
+                              "transparentRGBViolations":  0,
+                              "opaquePixels":  2665
+                          },
+                          {
+                              "transparentPadding":  true,
+                              "nonBinaryAlpha":  0,
+                              "path":  "splash/impact.png",
+                              "paletteViolations":  0,
+                              "transparentRGBViolations":  0,
+                              "opaquePixels":  213
+                          },
+                          {
+                              "transparentPadding":  true,
+                              "nonBinaryAlpha":  0,
+                              "path":  "splash/burst.png",
+                              "paletteViolations":  0,
+                              "transparentRGBViolations":  0,
+                              "opaquePixels":  305
+                          },
+                          {
+                              "transparentPadding":  true,
+                              "nonBinaryAlpha":  0,
+                              "path":  "splash/strip.png",
+                              "paletteViolations":  0,
+                              "transparentRGBViolations":  0,
+                              "opaquePixels":  518
+                          }
+                      ]
+}
