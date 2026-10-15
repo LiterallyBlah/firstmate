@@ -280,4 +280,8 @@ has no separate lint script. Results are recorded in `gate-results.json` and `co
   main's old sampler checks **every millisecond from 0 through 2631** for both sides and all three drifts.
   Separate engine tests use arbitrary names, alternate durations, two independent exits and a sink-only pack.
 
-Validation results follow in the gate and compiler records. No new art was needed.
+Gate: **81/81 pixel-identical** to main, with no flakes or page errors. Full suite: 71 files, 966 tests passed,
+three skipped (`npm test -- --maxWorkers=2`). Typecheck, pack linter and `git diff --check` pass; no separate lint
+script exists. Client bundle ?2,146 bytes; Hermes parses it; no `class`. The npm pack dry-run excludes the
+retired runtime and all test-only legacy files. Results are in `gate-results.json` and `compile-results.json`.
+No new art was needed.
