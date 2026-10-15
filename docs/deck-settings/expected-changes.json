@@ -1,411 +1,336 @@
 {
-  "review": "docs/deck-enrichment/below-deck-review.md",
-  "base": "compiled main 3cc12d1",
+  "review": "docs/deck-enrichment/reply-shark-review.md",
+  "base": "compiled main b830b37",
   "shots": {
     "still-noon-dark/open": {
-      "main": "a585b88373191841",
-      "branch": "92640de9b57dad20",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "92640de9b57dad20",
+      "branch": "4bc948d064b81110",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "still-noon-light/open": {
-      "main": "8887633f0ecd8e21",
-      "branch": "c0882914577cdddb",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "c0882914577cdddb",
+      "branch": "fd5b1e52b10dc378",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "still-night/open": {
-      "main": "0e00c82c7a975490",
-      "branch": "ba98371e1afab437",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "ba98371e1afab437",
+      "branch": "f192b174cc4bbcf6",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "still-dawn/open": {
-      "main": "f18809b65cedb9de",
-      "branch": "a837f0b6c16c374b",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "a837f0b6c16c374b",
+      "branch": "7852c4c8774f7f10",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "still-dusk-to-night/open": {
-      "main": "787f7d8451a174e6",
-      "branch": "50ad97752db68a76",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "50ad97752db68a76",
+      "branch": "bdf5835d2e928649",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "still-busy/open": {
-      "main": "0cf7094fd35f101b",
-      "branch": "b0267f1972f3ed24",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "b0267f1972f3ed24",
+      "branch": "6632a099bf9fb4b5",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "still-all-idle/open": {
-      "main": "de8d4875109394d4",
-      "branch": "330e117b877c8d4a",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
-    },
-    "still-feed-lost/lost": {
-      "main": "7ec2c48204293e51",
-      "branch": "99baa855a1510c6d",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "330e117b877c8d4a",
+      "branch": "6ffa79ff8f8e975d",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-noon/0.4s": {
-      "main": "0aadf27e983266bd",
-      "branch": "890a8721e8b43b6b",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "890a8721e8b43b6b",
+      "branch": "5964fd6d3069bc37",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-noon/1s": {
-      "main": "47bfc97e837be35c",
-      "branch": "5ca5073dc9aa2d79",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "5ca5073dc9aa2d79",
+      "branch": "fe0c3dae3614396b",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-noon/2.5s": {
-      "main": "b542c25ae54c504f",
-      "branch": "737b59559dec0dc1",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "737b59559dec0dc1",
+      "branch": "68bc201b0ee59f27",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-noon/5s": {
-      "main": "ee93c7757cb4228f",
-      "branch": "121438cfddde32a7",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "121438cfddde32a7",
+      "branch": "caf568df641f2d12",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-noon/10s": {
-      "main": "9147b8bc35826133",
-      "branch": "e5ecc955a29572d9",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "e5ecc955a29572d9",
+      "branch": "5d1dc0863a6ac1fb",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-noon/25s": {
-      "main": "ff7106e1d694b67b",
-      "branch": "54bf805792050e52",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "54bf805792050e52",
+      "branch": "58c8bf8a0cc1b651",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-noon/49s": {
-      "main": "0d7e7d122036a814",
-      "branch": "e98249d67d739771",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "e98249d67d739771",
+      "branch": "c37b43e6867991b8",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-noon/73s": {
-      "main": "1d68a53e5aa5bfcf",
-      "branch": "b2541c7de7904bf6",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "b2541c7de7904bf6",
+      "branch": "17f176618067212e",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/0.4s": {
-      "main": "5b56046de8339774",
-      "branch": "7ea0f7f4a2e7919b",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "7ea0f7f4a2e7919b",
+      "branch": "335da02eb5eeea5c",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/5.4s": {
-      "main": "e1d503eb78bfa929",
-      "branch": "459375d074e69afe",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "459375d074e69afe",
+      "branch": "89d810c2d76e1650",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/10.4s": {
-      "main": "161c6c1270107003",
-      "branch": "706d2b1000b3cdb5",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "706d2b1000b3cdb5",
+      "branch": "3da8cbd48771cb37",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/15.4s": {
-      "main": "420e0df4acba36a5",
-      "branch": "e8439269e08e7e3e",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "e8439269e08e7e3e",
+      "branch": "d13f95eef0e00d52",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/20.4s": {
-      "main": "fe72d225ea9a5eea",
-      "branch": "14d64a86f64cc6ed",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "14d64a86f64cc6ed",
+      "branch": "16145e4d48c8103c",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/25.4s": {
-      "main": "3ef4631e247c37f2",
-      "branch": "49a3ebd9d1877c35",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "49a3ebd9d1877c35",
+      "branch": "359343851fddf6a9",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/30.4s": {
-      "main": "d31d01e9359f9b3b",
-      "branch": "f81cd9fc7748cd4e",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "f81cd9fc7748cd4e",
+      "branch": "80529acc45c3331f",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/flash-33.5s": {
-      "main": "96a67cc1319b0fa2",
-      "branch": "4d1fb0d304143394",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "4d1fb0d304143394",
+      "branch": "d20233a073d7e8e1",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/flash-33.6s": {
-      "main": "ef141a40f5271e11",
-      "branch": "40548e57209528b6",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "40548e57209528b6",
+      "branch": "dc94dd14253cfd77",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/35.4s": {
-      "main": "1d7456f3307f84a6",
-      "branch": "6b105ad6540c6909",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "6b105ad6540c6909",
+      "branch": "7e38435eb32a7e59",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/40.4s": {
-      "main": "e34258605a923647",
-      "branch": "84aa9562e3fdcd88",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "84aa9562e3fdcd88",
+      "branch": "656eb28007abf8ec",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/45.4s": {
-      "main": "06f632eceeef5d45",
-      "branch": "c79ee5ab0ebbf286",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "c79ee5ab0ebbf286",
+      "branch": "9e74ff99d72fa1fc",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/flash-48.9s": {
-      "main": "3177665d568861ab",
-      "branch": "5dce51818e24ce25",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "5dce51818e24ce25",
+      "branch": "4ea4fcd3f16085f5",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/flash-49.0s": {
-      "main": "63b0e678818c6af7",
-      "branch": "3d8093e768cd05c4",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "3d8093e768cd05c4",
+      "branch": "ae3a53f60e545e7a",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/50.4s": {
-      "main": "fc59ac1893adb309",
-      "branch": "6b32f7ef459353b6",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "6b32f7ef459353b6",
+      "branch": "d08d682aecce8aab",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/55.4s": {
-      "main": "8cd029e4bf283ca6",
-      "branch": "1480ebe96652b852",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "1480ebe96652b852",
+      "branch": "6fd0b91a47c17b63",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/60.4s": {
-      "main": "d9794d42592575e5",
-      "branch": "38d891bb792d572b",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "38d891bb792d572b",
+      "branch": "20b54b8e068ad9b7",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/65.4s": {
-      "main": "de069ff16bc4ce0c",
-      "branch": "ffb27316d9ac561a",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "ffb27316d9ac561a",
+      "branch": "94759518e6ba9e90",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/70.4s": {
-      "main": "a3d6e20f1c7d1497",
-      "branch": "0d1fadd611c6e9ff",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "0d1fadd611c6e9ff",
+      "branch": "8ff43f702b20d194",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/75.4s": {
-      "main": "3ec42e419ca6e65e",
-      "branch": "df68c6d1947c6e8b",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "df68c6d1947c6e8b",
+      "branch": "bd1ba0938617dfdb",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/80.4s": {
-      "main": "c27f1bd1cd4da94d",
-      "branch": "07044a661601e52e",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "07044a661601e52e",
+      "branch": "5b217171d0029b5a",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/85.4s": {
-      "main": "4199d83448a18b5a",
-      "branch": "05c668d1a77cc46f",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "05c668d1a77cc46f",
+      "branch": "181bf7a215ef7034",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/90.4s": {
-      "main": "c0aed8c4ce9ab11c",
-      "branch": "5f7fdfa468f6e610",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "5f7fdfa468f6e610",
+      "branch": "7207f96a4b6dcc45",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/95.4s": {
-      "main": "9573922ab07ce540",
-      "branch": "25cbb07c060d2ef2",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "25cbb07c060d2ef2",
+      "branch": "426fc933d42714ef",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/100.4s": {
-      "main": "0f14dceabeb38c75",
-      "branch": "8e8d2da8390d0b8e",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "8e8d2da8390d0b8e",
+      "branch": "840b88aa349d2a69",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/105.4s": {
-      "main": "7480096144ab5d7d",
-      "branch": "7d1829708851470b",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "7d1829708851470b",
+      "branch": "cf47d46b2cf73d01",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/110.4s": {
-      "main": "f6b50e03d07cbf37",
-      "branch": "5b38dfd910111c99",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "5b38dfd910111c99",
+      "branch": "44b310bb505d403a",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/115.4s": {
-      "main": "b34cfd60924b6fe2",
-      "branch": "58782349e367cadd",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "58782349e367cadd",
+      "branch": "71a0beb08e054ecc",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-storm/120.4s": {
-      "main": "2a3684aca39cacfa",
-      "branch": "d9f60c95588d56c6",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "d9f60c95588d56c6",
+      "branch": "44928aafff84ba67",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-night/0.4s": {
-      "main": "5e290cd109d1f799",
-      "branch": "96bafd66c10e1ac3",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "96bafd66c10e1ac3",
+      "branch": "6f78dbdd0335e339",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-night/10s": {
-      "main": "d7b8b30581e69140",
-      "branch": "38b9d624acb3e3fd",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "38b9d624acb3e3fd",
+      "branch": "76c06f17d5fa0299",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/aboard": {
-      "main": "0aadf27e983266bd",
-      "branch": "890a8721e8b43b6b",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "890a8721e8b43b6b",
+      "branch": "5964fd6d3069bc37",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/changed": {
-      "main": "ee54c0411e47c322",
-      "branch": "fc0ec2739b655557",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "fc0ec2739b655557",
+      "branch": "ed73d7dd2eb514c5",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/walking-1000ms": {
-      "main": "f3e962fc94926bc5",
-      "branch": "aaf01089084bb2d9",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "aaf01089084bb2d9",
+      "branch": "a3867fe1f2ffba58",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/walking-2000ms": {
-      "main": "a88f96ed18185ac4",
-      "branch": "e0d01809af4e8ba6",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "e0d01809af4e8ba6",
+      "branch": "e813df3df21ea2c2",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/walking-3000ms": {
-      "main": "72137f7818c74de7",
-      "branch": "5dd64f5b1f50d214",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "5dd64f5b1f50d214",
+      "branch": "8e007946ff620e5b",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/walking-5000ms": {
-      "main": "aed125e0cf4adce0",
-      "branch": "e67cee8fb7d612a3",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "e67cee8fb7d612a3",
+      "branch": "f6d50923102fc3c7",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/walking-8000ms": {
-      "main": "4a319f4993dcf634",
-      "branch": "01f3bf24466c85b5",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "01f3bf24466c85b5",
+      "branch": "2eea1df9cd262cb8",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/arrived": {
-      "main": "20e53b759e40c553",
-      "branch": "d04addecde4f1f9d",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "d04addecde4f1f9d",
+      "branch": "0128de12a715d561",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/hatch-200ms": {
-      "main": "d70a2f1daf54fbf1",
-      "branch": "10fcff4c8d70326b",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "10fcff4c8d70326b",
+      "branch": "a659dcffee7483b6",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/hatch-400ms": {
-      "main": "2f1a8aed03986edc",
-      "branch": "e02ab02656fbd3b5",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "e02ab02656fbd3b5",
+      "branch": "abf44be2a646143d",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/hatch-700ms": {
-      "main": "20148cf15471e928",
-      "branch": "49dc2a8b35d57afd",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "49dc2a8b35d57afd",
+      "branch": "d5109ce033abc424",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/hatch-1500ms": {
-      "main": "b540df767ad72ee3",
-      "branch": "ce8cc35174ff63cc",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "ce8cc35174ff63cc",
+      "branch": "ce42b65d54d20607",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "moving-crew/hatch-3000ms": {
-      "main": "f1be557559057965",
-      "branch": "efa4e2a6937ebde7",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-300ms": {
-      "main": "93ee62048db2beb1",
-      "branch": "102c1bb048cc82b6",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-800ms": {
-      "main": "6221c53535e63df4",
-      "branch": "cc64f83bc7676bb1",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-1400ms": {
-      "main": "fa30de6c0dac417b",
-      "branch": "9c0aa989d673e59d",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-2000ms": {
-      "main": "75d4eae0ee44fd79",
-      "branch": "c7d55eaf339da8df",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-2400ms": {
-      "main": "46b022afc80c6ebb",
-      "branch": "09b0f29a33f4376b",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-2700ms": {
-      "main": "85aeaf40f7af6a2f",
-      "branch": "e01e604874f0c012",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-3000ms": {
-      "main": "1878b80f3f10ee4d",
-      "branch": "83c408d1c1249d3d",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-3300ms": {
-      "main": "1c494993641c595e",
-      "branch": "a56194757a63c2cb",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-3600ms": {
-      "main": "c874302cebe026f9",
-      "branch": "ad0b77df9b20ec41",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-4000ms": {
-      "main": "ce6ebd310041e978",
-      "branch": "dc4db4cb19d0328a",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-4600ms": {
-      "main": "b7041a09c29a8d8f",
-      "branch": "5ff9e0f6d6c883b2",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-5400ms": {
-      "main": "ce889ea3c4c9b053",
-      "branch": "4cfaf730193aace3",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/leaving-7000ms": {
-      "main": "c1e0f96b1e1696fa",
-      "branch": "7cf0861a3b8cdee1",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
-    },
-    "moving-crew/after": {
-      "main": "00f6f68f432dc8e0",
-      "branch": "33ba23abd8a913d8",
-      "reason": "Idle crew move to generated hull portholes; rest travel and departure routes follow the below-deck room. Their badges and the below-deck legend follow the new positions."
+      "main": "efa4e2a6937ebde7",
+      "branch": "3ee6d9e9767fe820",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "focus/100ms": {
-      "main": "a24a5f1f014ab6e5",
-      "branch": "99f07b3e04fab7b4",
-      "reason": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged."
+      "main": "99f07b3e04fab7b4",
+      "branch": "20ac2253e6caccec",
+      "reason": "The attention footer offers Converse for the selected worker. The carrier is hidden while a sailor is focused; every canvas pixel remains identical."
     },
     "focus/300ms": {
-      "main": "497707f5118e24fb",
-      "branch": "29a75fc666e8eba1",
-      "reason": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged."
+      "main": "29a75fc666e8eba1",
+      "branch": "5f0f2760308a60d6",
+      "reason": "The attention footer offers Converse for the selected worker. The carrier is hidden while a sailor is focused; every canvas pixel remains identical."
     },
     "focus/1.5s": {
-      "main": "cdba3fd790f615c0",
-      "branch": "78cf04356b506c01",
-      "reason": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged."
+      "main": "78cf04356b506c01",
+      "branch": "1ce303953b7bbfe6",
+      "reason": "The attention footer offers Converse for the selected worker. The carrier is hidden while a sailor is focused; every canvas pixel remains identical."
     },
     "focus/back-out": {
-      "main": "816fb1d8190edf4b",
-      "branch": "5a5f3397963f6e5d",
-      "reason": "Idle bodies and badges move from the deck into hull portholes, including the background under the focus veil; the legend now says resting below deck. Camera and focused worker are unchanged."
+      "main": "5a5f3397963f6e5d",
+      "branch": "3abddb24e5624ff6",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "lite-software-renderer/0.4s": {
-      "main": "6c56fadd49bbf021",
-      "branch": "29be3e26bca548ab",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "29be3e26bca548ab",
+      "branch": "54b4401b8f23b91b",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "lite-software-renderer/2s": {
-      "main": "3b22298b35e9c2ac",
-      "branch": "2512cdd923ff84e6",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "2512cdd923ff84e6",
+      "branch": "66d90059c5cc80dc",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     },
     "lite-software-renderer/6s": {
-      "main": "2cac375d3dc22378",
-      "branch": "b1aa9428d9dabd3c",
-      "reason": "Idle bodies and badges move from the working deck into generated hull portholes; the legend now says resting below deck. Other scene pixels are unchanged."
+      "main": "b1aa9428d9dabd3c",
+      "branch": "b82569701f347294",
+      "reason": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical."
     }
   }
 }
