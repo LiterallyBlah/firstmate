@@ -224,6 +224,25 @@ export const DeckExtrasManifestSchema = z.object({
    * code board stays.
    */
   plank: z.object({ texture: ArtPath, size: Size, position: z.tuple([z.number().int(), z.number().int()]) }).optional(),
+  /**
+   * The tall mast (`art/ship-deck/mast/README.md`): a `size` image drawn with its upper left at `position`
+   * on the hull, reaching above the hull's top row into the sky, in place of the hull's own short rig —
+   * its crow's nest, upper mast and stays, all of it within `clears` ([x, y, width, height], open sky
+   * besides), which is left out of the hull. Its top `sway` rows (the crow's nest and the topmast) sway as the
+   * masthead did. While it shows, the sail hangs at `sail` on it, and the depth piece it `replaces` is its
+   * own rows from that piece's top down (below the sail's lower edge, should the sail reach that low).
+   */
+  mast: z
+    .object({
+      texture: ArtPath,
+      size: Size,
+      position: z.tuple([z.number().int(), z.number().int()]),
+      sway: z.number().int().nonnegative(),
+      clears: z.tuple([z.number().int(), z.number().int(), z.number().int().positive(), z.number().int().positive()]),
+      replaces: z.string(),
+      sail: z.tuple([z.number().int(), z.number().int()]),
+    })
+    .optional(),
 });
 export type DeckExtrasManifest = z.infer<typeof DeckExtrasManifestSchema>;
 
@@ -232,7 +251,8 @@ export function extrasImagePaths(manifest: DeckExtrasManifest): string[] {
   const exit = manifest.exit === undefined ? [] : [...Object.values(manifest.exit.shark.frames), ...Object.values(manifest.exit.splash.frames)];
   const clouds = manifest.clouds?.sprites.map((sprite) => sprite.texture) ?? [];
   const plank = manifest.plank === undefined ? [] : [manifest.plank.texture];
-  return [...new Set([manifest.sail.texture, manifest.sail.occluder.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds, ...plank])];
+  const mast = manifest.mast === undefined ? [] : [manifest.mast.texture];
+  return [...new Set([manifest.sail.texture, manifest.sail.occluder.texture, ...manifest.crew.map((look) => look.texture), ...exit, ...clouds, ...plank, ...mast])];
 }
 
 export const loadDeckExtras = defineRpc({

@@ -19,6 +19,10 @@
  *   rests under reduced motion. It rides the ship's bob but not the masthead's sway, and hangs behind the
  *   crew; while it shows, the occluder — the mast with the rows behind the cloth cleared — stands in for
  *   the mast's depth piece, so the mast is still drawn over a sailor behind it without painting through the sail.
+ * - **The tall mast** (`art/ship-deck/mast/`) stands in for the hull's own short one where it decoded: the
+ *   hull's crow's nest, upper mast and stays are left out (`clears`), the mast is drawn behind the sail and
+ *   the crew with its crow's nest and topmast swaying as the masthead did, the sail hangs higher on it, and
+ *   its own lower rows are the mast's depth piece (`mastLayout`). Without it, the short rig is drawn as before.
  * - **The plank** is the generated board (`art/ship-deck/plank/`) at its placement, where it decoded; the
  *   board drawn in code (`client/deck-plank.ts`) stands in for it otherwise, so a sailor never walks out on nothing.
  */
@@ -73,6 +77,53 @@ export function drawnSail(extras: DeckExtrasImages | null, pieces: DeckArtManife
 export function drawnPlank(extras: DeckExtrasImages | null): NonNullable<DeckExtrasManifest["plank"]> | null {
   const plank = extras?.manifest.plank;
   return plank === undefined || !extras!.images.has(plank.texture) ? null : plank;
+}
+
+/** The tall mast, when it can be drawn: its image decoded, and the piece it replaces is the atlas's. Null leaves the hull's own short rig. */
+export function drawnMast(extras: DeckExtrasImages | null, pieces: DeckArtManifest["pieces"]): NonNullable<DeckExtrasManifest["mast"]> | null {
+  const mast = extras?.manifest.mast;
+  if (mast === undefined || !extras!.images.has(mast.texture)) return null;
+  return pieces[mast.replaces] === undefined ? null : mast;
+}
+
+/** A frame of an image, [x, y, width, height], and where on the hull it is drawn. */
+export interface Placed {
+  frame: [number, number, number, number];
+  x: number;
+  y: number;
+}
+
+/** The tall mast cut for drawing, in hull pixels. */
+export interface MastLayout {
+  /** The crow's nest and the topmast: its top `sway` rows, which sway. */
+  head: Placed;
+  /** The rest of it, down to its foot, fixed to the hull. */
+  shaft: Placed;
+  /** Its depth piece on the replaced piece's row: its own rows from that piece's top down, and from below the sail's lower edge. */
+  depth: Placed & { baseline: number | null };
+  /** Where the sail hangs on it. */
+  sail: readonly [number, number];
+  /** Its top row: the world's fit takes it in. */
+  top: number;
+}
+
+/** How the tall mast is drawn over `piece`, the depth piece it replaces, with a sail `sailHeight` rows tall (null: no sail). */
+export function mastLayout(
+  mast: NonNullable<DeckExtrasManifest["mast"]>,
+  piece: { y: number; baseline: number | null },
+  sailHeight: number | null,
+): MastLayout {
+  const [width, height] = mast.size;
+  const [x, y] = mast.position;
+  const sway = Math.min(mast.sway, height);
+  const depthTop = Math.max(piece.y, sailHeight === null ? piece.y : mast.sail[1] + sailHeight, y);
+  return {
+    head: { frame: [0, 0, width, sway], x, y },
+    shaft: { frame: [0, sway, width, height - sway], x, y: y + sway },
+    depth: { frame: [0, depthTop - y, width, Math.max(0, y + height - depthTop)], x, y: depthTop, baseline: piece.baseline },
+    sail: mast.sail,
+    top: Math.min(0, y),
+  };
 }
 
 /** Which of the sail's states shows `seconds` into the scene: alternating while the deck moves, the rest frame while it is still. */
