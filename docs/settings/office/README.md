@@ -1,13 +1,15 @@
-# Office: art commission and uninstalled pack draft
+# Office: installed pack, art contract and provenance
 
-Status: **art delivered; all capabilities supported; final pack wiring pending**. The commissioned PNGs are in
-[art/](art/), with [delivery verification](ART-DELIVERY.md). This step-9 scaffold is outside `art/settings/`
-and outside the npm package. `setting.draft.json` is an envelope around a proposed manifest, with null
-image digests; it is deliberately not installable. `art-contract.json`
-is the machine-readable delivery contract for **26 PNGs / 99 frames**. The tables below are its brief.
+Status: **installed as `art/settings/office/`**. The [manifest](../../../art/settings/office/setting.json)
+uses all 26 commissioned PNGs, copied byte-for-byte from [art/](art/), with real SHA-256 digests.
+Select **The office** in Settings > Plugins > FirstMate > Deck setting. No registration code is needed.
+This documentation, the commissioning sources and the historical `setting.draft.json` stay outside the
+npm package. The draft retains null digests as a record, not an installable manifest. The unchanged
+`art-contract.json` records the original **26 PNGs / 99 frames** commission; [ART-DELIVERY.md](ART-DELIVERY.md)
+and [verification.json](verification.json) record its acceptance. The tables below remain its art brief.
 
 The engine supports `stable-posts@1`, `pose-fidgets@1`, `walk-in@1`, `phase-tint@1` and `phase-frames@1`.
-The final pack wiring and its pixel checks follow in a data/art-only PR. The complete draft is now checked
+The final pack is data/art only. The complete draft is checked
 against the schema, including its clock, phase tint, off-floor entry corridor, actor fit and furniture clearance.
 No office branch belongs in the renderer. The twelve-frame wall clock follows local hours in full/lite motion;
 reduced motion holds its first frame, as the draft specifies.
@@ -85,10 +87,9 @@ sprite follows a worker. Every look must contain all ten poses, even if some sha
 `test/office-draft.test.ts` checks image inventory, frame grids, palettes, anchors, current schema fields,
 cast/effect registration, all-pairs floor paths, and a 24-person break crowd with every other post occupied.
 The delivered art has separate [contract checks](verify-art.mjs); installed-pack lint and engine renders
-will check its final wiring and appearance. A test-only adapter substitutes sentinels for missing hashes;
+check its final wiring and appearance. A test-only adapter substitutes sentinels for the historical draft's missing hashes;
 it never writes or installs that adapted manifest. `npm run lint:deck-packs` includes these draft checks.
 
-After step 9d merges, copy the delivered art unchanged and fill real SHA-256 values,
-validate every PNG with the full pack linter, inspect office full/lite/still, entry/exit, focus and crowd views,
-then land `art/settings/office/` as an art/data-only PR. The ship must remain 81/81 pixel-identical at every
-engine slice. Global selection, calm reduced motion and engine-owned intensity remain unchanged.
+Step 9e installs the delivered art unchanged and fills real SHA-256 values. The full pack linter checks every
+PNG and the runtime review covers office full/lite/still, entry/exit, focus and crowd views. The ship remains
+subject to the 81-shot pixel gate. Global selection, calm reduced motion and engine-owned intensity are unchanged.
