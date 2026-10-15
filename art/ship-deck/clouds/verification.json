@@ -1,0 +1,146 @@
+﻿[
+    {
+        "transparentRgbZero":  true,
+        "id":  "wisp",
+        "opaquePixels":  156,
+        "size":  [
+                     44,
+                     12
+                 ],
+        "sourceFile":  "exec-1e096c84-a3d0-4cdb-9efb-be63a0c7636b.png",
+        "colours":  [
+                        "#A8B9BD",
+                        "#BECAC6",
+                        "#D9D4BE"
+                    ],
+        "transparentBorder2px":  true,
+        "sha256":  "07b8f2326843536f117abb77a547872c878f9e3140cefd037d6d95ad85303d6b",
+        "alpha":  [
+                      0,
+                      255
+                  ],
+        "sourceCrop":  [
+                           228,
+                           194,
+                           1716,
+                           351
+                       ],
+        "sourceSha256":  "69fe5d8863934b70f798a55eb8d9c877a0523e782c3b69b9255c6cfc4b67e4a6",
+        "transparentPixels":  372
+    },
+    {
+        "transparentRgbZero":  true,
+        "id":  "puff",
+        "opaquePixels":  194,
+        "size":  [
+                     36,
+                     14
+                 ],
+        "sourceFile":  "exec-744d98bb-1257-4949-8b5f-154cbecbae0b.png",
+        "colours":  [
+                        "#A8B9BD",
+                        "#BECAC6",
+                        "#D9D4BE"
+                    ],
+        "transparentBorder2px":  true,
+        "sha256":  "28153ccb6c225f9732c7821018da1176735c208c2e375634bad229453543aae5",
+        "alpha":  [
+                      0,
+                      255
+                  ],
+        "sourceCrop":  [
+                           423,
+                           167,
+                           1290,
+                           409
+                       ],
+        "sourceSha256":  "11541551c39c30cbc0982eaff2bbe25b25e2d942c9cd3283dfc8b6bf3ec05b72",
+        "transparentPixels":  310
+    },
+    {
+        "transparentRgbZero":  true,
+        "id":  "cumulus",
+        "opaquePixels":  548,
+        "size":  [
+                     62,
+                     21
+                 ],
+        "sourceFile":  "exec-24f330e0-c442-435e-ae33-ad40920ee026.png",
+        "colours":  [
+                        "#A8B9BD",
+                        "#D9D4BE"
+                    ],
+        "transparentBorder2px":  true,
+        "sha256":  "84a839fe34166f5aa31e73cbad9fb1e1593dd1dd1bdfc643579ecad2a78b1aa0",
+        "alpha":  [
+                      0,
+                      255
+                  ],
+        "sourceCrop":  [
+                           202,
+                           121,
+                           1768,
+                           504
+                       ],
+        "sourceSha256":  "357fde2c6c2eb75769dd6922ee43ee3149c6ae3a2d1baddcec3be6c56f6ac53f",
+        "transparentPixels":  754
+    },
+    {
+        "transparentRgbZero":  true,
+        "id":  "long-bank",
+        "opaquePixels":  978,
+        "size":  [
+                     92,
+                     25
+                 ],
+        "sourceFile":  "exec-5f5ccb22-b833-455e-9aac-9467bef863e8.png",
+        "colours":  [
+                        "#A8B9BD",
+                        "#BECAC6",
+                        "#D9D4BE"
+                    ],
+        "transparentBorder2px":  true,
+        "sha256":  "e80da50cd48312f7fa0ef619613a39f1c8c6e7b90d5dbd7dcf418bcda13e4958",
+        "alpha":  [
+                      0,
+                      255
+                  ],
+        "sourceCrop":  [
+                           82,
+                           151,
+                           2014,
+                           473
+                       ],
+        "sourceSha256":  "b34c1f1686b75b2870b8aa2dd425a023a521fc108ba5c140e4aa012d79991fb6",
+        "transparentPixels":  1322
+    },
+    {
+        "transparentRgbZero":  true,
+        "id":  "twin-bank",
+        "opaquePixels":  654,
+        "size":  [
+                     80,
+                     24
+                 ],
+        "sourceFile":  "exec-38068665-38c3-4559-94f3-d6cb667056f4.png",
+        "colours":  [
+                        "#A8B9BD",
+                        "#BECAC6",
+                        "#D9D4BE"
+                    ],
+        "transparentBorder2px":  true,
+        "sha256":  "879a02ddc7753f41bea5356286fd1dd788130036f034ba5b7bde8a438e18a462",
+        "alpha":  [
+                      0,
+                      255
+                  ],
+        "sourceCrop":  [
+                           57,
+                           152,
+                           1920,
+                           495
+                       ],
+        "sourceSha256":  "fae61444db24cd16d3b92632c8f132660988b7ea546fedb648e227d69774fecf",
+        "transparentPixels":  1266
+    }
+]
