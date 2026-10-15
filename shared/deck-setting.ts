@@ -37,6 +37,7 @@ export const ENGINE_CAPABILITIES = [
   "walk-in@1",
   "sink@1",
   "choreography@1",
+  "phase-tint@1",
   "bob@1",
   "sway@1",
   "cycle@1",
@@ -179,6 +180,8 @@ const Stage = z.strictObject({
   fit: z.strictObject({ top: Px.max(0), bottom: Px, margin: z.number().positive().max(1) }),
   /** A worker's height with its badge, for the focus shot. */
   actorHeight: Positive,
+  /** `phase-tint@1`: RGB multipliers by day phase; omitted phases keep the art's colours. */
+  tintByPhase: z.record(Id, Hex).refine((tints) => Object.keys(tints).length > 0, "phase tint needs at least one phase").optional(),
   /** `bob@1`: the stage rides a whole-pixel sine. */
   motion: z.strictObject({ bob: z.strictObject({ periodS: z.number().positive(), amplitude: Level, clock: Id }) }).optional(),
   backdrop: z.strictObject({ sprite: Sprite }),
@@ -556,6 +559,7 @@ export function capabilitiesUsed(manifest: SettingManifest): string[] {
   used.add(`${manifest.portals.entry.kind}@1`);
   for (const exit of Object.values(manifest.portals.exits)) used.add(`${exit.kind}@1`);
   if (manifest.stage.motion !== undefined) used.add("bob@1");
+  if (manifest.stage.tintByPhase !== undefined) used.add("phase-tint@1");
   for (const part of manifest.stage.parts) if (part.behaviour !== undefined) used.add(`${part.behaviour.kind}@1`);
   if (manifest.stage.lights.length > 0) used.add("flicker@1");
   for (const element of manifest.ambience) used.add(`${element.behaviour.kind}@1`);
@@ -718,6 +722,7 @@ export function settingProblems(manifest: SettingManifest): string[] {
     for (const phase of [manifest.dayCycle.night, manifest.dayCycle.fallback]) if (!phases.has(phase)) missing("day phase", phase, "dayCycle");
   }
   const phaseRefs: Array<[string, string]> = [];
+  for (const phase of Object.keys(manifest.stage.tintByPhase ?? {})) phaseRefs.push([phase, "stage.tintByPhase"]);
   for (const element of manifest.ambience) {
     const behaviour = element.behaviour;
     if (behaviour.kind === "backdrop-cycle") for (const phase of Object.keys(behaviour.phases)) phaseRefs.push([phase, element.id]);

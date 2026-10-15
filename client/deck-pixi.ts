@@ -53,7 +53,7 @@ import type { DeckPresentation } from "./deck-setting";
 import type { SettingManifest } from "../shared/deck-setting";
 import { availableLooks, laneOf, standing, type DeckCast } from "./deck-cast";
 import type { MotionPlan } from "./deck-ambient";
-import { clockOf, crewIntensity, deliveredWeather, levelAt, openingAtmosphere, stepAtmosphere, weatherOf, type DeckAtmosphere } from "./deck-atmosphere";
+import { clockOf, crewIntensity, deliveredWeather, levelAt, openingAtmosphere, shade, stepAtmosphere, weatherOf, type DeckAtmosphere } from "./deck-atmosphere";
 import { ASK_PAPER, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, createCrew, crewFigures, fading, portalEffects, stepCrew, stepDepartures, type Figure } from "./deck-crew";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
@@ -67,6 +67,7 @@ import { createScenery } from "./deck-environment";
 import { bobAt, dutyFrame, flickerAt, glassTint, glyphRects, swayAt, type Cut, type DeckParts } from "./deck-parts";
 import type { DeckStage } from "./deck-stage";
 import { localMinute, SKY_REFRESH_MS } from "./deck-sky";
+import { phaseTintAt } from "./deck-phase-tint";
 
 /** Marks the canvas with its renderer, so the live check can read it in the app's DevTools. */
 export const DECK_CANVAS_ATTRIBUTE = "data-firstmate-deck";
@@ -484,17 +485,21 @@ export async function startDeck(
   // sail not the sway — and the deck's layer of props, pieces, lanterns and crew.
   const ship = new pixi.Container();
   ship.label = "ship";
+  // Tint artwork, not the shared parents of badges, interaction marks and the focus veil.
+  const stageInk: PixiContainer[] = [];
   for (const [index, slice] of textures.hull.entries()) {
     const sprite = new pixi.Sprite(slice.texture);
     sprite.label = `hull:${index}`;
     sprite.position.set(slice.x, slice.y);
     ship.addChild(sprite);
+    stageInk.push(sprite);
   }
   const rig = textures.rig.map(function ({ part, texture, frames }) {
     const sprite = new pixi.Sprite(frames[0] ?? texture);
     sprite.label = part.place;
     sprite.position.set(part.at[0], part.at[1]);
     ship.addChild(sprite);
+    stageInk.push(sprite);
     return { part, sprite, frames };
   });
 
@@ -511,6 +516,7 @@ export async function startDeck(
     sprite.position.set(prop.x, prop.y);
     sprite.zIndex = depthOf(prop.y, 0);
     deck.addChild(sprite);
+    stageInk.push(sprite);
   }
   // The pieces at their rows — a part's own rows where it stands in for one (the tall mast's for the mast's), the plank
   // just in front of the near rail it stands over.
@@ -520,6 +526,7 @@ export async function startDeck(
     sprite.position.set(piece.at[0], piece.at[1]);
     sprite.zIndex = piece.depth;
     deck.addChild(sprite);
+    stageInk.push(sprite);
   }
   // The lights: each its glow, then its glyph by ink, the glass's ink tinted by its level.
   const lanterns = parts.lights.map(function (light) {
@@ -539,6 +546,7 @@ export async function startDeck(
     }
     root.position.set(light.at[0], light.at[1]);
     deck.addChild(root);
+    stageInk.push(root);
     return { light, root, glow, glass };
   });
 
@@ -548,6 +556,7 @@ export async function startDeck(
   /** Where each reply marker hangs in that frame (`askMarks`). */
   let drawnMarks: ReadonlyMap<string, AskMark> = new Map();
   let drawnBob = { x: 0, y: 0 };
+  let drawnTint = 0xffffff;
   // The weather opens at the crew's, as the crew already aboard is simply there.
   let atmosphere = openingAtmosphere(art.atmosphere, crewIntensity(scene.sailors));
   let drawnFit: DeckFit = { scale: 0, x: 0, y: 0 };
@@ -634,9 +643,11 @@ export async function startDeck(
         stand(sprites.sprite, posed);
       }
       sprites.upper.visible = breathing;
+      const bodyTint = figure.stale ? stage.palette.staleTint : 0xffffff;
+      const tint = figure.layer === "effects" || drawnTint === 0xffffff ? bodyTint : shade(bodyTint, drawnTint);
       for (const part of [sprites.sprite, sprites.upper]) {
         part.scale.set(figure.flip ? -1 : 1, 1);
-        part.tint = figure.stale ? stage.palette.staleTint : 0xffffff;
+        part.tint = tint;
         part.alpha = (figure.stale ? stage.palette.staleAlpha : 1) * figure.alpha;
       }
       const hovered = figure.key === hoveredKey || figure.key === focusKey;
@@ -773,7 +784,13 @@ export async function startDeck(
         sprite.texture = frames[dutyFrame(clockOf(weather, behaviour.frames.clock, seconds), { count: frames.length, frameMs: behaviour.frames.frameMs }, run, duty)]!;
       }
     }
-    const sky = scenery.draw(seconds, plan, currentMinute(), weather);
+    const minute = currentMinute();
+    const sky = scenery.draw(seconds, plan, minute, weather);
+    const tint = phaseTintAt(stage.phaseTint, minute);
+    if (tint !== drawnTint) {
+      for (const ink of stageInk) ink.tint = tint;
+      drawnTint = tint;
+    }
     for (const { light, root, glow, glass } of lanterns) {
       const motion = elementMotion(light, plan);
       const { flicker, glowAlpha, tints } = light.style;

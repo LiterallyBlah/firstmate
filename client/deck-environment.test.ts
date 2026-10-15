@@ -31,6 +31,7 @@ import { SKY_REFRESH_MS } from "./deck-sky";
 import { deckScene, depthOf, type DeckScene, type DeckSailor, type DeckState } from "./deck-scene";
 import { shipCast, shipElement, shipManifest, shipStage, shipViews, shipWater } from "../test/ship-pack";
 import { standing } from "./deck-cast";
+import { compileStage, type DeckStage } from "./deck-stage";
 
 // The ship's cast, under the names its constants had in the deck's code.
 const BREATH_ROWS = shipCast().breath!.rows;
@@ -347,6 +348,7 @@ async function start(
     /** Pack images that did not arrive, by id. */
     without?: readonly string[];
     scene?: DeckScene;
+    stage?: DeckStage;
     onHover?: (hover: DeckHover | null) => void;
     onSelect?: (key: string | null) => void;
   },
@@ -358,7 +360,7 @@ async function start(
   const { images, masks, ambience, parts } = packImages(options, art, atlas);
   const drawing = await startDeck(
     pixi,
-    { stage: shipStage(), cast: shipCast(), parts, ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, effects: shipManifest().effects, presentation: deckPresentation(shipManifest()) },
+    { stage: options.stage ?? shipStage(), cast: shipCast(), parts, ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, effects: shipManifest().effects, presentation: deckPresentation(shipManifest()) },
     host,
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
@@ -602,6 +604,109 @@ const sailorSprites = (stage: FakeContainer, key: string) => {
   const root = one(stage, key);
   return { root, sprite: root.children[1] as FakeSprite, upper: one(root, "breath") as FakeSprite };
 };
+
+describe("phase tint on stage art", () => {
+  function tintedStage() {
+    const manifest = structuredClone(shipManifest());
+    manifest.stage.tintByPhase = { night: "#8080FF" };
+    manifest.palette.staleTint = "#808080";
+    return compileStage(manifest);
+  }
+
+  it("tints every stage artwork slot and actor body, preserving badges, depth and focused tint", async () => {
+    const scene = crewScene([["a", "working"], ["b", "idle"]]);
+    scene.sailors[0]!.asks = true;
+    scene.sailors[1]!.stale = true;
+    const stage = tintedStage();
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12), extras, scene, stage });
+    deck.advance(16);
+    const artLabels = ["hull:0", "hull:1", "hull:2", "tall-mast", "topmast", "sail",
+      ...stage.props.map(({ id }) => `prop:${id}`), "piece:mast:tall-mast", "piece:near", "piece:plank",
+      ...shipManifest().stage.lights.map(({ id }) => `light:${id}`)];
+    const depths = artLabels.map((label) => one(deck.app.stage, label).zIndex);
+    const controls = sailorSprites(deck.app.stage, "a").root.children.filter((child) => child instanceof FakeGraphics);
+    const marks = controls.map((child) => structuredClone((child as FakeGraphics).shapes));
+    deck.state.now = new Date(2026, 9, 14, 23);
+    deck.advance(40);
+    expect(artLabels.map((label) => one(deck.app.stage, label).tint)).toEqual(artLabels.map(() => 0x8080ff));
+    expect(artLabels.map((label) => one(deck.app.stage, label).zIndex)).toEqual(depths);
+    expect(sailorSprites(deck.app.stage, "a").sprite.tint).toBe(0x8080ff);
+    const stale = sailorSprites(deck.app.stage, "b");
+    expect([stale.sprite.tint, stale.upper.tint]).toEqual([0x404080, 0x404080]);
+    expect(stale.sprite.alpha).toBe(stage.palette.staleAlpha);
+    expect(controls.map((child) => child.tint)).toEqual(controls.map(() => 0xffffff));
+    expect(controls.map((child) => (child as FakeGraphics).shapes)).toEqual(marks);
+    for (const label of ["world", "ship", "deck", "scenery:back", "scenery:front", "overboard", "veil", "spot"])
+      expect(one(deck.app.stage, label).tint).toBe(0xffffff);
+    deck.drawing.focus("a");
+    deck.advance(FOCUS_MS);
+    expect(one(deck.app.stage, "spot").children.map(({ label }) => label)).toContain("a");
+    expect(sailorSprites(deck.app.stage, "a").sprite.tint).toBe(0x8080ff);
+    deck.state.now = new Date(2026, 9, 15, 12);
+    deck.advance(40);
+    expect(artLabels.map((label) => one(deck.app.stage, label).tint)).toEqual(artLabels.map(() => 0xffffff));
+    expect(sailorSprites(deck.app.stage, "a").sprite.tint).toBe(0xffffff);
+    expect(sailorSprites(deck.app.stage, "b").sprite.tint).toBe(0x808080);
+    deck.drawing.destroy();
+  });
+
+  it("follows the minute refresh in still mode without motion, and draws nothing while hidden", async () => {
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12), reducedMotion: true, stage: tintedStage(), scene: twoWorking() });
+    expect(one(deck.app.stage, "hull:0").tint).toBe(0xffffff);
+    const skyTimer = deck.timers.find(({ ms }) => ms === SKY_REFRESH_MS)!;
+    deck.state.now = new Date(2026, 9, 14, 23);
+    deck.state.hidden = true;
+    const before = renders;
+    skyTimer.run();
+    expect(renders).toBe(before);
+    expect(one(deck.app.stage, "hull:0").tint).toBe(0xffffff);
+    deck.state.hidden = false;
+    skyTimer.run();
+    expect(one(deck.app.stage, "hull:0").tint).toBe(0x8080ff);
+    expect(deck.pending()).toBe(0);
+    expect(one(deck.app.stage, "ship").position.y).toBe(0);
+    expect(deck.app.canvas.attributes.get(DECK_WEATHER_ATTRIBUTE)).toBe("still");
+    deck.state.now = new Date(Number.NaN);
+    skyTimer.run();
+    expect(one(deck.app.stage, "hull:0").tint).toBe(0xffffff); // fallback is midday
+    deck.drawing.destroy();
+    expect(skyTimer.stopped).toBe(true);
+  });
+
+  it("works without a backdrop image and keeps separately mounted packs independent", async () => {
+    const options = { now: new Date(2026, 9, 14, 23), reducedMotion: true, without: Object.values(shipElement("sky", "backdrop-cycle").phases) };
+    const tinted = await start(environment, { ...options, stage: tintedStage() });
+    const plain = await start(environment, options);
+    expect(tinted.app.canvas.attributes.get(DECK_SKY_ATTRIBUTE)).toBe("none");
+    expect(one(tinted.app.stage, "hull:0").tint).toBe(0x8080ff);
+    expect(one(plain.app.stage, "hull:0").tint).toBe(0xffffff);
+    tinted.drawing.destroy();
+    plain.drawing.destroy();
+  });
+
+  it("leaves effects-slot actors and portal effects in their own colours after crossing out of the stage", async () => {
+    const scene = crewScene([["a", "working"], ["b", "idle"]]);
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 23), extras, scene, stage: tintedStage() });
+    deck.advance(16);
+    deck.drawing.update({ ...scene, sailors: scene.sailors.slice(1), departures: { a: "done" } });
+    let actorSeen = false, effectSeen = false;
+    for (let frame = 0; frame < 600; frame++) {
+      deck.advance(40);
+      expect(sailorSprites(deck.app.stage, "b").sprite.tint).toBe(0x8080ff);
+      for (const child of one(deck.app.stage, "overboard").children) {
+        if (child.label.startsWith("a~")) {
+          actorSeen = true;
+          expect(child.children[1]!.tint).toBe(0xffffff);
+        } else if (child instanceof FakeSprite) {
+          effectSeen = true;
+          expect(child.tint).toBe(0xffffff);
+        }
+      }
+    }
+    expect([actorSeen, effectSeen]).toEqual([true, true]);
+    deck.drawing.destroy();
+  });
+});
 
 describe("the sail, the crew's looks and the wake on the deck", () => {
   it("stands the tall mast in the short rig's place, the sail higher on it and its own lower rows the mast's depth piece", async () => {
