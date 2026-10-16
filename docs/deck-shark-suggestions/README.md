@@ -51,7 +51,14 @@ the fleet are fixtures. This is not an installed desktop/device test. No plugin 
 - [Sakura coast interaction assertions](review/japanese-ship-checks.json) and
   [Ship's deck interaction assertions](review/ship-checks.json): order, bounds, keyboard, dismissal,
   send payload, pending gate across mounts, failure toast/retry, answered state, scrolling and empty state.
-- Screenshot gate results and reviewed differences are recorded in `../deck-settings/`.
+- Screenshot gate results and the 81 exact reviewed pairs are recorded in `../deck-settings/`.
+  Every pair was inspected with `review-gate.mjs` (main, branch, red pixel differences). Changes are the
+  suggestion footer, restored sailor markers and persistent shark. Where the old footer was shorter
+  (one or no worker needing attention), the new persistent control changes the canvas height and its
+  existing responsive fit. That accounts for broad pixel differences in busy/idle/stale/storm and later
+  crew shots; pack positions, motion and image data remain identical. Focus still uses the same camera.
+  All canvas renderer/motion/weather/sky metadata matches main; no page errors.
+- [Pack audit](art-audit.json) proves that all 104 images and all remaining manifest fields are unchanged.
 
 Reproduce from this worktree (PowerShell):
 
