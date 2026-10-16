@@ -1,5 +1,10 @@
 # Sakura coast
 
+The current pack's [parity review](parity/README.md) adds the sea-dragon plank departure,
+masthead lookout, umibozu storm, six-phase day, night sky, chochin, cranes, petals and
+six crew looks. Its captures and verification supersede the historical counts and
+two-phase-day limitations recorded below.
+
 A Japanese coastal merchant ship rounds a rocky island covered in pink and ivory
 sakura, shown in a level side-on broadside with the original ship's slight top-down
 camera. Warm cedar, an indigo hull, a cream sewn sail, and practical indigo/russet

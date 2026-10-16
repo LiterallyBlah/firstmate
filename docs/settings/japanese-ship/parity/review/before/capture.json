@@ -1,6 +1,7 @@
 {
   "phase": "before",
   "setting": "japanese-ship",
-  "mode": "still",
+  "movingMode": "full",
+  "stormLevel": "1.00",
   "observer": "canvas PNGs and public DOM attributes only"
 }

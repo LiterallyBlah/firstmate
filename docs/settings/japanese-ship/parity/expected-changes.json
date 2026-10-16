@@ -1,0 +1,29 @@
+{
+  "base": "47e305d",
+  "shots": {
+    "day": {
+      "main": "84519eaa375ca7135719c31d20d4ec2c23aa74fa3c1da950e62770b23a32a922",
+      "branch": "a6fa36818b05e89bd04c843026e94d9c01be34e8c834d06f2ffc5caa9e64bd20",
+      "differingPixels": 167954,
+      "reason": "Lookout/perch/ladder, three chochin, six crew looks, plank, petals and spaced sleepers; approved hull, island, sail, rig and carrier retained."
+    },
+    "dusk": {
+      "main": "757c8d2c96f95300c87eec3857c9714693f59edf3170aab0b6e417e14cfbb583",
+      "branch": "3a18a54f39ab600dae2a7b107e4fca4a7e3db017969839c7398cd459d9567a3b",
+      "differingPixels": 4104387,
+      "reason": "Six-phase dusk palette and phase tint replace the old two-phase interpolation; new stage furniture and crew."
+    },
+    "night": {
+      "main": "81ce5dc8276dd424aa92ecf5cb6640c20648d5c97fbe4c47450f028c3f00ef30",
+      "branch": "47c8bcadd4a7ec5b4f128b3d8d537f3663c4951e10d29f020aad0212ae0c60f3",
+      "differingPixels": 128534,
+      "reason": "Night moon and two star twinkle fields; paper lanterns; lookout and six crew looks. Approved night coast retained."
+    },
+    "storm": {
+      "main": "c3cc8758df30e7d44a5962087e78dfd97ef3c17edee1dd793faeb8bfaa8b4b58",
+      "branch": "ab62d8e28785966a96cd87db60f61f1b103bef763357e77f4b133cef70bb3a8e",
+      "differingPixels": 3137386,
+      "reason": "Overcast, rain/spray and peak umibozu alongside approved sail/rig/water motion; a 24-worker crowd."
+    }
+  }
+}

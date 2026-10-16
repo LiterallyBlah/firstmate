@@ -1,0 +1,18 @@
+{
+  "day": {
+    "sha256": "a6fa36818b05e89bd04c843026e94d9c01be34e8c834d06f2ffc5caa9e64bd20",
+    "identical": true
+  },
+  "storm": {
+    "sha256": "ab62d8e28785966a96cd87db60f61f1b103bef763357e77f4b133cef70bb3a8e",
+    "identical": true
+  },
+  "dusk": {
+    "sha256": "3a18a54f39ab600dae2a7b107e4fca4a7e3db017969839c7398cd459d9567a3b",
+    "identical": true
+  },
+  "night": {
+    "sha256": "47c8bcadd4a7ec5b4f128b3d8d537f3663c4951e10d29f020aad0212ae0c60f3",
+    "identical": true
+  }
+}

@@ -1,5 +1,5 @@
 /** Offline registration of generated parity sprites. Uses the pack's established pixel/alpha pipeline. */
-import {readFileSync,writeFileSync,unlinkSync} from 'node:fs';
+import {readFileSync,writeFileSync,unlinkSync,existsSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
@@ -20,7 +20,8 @@ for(const [name,a,w,h]of [['dragon',dragon,80,72],['umibozu',spirit,72,80]]){
   const boxes=cells.map(bounds),top=Math.min(...boxes.map(b=>b[1])),bottom=Math.max(...boxes.map(b=>b[1]+b[3]));
   const left=Math.min(...boxes.map(b=>b[0])),right=Math.max(...boxes.map(b=>b[0]+b[2]));
   const strip=blank(w*4,h);
-  for(let i=0;i<4;i++)paste(strip,quant(nearest(crop(cells[i],left,top,right-left,bottom-top),w,h),24),i*w,0);
+  const scale=Math.min(w/(right-left),h/(bottom-top)),fw=Math.round((right-left)*scale),fh=Math.round((bottom-top)*scale);
+  for(let i=0;i<4;i++)paste(strip,quant(nearest(crop(cells[i],left,top,right-left,bottom-top),fw,fh),24),i*w+Math.floor((w-fw)/2),h-fh);
   save(name,strip);
 }
 const accessories=source('accessories');
@@ -32,7 +33,8 @@ for(const [i,[name,w,h]]of dimensions.entries()){
 // A lantern is generated art registered into the engine's flickering pixel-glyph vocabulary.
 const lamp=quant(read('chochin'),3,[[22,30,48],[255,214,136],[148,62,65]]);
 registration.lantern=Array.from({length:lamp.height},(_,y)=>Array.from({length:lamp.width},(_,x)=>{const i=(y*lamp.width+x)*4;return lamp.rgba[i+3]===0?'.':lamp.rgba[i]===22?'a':lamp.rgba[i]===255?'b':'c';}).join(''));
-// The PNG is consumed by a fixed lantern casing as well as the registered glyph.
+// The native flicker glyph consumes all lantern pixels; its intermediate PNG does not ship.
+delete registration.images.chochin;unlinkSync(resolve(out,'chochin.png'));
 const climbers=source('climbers'),newCrew=source('crew-variety');
 const base=JSON.parse(readFileSync(resolve(here,'../registration.json')));
 const poseIds=['stand','front-a','front-pass','front-b','side-idle','side-a','side-pass','side-b','pull-a','pull-b','waiting','rest'];
@@ -72,5 +74,7 @@ for(const [phase,mix]of [['dawn',.65],['morning',.08],['afternoon',.22],['dusk',
 }
 // Three-colour petal masks are recoloured by the existing drifter day palette.
 save('petal',quant(read('petal'),3,[[181,91,129],[236,157,185],[255,221,225]]));
+const preview=resolve(here,'review/after/day.png');
+if(existsSync(preview))save('preview',nearest(decodePng(readFileSync(preview)),384,202));
 writeFileSync(resolve(here,'registration.json'),JSON.stringify(registration,null,2)+'\n');
 console.log(JSON.stringify({images:Object.keys(registration.images).length,sources:Object.keys(registration.sources)}));
