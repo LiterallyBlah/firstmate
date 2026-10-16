@@ -20,7 +20,7 @@ for (let i = 0; i < 4; i++) {
   rect(176, y, 20, 4, i === 3 ? [255, 220, 100, 255] : colours[i]);
   rect(44, y + 25, 5, 5, i === 3 ? [255, 220, 100, 255] : [45, 65, 60, 255]);
 }
-// Four shallow beam frames; row 192..207 is a completely transparent daytime set.
+// Three shallow beam frames; row 192..207 is a completely transparent daytime set.
 for (let i = 0; i < 3; i++) {
   const y = 208 + i * 16;
   for (let x = 0; x < 44; x++) {

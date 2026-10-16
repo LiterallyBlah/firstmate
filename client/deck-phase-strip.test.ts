@@ -93,4 +93,18 @@ describe("phase-strip contract", () => {
     expect(phaseStripSets(resolved, manifest.dayCycle!.phases)[3]).toBe(resolved.byPhase.dusk);
     expect(compileAmbience(manifest, (id) => id !== "phase-test").elements).toHaveLength(0);
   });
+
+  it("keeps the base when all phase sets fail, or selects the element fallback when the base fails", () => {
+    const { manifest, strip } = fixture();
+    manifest.images.phase = manifest.images["phase-test"]!;
+    strip.byPhase = { night: [{ image: "phase", rect: [0, 144, 256, 48] }] };
+    manifest.ambience = [manifest.ambience[0]!];
+    const baseOnly = compileAmbience(manifest, (id) => id !== "phase").elements[0]!.behaviour as Behaviour<"phase-strip">;
+    expect(baseOnly.byPhase).toEqual({});
+    expect(phaseStripSets(baseOnly, manifest.dayCycle!.phases).every((set) => set === baseOnly.frames.sprites)).toBe(true);
+    manifest.ambience[0]!.fallback = "fallback";
+    manifest.ambience.push({ id: "fallback", slot: "back", order: 0, lite: "run", still: "first-frame",
+      behaviour: { kind: "strip", frames: { sprites: [{ image: "deck", rect: [0, 0, 8, 8] }], frameMs: 1000 }, top: 0, span: [0, 10], drift: { pxPerSecond: 0 } } });
+    expect(compileAmbience(manifest, (id) => id !== "phase-test").elements.map((element) => [element.id, element.place])).toEqual([["fallback", "test-coast"]]);
+  });
 });
