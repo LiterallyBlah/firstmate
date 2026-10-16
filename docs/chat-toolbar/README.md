@@ -37,8 +37,16 @@ checks, not an installed desktop or native-device test. No plugin was installed 
   exercise running-session guards, and inspect the shared Home chat.
 - `node docs/shell-phase1/check-bundle.mjs`: Paseo 0.11 compiler; client 706,213 bytes, server 354,567
   bytes; zero class tokens; RN 0.81.5 Hermes parses the complete client with default flags.
+- `node docs/ship-deck-canvas/compile.mjs` then `node docs/deck-settings/gate.mjs`:
+  [81 shots pixel-identical to main](deck-gate-results.json), no masks, exceptions or page errors.
+  The gate compiled the toolbar changes before their first commit (so its revision field names the
+  base); the only subsequent production edit explicitly matches the input/mirror font. The final
+  bundle was separately compiled and parsed under Hermes as recorded above.
 - Self-review: no new dependencies, transcript/native-chat/deck changes, or draft/send-state changes.
   Existing action descriptions and disabled conditions remain on the relocated buttons.
 
 The render harness uses the existing `docs/board-list` dev tools (`npm.cmd ci --prefix docs/board-list`).
 It does not claim to verify a native phone keyboard or the host's native bottom sheet.
+
+The initial push's Windows CI hit the existing 5-second timeout in `server/update-source.test.ts:202`,
+followed by `EBUSY` during fixture cleanup; Linux passed. No unrelated test or timeout was changed.
