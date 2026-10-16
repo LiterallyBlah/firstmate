@@ -1,0 +1,212 @@
+[
+  {
+    "time": "day",
+    "state": "blocked",
+    "focused": [],
+    "figures": [
+      {
+        "key": "blocked-00",
+        "x": 83,
+        "row": 230,
+        "y": 230
+      },
+      {
+        "key": "blocked-01",
+        "x": 106,
+        "row": 234,
+        "y": 234
+      },
+      {
+        "key": "blocked-02",
+        "x": 130,
+        "row": 235,
+        "y": 235
+      }
+    ]
+  },
+  {
+    "time": "day",
+    "state": "working",
+    "focused": [],
+    "figures": [
+      {
+        "key": "working-00",
+        "x": 241,
+        "row": 65,
+        "y": 65
+      },
+      {
+        "key": "working-01",
+        "x": 200,
+        "row": 233,
+        "y": 233
+      },
+      {
+        "key": "working-02",
+        "x": 222,
+        "row": 240,
+        "y": 240
+      },
+      {
+        "key": "working-03",
+        "x": 270,
+        "row": 233,
+        "y": 233
+      },
+      {
+        "key": "working-04",
+        "x": 294,
+        "row": 233,
+        "y": 233
+      },
+      {
+        "key": "working-05",
+        "x": 316,
+        "row": 233,
+        "y": 233
+      },
+      {
+        "key": "working-06",
+        "x": 338,
+        "row": 233,
+        "y": 233
+      }
+    ]
+  },
+  {
+    "time": "day",
+    "state": "waiting",
+    "focused": [],
+    "figures": [
+      {
+        "key": "ready-00",
+        "x": 387,
+        "row": 240,
+        "y": 240
+      },
+      {
+        "key": "ready-01",
+        "x": 352,
+        "row": 235,
+        "y": 235
+      },
+      {
+        "key": "ready-02",
+        "x": 369,
+        "row": 238,
+        "y": 238
+      }
+    ]
+  },
+  {
+    "time": "day",
+    "state": "idle",
+    "focused": [],
+    "figures": []
+  },
+  {
+    "time": "night",
+    "state": "blocked",
+    "focused": [],
+    "figures": [
+      {
+        "key": "blocked-00",
+        "x": 83,
+        "row": 230,
+        "y": 230
+      },
+      {
+        "key": "blocked-01",
+        "x": 106,
+        "row": 234,
+        "y": 234
+      },
+      {
+        "key": "blocked-02",
+        "x": 130,
+        "row": 235,
+        "y": 235
+      }
+    ]
+  },
+  {
+    "time": "night",
+    "state": "working",
+    "focused": [],
+    "figures": [
+      {
+        "key": "working-00",
+        "x": 241,
+        "row": 65,
+        "y": 65
+      },
+      {
+        "key": "working-01",
+        "x": 200,
+        "row": 233,
+        "y": 233
+      },
+      {
+        "key": "working-02",
+        "x": 222,
+        "row": 240,
+        "y": 240
+      },
+      {
+        "key": "working-03",
+        "x": 270,
+        "row": 233,
+        "y": 233
+      },
+      {
+        "key": "working-04",
+        "x": 294,
+        "row": 233,
+        "y": 233
+      },
+      {
+        "key": "working-05",
+        "x": 316,
+        "row": 233,
+        "y": 233
+      },
+      {
+        "key": "working-06",
+        "x": 338,
+        "row": 233,
+        "y": 233
+      }
+    ]
+  },
+  {
+    "time": "night",
+    "state": "waiting",
+    "focused": [],
+    "figures": [
+      {
+        "key": "ready-00",
+        "x": 387,
+        "row": 240,
+        "y": 240
+      },
+      {
+        "key": "ready-01",
+        "x": 352,
+        "row": 235,
+        "y": 235
+      },
+      {
+        "key": "ready-02",
+        "x": 369,
+        "row": 238,
+        "y": 238
+      }
+    ]
+  },
+  {
+    "time": "night",
+    "state": "idle",
+    "focused": [],
+    "figures": []
+  }
+]
