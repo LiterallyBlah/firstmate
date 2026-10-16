@@ -103,22 +103,20 @@ is checked in an isolated sea crop, not just by changing crew pixels.
 
 `crew.json` records 192 exact target clicks: all 24 workers in each of four states,
 by day and night. `lite.json` records the established SwiftShader and keyboard
-focus check. `audit.json` records the image budget: **922,871 / 1,000,000 bytes**.
+focus check. `audit.json` records the image budget: **904,476 / 1,000,000 bytes**.
 
 `ship-gate.json` records all **81 frozen Ship shots pixel-identical to main**, with
 no browser errors, flakes, masks or intentional-difference allowances used.
 `compile-results.json` records both bundles parsing in Hermes and zero bundle
-growth. The compiled branch is `1d58c9d`; the subsequent spirit commit only changes
-pack data/art and offline authoring files, so its runtime source is identical.
+growth against current main. This PR changes pack data/art and offline authoring
+files, so its runtime source is identical to main.
 The render harness loads the final pack from this worktree through the pack RPC.
 The final pack also passed the 69 pack/schema checks and TypeScript checking.
 
-The full local suite ran alone with `npm.cmd test -- --maxWorkers=1`: 1,178 passed,
-3 skipped, and two known timing failures in unchanged files (`pr-watch`'s 400 ms
-backlog budget and `update-source`'s 5-second timeout). Each file then passed all
-five tests in a separate single-worker run. No tests or timeouts were edited.
-`validation.json` records the commands and outcomes; the PR's Linux and Windows CI
-checks run the complete suite on clean runners.
+The initial local suite had two known timing failures, both passing in isolated
+reruns. The anchor correction is based on current main, which already contains
+the independent test timing fixes and viewport-weather fix. `validation.json`
+records final commands and outcomes; Linux and Windows CI run the complete suite.
 
 ## Reproduce
 

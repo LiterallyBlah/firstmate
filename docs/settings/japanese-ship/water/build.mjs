@@ -111,6 +111,6 @@ spiritElement.behaviour.frames={sprites:[pose(2),pose(2),pose(3),pose(1),pose(0)
 spiritElement.behaviour.opacity={curve:[[.78,0],[.780001,1]]};
 delete spiritElement.behaviour.variants;
 registerWorldCoast(p);
-p.requires=[...new Set([...p.requires,'phase-strip@1'])].sort();p.version='1.1.0';
+p.requires=[...new Set([...p.requires,'phase-strip@1'])].sort();p.version='1.1.2';
 writeFileSync(resolve(out,'setting.json'),JSON.stringify(p,null,2)+'\n');
-writeFileSync(resolve(here,'registration.json'),JSON.stringify({baseline,sourceHashes:Object.fromEntries(['swell','stars'].map(n=>[n,sha(readFileSync(resolve(here,'sources',n+'.png')))])),imageBytes:Object.values(p.images).reduce((n,i)=>n+readFileSync(resolve(out,i.path)).length,0)},null,2)+'\n');
+writeFileSync(resolve(here,'registration.json'),JSON.stringify({baseline,sourceHashes:{...Object.fromEntries(['swell','stars'].map(n=>[n,sha(readFileSync(resolve(here,'sources',n+'.png')))])),openBay:sha(readFileSync(resolve(here,'anchor/sources/open-bay.png')))},imageBytes:Object.values(p.images).reduce((n,i)=>n+readFileSync(resolve(out,i.path)).length,0)},null,2)+'\n');

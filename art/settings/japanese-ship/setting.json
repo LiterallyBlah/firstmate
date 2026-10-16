@@ -3,7 +3,7 @@
   "formatVersion": 1,
   "id": "japanese-ship",
   "name": "Sakura coast",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "requires": [
     "atmosphere@1",
     "attention-carrier@1",
@@ -67,7 +67,7 @@
         600,
         400
       ],
-      "sha256": "4745247a4f549ad42767a334b8a9bf83008f184e0f0c71f115353989f5f9e679"
+      "sha256": "e2eae8d9750fa7328a85f8ec31ee9d6e7bef17803e10ae332aef1f87b2ae28e7"
     },
     "coast-night": {
       "path": "coast-night.png",
@@ -75,7 +75,7 @@
         600,
         400
       ],
-      "sha256": "11df7879b4f031a984be93b18a37526c2317b5ac083e39879baae382804766f5"
+      "sha256": "5ce196ea5e9a01c6bde4f1b449eb91964250e58ed7f8e8943cf1fff6794da3f3"
     },
     "wake": {
       "path": "wake.png",
@@ -395,7 +395,7 @@
         600,
         400
       ],
-      "sha256": "c7014b06356313b328a5c0f14bb66ef302df3beb8c971d6e0c390f23c167eab2"
+      "sha256": "55e3def62f78d7cd6322d81ecee7ffc638d85aaba555f13366805497e622cf3d"
     },
     "coast-dawn-front": {
       "path": "coast-dawn-front.png",
@@ -411,7 +411,7 @@
         600,
         400
       ],
-      "sha256": "8064d78b7d65f37800393c5924f4de748937eed589e6cfe2d1cdcf718c6c12f5"
+      "sha256": "c9d9251c0081677b1677a1945759a23aabfe2605b699f2a8a8af6ccd8fb01db8"
     },
     "coast-morning-front": {
       "path": "coast-morning-front.png",
@@ -427,7 +427,7 @@
         600,
         400
       ],
-      "sha256": "a2a8ca9e2e856f61a851f52a7df72a1326f23cb0eeac1bd9526e5a345f272446"
+      "sha256": "b723e114ced9280deb7ab22e44e8f728aa376d1379e5908f45b2bf41856faad5"
     },
     "coast-afternoon-front": {
       "path": "coast-afternoon-front.png",
@@ -443,7 +443,7 @@
         600,
         400
       ],
-      "sha256": "5df4a6bf2be9bcbbd759b42a6d886dfa400c9359d9a05942a2ca604e2e3997d3"
+      "sha256": "e78d72c555e32895387cb2b0137fa0d838f3b962e3e668d9ff3a0d45d6c7cd72"
     },
     "coast-dusk-front": {
       "path": "coast-dusk-front.png",
@@ -539,7 +539,7 @@
         600,
         400
       ],
-      "sha256": "fa7cdd2e16028df7151ce283f2df57610c646de0c2d0fa75a1904b2549a016df"
+      "sha256": "b8aae82fa6c2156d4cdf370a607dfadaea4738c69809320b44c59db0bed331b5"
     },
     "coast-storm-shade": {
       "path": "coast-storm-shade.png",

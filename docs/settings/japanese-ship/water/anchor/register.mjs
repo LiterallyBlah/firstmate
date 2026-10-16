@@ -19,11 +19,13 @@ export function indexed(a){
  return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',head),chunk('PLTE',Buffer.from(colours.flatMap(c=>c.slice(0,3)))),chunk('tRNS',Buffer.from(colours.map(c=>c[3]))),chunk('IDAT',deflateSync(raw,{level:9})),chunk('IEND',Buffer.alloc(0))]);
 }
 export function registerWorldCoast(p){
- const old=id=>decodePng(execFileSync('git',['show','500ac77:art/settings/japanese-ship/'+id+'.png'],{cwd:root,maxBuffer:3e6}));
+ const old=id=>decodePng(execFileSync('git',['show','b1458b4:art/settings/japanese-ship/'+id+'.png'],{cwd:root,maxBuffer:3e6}));
  const save=(id,a)=>{const bytes=indexed(a);writeFileSync(resolve(out,id+'.png'),bytes);p.images[id]={path:id+'.png',size:[a.width,a.height],sha256:createHash('sha256').update(bytes).digest('hex')};};
  const day=old('coast'),source=nearest(decodePng(readFileSync(resolve(here,'sources/open-bay.png'))),600,400),byPhase={};
  for(const phase of ['dawn','morning','midday','afternoon','dusk','night']){
   const id=phase==='midday'?'coast':'coast-'+phase,reference=old(id),fill=blank(600,400);
+  const skyDay=[0,0,0],skyPhase=[0,0,0];
+  for(let y=0;y<100;y++)for(let x=0;x<140;x++)for(let k=0;k<3;k++){skyDay[k]+=day.rgba[(y*600+x)*4+k];skyPhase[k]+=reference.rgba[(y*600+x)*4+k];}
   // Match the existing six phase palettes using corresponding original sky/sea pixels.
   const pairs=new Map();for(let y=0;y<400;y++)for(let x=0;x<140;x++){
    const i=(y*600+x)*4,key=[...day.rgba.subarray(i,i+3)].join(',');if(!pairs.has(key))pairs.set(key,{rgb:[...day.rgba.subarray(i,i+3)],sum:[0,0,0],n:0});const c=pairs.get(key);for(let k=0;k<3;k++)c.sum[k]+=reference.rgba[i+k];c.n++;
@@ -31,10 +33,13 @@ export function registerWorldCoast(p){
   const colours=[...pairs.values()],memo=new Map();
   for(let i=0;i<fill.rgba.length;i+=4){
    const rgb=[...source.rgba.subarray(i,i+3)],key=rgb.join(',');let colour=memo.get(key);
+   // A uniform sky transform preserves the generated smooth dithered gradient.
+   // Nearest-colour correspondence can create a false horizontal boundary here.
+   if(i<600*180*4){fill.rgba.set([...rgb.map((v,k)=>Math.min(255,Math.round(v*skyPhase[k]/skyDay[k]))),255],i);continue;}
    if(!colour){const nearest=colours.reduce((best,c)=>{const d=c.rgb.reduce((n,v,k)=>n+(v-rgb[k])**2,0);return d<best.d?{d,c}:best;},{d:Infinity});colour=nearest.c.sum.map((v,k)=>Math.max(0,Math.min(255,Math.round(rgb[k]+v/nearest.c.n-nearest.c.rgb[k]))));memo.set(key,colour);}
    fill.rgba.set([...colour,255],i);
   }
-  quant(fill,32);save(id,fill);
+  quant(fill,64);save(id,fill);
   const original=old(id+'-front'),island=blank(1200,280);
   for(let y=0;y<280;y++)for(let x=0;x<1200;x++){
    const sx=x<600?x:1199-x,i=(y*600+sx)*4,j=(y*1200+x)*4;

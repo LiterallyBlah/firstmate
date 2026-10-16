@@ -1,6 +1,6 @@
 {
   "baseline": "b1458b4",
-  "imageBytes": 922871,
+  "imageBytes": 904476,
   "preservedImages": [
     "ship",
     "wake",
@@ -95,6 +95,16 @@
       1,
       1
     ],
-    "frames": 15
+    "frames": 15,
+    "worldWaterline": [
+      100,
+      178
+    ],
+    "coastSpace": "stationary world phase strip",
+    "hidden": [
+      "lite",
+      "still",
+      "reduced motion"
+    ]
   }
 }
