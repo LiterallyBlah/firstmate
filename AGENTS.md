@@ -125,16 +125,19 @@ compile time. This file covers only what is specific to `firstmate`.
 
 ## Home and the workspace tabs (shell phase 1)
 
-Home's header keeps the title, mate status and task counts together, with the Board/Home files switch
+Home's header keeps the title, mate status and task counts together, with the List/Board/Home files switch
 and **More** beside them. `client/header-actions.tsx` puts provider migration, watches, pane visibility,
 the full conversation, updates, refresh, settings and the full home path behind More's host modal.
 Migration and Watches open sibling dialogs after More closes, with web focus returning to More.
 Recovery/failing-watch attention colours the More trigger. The workspace shortcuts stay below;
 their capability explanations live in tooltips and the browser dialog rather than a permanent blurb.
 
-The sidebar's `fleet` screen is **Home**: one first-mate chat, a Board overview, Home files and a
-launcher. Crew (the grouped List) and Deck have canonical workspace destinations; Home no longer
-switches into either. `client/workspace-panels.tsx` registers `firstmate-deck`, `firstmate-board` and
+The sidebar's `fleet` screen is **Home**: one first-mate chat, a List/Board task overview, Home files and a
+launcher. Home uses the saved `crewView`, defaulting to List; the two views share the same cards,
+host/tag filters, actions and open worker conversation. Switching views preserves a draft; pressing
+the selected view again returns from the conversation to its tasks. Compact Home exposes First mate,
+List, Board and Files in the existing tab row. The standalone Crew (List), Board and Deck destinations
+keep their own layouts. `client/workspace-panels.tsx` registers `firstmate-deck`, `firstmate-board` and
 `firstmate-crew` through `addWorkspacePanel`, workspace location only. The older contextual workspace
 and agent panels remain separate. `client/shell.ts` holds the fixed identities and home-workspace rule.
 The callbacks are closed over the contributing installation, never a global navigation singleton.
