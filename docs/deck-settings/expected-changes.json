@@ -1,5 +1,411 @@
 {
-  "review": "docs/settings/japanese-ship/README.md",
-  "base": "compiled main e5c7f75",
-  "shots": {}
+  "review": "docs/deck-shark-suggestions/README.md",
+  "base": "compiled main edda14e",
+  "shots": {
+    "still-noon-dark/open": {
+      "main": "1720c380cd1e870e",
+      "branch": "886a7da89d045270",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "still-noon-light/open": {
+      "main": "7b56fca43f441ee4",
+      "branch": "7a6cfa071a668ce0",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "still-night/open": {
+      "main": "e493c1e78c884825",
+      "branch": "dceb6e22708feb99",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "still-dawn/open": {
+      "main": "6223f5a51c4c12fc",
+      "branch": "f341aeb1dae63186",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "still-dusk-to-night/open": {
+      "main": "a0f7073e64237148",
+      "branch": "b295ca8240e040ab",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "still-busy/open": {
+      "main": "955f4cffc56ebd6a",
+      "branch": "283135d26e3bfa9a",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "still-all-idle/open": {
+      "main": "2d010dcf4ecc18ff",
+      "branch": "b73323c4fef602f9",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "still-feed-lost/lost": {
+      "main": "fd623a0e800da096",
+      "branch": "3d374fb466210cbf",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-noon/0.4s": {
+      "main": "66e4327531b32732",
+      "branch": "026348fb38e6303c",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "moving-noon/1s": {
+      "main": "815392f4df8eac0c",
+      "branch": "1f4b17040dce2e2e",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "moving-noon/2.5s": {
+      "main": "5654a17e55c17568",
+      "branch": "37843d6fb20e1ba7",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "moving-noon/5s": {
+      "main": "46bd2796bdfdf27b",
+      "branch": "0b676ca808f366ac",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "moving-noon/10s": {
+      "main": "e5ed5ff21ee29d0c",
+      "branch": "c8e40b6850e858a3",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "moving-noon/25s": {
+      "main": "af7119881d593b2d",
+      "branch": "d581e29105ad4386",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "moving-noon/49s": {
+      "main": "fc6470003b8fe563",
+      "branch": "314421663847544c",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "moving-noon/73s": {
+      "main": "c3861e4b47a10fea",
+      "branch": "658ea54015040cc1",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "moving-storm/0.4s": {
+      "main": "154deb49e67eead8",
+      "branch": "40f9c6365fb1e932",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/5.4s": {
+      "main": "50bd288c6e8f9707",
+      "branch": "8778ff69e10e0c5e",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/10.4s": {
+      "main": "0224f0ac5b1be34c",
+      "branch": "5a251949efd91eec",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/15.4s": {
+      "main": "23b608a0b1941b61",
+      "branch": "befa83de3dcfafc7",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/20.4s": {
+      "main": "8d1376b73e31da64",
+      "branch": "3e339e6cd05a496e",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/25.4s": {
+      "main": "a07038a2087dd472",
+      "branch": "a4ffd0071e3cc8df",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/30.4s": {
+      "main": "4a88ea09d38e84b9",
+      "branch": "b0e307df6c3b6d3a",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/flash-33.5s": {
+      "main": "fb385fe3b9d1cb22",
+      "branch": "d4e933a1e6612742",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/flash-33.6s": {
+      "main": "77dee2fadf0d3f35",
+      "branch": "6cce1d4cd1183420",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/35.4s": {
+      "main": "d843ea5932084977",
+      "branch": "2c141109a1381645",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/40.4s": {
+      "main": "560c05f483860ab9",
+      "branch": "bf19a37893613c2f",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/45.4s": {
+      "main": "87b8b235a83ce880",
+      "branch": "c91dd810e4b01016",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/flash-48.9s": {
+      "main": "c5bece454a51e206",
+      "branch": "bcabc58231f01d08",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/flash-49.0s": {
+      "main": "80955e77a1d14ebf",
+      "branch": "1e54c2c231c2eefe",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/50.4s": {
+      "main": "10c9091a82d62f46",
+      "branch": "06e61b70f2cf2358",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/55.4s": {
+      "main": "ecffe7409a1b8c58",
+      "branch": "89d108e256d94d87",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/60.4s": {
+      "main": "6f36b9a0e147c608",
+      "branch": "731854b0b12798cc",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/65.4s": {
+      "main": "0faac004870d9618",
+      "branch": "3b4a6241080a13ae",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/70.4s": {
+      "main": "7edfeeee1fe38f6b",
+      "branch": "6646a3df2fee2d2a",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/75.4s": {
+      "main": "d3f1598540002f17",
+      "branch": "e1220ee20a8321f5",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/80.4s": {
+      "main": "b95d93b0fd614e37",
+      "branch": "863234127f3e13c8",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/85.4s": {
+      "main": "10ebbc1c21662b34",
+      "branch": "b1518e95dbc623eb",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/90.4s": {
+      "main": "37d574118793a0bd",
+      "branch": "48d55add7ca08c9d",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/95.4s": {
+      "main": "23166ac0803a628a",
+      "branch": "02367334e54a674b",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/100.4s": {
+      "main": "41957136dfeb2769",
+      "branch": "e0a1b9368f75f740",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/105.4s": {
+      "main": "2fd14bd89314cbbe",
+      "branch": "8f2fdec4b8c4e229",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/110.4s": {
+      "main": "c020c4d53ba93604",
+      "branch": "c2e98172e94aac7c",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/115.4s": {
+      "main": "9ba7bfa2d0c9b453",
+      "branch": "34178960ad529b24",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-storm/120.4s": {
+      "main": "4a00f8c0766119cf",
+      "branch": "5f2df5cbf40f7605",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-night/0.4s": {
+      "main": "fa2f8e5ce951c047",
+      "branch": "4c93e4cc3a83a8f3",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "moving-night/10s": {
+      "main": "906b465f875309c8",
+      "branch": "a1b9e3dab4dd958c",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "moving-crew/aboard": {
+      "main": "66e4327531b32732",
+      "branch": "026348fb38e6303c",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "moving-crew/changed": {
+      "main": "f3406b027f451a5d",
+      "branch": "d8f08d0eb309caf2",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/walking-1000ms": {
+      "main": "8081dcd44601c7e3",
+      "branch": "43d70591dc75cb36",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/walking-2000ms": {
+      "main": "1fc8528c27c14a63",
+      "branch": "b5873a3b408d80e8",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/walking-3000ms": {
+      "main": "5c4377c3535a12ca",
+      "branch": "1c7ef92dbd1be8c4",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/walking-5000ms": {
+      "main": "7c6e507891fbace8",
+      "branch": "224c059e33e870b3",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/walking-8000ms": {
+      "main": "ad43fe507641d538",
+      "branch": "b5b60e11ca0c08b7",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/arrived": {
+      "main": "741d237aa815277e",
+      "branch": "6fcd03d0254fcc6a",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/hatch-200ms": {
+      "main": "115b28811c102912",
+      "branch": "498ce8ac395fc645",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/hatch-400ms": {
+      "main": "8c16cd81e41bd546",
+      "branch": "64da754ea9ed9ee6",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/hatch-700ms": {
+      "main": "17745bcecf7cc01d",
+      "branch": "0884e71df501675e",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/hatch-1500ms": {
+      "main": "9d51cbad264eaaba",
+      "branch": "e1ae9e440015a577",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/hatch-3000ms": {
+      "main": "fd8d1bc14aa67a08",
+      "branch": "e5cf9064a17c3834",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-300ms": {
+      "main": "9f15554b1f09dcda",
+      "branch": "ac376c96b90c4a54",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-800ms": {
+      "main": "67b939918207b097",
+      "branch": "8f47476b64270777",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-1400ms": {
+      "main": "61a483a3cba919a8",
+      "branch": "e35b92bc140a21fe",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-2000ms": {
+      "main": "3472b53825118ac8",
+      "branch": "1cf29259e6c3880f",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-2400ms": {
+      "main": "f118f388f83ab583",
+      "branch": "97298c36d7a6a3ae",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-2700ms": {
+      "main": "938705034721d0b1",
+      "branch": "903dc2b7b126770c",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-3000ms": {
+      "main": "6b092b711992e070",
+      "branch": "aec7d445e79e2a18",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-3300ms": {
+      "main": "cedbb5836f90370f",
+      "branch": "6863bf9fc58e79d8",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-3600ms": {
+      "main": "530f2ad6f887954d",
+      "branch": "fc2e5429c3765aff",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-4000ms": {
+      "main": "8093bbae7a4d49bc",
+      "branch": "cd777d1a06c466ef",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-4600ms": {
+      "main": "da76de1d6bcece87",
+      "branch": "ea9cfc6abf7def85",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-5400ms": {
+      "main": "5b3490626a1e45c8",
+      "branch": "4afa2bba3364915f",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/leaving-7000ms": {
+      "main": "c8be38691966296b",
+      "branch": "39f102435722682e",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "moving-crew/after": {
+      "main": "5355e859f5b744df",
+      "branch": "06b6fa74fa19b630",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention."
+    },
+    "focus/100ms": {
+      "main": "4ada9fd6ee6924f8",
+      "branch": "c9037edb3c07b644",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. Ordinary worker focus and zoom remain unchanged."
+    },
+    "focus/300ms": {
+      "main": "0a2824ad8a4f56dc",
+      "branch": "acaa186e25d51427",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. Ordinary worker focus and zoom remain unchanged."
+    },
+    "focus/1.5s": {
+      "main": "cff71350005f0ecd",
+      "branch": "00ac6a9146684431",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. Ordinary worker focus and zoom remain unchanged."
+    },
+    "focus/back-out": {
+      "main": "12bd4e47dbcb682f",
+      "branch": "4b7db8227224bf16",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. Ordinary worker focus and zoom remain unchanged."
+    },
+    "lite-software-renderer/0.4s": {
+      "main": "281ff5a5a606561c",
+      "branch": "bc93f9988651a734",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "lite-software-renderer/2s": {
+      "main": "5d690c906d2b36a6",
+      "branch": "e910971626367f61",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    },
+    "lite-software-renderer/6s": {
+      "main": "47a274907ca8e43e",
+      "branch": "49866e4cd1703530",
+      "reason": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible."
+    }
+  }
 }

@@ -113,19 +113,22 @@ export async function checkJapaneseShip(view, manifest) {
   await view.evaluate(() => document.querySelector('[data-firstmate-deck-overlay]').remove());
   const url = view.url();
   await canvas.evaluate(node => { window.japaneseOriginalCanvas = node; });
-  await point(52, 307);
-  await panel.waitFor({ state: 'visible' });
-  assert.equal(await panel.getAttribute('aria-label'), 'Bow sailor: details and actions');
+  const suggestions = view.getByTestId('firstmate-deck-suggestions');
+  const [sx, sy] = manifest.attentionCarrier.at;
+  await point(sx + 30, sy + 30);
+  await suggestions.waitFor();
+  assert.equal(await panel.count(), 0);
   assert.equal(view.url(), url);
   assert.ok(await canvas.evaluate(node => node === window.japaneseOriginalCanvas));
   assert.equal(await view.getByRole('complementary', { name: /Conversation with/ }).count(), 0);
-  await shot('shark-focus');
-  await close();
-  await point(46, 283);
-  await panel.waitFor({ state: 'visible' });
-  assert.equal(await panel.getAttribute('aria-label'), 'Bow sailor: details and actions');
-  await close();
-  checks.push('all four crew states render; generated shark body and bubble focus their worker in place on the same canvas');
+  await shot('shark-suggestions');
+  await view.keyboard.press('Escape');
+  await suggestions.waitFor({ state: 'hidden' });
+  await point(sx + 30, sy + 8);
+  await suggestions.waitFor();
+  await view.keyboard.press('Escape');
+  await suggestions.waitFor({ state: 'hidden' });
+  checks.push('all four crew states render; shark body and bubble open suggestions without focusing a worker');
 
   await view.clock.setFixedTime(new Date('2026-10-14T23:00:00Z'));
   await refresh();
@@ -176,21 +179,21 @@ export async function checkJapaneseShip(view, manifest) {
   await setCards(mixed);
   await view.evaluate(() => { window.fixtureFleetError = true; });
   await refresh();
-  assert.equal(await view.getByTestId('firstmate-deck-attention').count(), 0);
+  assert.equal(await view.getByRole('button', { name: 'Shark suggestions', exact: true }).count(), 1);
   await shot('stale');
   await view.evaluate(() => { window.fixtureFleetError = false; });
   await refresh();
   for (const width of [900, 640]) {
     await view.setViewportSize({ width, height: 900 });
     await view.waitForTimeout(500);
-    const footer = view.getByTestId('firstmate-deck-attention');
+    const footer = view.getByRole('button', { name: 'Shark suggestions', exact: true });
     assert.ok(await footer.isVisible());
     const box = await footer.boundingBox();
     assert.ok(box.x >= 0 && box.x + box.width <= width);
     assert.ok(await footer.evaluate(node => node.scrollWidth <= node.clientWidth + 1), 'compact response footer fits');
     await shot(`split-${width}`);
   }
-  checks.push('stale feed removes reply target; compact footer fits 900 and 640 pixel panes');
+  checks.push('stale crew does not remove the suggestion target; compact footer fits 900 and 640 pixel panes');
   assert.deepEqual(await view.evaluate(() => window.fixtureErrors), []);
   assert.equal((await view.evaluate(() => window.fixtureCalls)).filter(c => /\.send$|\.steer$|\.respond$/.test(c.name)).length, 0);
   const evidence = { checks, focused: names, screenshots, errors: [] };

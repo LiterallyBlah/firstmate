@@ -33,6 +33,7 @@ export const ENGINE_CAPABILITIES = [
   "zone-appearance@1",
   "post-transit@1",
   "attention-carrier@1",
+  "carrier-surface@1",
   "stable-posts@1",
   "cast@1",
   "pose-fidgets@1",
@@ -492,10 +493,19 @@ const Copy = z.strictObject({
 
 const Images = z.record(Id, z.strictObject({ path: PackPath, size: Size, sha256: z.string().regex(/^[0-9a-f]{64}$/) }));
 
-/** One persistent, engine-selected worker's focus target, independent of the stage's motion. */
+/** One persistent suggestion target, independent of the stage's motion. */
 const AttentionCarrier = z.strictObject({
   at: Point,
   size: Size,
+  /** Top rows containing only the speech marker, hidden when there are no suggestions. */
+  bubbleHeight: Px.nonnegative().optional(),
+  /** A water surface through the body; marker rows stay above it. Shares an ambience clock. */
+  surface: z.strictObject({
+    row: Positive,
+    submergedTint: Hex,
+    submergedAlpha: z.number().min(0).max(1),
+    ripple: z.strictObject({ colour: Hex, shade: Hex, periodMs: Ms, clock: Id }),
+  }).optional(),
   frames: z.array(Sprite).min(1),
   frameMs: Ms,
   loiter: z.strictObject({ amplitude: z.tuple([Px.nonnegative(), Px.nonnegative()]), periodMs: Ms }),
@@ -594,6 +604,7 @@ export function capabilitiesUsed(manifest: SettingManifest): string[] {
   if (manifest.zones.zones.some((zone) => zone.appearance !== undefined)) used.add("zone-appearance@1");
   if (manifest.zones.zones.some((zone) => zone.posts.some((post) => post.transit !== undefined))) used.add("post-transit@1");
   if (manifest.attentionCarrier !== undefined) used.add("attention-carrier@1");
+  if (manifest.attentionCarrier?.surface !== undefined) used.add("carrier-surface@1");
   if (manifest.zones.zones.some((zone) => zone.assign === "stable")) used.add("stable-posts@1");
   if (Object.values(manifest.cast.fidgets).some((fidget) => fidget?.keys.some((key) => key.pose !== undefined))) used.add("pose-fidgets@1");
   used.add(`${manifest.portals.entry.kind}@1`);
@@ -646,6 +657,9 @@ export function settingProblems(manifest: SettingManifest): string[] {
   const carrier = manifest.attentionCarrier;
   if (carrier !== undefined) {
     const [x, y] = carrier.at, [width, height] = carrier.size, [dx, dy] = carrier.loiter.amplitude;
+    if ((carrier.bubbleHeight ?? 0) >= height) problems.push("attentionCarrier bubbleHeight must leave a visible body");
+    if (carrier.surface !== undefined && (width < 32 || carrier.surface.row <= (carrier.bubbleHeight ?? 0) || carrier.surface.row >= height - 2))
+      problems.push("attentionCarrier surface must cross the body below its marker and leave room for the ripple");
     if (x - dx < 0 || x + width + dx > manifest.stage.size[0] || y - dy < manifest.stage.fit.top || y + height + dy > manifest.stage.fit.bottom)
       problems.push("attentionCarrier and its loiter must stay inside the stage fit");
     for (const sprite of carrier.frames) {
@@ -828,6 +842,7 @@ export function settingProblems(manifest: SettingManifest): string[] {
   for (const [clock, channel] of Object.entries(manifest.atmosphere?.clocks ?? {})) if (!channels.has(channel)) missing("channel", channel, `clock ${clock}`);
   for (const channel of Object.keys(manifest.atmosphere?.delivered ?? {})) if (!channels.has(channel)) missing("channel", channel, "atmosphere.delivered");
   const clockRefs: Array<[string | undefined, string]> = [];
+  if (carrier?.surface !== undefined) clockRefs.push([carrier.surface.ripple.clock, "attentionCarrier.surface"]);
   const levelRefs: Array<[z.infer<typeof Level> | undefined, string]> = [];
   if (manifest.stage.motion !== undefined) {
     clockRefs.push([manifest.stage.motion.bob.clock, "stage.motion"]);

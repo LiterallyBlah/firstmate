@@ -1,0 +1,17 @@
+{
+  "checks": [
+    "day/night 640/900 bounds",
+    "file order",
+    "no worker focus",
+    "shark toggle",
+    "Escape",
+    "keyboard",
+    "outside click",
+    "existing send path",
+    "answered",
+    "pending send gate across mounts",
+    "failure toast and retry",
+    "long list scrolling",
+    "empty without crew"
+  ]
+}

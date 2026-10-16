@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { URL } from "node:url";
 import { shipFile, shipManifest } from "../test/ship-pack";
 import { decodePng } from "../test/png";
 import { SettingManifestSchema } from "../shared/deck-setting";
-import { carrierAt, carrierHit, carrierHover } from "./deck-attention";
+import { carrierAt, carrierHit, carrierHover, carrierRipples } from "./deck-attention";
 
 describe("attention-carrier@1", () => {
   const carrier = shipManifest().attentionCarrier!;
@@ -15,6 +16,8 @@ describe("attention-carrier@1", () => {
     expect(changed(m => { m.attentionCarrier!.frames[0]!.rect = [0, 0, 1, 1]; })).toBe(false);
     expect(changed(m => { m.attentionCarrier!.at = [-1, 10]; })).toBe(false);
     expect(changed(m => { m.attentionCarrier!.loiter.amplitude = [999, 1]; })).toBe(false);
+    expect(changed(m => { m.attentionCarrier!.bubbleHeight = 48; })).toBe(false);
+    expect(changed(m => { m.attentionCarrier!.bubbleHeight = -1; })).toBe(false);
     expect(SettingManifestSchema.safeParse({ ...shipManifest(), attentionCarrier: { ...carrier, script: "openWorker()" } }).success).toBe(false);
   });
 
@@ -46,5 +49,37 @@ describe("attention-carrier@1", () => {
         if (y<24) expect(frame.at(x,y)).toBe(frames[0]!.at(x,y));
       }
     }
+  });
+});
+
+describe("carrier-surface@1", () => {
+  const manifest = () => JSON.parse(readFileSync(new URL("../art/settings/japanese-ship/setting.json", import.meta.url), "utf8"));
+  it("requires a surface inside the body, an existing water clock and explicit engine support", () => {
+    expect(SettingManifestSchema.safeParse(manifest()).success).toBe(true);
+    for (const change of [
+      (m: ReturnType<typeof shipManifest>) => { m.attentionCarrier!.surface!.row = 18; },
+      (m: ReturnType<typeof shipManifest>) => { m.attentionCarrier!.surface!.row = 43; },
+      (m: ReturnType<typeof shipManifest>) => { m.attentionCarrier!.surface!.ripple.clock = "missing"; },
+      (m: ReturnType<typeof shipManifest>) => { m.requires = m.requires.filter(x => x !== "carrier-surface@1"); },
+    ]) {
+      const m = manifest(); change(m);
+      expect(SettingManifestSchema.safeParse(m).success).toBe(false);
+    }
+  });
+
+  it("keeps moving and still ripples attached to the waterline, inside the target and below the marker", () => {
+    const carrier = SettingManifestSchema.parse(manifest()).attentionCarrier!;
+    const still = carrierRipples(carrier, 0, false);
+    for (let ms = 0; ms < 6000; ms += 100) {
+      expect(carrierRipples(carrier, ms, false)).toEqual(still);
+      for (const arc of carrierRipples(carrier, ms, true)) {
+        expect(arc.x).toBeGreaterThanOrEqual(0);
+        expect(arc.x + arc.width).toBeLessThanOrEqual(carrier.size[0]);
+        expect(arc.y).toBeGreaterThan(carrier.bubbleHeight!);
+        expect(Math.abs(arc.y - carrier.surface!.row)).toBeLessThanOrEqual(2);
+      }
+    }
+    expect(carrierRipples(carrier, 600, true)).not.toEqual(still);
+    expect(carrierRipples(shipManifest().attentionCarrier!, 600, true)).toEqual([]);
   });
 });
