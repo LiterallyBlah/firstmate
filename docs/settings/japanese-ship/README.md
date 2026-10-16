@@ -100,7 +100,7 @@ The first art build can omit the optional preview until a day render exists.
 Rebuild art and manifest after changing the reviewed day composition. No test or
 preview command installs the plugin or modifies the live daemon.
 
-The ship gate compares all 81 full interface captures against main `87c26d2`,
+The ship gate compares all 81 full interface captures against main `e7abadd`,
 including the condensed footer. This addition expects **zero changed pixels**:
 `docs/deck-settings/expected-changes.json` has an empty shot map. Historical shark
 and ladder evidence remains preserved in its own reviews.
@@ -114,5 +114,5 @@ Typecheck, all 1,091 tests in 90 files (three existing skips), and all 51 pack-l
 checks pass. [validation.json](validation.json) records the protected-file audit and
 byte-identical client bundles; [compile-results.json](compile-results.json) records
 Paseo compilation, zero bundle growth, and Hermes parsing. The bundle contains no
-`class` tokens. The compiler and gate pin pack revision `b61a32f`; the following
+`class` tokens. The compiler and gate pin revision `ec1ec52`; the following
 evidence commit changes documentation only.
