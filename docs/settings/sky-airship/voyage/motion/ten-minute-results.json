@@ -1,0 +1,14 @@
+{
+  "results": [
+    {
+      "aspect": "wide",
+      "elapsedSeconds": 600,
+      "landmarks": [
+        "sky-dock",
+        "ruins"
+      ],
+      "renderer": "production animation clock; no time or position overrides"
+    }
+  ],
+  "errors": []
+}

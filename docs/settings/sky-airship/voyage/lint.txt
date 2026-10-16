@@ -1,0 +1,12 @@
+
+> @gpambrozio/paseo-firstmate@0.4.0 lint:deck-packs
+> vitest run shared/deck-setting.test.ts test/deck-settings.test.ts test/office-draft.test.ts --maxWorkers=1
+
+
+ RUN  v5.0.3 C:/Users/micha/.paseo/worktrees/23z5sbxl/sky-crew-edge
+
+
+ Test Files  3 passed (3)
+      Tests  69 passed (69)
+   Start at  22:38:37
+   Duration  7.75s (tests 87%, import 7%, transform 6%)

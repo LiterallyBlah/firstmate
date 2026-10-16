@@ -1,4 +1,4 @@
-﻿/** Offline registration of generated floating-island art. No engine code. */
+/** Offline registration of generated floating-island art. No engine code. */
 import fs from 'node:fs';import {createHash} from 'node:crypto';import {resolve,dirname} from 'node:path';import {fileURLToPath} from 'node:url';
 import {decodePng} from '../../../../test/png.ts';import {blank,crop,nearest,quant,paste,bounds,encode} from '../../japanese-ship/build-art.mjs';
 import {indexed} from './indexed.mjs';
@@ -31,4 +31,3 @@ for(const id of ['sea-far','sea-far-storm','sea-mid','sea-mid-storm','sea-near',
 const preview=resolve(here,'renders/wide-day.png');if(fs.existsSync(preview))save('preview',quant(nearest(decodePng(fs.readFileSync(preview)),384,202),64));
 fs.writeFileSync(file,JSON.stringify(m,null,2)+'\n');fs.writeFileSync(resolve(here,'layout.json'),JSON.stringify(layers,null,2)+'\n');
 console.log('Pack bytes',Object.values(m.images).reduce((n,a)=>n+fs.statSync(resolve(pack,a.path)).size,0));
-

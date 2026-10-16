@@ -1,0 +1,57 @@
+{
+  "base": "9d4093d56773cf89475a386d99993b73b33f2f73",
+  "runtimeCommit": "51c8958",
+  "coverageRenderEngine": "origin/main 88b8e1b including #98; RENDER_TREE=main",
+  "fullSuite": {
+    "passed": 1180,
+    "skipped": 3,
+    "failed": 0
+  },
+  "packLint": {
+    "passed": 69,
+    "failed": 0
+  },
+  "typecheck": "pass",
+  "hermes": "both plugin bundles parsed",
+  "frozenShip": {
+    "shots": 81,
+    "pixelIdentical": true
+  },
+  "crowd": {
+    "exactCentreClicks": 192,
+    "normalBowClicks": 6,
+    "viewports": [
+      [
+        1440,
+        900
+      ],
+      [
+        700,
+        1600
+      ]
+    ],
+    "errors": []
+  },
+  "phaseRenders": {
+    "phases": [
+      "day",
+      "dusk",
+      "night",
+      "storm"
+    ],
+    "viewports": 2,
+    "errors": []
+  },
+  "motion": {
+    "realTimeClipsSeconds": 24,
+    "laterCaptureSeconds": 600,
+    "liteClipsSeconds": 12,
+    "resizeRoundTrips": 2,
+    "errors": []
+  },
+  "imageBytes": 938701,
+  "mainSourceOrOtherPacksChanged": false,
+  "installed": false,
+  "reloaded": false,
+  "merged": false
+}

@@ -1,0 +1,19 @@
+{
+  "results": [
+    {
+      "aspect": "wide",
+      "seconds": 24,
+      "playback": "real time",
+      "frames": 150,
+      "frameMs": 160
+    },
+    {
+      "aspect": "tall",
+      "seconds": 24,
+      "playback": "real time",
+      "frames": 150,
+      "frameMs": 160
+    }
+  ],
+  "errors": []
+}
