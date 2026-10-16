@@ -1,0 +1,11 @@
+{
+  "mode": "lite",
+  "checks": [
+    "reduced-motion pixels stable",
+    "half-submerged shark opens suggestions, not worker focus",
+    "keyboard focus and Escape",
+    "pixel sequences change across rig, flag, sails, cat, yard gull, hull, crew, lamps, dolphins and whale; no renderer introspection",
+    "lite freezes the inherited sea and engine attention carrier while ship parts and life cycles run"
+  ],
+  "errors": []
+}

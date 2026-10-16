@@ -1,13 +1,13 @@
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { describe, expect, it } from "vitest";
-import { shipElement, shipManifest } from "./ship-pack";
+import { shipElement, shipFile, shipManifest } from "./ship-pack";
 import { decodePng } from "./png";
 
 const ship = shipManifest();
 const palette = JSON.parse(readFileSync(new URL("../docs/ship-deck-art/legacy/environment.json", import.meta.url), "utf8")).palette;
 const allowed = new Set<string>([...palette.deckColours, ...palette.environmentExtension]);
-const png = (id: string) => decodePng(readFileSync(new URL(`../art/settings/ship/${ship.images[id]!.path}`, import.meta.url)));
+const png = (id: string) => decodePng(readFileSync(shipFile(ship.images[id]!.path)));
 
 describe("registered enrichment art", () => {
   it("uses the ship's exact palette, hard transparency and two clear border pixels", () => {

@@ -1,0 +1,290 @@
+[
+  {
+    "key": "Sleeper 0",
+    "box": {
+      "left": 157,
+      "top": 310,
+      "right": 173,
+      "bottom": 335
+    },
+    "x": 165,
+    "y": 335,
+    "label": "Sleeper 0: details and actions"
+  },
+  {
+    "key": "Sleeper 1",
+    "box": {
+      "left": 173,
+      "top": 310,
+      "right": 189,
+      "bottom": 335
+    },
+    "x": 181,
+    "y": 335,
+    "label": "Sleeper 1: details and actions"
+  },
+  {
+    "key": "Sleeper 10",
+    "box": {
+      "left": 189,
+      "top": 310,
+      "right": 205,
+      "bottom": 335
+    },
+    "x": 197,
+    "y": 335,
+    "label": "Sleeper 10: details and actions"
+  },
+  {
+    "key": "Sleeper 11",
+    "box": {
+      "left": 205,
+      "top": 310,
+      "right": 221,
+      "bottom": 335
+    },
+    "x": 213,
+    "y": 335,
+    "label": "Sleeper 11: details and actions"
+  },
+  {
+    "key": "Sleeper 12",
+    "box": {
+      "left": 221,
+      "top": 310,
+      "right": 237,
+      "bottom": 335
+    },
+    "x": 229,
+    "y": 335,
+    "label": "Sleeper 12: details and actions"
+  },
+  {
+    "key": "Sleeper 13",
+    "box": {
+      "left": 237,
+      "top": 310,
+      "right": 253,
+      "bottom": 335
+    },
+    "x": 245,
+    "y": 335,
+    "label": "Sleeper 13: details and actions"
+  },
+  {
+    "key": "Sleeper 14",
+    "box": {
+      "left": 253,
+      "top": 310,
+      "right": 269,
+      "bottom": 335
+    },
+    "x": 261,
+    "y": 335,
+    "label": "Sleeper 14: details and actions"
+  },
+  {
+    "key": "Sleeper 15",
+    "box": {
+      "left": 269,
+      "top": 310,
+      "right": 285,
+      "bottom": 335
+    },
+    "x": 277,
+    "y": 335,
+    "label": "Sleeper 15: details and actions"
+  },
+  {
+    "key": "Sleeper 16",
+    "box": {
+      "left": 285,
+      "top": 310,
+      "right": 301,
+      "bottom": 335
+    },
+    "x": 293,
+    "y": 335,
+    "label": "Sleeper 16: details and actions"
+  },
+  {
+    "key": "Sleeper 17",
+    "box": {
+      "left": 301,
+      "top": 310,
+      "right": 317,
+      "bottom": 335
+    },
+    "x": 309,
+    "y": 335,
+    "label": "Sleeper 17: details and actions"
+  },
+  {
+    "key": "Sleeper 18",
+    "box": {
+      "left": 317,
+      "top": 310,
+      "right": 333,
+      "bottom": 335
+    },
+    "x": 325,
+    "y": 335,
+    "label": "Sleeper 18: details and actions"
+  },
+  {
+    "key": "Sleeper 19",
+    "box": {
+      "left": 333,
+      "top": 310,
+      "right": 349,
+      "bottom": 335
+    },
+    "x": 341,
+    "y": 335,
+    "label": "Sleeper 19: details and actions"
+  },
+  {
+    "key": "Sleeper 2",
+    "box": {
+      "left": 349,
+      "top": 310,
+      "right": 365,
+      "bottom": 335
+    },
+    "x": 357,
+    "y": 335,
+    "label": "Sleeper 2: details and actions"
+  },
+  {
+    "key": "Sleeper 20",
+    "box": {
+      "left": 365,
+      "top": 310,
+      "right": 381,
+      "bottom": 335
+    },
+    "x": 373,
+    "y": 335,
+    "label": "Sleeper 20: details and actions"
+  },
+  {
+    "key": "Sleeper 21",
+    "box": {
+      "left": 381,
+      "top": 310,
+      "right": 397,
+      "bottom": 335
+    },
+    "x": 389,
+    "y": 335,
+    "label": "Sleeper 21: details and actions"
+  },
+  {
+    "key": "Sleeper 22",
+    "box": {
+      "left": 397,
+      "top": 310,
+      "right": 413,
+      "bottom": 335
+    },
+    "x": 405,
+    "y": 335,
+    "label": "Sleeper 22: details and actions"
+  },
+  {
+    "key": "Sleeper 23",
+    "box": {
+      "left": 413,
+      "top": 310,
+      "right": 429,
+      "bottom": 335
+    },
+    "x": 421,
+    "y": 335,
+    "label": "Sleeper 23: details and actions"
+  },
+  {
+    "key": "Sleeper 3",
+    "box": {
+      "left": 429,
+      "top": 310,
+      "right": 445,
+      "bottom": 335
+    },
+    "x": 437,
+    "y": 335,
+    "label": "Sleeper 3: details and actions"
+  },
+  {
+    "key": "Sleeper 4",
+    "box": {
+      "left": 445,
+      "top": 310,
+      "right": 461,
+      "bottom": 335
+    },
+    "x": 453,
+    "y": 335,
+    "label": "Sleeper 4: details and actions"
+  },
+  {
+    "key": "Sleeper 5",
+    "box": {
+      "left": 461,
+      "top": 310,
+      "right": 477,
+      "bottom": 335
+    },
+    "x": 469,
+    "y": 335,
+    "label": "Sleeper 5: details and actions"
+  },
+  {
+    "key": "Sleeper 6",
+    "box": {
+      "left": 477,
+      "top": 310,
+      "right": 493,
+      "bottom": 335
+    },
+    "x": 485,
+    "y": 335,
+    "label": "Sleeper 6: details and actions"
+  },
+  {
+    "key": "Sleeper 7",
+    "box": {
+      "left": 493,
+      "top": 310,
+      "right": 509,
+      "bottom": 335
+    },
+    "x": 501,
+    "y": 335,
+    "label": "Sleeper 7: details and actions"
+  },
+  {
+    "key": "Sleeper 8",
+    "box": {
+      "left": 509,
+      "top": 310,
+      "right": 525,
+      "bottom": 335
+    },
+    "x": 517,
+    "y": 335,
+    "label": "Sleeper 8: details and actions"
+  },
+  {
+    "key": "Sleeper 9",
+    "box": {
+      "left": 525,
+      "top": 310,
+      "right": 541,
+      "bottom": 335
+    },
+    "x": 533,
+    "y": 335,
+    "label": "Sleeper 9: details and actions"
+  }
+]

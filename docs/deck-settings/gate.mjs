@@ -1,11 +1,12 @@
 /**
- * The deck-settings migration's gate: the ship, drawn by this checkout, must be pixel-identical to the ship
+ * The engine's gate: the frozen Ship fixture, drawn by this checkout, must be pixel-identical to that fixture
  * drawn by origin/main — still and moving — at every step of the move to a scene engine and a setting pack.
  *
  * Run `node docs/ship-deck-canvas/compile.mjs` first: it compiles both checkouts with Paseo's own plugin
  * compiler (and checks Hermes and `class`), writing `.generated/{main,branch}.client.js`. This script then
  * takes the compiler's pinned main commit as files, answers each checkout's deck RPCs from that checkout's own
- * server code and art (`DECK_RPCS` below knows every contract either side has), and renders each bundle in
+ * server code (`DECK_RPCS` below knows every contract either side has), replacing Ship art/metadata on both
+ * sides with the hash-verified `test/fixtures/ship-baseline/`, and renders each bundle in
  * headless Edge through one host (`host.jsx`) that imports neither's deck code. Every scenario is rendered for
  * both, screenshot by screenshot at the same moments, and the screenshots are compared pixel for pixel:
  *
@@ -35,6 +36,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { crc32, deflateSync, inflateSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { expectedChange } from "./expected-changes.mjs";
+import { baselinePack, baselineSummary, provenance as shipBaseline } from "./ship-baseline.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "../..");
@@ -126,10 +128,14 @@ async function deckServer(name, dir) {
   const server = Object.assign({}, ...modules.map((_, index) => loaded[`m${index}`]));
   const answers = new Map();
   return function answer(rpc, input) {
+    // Both engines receive identical immutable art; installed remaster checks are separate.
+    if (rpc === "firstmate.deck.setting" && input.id === "ship") return JSON.stringify(baselinePack);
     const key = `${rpc} ${JSON.stringify(input)}`;
     if (!answers.has(key)) {
       const read = DECK_RPCS[rpc]?.(server, async () => dir, input);
-      answers.set(key, read === undefined ? null : Promise.resolve(read).then((value) => JSON.stringify(value)));
+      answers.set(key, read === undefined ? null : Promise.resolve(read).then((value) => JSON.stringify(
+        rpc === "firstmate.deck.settings"
+          ? value.map((entry) => entry.id === "ship" ? baselineSummary : entry) : value)));
     }
     return answers.get(key);
   };
@@ -488,7 +494,7 @@ async function render(browser, tree, scenario) {
   return { shots, facts };
 }
 
-const results = { base: `compiled main ${commit(compiled.mainRevision)}`, branch: `HEAD ${commit("HEAD")}`, compiledBranch: compiled.branchRevision, maskToolbar: MASK_TOOLBAR, control: null, scenarios: [] };
+const results = { base: `compiled main ${commit(compiled.mainRevision)}`, branch: `HEAD ${commit("HEAD")}`, compiledBranch: compiled.branchRevision, shipBaseline, maskToolbar: MASK_TOOLBAR, control: null, scenarios: [] };
 let identical = true;
 /** Differences that did not come back on a second render. */
 const flakes = [];
