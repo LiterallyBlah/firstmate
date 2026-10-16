@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "generated lookout focuses its worker from the occupied nest",
+    "night-darkened lookout remains clickable",
+    "full-motion descent reaches a clickable below-deck target",
+    "returning worker walks and climbs back to its reserved nest",
+    "removal leaves no raised target"
+  ],
+  "errors": []
+}

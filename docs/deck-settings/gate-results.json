@@ -1,7 +1,7 @@
 {
-  "base": "compiled main 6b11d4d",
-  "branch": "HEAD 6b11d4d",
-  "compiledBranch": "6b11d4d",
+  "base": "compiled main b3d70ec",
+  "branch": "HEAD 88c5d6f",
+  "compiledBranch": "88c5d6f",
   "maskToolbar": false,
   "control": null,
   "scenarios": [
@@ -15,9 +15,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "ac05ea2a90bbd6bf",
+          "identical": false,
+          "differingPixels": 31306,
+          "firstDifference": [
+            1515,
+            455
+          ],
+          "box": [
+            1395,
+            455,
+            1531,
+            1276
+          ],
+          "sha": [
+            "ac05ea2a90bbd6bf",
+            "01ca0bf89f1a77a8"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -39,9 +53,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "c75172b2cbb8df46",
+          "identical": false,
+          "differingPixels": 7896,
+          "firstDifference": [
+            756,
+            228
+          ],
+          "box": [
+            697,
+            228,
+            764,
+            637
+          ],
+          "sha": [
+            "c75172b2cbb8df46",
+            "a34d647cf2185b4e"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -64,9 +92,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "85a2408047a80599",
+          "identical": false,
+          "differingPixels": 31306,
+          "firstDifference": [
+            1515,
+            455
+          ],
+          "box": [
+            1395,
+            455,
+            1531,
+            1276
+          ],
+          "sha": [
+            "85a2408047a80599",
+            "b59db4bda9d8cc03"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -88,9 +130,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "6e66edf391fc7471",
+          "identical": false,
+          "differingPixels": 7896,
+          "firstDifference": [
+            756,
+            228
+          ],
+          "box": [
+            697,
+            228,
+            764,
+            637
+          ],
+          "sha": [
+            "6e66edf391fc7471",
+            "b850389e74a43e84"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -112,9 +168,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "f132424015901eea",
+          "identical": false,
+          "differingPixels": 7896,
+          "firstDifference": [
+            756,
+            228
+          ],
+          "box": [
+            697,
+            228,
+            764,
+            637
+          ],
+          "sha": [
+            "f132424015901eea",
+            "18dd4cb175192be8"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -137,9 +207,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "0680b9e2de3ff580",
+          "identical": false,
+          "differingPixels": 26231,
+          "firstDifference": [
+            1515,
+            455
+          ],
+          "box": [
+            1395,
+            455,
+            1531,
+            1276
+          ],
+          "sha": [
+            "0680b9e2de3ff580",
+            "5ebbe418901d3c6b"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -162,9 +246,23 @@
       "shots": [
         {
           "shot": "open",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "c669e3abfa22fbf0",
+          "identical": false,
+          "differingPixels": 33641,
+          "firstDifference": [
+            1515,
+            455
+          ],
+          "box": [
+            1395,
+            455,
+            1531,
+            1276
+          ],
+          "sha": [
+            "c669e3abfa22fbf0",
+            "1047cfe42321dbbc"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -185,9 +283,23 @@
       "shots": [
         {
           "shot": "lost",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "c92f4c043dd6b849",
+          "identical": false,
+          "differingPixels": 7151,
+          "firstDifference": [
+            754,
+            276
+          ],
+          "box": [
+            699,
+            276,
+            761,
+            654
+          ],
+          "sha": [
+            "c92f4c043dd6b849",
+            "da2f8ff21ceff7e3"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -209,9 +321,23 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "3d4cd03605c903f0",
+          "identical": false,
+          "differingPixels": 31794,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "3d4cd03605c903f0",
+            "80671b414c55402a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -224,9 +350,23 @@
         },
         {
           "shot": "1s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "4b6930945164c5a8",
+          "identical": false,
+          "differingPixels": 31983,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "4b6930945164c5a8",
+            "2bbca14a32cc43a3"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -239,9 +379,23 @@
         },
         {
           "shot": "2.5s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "183f4643b288cec4",
+          "identical": false,
+          "differingPixels": 32011,
+          "firstDifference": [
+            1515,
+            455
+          ],
+          "box": [
+            1395,
+            455,
+            1531,
+            1276
+          ],
+          "sha": [
+            "183f4643b288cec4",
+            "c291d9665570cafc"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -254,9 +408,23 @@
         },
         {
           "shot": "5s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "d0cc2d27aebc279f",
+          "identical": false,
+          "differingPixels": 32011,
+          "firstDifference": [
+            1515,
+            455
+          ],
+          "box": [
+            1395,
+            455,
+            1531,
+            1276
+          ],
+          "sha": [
+            "d0cc2d27aebc279f",
+            "9000da583e678f63"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -269,9 +437,23 @@
         },
         {
           "shot": "10s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "6a97b1e2f5f81250",
+          "identical": false,
+          "differingPixels": 31794,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "6a97b1e2f5f81250",
+            "8746206cd5eff88c"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -284,9 +466,23 @@
         },
         {
           "shot": "25s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "f656f806f106777a",
+          "identical": false,
+          "differingPixels": 32494,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "f656f806f106777a",
+            "0033d7423f204871"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -299,9 +495,23 @@
         },
         {
           "shot": "49s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "3a1df9b8a74ea59b",
+          "identical": false,
+          "differingPixels": 32494,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "3a1df9b8a74ea59b",
+            "edbf99ca344b60c2"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -314,9 +524,23 @@
         },
         {
           "shot": "73s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "c7013d6be38c9b4a",
+          "identical": false,
+          "differingPixels": 32494,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "c7013d6be38c9b4a",
+            "ce99bbb92f7b898a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -338,9 +562,23 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "cd0240d1dc034bc4",
+          "identical": false,
+          "differingPixels": 6897,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "cd0240d1dc034bc4",
+            "d426ec6f0cc25c4e"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -353,9 +591,23 @@
         },
         {
           "shot": "5.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "32fc92c3a859c45d",
+          "identical": false,
+          "differingPixels": 6897,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "32fc92c3a859c45d",
+            "f0181747f9bf7b55"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -368,9 +620,23 @@
         },
         {
           "shot": "10.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "d64ef41d32e29c88",
+          "identical": false,
+          "differingPixels": 6845,
+          "firstDifference": [
+            756,
+            233
+          ],
+          "box": [
+            697,
+            233,
+            764,
+            643
+          ],
+          "sha": [
+            "d64ef41d32e29c88",
+            "a8e51d6c0092fe7b"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -383,9 +649,23 @@
         },
         {
           "shot": "15.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "e208323a3cb27985",
+          "identical": false,
+          "differingPixels": 6827,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "e208323a3cb27985",
+            "0379712489790ffe"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -398,9 +678,23 @@
         },
         {
           "shot": "20.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "41da9e95eabc22fc",
+          "identical": false,
+          "differingPixels": 6827,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "41da9e95eabc22fc",
+            "396d831f82114ffd"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -413,9 +707,23 @@
         },
         {
           "shot": "25.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "8a8615c2a42fa45f",
+          "identical": false,
+          "differingPixels": 6651,
+          "firstDifference": [
+            756,
+            228
+          ],
+          "box": [
+            697,
+            228,
+            764,
+            637
+          ],
+          "sha": [
+            "8a8615c2a42fa45f",
+            "91be680b23da29c7"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -428,9 +736,23 @@
         },
         {
           "shot": "30.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "d948c81ffa28b694",
+          "identical": false,
+          "differingPixels": 6884,
+          "firstDifference": [
+            756,
+            225
+          ],
+          "box": [
+            697,
+            225,
+            764,
+            635
+          ],
+          "sha": [
+            "d948c81ffa28b694",
+            "1d9433c51f391459"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -443,9 +765,23 @@
         },
         {
           "shot": "flash-33.5s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "2b81891a6823dcde",
+          "identical": false,
+          "differingPixels": 6800,
+          "firstDifference": [
+            756,
+            233
+          ],
+          "box": [
+            697,
+            233,
+            764,
+            643
+          ],
+          "sha": [
+            "2b81891a6823dcde",
+            "c0175c9f5b4580b6"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -458,9 +794,23 @@
         },
         {
           "shot": "flash-33.6s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "ac793bc7996da98e",
+          "identical": false,
+          "differingPixels": 6827,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "ac793bc7996da98e",
+            "6d6229837a149d64"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -473,9 +823,23 @@
         },
         {
           "shot": "35.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "f3ea116077d6dee1",
+          "identical": false,
+          "differingPixels": 6884,
+          "firstDifference": [
+            756,
+            222
+          ],
+          "box": [
+            697,
+            222,
+            764,
+            632
+          ],
+          "sha": [
+            "f3ea116077d6dee1",
+            "94852211d416f2d0"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -488,9 +852,23 @@
         },
         {
           "shot": "40.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "088f39c9951b688f",
+          "identical": false,
+          "differingPixels": 6787,
+          "firstDifference": [
+            756,
+            222
+          ],
+          "box": [
+            697,
+            222,
+            764,
+            632
+          ],
+          "sha": [
+            "088f39c9951b688f",
+            "6516673d4e572a05"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -503,9 +881,23 @@
         },
         {
           "shot": "45.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "fb20d56ea468dfae",
+          "identical": false,
+          "differingPixels": 6775,
+          "firstDifference": [
+            756,
+            225
+          ],
+          "box": [
+            697,
+            225,
+            764,
+            635
+          ],
+          "sha": [
+            "fb20d56ea468dfae",
+            "2908fab08f66bcc2"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -518,9 +910,23 @@
         },
         {
           "shot": "flash-48.9s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "5ca5fa8af805886d",
+          "identical": false,
+          "differingPixels": 6826,
+          "firstDifference": [
+            756,
+            225
+          ],
+          "box": [
+            697,
+            225,
+            764,
+            635
+          ],
+          "sha": [
+            "5ca5fa8af805886d",
+            "09f2354cb72a0243"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -533,9 +939,23 @@
         },
         {
           "shot": "flash-49.0s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "be8f87b662d0de39",
+          "identical": false,
+          "differingPixels": 6775,
+          "firstDifference": [
+            756,
+            225
+          ],
+          "box": [
+            697,
+            225,
+            764,
+            635
+          ],
+          "sha": [
+            "be8f87b662d0de39",
+            "b21aada21c5200b9"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -548,9 +968,23 @@
         },
         {
           "shot": "50.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "5dfa1a56efcfb8e3",
+          "identical": false,
+          "differingPixels": 6543,
+          "firstDifference": [
+            756,
+            228
+          ],
+          "box": [
+            697,
+            228,
+            764,
+            637
+          ],
+          "sha": [
+            "5dfa1a56efcfb8e3",
+            "23404ace49db0c21"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -563,9 +997,23 @@
         },
         {
           "shot": "55.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "f9dd5cdb994f666a",
+          "identical": false,
+          "differingPixels": 6839,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "f9dd5cdb994f666a",
+            "8e6bf9ecb7699e88"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -578,9 +1026,23 @@
         },
         {
           "shot": "60.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "0549ceeec58d1f3a",
+          "identical": false,
+          "differingPixels": 6839,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "0549ceeec58d1f3a",
+            "08921fe377429e5d"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -593,9 +1055,23 @@
         },
         {
           "shot": "65.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "dd59b51b2a2b9a54",
+          "identical": false,
+          "differingPixels": 6847,
+          "firstDifference": [
+            756,
+            233
+          ],
+          "box": [
+            697,
+            233,
+            764,
+            643
+          ],
+          "sha": [
+            "dd59b51b2a2b9a54",
+            "c26f60357f35b9d7"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -608,9 +1084,23 @@
         },
         {
           "shot": "70.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "ca13344f97622164",
+          "identical": false,
+          "differingPixels": 6806,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "ca13344f97622164",
+            "9491fbf6fb3e4d0a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -623,9 +1113,23 @@
         },
         {
           "shot": "75.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "92a803ddd922cd72",
+          "identical": false,
+          "differingPixels": 6827,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "92a803ddd922cd72",
+            "2f01af41ba6c5539"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -638,9 +1142,23 @@
         },
         {
           "shot": "80.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "aad992353cc21468",
+          "identical": false,
+          "differingPixels": 6585,
+          "firstDifference": [
+            756,
+            228
+          ],
+          "box": [
+            697,
+            228,
+            764,
+            637
+          ],
+          "sha": [
+            "aad992353cc21468",
+            "fc2d749eea4bb57c"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -653,9 +1171,23 @@
         },
         {
           "shot": "85.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "c2ce1ae833e62b1c",
+          "identical": false,
+          "differingPixels": 6884,
+          "firstDifference": [
+            756,
+            225
+          ],
+          "box": [
+            697,
+            225,
+            764,
+            635
+          ],
+          "sha": [
+            "c2ce1ae833e62b1c",
+            "35961803fbd5bbd4"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -668,9 +1200,23 @@
         },
         {
           "shot": "90.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "d0e5a86d7bab81c3",
+          "identical": false,
+          "differingPixels": 6884,
+          "firstDifference": [
+            756,
+            225
+          ],
+          "box": [
+            697,
+            225,
+            764,
+            635
+          ],
+          "sha": [
+            "d0e5a86d7bab81c3",
+            "29a0960aab5b61be"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -683,9 +1229,23 @@
         },
         {
           "shot": "95.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "c5a96646dd5f9d33",
+          "identical": false,
+          "differingPixels": 6884,
+          "firstDifference": [
+            756,
+            222
+          ],
+          "box": [
+            697,
+            222,
+            764,
+            632
+          ],
+          "sha": [
+            "c5a96646dd5f9d33",
+            "ab6cc2f31eb9a737"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -698,9 +1258,23 @@
         },
         {
           "shot": "100.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "33ea0629b887a57e",
+          "identical": false,
+          "differingPixels": 6826,
+          "firstDifference": [
+            756,
+            225
+          ],
+          "box": [
+            697,
+            225,
+            764,
+            635
+          ],
+          "sha": [
+            "33ea0629b887a57e",
+            "58ed33272682cefc"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -713,9 +1287,23 @@
         },
         {
           "shot": "105.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "007a287b062ca1cb",
+          "identical": false,
+          "differingPixels": 6814,
+          "firstDifference": [
+            756,
+            225
+          ],
+          "box": [
+            697,
+            225,
+            764,
+            635
+          ],
+          "sha": [
+            "007a287b062ca1cb",
+            "25926f7003d4a6b0"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -728,9 +1316,23 @@
         },
         {
           "shot": "110.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "e03f73396e22b0ec",
+          "identical": false,
+          "differingPixels": 6585,
+          "firstDifference": [
+            756,
+            228
+          ],
+          "box": [
+            697,
+            228,
+            764,
+            637
+          ],
+          "sha": [
+            "e03f73396e22b0ec",
+            "1cbe7118ffdacb8d"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -743,9 +1345,23 @@
         },
         {
           "shot": "115.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "8205514637361563",
+          "identical": false,
+          "differingPixels": 6897,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "8205514637361563",
+            "ae4090e0b67a7c7b"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -758,9 +1374,23 @@
         },
         {
           "shot": "120.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "b184191ef4d9f7f1",
+          "identical": false,
+          "differingPixels": 6904,
+          "firstDifference": [
+            756,
+            233
+          ],
+          "box": [
+            697,
+            233,
+            764,
+            643
+          ],
+          "sha": [
+            "b184191ef4d9f7f1",
+            "4c3448568d9dfa3a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -782,9 +1412,23 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "1d46434c46608d91",
+          "identical": false,
+          "differingPixels": 8243,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "1d46434c46608d91",
+            "283f8db9caf4b9ff"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -797,9 +1441,23 @@
         },
         {
           "shot": "10s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "cc2ca47ab74575a3",
+          "identical": false,
+          "differingPixels": 8243,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "cc2ca47ab74575a3",
+            "e2fdd9066a2a066c"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -821,9 +1479,23 @@
       "shots": [
         {
           "shot": "aboard",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "3d4cd03605c903f0",
+          "identical": false,
+          "differingPixels": 31794,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "3d4cd03605c903f0",
+            "80671b414c55402a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -836,9 +1508,23 @@
         },
         {
           "shot": "changed",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "c64b3f00c59e907e",
+          "identical": false,
+          "differingPixels": 31794,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "c64b3f00c59e907e",
+            "1803cf9271947ab9"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -851,9 +1537,23 @@
         },
         {
           "shot": "walking-1000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a1ce4d8e5e1a1752",
+          "identical": false,
+          "differingPixels": 32494,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "a1ce4d8e5e1a1752",
+            "72fb348d7e91eebe"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -866,9 +1566,23 @@
         },
         {
           "shot": "walking-2000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "dc97cb5f8ca3fccb",
+          "identical": false,
+          "differingPixels": 32011,
+          "firstDifference": [
+            1515,
+            455
+          ],
+          "box": [
+            1395,
+            455,
+            1531,
+            1276
+          ],
+          "sha": [
+            "dc97cb5f8ca3fccb",
+            "400045995a7ae015"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -881,9 +1595,23 @@
         },
         {
           "shot": "walking-3000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "1be84e85ac4d33f2",
+          "identical": false,
+          "differingPixels": 32439,
+          "firstDifference": [
+            1515,
+            444
+          ],
+          "box": [
+            1395,
+            444,
+            1531,
+            1264
+          ],
+          "sha": [
+            "1be84e85ac4d33f2",
+            "b3a76fd4c633fd41"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -896,9 +1624,23 @@
         },
         {
           "shot": "walking-5000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a0d7604e57017dd7",
+          "identical": false,
+          "differingPixels": 31283,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "a0d7604e57017dd7",
+            "c215c03f19036d19"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -911,9 +1653,23 @@
         },
         {
           "shot": "walking-8000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "4087f6c5b5dea58c",
+          "identical": false,
+          "differingPixels": 32439,
+          "firstDifference": [
+            1515,
+            444
+          ],
+          "box": [
+            1395,
+            444,
+            1531,
+            1264
+          ],
+          "sha": [
+            "4087f6c5b5dea58c",
+            "349170dfeb49c494"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -926,9 +1682,23 @@
         },
         {
           "shot": "arrived",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "793fda04b49d9348",
+          "identical": false,
+          "differingPixels": 31983,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "793fda04b49d9348",
+            "94a10073cff01b4c"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -941,9 +1711,23 @@
         },
         {
           "shot": "hatch-200ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "130e27ca73282a6d",
+          "identical": false,
+          "differingPixels": 31816,
+          "firstDifference": [
+            1515,
+            455
+          ],
+          "box": [
+            1395,
+            455,
+            1531,
+            1276
+          ],
+          "sha": [
+            "130e27ca73282a6d",
+            "3303e5524dca10eb"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -956,9 +1740,23 @@
         },
         {
           "shot": "hatch-400ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "50e84b621d16d676",
+          "identical": false,
+          "differingPixels": 31816,
+          "firstDifference": [
+            1515,
+            455
+          ],
+          "box": [
+            1395,
+            455,
+            1531,
+            1276
+          ],
+          "sha": [
+            "50e84b621d16d676",
+            "c52725fc7d23329a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -971,9 +1769,23 @@
         },
         {
           "shot": "hatch-700ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "68a55bcad33e5f36",
+          "identical": false,
+          "differingPixels": 31821,
+          "firstDifference": [
+            1515,
+            449
+          ],
+          "box": [
+            1395,
+            449,
+            1531,
+            1270
+          ],
+          "sha": [
+            "68a55bcad33e5f36",
+            "baaf48593163488a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -986,9 +1798,23 @@
         },
         {
           "shot": "hatch-1500ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "75c9f910cd387a6c",
+          "identical": false,
+          "differingPixels": 31751,
+          "firstDifference": [
+            1515,
+            444
+          ],
+          "box": [
+            1395,
+            444,
+            1531,
+            1264
+          ],
+          "sha": [
+            "75c9f910cd387a6c",
+            "9f0f0b04f95d84cb"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1001,9 +1827,23 @@
         },
         {
           "shot": "hatch-3000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "b3b8aeae3738a013",
+          "identical": false,
+          "differingPixels": 29519,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "b3b8aeae3738a013",
+            "ca08871a1cacf97a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1016,9 +1856,23 @@
         },
         {
           "shot": "leaving-300ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "6a6e8fed2a04e311",
+          "identical": false,
+          "differingPixels": 30013,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "6a6e8fed2a04e311",
+            "6964a2b68d33a17a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1031,9 +1885,23 @@
         },
         {
           "shot": "leaving-800ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "1584e3f9821efaa2",
+          "identical": false,
+          "differingPixels": 29047,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "1584e3f9821efaa2",
+            "2dd82e1d5588134a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1046,9 +1914,23 @@
         },
         {
           "shot": "leaving-1400ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "c70257542b78f67f",
+          "identical": false,
+          "differingPixels": 29692,
+          "firstDifference": [
+            1515,
+            449
+          ],
+          "box": [
+            1395,
+            449,
+            1531,
+            1270
+          ],
+          "sha": [
+            "c70257542b78f67f",
+            "c7bd663c0bba67cc"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1061,9 +1943,23 @@
         },
         {
           "shot": "leaving-2000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "b46157c7af8c8d83",
+          "identical": false,
+          "differingPixels": 28071,
+          "firstDifference": [
+            1515,
+            444
+          ],
+          "box": [
+            1395,
+            444,
+            1531,
+            1230
+          ],
+          "sha": [
+            "b46157c7af8c8d83",
+            "c9aa7f2daac3285e"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1076,9 +1972,23 @@
         },
         {
           "shot": "leaving-2400ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "d9e3e9752346a6ed",
+          "identical": false,
+          "differingPixels": 29389,
+          "firstDifference": [
+            1515,
+            444
+          ],
+          "box": [
+            1395,
+            444,
+            1531,
+            1264
+          ],
+          "sha": [
+            "d9e3e9752346a6ed",
+            "5306ba11bb52fc84"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1091,9 +2001,23 @@
         },
         {
           "shot": "leaving-2700ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "ece02483ac0c2aab",
+          "identical": false,
+          "differingPixels": 30229,
+          "firstDifference": [
+            1515,
+            449
+          ],
+          "box": [
+            1395,
+            449,
+            1531,
+            1270
+          ],
+          "sha": [
+            "ece02483ac0c2aab",
+            "90b0f4531d2f5173"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1106,9 +2030,23 @@
         },
         {
           "shot": "leaving-3000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a92ce7edafc36ca5",
+          "identical": false,
+          "differingPixels": 29254,
+          "firstDifference": [
+            1515,
+            449
+          ],
+          "box": [
+            1395,
+            449,
+            1531,
+            1270
+          ],
+          "sha": [
+            "a92ce7edafc36ca5",
+            "b73c2020aefb4f16"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1121,9 +2059,23 @@
         },
         {
           "shot": "leaving-3300ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "af7a498715c84af6",
+          "identical": false,
+          "differingPixels": 29005,
+          "firstDifference": [
+            1515,
+            455
+          ],
+          "box": [
+            1395,
+            455,
+            1531,
+            1276
+          ],
+          "sha": [
+            "af7a498715c84af6",
+            "3566d661c539fb1a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1136,9 +2088,23 @@
         },
         {
           "shot": "leaving-3600ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "54f1c6601d54f75a",
+          "identical": false,
+          "differingPixels": 29197,
+          "firstDifference": [
+            1515,
+            455
+          ],
+          "box": [
+            1395,
+            455,
+            1531,
+            1276
+          ],
+          "sha": [
+            "54f1c6601d54f75a",
+            "0b838737e1b5d13d"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1151,9 +2117,23 @@
         },
         {
           "shot": "leaving-4000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "06288877aa879231",
+          "identical": false,
+          "differingPixels": 29106,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "06288877aa879231",
+            "fe4e7dd839b88b6a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1166,9 +2146,23 @@
         },
         {
           "shot": "leaving-4600ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "db5bf88c8b9bef33",
+          "identical": false,
+          "differingPixels": 29383,
+          "firstDifference": [
+            1515,
+            467
+          ],
+          "box": [
+            1395,
+            467,
+            1531,
+            1287
+          ],
+          "sha": [
+            "db5bf88c8b9bef33",
+            "bfbdf7fe15dfe55a"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1181,9 +2175,23 @@
         },
         {
           "shot": "leaving-5400ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "422d03a83fa92c01",
+          "identical": false,
+          "differingPixels": 29519,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "422d03a83fa92c01",
+            "ddd5af63627290cf"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1196,9 +2204,23 @@
         },
         {
           "shot": "leaving-7000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "68bfcb932eb3bee8",
+          "identical": false,
+          "differingPixels": 29655,
+          "firstDifference": [
+            1515,
+            444
+          ],
+          "box": [
+            1395,
+            444,
+            1531,
+            1264
+          ],
+          "sha": [
+            "68bfcb932eb3bee8",
+            "cac990bfcec35b36"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1211,9 +2233,23 @@
         },
         {
           "shot": "after",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "341c0fe0dbe868b5",
+          "identical": false,
+          "differingPixels": 29519,
+          "firstDifference": [
+            1515,
+            461
+          ],
+          "box": [
+            1395,
+            461,
+            1531,
+            1282
+          ],
+          "sha": [
+            "341c0fe0dbe868b5",
+            "ed7471effd5e0772"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1235,9 +2271,23 @@
       "shots": [
         {
           "shot": "100ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a191061cdd7fbb57",
+          "identical": false,
+          "differingPixels": 32604,
+          "firstDifference": [
+            1508,
+            478
+          ],
+          "box": [
+            1386,
+            478,
+            1524,
+            1315
+          ],
+          "sha": [
+            "a191061cdd7fbb57",
+            "64697adea880c914"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1250,9 +2300,23 @@
         },
         {
           "shot": "300ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "76bea2de7406114f",
+          "identical": false,
+          "differingPixels": 54709,
+          "firstDifference": [
+            1341,
+            912
+          ],
+          "box": [
+            1141,
+            912,
+            1369,
+            1677
+          ],
+          "sha": [
+            "76bea2de7406114f",
+            "2c3bc06c07b25118"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1265,9 +2329,23 @@
         },
         {
           "shot": "1.5s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "e8a80ed06a2af17d",
+          "identical": false,
+          "differingPixels": 53369,
+          "firstDifference": [
+            1254,
+            1180
+          ],
+          "box": [
+            988,
+            1180,
+            1291,
+            1677
+          ],
+          "sha": [
+            "e8a80ed06a2af17d",
+            "71eaad017f8b6c02"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1280,9 +2358,23 @@
         },
         {
           "shot": "back-out",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "1c89a7ed03ce7d80",
+          "identical": false,
+          "differingPixels": 32004,
+          "firstDifference": [
+            1515,
+            449
+          ],
+          "box": [
+            1395,
+            449,
+            1531,
+            1270
+          ],
+          "sha": [
+            "1c89a7ed03ce7d80",
+            "1e44d230807236ec"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1303,9 +2395,23 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a04c86341b11af68",
+          "identical": false,
+          "differingPixels": 8240,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "a04c86341b11af68",
+            "1b269a5aff92e055"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1318,9 +2424,23 @@
         },
         {
           "shot": "2s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "5bb3bfd39ee3a9de",
+          "identical": false,
+          "differingPixels": 8240,
+          "firstDifference": [
+            756,
+            230
+          ],
+          "box": [
+            697,
+            230,
+            764,
+            640
+          ],
+          "sha": [
+            "5bb3bfd39ee3a9de",
+            "2c062e524cccc4c9"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1333,9 +2453,23 @@
         },
         {
           "shot": "6s",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "d5d52e5fb592edcf",
+          "identical": false,
+          "differingPixels": 8413,
+          "firstDifference": [
+            756,
+            233
+          ],
+          "box": [
+            697,
+            233,
+            764,
+            643
+          ],
+          "sha": [
+            "d5d52e5fb592edcf",
+            "a078e40571514ed1"
+          ],
+          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1353,6 +2487,6 @@
   "flakes": [],
   "shots": 81,
   "passed": true,
-  "identical": true,
-  "intentionalShots": 0
+  "identical": false,
+  "intentionalShots": 81
 }

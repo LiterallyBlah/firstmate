@@ -121,7 +121,7 @@ describe("the settings the daemon serves", () => {
     const settings = await listDeckSettings(async () => root);
     expect(settings.map((setting) => setting.id)).toContain("ship");
     const ship = settings.find((setting) => setting.id === "ship");
-    expect(ship).toMatchObject({ id: "ship", name: "Ship's deck", version: "1.4.0", formatVersion: 1, compatible: true, reason: null, preview: null });
+    expect(ship).toMatchObject({ id: "ship", name: "Ship's deck", version: "1.4.1", formatVersion: 1, compatible: true, reason: null, preview: null });
     // Small enough to send whole: the bundle carries none of it.
     expect(ship!.bytes).toBeGreaterThan(200_000);
     // Eight complete crew sheets and the wider sea field remain well below the engine's 1 MB cap.
