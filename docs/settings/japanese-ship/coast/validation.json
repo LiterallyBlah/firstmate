@@ -1,0 +1,107 @@
+{
+  "date": "2026-10-16",
+  "parent": "bae5478ec438cdfc87d930b9899a7588add1a3af",
+  "implementation": "025dedd",
+  "runtimeCompiledAt": "5a12142",
+  "runtimeSourceChanged": false,
+  "imageBytes": 977432,
+  "packLint": {
+    "command": "npm.cmd run lint:deck-packs",
+    "passed": 69,
+    "failed": 0
+  },
+  "typecheck": {
+    "command": "npm.cmd run typecheck",
+    "exitCode": 0
+  },
+  "hermes": {
+    "evidence": "compile-results.json",
+    "main": "parsed",
+    "branch": "parsed",
+    "clientGrowthBytes": 0
+  },
+  "renders": {
+    "evidence": "evidence/results.json",
+    "captures": 31,
+    "viewports": [
+      [
+        1440,
+        900
+      ],
+      [
+        650,
+        1900
+      ],
+      [
+        1000,
+        1000
+      ]
+    ],
+    "phases": [
+      "day",
+      "dusk",
+      "night",
+      "storm"
+    ],
+    "overlay": true,
+    "motion": [
+      "full",
+      "lite",
+      "still"
+    ],
+    "stillStable": true,
+    "opaquePeakAndFullSubmergeAllSizes": true,
+    "liteSpiritPixels": 0,
+    "errors": 0
+  },
+  "motion": {
+    "nativeFrames": 40,
+    "nativeFrameMs": 250,
+    "uniqueNativeFrames": 40,
+    "shippedVoyagePixelsPerSecond": 2.4,
+    "shippedLapSeconds": 1200,
+    "previewFixturePixelsPerSecond": 144,
+    "previewClips": [
+      {
+        "file": "evidence/coast-full-lap-60x.gif",
+        "frames": 50,
+        "frameMs": 400
+      },
+      {
+        "file": "evidence/night-lights-full-lap-60x.gif",
+        "frames": 50,
+        "frameMs": 400
+      },
+      {
+        "file": "evidence/storm-spirit-full-lap-60x.gif",
+        "frames": 50,
+        "frameMs": 400
+      }
+    ]
+  },
+  "crew": {
+    "evidence": "crew.json",
+    "exactTargetClicks": 192,
+    "workersPerState": 24,
+    "states": 4,
+    "phases": 2
+  },
+  "shipGate": {
+    "evidence": "ship-gate.json",
+    "shots": 81,
+    "pixelIdentical": true,
+    "flakes": 0,
+    "errors": 0
+  },
+  "suite": {
+    "command": "npm.cmd test -- --maxWorkers=1",
+    "concurrentRenderOrCompileJobs": 0,
+    "exitCode": 0,
+    "filesPassed": 101,
+    "passed": 1184,
+    "skipped": 3,
+    "failed": 0,
+    "durationSeconds": 73.49,
+    "testsModified": false
+  }
+}
