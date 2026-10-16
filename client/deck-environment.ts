@@ -14,7 +14,8 @@
  *   level (the ship's mood: a shade greyer as the crew gets busy).
  * - **An overlay** (`overlay@1`) — a sprite in a backdrop's placement: the stars, faded with the night's share and
  *   hidden as far as the overcast shows; the overcast, along its curve over the weather's intensity, by day only and in
- *   the backdrop's tint.
+ *   the backdrop's tint. Intensity-driven overlays extend their edge pixels into any uncovered viewport area;
+ *   their original image and horizon stay fixed. Night overlays retain the backdrop's placement alone.
  * - **A flash** (`flash@1`, the lightning) — now and then, under a drifter in view (`client/deck-flash.ts`).
  * - **Drifters** (`drifters@1`, the clouds) — in a backdrop's own placement and pixels, drifting right on their clock
  *   and coloured by the day and the backdrop's tint (`client/deck-clouds.ts`), each under its variants as the weather
@@ -24,7 +25,8 @@
  * - **A tile** (`tile@1`, the sea) — its frames repeated both ways in each of its bands, every band from its own row
  *   (`<id>:back` from the ship's horizon behind the hull, `<id>:front` from its waterline in front of it) and all of
  *   them on one tile origin, so the second band's first row is cut to line up and the waterline is the hull's edge,
- *   not a seam across the water. Every tile on the same frame, scrolled sideways a whole pixel at a time.
+ *   not a seam across the water. A single band starting at or above stage row zero fills the viewport upward too,
+ *   on the same grid. Every tile on the same frame, scrolled sideways a whole pixel at a time.
  * - **A strip** (`strip@1`, the foam) — its frames repeated sideways within its span from its top row, cut from a
  *   scrolling repeat into a few sprites a frame, so it never runs out past the span.
  * - **A cycle** (`cycle@1`, the wake and the spindrift) — one sprite, its anchor on its point, its frames in turn, its
