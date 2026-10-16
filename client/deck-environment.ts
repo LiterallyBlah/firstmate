@@ -31,6 +31,8 @@
  *   opacity its level (the wake's the weather's wake channel, the spindrift's a curve over intensity).
  * - **Phase frames** (`phase-frames@1`) — one anchored sprite selected by the local hour or minute, modulo its
  *   frame count. Independent of simulation time and intensity; held at frame zero or hidden in reduced motion.
+ * - **Phase strips** (`phase-strip@1`) — a strip's day sets sharing its frame index and crops. Eased phase weights
+ *   sum into a transparent intermediate, preserving opaque pixels and fading transparent details both ways.
  *
  * Each runs, holds still (its first frame, no drift) or is not drawn as its element says for a software renderer and
  * reduced motion (`elementMotion`). A tile, strip or cycle has its **variants** over it (`client/deck-variants.ts`):
@@ -48,7 +50,7 @@
  * drawn in code in an element's place any more: without its art and a fallback, an element is not drawn (the wake).
  *
  * Every texture is cut from its own image once, except a strip's crops, which are made as the scroll first reaches them
- * and kept: at most a few hundred small objects on a few dozen images' sources.
+ * and kept: bounded by the repeat width, crop widths and distinct frame sets, sharing their image sources.
  */
 import { elementMotion, elementsOf, type AmbientElement, type DayCycle, type DeckAmbience } from "./deck-ambience";
 import { flybyPose, flybysAt, type MotionPlan } from "./deck-ambient";

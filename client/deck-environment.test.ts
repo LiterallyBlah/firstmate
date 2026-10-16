@@ -464,7 +464,8 @@ describe("phase strips in the shared strip renderer", () => {
   });
 
   it("honors lite freeze/hide and still hide without changing the day blend", () => {
-    const { ambience, module, atmosphere } = make();
+    const { scenery: initial, ambience, module, atmosphere } = make();
+    initial.destroy();
     ambience.elements[0]!.lite = "freeze";
     ambience.elements[1]!.lite = "hide";
     ambience.elements[0]!.still = "hide";
