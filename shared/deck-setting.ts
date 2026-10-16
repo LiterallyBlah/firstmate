@@ -43,6 +43,7 @@ export const ENGINE_CAPABILITIES = [
   "choreography@1",
   "phase-tint@1",
   "bob@1",
+  "stage-rock@1",
   "sway@1",
   "cycle@1",
   "phase-frames@1",
@@ -188,7 +189,11 @@ const Stage = z.strictObject({
   /** `phase-tint@1`: RGB multipliers by day phase; omitted phases keep the art's colours. */
   tintByPhase: z.record(Id, Hex).refine((tints) => Object.keys(tints).length > 0, "phase tint needs at least one phase").optional(),
   /** `bob@1`: the stage rides a whole-pixel sine. */
-  motion: z.strictObject({ bob: z.strictObject({ periodS: z.number().positive(), amplitude: Level, clock: Id }) }).optional(),
+  motion: z.strictObject({
+    bob: z.strictObject({ periodS: z.number().positive(), amplitude: Level, clock: Id }).optional(),
+    /** A rigid rotation in degrees about a stage point, with optional in-phase sideways drift. */
+    rock: z.strictObject({ pivot: Point, degrees: Level, drift: Level.optional(), periodS: z.number().positive(), clock: Id.optional() }).optional(),
+  }).refine((motion) => motion.bob !== undefined || motion.rock !== undefined, "stage motion needs bob or rock").optional(),
   backdrop: z.strictObject({ sprite: Sprite }),
   parts: z.array(Part),
   pieces: z.array(Piece),
@@ -609,7 +614,8 @@ export function capabilitiesUsed(manifest: SettingManifest): string[] {
   if (Object.values(manifest.cast.fidgets).some((fidget) => fidget?.keys.some((key) => key.pose !== undefined))) used.add("pose-fidgets@1");
   used.add(`${manifest.portals.entry.kind}@1`);
   for (const exit of Object.values(manifest.portals.exits)) used.add(`${exit.kind}@1`);
-  if (manifest.stage.motion !== undefined) used.add("bob@1");
+  if (manifest.stage.motion?.bob !== undefined) used.add("bob@1");
+  if (manifest.stage.motion?.rock !== undefined) used.add("stage-rock@1");
   if (manifest.stage.tintByPhase !== undefined) used.add("phase-tint@1");
   for (const part of manifest.stage.parts) if (part.behaviour !== undefined) used.add(`${part.behaviour.kind}@1`);
   if (manifest.stage.lights.length > 0) used.add("flicker@1");
@@ -844,9 +850,21 @@ export function settingProblems(manifest: SettingManifest): string[] {
   const clockRefs: Array<[string | undefined, string]> = [];
   if (carrier?.surface !== undefined) clockRefs.push([carrier.surface.ripple.clock, "attentionCarrier.surface"]);
   const levelRefs: Array<[z.infer<typeof Level> | undefined, string]> = [];
-  if (manifest.stage.motion !== undefined) {
+  if (manifest.stage.motion?.bob !== undefined) {
     clockRefs.push([manifest.stage.motion.bob.clock, "stage.motion"]);
     levelRefs.push([manifest.stage.motion.bob.amplitude, "stage.motion"]);
+  }
+  const rock = manifest.stage.motion?.rock;
+  if (rock !== undefined) {
+    clockRefs.push([rock.clock, "stage.motion.rock"]);
+    levelRefs.push([rock.degrees, "stage.motion.rock.degrees"], [rock.drift, "stage.motion.rock.drift"]);
+    if (rock.pivot[0] < 0 || rock.pivot[0] > manifest.stage.size[0] || rock.pivot[1] < manifest.stage.fit.top || rock.pivot[1] > manifest.stage.fit.bottom)
+      problems.push("stage.motion.rock pivot must be inside the stage fit");
+    for (const [name, level, limit] of [["degrees", rock.degrees, 5], ["drift", rock.drift, 16]] as const) {
+      const values = level === undefined ? [0] : typeof level === "number" ? [level] : "curve" in level ? level.curve.map((p) => p[1])
+        : [...(manifest.atmosphere?.table ?? []).map((row) => row[level.channel]), manifest.atmosphere?.delivered[level.channel]].map((v) => (v ?? NaN) * (level.scale ?? 1));
+      if (values.some((v) => !Number.isFinite(v) || v < 0 || v > limit)) problems.push(`stage.motion.rock.${name} must stay between 0 and ${limit}`);
+    }
   }
   for (const part of manifest.stage.parts) {
     const behaviour = part.behaviour;
