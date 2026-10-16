@@ -5,6 +5,9 @@ reference edits for the seven additional crew identities. [Exact prompts](prompt
 [registration](registration.json), [provenance](provenance.json), previews and build scripts stay here.
 Only the 23 normalized runtime PNGs named by ship pack **1.4.0** ship in `art/`.
 
+The offline build/verification scripts use `pngjs` from the render harness. Install it once with
+`npm install --prefix docs/board-list --no-save pngjs`; it is never a plugin runtime dependency.
+
 `node docs/ship-deck-art/polish/build.mjs` performs mechanical registration, nearest-neighbour reduction,
 fixed-palette quantization and binary alpha normalization. It does not draw or repaint shapes. A connected
 component bounds each generated crew cell to exclude fragments spilling from a neighbour. One scale per
