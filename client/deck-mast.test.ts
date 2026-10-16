@@ -95,13 +95,13 @@ describe("the tall mast on the hull", () => {
     expect(mastY + tall.height).toBe(piece.y + fh);
   });
 
-  it("reaches well above the hull's top row, with the crow's nest in its swaying rows", () => {
+  it("reaches well above the hull's top row, with only the tip above the occupied basket swaying", () => {
     let top = tall.height;
     for (let y = 0; y < tall.height && top === tall.height; y += 1) for (let x = 0; x < tall.width; x += 1) if (tall.at(x, y) !== 0) top = y;
     // Its tip 78 rows above the hull's top row: 188 rows from the deck, where the short rig had 109.
     expect(mastY + top).toBe(-78);
-    // The crow's nest (sprite rows 22 to 44) and its rigging lugs sway; the yard's place on the shaft does not.
-    expect(mast.sway).toBeGreaterThan(46);
+    // The crow's nest (sprite rows 22 to 44), its rigging lugs and the yard now stay on the rigid shaft.
+    expect(mast.sway).toBe(20);
     expect(mastY + mast.sway).toBeLessThan(manifest.sail.position[1]);
   });
 
@@ -149,7 +149,7 @@ describe("the tall mast on the hull", () => {
 
   it("is drawn only with its image, its rows standing in for the mast piece; without it, the hull's own masthead", () => {
     const whole = compileParts(ship, () => true);
-    expect(whole.parts.map((each) => each.id)).toEqual(["tall-mast", "topmast", "sail"]);
+    expect(whole.parts.map((each) => each.id)).toEqual(["tall-mast", "topmast", "sail", "access-ladder"]);
     expect(whole.cutout).toEqual(mast.clears);
     expect(whole.pieces.find((piece) => piece.id === mast.replaces)?.by).toBe("tall-mast");
     const bare = compileParts(ship, (image) => image !== tallMast.sprite.image);

@@ -176,7 +176,7 @@ describe("the sea, the foam and the gull, by the pack", () => {
       expect(Number.isInteger(offset) && offset >= 0 && offset < width).toBe(true);
     }
     expect(scrollOffset(0.1, 10, width)).toBe(1);
-    expect(scrollOffset(25.6, 10, width)).toBe(0);
+    expect(scrollOffset(width / 10, 10, width)).toBe(0);
     expect(scrollOffset(Number.NaN, 10, width)).toBe(0);
   });
 

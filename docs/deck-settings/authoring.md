@@ -15,7 +15,7 @@ or capabilities as incompatible, with a reason. The pane falls back to ship and 
 
 | Capability group | Version 1 vocabulary |
 | --- | --- |
-| Layout and workers | `stage`, `floor`, `zones`, `zone-appearance`, `stable-posts`, `cast`, `pose-fidgets` |
+| Layout and workers | `stage`, `floor`, `zones`, `zone-appearance`, `post-transit`, `stable-posts`, `cast`, `pose-fidgets` |
 | Portals and effects | `rise`, `walk-in`, `sink`, `choreography` |
 | Stage motion and light | `phase-tint`, `bob`, `sway`, `cycle`, `flicker` |
 | Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `strip`, `variants` |
@@ -159,6 +159,32 @@ Full motion follows the wall clock. Lite honors `run`, `freeze` (frame zero) or 
 elapsed time. Hidden scenes do not redraw. The renderer shares its existing local-time sample with the backdrop
 and phase tint; this behaviour adds no timer and reads neither simulation clocks nor intensity. All frames must
 load or the element falls back under the usual ambience rules. Ambience keeps its own colours, outside stage tint.
+
+## Access to a raised station
+
+`post-transit@1` adds optional `transit` to a zone post:
+
+```json
+{ "path": [[222,-35],[218,-35]], "speed": 24,
+  "poses": ["climb-a","climb-b"], "stepMs": 260, "settled": "lookout",
+  "front": "mast", "needs": ["mast-tall-mast","polish-ladder"] }
+```
+
+The post's `at` remains on reachable floor. The path continues from there through one or more points;
+speed is world pixels per second. Only the primary post holder uses it; overflow remains on the floor.
+Moving poses cycle on scalar route progress, then the endpoint uses `settled`. Every cast lane must
+provide those poses. The actor draws immediately ahead of `front`, with the same depth for hit testing.
+Place any occluding rim in a later piece. There is no ground mark while off-floor; badges remain visible.
+
+State changes immediately, while the body descends before taking its new floor path. Reassignment back
+to the station reverses its progress without teleporting. Elapsed time carries across floor/access
+boundaries, including lite frames. First mount and reduced motion snap to the endpoint; reduced-motion
+removal fades at its actual position. Hidden scenes use the existing paused clock. No new timer or hook.
+
+Optional `needs` names image ids; a missing dependency leaves this post as an ordinary floor station.
+The schema rejects unknown images/poses/pieces, nonpositive speed/frame time, zero-length segments,
+routes outside the fit (every pose plus badge clearance), and combining transit with zone appearance.
+Author the route and foreground pieces together so the worker stays visible and clickable throughout.
 
 ## Attention carrier
 

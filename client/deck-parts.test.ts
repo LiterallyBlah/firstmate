@@ -22,9 +22,10 @@ describe("the ship's stage, compiled", () => {
   it("draws the tall mast, its topmast and the sail, the hull cut round the short rig, and reaches above the stage", () => {
     const parts = compileParts(ship, all);
     expect(parts.parts.map((part) => [part.id, part.place, part.at])).toEqual([
-      ["tall-mast", "tall-mast", [187, -28]],
+      ["tall-mast", "tall-mast", [187, -60]],
       ["topmast", "topmast", [187, -80]],
       ["sail", "sail", [154, -15]],
+      ["access-ladder", "access-ladder", [215, -38]],
     ]);
     expect(parts.backdrop).toEqual({ image: "deck", rect: [0, 0, 426, 161] });
     expect(parts.cutout).toEqual([117, 0, 149, 71]);

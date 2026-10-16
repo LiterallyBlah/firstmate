@@ -31,7 +31,9 @@ describe("phase-tint@1", () => {
   it("uses the authored fallback when the clock cannot say and leaves untinted packs unchanged", () => {
     const tint = definition();
     for (const minute of [null, Number.NaN, Infinity]) expect(phaseTintAt(tint, minute)).toBe(0xd8c0b0);
-    expect(compilePhaseTint(shipManifest())).toBeNull();
+    const plain = structuredClone(shipManifest());
+    delete plain.stage.tintByPhase;
+    expect(compilePhaseTint(plain)).toBeNull();
     for (const minute of [null, 0, 720, 1260]) expect(phaseTintAt(null, minute)).toBe(0xffffff);
   });
 

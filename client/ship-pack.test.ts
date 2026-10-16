@@ -71,7 +71,7 @@ describe("the ship's pack, read as the manifests the deck drew from", () => {
 
   it("has the atlas's backdrop and pieces as last served", () => {
     expect(ship.stage.backdrop.sprite).toEqual({ image: "deck", rect: deck.ship.frame });
-    const pieces = ship.stage.pieces.filter((piece) => piece.baseline === null || typeof piece.baseline === "number");
+    const pieces = ship.stage.pieces.filter((piece) => piece.sprite.image === "deck" && (piece.baseline === null || typeof piece.baseline === "number"));
     expect(Object.fromEntries(pieces.map((piece) => [piece.id, { frame: piece.sprite.rect, x: piece.at[0], y: piece.at[1], baseline: piece.baseline }]))).toEqual(deck.pieces);
   });
 
@@ -94,8 +94,9 @@ describe("the ship's pack, read as the manifests the deck drew from", () => {
     const [mastWidth, mastHeight] = mast.size;
     const piece = deck.pieces[mast.replaces]!;
     const depthTop = Math.max(piece.y, served.sail.position[1] + height, y);
-    expect(part("topmast")).toMatchObject({ at: [x, y], sprite: { rect: [0, 0, mastWidth, mast.sway] }, needs: ["tall-mast"], fallback: "masthead" });
-    expect(part("tall-mast")).toMatchObject({ at: [x, y + mast.sway], sprite: { rect: [0, mast.sway, mastWidth, mastHeight - mast.sway] }, cutout: mast.clears });
+    // Polish pins the occupied basket to the shaft; the same mast art's first 20 rows sway.
+    expect(part("topmast")).toMatchObject({ at: [x, y], sprite: { rect: [0, 0, mastWidth, 20] }, needs: ["tall-mast"], fallback: "masthead" });
+    expect(part("tall-mast")).toMatchObject({ at: [x, y + 20], sprite: { rect: [0, 20, mastWidth, mastHeight - 20] }, cutout: mast.clears });
     expect(part("tall-mast").replacesPiece).toMatchObject({ piece: mast.replaces, at: [x, depthTop], sprite: { rect: [0, depthTop - y, mastWidth, y + mastHeight - depthTop] } });
     expect(pathOf(part("tall-mast").sprite.image)).toBe(mast.texture);
     // Its foot on the mast piece's last row, as wide as the piece.

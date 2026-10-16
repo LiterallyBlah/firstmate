@@ -1,0 +1,389 @@
+{
+  "tool": "Built-in image_gen__imagegen (generation and reference edits)",
+  "prompts": "prompts.json",
+  "normalization": "build.mjs",
+  "sources": [
+    {
+      "path": "source/crew-base.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "60943aa4adccef2184c43bc37f5e0066b061278e1617b9c0835fdfc01d06314b"
+    },
+    {
+      "path": "source/crew-bosun.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "4e49b41fedd07be36196906cde6ddae6ffa59d774b4416a5d27ae3e67ed0088d"
+    },
+    {
+      "path": "source/crew-carpenter.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "a84034fd8c9ad873589821423de04ec9da4627f21b592041f27e81194ef38067"
+    },
+    {
+      "path": "source/crew-deckhand.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "b8a755cf2a0f7e85b5acfd642aee8c5245101f25946be793277028f3162a4af5"
+    },
+    {
+      "path": "source/crew-navigator.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "a9441497cc2dafb32645854a9dc4a0dc6df4f9783afec268b8689b12c729d2b9"
+    },
+    {
+      "path": "source/crew-old-salt.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "6ab3eb3e0e347ce90d264e1627ed51632b6a5f20d830c24b1aef508119019711"
+    },
+    {
+      "path": "source/crew-outfit.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "d702cf1c9d39aacd1b1293f24ece092d44d8d6d6058058009e8db748ebe1cc2c"
+    },
+    {
+      "path": "source/crew-rigger.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "9b02caa0d73a16fd280dbc97060ce2428079dfc56a68f07d440dedde2ada3601"
+    },
+    {
+      "path": "source/foam.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "19e6556b250265fc64df691675b09d18dc083b0c369ed37955148d4a54906d87"
+    },
+    {
+      "path": "source/gull.png",
+      "size": [
+        2172,
+        724
+      ],
+      "sha256": "ed3ea0cd8099d8c0da432de8c86aa8c80427b33a9084b3b43d96e83b2df3ee8c"
+    },
+    {
+      "path": "source/ladder.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "sha256": "067a6e0376d0c30167cc5e7a89d6be9318e6ddf92b4ac0296195f38dc760124a"
+    },
+    {
+      "path": "source/sea-rough.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "8f5f6ba9869c48a2bd4230355ccbb0b72d7899f48184af2823eb4701d9f80776"
+    },
+    {
+      "path": "source/sea.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "2d22b1af328a97e986aa2b96d4aa7d2202e83bfa5084bd40b9e4bf50371d3b8c"
+    }
+  ],
+  "runtime": [
+    {
+      "id": "gull-flap-strip",
+      "path": "gull/flap-strip.png",
+      "size": [
+        96,
+        32
+      ],
+      "sha256": "82301dc34dda8988d3ac9ee850b6e9063ba51d73b8a2950ed153402a8905e214",
+      "bytes": 1741,
+      "colours": 22
+    },
+    {
+      "id": "sea-foam-strip",
+      "path": "sea/foam-strip.png",
+      "size": [
+        256,
+        16
+      ],
+      "sha256": "b3d33528dbbbe1e1c4cba2c90ec7ca6780a5619780b977ba178193ceaef8a412",
+      "bytes": 2546,
+      "colours": 11
+    },
+    {
+      "id": "sea-water-tile",
+      "path": "sea/water-tile.png",
+      "size": [
+        512,
+        128
+      ],
+      "sha256": "b0ae82c7a88e765abd5e322a77d5f671caca75fa08f09e1be766be02243f7f4b",
+      "bytes": 13627,
+      "colours": 6
+    },
+    {
+      "id": "storm-sea-frame-0",
+      "path": "storm/sea/frame-0.png",
+      "size": [
+        512,
+        128
+      ],
+      "sha256": "0efa6cfdf3bdf35ddabccc6fcbc2cbf8b8d32246ab1e09f0bef5a199cbde8742",
+      "bytes": 22203,
+      "colours": 8
+    },
+    {
+      "id": "storm-sea-frame-1",
+      "path": "storm/sea/frame-1.png",
+      "size": [
+        512,
+        128
+      ],
+      "sha256": "070e9d13a6f2575b903a1339a2dfa4e4ca6bbd01a88153a8b2ae0755a46d077c",
+      "bytes": 23058,
+      "colours": 8
+    },
+    {
+      "id": "storm-sea-frame-2",
+      "path": "storm/sea/frame-2.png",
+      "size": [
+        512,
+        128
+      ],
+      "sha256": "441a13d4557ff51d41e82d98d9d72bd7f18d0f8d36d7e30bbe917c5fb76b6105",
+      "bytes": 22931,
+      "colours": 8
+    },
+    {
+      "id": "storm-sea-frame-3",
+      "path": "storm/sea/frame-3.png",
+      "size": [
+        512,
+        128
+      ],
+      "sha256": "6fe33a7e221d654d236b245b8d42dcfa60dc9a1b34699a48de57e3ed39c8b8a7",
+      "bytes": 23297,
+      "colours": 8
+    },
+    {
+      "id": "water-foam-frame-0",
+      "path": "water/foam/frame-0.png",
+      "size": [
+        256,
+        16
+      ],
+      "sha256": "b3d33528dbbbe1e1c4cba2c90ec7ca6780a5619780b977ba178193ceaef8a412",
+      "bytes": 2546,
+      "colours": 11
+    },
+    {
+      "id": "water-foam-frame-1",
+      "path": "water/foam/frame-1.png",
+      "size": [
+        256,
+        16
+      ],
+      "sha256": "15aca5a4ea64a8eac484a829dc956d20e45b97e6a63ec0e78424e81ff2943281",
+      "bytes": 2677,
+      "colours": 11
+    },
+    {
+      "id": "water-foam-frame-2",
+      "path": "water/foam/frame-2.png",
+      "size": [
+        256,
+        16
+      ],
+      "sha256": "e0d80ceead84ce7dbcb2b7346156593d2f9754a7d9644462080a891fac07b9f6",
+      "bytes": 2485,
+      "colours": 14
+    },
+    {
+      "id": "water-sea-frame-0",
+      "path": "water/sea/frame-0.png",
+      "size": [
+        512,
+        128
+      ],
+      "sha256": "b0ae82c7a88e765abd5e322a77d5f671caca75fa08f09e1be766be02243f7f4b",
+      "bytes": 13627,
+      "colours": 6
+    },
+    {
+      "id": "water-sea-frame-1",
+      "path": "water/sea/frame-1.png",
+      "size": [
+        512,
+        128
+      ],
+      "sha256": "45f36bd6bd3aed1f302b0bfecd46d151818ce8e8415447b120217e9df8c78a7b",
+      "bytes": 13722,
+      "colours": 6
+    },
+    {
+      "id": "water-sea-frame-2",
+      "path": "water/sea/frame-2.png",
+      "size": [
+        512,
+        128
+      ],
+      "sha256": "97d4ae5106bc66dd20cd06c59e4f6a49c43faab6c3dda4c436b5a4a0dd5cf135",
+      "bytes": 13857,
+      "colours": 6
+    },
+    {
+      "id": "water-sea-frame-3",
+      "path": "water/sea/frame-3.png",
+      "size": [
+        512,
+        128
+      ],
+      "sha256": "4a67fc9cac79e252886474e820c3b7383a9ed333cbf1df5872a50fc12538e95a",
+      "bytes": 14395,
+      "colours": 6
+    },
+    {
+      "id": "polish-crew-base",
+      "path": "polish/crew-base.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "f96427e170fe0c9f7942973cc1ba203ace6be601ba6fdadb92e2aa04932e7fe4",
+      "bytes": 14862,
+      "colours": 52
+    },
+    {
+      "id": "polish-crew-outfit",
+      "path": "polish/crew-outfit.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "d772b7e841ea983ec258d7f5d0caf65f2a63346f8be1302776bcb03dc30af9be",
+      "bytes": 13357,
+      "colours": 49
+    },
+    {
+      "id": "polish-crew-bosun",
+      "path": "polish/crew-bosun.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "b229c0097665e55108215222e66f89c7d3a54915ce5f04280eb8e90b55006dd7",
+      "bytes": 13734,
+      "colours": 42
+    },
+    {
+      "id": "polish-crew-old-salt",
+      "path": "polish/crew-old-salt.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "993f578bf8dbffb90fa6b5a39d8d2e580a1f5a04c5f3080e5f9c0e1553bdc8fe",
+      "bytes": 15370,
+      "colours": 57
+    },
+    {
+      "id": "polish-crew-navigator",
+      "path": "polish/crew-navigator.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "cf76c8427a67e0ec81238ea0a28c7d3d50874b5e0303b59d99386f2c133e78b7",
+      "bytes": 16855,
+      "colours": 50
+    },
+    {
+      "id": "polish-crew-carpenter",
+      "path": "polish/crew-carpenter.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "4866f8fc6eb6e5a6e457aef5e372a70cf4870c4c4fbc646016e3495cd7479bef",
+      "bytes": 15577,
+      "colours": 51
+    },
+    {
+      "id": "polish-crew-rigger",
+      "path": "polish/crew-rigger.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "bcc4a8f311a3241bd9ef28408909de50f75999574040ba7ac6ea8cbb8d1e2871",
+      "bytes": 14711,
+      "colours": 42
+    },
+    {
+      "id": "polish-crew-deckhand",
+      "path": "polish/crew-deckhand.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "6cb2398ee3115d596d4fec12dab2d07060a993def55668f0581947d525972586",
+      "bytes": 13693,
+      "colours": 46
+    },
+    {
+      "id": "polish-ladder",
+      "path": "polish/ladder.png",
+      "size": [
+        14,
+        144
+      ],
+      "sha256": "fe0728f4d5761d8b16658bf1296971ea5e00a0b279a95949a93b1af0590dc2a7",
+      "bytes": 3132,
+      "colours": 29
+    }
+  ],
+  "seams": [
+    {
+      "id": "water-sea-frame-0",
+      "meanJoinRgbDistance": {
+        "horizontal": 4.088541666666666,
+        "vertical": 1.1080729166666667
+      }
+    },
+    {
+      "id": "storm-sea-frame-0",
+      "meanJoinRgbDistance": {
+        "horizontal": 9.494791666666668,
+        "vertical": 3.2239583333333344
+      }
+    }
+  ],
+  "checks": [
+    "all sizes and manifest SHA-256 digests match",
+    "binary alpha; zero transparent RGB; existing 64-colour palette",
+    "eight registered 128x160 atlases; standing height 32; pose height at most 36",
+    "four distinct frames per directional walk; two distinct climb poses for every look"
+  ],
+  "packPngBytes": 488670
+}
