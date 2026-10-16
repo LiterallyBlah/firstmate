@@ -1,0 +1,281 @@
+[
+  {
+    "name": "japanese-ship-square-full.png",
+    "width": 974,
+    "height": 835,
+    "changedPixels": 791,
+    "changedBounds": [
+      4,
+      11,
+      973,
+      111
+    ]
+  },
+  {
+    "name": "japanese-ship-square-lite.png",
+    "width": 974,
+    "height": 835,
+    "changedPixels": 1026,
+    "changedBounds": [
+      0,
+      0,
+      971,
+      107
+    ]
+  },
+  {
+    "name": "japanese-ship-square-still.png",
+    "width": 974,
+    "height": 835,
+    "changedPixels": 0,
+    "changedBounds": null
+  },
+  {
+    "name": "japanese-ship-tall-narrow-full.png",
+    "width": 624,
+    "height": 1335,
+    "changedPixels": 13241,
+    "changedBounds": [
+      0,
+      0,
+      623,
+      1331
+    ]
+  },
+  {
+    "name": "japanese-ship-tall-narrow-lite.png",
+    "width": 624,
+    "height": 1335,
+    "changedPixels": 2578,
+    "changedBounds": [
+      1,
+      0,
+      622,
+      469
+    ]
+  },
+  {
+    "name": "japanese-ship-tall-narrow-still.png",
+    "width": 624,
+    "height": 1335,
+    "changedPixels": 0,
+    "changedBounds": null
+  },
+  {
+    "name": "japanese-ship-wide-full.png",
+    "width": 1574,
+    "height": 535,
+    "changedPixels": 266,
+    "changedBounds": [
+      0,
+      0,
+      1518,
+      15
+    ]
+  },
+  {
+    "name": "japanese-ship-wide-lite.png",
+    "width": 1574,
+    "height": 535,
+    "changedPixels": 34475,
+    "changedBounds": [
+      29,
+      5,
+      1544,
+      391
+    ]
+  },
+  {
+    "name": "japanese-ship-wide-still.png",
+    "width": 1574,
+    "height": 535,
+    "changedPixels": 0,
+    "changedBounds": null
+  },
+  {
+    "name": "ship-square-full.png",
+    "width": 974,
+    "height": 835,
+    "changedPixels": 4786,
+    "changedBounds": [
+      0,
+      0,
+      973,
+      130
+    ]
+  },
+  {
+    "name": "ship-square-lite.png",
+    "width": 974,
+    "height": 835,
+    "changedPixels": 4821,
+    "changedBounds": [
+      2,
+      1,
+      972,
+      127
+    ]
+  },
+  {
+    "name": "ship-square-still.png",
+    "width": 974,
+    "height": 835,
+    "changedPixels": 0,
+    "changedBounds": null
+  },
+  {
+    "name": "ship-tall-narrow-full.png",
+    "width": 624,
+    "height": 1335,
+    "changedPixels": 146169,
+    "changedBounds": [
+      0,
+      0,
+      623,
+      1334
+    ]
+  },
+  {
+    "name": "ship-tall-narrow-lite.png",
+    "width": 624,
+    "height": 1335,
+    "changedPixels": 11356,
+    "changedBounds": [
+      0,
+      0,
+      623,
+      481
+    ]
+  },
+  {
+    "name": "ship-tall-narrow-still.png",
+    "width": 624,
+    "height": 1335,
+    "changedPixels": 0,
+    "changedBounds": null
+  },
+  {
+    "name": "ship-wide-full.png",
+    "width": 1574,
+    "height": 535,
+    "changedPixels": 169623,
+    "changedBounds": [
+      0,
+      0,
+      1573,
+      534
+    ]
+  },
+  {
+    "name": "ship-wide-lite.png",
+    "width": 1574,
+    "height": 535,
+    "changedPixels": 863,
+    "changedBounds": [
+      5,
+      0,
+      1566,
+      12
+    ]
+  },
+  {
+    "name": "ship-wide-still.png",
+    "width": 1574,
+    "height": 535,
+    "changedPixels": 0,
+    "changedBounds": null
+  },
+  {
+    "name": "sky-airship-square-full.png",
+    "width": 974,
+    "height": 835,
+    "changedPixels": 4204,
+    "changedBounds": [
+      0,
+      0,
+      972,
+      116
+    ]
+  },
+  {
+    "name": "sky-airship-square-lite.png",
+    "width": 974,
+    "height": 835,
+    "changedPixels": 4395,
+    "changedBounds": [
+      0,
+      1,
+      973,
+      112
+    ]
+  },
+  {
+    "name": "sky-airship-square-still.png",
+    "width": 974,
+    "height": 835,
+    "changedPixels": 0,
+    "changedBounds": null
+  },
+  {
+    "name": "sky-airship-tall-narrow-full.png",
+    "width": 624,
+    "height": 1335,
+    "changedPixels": 11090,
+    "changedBounds": [
+      0,
+      0,
+      622,
+      474
+    ]
+  },
+  {
+    "name": "sky-airship-tall-narrow-lite.png",
+    "width": 624,
+    "height": 1335,
+    "changedPixels": 241863,
+    "changedBounds": [
+      0,
+      0,
+      623,
+      1334
+    ]
+  },
+  {
+    "name": "sky-airship-tall-narrow-still.png",
+    "width": 624,
+    "height": 1335,
+    "changedPixels": 0,
+    "changedBounds": null
+  },
+  {
+    "name": "sky-airship-wide-full.png",
+    "width": 1574,
+    "height": 535,
+    "changedPixels": 1840,
+    "changedBounds": [
+      6,
+      0,
+      1573,
+      35
+    ]
+  },
+  {
+    "name": "sky-airship-wide-lite.png",
+    "width": 1574,
+    "height": 535,
+    "changedPixels": 2249,
+    "changedBounds": [
+      5,
+      0,
+      1573,
+      32
+    ]
+  },
+  {
+    "name": "sky-airship-wide-still.png",
+    "width": 1574,
+    "height": 535,
+    "changedPixels": 0,
+    "changedBounds": null
+  }
+]
