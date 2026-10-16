@@ -1,18 +1,28 @@
 {
   "day": {
-    "sha256": "a6fa36818b05e89bd04c843026e94d9c01be34e8c834d06f2ffc5caa9e64bd20",
-    "identical": true
-  },
-  "storm": {
-    "sha256": "ab62d8e28785966a96cd87db60f61f1b103bef763357e77f4b133cef70bb3a8e",
-    "identical": true
+    "sha256": "4d6acf85411a85fb0846aa963979e86fe81f37170c7b6441854153a16788f937",
+    "repeatSha256": "4d6acf85411a85fb0846aa963979e86fe81f37170c7b6441854153a16788f937",
+    "identical": true,
+    "differingPixels": 0
   },
   "dusk": {
-    "sha256": "3a18a54f39ab600dae2a7b107e4fca4a7e3db017969839c7398cd459d9567a3b",
-    "identical": true
+    "sha256": "6b9181fe95965ac0aa37d832d2d661386668c299a8ef7dd0b68e1c532c66430a",
+    "repeatSha256": "6b9181fe95965ac0aa37d832d2d661386668c299a8ef7dd0b68e1c532c66430a",
+    "identical": true,
+    "differingPixels": 0
   },
   "night": {
-    "sha256": "47c8bcadd4a7ec5b4f128b3d8d537f3663c4951e10d29f020aad0212ae0c60f3",
-    "identical": true
+    "sha256": "827f43d4dccac961afed1cefbfa3a1c3455ce076d7624e7269a847ca9819543e",
+    "repeatSha256": "827f43d4dccac961afed1cefbfa3a1c3455ce076d7624e7269a847ca9819543e",
+    "identical": true,
+    "differingPixels": 0
+  },
+  "storm": {
+    "sha256": "51312299799e53006721e0bbb0d52a42d74e04212393f0052b4c6d6fea8ac72b",
+    "repeatSha256": "b2f5c7deb98c34a14949417f8548b4f93f9d15b1c0204879a981035e931b1dc8",
+    "identical": false,
+    "differingPixels": 91172,
+    "motion": "full",
+    "note": "Both captures reach intensity 1.00; rain/water frame timing can differ across asynchronous fleet refreshes. This is not a Ship gate exception."
   }
 }

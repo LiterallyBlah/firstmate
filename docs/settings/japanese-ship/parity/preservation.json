@@ -19,7 +19,7 @@
   "originalCrewFrames": "all twelve original frames unchanged in both existing looks; three new poses appended",
   "arrival": "unchanged",
   "attentionCarrier": "deep-equal including surface ripple",
-  "imageBytes": 886669,
+  "imageBytes": 886395,
   "imageCount": 51,
   "capabilities": [
     "stage@1",
