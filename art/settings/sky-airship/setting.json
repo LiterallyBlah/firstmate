@@ -1,0 +1,3999 @@
+{
+  "format": "firstmate.deck-setting",
+  "formatVersion": 1,
+  "id": "sky-airship",
+  "name": "Sky pirates",
+  "version": "1.0.0",
+  "requires": [
+    "stage@1",
+    "floor@1",
+    "zones@1",
+    "zone-appearance@1",
+    "post-transit@1",
+    "attention-carrier@1",
+    "carrier-surface@1",
+    "stable-posts@1",
+    "cast@1",
+    "pose-fidgets@1",
+    "rise@1",
+    "choreography@1",
+    "phase-tint@1",
+    "bob@1",
+    "sway@1",
+    "cycle@1",
+    "flicker@1",
+    "backdrop-cycle@1",
+    "flash@1",
+    "drifters@1",
+    "flyby@1",
+    "tile@1",
+    "strip@1",
+    "variants@1",
+    "day-cycle@1",
+    "atmosphere@1"
+  ],
+  "images": {
+    "ship": {
+      "path": "ship.png",
+      "size": [
+        480,
+        320
+      ],
+      "sha256": "79ad30354d989ea68aab7b51773b6a8c4ab4e855fed2177206bfa825a32ce5d9"
+    },
+    "balloon-0": {
+      "path": "balloon-0.png",
+      "size": [
+        394,
+        82
+      ],
+      "sha256": "86f93a0ebd9ec1d252c57d891c9cbdbeda8beb763accd6b80aaf6ef926769141"
+    },
+    "balloon-1": {
+      "path": "balloon-1.png",
+      "size": [
+        394,
+        82
+      ],
+      "sha256": "0205eab8df560b312a600bdedf11a24a92148c218cfa5b60367a21e0de20cb99"
+    },
+    "balloon-2": {
+      "path": "balloon-2.png",
+      "size": [
+        394,
+        82
+      ],
+      "sha256": "86f93a0ebd9ec1d252c57d891c9cbdbeda8beb763accd6b80aaf6ef926769141"
+    },
+    "balloon-3": {
+      "path": "balloon-3.png",
+      "size": [
+        394,
+        82
+      ],
+      "sha256": "2b8350e3b5589ad70189b41e94200eedb54c1f5df4b668845b3d9c2a804e8636"
+    },
+    "rig-0": {
+      "path": "rig-0.png",
+      "size": [
+        322,
+        81
+      ],
+      "sha256": "64459622b2aa2139632d8e0429fa49069dff89f9da53dfe41d476e2256bc2228"
+    },
+    "rig-1": {
+      "path": "rig-1.png",
+      "size": [
+        322,
+        81
+      ],
+      "sha256": "706704423e87236b4d42937963f88aab67b6a33989d606b169970507c7ddad0a"
+    },
+    "rig-2": {
+      "path": "rig-2.png",
+      "size": [
+        322,
+        81
+      ],
+      "sha256": "64459622b2aa2139632d8e0429fa49069dff89f9da53dfe41d476e2256bc2228"
+    },
+    "rig-3": {
+      "path": "rig-3.png",
+      "size": [
+        322,
+        81
+      ],
+      "sha256": "9769d11249e87a553b25e2d90f22d53966545f828fa4b450dfcd2a0e241b26d7"
+    },
+    "flag-0": {
+      "path": "flag-0.png",
+      "size": [
+        64,
+        35
+      ],
+      "sha256": "17c77f8ab929d30c446dc378bba834cbf180907e82dfc494d73f78f2f00f0f3d"
+    },
+    "flag-1": {
+      "path": "flag-1.png",
+      "size": [
+        64,
+        35
+      ],
+      "sha256": "6f70e34088ce5593d3ff2213ace2f8eadd85ad20ff96c01bfdac58d16dc35abd"
+    },
+    "flag-2": {
+      "path": "flag-2.png",
+      "size": [
+        64,
+        35
+      ],
+      "sha256": "17c77f8ab929d30c446dc378bba834cbf180907e82dfc494d73f78f2f00f0f3d"
+    },
+    "flag-3": {
+      "path": "flag-3.png",
+      "size": [
+        64,
+        35
+      ],
+      "sha256": "cdb7c31a3922169c7699524d1fe2a2afd4c69ec8ce0ffbd09445382eeb82fc28"
+    },
+    "sail-left-0": {
+      "path": "sail-left-0.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "f8d3d05809f8b3d1a4543689525eeffdcfb0c581c4f43cf3148fd1458041fb12"
+    },
+    "sail-left-1": {
+      "path": "sail-left-1.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "2ec63ee86616228f4133a161ef6d80ac8075b17c210f1f4e5300d7ad4b034dd8"
+    },
+    "sail-left-2": {
+      "path": "sail-left-2.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "f8d3d05809f8b3d1a4543689525eeffdcfb0c581c4f43cf3148fd1458041fb12"
+    },
+    "sail-left-3": {
+      "path": "sail-left-3.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "4e411848f1b5264b3156a331e98f7561326c209d2ee456e3038a30915d360058"
+    },
+    "sail-right-0": {
+      "path": "sail-right-0.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "5626c4c831e0cb1782e0ad06e14c903d57d47298926c5cc42d37564ca363f1d7"
+    },
+    "sail-right-1": {
+      "path": "sail-right-1.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "a9e455ea11d597e545d907b50df6f469054e2d7a8c730111d790428487963ca9"
+    },
+    "sail-right-2": {
+      "path": "sail-right-2.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "5626c4c831e0cb1782e0ad06e14c903d57d47298926c5cc42d37564ca363f1d7"
+    },
+    "sail-right-3": {
+      "path": "sail-right-3.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "fe1ea6743c2e09593342158724177b613f34cfbe6f6ed064b4c83c7d69e17ac4"
+    },
+    "propeller-0": {
+      "path": "propeller-0.png",
+      "size": [
+        24,
+        66
+      ],
+      "sha256": "8a14410755c1125866164fb058d9d58bb6e1eb6564e3c7584769d76c623a1d84"
+    },
+    "propeller-1": {
+      "path": "propeller-1.png",
+      "size": [
+        24,
+        66
+      ],
+      "sha256": "08efe3262f935173771be66f1392fc82f91f317a7617f727162b3a1cd5483a62"
+    },
+    "propeller-2": {
+      "path": "propeller-2.png",
+      "size": [
+        24,
+        66
+      ],
+      "sha256": "14aa841a124d9b26fc9c864f6f29debb5ebc6a4fcb38664b8f035b42ee0d18a6"
+    },
+    "propeller-3": {
+      "path": "propeller-3.png",
+      "size": [
+        24,
+        66
+      ],
+      "sha256": "08efe3262f935173771be66f1392fc82f91f317a7617f727162b3a1cd5483a62"
+    },
+    "fixed": {
+      "path": "fixed.png",
+      "size": [
+        480,
+        320
+      ],
+      "sha256": "e84ec2545b86bde73b809a04843be2096fb7847461a8ddc5c90ef6299d3bfac9"
+    },
+    "crew-navy": {
+      "path": "crew-navy.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "07f81b5dce505b9c0a893e20d6ef5f94a28b872a18f47ab175a66984613e423e"
+    },
+    "crew-russet": {
+      "path": "crew-russet.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "8041424a4ee71dd382af2a17932e19a3166e8c88a5449e3baf02465dae951dc4"
+    },
+    "sky-day": {
+      "path": "sky-day.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "0f90372906cfd89f2662b5aed2ccbd09d4b1b461eb630e910f3e946b847a7a63"
+    },
+    "sky-night": {
+      "path": "sky-night.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "2e2d84050d1463e5239dbd7558c3e41e758148dccc191e3ad0c82fa916ad46db"
+    },
+    "sky-dawn": {
+      "path": "sky-dawn.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "65927d3b6dc32ef43b71c22f70f0882f902eb06b24a8de4d3e74583ae01f1037"
+    },
+    "sky-dusk": {
+      "path": "sky-dusk.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "5883254ec29c0a703470ba3909289a2c8f46243acaa11a759441955421780cbf"
+    },
+    "sky-puff": {
+      "path": "sky-puff.png",
+      "size": [
+        52,
+        34
+      ],
+      "sha256": "01a59b15518c34c50cbec3f496ea9182f67e122efda2ab1bc2ea8d611df16895"
+    },
+    "sky-bank": {
+      "path": "sky-bank.png",
+      "size": [
+        116,
+        42
+      ],
+      "sha256": "9ef5b14193b04514bb6f82327ea4f3e23bce73cd5d0121ed2a459577045e6d94"
+    },
+    "sky-tower": {
+      "path": "sky-tower.png",
+      "size": [
+        65,
+        92
+      ],
+      "sha256": "d16b8d62b1cb760e906d5be957a943611c04ab9deed28b227e240218753c8ae9"
+    },
+    "sky-feather": {
+      "path": "sky-feather.png",
+      "size": [
+        120,
+        32
+      ],
+      "sha256": "85f30830d626e37c306a4d36faaad7da0a11706cd657b7714edf43a8896d874f"
+    },
+    "sky-curl": {
+      "path": "sky-curl.png",
+      "size": [
+        85,
+        52
+      ],
+      "sha256": "b7b69c0ffbcf829d73f88e8878c07810d499e349ca17fd9fcbb8e03daac8d180"
+    },
+    "sky-anvil": {
+      "path": "sky-anvil.png",
+      "size": [
+        130,
+        64
+      ],
+      "sha256": "de9946dd3b8256563fca3baa2b8d872eabc2fdacc9065616fb9f7c6afdc918c0"
+    },
+    "sleep-window": {
+      "path": "sleep-window.png",
+      "size": [
+        14,
+        16
+      ],
+      "sha256": "f8651608c9e157d1441b0446e991ce1340a08b094d14386944d3e4b0ca58f416"
+    },
+    "gull-up": {
+      "path": "gull-up.png",
+      "size": [
+        24,
+        20
+      ],
+      "sha256": "54d40f0a7fd8823b71d12afb5fcd74fa0bcd7d6cf1043ed4a6d58cc6ff888942"
+    },
+    "gull-down": {
+      "path": "gull-down.png",
+      "size": [
+        24,
+        20
+      ],
+      "sha256": "7ff81b820eecbc0967d85add63b53b136c23d5e5e984f7f084551c7a54f931e7"
+    },
+    "distant-airship": {
+      "path": "distant-airship.png",
+      "size": [
+        48,
+        30
+      ],
+      "sha256": "d21f48ca87ea73c8e99905ea17911ee32ae94c652de1b8baccf0bacaf7723cf0"
+    },
+    "serpent-0": {
+      "path": "serpent-0.png",
+      "size": [
+        110,
+        86
+      ],
+      "sha256": "c4286c5279e599307ad35b7d97a0d67385ff0dfa975813140d62e1293dcbf1ed"
+    },
+    "serpent-1": {
+      "path": "serpent-1.png",
+      "size": [
+        110,
+        86
+      ],
+      "sha256": "d0b201a6a99f1b6bcc029da231adff5b1c79dda4dcbf704aa022ea32de07798e"
+    },
+    "serpent-2": {
+      "path": "serpent-2.png",
+      "size": [
+        110,
+        86
+      ],
+      "sha256": "c3faff99073682efaa314be88ed22c8f1f9f6458998df22d260e4081ef428719"
+    },
+    "serpent-3": {
+      "path": "serpent-3.png",
+      "size": [
+        110,
+        86
+      ],
+      "sha256": "e4cebf96d387983b24fccb1ac7f80fda59ac8b8beebcce3ded21a830afc5d864"
+    },
+    "smoke-0": {
+      "path": "smoke-0.png",
+      "size": [
+        24,
+        44
+      ],
+      "sha256": "5fb6cd55a4a32b109be8e8e07990023d13a6f11620d926ae11963ce08114d333"
+    },
+    "smoke-1": {
+      "path": "smoke-1.png",
+      "size": [
+        24,
+        44
+      ],
+      "sha256": "a2a60a359944051d97f722934ecef68c57f9af072581fa31326310eb8c17ba37"
+    },
+    "smoke-2": {
+      "path": "smoke-2.png",
+      "size": [
+        24,
+        44
+      ],
+      "sha256": "58264fca60cdb082d1a672d1c8e7aff9693628d7a3f4f1fee7f22c154ba92380"
+    },
+    "smoke-3": {
+      "path": "smoke-3.png",
+      "size": [
+        24,
+        44
+      ],
+      "sha256": "f0e1783817515d225273629e9f5627e9a481f2b1abe0065e107cedd9d7100ab1"
+    },
+    "vapour-0": {
+      "path": "vapour-0.png",
+      "size": [
+        80,
+        20
+      ],
+      "sha256": "33fe0b19c9fdf8bfd4596f60b0c5f541a301508a9b2848a037f72f644510f1e7"
+    },
+    "vapour-1": {
+      "path": "vapour-1.png",
+      "size": [
+        80,
+        20
+      ],
+      "sha256": "842ecdabfd10a06fd6dd323a4be354788b8a1703174c36cb95b0e97de49d717b"
+    },
+    "vapour-2": {
+      "path": "vapour-2.png",
+      "size": [
+        80,
+        20
+      ],
+      "sha256": "6b05bd0f10ed04857b6eb070f51c5b23864b0133273ae89817167a88eaf8832e"
+    },
+    "vapour-3": {
+      "path": "vapour-3.png",
+      "size": [
+        80,
+        20
+      ],
+      "sha256": "5e08806558b045db7ee4e0ccff5b36710b4ed8f7477f4c98864228a107911936"
+    },
+    "carrier-0": {
+      "path": "carrier-0.png",
+      "size": [
+        56,
+        44
+      ],
+      "sha256": "619a51b9044b0331861b53befac5bdbcffff777232aaddfce5565be62db9737f"
+    },
+    "carrier-1": {
+      "path": "carrier-1.png",
+      "size": [
+        56,
+        44
+      ],
+      "sha256": "3241a09ed53aa7c68bf316e5415623571f66c033909e3c93d43873a49fbc1ada"
+    },
+    "carrier-2": {
+      "path": "carrier-2.png",
+      "size": [
+        56,
+        44
+      ],
+      "sha256": "d02b57884041abcf8a85e8a08f199dec4b836ac6c7b973d5af2233c12dfe922d"
+    },
+    "carrier-3": {
+      "path": "carrier-3.png",
+      "size": [
+        56,
+        44
+      ],
+      "sha256": "be50fb07355547555363cdfd0574c441d3d620e87e080eba921b2b6d9dc6c555"
+    },
+    "whale-0": {
+      "path": "whale-0.png",
+      "size": [
+        96,
+        80
+      ],
+      "sha256": "26bf698eb938e64bc01c875c7fa5c0422df40d2e35f70f42962a4e1f726e31a3"
+    },
+    "whale-1": {
+      "path": "whale-1.png",
+      "size": [
+        96,
+        80
+      ],
+      "sha256": "352a184a1243b10abea21b62f52d1b12acbb57dc02ac699e4b6042022e799c28"
+    },
+    "whale-2": {
+      "path": "whale-2.png",
+      "size": [
+        96,
+        80
+      ],
+      "sha256": "5556f07e01c44de454487bf1acfaad9c13ca56ce5506de4603ecfeda03658d79"
+    },
+    "whale-3": {
+      "path": "whale-3.png",
+      "size": [
+        96,
+        80
+      ],
+      "sha256": "1e57b4a03d0a719d21495330841154ecb1537dd495885a67fcf28a04220b5ea5"
+    },
+    "puff-0": {
+      "path": "puff-0.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "3d68bf7c0576dca4679a9e23d69692206dc1e8a889bbdd806d79b167b62aa2af"
+    },
+    "puff-1": {
+      "path": "puff-1.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "460daf6482f8c0ffe6085230737f18196009f99f6140aa234c229c3584ae80fe"
+    },
+    "puff-2": {
+      "path": "puff-2.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "c72ede7ede2b9d82f31081f43ae59f3d30d581cb6ee250499b476bac5d42c2ff"
+    },
+    "puff-3": {
+      "path": "puff-3.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "8a73635550c8d04a1d9e7ebd119a05e537b124cbe146b806e1be164b4504c0f9"
+    },
+    "sea-far": {
+      "path": "sea-far.png",
+      "size": [
+        1920,
+        210
+      ],
+      "sha256": "22a71dd6f82d31e1c0afcb2c9ef029bfdb554477a8bbea48783c9150a2717a90"
+    },
+    "sea-far-storm": {
+      "path": "sea-far-storm.png",
+      "size": [
+        1920,
+        210
+      ],
+      "sha256": "88be601f0e911166515ea81b558de0bce9b75dbada909c31f0c060ca15eb52f0"
+    },
+    "sea-mid": {
+      "path": "sea-mid.png",
+      "size": [
+        1664,
+        148
+      ],
+      "sha256": "58f1b0b1e131fa9baa69275f617ad9f58b6d77fff3956e3be058f8bff337aee5"
+    },
+    "sea-mid-storm": {
+      "path": "sea-mid-storm.png",
+      "size": [
+        1664,
+        148
+      ],
+      "sha256": "6e73f7c86080f29870fa4f6ca0b5260e336475fd175f1d38b925bfe9afbf5b99"
+    },
+    "sea-near": {
+      "path": "sea-near.png",
+      "size": [
+        1408,
+        160
+      ],
+      "sha256": "715f58d141198b2d5c55bfa2c2e5dfcb4c423ae35511f98bfce7b127f5f8c458"
+    },
+    "sea-near-storm": {
+      "path": "sea-near-storm.png",
+      "size": [
+        1408,
+        160
+      ],
+      "sha256": "7a09e375022b31b0bc6e9d4b0869b36f503d18218986ce6a56dc74ad0b0f25ee"
+    },
+    "mist-0": {
+      "path": "mist-0.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "cffada04a2170281c46fa81d916c552d15d08892c2de8ccd428620c95125dc83"
+    },
+    "mist-1": {
+      "path": "mist-1.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "a0602e276ad80c8065da03b3db39f07a94d4f8339fa1e9b567083bfd381e237b"
+    },
+    "mist-2": {
+      "path": "mist-2.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "cffada04a2170281c46fa81d916c552d15d08892c2de8ccd428620c95125dc83"
+    },
+    "mist-3": {
+      "path": "mist-3.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "a0602e276ad80c8065da03b3db39f07a94d4f8339fa1e9b567083bfd381e237b"
+    },
+    "mist-storm-0": {
+      "path": "mist-storm-0.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "c1bb1d5ddac2720059a724ffc77afa96bb3a4f0239837bb55da533b75620733d"
+    },
+    "mist-storm-1": {
+      "path": "mist-storm-1.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "5fcb5ab3124311ecd7d18d272c16c3e82097664d9a2ec808515676342ed39e5d"
+    },
+    "mist-storm-2": {
+      "path": "mist-storm-2.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "c1bb1d5ddac2720059a724ffc77afa96bb3a4f0239837bb55da533b75620733d"
+    },
+    "mist-storm-3": {
+      "path": "mist-storm-3.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "5fcb5ab3124311ecd7d18d272c16c3e82097664d9a2ec808515676342ed39e5d"
+    },
+    "thunderhead": {
+      "path": "thunderhead.png",
+      "size": [
+        180,
+        64
+      ],
+      "sha256": "defaa6fb5f55a5886ef720d052350bff65c906aadf7d6423c6c7230cc7de772c"
+    },
+    "lightning-0": {
+      "path": "lightning-0.png",
+      "size": [
+        70,
+        105
+      ],
+      "sha256": "9890beb5cd8f8c15fccb6e5f2e7525a6e5eb833c41a49a26f46ead657d604ca2"
+    },
+    "lightning-1": {
+      "path": "lightning-1.png",
+      "size": [
+        70,
+        105
+      ],
+      "sha256": "4c71b3e181b491e2a321bad23ae6a6de8e1dc638fe928f38f5e7ef8d4c15c8a2"
+    },
+    "rain-clear": {
+      "path": "rain-clear.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "550a7e24934a43814a398ee72c84f6b30320667c1231967f57cbeb5eb2341798"
+    },
+    "rain-0": {
+      "path": "rain-0.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "5e00ba56d634e9361b3a2ce77d24ec34b86ec3e8de5ca92f57fbddd03d436911"
+    },
+    "rain-1": {
+      "path": "rain-1.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "86b8ee47e1a1eb5bc622ac41b0cd010a81ef6fd07885733bb66e480f23159b39"
+    },
+    "rain-2": {
+      "path": "rain-2.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "6d2e2bb7244e5a966f08f68bab5df0bff89867a35c3f421ad88a5d8a06e0ba9f"
+    },
+    "rain-3": {
+      "path": "rain-3.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "be75c06a3e5eacc9dfdc0c165979cd4c09354283bd23ee4efd54d9c0ef52d345"
+    },
+    "preview": {
+      "path": "preview.png",
+      "size": [
+        384,
+        200
+      ],
+      "sha256": "56c1be96ce3e615c093f8eecacc10041ccd859ac5845c6be53925ab31091d757"
+    }
+  },
+  "preview": "preview",
+  "copy": {
+    "pane": "Deck",
+    "tooltip": "Ride the cloud sea aboard a sky-pirate airship.",
+    "title": "Sky pirates",
+    "noun": "the airship",
+    "starting": "Catching the wind...",
+    "aboard": "aboard",
+    "actor": {
+      "one": "sailor",
+      "many": "sailors"
+    },
+    "zones": {
+      "engine": "cranking the engine",
+      "helm": "waiting at the wheel",
+      "bow": "watching the sky",
+      "rest": "resting in hammocks"
+    }
+  },
+  "stage": {
+    "size": [
+      480,
+      320
+    ],
+    "fit": {
+      "top": -4,
+      "bottom": 324,
+      "margin": 0.94
+    },
+    "actorHeight": 42,
+    "motion": {
+      "bob": {
+        "periodS": 5.6,
+        "amplitude": {
+          "channel": "heave"
+        },
+        "clock": "swell"
+      }
+    },
+    "tintByPhase": {
+      "dawn": "#FFE0CC",
+      "dusk": "#D9AEB0",
+      "night": "#778BB9"
+    },
+    "backdrop": {
+      "sprite": {
+        "image": "ship"
+      }
+    },
+    "parts": [
+      {
+        "id": "fixed",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "fixed"
+        },
+        "at": [
+          0,
+          0
+        ],
+        "cutout": [
+          0,
+          0,
+          480,
+          320
+        ]
+      },
+      {
+        "id": "balloon",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "balloon-0"
+        },
+        "at": [
+          45,
+          48
+        ],
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "balloon-0"
+              },
+              {
+                "image": "balloon-1"
+              },
+              {
+                "image": "balloon-2"
+              },
+              {
+                "image": "balloon-3"
+              }
+            ],
+            "frameMs": 900,
+            "clock": "sail"
+          }
+        }
+      },
+      {
+        "id": "rig",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "rig-0"
+        },
+        "at": [
+          66,
+          130
+        ],
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "rig-0"
+              },
+              {
+                "image": "rig-1"
+              },
+              {
+                "image": "rig-2"
+              },
+              {
+                "image": "rig-3"
+              }
+            ],
+            "frameMs": 500,
+            "clock": "sail"
+          }
+        }
+      },
+      {
+        "id": "flag",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "flag-0"
+        },
+        "at": [
+          240,
+          4
+        ],
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "flag-0"
+              },
+              {
+                "image": "flag-1"
+              },
+              {
+                "image": "flag-2"
+              },
+              {
+                "image": "flag-3"
+              }
+            ],
+            "frameMs": 180,
+            "clock": "sail"
+          }
+        }
+      },
+      {
+        "id": "sail-left",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "sail-left-0"
+        },
+        "at": [
+          31,
+          102
+        ],
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "sail-left-0"
+              },
+              {
+                "image": "sail-left-1"
+              },
+              {
+                "image": "sail-left-2"
+              },
+              {
+                "image": "sail-left-3"
+              }
+            ],
+            "frameMs": 500,
+            "clock": "sail"
+          }
+        }
+      },
+      {
+        "id": "sail-right",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "sail-right-0"
+        },
+        "at": [
+          401,
+          102
+        ],
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "sail-right-0"
+              },
+              {
+                "image": "sail-right-1"
+              },
+              {
+                "image": "sail-right-2"
+              },
+              {
+                "image": "sail-right-3"
+              }
+            ],
+            "frameMs": 500,
+            "clock": "sail"
+          }
+        }
+      },
+      {
+        "id": "propeller",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "propeller-0"
+        },
+        "at": [
+          453,
+          211
+        ],
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "propeller-0"
+              },
+              {
+                "image": "propeller-1"
+              },
+              {
+                "image": "propeller-2"
+              },
+              {
+                "image": "propeller-3"
+              }
+            ],
+            "frameMs": 90,
+            "clock": "engine"
+          }
+        }
+      },
+      {
+        "id": "chimney-smoke",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "smoke-0"
+        },
+        "at": [
+          278,
+          135
+        ],
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "smoke-0"
+              },
+              {
+                "image": "smoke-1"
+              },
+              {
+                "image": "smoke-2"
+              },
+              {
+                "image": "smoke-3"
+              }
+            ],
+            "frameMs": 350,
+            "clock": "engine"
+          }
+        }
+      },
+      {
+        "id": "propeller-vapour",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "vapour-0"
+        },
+        "at": [
+          400,
+          266
+        ],
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "vapour-0"
+              },
+              {
+                "image": "vapour-1"
+              },
+              {
+                "image": "vapour-2"
+              },
+              {
+                "image": "vapour-3"
+              }
+            ],
+            "frameMs": 220,
+            "clock": "wind"
+          }
+        }
+      },
+      {
+        "id": "lookout-pennant",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "flag-0",
+          "rect": [
+            10,
+            0,
+            54,
+            30
+          ]
+        },
+        "at": [
+          250,
+          4
+        ],
+        "behaviour": {
+          "kind": "sway",
+          "amplitude": {
+            "channel": "heave"
+          },
+          "periodS": 4.8,
+          "phase": 1,
+          "limit": 2,
+          "clock": "swell"
+        }
+      }
+    ],
+    "pieces": [
+      {
+        "id": "hull-front",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            55,
+            244,
+            402,
+            50
+          ]
+        },
+        "at": [
+          55,
+          244
+        ],
+        "baseline": null
+      },
+      {
+        "id": "engine-front",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            230,
+            191,
+            65,
+            43
+          ]
+        },
+        "at": [
+          230,
+          191
+        ],
+        "baseline": 233
+      },
+      {
+        "id": "ladder",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            241,
+            42,
+            14,
+            151
+          ]
+        },
+        "at": [
+          241,
+          42
+        ],
+        "baseline": 227
+      },
+      {
+        "id": "stern-rail",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            367,
+            206,
+            85,
+            11
+          ]
+        },
+        "at": [
+          367,
+          206
+        ],
+        "baseline": 216
+      },
+      {
+        "id": "plank",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            6,
+            242,
+            73,
+            10
+          ]
+        },
+        "at": [
+          6,
+          242
+        ],
+        "baseline": {
+          "over": "hull-front"
+        }
+      }
+    ],
+    "props": [],
+    "lightStyles": {
+      "lantern": {
+        "glyph": [
+          "..a..",
+          ".aaa.",
+          "abbba",
+          "abbba",
+          "abbba",
+          "aaaaa"
+        ],
+        "origin": [
+          2,
+          0
+        ],
+        "inks": {
+          "a": "#2A1A10",
+          "b": "#FFD27A"
+        },
+        "glass": "b",
+        "tints": [
+          [
+            0.88,
+            "#FFFFFF"
+          ],
+          [
+            0.74,
+            "#F2DCB8"
+          ],
+          [
+            0,
+            "#D8B890"
+          ]
+        ],
+        "glow": [
+          {
+            "at": [
+              0,
+              4
+            ],
+            "radius": 9,
+            "colour": "#FFB050",
+            "alpha": 0.12
+          },
+          {
+            "at": [
+              0,
+              4
+            ],
+            "radius": 5,
+            "colour": "#FFC070",
+            "alpha": 0.2
+          }
+        ],
+        "glowAlpha": {
+          "base": 0.45,
+          "gain": 0.55
+        },
+        "flicker": {
+          "base": 0.8,
+          "waves": [
+            [
+              0.1,
+              7.1,
+              1
+            ],
+            [
+              0.06,
+              13.7,
+              2
+            ],
+            [
+              0.04,
+              29,
+              5
+            ]
+          ],
+          "still": 0.85
+        }
+      },
+      "firebox": {
+        "glyph": [
+          "abbbba",
+          "abbbba",
+          "abbbba",
+          "abbbba",
+          "aaaaaa"
+        ],
+        "origin": [
+          3,
+          0
+        ],
+        "inks": {
+          "a": "#2A1A10",
+          "b": "#FFD27A"
+        },
+        "glass": "b",
+        "tints": [
+          [
+            0.88,
+            "#FFFFFF"
+          ],
+          [
+            0.74,
+            "#F2DCB8"
+          ],
+          [
+            0,
+            "#D8B890"
+          ]
+        ],
+        "glow": [
+          {
+            "at": [
+              0,
+              4
+            ],
+            "radius": 13,
+            "colour": "#FFB050",
+            "alpha": 0.12
+          },
+          {
+            "at": [
+              0,
+              4
+            ],
+            "radius": 7,
+            "colour": "#FFC070",
+            "alpha": 0.2
+          }
+        ],
+        "glowAlpha": {
+          "base": 0.45,
+          "gain": 0.55
+        },
+        "flicker": {
+          "base": 0.72,
+          "waves": [
+            [
+              0.1,
+              7.1,
+              1
+            ],
+            [
+              0.06,
+              13.7,
+              2
+            ],
+            [
+              0.04,
+              29,
+              5
+            ]
+          ],
+          "still": 0.85
+        }
+      }
+    },
+    "lights": [
+      {
+        "id": "light-0",
+        "style": "lantern",
+        "at": [
+          98,
+          205
+        ],
+        "row": 240,
+        "seed": 0,
+        "lite": "run",
+        "still": "first-frame"
+      },
+      {
+        "id": "light-1",
+        "style": "lantern",
+        "at": [
+          118,
+          190
+        ],
+        "row": 240,
+        "seed": 2.3,
+        "lite": "run",
+        "still": "first-frame"
+      },
+      {
+        "id": "light-2",
+        "style": "lantern",
+        "at": [
+          340,
+          190
+        ],
+        "row": 240,
+        "seed": 4.6,
+        "lite": "run",
+        "still": "first-frame"
+      },
+      {
+        "id": "light-3",
+        "style": "lantern",
+        "at": [
+          440,
+          164
+        ],
+        "row": 240,
+        "seed": 6.8999999999999995,
+        "lite": "run",
+        "still": "first-frame"
+      },
+      {
+        "id": "light-4",
+        "style": "firebox",
+        "at": [
+          258,
+          218
+        ],
+        "row": 234,
+        "seed": 9.2,
+        "lite": "run",
+        "still": "first-frame"
+      }
+    ]
+  },
+  "floor": {
+    "areas": [
+      {
+        "id": "deck",
+        "polygon": [
+          [
+            78,
+            214
+          ],
+          [
+            360,
+            214
+          ],
+          [
+            380,
+            224
+          ],
+          [
+            380,
+            240
+          ],
+          [
+            78,
+            240
+          ]
+        ]
+      },
+      {
+        "id": "stern",
+        "polygon": [
+          [
+            374,
+            201
+          ],
+          [
+            439,
+            201
+          ],
+          [
+            439,
+            209
+          ],
+          [
+            374,
+            209
+          ]
+        ]
+      },
+      {
+        "id": "stairs",
+        "polygon": [
+          [
+            358,
+            213
+          ],
+          [
+            374,
+            201
+          ],
+          [
+            380,
+            207
+          ],
+          [
+            380,
+            234
+          ],
+          [
+            358,
+            234
+          ]
+        ],
+        "spill": false
+      },
+      {
+        "id": "bow",
+        "polygon": [
+          [
+            64,
+            220
+          ],
+          [
+            90,
+            220
+          ],
+          [
+            90,
+            240
+          ],
+          [
+            64,
+            240
+          ]
+        ]
+      },
+      {
+        "id": "hold-passage",
+        "polygon": [
+          [
+            156,
+            232
+          ],
+          [
+            164,
+            232
+          ],
+          [
+            164,
+            274
+          ],
+          [
+            156,
+            274
+          ]
+        ],
+        "spill": false
+      },
+      {
+        "id": "hold",
+        "polygon": [
+          [
+            90,
+            250
+          ],
+          [
+            420,
+            250
+          ],
+          [
+            420,
+            275
+          ],
+          [
+            90,
+            275
+          ]
+        ],
+        "spill": false
+      }
+    ],
+    "obstacles": [
+      {
+        "id": "engine",
+        "rect": [
+          230,
+          213,
+          65,
+          19
+        ]
+      }
+    ],
+    "grid": {
+      "cell": 2,
+      "bounds": [
+        50,
+        198,
+        395,
+        80
+      ]
+    },
+    "walkSpeed": 34
+  },
+  "zones": {
+    "byState": {
+      "working": "engine",
+      "waiting": "helm",
+      "blocked": "bow",
+      "idle": "rest"
+    },
+    "zones": [
+      {
+        "id": "engine",
+        "posts": [
+          {
+            "id": "engine-0",
+            "at": [
+              206,
+              226
+            ],
+            "facing": "right",
+            "transit": {
+              "path": [
+                [
+                  246,
+                  226
+                ],
+                [
+                  246,
+                  44
+                ]
+              ],
+              "speed": 28,
+              "poses": [
+                "climb-a",
+                "climb-b"
+              ],
+              "stepMs": 230,
+              "settled": "lookout",
+              "front": "ladder",
+              "needs": [
+                "ship"
+              ]
+            }
+          },
+          {
+            "id": "engine-1",
+            "at": [
+              220,
+              237
+            ],
+            "facing": "right"
+          },
+          {
+            "id": "engine-2",
+            "at": [
+              302,
+              222
+            ],
+            "facing": "right"
+          },
+          {
+            "id": "engine-3",
+            "at": [
+              322,
+              230
+            ],
+            "facing": "right"
+          },
+          {
+            "id": "engine-4",
+            "at": [
+              342,
+              238
+            ],
+            "facing": "right"
+          },
+          {
+            "id": "engine-5",
+            "at": [
+              188,
+              237
+            ],
+            "facing": "right"
+          }
+        ],
+        "assign": "stable",
+        "overflow": {
+          "kind": "beside",
+          "spacing": [
+            14,
+            5
+          ]
+        }
+      },
+      {
+        "id": "helm",
+        "posts": [
+          {
+            "id": "helm-0",
+            "at": [
+              388,
+              204
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "helm-1",
+            "at": [
+              410,
+              204
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "helm-2",
+            "at": [
+              431,
+              204
+            ],
+            "facing": "front"
+          }
+        ],
+        "assign": "stable",
+        "overflow": {
+          "kind": "beside",
+          "spacing": [
+            14,
+            5
+          ]
+        }
+      },
+      {
+        "id": "bow",
+        "posts": [
+          {
+            "id": "bow-0",
+            "at": [
+              66,
+              228
+            ],
+            "facing": "left"
+          },
+          {
+            "id": "bow-1",
+            "at": [
+              84,
+              232
+            ],
+            "facing": "left"
+          },
+          {
+            "id": "bow-2",
+            "at": [
+              104,
+              234
+            ],
+            "facing": "left"
+          }
+        ],
+        "assign": "stable",
+        "overflow": {
+          "kind": "beside",
+          "spacing": [
+            14,
+            5
+          ]
+        }
+      },
+      {
+        "id": "rest",
+        "posts": [
+          {
+            "id": "rest-0",
+            "at": [
+              96,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-1",
+            "at": [
+              110,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-2",
+            "at": [
+              124,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-3",
+            "at": [
+              138,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-4",
+            "at": [
+              152,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-5",
+            "at": [
+              166,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-6",
+            "at": [
+              180,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-7",
+            "at": [
+              194,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-8",
+            "at": [
+              208,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-9",
+            "at": [
+              222,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-10",
+            "at": [
+              236,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-11",
+            "at": [
+              250,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-12",
+            "at": [
+              264,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-13",
+            "at": [
+              278,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-14",
+            "at": [
+              292,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-15",
+            "at": [
+              306,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-16",
+            "at": [
+              320,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-17",
+            "at": [
+              334,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-18",
+            "at": [
+              348,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-19",
+            "at": [
+              362,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-20",
+            "at": [
+              376,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-21",
+            "at": [
+              390,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-22",
+            "at": [
+              404,
+              274
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-23",
+            "at": [
+              418,
+              274
+            ],
+            "facing": "front"
+          }
+        ],
+        "assign": "ordered",
+        "overflow": {
+          "kind": "pack",
+          "areas": [
+            [
+              96,
+              274,
+              324,
+              1
+            ]
+          ],
+          "spacing": [
+            14,
+            1
+          ],
+          "fallback": [
+            14,
+            1
+          ]
+        },
+        "labelFloor": 288,
+        "appearance": {
+          "sprite": {
+            "image": "sleep-window"
+          },
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front"
+        }
+      }
+    ]
+  },
+  "cast": {
+    "lanes": {
+      "navy": {
+        "stand": {
+          "rect": [
+            2,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "front-a": {
+          "rect": [
+            34,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "front-pass": {
+          "rect": [
+            66,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "front-b": {
+          "rect": [
+            98,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            130,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "side-a": {
+          "rect": [
+            162,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "side-pass": {
+          "rect": [
+            194,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "side-b": {
+          "rect": [
+            226,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "crank-a": {
+          "rect": [
+            258,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "crank-b": {
+          "rect": [
+            290,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "waiting": {
+          "rect": [
+            322,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "rest": {
+          "rect": [
+            354,
+            10,
+            28,
+            24
+          ],
+          "feet": [
+            14,
+            24
+          ]
+        },
+        "climb-a": {
+          "rect": [
+            386,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "climb-b": {
+          "rect": [
+            418,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "lookout": {
+          "rect": [
+            450,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "fall": {
+          "rect": [
+            482,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        }
+      },
+      "russet": {
+        "stand": {
+          "rect": [
+            2,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "front-a": {
+          "rect": [
+            34,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "front-pass": {
+          "rect": [
+            66,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "front-b": {
+          "rect": [
+            98,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            130,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "side-a": {
+          "rect": [
+            162,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "side-pass": {
+          "rect": [
+            194,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "side-b": {
+          "rect": [
+            226,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "crank-a": {
+          "rect": [
+            258,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "crank-b": {
+          "rect": [
+            290,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "waiting": {
+          "rect": [
+            322,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "rest": {
+          "rect": [
+            354,
+            10,
+            28,
+            24
+          ],
+          "feet": [
+            14,
+            24
+          ]
+        },
+        "climb-a": {
+          "rect": [
+            386,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "climb-b": {
+          "rect": [
+            418,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "lookout": {
+          "rect": [
+            450,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        },
+        "fall": {
+          "rect": [
+            482,
+            4,
+            28,
+            30
+          ],
+          "feet": [
+            14,
+            30
+          ]
+        }
+      }
+    },
+    "looks": [
+      {
+        "id": "navy",
+        "image": "crew-navy",
+        "lane": "navy",
+        "optional": false
+      },
+      {
+        "id": "russet",
+        "image": "crew-russet",
+        "lane": "russet",
+        "optional": false
+      }
+    ],
+    "roles": {
+      "stand": "stand",
+      "walkFront": [
+        "front-a",
+        "front-pass",
+        "front-b",
+        "stand"
+      ],
+      "walkSide": [
+        "side-a",
+        "side-pass",
+        "side-b",
+        "side-idle"
+      ],
+      "rise": 1,
+      "stepMs": 160,
+      "settled": {
+        "working": {
+          "pose": "crank-a",
+          "mirror": "facing"
+        },
+        "waiting": {
+          "pose": "waiting",
+          "mirror": "none"
+        },
+        "blocked": {
+          "pose": "side-idle",
+          "mirror": "facing"
+        },
+        "idle": {
+          "pose": "rest",
+          "mirror": "none"
+        }
+      }
+    },
+    "fidgets": {
+      "working": {
+        "periodMs": 1000,
+        "seedMs": 1700,
+        "keys": [
+          {
+            "fromMs": 0,
+            "dx": 0,
+            "dy": 0,
+            "pose": "crank-a"
+          },
+          {
+            "fromMs": 500,
+            "dx": 0,
+            "dy": 1,
+            "pose": "crank-b"
+          }
+        ]
+      },
+      "waiting": {
+        "periodMs": 3100,
+        "seedMs": 37,
+        "keys": [
+          {
+            "fromMs": 0,
+            "dx": 0,
+            "dy": 0,
+            "pose": "waiting"
+          },
+          {
+            "fromMs": 2500,
+            "dx": 1,
+            "dy": 0,
+            "pose": "stand"
+          }
+        ]
+      },
+      "blocked": {
+        "periodMs": 4200,
+        "seedMs": 97,
+        "keys": [
+          {
+            "fromMs": 0,
+            "dx": 0,
+            "dy": 0,
+            "pose": "side-idle"
+          },
+          {
+            "fromMs": 3200,
+            "dx": 0,
+            "dy": 0,
+            "pose": "lookout"
+          }
+        ]
+      },
+      "idle": null
+    },
+    "breath": {
+      "state": "waiting",
+      "rows": 20,
+      "periodMs": 3000,
+      "inMs": 1600,
+      "seedMs": 31
+    }
+  },
+  "portals": {
+    "entry": {
+      "kind": "rise",
+      "at": [
+        160,
+        232
+      ],
+      "ms": 1400
+    },
+    "exits": {
+      "plank": {
+        "kind": "choreography",
+        "marks": {
+          "queue": [
+            81,
+            237
+          ],
+          "edge": [
+            27,
+            246
+          ],
+          "cloud": [
+            65,
+            300
+          ],
+          "mouth": [
+            65,
+            263
+          ]
+        },
+        "queue": {
+          "at": "queue",
+          "release": "impact",
+          "spacing": [
+            12,
+            3
+          ]
+        },
+        "alternate": {
+          "side": [
+            -1
+          ],
+          "drift": [
+            0
+          ]
+        },
+        "actor": [
+          {
+            "ms": "walk",
+            "to": {
+              "mark": "edge"
+            },
+            "path": "line",
+            "pose": {
+              "cycle": "walkSide"
+            },
+            "layer": {
+              "front": "plank"
+            },
+            "moving": true
+          },
+          {
+            "ms": 300,
+            "pose": "stand",
+            "jiggle": {
+              "dx": [
+                0,
+                -1,
+                0,
+                1
+              ],
+              "stepMs": 75
+            },
+            "layer": {
+              "front": "plank"
+            },
+            "moving": false
+          },
+          {
+            "ms": 550,
+            "event": "impact",
+            "to": {
+              "mark": "cloud"
+            },
+            "path": {
+              "ballistic": 18
+            },
+            "pose": "fall",
+            "layer": "effects",
+            "moving": true
+          },
+          {
+            "ms": 180,
+            "pose": "fall",
+            "reveal": [
+              1,
+              0.35
+            ],
+            "layer": "effects",
+            "moving": false
+          },
+          {
+            "ms": 550,
+            "to": {
+              "mark": "mouth"
+            },
+            "path": "line",
+            "pose": "fall",
+            "reveal": [
+              0.35,
+              1
+            ],
+            "layer": "effects",
+            "moving": true,
+            "event": "swallow"
+          },
+          {
+            "ms": 450,
+            "pose": "fall",
+            "layer": "effects",
+            "moving": false,
+            "gone": true
+          }
+        ],
+        "effects": [
+          {
+            "effect": "whale",
+            "order": 1,
+            "keys": [
+              {
+                "frame": "surface",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 80
+                },
+                "ms": 220,
+                "place": {
+                  "mark": "cloud",
+                  "alignX": "mouth"
+                }
+              },
+              {
+                "frame": "rise",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 300
+                },
+                "ms": 250,
+                "place": {
+                  "mark": "cloud",
+                  "alignX": "mouth"
+                }
+              },
+              {
+                "frame": "swallow",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 550
+                },
+                "ms": 380,
+                "place": {
+                  "mark": "cloud",
+                  "alignX": "mouth"
+                }
+              },
+              {
+                "frame": "sink",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 930
+                },
+                "ms": 250,
+                "place": {
+                  "mark": "cloud",
+                  "alignX": "mouth"
+                }
+              }
+            ]
+          },
+          {
+            "effect": "puff",
+            "order": 2,
+            "keys": [
+              {
+                "frame": "impact",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 0
+                },
+                "ms": 160,
+                "place": {
+                  "mark": "cloud"
+                }
+              },
+              {
+                "frame": "burst",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 160
+                },
+                "ms": 160,
+                "place": {
+                  "mark": "cloud"
+                }
+              },
+              {
+                "frame": "ring",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 320
+                },
+                "ms": 160,
+                "place": {
+                  "mark": "cloud"
+                }
+              },
+              {
+                "frame": "mist",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 480
+                },
+                "ms": 160,
+                "place": {
+                  "mark": "cloud"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "byDeparture": {
+      "done": "plank",
+      "failed": "plank",
+      "closed": "plank",
+      "removed": "plank"
+    },
+    "still": {
+      "fadeMs": 600
+    }
+  },
+  "effects": {
+    "whale": {
+      "size": [
+        96,
+        80
+      ],
+      "points": {
+        "anchor": [
+          48,
+          76
+        ],
+        "mouth": [
+          61,
+          23
+        ]
+      },
+      "frames": {
+        "surface": {
+          "image": "whale-0"
+        },
+        "rise": {
+          "image": "whale-1"
+        },
+        "swallow": {
+          "image": "whale-2"
+        },
+        "sink": {
+          "image": "whale-3"
+        }
+      }
+    },
+    "puff": {
+      "size": [
+        64,
+        48
+      ],
+      "points": {
+        "anchor": [
+          32,
+          40
+        ]
+      },
+      "frames": {
+        "impact": {
+          "image": "puff-0"
+        },
+        "burst": {
+          "image": "puff-1"
+        },
+        "ring": {
+          "image": "puff-2"
+        },
+        "mist": {
+          "image": "puff-3"
+        }
+      }
+    }
+  },
+  "ambience": [
+    {
+      "id": "sky",
+      "slot": "back",
+      "order": 0,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "backdrop-cycle",
+        "size": [
+          600,
+          400
+        ],
+        "phases": {
+          "dawn": "sky-dawn",
+          "day": "sky-day",
+          "dusk": "sky-dusk",
+          "night": "sky-night"
+        },
+        "placement": {
+          "horizonRow": 240,
+          "stageRow": 230
+        },
+        "tint": {
+          "to": "#29344D",
+          "amount": {
+            "channel": "mood"
+          }
+        }
+      }
+    },
+    {
+      "id": "clouds",
+      "slot": "back",
+      "order": 3,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "drifters",
+        "space": "sky",
+        "clock": "wind",
+        "slots": 3,
+        "margin": 70,
+        "topMin": 3,
+        "lanes": [
+          [
+            25,
+            40
+          ],
+          [
+            70,
+            90
+          ],
+          [
+            115,
+            135
+          ]
+        ],
+        "palette": [
+          "#6E8FC2",
+          "#B9CCEB",
+          "#FFF1D6"
+        ],
+        "byPhase": {
+          "dawn": [
+            "#A18BAA",
+            "#E6B7C6",
+            "#FFE6CC"
+          ],
+          "day": [
+            "#6E8FC2",
+            "#B9CCEB",
+            "#FFF1D6"
+          ],
+          "dusk": [
+            "#8A789D",
+            "#DBB38C",
+            "#FFE1A0"
+          ],
+          "night": [
+            "#203052",
+            "#3F5788",
+            "#778DB9"
+          ]
+        },
+        "sprites": [
+          {
+            "id": "sky-puff",
+            "image": "sky-puff",
+            "size": [
+              52,
+              34
+            ],
+            "pxPerSecond": 0.45,
+            "variants": [
+              {
+                "id": "sky-puff-storm",
+                "frames": [
+                  {
+                    "image": "sky-puff"
+                  }
+                ],
+                "blend": "crossfade",
+                "opacity": [
+                  [
+                    0.4,
+                    0
+                  ],
+                  [
+                    0.9,
+                    1
+                  ]
+                ],
+                "palette": [
+                  "#6E8FC2",
+                  "#B9CCEB",
+                  "#FFF1D6"
+                ],
+                "byPhase": {
+                  "dawn": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "day": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "dusk": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "night": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "sky-bank",
+            "image": "sky-bank",
+            "size": [
+              116,
+              42
+            ],
+            "pxPerSecond": 0.65,
+            "variants": [
+              {
+                "id": "sky-bank-storm",
+                "frames": [
+                  {
+                    "image": "sky-bank"
+                  }
+                ],
+                "blend": "crossfade",
+                "opacity": [
+                  [
+                    0.4,
+                    0
+                  ],
+                  [
+                    0.9,
+                    1
+                  ]
+                ],
+                "palette": [
+                  "#6E8FC2",
+                  "#B9CCEB",
+                  "#FFF1D6"
+                ],
+                "byPhase": {
+                  "dawn": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "day": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "dusk": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "night": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "sky-anvil",
+            "image": "sky-anvil",
+            "size": [
+              130,
+              64
+            ],
+            "pxPerSecond": 0.8,
+            "variants": [
+              {
+                "id": "sky-anvil-storm",
+                "frames": [
+                  {
+                    "image": "sky-anvil"
+                  }
+                ],
+                "blend": "crossfade",
+                "opacity": [
+                  [
+                    0.4,
+                    0
+                  ],
+                  [
+                    0.9,
+                    1
+                  ]
+                ],
+                "palette": [
+                  "#6E8FC2",
+                  "#B9CCEB",
+                  "#FFF1D6"
+                ],
+                "byPhase": {
+                  "dawn": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "day": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "dusk": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "night": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "high-wisps",
+      "slot": "back",
+      "order": 3.1,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "drifters",
+        "space": "sky",
+        "clock": "wind",
+        "slots": 3,
+        "margin": 70,
+        "topMin": 3,
+        "lanes": [
+          [
+            155,
+            170
+          ],
+          [
+            175,
+            190
+          ]
+        ],
+        "palette": [
+          "#6E8FC2",
+          "#B9CCEB",
+          "#FFF1D6"
+        ],
+        "byPhase": {
+          "dawn": [
+            "#A18BAA",
+            "#E6B7C6",
+            "#FFE6CC"
+          ],
+          "day": [
+            "#6E8FC2",
+            "#B9CCEB",
+            "#FFF1D6"
+          ],
+          "dusk": [
+            "#8A789D",
+            "#DBB38C",
+            "#FFE1A0"
+          ],
+          "night": [
+            "#203052",
+            "#3F5788",
+            "#778DB9"
+          ]
+        },
+        "sprites": [
+          {
+            "id": "sky-feather",
+            "image": "sky-feather",
+            "size": [
+              120,
+              32
+            ],
+            "pxPerSecond": 0.32,
+            "variants": [
+              {
+                "id": "sky-feather-storm",
+                "frames": [
+                  {
+                    "image": "sky-feather"
+                  }
+                ],
+                "blend": "crossfade",
+                "opacity": [
+                  [
+                    0.4,
+                    0
+                  ],
+                  [
+                    0.9,
+                    1
+                  ]
+                ],
+                "palette": [
+                  "#6E8FC2",
+                  "#B9CCEB",
+                  "#FFF1D6"
+                ],
+                "byPhase": {
+                  "dawn": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "day": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "dusk": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "night": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "sky-curl",
+            "image": "sky-curl",
+            "size": [
+              85,
+              52
+            ],
+            "pxPerSecond": 0.4,
+            "variants": [
+              {
+                "id": "sky-curl-storm",
+                "frames": [
+                  {
+                    "image": "sky-curl"
+                  }
+                ],
+                "blend": "crossfade",
+                "opacity": [
+                  [
+                    0.4,
+                    0
+                  ],
+                  [
+                    0.9,
+                    1
+                  ]
+                ],
+                "palette": [
+                  "#6E8FC2",
+                  "#B9CCEB",
+                  "#FFF1D6"
+                ],
+                "byPhase": {
+                  "dawn": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "day": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "dusk": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "night": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "cumulus-towers",
+      "slot": "back",
+      "order": 4.8,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "drifters",
+        "space": "sky",
+        "clock": "wind",
+        "slots": 3,
+        "margin": 70,
+        "topMin": 3,
+        "lanes": [
+          [
+            -35,
+            -20
+          ],
+          [
+            -10,
+            0
+          ]
+        ],
+        "palette": [
+          "#6E8FC2",
+          "#B9CCEB",
+          "#FFF1D6"
+        ],
+        "byPhase": {
+          "dawn": [
+            "#A18BAA",
+            "#E6B7C6",
+            "#FFE6CC"
+          ],
+          "day": [
+            "#6E8FC2",
+            "#B9CCEB",
+            "#FFF1D6"
+          ],
+          "dusk": [
+            "#8A789D",
+            "#DBB38C",
+            "#FFE1A0"
+          ],
+          "night": [
+            "#203052",
+            "#3F5788",
+            "#778DB9"
+          ]
+        },
+        "sprites": [
+          {
+            "id": "sky-tower",
+            "image": "sky-tower",
+            "size": [
+              65,
+              92
+            ],
+            "pxPerSecond": 0.5,
+            "variants": [
+              {
+                "id": "sky-tower-storm",
+                "frames": [
+                  {
+                    "image": "sky-tower"
+                  }
+                ],
+                "blend": "crossfade",
+                "opacity": [
+                  [
+                    0.4,
+                    0
+                  ],
+                  [
+                    0.9,
+                    1
+                  ]
+                ],
+                "palette": [
+                  "#6E8FC2",
+                  "#B9CCEB",
+                  "#FFF1D6"
+                ],
+                "byPhase": {
+                  "dawn": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "day": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "dusk": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "night": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "lightning",
+      "slot": "back",
+      "order": 2,
+      "optional": false,
+      "lite": "hide",
+      "still": "hide",
+      "behaviour": {
+        "kind": "flash",
+        "frames": [
+          {
+            "sprite": {
+              "image": "lightning-0"
+            },
+            "ms": 100,
+            "alpha": 1
+          },
+          {
+            "sprite": {
+              "image": "lightning-1"
+            },
+            "ms": 150,
+            "alpha": 0.45
+          }
+        ],
+        "size": [
+          70,
+          105
+        ],
+        "anchor": [
+          35,
+          3
+        ],
+        "under": "clouds",
+        "opacity": [
+          [
+            0.75,
+            0
+          ],
+          [
+            1,
+            0.55
+          ]
+        ],
+        "perMinute": [
+          [
+            0.75,
+            0
+          ],
+          [
+            1,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "thunderheads",
+      "slot": "back",
+      "order": 1,
+      "optional": false,
+      "lite": "run",
+      "still": "hide",
+      "behaviour": {
+        "kind": "cycle",
+        "frames": {
+          "sprites": [
+            {
+              "image": "thunderhead"
+            }
+          ],
+          "frameMs": 1000,
+          "clock": "wind"
+        },
+        "at": [
+          380,
+          100
+        ],
+        "anchor": [
+          90,
+          32
+        ],
+        "opacity": {
+          "curve": [
+            [
+              0.45,
+              0
+            ],
+            [
+              0.9,
+              0.95
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "sea-far",
+      "slot": "back",
+      "order": 5,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "strip",
+        "frames": {
+          "sprites": [
+            {
+              "image": "sea-far"
+            }
+          ],
+          "frameMs": 1000,
+          "clock": "cloud"
+        },
+        "top": 177,
+        "span": [
+          -100,
+          580
+        ],
+        "drift": {
+          "pxPerSecond": 0.65,
+          "clock": "wind"
+        },
+        "variants": [
+          {
+            "id": "sea-far-storm",
+            "frames": [
+              {
+                "image": "sea-far-storm"
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                0.95,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sea-mid",
+      "slot": "back",
+      "order": 6,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "strip",
+        "frames": {
+          "sprites": [
+            {
+              "image": "sea-mid"
+            }
+          ],
+          "frameMs": 1000,
+          "clock": "cloud"
+        },
+        "top": 215,
+        "span": [
+          -100,
+          580
+        ],
+        "drift": {
+          "pxPerSecond": 1.8,
+          "clock": "wind"
+        },
+        "variants": [
+          {
+            "id": "sea-mid-storm",
+            "frames": [
+              {
+                "image": "sea-mid-storm"
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                0.95,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sea-near",
+      "slot": "front",
+      "order": 5,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "strip",
+        "frames": {
+          "sprites": [
+            {
+              "image": "sea-near"
+            }
+          ],
+          "frameMs": 1000,
+          "clock": "cloud"
+        },
+        "top": 286,
+        "span": [
+          -100,
+          580
+        ],
+        "drift": {
+          "pxPerSecond": 3.8,
+          "clock": "wind"
+        },
+        "variants": [
+          {
+            "id": "sea-near-storm",
+            "frames": [
+              {
+                "image": "sea-near-storm"
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                0.95,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "mist",
+      "slot": "front",
+      "order": 6,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "strip",
+        "frames": {
+          "sprites": [
+            {
+              "image": "mist-0"
+            },
+            {
+              "image": "mist-1"
+            },
+            {
+              "image": "mist-2"
+            },
+            {
+              "image": "mist-3"
+            }
+          ],
+          "frameMs": 450,
+          "clock": "cloud"
+        },
+        "top": 301,
+        "span": [
+          -100,
+          580
+        ],
+        "drift": {
+          "pxPerSecond": 3,
+          "clock": "cloud"
+        },
+        "variants": [
+          {
+            "id": "storm-mist",
+            "frames": [
+              {
+                "image": "mist-storm-0"
+              },
+              {
+                "image": "mist-storm-1"
+              },
+              {
+                "image": "mist-storm-2"
+              },
+              {
+                "image": "mist-storm-3"
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                0.95,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rain",
+      "slot": "front",
+      "order": 10,
+      "optional": false,
+      "lite": "freeze",
+      "still": "hide",
+      "behaviour": {
+        "kind": "tile",
+        "frames": {
+          "sprites": [
+            {
+              "image": "rain-clear"
+            },
+            {
+              "image": "rain-clear"
+            },
+            {
+              "image": "rain-clear"
+            },
+            {
+              "image": "rain-clear"
+            }
+          ],
+          "frameMs": 90,
+          "clock": "wind"
+        },
+        "drift": {
+          "pxPerSecond": 8,
+          "clock": "wind"
+        },
+        "origin": 0,
+        "bands": [
+          {
+            "slot": "front",
+            "fromRow": 0
+          }
+        ],
+        "variants": [
+          {
+            "id": "storm-rain",
+            "frames": [
+              {
+                "image": "rain-0"
+              },
+              {
+                "image": "rain-1"
+              },
+              {
+                "image": "rain-2"
+              },
+              {
+                "image": "rain-3"
+              }
+            ],
+            "blend": "over",
+            "opacity": [
+              [
+                0.6,
+                0
+              ],
+              [
+                1,
+                0.5
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sky-serpent",
+      "slot": "back",
+      "order": 4,
+      "optional": false,
+      "lite": "freeze",
+      "still": "hide",
+      "behaviour": {
+        "kind": "cycle",
+        "frames": {
+          "sprites": [
+            {
+              "image": "serpent-0"
+            },
+            {
+              "image": "serpent-1"
+            },
+            {
+              "image": "serpent-2"
+            },
+            {
+              "image": "serpent-3"
+            }
+          ],
+          "frameMs": 600,
+          "clock": "swell"
+        },
+        "at": [
+          365,
+          165
+        ],
+        "anchor": [
+          55,
+          43
+        ],
+        "opacity": {
+          "curve": [
+            [
+              0.82,
+              0
+            ],
+            [
+              1,
+              0.95
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "gulls",
+      "slot": "back",
+      "order": 4,
+      "optional": false,
+      "lite": "hide",
+      "still": "hide",
+      "behaviour": {
+        "kind": "flyby",
+        "poses": {
+          "up": {
+            "image": "gull-up"
+          },
+          "down": {
+            "image": "gull-down"
+          }
+        },
+        "sequence": [
+          "up",
+          "down"
+        ],
+        "frameMs": 170,
+        "glide": "up",
+        "size": [
+          24,
+          20
+        ],
+        "anchor": [
+          12,
+          10
+        ],
+        "slotS": 22,
+        "chance": 0.85,
+        "start": [
+          1,
+          3
+        ],
+        "speed": 25,
+        "margin": 55,
+        "rows": [
+          35,
+          155
+        ],
+        "wobble": {
+          "px": 3,
+          "rate": 0.65
+        },
+        "flap": {
+          "everyS": 3,
+          "forS": 1.5
+        },
+        "nightBelow": 0.5,
+        "most": 2
+      }
+    },
+    {
+      "id": "distant-airship",
+      "slot": "back",
+      "order": 4,
+      "optional": false,
+      "lite": "hide",
+      "still": "hide",
+      "behaviour": {
+        "kind": "flyby",
+        "poses": {
+          "glide": {
+            "image": "distant-airship"
+          }
+        },
+        "sequence": [
+          "glide"
+        ],
+        "frameMs": 170,
+        "glide": "glide",
+        "size": [
+          48,
+          30
+        ],
+        "anchor": [
+          24,
+          15
+        ],
+        "slotS": 65,
+        "chance": 0.85,
+        "start": [
+          1,
+          3
+        ],
+        "speed": 9,
+        "margin": 55,
+        "rows": [
+          30,
+          55
+        ],
+        "wobble": {
+          "px": 3,
+          "rate": 0.65
+        },
+        "flap": {
+          "everyS": 3,
+          "forS": 1.5
+        },
+        "nightBelow": 0.5,
+        "most": 2
+      }
+    }
+  ],
+  "dayCycle": {
+    "phases": [
+      {
+        "id": "dawn",
+        "localMinute": 330
+      },
+      {
+        "id": "day",
+        "localMinute": 480
+      },
+      {
+        "id": "dusk",
+        "localMinute": 1110
+      },
+      {
+        "id": "night",
+        "localMinute": 1260
+      }
+    ],
+    "fadeMinutes": 90,
+    "night": "night",
+    "fallback": "day"
+  },
+  "atmosphere": {
+    "table": [
+      {
+        "at": 0,
+        "pace": 0.6,
+        "wind": 0.7,
+        "sail": 0.7,
+        "swell": 0.8,
+        "heave": 2,
+        "engine": 0.7,
+        "mood": 0
+      },
+      {
+        "at": 0.35,
+        "pace": 1,
+        "wind": 1.3,
+        "sail": 1.2,
+        "swell": 1,
+        "heave": 3,
+        "engine": 1.1,
+        "mood": 0
+      },
+      {
+        "at": 1,
+        "pace": 2.1,
+        "wind": 3.3,
+        "sail": 2.4,
+        "swell": 1.3,
+        "heave": 4,
+        "engine": 1.8,
+        "mood": 0.75
+      }
+    ],
+    "delivered": {
+      "pace": 1,
+      "wind": 1,
+      "sail": 1,
+      "swell": 1,
+      "heave": 2,
+      "engine": 1,
+      "mood": 0
+    },
+    "clocks": {
+      "cloud": "pace",
+      "wind": "wind",
+      "sail": "sail",
+      "swell": "swell",
+      "engine": "engine"
+    }
+  },
+  "attentionCarrier": {
+    "at": [
+      412,
+      277
+    ],
+    "size": [
+      56,
+      44
+    ],
+    "bubbleHeight": 12,
+    "frames": [
+      {
+        "image": "carrier-0"
+      },
+      {
+        "image": "carrier-1"
+      },
+      {
+        "image": "carrier-2"
+      },
+      {
+        "image": "carrier-3"
+      }
+    ],
+    "frameMs": 400,
+    "loiter": {
+      "amplitude": [
+        2,
+        1
+      ],
+      "periodMs": 4800
+    },
+    "surface": {
+      "row": 31,
+      "submergedTint": "#ACBDE4",
+      "submergedAlpha": 0.28,
+      "ripple": {
+        "colour": "#F5ECDC",
+        "shade": "#B1C3E7",
+        "periodMs": 1900,
+        "clock": "cloud"
+      }
+    }
+  },
+  "palette": {
+    "fallbackFill": "#8FAEDB",
+    "veil": "#0B1630",
+    "staleTint": "#87959D",
+    "staleAlpha": 0.6
+  }
+}

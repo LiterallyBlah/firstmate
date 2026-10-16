@@ -1,0 +1,2346 @@
+[
+  {
+    "id": "sky-airship",
+    "zone": {
+      "id": "rest",
+      "posts": [
+        {
+          "id": "rest-0",
+          "at": [
+            110,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-1",
+          "at": [
+            123,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-2",
+          "at": [
+            136,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-3",
+          "at": [
+            149,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-4",
+          "at": [
+            162,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-5",
+          "at": [
+            175,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-6",
+          "at": [
+            188,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-7",
+          "at": [
+            201,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-8",
+          "at": [
+            214,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-9",
+          "at": [
+            227,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-10",
+          "at": [
+            240,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-11",
+          "at": [
+            253,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-12",
+          "at": [
+            266,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-13",
+          "at": [
+            279,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-14",
+          "at": [
+            292,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-15",
+          "at": [
+            305,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-16",
+          "at": [
+            318,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-17",
+          "at": [
+            331,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-18",
+          "at": [
+            344,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-19",
+          "at": [
+            357,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-20",
+          "at": [
+            370,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-21",
+          "at": [
+            383,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-22",
+          "at": [
+            396,
+            274
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-23",
+          "at": [
+            409,
+            274
+          ],
+          "facing": "front"
+        }
+      ],
+      "assign": "ordered",
+      "overflow": {
+        "kind": "pack",
+        "areas": [
+          [
+            110,
+            274,
+            312,
+            1
+          ]
+        ],
+        "spacing": [
+          13,
+          1
+        ],
+        "fallback": [
+          13,
+          1
+        ]
+      },
+      "labelFloor": 288,
+      "appearance": {
+        "sprite": {
+          "image": "sleep-window"
+        },
+        "feet": [
+          7,
+          16
+        ],
+        "front": "hull-front"
+      }
+    },
+    "resolved": [
+      {
+        "key": "Sleeper 0",
+        "x": 110,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 103,
+          "top": 249,
+          "right": 117,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 107,
+          "top": 249,
+          "right": 114,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 0"
+      },
+      {
+        "key": "Sleeper 1",
+        "x": 124,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 117,
+          "top": 249,
+          "right": 131,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 121,
+          "top": 249,
+          "right": 128,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 1"
+      },
+      {
+        "key": "Sleeper 10",
+        "x": 138,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 131,
+          "top": 249,
+          "right": 145,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 135,
+          "top": 249,
+          "right": 142,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 10"
+      },
+      {
+        "key": "Sleeper 11",
+        "x": 152,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 145,
+          "top": 249,
+          "right": 159,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 149,
+          "top": 249,
+          "right": 156,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 11"
+      },
+      {
+        "key": "Sleeper 12",
+        "x": 166,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 159,
+          "top": 249,
+          "right": 173,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 163,
+          "top": 249,
+          "right": 170,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 12"
+      },
+      {
+        "key": "Sleeper 13",
+        "x": 180,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 173,
+          "top": 249,
+          "right": 187,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 177,
+          "top": 249,
+          "right": 184,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 13"
+      },
+      {
+        "key": "Sleeper 14",
+        "x": 194,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 187,
+          "top": 249,
+          "right": 201,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 191,
+          "top": 249,
+          "right": 198,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 14"
+      },
+      {
+        "key": "Sleeper 15",
+        "x": 208,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 201,
+          "top": 249,
+          "right": 215,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 205,
+          "top": 249,
+          "right": 212,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 15"
+      },
+      {
+        "key": "Sleeper 16",
+        "x": 222,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 215,
+          "top": 249,
+          "right": 229,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 219,
+          "top": 249,
+          "right": 226,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 16"
+      },
+      {
+        "key": "Sleeper 17",
+        "x": 236,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 229,
+          "top": 249,
+          "right": 243,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 233,
+          "top": 249,
+          "right": 240,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 17"
+      },
+      {
+        "key": "Sleeper 18",
+        "x": 250,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 243,
+          "top": 249,
+          "right": 257,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 247,
+          "top": 249,
+          "right": 254,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 18"
+      },
+      {
+        "key": "Sleeper 19",
+        "x": 264,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 257,
+          "top": 249,
+          "right": 271,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 261,
+          "top": 249,
+          "right": 268,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 19"
+      },
+      {
+        "key": "Sleeper 2",
+        "x": 278,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 271,
+          "top": 249,
+          "right": 285,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 275,
+          "top": 249,
+          "right": 282,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 2"
+      },
+      {
+        "key": "Sleeper 20",
+        "x": 292,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 285,
+          "top": 249,
+          "right": 299,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 289,
+          "top": 249,
+          "right": 296,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 20"
+      },
+      {
+        "key": "Sleeper 21",
+        "x": 306,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 299,
+          "top": 249,
+          "right": 313,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 303,
+          "top": 249,
+          "right": 310,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 21"
+      },
+      {
+        "key": "Sleeper 22",
+        "x": 320,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 313,
+          "top": 249,
+          "right": 327,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 317,
+          "top": 249,
+          "right": 324,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 22"
+      },
+      {
+        "key": "Sleeper 23",
+        "x": 334,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 327,
+          "top": 249,
+          "right": 341,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 331,
+          "top": 249,
+          "right": 338,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 23"
+      },
+      {
+        "key": "Sleeper 3",
+        "x": 348,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 341,
+          "top": 249,
+          "right": 355,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 345,
+          "top": 249,
+          "right": 352,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 3"
+      },
+      {
+        "key": "Sleeper 4",
+        "x": 362,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 355,
+          "top": 249,
+          "right": 369,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 359,
+          "top": 249,
+          "right": 366,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 4"
+      },
+      {
+        "key": "Sleeper 5",
+        "x": 376,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 369,
+          "top": 249,
+          "right": 383,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 373,
+          "top": 249,
+          "right": 380,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 5"
+      },
+      {
+        "key": "Sleeper 6",
+        "x": 390,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 383,
+          "top": 249,
+          "right": 397,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 387,
+          "top": 249,
+          "right": 394,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 6"
+      },
+      {
+        "key": "Sleeper 7",
+        "x": 404,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 397,
+          "top": 249,
+          "right": 411,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 401,
+          "top": 249,
+          "right": 408,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 9"
+      },
+      {
+        "key": "Sleeper 8",
+        "x": 418,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 411,
+          "top": 249,
+          "right": 425,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 415,
+          "top": 249,
+          "right": 422,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 8"
+      },
+      {
+        "key": "Sleeper 9",
+        "x": 409,
+        "y": 274,
+        "row": 274,
+        "appearance": {
+          "image": "sleep-window",
+          "frame": [
+            0,
+            0,
+            14,
+            16
+          ],
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 402,
+          "top": 249,
+          "right": 416,
+          "bottom": 274
+        },
+        "badge": {
+          "left": 406,
+          "top": 249,
+          "right": 413,
+          "bottom": 257
+        },
+        "centreWinner": "Sleeper 9"
+      }
+    ],
+    "overlaps": [
+      [
+        "Sleeper 7",
+        "Sleeper 9"
+      ],
+      [
+        "Sleeper 8",
+        "Sleeper 9"
+      ]
+    ],
+    "nominal": [
+      {
+        "index": 0,
+        "x": 110,
+        "y": 266,
+        "winner": "Sleeper 0"
+      },
+      {
+        "index": 1,
+        "x": 123,
+        "y": 266,
+        "winner": "Sleeper 1"
+      },
+      {
+        "index": 2,
+        "x": 136,
+        "y": 266,
+        "winner": "Sleeper 10"
+      },
+      {
+        "index": 3,
+        "x": 149,
+        "y": 266,
+        "winner": "Sleeper 11"
+      },
+      {
+        "index": 4,
+        "x": 162,
+        "y": 266,
+        "winner": "Sleeper 12"
+      },
+      {
+        "index": 5,
+        "x": 175,
+        "y": 266,
+        "winner": "Sleeper 13"
+      },
+      {
+        "index": 6,
+        "x": 188,
+        "y": 266,
+        "winner": "Sleeper 14"
+      },
+      {
+        "index": 7,
+        "x": 201,
+        "y": 266,
+        "winner": "Sleeper 15"
+      },
+      {
+        "index": 8,
+        "x": 214,
+        "y": 266,
+        "winner": "Sleeper 15"
+      },
+      {
+        "index": 9,
+        "x": 227,
+        "y": 266,
+        "winner": "Sleeper 16"
+      },
+      {
+        "index": 10,
+        "x": 240,
+        "y": 266,
+        "winner": "Sleeper 17"
+      },
+      {
+        "index": 11,
+        "x": 253,
+        "y": 266,
+        "winner": "Sleeper 18"
+      },
+      {
+        "index": 12,
+        "x": 266,
+        "y": 266,
+        "winner": "Sleeper 19"
+      },
+      {
+        "index": 13,
+        "x": 279,
+        "y": 266,
+        "winner": "Sleeper 2"
+      },
+      {
+        "index": 14,
+        "x": 292,
+        "y": 266,
+        "winner": "Sleeper 20"
+      },
+      {
+        "index": 15,
+        "x": 305,
+        "y": 266,
+        "winner": "Sleeper 21"
+      },
+      {
+        "index": 16,
+        "x": 318,
+        "y": 266,
+        "winner": "Sleeper 22"
+      },
+      {
+        "index": 17,
+        "x": 331,
+        "y": 266,
+        "winner": "Sleeper 23"
+      },
+      {
+        "index": 18,
+        "x": 344,
+        "y": 266,
+        "winner": "Sleeper 3"
+      },
+      {
+        "index": 19,
+        "x": 357,
+        "y": 266,
+        "winner": "Sleeper 4"
+      },
+      {
+        "index": 20,
+        "x": 370,
+        "y": 266,
+        "winner": "Sleeper 5"
+      },
+      {
+        "index": 21,
+        "x": 383,
+        "y": 266,
+        "winner": "Sleeper 6"
+      },
+      {
+        "index": 22,
+        "x": 396,
+        "y": 266,
+        "winner": "Sleeper 6"
+      },
+      {
+        "index": 23,
+        "x": 409,
+        "y": 266,
+        "winner": "Sleeper 9"
+      }
+    ]
+  },
+  {
+    "id": "ship",
+    "zone": {
+      "id": "rest",
+      "posts": [
+        {
+          "id": "rest-1",
+          "at": [
+            128,
+            146
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-2",
+          "at": [
+            164,
+            146
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-3",
+          "at": [
+            200,
+            146
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-4",
+          "at": [
+            272,
+            146
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-5",
+          "at": [
+            308,
+            146
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-6",
+          "at": [
+            344,
+            146
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-7",
+          "at": [
+            380,
+            146
+          ],
+          "facing": "front"
+        },
+        {
+          "id": "rest-8",
+          "at": [
+            92,
+            146
+          ],
+          "facing": "front"
+        }
+      ],
+      "assign": "ordered",
+      "overflow": {
+        "kind": "pack",
+        "areas": [
+          [
+            80,
+            146,
+            145,
+            1
+          ],
+          [
+            272,
+            146,
+            121,
+            1
+          ]
+        ],
+        "spacing": [
+          12,
+          1
+        ],
+        "fallback": [
+          6,
+          1
+        ]
+      },
+      "labelFloor": 150,
+      "appearance": {
+        "sprite": {
+          "image": "below-deck-porthole"
+        },
+        "feet": [
+          8,
+          16
+        ],
+        "front": "near"
+      }
+    },
+    "resolved": [
+      {
+        "key": "Sleeper 0",
+        "x": 128,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 120,
+          "top": 121,
+          "right": 136,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 125,
+          "top": 121,
+          "right": 132,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 0"
+      },
+      {
+        "key": "Sleeper 1",
+        "x": 164,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 156,
+          "top": 121,
+          "right": 172,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 161,
+          "top": 121,
+          "right": 168,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 1"
+      },
+      {
+        "key": "Sleeper 10",
+        "x": 200,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 192,
+          "top": 121,
+          "right": 208,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 197,
+          "top": 121,
+          "right": 204,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 10"
+      },
+      {
+        "key": "Sleeper 11",
+        "x": 272,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 264,
+          "top": 121,
+          "right": 280,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 269,
+          "top": 121,
+          "right": 276,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 11"
+      },
+      {
+        "key": "Sleeper 12",
+        "x": 308,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 300,
+          "top": 121,
+          "right": 316,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 305,
+          "top": 121,
+          "right": 312,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 12"
+      },
+      {
+        "key": "Sleeper 13",
+        "x": 344,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 336,
+          "top": 121,
+          "right": 352,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 341,
+          "top": 121,
+          "right": 348,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 13"
+      },
+      {
+        "key": "Sleeper 14",
+        "x": 380,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 372,
+          "top": 121,
+          "right": 388,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 377,
+          "top": 121,
+          "right": 384,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 14"
+      },
+      {
+        "key": "Sleeper 15",
+        "x": 92,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 84,
+          "top": 121,
+          "right": 100,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 89,
+          "top": 121,
+          "right": 96,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 15"
+      },
+      {
+        "key": "Sleeper 16",
+        "x": 116,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 108,
+          "top": 121,
+          "right": 124,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 113,
+          "top": 121,
+          "right": 120,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 16"
+      },
+      {
+        "key": "Sleeper 17",
+        "x": 152,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 144,
+          "top": 121,
+          "right": 160,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 149,
+          "top": 121,
+          "right": 156,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 17"
+      },
+      {
+        "key": "Sleeper 18",
+        "x": 188,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 180,
+          "top": 121,
+          "right": 196,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 185,
+          "top": 121,
+          "right": 192,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 18"
+      },
+      {
+        "key": "Sleeper 19",
+        "x": 284,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 276,
+          "top": 121,
+          "right": 292,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 281,
+          "top": 121,
+          "right": 288,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 19"
+      },
+      {
+        "key": "Sleeper 2",
+        "x": 296,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 288,
+          "top": 121,
+          "right": 304,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 293,
+          "top": 121,
+          "right": 300,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 2"
+      },
+      {
+        "key": "Sleeper 20",
+        "x": 332,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 324,
+          "top": 121,
+          "right": 340,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 329,
+          "top": 121,
+          "right": 336,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 20"
+      },
+      {
+        "key": "Sleeper 21",
+        "x": 368,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 360,
+          "top": 121,
+          "right": 376,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 365,
+          "top": 121,
+          "right": 372,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 21"
+      },
+      {
+        "key": "Sleeper 22",
+        "x": 80,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 72,
+          "top": 121,
+          "right": 88,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 77,
+          "top": 121,
+          "right": 84,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 22"
+      },
+      {
+        "key": "Sleeper 23",
+        "x": 140,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 132,
+          "top": 121,
+          "right": 148,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 137,
+          "top": 121,
+          "right": 144,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 23"
+      },
+      {
+        "key": "Sleeper 3",
+        "x": 176,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 168,
+          "top": 121,
+          "right": 184,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 173,
+          "top": 121,
+          "right": 180,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 3"
+      },
+      {
+        "key": "Sleeper 4",
+        "x": 212,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 204,
+          "top": 121,
+          "right": 220,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 209,
+          "top": 121,
+          "right": 216,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 4"
+      },
+      {
+        "key": "Sleeper 5",
+        "x": 224,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 216,
+          "top": 121,
+          "right": 232,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 221,
+          "top": 121,
+          "right": 228,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 5"
+      },
+      {
+        "key": "Sleeper 6",
+        "x": 320,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 312,
+          "top": 121,
+          "right": 328,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 317,
+          "top": 121,
+          "right": 324,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 6"
+      },
+      {
+        "key": "Sleeper 7",
+        "x": 356,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 348,
+          "top": 121,
+          "right": 364,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 353,
+          "top": 121,
+          "right": 360,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 7"
+      },
+      {
+        "key": "Sleeper 8",
+        "x": 392,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 384,
+          "top": 121,
+          "right": 400,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 389,
+          "top": 121,
+          "right": 396,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 8"
+      },
+      {
+        "key": "Sleeper 9",
+        "x": 104,
+        "y": 146,
+        "row": 146,
+        "appearance": {
+          "image": "below-deck-porthole",
+          "frame": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "feet": [
+            8,
+            16
+          ],
+          "front": "near",
+          "depth": 1000001
+        },
+        "box": {
+          "left": 96,
+          "top": 121,
+          "right": 112,
+          "bottom": 146
+        },
+        "badge": {
+          "left": 101,
+          "top": 121,
+          "right": 108,
+          "bottom": 129
+        },
+        "centreWinner": "Sleeper 9"
+      }
+    ],
+    "overlaps": [
+      [
+        "Sleeper 0",
+        "Sleeper 16"
+      ],
+      [
+        "Sleeper 0",
+        "Sleeper 23"
+      ],
+      [
+        "Sleeper 1",
+        "Sleeper 17"
+      ],
+      [
+        "Sleeper 1",
+        "Sleeper 3"
+      ],
+      [
+        "Sleeper 10",
+        "Sleeper 18"
+      ],
+      [
+        "Sleeper 10",
+        "Sleeper 4"
+      ],
+      [
+        "Sleeper 11",
+        "Sleeper 19"
+      ],
+      [
+        "Sleeper 12",
+        "Sleeper 2"
+      ],
+      [
+        "Sleeper 12",
+        "Sleeper 6"
+      ],
+      [
+        "Sleeper 13",
+        "Sleeper 20"
+      ],
+      [
+        "Sleeper 13",
+        "Sleeper 7"
+      ],
+      [
+        "Sleeper 14",
+        "Sleeper 21"
+      ],
+      [
+        "Sleeper 14",
+        "Sleeper 8"
+      ],
+      [
+        "Sleeper 15",
+        "Sleeper 22"
+      ],
+      [
+        "Sleeper 15",
+        "Sleeper 9"
+      ],
+      [
+        "Sleeper 16",
+        "Sleeper 9"
+      ],
+      [
+        "Sleeper 17",
+        "Sleeper 23"
+      ],
+      [
+        "Sleeper 18",
+        "Sleeper 3"
+      ],
+      [
+        "Sleeper 19",
+        "Sleeper 2"
+      ],
+      [
+        "Sleeper 20",
+        "Sleeper 6"
+      ],
+      [
+        "Sleeper 21",
+        "Sleeper 7"
+      ],
+      [
+        "Sleeper 4",
+        "Sleeper 5"
+      ]
+    ],
+    "nominal": [
+      {
+        "index": 0,
+        "x": 110,
+        "y": 266
+      },
+      {
+        "index": 1,
+        "x": 123,
+        "y": 266
+      },
+      {
+        "index": 2,
+        "x": 136,
+        "y": 266
+      },
+      {
+        "index": 3,
+        "x": 149,
+        "y": 266
+      },
+      {
+        "index": 4,
+        "x": 162,
+        "y": 266
+      },
+      {
+        "index": 5,
+        "x": 175,
+        "y": 266
+      },
+      {
+        "index": 6,
+        "x": 188,
+        "y": 266
+      },
+      {
+        "index": 7,
+        "x": 201,
+        "y": 266
+      },
+      {
+        "index": 8,
+        "x": 214,
+        "y": 266
+      },
+      {
+        "index": 9,
+        "x": 227,
+        "y": 266
+      },
+      {
+        "index": 10,
+        "x": 240,
+        "y": 266
+      },
+      {
+        "index": 11,
+        "x": 253,
+        "y": 266
+      },
+      {
+        "index": 12,
+        "x": 266,
+        "y": 266
+      },
+      {
+        "index": 13,
+        "x": 279,
+        "y": 266
+      },
+      {
+        "index": 14,
+        "x": 292,
+        "y": 266
+      },
+      {
+        "index": 15,
+        "x": 305,
+        "y": 266
+      },
+      {
+        "index": 16,
+        "x": 318,
+        "y": 266
+      },
+      {
+        "index": 17,
+        "x": 331,
+        "y": 266
+      },
+      {
+        "index": 18,
+        "x": 344,
+        "y": 266
+      },
+      {
+        "index": 19,
+        "x": 357,
+        "y": 266
+      },
+      {
+        "index": 20,
+        "x": 370,
+        "y": 266
+      },
+      {
+        "index": 21,
+        "x": 383,
+        "y": 266
+      },
+      {
+        "index": 22,
+        "x": 396,
+        "y": 266
+      },
+      {
+        "index": 23,
+        "x": 409,
+        "y": 266
+      }
+    ]
+  }
+]
