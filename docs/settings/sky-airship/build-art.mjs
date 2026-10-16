@@ -38,7 +38,11 @@ for(const [name,rect]of Object.entries(pieces)){
   for(let f=0;f<4;f++){const b=blank(base.width,base.height),phase=Math.sin(f*Math.PI/2);
     for(let y=0;y<base.height;y++)for(let x=0;x<base.width;x++){
       let dx=0,dy=0;
-      if(name==='balloon'){dx=Math.round(phase);dy=Math.round(phase*Math.sin(Math.PI*y/base.height));}
+      if(name==='balloon'){
+        // Inverse nearest sampling keeps expanding rows filled; forward mapping left a one-row slit.
+        const sx=x-Math.round(phase),sy=y-Math.round(phase*Math.sin(Math.PI*y/base.height));
+        if(sx>=0&&sx<base.width&&sy>=0&&sy<base.height)put(b,x,y,pixel(base,sx,sy));continue;
+      }
       else if(name==='propeller'){const scale=[1,.32,.85,.32][f];dy=Math.round((y-base.height/2)*scale+base.height/2)-y;}
       else if(name==='flag'){dy=Math.round(phase*2*Math.sin(x/base.width*Math.PI));}
       else if(name.startsWith('sail')){dx=Math.round(phase*2*Math.sin(y/base.height*Math.PI));}
@@ -81,9 +85,13 @@ const weather=source('weather');
 save('thunderhead',fit(crop(weather,0,75,1045,405),180,64,12));
 save('lightning-0',fit(crop(weather,1050,0,480,515),70,105,5));
 save('lightning-1',fit(crop(weather,160,515,500,509),70,105,5));
-const rain=quant(nearest(clean(crop(weather,800,530,720,480)),96,64),4);
+// Rain strokes in the generated source are translucent, unlike the opaque stage.
+// Keep their core pixels before native registration instead of discarding them at alpha 240.
+const rainSource=crop(weather,800,530,720,480);
+for(let i=0;i<rainSource.rgba.length;i+=4){if(rainSource.rgba[i+3]<128)rainSource.rgba.fill(0,i,i+4);else rainSource.rgba[i+3]=255;}
+const rain=quant(nearest(rainSource,96,64),4);
 save('rain-clear',blank(96,64));
 frames('rain',[0,1,2,3].map(f=>{const b=blank(96,64);for(let y=0;y<64;y++)for(let x=0;x<96;x++)put(b,x,y,pixel(rain,(x+f*3)%96,(y+f*7)%64));return b;}));
-const preview=resolve(here,'review/day-canvas.png');if(existsSync(preview))save('preview',nearest(decodePng(readFileSync(preview)),384,256));
+const preview=resolve(here,'review/day-canvas.png');if(existsSync(preview)){const a=decodePng(readFileSync(preview));save('preview',nearest(a,384,Math.round(a.height*384/a.width)));}
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({sources,images,lanes,pieces},null,2)+'\n');
 console.log(JSON.stringify({images:Object.keys(images).length,bytes:Object.values(images).reduce((n,a)=>n+readFileSync(resolve(out,a.path)).length,0)}));

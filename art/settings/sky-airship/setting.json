@@ -55,7 +55,7 @@
         394,
         82
       ],
-      "sha256": "9ae8e3547a8e4d567210bd399e0b14441b68e6767d52e965c361e9ee11c89092"
+      "sha256": "0205eab8df560b312a600bdedf11a24a92148c218cfa5b60367a21e0de20cb99"
     },
     "balloon-2": {
       "path": "balloon-2.png",
@@ -71,7 +71,7 @@
         394,
         82
       ],
-      "sha256": "191bec3c9d0d607f5f51dc95f749ed10ad7201422e19bc3a6ff04cc24a75caca"
+      "sha256": "2b8350e3b5589ad70189b41e94200eedb54c1f5df4b668845b3d9c2a804e8636"
     },
     "rig-0": {
       "path": "rig-0.png",
@@ -639,7 +639,7 @@
         96,
         64
       ],
-      "sha256": "4924ea7351e3db8f69ae48d91bc4d6373bfcf17442dfc8d23afae7afd43ca7e5"
+      "sha256": "5e00ba56d634e9361b3a2ce77d24ec34b86ec3e8de5ca92f57fbddd03d436911"
     },
     "rain-1": {
       "path": "rain-1.png",
@@ -647,7 +647,7 @@
         96,
         64
       ],
-      "sha256": "48fec1e270352eb7903f1abf5152289e0ec11cadad18cd43be4f1b8d5cb5eb0a"
+      "sha256": "86b8ee47e1a1eb5bc622ac41b0cd010a81ef6fd07885733bb66e480f23159b39"
     },
     "rain-2": {
       "path": "rain-2.png",
@@ -655,7 +655,7 @@
         96,
         64
       ],
-      "sha256": "6570785caab7fdde854aa96bd06a5e6edb33e98e484c5b7f35ef9d7b5b8923bc"
+      "sha256": "6d2e2bb7244e5a966f08f68bab5df0bff89867a35c3f421ad88a5d8a06e0ba9f"
     },
     "rain-3": {
       "path": "rain-3.png",
@@ -663,15 +663,15 @@
         96,
         64
       ],
-      "sha256": "bb9a1a87c022b51a232f03b99762da4100b9a628c5d219b97cb9bad3b55584ef"
+      "sha256": "be75c06a3e5eacc9dfdc0c165979cd4c09354283bd23ee4efd54d9c0ef52d345"
     },
     "preview": {
       "path": "preview.png",
       "size": [
         384,
-        256
+        200
       ],
-      "sha256": "392bef09558172f36d2c11836037c4c0d5a6456f8b3f49ced999c935c18b802e"
+      "sha256": "a75c2aa1aa622fb666b90fbe627d353dba1d168bbb545462565f69ddb98e6a71"
     }
   },
   "preview": "preview",
