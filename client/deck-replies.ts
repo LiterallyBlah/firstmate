@@ -8,7 +8,7 @@
  * chip sends through the board's own `suggest`. A suggestion names a crewmate when its label or prompt
  * carries the card's task id, its pull request (the URL, or `repo#42`), or its agent id (eight characters at
  * least) as a whole word (`cardReplies`). One that names several crewmates hangs over each; one that names
- * none stays on the board's strip alone.
+ * none is still available in the shark's full suggestion list and the board's strip.
  *
  * The board's strip keeps a suggestion until the first mate rewrites the file, which can be a turn later.
  * The deck clears a sailor's marker and bubble as soon as the captain has picked one of its replies, from the

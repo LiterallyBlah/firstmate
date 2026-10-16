@@ -15,6 +15,8 @@ describe("attention-carrier@1", () => {
     expect(changed(m => { m.attentionCarrier!.frames[0]!.rect = [0, 0, 1, 1]; })).toBe(false);
     expect(changed(m => { m.attentionCarrier!.at = [-1, 10]; })).toBe(false);
     expect(changed(m => { m.attentionCarrier!.loiter.amplitude = [999, 1]; })).toBe(false);
+    expect(changed(m => { m.attentionCarrier!.bubbleHeight = 48; })).toBe(false);
+    expect(changed(m => { m.attentionCarrier!.bubbleHeight = -1; })).toBe(false);
     expect(SettingManifestSchema.safeParse({ ...shipManifest(), attentionCarrier: { ...carrier, script: "openWorker()" } }).success).toBe(false);
   });
 

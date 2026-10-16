@@ -68,7 +68,7 @@ import { bobAt, dutyFrame, flickerAt, glassTint, glyphRects, swayAt, type Cut, t
 import type { DeckStage } from "./deck-stage";
 import { localMinute, SKY_REFRESH_MS } from "./deck-sky";
 import { phaseTintAt } from "./deck-phase-tint";
-import { attentionWorker, carrierAt, carrierHit, carrierHover, type AttentionCarrier } from "./deck-attention";
+import { carrierAt, carrierHit, carrierHover, type AttentionCarrier } from "./deck-attention";
 
 /** Marks the canvas with its renderer, so the live check can read it in the app's DevTools. */
 export const DECK_CANVAS_ATTRIBUTE = "data-firstmate-deck";
@@ -308,8 +308,15 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
   const carrier = art.attentionCarrier;
   const attention = carrier?.frames.map(sprite => art.images.has(sprite.image)
     ? cutOf({ image: sprite.image, rect: sprite.rect ?? [0, 0, ...carrier.size] }) : null) ?? [];
+  const attentionBody = carrier?.frames.map(sprite => {
+    if (!art.images.has(sprite.image)) return null;
+    const [x, y, w, h] = sprite.rect ?? [0, 0, ...carrier.size];
+    const top = carrier.bubbleHeight ?? 0;
+    return cutOf({ image: sprite.image, rect: [x, y + top, w, h - top] });
+  }) ?? [];
   return {
     attention,
+    attentionBody,
     hull,
     effects,
     rig,
@@ -599,7 +606,7 @@ export async function startDeck(
   attention.label = "attention-carrier";
   const attentionSprite = new pixi.Sprite(textures.attention.find(texture => texture !== null) ?? textures.hull[0]!.texture);
   const attentionFallback = new pixi.Graphics();
-  // Image failure retains an engine-owned bubble in the same target, and the keyboard focus action.
+  // Image failure retains a marker while suggestions exist, plus the keyboard action.
   if (carrier !== undefined) {
     const scale = Math.min(1, carrier.size[0] / ASK_SIZE.width, carrier.size[1] / ASK_SIZE.height);
     attentionFallback.scale.set(scale);
@@ -611,21 +618,23 @@ export async function startDeck(
   let carrierPlace = { x: 0, y: 0, frame: 0 };
 
   function drawAttention(ms: number, plan: MotionPlan): void {
-    carrierKey = carrier === undefined || focusKey !== null ? null : attentionWorker(current, current.attentionKey);
+    carrierKey = carrier === undefined || focusKey !== null ? null : "suggestions";
     attention.visible = carrierKey !== null;
     if (carrier === undefined || carrierKey === null) return;
     carrierPlace = carrierAt(carrier, ms, plan.level === "full");
     attention.position.set(carrierPlace.x, carrierPlace.y);
-    const texture = textures.attention[carrierPlace.frame] ?? textures.attention.find(each => each !== null);
+    const frames = current.hasSuggestions ? textures.attention : textures.attentionBody;
+    const texture = frames[carrierPlace.frame] ?? frames.find(each => each !== null);
+    attentionSprite.position.set(0, current.hasSuggestions ? 0 : carrier.bubbleHeight ?? 0);
     attentionSprite.visible = texture != null;
     if (texture != null) attentionSprite.texture = texture;
-    attentionFallback.visible = texture == null;
+    attentionFallback.visible = texture == null && current.hasSuggestions === true;
     if (texture == null) drawAsk(attentionFallback, current.palette.ask, { left: 0, top: 0, flip: false, framed: false });
   }
 
   function carrierUnder(point: { x: number; y: number }): string | null {
     return carrier !== undefined && carrierKey !== null && focusKey === null && drawnFit.scale > 0 &&
-      attentionWorker(current, carrierKey) === carrierKey && carrierHit(carrier, carrierPlace, toDeck(point, drawnFit, { x: 0, y: 0 })) ? carrierKey : null;
+      carrierHit(carrier, carrierPlace, toDeck(point, drawnFit, { x: 0, y: 0 })) ? carrierKey : null;
   }
 
   function sailorSprites(figure: Figure): SailorSprites {
@@ -850,7 +859,7 @@ export async function startDeck(
       if (glass !== null) glass.tint = hexColour(glassTint(level, tints));
     }
     drawnFigures = crewFigures(crew, elapsedMs, { still: !moving });
-    drawnMarks = carrier === undefined ? askMarks(drawnFigures, cast) : new Map();
+    drawnMarks = askMarks(drawnFigures, cast);
     drawnBob = bob;
     spot.position.set(bob.x, bob.y);
     aim(elapsedMs, moving);
@@ -874,7 +883,7 @@ export async function startDeck(
    * wears the reply marker: the pane hangs its speech bubble there, through the zoom and every resize.
    */
   function findHover(): boolean {
-    const attentionKey = pointer === null ? null : carrierUnder(pointer);
+    const attentionKey = current.suggestionsOpen && focusKey === null ? carrierKey : pointer === null ? null : carrierUnder(pointer);
     // While a sailor is focused its panel says who it is: no label, no ring, for anyone else.
     const figure =
       pointer === null || drawnFit.scale <= 0 || focusKey !== null ? null : sailorAt(drawnFigures, cast, toDeck(pointer, drawnFit, drawnBob), drawnMarks);

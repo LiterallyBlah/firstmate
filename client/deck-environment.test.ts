@@ -985,14 +985,14 @@ describe("attention carriers in the renderer", () => {
   const scene = () => {
     const value = crewScene([["a", "working"], ["remote:b", "idle"]]);
     value.sailors.forEach(sailor => { sailor.asks = true; });
-    value.attentionKey = "remote:b";
+    value.hasSuggestions = true;
     return value;
   };
   const at = (deck: Awaited<ReturnType<typeof start>>, x = 32, y = 34) => {
     const carrier = one(deck.app.stage, "attention-carrier"), world = one(deck.app.stage, "world");
     return { offsetX: world.position.x + (carrier.position.x + x) * world.scale.x, offsetY: world.position.y + (carrier.position.y + y) * world.scale.y };
   };
-  it("draws one independently loitering target, suppresses per-worker markers, and routes body and bubble through the camera without the stage bob", async () => {
+  it("draws one independently loitering target, keeps per-worker markers, and routes body and bubble to suggestions without the stage bob", async () => {
     const selected: unknown[] = [], hovers: Array<DeckHover | null> = [];
     const deck = await start(environment, { now, extras, scene: scene(), attentionCarrier, onSelect: (key, action) => selected.push([key, action]), onHover: hover => hovers.push(hover) });
     const carrier = one(deck.app.stage, "attention-carrier");
@@ -1000,14 +1000,14 @@ describe("attention carriers in the renderer", () => {
     for (let i = 0; i < 120; i++) { deck.advance(34); frames.add(texturePath(carrier.children[0]!)); }
     expect(frames.size).toBe(4);
     expect(one(deck.app.stage, "ship").children).not.toContain(carrier);
-    for (const key of ["a", "remote:b"]) expect(one(one(deck.app.stage, key), "ask").visible).toBe(false);
+    for (const key of ["a", "remote:b"]) expect(one(one(deck.app.stage, key), "ask").visible).toBe(true);
     deck.app.canvas.listeners.get("pointermove")?.(at(deck));
-    expect(hovers.at(-1)).toMatchObject({ key: "remote:b", action: "attention" });
+    expect(hovers.at(-1)).toMatchObject({ key: "suggestions", action: "attention" });
     deck.app.canvas.listeners.get("click")?.(at(deck));
     deck.drawing.resize(1200, 600);
     deck.advance(34);
     deck.app.canvas.listeners.get("click")?.(at(deck, 32, 10));
-    expect(selected).toEqual([["remote:b", "attention"], ["remote:b", "attention"]]);
+    expect(selected).toEqual([["suggestions", "attention"], ["suggestions", "attention"]]);
     deck.drawing.focus("a"); deck.advance(34);
     expect(carrier.visible).toBe(false);
     const sprite = carrier.children[0] as FakeSprite;
@@ -1016,7 +1016,7 @@ describe("attention carriers in the renderer", () => {
     expect(deck.app.canvas.listeners.size).toBe(0);
   });
 
-  it("holds the first frame without a loop, clears stale/removed targets immediately, and keeps a bubble if all carrier art is missing", async () => {
+  it("holds the first frame without a loop, keeps the shark for stale/removed crew, and keeps a bubble if all carrier art is missing", async () => {
     for (const missing of [false, true]) {
       const selected: unknown[] = [];
       const deck = await start(environment, { now, extras, scene: scene(), attentionCarrier, reducedMotion: true,
@@ -1027,14 +1027,19 @@ describe("attention carriers in the renderer", () => {
       expect(carrier.children[0]!.visible).toBe(!missing);
       expect(carrier.children[1]!.visible).toBe(missing);
       deck.app.canvas.listeners.get("click")?.(at(deck, 30, 6));
-      expect(selected).toEqual([["remote:b", "attention"]]);
+      expect(selected).toEqual([["suggestions", "attention"]]);
       const stale = scene(); stale.sailors.forEach(sailor => { sailor.stale = true; });
       deck.drawing.update(stale);
-      expect(carrier.visible).toBe(false);
+      expect(carrier.visible).toBe(true);
       deck.app.canvas.listeners.get("click")?.(at(deck));
-      expect(selected.at(-1)).toEqual([null, undefined]);
+      expect(selected.at(-1)).toEqual(["suggestions", "attention"]);
       deck.drawing.update(scene()); expect(carrier.visible).toBe(true);
-      deck.drawing.update(crewScene([])); expect(carrier.visible).toBe(false);
+      deck.drawing.update(crewScene([])); expect(carrier.visible).toBe(true);
+      if (!missing) {
+        const sprite = carrier.children[0] as FakeSprite;
+        expect(sprite.position.y).toBe(attentionCarrier.bubbleHeight);
+        expect(sprite.texture.frame.height).toBe(attentionCarrier.size[1] - attentionCarrier.bubbleHeight!);
+      }
       deck.drawing.destroy();
       expect(deck.timers.every(timer => timer.stopped)).toBe(true);
     }

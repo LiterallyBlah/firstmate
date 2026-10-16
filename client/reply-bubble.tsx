@@ -11,14 +11,64 @@
  * the bubble says why, as the chips' tooltip does.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
-import type { ReactNode, Ref } from "react";
+import { useSyncExternalStore, type ReactNode, type Ref } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type { Suggestion } from "../shared/fleet";
 import { ASK_PAPER, askPixels, ASK_SIZE, hexColour } from "./deck-badges";
-import type { BubblePlacement } from "./deck-replies";
+import { answeredReplies, type BubblePlacement } from "./deck-replies";
+import { suggestionRemovals } from "./suggestion-removals";
 import type { DeckSailor } from "./deck-scene";
 import { webTitle } from "./web";
+
+/** The shark's full list, in strip order. Picked entries stay visible until the file changes. */
+export function SuggestionBubbles({ suggestions, place, theme, blocked, onReply, holdRef, onClose }: {
+  suggestions: readonly Suggestion[];
+  place: BubblePlacement;
+  theme: PluginTheme;
+  blocked: string | null;
+  onReply: (reply: Suggestion) => void;
+  holdRef: Ref<View>;
+  onClose: () => void;
+}) {
+  useSyncExternalStore(answeredReplies.subscribe, answeredReplies.version);
+  useSyncExternalStore(suggestionRemovals.subscribe, suggestionRemovals.version);
+  const { colors } = theme;
+  return (
+    <View ref={holdRef} role="dialog" aria-label="Shark suggestions" tabIndex={-1}
+      testID="firstmate-deck-suggestions"
+      style={{ position: "absolute", left: place.left, width: place.width,
+        ...(place.top === undefined ? { bottom: place.bottom } : { top: place.top }),
+        maxHeight: place.maxHeight, padding: 8, gap: 8, borderRadius: 12,
+        borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.surface0 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>Suggestions</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close suggestions" onPress={onClose} style={{ padding: 4 }}>
+          <Text style={{ color: colors.foreground }}>×</Text>
+        </Pressable>
+      </View>
+      <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 10, paddingBottom: 5 }}>
+        {suggestions.length === 0 ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Nothing to suggest right now.</Text> : suggestions.map((suggestion, index) => {
+          const reason = blocked ?? (suggestionRemovals.pending(suggestion) ? "This suggestion is being removed." : answeredReplies.has(suggestion) ? "Sent to the first mate." : null);
+          return <View key={`${index}:${suggestion.label}`} style={{ paddingBottom: 4 }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={replyLabel(suggestion)}
+              disabled={reason !== null} accessibilityState={{ disabled: reason !== null }} accessibilityHint={reason ?? undefined}
+              onPress={() => onReply(suggestion)} {...webTitle(reason ?? suggestion.prompt)}
+              style={{ padding: 10, gap: 4, borderRadius: 12, borderWidth: 1, borderColor: colors.accent,
+                backgroundColor: colors.surface1, opacity: reason === null ? 1 : 0.6 }}>
+              <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{suggestion.label}</Text>
+              <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{suggestion.prompt}</Text>
+              {reason === null ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>{reason}</Text>}
+            </Pressable>
+            <View style={{ pointerEvents: "none", position: "absolute", bottom: 0, left: 18, width: 8, height: 8,
+              transform: [{ rotate: "45deg" }], backgroundColor: colors.surface1,
+              borderColor: colors.accent, borderRightWidth: 1, borderBottomWidth: 1 }} />
+          </View>;
+        })}
+      </ScrollView>
+    </View>
+  );
+}
 
 /** The reply marker, drawn as on deck, `pixel` points an art pixel: the legend's key to it. */
 export function DeckAskMarker({ accent, pixel = 2 }: { accent: string; pixel?: number }) {

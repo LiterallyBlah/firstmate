@@ -1,7 +1,6 @@
-/** Engine-owned attention and the pack's one independently placed focus target. No timers or scripts. */
+/** Engine-owned attention and the pack's one independently placed suggestion target. No timers or scripts. */
 import type { FleetCard } from "../shared/fleet";
 import type { SettingManifest } from "../shared/deck-setting";
-import type { DeckScene } from "./deck-scene";
 import type { DeckFit, DeckHover } from "./deck-hover";
 
 export type AttentionCarrier = NonNullable<SettingManifest["attentionCarrier"]>;
@@ -9,12 +8,6 @@ export type AttentionCarrier = NonNullable<SettingManifest["attentionCarrier"]>;
 /** Blocked is the board's request for the captain; Ready and a failed job alone are not. */
 export function needsResponse(card: FleetCard): boolean {
   return card.column === "blocked" || (card.agent?.pendingPermissions ?? card.remote?.worker?.pendingPermissions ?? 0) > 0;
-}
-
-/** Preserve the selected identity across polls and reordering; choose a deterministic successor if it leaves. */
-export function attentionWorker(scene: DeckScene, selected?: string | null): string | null {
-  const keys = scene.sailors.filter(sailor => sailor.asks && !sailor.stale).map(sailor => sailor.key).sort();
-  return selected != null && keys.includes(selected) ? selected : keys[0] ?? null;
 }
 
 export function carrierAt(carrier: AttentionCarrier, ms: number, moving: boolean) {
