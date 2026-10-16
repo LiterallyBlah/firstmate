@@ -16,7 +16,7 @@
     "hull bob",
     "full-only cloud drift and wake cycling",
     "working/waiting/blocked fidgets",
-    "shark swim cycle and loiter",
+    "full-only shark swim cycle and loiter",
     "sleeper Z drift/fade"
   ],
   "samples": [
