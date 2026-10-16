@@ -3,34 +3,35 @@
   "formatVersion": 1,
   "id": "japanese-ship",
   "name": "Sakura coast",
-  "version": "1.1.1",
+  "version": "1.1.0",
   "requires": [
-    "stage@1",
-    "floor@1",
-    "zones@1",
-    "zone-appearance@1",
-    "post-transit@1",
+    "atmosphere@1",
     "attention-carrier@1",
-    "carrier-surface@1",
-    "stable-posts@1",
-    "cast@1",
-    "pose-fidgets@1",
-    "rise@1",
-    "choreography@1",
-    "phase-tint@1",
-    "bob@1",
-    "sway@1",
-    "cycle@1",
-    "flicker@1",
     "backdrop-cycle@1",
-    "overlay@1",
-    "flash@1",
+    "bob@1",
+    "carrier-surface@1",
+    "cast@1",
+    "choreography@1",
+    "cycle@1",
+    "day-cycle@1",
     "drifters@1",
+    "flash@1",
+    "flicker@1",
+    "floor@1",
     "flyby@1",
+    "overlay@1",
+    "phase-strip@1",
+    "phase-tint@1",
+    "pose-fidgets@1",
+    "post-transit@1",
+    "rise@1",
+    "stable-posts@1",
+    "stage@1",
+    "sway@1",
     "tile@1",
     "variants@1",
-    "day-cycle@1",
-    "atmosphere@1"
+    "zone-appearance@1",
+    "zones@1"
   ],
   "copy": {
     "pane": "Deck",
@@ -74,14 +75,6 @@
         400
       ],
       "sha256": "86ea9731b9d116a8e133b315a48bcc8feeb22fac319cde2b021938b0335f7306"
-    },
-    "ripples": {
-      "path": "ripples.png",
-      "size": [
-        96,
-        64
-      ],
-      "sha256": "9a2521f7f513e1cba41bd47400022894ad50786831810087aae80a36b4a7d0cb"
     },
     "wake": {
       "path": "wake.png",
@@ -345,7 +338,7 @@
         96,
         64
       ],
-      "sha256": "e48fe9a5cb1519885c1d9fabf6c1218854b950b429009093b03684543f8a2ef5"
+      "sha256": "3e59e8abf28253756ad351ebeb153c7d7db6dddc7f54fcbe30228db2f0e86ebe"
     },
     "overcast": {
       "path": "overcast.png",
@@ -385,7 +378,7 @@
         96,
         64
       ],
-      "sha256": "d6c1e9143529ae7a56be0407576f33a232205e63667e575e5acfa14ad320b10e"
+      "sha256": "7985902fbc4a7e2527a4c283d6a6a9df3bdbc900b56f1b68c00cff8dae9da1cd"
     },
     "moon-sky": {
       "path": "moon-sky.png",
@@ -458,6 +451,78 @@
         400
       ],
       "sha256": "022b8910fb395443f1db24c876c6bcf858384310237183a58dbe3cdc242a802d"
+    },
+    "bay-far-midday": {
+      "path": "bay-far-midday.png",
+      "size": [
+        1536,
+        32
+      ],
+      "sha256": "6dc7c0e7bd9932f79a384af4dcbbd21fb6993c577b50d00822dd3b463d8ac20a"
+    },
+    "bay-far-dusk": {
+      "path": "bay-far-dusk.png",
+      "size": [
+        1536,
+        32
+      ],
+      "sha256": "9e7f746ffc9d33a3716d8901fd430d7d32e73563e25bae4e690d91317e494cea"
+    },
+    "bay-far-night": {
+      "path": "bay-far-night.png",
+      "size": [
+        1536,
+        32
+      ],
+      "sha256": "221b8a77fba024c906b8ea90f00e3a03c9f8b5d9691232b9a61a6f7e0074f9c6"
+    },
+    "bay-mid-midday": {
+      "path": "bay-mid-midday.png",
+      "size": [
+        1536,
+        64
+      ],
+      "sha256": "fe9baacb8a0fee88f631ac35013cea45e87980efaedda5db307d9b5eecfd8a0f"
+    },
+    "bay-mid-dusk": {
+      "path": "bay-mid-dusk.png",
+      "size": [
+        1536,
+        64
+      ],
+      "sha256": "671bca918875365aa7d3f3196c37b1e6cd81e8bda46007b304309971a761fc9d"
+    },
+    "bay-mid-night": {
+      "path": "bay-mid-night.png",
+      "size": [
+        1536,
+        64
+      ],
+      "sha256": "ee66c5f0bc20b3b768e46f0ea2b6ca999c2bfd113c6218e4a0e9d20d1266c1e2"
+    },
+    "bay-near": {
+      "path": "bay-near.png",
+      "size": [
+        2304,
+        96
+      ],
+      "sha256": "f1b53f512bc701c96bbe96483bc0588a89512363e798fe4e0b96989d54e45f45"
+    },
+    "bay-near-storm": {
+      "path": "bay-near-storm.png",
+      "size": [
+        2304,
+        96
+      ],
+      "sha256": "f58fa2f4149e3fc1ceb7dc410f129d92f0b2b16420fd13fca0d07ba0dffe1040"
+    },
+    "bay-stars": {
+      "path": "bay-stars.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "5b679d823ef1fd8e44aa6c147c7ca4ff456ed4aa03e631294328c5f9dd28490c"
     }
   },
   "preview": "preview",
@@ -3202,40 +3267,6 @@
       }
     },
     {
-      "id": "sea-ripples",
-      "slot": "back",
-      "order": 5,
-      "lite": "freeze",
-      "still": "first-frame",
-      "behaviour": {
-        "kind": "tile",
-        "frames": {
-          "sprites": [
-            {
-              "image": "ripples"
-            }
-          ],
-          "frameMs": 500,
-          "clock": "water"
-        },
-        "drift": {
-          "pxPerSecond": 3,
-          "clock": "water"
-        },
-        "origin": 214,
-        "bands": [
-          {
-            "slot": "back",
-            "fromRow": 214
-          },
-          {
-            "slot": "front",
-            "fromRow": 290
-          }
-        ]
-      }
-    },
-    {
       "id": "turning-wake",
       "slot": "back",
       "order": 6,
@@ -3877,6 +3908,1013 @@
               ]
             ]
           }
+        ]
+      }
+    },
+    {
+      "id": "bay-far",
+      "slot": "back",
+      "order": 5,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "phase-strip",
+        "frames": {
+          "sprites": [
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "frameMs": 320,
+          "clock": "water"
+        },
+        "byPhase": {
+          "midday": [
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "dusk": [
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "night": [
+            {
+              "image": "bay-far-night",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "dawn": [
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "morning": [
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "afternoon": [
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ]
+        },
+        "top": 212,
+        "span": [
+          -32768,
+          32768
+        ],
+        "drift": {
+          "pxPerSecond": 0.55,
+          "clock": "water"
+        }
+      }
+    },
+    {
+      "id": "bay-mid",
+      "slot": "back",
+      "order": 5.1,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "phase-strip",
+        "frames": {
+          "sprites": [
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "frameMs": 320,
+          "clock": "water"
+        },
+        "byPhase": {
+          "midday": [
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "dusk": [
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "night": [
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "dawn": [
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "morning": [
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "afternoon": [
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ]
+        },
+        "top": 232,
+        "span": [
+          -32768,
+          32768
+        ],
+        "drift": {
+          "pxPerSecond": 1.35,
+          "clock": "water"
+        }
+      }
+    },
+    {
+      "id": "bay-near",
+      "slot": "back",
+      "order": 5.2,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "tile",
+        "frames": {
+          "sprites": [
+            {
+              "image": "bay-near",
+              "rect": [
+                0,
+                0,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                384,
+                0,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                768,
+                0,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                1152,
+                0,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                1536,
+                0,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                1920,
+                0,
+                384,
+                96
+              ]
+            }
+          ],
+          "frameMs": 320,
+          "clock": "water"
+        },
+        "drift": {
+          "pxPerSecond": 2.7,
+          "clock": "water"
+        },
+        "origin": 276,
+        "bands": [
+          {
+            "slot": "back",
+            "fromRow": 276
+          },
+          {
+            "slot": "front",
+            "fromRow": 290
+          }
+        ],
+        "variants": [
+          {
+            "id": "rough",
+            "frames": [
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  0,
+                  0,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  384,
+                  0,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  768,
+                  0,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  1152,
+                  0,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  1536,
+                  0,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  1920,
+                  0,
+                  384,
+                  96
+                ]
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                1,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "bay-stars",
+      "slot": "back",
+      "order": -1.5,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "overlay",
+        "image": "bay-stars",
+        "space": "coast",
+        "alpha": "night",
+        "hiddenBy": [
+          "overcast"
         ]
       }
     }
