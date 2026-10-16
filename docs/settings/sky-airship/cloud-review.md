@@ -1,5 +1,9 @@
 # Cloud revision for PR #86
 
+This records the original cloud revision. The later [tall-pane fix](narrow/README.md)
+extends its finite near bank with a continuous cloud floor; the original upper
+layers and normal wide renders remain unchanged.
+
 The captain approved the ship and characters but asked for more depth and less
 repetition in the clouds, with a consistent storm sea. This revision changes
 cloud art and ambience data only. [Preservation audit](cloud-preservation.json)
