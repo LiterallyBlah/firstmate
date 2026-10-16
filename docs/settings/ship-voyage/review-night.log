@@ -1,0 +1,15 @@
+capture night-wide
+capture night-tall-narrow
+night voyage 100s
+night voyage 200s
+night voyage 300s
+night voyage 400s
+night voyage 500s
+capture port-night-wide
+night voyage 600s
+night voyage 700s
+night voyage 800s
+night voyage 900s
+night voyage 1000s
+capture lighthouse-night-wide
+capture lighthouse-night-tall-narrow

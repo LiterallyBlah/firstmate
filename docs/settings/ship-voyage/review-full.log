@@ -1,0 +1,29 @@
+capture day-canvas
+capture day-tall-narrow
+capture floor-overlay
+capture sleepers-24
+capture workers-24
+capture night-wide
+capture night-tall-narrow
+capture dawn-wide
+capture dawn-tall-narrow
+capture dusk-wide
+capture dusk-tall-narrow
+capture lookout
+capture storm-wide
+capture storm-tall-narrow
+capture storm-lightning
+voyage sample 0/101
+voyage sample 10/101
+voyage sample 20/101
+voyage sample 30/101
+voyage sample 40/101
+voyage sample 50/101
+voyage sample 60/101
+voyage sample 70/101
+voyage sample 80/101
+voyage sample 90/101
+voyage sample 100/101
+capture lighthouse-night-wide
+capture lighthouse-night-tall-narrow
+{"mode":"full","checks":["reduced-motion pixels stable","half-submerged shark opens suggestions, not worker focus","keyboard focus and Escape","picker retains Ship, Sakura coast and Sky pirates","24 resolved sleeping-window centres focus their exact 24 sailors; zero hit-box overlaps","24 working crew crowd rendered","six-phase sky, dusk and moonlit night captures","day/night phase changes","pixel sequences change across rig, flag, sails, cat, yard gull, hull, crew, lamps, sea, shark, dolphins and whale; no renderer introspection","hatch arrival and post-transit climb captured; raised lookout click focuses arriving sailor","plank / splash / shark departure captured","peak intensity, navy chase, rain, kraken, serpent and bounded lightning observed","storm eases back to calm","ten-second calm and eight-second storm whole-stage rocking clips","24 moving sleeping-window targets hover and focus their exact sailors","reduced motion returns to calm stable scene","unmodified 1.7 px/s coastline observed for 1224 seconds: full 20m 05s lap, clip 60x","night lighthouse sweep clip at real speed; long-route scheduler samples at 10 Hz with unchanged 100 ms engine steps"],"errors":[]}
