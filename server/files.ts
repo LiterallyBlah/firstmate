@@ -40,7 +40,7 @@ export function cleanRelative(path: string): string {
   return normalized === "." ? "" : normalized;
 }
 
-function isInside(root: string, candidate: string): boolean {
+export function isInside(root: string, candidate: string): boolean {
   const between = relative(root, candidate);
   return between === "" || (!between.startsWith("..") && !isAbsolute(between));
 }

@@ -91,6 +91,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/draft.ts`, `attachments.ts` | The unsent message and what is attached to it, kept on `globalThis` across reloads.  |
 | `client/sent-images.ts`, `image-cache.ts` | Sent images by message id (the timeline has none), shared by both chats and cached in browser IndexedDB. |
 | `client/chat-image.tsx`, `message-copy.tsx` | Conversation image viewer and host clipboard actions; Markdown opts into these only for chat. |
+| `shared/chat-images.ts`, `server/chat-images.ts`, `client/chat-image-routing.ts`, `local-chat-image.tsx` | MateChat local image previews: home/registered-workspace identity plus relative path, server containment and image sniffing, 10 MiB cap, data URL into the existing viewer. |
 | `client/timeline-history.ts` | Projected earlier pages merged with the live tail, with epoch/gap/overlap guards. |
 | `shared/files.ts`, `server/files.ts` | The home as files: list, read, write — confined to the home, saved against the version opened. |
 | `client/files.tsx`            | The Files view: the home's folders, a text editor, a Markdown preview.                     |

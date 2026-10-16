@@ -1,0 +1,116 @@
+{
+  "platform": "Windows Edge; desktop and phone web viewport; real MateChat and real image reader, fixture host/transport",
+  "rpcResults": [
+    {
+      "input": {
+        "root": {
+          "kind": "workspace",
+          "workspaceId": "worktree"
+        },
+        "path": "preview.png"
+      },
+      "status": "ready",
+      "size": 104397
+    },
+    {
+      "input": {
+        "root": {
+          "kind": "workspace",
+          "workspaceId": "worktree"
+        },
+        "path": "preview.png"
+      },
+      "status": "ready",
+      "size": 104397
+    },
+    {
+      "input": {
+        "root": {
+          "kind": "workspace",
+          "workspaceId": "worktree"
+        },
+        "path": "notes.txt"
+      },
+      "status": "unavailable",
+      "reason": "not-image"
+    },
+    {
+      "input": {
+        "root": {
+          "kind": "workspace",
+          "workspaceId": "worktree"
+        },
+        "path": "escape/preview.png"
+      },
+      "status": "unavailable",
+      "reason": "path"
+    },
+    {
+      "input": {
+        "root": {
+          "kind": "workspace",
+          "workspaceId": "worktree"
+        },
+        "path": "large.png"
+      },
+      "status": "unavailable",
+      "reason": "too-large"
+    },
+    {
+      "input": {
+        "root": {
+          "kind": "workspace",
+          "workspaceId": "worktree"
+        },
+        "path": "preview.png"
+      },
+      "status": "ready",
+      "size": 104397
+    },
+    {
+      "input": {
+        "root": {
+          "kind": "workspace",
+          "workspaceId": "worktree"
+        },
+        "path": "preview.png"
+      },
+      "status": "ready",
+      "size": 104397
+    },
+    {
+      "input": {
+        "root": {
+          "kind": "workspace",
+          "workspaceId": "worktree"
+        },
+        "path": "notes.txt"
+      },
+      "status": "unavailable",
+      "reason": "not-image"
+    },
+    {
+      "input": {
+        "root": {
+          "kind": "workspace",
+          "workspaceId": "worktree"
+        },
+        "path": "escape/preview.png"
+      },
+      "status": "unavailable",
+      "reason": "path"
+    },
+    {
+      "input": {
+        "root": {
+          "kind": "workspace",
+          "workspaceId": "worktree"
+        },
+        "path": "large.png"
+      },
+      "status": "unavailable",
+      "reason": "too-large"
+    }
+  ],
+  "errors": []
+}
