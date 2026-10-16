@@ -1,0 +1,17 @@
+{
+  "files": [
+    "art/settings/japanese-ship/coast-night.png",
+    "art/settings/japanese-ship/coast.png",
+    "art/settings/japanese-ship/crew-indigo.png",
+    "art/settings/japanese-ship/crew-russet.png",
+    "art/settings/japanese-ship/preview.png",
+    "art/settings/japanese-ship/reply-shark.png",
+    "art/settings/japanese-ship/ripples.png",
+    "art/settings/japanese-ship/setting.json",
+    "art/settings/japanese-ship/ship.png",
+    "art/settings/japanese-ship/sleep-window.png",
+    "art/settings/japanese-ship/wake.png"
+  ],
+  "sourceFilesShipped": false,
+  "docsFilesShipped": false
+}

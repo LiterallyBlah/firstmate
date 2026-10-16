@@ -1,0 +1,9 @@
+{
+  "renderer": "SwiftShader",
+  "motion": "lite",
+  "checks": [
+    "pack renders on actual software WebGL",
+    "keyboard focus and Escape work in lite motion"
+  ],
+  "errors": []
+}
