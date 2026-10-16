@@ -149,6 +149,10 @@ try {
     const { checkMotion } = await import("../settings/japanese-ship/check-motion.mjs");
     await checkMotion(view, manifest);
   }
+  if (process.env.SAKURA_PARITY) {
+    const { checkParity } = await import("../settings/japanese-ship/parity/check.mjs");
+    await checkParity(view, manifest);
+  }
   if (errors.length !== 0) throw new Error(errors.join("\n"));
   console.log(JSON.stringify({ setting: actual, overlay: drawn, selectionCheck: process.env.CHECK_SELECTION === "1", errors }));
 } finally {

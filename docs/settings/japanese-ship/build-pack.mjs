@@ -3,6 +3,7 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
+import {addParity} from './parity/pack.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../../..');
 const require=createRequire(resolve(root,'docs/board-list/package.json'));
 const {build}=require('esbuild');
@@ -60,6 +61,7 @@ pack.ambience.push({id:'coast-foreground',slot:'back',order:4,lite:'run',still:'
 // Keep the animated water/wake above the coast foreground, exactly as above the original coast.
 pack.ambience.find(e=>e.id==='sea-ripples').order=5;
 pack.ambience.find(e=>e.id==='turning-wake').order=6;
+addParity(pack);
 pack.requires=capabilitiesUsed(pack);
 SettingManifestSchema.parse(pack);
 writeFileSync(resolve(root,'art/settings/japanese-ship/setting.json'),JSON.stringify(pack,null,2)+'\n');
