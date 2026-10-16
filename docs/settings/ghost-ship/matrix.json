@@ -98,43 +98,43 @@
       "bands": [
         {
           "band": 0,
-          "changed": 38610
+          "changed": 40450
         },
         {
           "band": 1,
-          "changed": 33003
+          "changed": 50009
         },
         {
           "band": 2,
-          "changed": 46823
+          "changed": 57060
         },
         {
           "band": 3,
-          "changed": 49300
+          "changed": 68628
         },
         {
           "band": 4,
-          "changed": 76038
+          "changed": 86957
         },
         {
           "band": 5,
-          "changed": 90627
+          "changed": 92217
         },
         {
           "band": 6,
-          "changed": 87725
+          "changed": 90708
         },
         {
           "band": 7,
-          "changed": 99031
+          "changed": 99655
         },
         {
           "band": 8,
-          "changed": 38287
+          "changed": 50957
         },
         {
           "band": 9,
-          "changed": 37393
+          "changed": 50001
         }
       ]
     },
@@ -235,43 +235,43 @@
       "bands": [
         {
           "band": 0,
-          "changed": 27326
+          "changed": 34858
         },
         {
           "band": 1,
-          "changed": 30658
+          "changed": 37528
         },
         {
           "band": 2,
-          "changed": 33217
+          "changed": 43689
         },
         {
           "band": 3,
-          "changed": 44640
+          "changed": 54626
         },
         {
           "band": 4,
-          "changed": 60362
+          "changed": 68640
         },
         {
           "band": 5,
-          "changed": 65473
+          "changed": 66853
         },
         {
           "band": 6,
-          "changed": 68702
+          "changed": 71487
         },
         {
           "band": 7,
-          "changed": 64347
+          "changed": 69101
         },
         {
           "band": 8,
-          "changed": 29102
+          "changed": 34283
         },
         {
           "band": 9,
-          "changed": 26367
+          "changed": 39917
         }
       ]
     },
@@ -372,43 +372,43 @@
       "bands": [
         {
           "band": 0,
-          "changed": 33853
+          "changed": 41388
         },
         {
           "band": 1,
-          "changed": 35024
+          "changed": 41524
         },
         {
           "band": 2,
-          "changed": 36261
+          "changed": 42319
         },
         {
           "band": 3,
-          "changed": 34407
+          "changed": 38618
         },
         {
           "band": 4,
-          "changed": 60280
+          "changed": 67842
         },
         {
           "band": 5,
-          "changed": 84895
+          "changed": 86328
         },
         {
           "band": 6,
-          "changed": 34163
+          "changed": 43229
         },
         {
           "band": 7,
-          "changed": 36440
+          "changed": 44252
         },
         {
           "band": 8,
-          "changed": 34565
+          "changed": 43720
         },
         {
           "band": 9,
-          "changed": 34783
+          "changed": 43484
         }
       ]
     }

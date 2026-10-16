@@ -30,5 +30,20 @@
       "still"
     ]
   },
-  "knownLimit": "Baked constant crew alpha, night RGB tint only."
+  "knownLimit": "Baked constant crew alpha, night RGB tint only.",
+  "reviewCorrection": {
+    "artCommit": "0efb0be",
+    "payloadBytes": 902142,
+    "stormShapes": [
+      "wide",
+      "square",
+      "tall-narrow"
+    ],
+    "visualReview": "No rectangular fog grid or hard wave tile blocks in the three real-pane renders.",
+    "wrapFrames": 14,
+    "calmSeaPixelsUnchanged": true,
+    "jellyfish": "four submerged at rest; eight drift/pulse frames in full and lite",
+    "coastPeriodPixels": 1800,
+    "coastPeriodSeconds": 1200
+  }
 }
