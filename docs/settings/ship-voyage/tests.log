@@ -1,0 +1,16 @@
+
+> @gpambrozio/paseo-firstmate@0.4.0 test
+> vitest run --passWithNoTests --maxWorkers=2
+
+
+ RUN  v5.0.3 C:/Users/micha/.paseo/worktrees/23z5sbxl/ship-deck-voyage
+
+
+ Test Files  101 passed (101)
+      Tests  1180 passed | 3 skipped (1183)
+   Start at  20:40:10
+   Duration  42.97s (tests 83%, import 11%, transform 4%, setup 1%)
+
+    Isolate  101 workers spawned · ~116ms startup each (spawn + environment, per file)
+             at least ~5.75s faster with isolate: false — reuses workers across files instead of one per file
+

@@ -1,0 +1,52 @@
+{
+  "pack": {
+    "id": "ship",
+    "version": "2.0.0",
+    "images": 138,
+    "imageBytes": 809482,
+    "manifestSha256": "24b79ce861622b765a1a23000daccebf1f9b553bf85003927e83c22d235f4325"
+  },
+  "packLint": {
+    "files": 3,
+    "passed": 69
+  },
+  "typecheck": "passed",
+  "suite": {
+    "files": 101,
+    "passed": 1180,
+    "skipped": 3
+  },
+  "rpcTests": 14,
+  "fullMode": "full",
+  "liteMode": "lite",
+  "still": "pixel stable",
+  "crowd": {
+    "still": 24,
+    "rocking": 24
+  },
+  "engineGate": {
+    "shots": 81,
+    "identical": true,
+    "flakes": 0,
+    "baselineMigration": "identical 81-shot arrays"
+  },
+  "hermes": {
+    "main": "parsed",
+    "branch": "parsed",
+    "vendoredPixi": "refused: async functions are unsupported",
+    "vendoredPixiWithEs6Class": "refused: invalid assignment left-hand side"
+  },
+  "browserErrors": [],
+  "voyageCapture": {
+    "seconds": 1224,
+    "frames": 102,
+    "playbackSpeed": 60
+  },
+  "night": {
+    "manifestSha256": "24b79ce861622b765a1a23000daccebf1f9b553bf85003927e83c22d235f4325",
+    "night": "night",
+    "voyageSeconds": 1070,
+    "frames": 40,
+    "errors": []
+  }
+}

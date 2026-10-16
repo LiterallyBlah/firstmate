@@ -1,0 +1,45 @@
+{
+  "generator": "Built-in image_gen.imagegen",
+  "images": [
+    {
+      "file": "stage.png",
+      "prompt": "Use case: precise-object-edit. Asset: production pixel-art stage sprite on TRUE TRANSPARENT BACKGROUND, NOT a scene or mockup. Reference image is the captain-approved pirate ship design. Preserve this ship's honey wood, navy hull bands, brass rims, left bow, right raised stern, cream sails, Jolly Roger and cheerful pixel-art style.\nCreate a clean standalone 8:5 landscape stage (1600x1000 preferred), as if native 640x400 pixels. STRICT LEVEL SIDE-ON BROADSIDE; horizontal keel and main deck; only modest view of deck top, NOT diagonal three-quarter.\nPlace full ship inside with generous transparency margin: native x40..610, flag top y20, main deck y270..300, hull bottom y350, stern wheel y245. Central tall mast native x335, crow's nest at y80; cream mainsail x290..445 y120..245. Smaller foremast x200 with square sail x150..255 y170..250 and triangular jib from left bowsprit to foremast. Ladder BEHIND the main sail, visible only where not occluded. Black skull-and-crossbones flag top.\nRetain the deck hatch at native x245 y285, visibly open with dark interior but NO person. Two small black cannons on far rail, brass-bound chest, rope coil, barrels. Keep main deck broadly open for walking crew. Draw a continuous navy hull stripe suitable for adding small sleep windows later; no people or existing faces in portholes. Raised right quarterdeck with wheel, clean connecting stairs. No fixed plank: departure plank will be a separate asset. NO lanterns: they will be engine lamps. NO crew, sailors, cats, birds, shark, fish, sea, sky, islands, reflections, foam, shadows outside the ship, speech bubbles, letters, labels, UI, border or checkerboard painted into pixels.\nCRISP square pixel clusters, limited roughly 48-color warm brown/navy/cream palette, dark brown outlines, no smooth gradients or painterly noise. Preserve the complete detailed hull and both masts. The whole asset has real transparent empty pixels around it and between rigging.",
+      "references": [
+        "concepts/01-treasure-cove-day.png"
+      ]
+    },
+    {
+      "file": "coast.png",
+      "prompt": "Use case: background-extraction. Reference: approved voyage panorama. Create production pixel-art COASTLINE ONLY on TRUE TRANSPARENT BACKGROUND, very wide 3:1 landscape. Keep the reference's lovely square-pixel warm tropical pirate style. One continuous distant archipelago: left empty space, palms and skull-rock treasure cove, low reefs, ruined two-tower fort, small ochre/red-roof port with stone quay and tiny docked boats, broad channel, white lighthouse/keeper cottage on rocks, right empty space. Put ALL island bases on ONE level horizontal waterline around 80% down. Keep each landmass compact, distant, and low (most of canvas is empty transparent above). At least 15% of width open transparent channel between major groups, 8% transparent margin each end. No full sky, sea, sun, moon, clouds, birds, reflections or background color; ONLY land/architecture/palms with a few pixels of contact foam beneath. Pale teal contact foam roots at shared waterline, no floating islands. NO glow or lights in daytime windows or lighthouse; all windows dark. Limited 32-color stepped shading, crisp square pixels, no smooth blending, no labels, frame, arrows or panels. Preserve landmarks as recognizable distant silhouettes with readable small architectural details. This will be one seamless horizontal repeat with transparent ends.",
+      "references": [
+        "concepts/06-voyage-panorama-loop.png"
+      ]
+    },
+    {
+      "file": "coast-night.png",
+      "prompt": "Use case: lighting-weather. Edit the input production coastline plate into its NIGHT version. Preserve EXACTLY its canvas dimensions, transparent pixels, land silhouette, object positions, waterline, size and every detail. No new islands or repositioning. Change ONLY lighting: dark indigo and muted teal moonlit rocks and palms, slate-violet roofs. The port's little windows glow warm amber; lighthouse lantern glows pale gold, keeper cottage windows lit. Do NOT draw any lighthouse beam; that will be a separate animated plate. All backgrounds remain TRUE TRANSPARENT. Maintain crisp limited-palette pixel art and small dark stepped outlines. No sky, moon, stars, sea, text, haze, frame or labels. Preserve geometry for a perfectly registered day/night crossfade.",
+      "references": [
+        "sources/coast.png"
+      ]
+    },
+    {
+      "file": "life.png",
+      "prompt": "Use case: stylized-concept. Production sprite atlas for the referenced pixel-art pirate ship. TRUE TRANSPARENT BACKGROUND. A clean 4 columns by 4 rows regular grid, 16 equally sized cells on a 1536x1024 canvas. Each sprite wholly inside its own cell with generous transparent padding; no drawn grid lines, no captions, labels or text. Crisp square pixel art, dark navy/brown outlines, small controlled palette, designed to reduce to 24–80 pixel sprites. Match the approved reference.\nROW 1, cells left to right: four registered stages of ONE small gray-blue dolphin leaping LEFT: (1) nose rising from a small splash, (2) fully arched airborne leap, (3) angled nose-down reentry, (4) only small splash and tail tip as it submerges. Same size dolphin and shared bottom waterline, all frames fit.\nROW 2: four registered stages of ONE distant whale at same shared waterline: (1) dark blue rounded back just breaking surface without spout, (2) small spout rising, (3) tall white spout with fine droplet pixels, (4) spout falling back to calm. Whale body mostly submerged, show ONLY back, no entire whale jumping.\nROW 3: (1) little black-and-white ship's cat sitting facing left, (2) SAME cat curling down with tail lifted, (3) white gray gull perched side-on with folded wings, (4) SAME gull with head turned and wings slightly opening. Feet aligned low in cells.\nROW 4: (1) tiny ochre-sailed merchant ship strict side-on broadside facing LEFT, honey hull at waterline and little wake, (2) small recognizable navy frigate strict side-on facing LEFT, white sails, dark blue hull and navy pennant, (3) small silver-blue flying fish side-on facing LEFT with extended wing fins, (4) plain horizontal wooden departure plank with dark wood outline and brass nail pixels, perfectly flat top and thin visible underside, long rectangle 6:1, no hull.\nNo background sea or sky. Only tiny integrated contact ripples for marine sprites and ships. No extra creatures outside cells, no speech bubbles.",
+      "references": [
+        "concepts/01-treasure-cove-day.png"
+      ]
+    },
+    {
+      "file": "life-navy.png",
+      "prompt": "Use case: precise-object-edit. Edit the supplied 4x4 production sprite atlas. Preserve the exact canvas size, every cell location, all dolphins, whale poses, cat, gulls, merchant, fish and plank. Change ONLY the ship in bottom row SECOND column: it is a pursuing NAVY FRIGATE, not a pirate. Make its sails silver-white instead of cream. Replace the skull pirate flag with a plain dark navy-blue flag bearing a simple WHITE CROSS, no skull or bones. Maintain its left-facing side-on broadside and dark blue hull. Keep transparent background; remove any soft glow halos around sprites, leaving crisp pixel silhouettes and tiny contact ripples only. No labels or new objects.",
+      "references": [
+        "sources/life.png"
+      ]
+    },
+    {
+      "file": "lights.png",
+      "prompt": "Use case: stylized-concept. Production pixel-art LIGHT EFFECT sprite atlas on TRUE TRANSPARENT BACKGROUND, 4 columns x 2 rows regular equal cells, landscape 1536x1024. No grid lines or labels. Crisp square pixels and 5-8 stepped palette values, no soft blurry haze. Each isolated sprite inside its cell with transparent padding.\nTop row: FOUR animation poses of a lighthouse's warm pale-gold BEAM, no lighthouse building. All beam origins at exact center of their cells, same y. (1) wide low triangular cone stretching LEFT, (2) shorter narrow cone facing LEFT slightly down, (3) shorter narrow cone facing RIGHT slightly down, (4) wide low triangular cone stretching RIGHT. Each cone is strongest at its origin, stepped alpha towards its far edge. Mostly horizontal, shallow fan no more than one-quarter cell height. The sequence represents a slow turning beacon sweeping a distant sea.\nBottom row: (1) small full moon with ivory and slate-blue pixel craters, (2) same moon partly waning, (3) tiny sparse star cluster of 5 ivory points, (4) same star cluster dimmer. Charming 16-bit pirate adventure style. No sky fill, solid background, borders, captions, text or other objects.",
+      "references": []
+    }
+  ]
+}
