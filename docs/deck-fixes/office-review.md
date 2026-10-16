@@ -23,3 +23,9 @@ The compiled-browser check (`CHECK_OFFICE_WITHDRAWAL=1 node
 docs/deck-settings/render.mjs`) verifies the actual picker and saved-choice
 fallback with no browser errors. See `office-withdrawn-picker.png`,
 `office-withdrawn-fallback.png` and `office-interactions.json` beside this note.
+
+The complete unmasked ship gate against `6b11d4d` passes **81/81 pixel-identical**,
+with matching canvas metadata, zero flakes and zero browser errors. No expected
+shot was changed. See `../deck-settings/gate-results.json`. The compiled bundles
+were captured before the data-only commit; both are byte-identical because no
+runtime code changes in this PR. Windows and Ubuntu CI passed for `ba1a158`.
