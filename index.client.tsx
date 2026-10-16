@@ -29,7 +29,7 @@ async function askFirstMate(rpc: CommandRpc, command: MateCommand, args: string)
 
 export default function contribute(client: PluginClientContext) {
   const stopRemoteSync = startRemoteSync(client);
-  registerFleetViews(client);
+  const shell = registerFleetViews(client);
   // The board's gear. A surface is given no way to open a settings screen, so
   // the capability is lent to it from here.
   bindSettingsOpener((id) => {
@@ -49,19 +49,19 @@ export default function contribute(client: PluginClientContext) {
 
   client.addWorkspacePanel({
     id: "firstmate-workspace",
-    title: "FirstMate",
+    title: "FirstMate here",
     icon: "Ship",
     context: "workspace",
     locations: ["workspace", "explorer"],
-    Component: WorkspacePanel,
+    Component: (props) => <WorkspacePanel {...props} shell={shell} />,
   });
   client.addWorkspacePanel({
     id: "firstmate-agent",
-    title: "FirstMate",
+    title: "FirstMate here",
     icon: "Ship",
     context: "agent",
     locations: ["workspace", "explorer"],
-    Component: AgentPanel,
+    Component: (props) => <AgentPanel {...props} shell={shell} />,
   });
 
   client.addCommandCenterItem({

@@ -26,7 +26,7 @@
  */
 import type { PluginScreenProps } from "@getpaseo/plugin/client";
 import { useRpc, useSettings } from "@getpaseo/plugin/client";
-import { Icon, useToast } from "@getpaseo/plugin/client/react-native";
+import { Icon, Modal, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
@@ -415,6 +415,10 @@ function FleetViewBody({
 
   /** Shows the Files view — the tab on a phone, the right-hand pane on a wide layout, unhidden — with `path` open. */
   function openFile(path: string): void {
+    if (view === "chat") {
+      setFilesRequest({ path, at: Date.now() });
+      return;
+    }
     if (compact) setTab("files");
     else setRightPane("files");
     const reveal = revealFilesPatch(compact, values.boardCollapsed);
@@ -556,7 +560,7 @@ function FleetViewBody({
     banners.push(<Banner key={warning} theme={theme} tone="warning" text={warning} />);
   }
 
-  if (!home && (data === null || homeWorkspaceId === null || workspaceId !== homeWorkspaceId)) {
+  if (!home && view !== "chat" && (data === null || homeWorkspaceId === null || workspaceId !== homeWorkspaceId)) {
     return (
       <View style={[styles.screen, { padding: 16, gap: 12 }]}>
         <Text style={styles.title}>{FLEET_PANELS[view].title}</Text>
@@ -587,19 +591,19 @@ function FleetViewBody({
     );
   }
 
-  const mateStatus = mate === null ? null : (
-    <Chip theme={theme} text={agentStatusLabel(mate)} color={agentStatusTone(theme, mate)} />
-  );
-  const taskCounts = data === null ? null : (
-    <Text style={[styles.meta, { flexShrink: 1, fontSize: compact ? 11 : 12 }]} numberOfLines={1}>
-      {[
-        counts.working + " working",
-        counts.blocked + " blocked",
-        counts.queued + " queued",
-        counts.done + " done",
-      ].join(" · ")}
-    </Text>
-  );
+  const mateStatus =
+    mate === null ? null : <Chip theme={theme} text={agentStatusLabel(mate)} color={agentStatusTone(theme, mate)} />;
+  const taskCounts =
+    data === null ? null : (
+      <Text style={[styles.meta, { flexShrink: 1, fontSize: compact ? 11 : 12 }]} numberOfLines={1}>
+        {[
+          counts.working + " working",
+          counts.blocked + " blocked",
+          counts.queued + " queued",
+          counts.done + " done",
+        ].join(" · ")}
+      </Text>
+    );
   const header = (
     <View style={[styles.header, { paddingTop: 8, gap: 6 }]} nativeID="firstmate-home-header">
       <View style={[styles.headerRow, { flexWrap: "nowrap" }]}>
@@ -758,6 +762,40 @@ function FleetViewBody({
       navigation={navigation}
     />
   );
+  // Chat always follows the configured mate, even in another project's workspace.
+  // Its transcript, composer and launch state are the same ones Home uses.
+  if (view === "chat") {
+    return (
+      <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>FirstMate · Chat</Text>
+            {mateStatus}
+            <View style={styles.spacer} />
+            {shell === undefined ? null : (
+              <IconButton theme={theme} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
+            )}
+            <IconButton theme={theme} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
+          </View>
+        </View>
+        {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
+        {chat}
+        <Modal
+          title="Home files"
+          open={filesRequest !== null}
+          onOpenChange={(open) => {
+            if (!open) setFilesRequest(null);
+          }}
+        >
+          <Modal.Content scrollable={false}>
+            <View style={{ height: compact ? 400 : 600, maxHeight: "100%" }}>
+              <FilesView theme={theme} compact={compact} request={filesRequest} />
+            </View>
+          </Modal.Content>
+        </Modal>
+      </View>
+    );
+  }
   const watchedCard = watching === null ? null : (data.cards.find((card) => conversingWith(card, watching)) ?? null);
   const watchedTarget = watching === null ? null : converseTarget(watching);
   const watchedLocalId = watchedCard?.agent?.id ?? (watchedTarget?.kind === "local" ? watchedTarget.agentId : null);

@@ -26,7 +26,7 @@ function installation() {
   return { addScreen, addWorkspacePanel, openPanel, openScreen };
 }
 
-it("registers exactly three fixed workspace destinations and a single Home screen", () => {
+it("registers four fixed workspace destinations and a single Home screen", () => {
   const host = installation();
   expect(host.addScreen).toHaveBeenCalledTimes(1);
   expect(
@@ -35,6 +35,7 @@ it("registers exactly three fixed workspace destinations and a single Home scree
     ["firstmate-deck", "Deck", "workspace", ["workspace"]],
     ["firstmate-board", "Board", "workspace", ["workspace"]],
     ["firstmate-crew", "Crew", "workspace", ["workspace"]],
+    ["firstmate-chat", "Chat", "workspace", ["workspace"]],
   ]);
   for (const [panel] of host.addWorkspacePanel.mock.calls) {
     const component = panel.Component as (props: PluginWorkspacePanelProps) => ReactElement<Surface>;
