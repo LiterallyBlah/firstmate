@@ -1,0 +1,18 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-10-16",
+  "id": "ship-broadside",
+  "prompt": "Use case: precise-object-edit. Production transparent pixel-art game sprite. Input image 1 is a CAMERA/GEOMETRY reference: use only its TOP complete ship (ignore the atlas strips and tiny people below it). Input image 2 is the EDIT TARGET: the approved Japanese coastal merchant ship. Redraw ONLY this Japanese ship's camera angle and hull geometry to match image 1's level broadside view. Keep image 2's Japanese identity, warm honey-cedar planks, dark indigo hull, restrained vermilion rail, cream sewn square sail, single wooden mast, small dark curved-roof stern deckhouse and steering oar. The finished ship must be an unmistakable LEVEL SIDE-ON BROADSIDE: long axis exactly horizontal, keel/waterline horizontal, bow LEFT and stern RIGHT at the same deck height, no rotation, no diagonal hull, no end-on foreshortening. Slight top-down tilt ONLY, enough to see an open walkable deck like image 1. Both long deck rails and hull planking should run as straight horizontal parallel lines across most of the width. Lower the dramatically raised bow of image 2: a modest elegant Japanese stem, not a high sweeping prow. Make the deck a long level rectangular platform with gently rounded ends, no banana-shaped sweeping perspective. Mast exactly vertical, sail yard exactly horizontal, tall ivory sail on the mast ending above the deck, with a small flat vertical wooden ladder flush against the mast BEHIND the sail; only its exposed lower rungs below the cloth and upper rungs above the cloth can show. No diagonal freestanding ladder or ladder painted in front of the cloth. Preserve the small rectangular hatch just left of the mast, and a clear wide open deck for separately layered crew. Empty ship only: no people, no windows with people, no water, no coast, no sky, no new ornamentation, no lettering. Entire sprite fits a 1536x1024 transparent landscape canvas with a generous clear margin. Ship hull spans roughly x=100 to1430, deck rails near y=720 and790, level keel near y=925; main mast center near x=760 reaches to y=80. Bow and stern rail endpoints at similar height. Keep the mast/sail/deckhouse fully within the canvas. Beautiful coherent hand-crafted 16-bit pixel art at about 480x320 logical pixels, crisp deliberate pixel clusters, dark navy outlines, limited warm cel-shaded palette, consistent upper-left light, no soft glow, no gradients, no noisy painterly texture, no antialiasing. True transparent alpha everywhere outside the complete ship. Do not copy the western wheel, crow's nest, bowsprit, extra hull strip or crew sprites from image 1. Change the Japanese ship's view to a straight horizontal broadside; retain its approved design and quality.",
+  "source": "sources/ship.png",
+  "transparentBackground": true,
+  "references": [
+    {
+      "path": "../../../art/settings/ship/deck.png",
+      "role": "camera reference; top complete hull only"
+    },
+    {
+      "path": "sources/ship-three-quarter.png",
+      "role": "edit target; approved Japanese identity and colours"
+    }
+  ]
+}
