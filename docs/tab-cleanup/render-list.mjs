@@ -116,10 +116,13 @@ try {
       assert.equal(await tab(page, "Board").getAttribute("aria-selected"), "true");
       await tab(page, "List").click();
       await list.waitFor();
+      await button(page, "Filter tags (0 selected)").click();
       await page.getByRole("checkbox", { name: "Filter tag layout, 2 items", exact: true }).click();
+      await page.keyboard.press("Escape");
       assert.equal(await rows(page).count(), 2);
       await tab(page, "Board").click();
       assert.equal(await rows(page).count(), 2);
+      await button(page, "Filter tags (1 selected)").click();
       assert.equal(
         await page
           .getByRole("checkbox", { name: "Filter tag layout, 2 items", exact: true })
@@ -127,11 +130,14 @@ try {
         "true",
       );
       await button(page, "Clear tag filters").click();
-      await page.getByRole("tab", { name: "Light, online, 6 working, 0 need attention", exact: true }).click();
+      await page.keyboard.press("Escape");
+      await button(page, "Machines: All machines").click();
+      await button(page, "Light, online, 6 working, 0 need attention").click();
       assert.equal(await rows(page).count(), 9);
       await tab(page, "List").click();
       assert.equal(await rows(page).count(), 9);
-      await page.getByRole("tab", { name: "All, 6 working, 4 need attention", exact: true }).click();
+      await button(page, "Machines: Light").click();
+      await button(page, "All machines, 6 working, 4 need attention").click();
       assert.equal(await rows(page).count(), 15);
 
       // An open conversation and draft survive switching layouts in the same Home pane.

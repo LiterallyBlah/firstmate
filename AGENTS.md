@@ -108,7 +108,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/converse.tsx`         | Converse: a worker's conversation in a drawer beside the crew — read it, steer it, answer what it waits on. Remote workers by their log. |
 | `client/conversation-rows.ts` | Activity rows → the drawer's Conversation view (words first, tool runs folded), and the captain's sends until the transcript shows them. Pure. |
 | `client/converse-layout.ts`   | Whether the drawer docks beside the crew or covers it, and which worker a `watchKey` names. Pure. |
-| `client/host-tabs.ts`, `host-tab-row.tsx` | The board's host tabs: All, this machine, each saved host; what each shows. The rules are pure. |
+| `client/host-tabs.ts`, `task-toolbar.tsx` | Host-filter rules and the compact Machines, Suggestions and Tags controls above List/Board. |
 | `client/remotes.tsx`          | A selected host's compact, expandable health line and the shared remote snapshot query. |
 | `client/activity-rows.ts`     | Timeline entries → the drawer's Activity rows, machinery kept: reasoning, tool detail, the latest plan, whose prompts are the captain's. Pure. |
 | `client/mate-controls.tsx`    | The context meter, Compact and Restart (with its confirmation), at the end of the chat's buttons. |
@@ -717,12 +717,14 @@ with its reason: a new worker there needs a brief only the first mate can write.
 End are off while the host is unreachable, and End always on a followed session. Errors are the request path's own — the remote CLI's
 message, redacted — and anything still shaped like a password or pairing link becomes "Remote command failed".
 
-**Host tabs.** With remote hosts saved, a row above the columns — All, This machine, then each host by
-label, with an online or unreachable mark and its working and blocked-or-failed counts — filters the board
-(`client/host-tabs.ts`). The choice is `hostTab` in the display settings; a saved host that is gone shows
-All. A host's tab shows a one-line expandable health summary (reachability, worker count, clock warning),
-with connection details on expansion and no duplicate worker list. All uses the tabs alone for health.
-No hosts, no row.
+**Machine filter.** `TaskToolbar` puts Machines, Suggestions and Tags in one compact row above List/Board.
+The machine button shows the selected scope and warns when that host is unreachable. Its host Modal offers
+All machines, This machine and each saved host, with reachability and working/attention counts, followed by
+expandable connection health (projects, workspaces, providers, errors and clock warnings). Filtering still
+uses `client/host-tabs.ts` and the saved `hostTab`; a host that is gone falls back to All. No saved hosts,
+no machine button. Tags opens the shared `ItemTagFilter` in another host Modal, with the active count always
+visible on its trigger and full selected names in its tooltip. The existing match-all filter, clear action,
+overflow and saved selections are shared between List and Board.
 The sidebar badge (`activeCrewCount`) counts remote workers like local ones.
 
 ## Status lines are read on the daemon, cached by `updatedAt`
@@ -1075,13 +1077,12 @@ like a typed message, and a first mate mid-turn gets it the way `server/send.ts`
 The sender's gate — one message on its way at a time — is per first mate in module scope, not in the
 chat's state, because the surface's buttons and the chat both read it, and a phone switching tabs
 unmounts the chat mid-send; the buttons are disabled while it is shut, and a double press that gets in
-before the re-render is refused by it. Phones keep First mate, Crew and Files tabs; suggestions sit
-above the Crew tab's List or Board, with the same send path back to First mate.
+before the re-render is refused by it. Phones keep First mate, List, Board and Files tabs; suggestions open
+from the task toolbar, with the same send path back to First mate.
 
-`SuggestionStrip` measures its width, keeps a single line of compact buttons, and puts overflow
-behind More in a host Modal. Each visible button has separate send, expand and delete controls;
-expanding opens the full prompt in a Modal with Send and Remove. More uses `SuggestionList`, whose
-cards show the start of each prompt and compare their folded and full heights
+`TaskToolbar` keeps a Suggestions button and count visible, including when there are none, so removing
+the last suggestion leaves a stable return-focus target. The button opens a host Modal without sending.
+`SuggestionList` cards show the start of each prompt and compare their folded and full heights
 (`client/suggestion-fold.ts`) to decide whether to offer expansion. Only the main button sends;
 expand and delete are always siblings, so neither sends accidentally.
 
