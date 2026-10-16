@@ -277,9 +277,12 @@ describe.each(packs)("the %s pack", (id) => {
         for (const glow of style.glow) fits({ left: light.at[0] + glow.at[0] - glow.radius, right: light.at[0] + glow.at[0] + glow.radius, top: light.at[1] + glow.at[1] - glow.radius, bottom: light.at[1] + glow.at[1] + glow.radius }, light.id);
       }
       const cast = compileCast(manifest);
+      const fidgets = Object.values(manifest.cast.fidgets).flatMap(f => f?.keys ?? []);
+      const dx = Math.max(0, ...fidgets.map(k => Math.abs(k.dx)));
+      const dy = Math.max(Math.abs(cast.rise), ...fidgets.map(k => Math.abs(k.dy)));
       for (const state of STATES) {
-        const crew = createCrew(stage, cast); applyCrew(crew, Array.from({ length: 24 }, (_, i) => ({ ...worker(`rock-${i}`, state), replies: true })), { snap: true });
-        const figures = crewFigures(crew, 0), marks = askMarks(figures, cast);
+        const crew = createCrew(stage, cast); applyCrew(crew, Array.from({ length: 24 }, (_, i) => ({ ...worker(`rock-${i}`, state), asks: true })), { snap: true });
+        const figures = crewFigures(crew, 0, { still: false }), marks = askMarks(figures, cast);
         for (const f of figures) { const b = figureBox(f, cast, marks.get(f.key)); if (b) fits(b, `${state} ${f.key}`); }
       }
       // Every floor/entry/access path is linear: its vertices bound every intermediate foot position.
@@ -288,7 +291,7 @@ describe.each(packs)("the %s pack", (id) => {
         ...manifest.zones.zones.flatMap(z => z.posts.flatMap(p => p.transit?.path ?? []))];
       for (const at of routes) for (const poses of Object.values(manifest.cast.lanes)) for (const pose of Object.values(poses)) {
         const reach = Math.max(pose.feet[0], pose.rect[2] - pose.feet[0]);
-        fits({ left: at[0] - reach, right: at[0] + reach, top: at[1] - pose.feet[1] - BADGE_SIZE.height - 3 - cast.rise, bottom: at[1] + pose.rect[3] - pose.feet[1] }, "crew route");
+        fits({ left: at[0] - reach - dx, right: at[0] + reach + dx, top: at[1] - pose.feet[1] - BADGE_SIZE.height - 3 - dy, bottom: at[1] + pose.rect[3] - pose.feet[1] + dy }, "crew route");
       }
     });
 

@@ -510,6 +510,7 @@ describe("depth while walking", () => {
 describe("the ambient clock", () => {
   it("bobs the ship and sways the masthead a whole pixel at most, at the art's own heave", () => {
     const { bob } = shipManifest().stage.motion!;
+    if (bob === undefined) throw new Error("the ship declares its stage bob");
     const sway = shipManifest().stage.parts.find((part) => part.id === "topmast")!.behaviour!;
     if (sway.kind !== "sway" || typeof sway.amplitude !== "object" || !("channel" in sway.amplitude)) throw new Error("the topmast sways with the heave");
     const heave = 1.2;
