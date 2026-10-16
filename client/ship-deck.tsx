@@ -210,6 +210,7 @@ function DeckView({
   engine,
   os = Platform.OS,
   renderFocus,
+  captionActions,
   suggestions = NO_SUGGESTIONS,
   onReply,
   replyBlocked = null,
@@ -224,6 +225,8 @@ function DeckView({
    * captain to pick, or null, for the card to show under its glance. Without it, a click focuses no one.
    */
   renderFocus?: (card: FleetCard, close: () => void, replies: ReactNode) => ReactNode;
+  /** Optional controls alongside the caption; Home uses this for its scene picker. */
+  captionActions?: ReactNode;
   /** The first mate's suggestions, as the board's strip has them: those that name a crewmate hang over its sailor. */
   suggestions?: readonly Suggestion[];
   /** Sends a reply the way the strip sends a suggestion. Without it, the deck offers no replies. */
@@ -483,13 +486,14 @@ function DeckView({
 
   return (
     <View style={{ flex: 1, minHeight: 0, padding: 12, gap: 8 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, ...(captionActions ? { flexWrap: "wrap" as const } : {}) }}>
         <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>{copy.title}</Text>
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
           {status.kind === "drawing"
             ? `Drawn with ${status.renderer === "webgl" ? "WebGL" : status.renderer} · ${crew} ${copy.aboard}`
             : ""}
         </Text>
+        {captionActions ? <View style={{ marginLeft: "auto" }}>{captionActions}</View> : null}
       </View>
       {scene.stale === 0 ? null : (
         <Text style={{ color: colors.statusWarning, fontSize: 12 }}>
