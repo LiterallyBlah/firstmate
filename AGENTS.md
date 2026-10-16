@@ -100,6 +100,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/keyboard.ts`          | How far the on-screen keyboard covers a view, measured in window coordinates.              |
 | `client/keys.ts`              | Enter sends, Shift+Enter is a new line — web and wide layouts only, as in Paseo. Pure.     |
 | `client/transcript-rows.ts`   | Timeline entries → chat rows. Pure.                                                        |
+| `client/native-chat-transform.ts`, `native-chat.tsx` | Native Paseo timeline: strict FirstMate watch/board envelopes use the existing summary helpers, with a reveal-original row. |
 | `client/board.tsx`, `card.tsx`| Full-height board columns, and the shared card/row details and actions. |
 | `client/task-list.tsx`        | The default grouped List: one scroll container, Done collapsed to a count. |
 | `client/suggestions.tsx`      | The slim suggestion strip, overflow menu and full-prompt dialogs; send, expand and delete. |

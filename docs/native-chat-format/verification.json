@@ -1,0 +1,64 @@
+{
+  "source": "Working tree on fm/fm-native-chat-format, based on edda14e; validation performed before committing.",
+  "sourceSha256": {
+    "index.client.tsx": "5a382f8d554d87fd290527c684d70f91493605b21042d635d219df3c929f3997",
+    "client/native-chat-transform.ts": "722a0dd1ab965711655b349c9f37661afc56a882201947bfaf3d5e3dddafbb4d",
+    "client/native-chat.tsx": "d2b3241057f85c64e330eb5daceb3b30e22eb99f1829921ed5e7b6624db5b130"
+  },
+  "typecheck": "passed",
+  "suite": {
+    "command": "npm.cmd test -- --maxWorkers=1",
+    "filesPassed": 95,
+    "testsPassed": 1128,
+    "testsSkipped": 3,
+    "durationSeconds": 92.17
+  },
+  "gate": {
+    "command": "node docs/deck-settings/gate.mjs",
+    "base": "compiled main edda14e",
+    "shots": 81,
+    "allPixelIdentical": true,
+    "allCanvasMetadataMatches": true,
+    "maskToolbar": false
+  },
+  "compiler": {
+    "paseoCompiler": "0.11.0",
+    "main": {
+      "commit": "edda14e",
+      "clientBytes": 685206,
+      "serverBytes": 348209,
+      "ms": 5175
+    },
+    "branch": {
+      "commit": "edda14e",
+      "clientBytes": 689057,
+      "serverBytes": 348209,
+      "ms": 4101
+    },
+    "clientGrowthBytes": 3851,
+    "vendoredPixiBytes": 840663,
+    "hermesc": "node_modules/react-native/sdks/hermesc (react-native 0.81.5)",
+    "hermesParse": {
+      "main": "parsed",
+      "branch": "parsed",
+      "vendoredPixi": "refused: async functions are unsupported",
+      "vendoredPixiWithEs6Class": "refused: invalid assignment left-hand side"
+    }
+  },
+  "web": {
+    "command": "node docs/native-chat-format/render.mjs",
+    "beforeAfterCaptures": 12,
+    "disclosureChecks": 3,
+    "secondAgentPixels": "identical in all 3 viewport/theme pairs",
+    "pageErrors": 0
+  },
+  "untested": [
+    "Installed native chat / Electron session",
+    "Android device",
+    "iOS device",
+    "Screen readers",
+    "Safari",
+    "Firefox"
+  ],
+  "restrictionsObserved": "No install, reload, deploy, merge, Paseo source edit, or live agent/session mutation."
+}

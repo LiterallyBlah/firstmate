@@ -7,6 +7,7 @@ import { FLEET_SCREEN_ID } from "./client/screen";
 import { SettingsScreen } from "./client/settings-screen";
 import { FleetSidebarItem } from "./client/sidebar";
 import { startRemoteSync } from "./client/remote-sync";
+import { registerNativeChat } from "./client/native-chat";
 import { askMate, askMateCommand, type MateCommand } from "./shared/fleet";
 
 type CommandRpc = PluginWorkspaceCommandContext["rpc"];
@@ -28,6 +29,7 @@ async function askFirstMate(rpc: CommandRpc, command: MateCommand, args: string)
 }
 
 export default function contribute(client: PluginClientContext) {
+  const stopNativeChat = registerNativeChat(client);
   const stopRemoteSync = startRemoteSync(client);
   const shell = registerFleetViews(client);
   // The board's gear. A surface is given no way to open a settings screen, so
@@ -129,6 +131,7 @@ export default function contribute(client: PluginClientContext) {
   });
 
   return () => {
+    stopNativeChat();
     stopRemoteSync();
     bindSettingsOpener(null);
   };
