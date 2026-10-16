@@ -17,7 +17,7 @@ window.drawOverlay = function drawOverlay(manifest) {
   const resolution = window.devicePixelRatio;
   // As the deck draws it: a part reaching above the stage (the ship's tall mast) brings in the fit box.
   const rigTop = Math.min(0, ...manifest.stage.parts.map((part) => part.at[1]));
-  const fit = fitDeck({ width: box.width, height: box.height }, deckBox(stage, rigTop), resolution, stage.fit.margin);
+  const fit = fitDeck({ width: box.width, height: box.height }, deckBox(stage, rigTop, manifest.stage.motion?.rock !== undefined), resolution, stage.fit.margin);
   const overlay = document.createElement("canvas");
   overlay.width = Math.round(box.width * resolution);
   overlay.height = Math.round(box.height * resolution);

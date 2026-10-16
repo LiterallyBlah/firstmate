@@ -28,6 +28,9 @@ import { BADGE_SIZE } from "../client/deck-badges";
 import type { DeckSailor, DeckState } from "../client/deck-scene";
 import { decodePng, type Pixels } from "./png";
 import { walkingEntryProblems } from "./deck-entry";
+import { rockedBounds } from "../client/deck-stage-motion";
+import type { Level } from "../client/deck-atmosphere";
+import { askMarks } from "../client/deck-hover";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const settings = join(root, SETTINGS_DIR);
@@ -236,6 +239,61 @@ describe.each(packs)("the %s pack", (id) => {
     const sinks = [...stage.exits.entries()].flatMap(([exitId, exit]) => (exit.kind === "sink" ? [{ id: exitId, ...exit.at }] : []));
     const places: Array<Point & { id: string; appearance?: ZoneAppearance | null }> = [...posts, { id: "entry", ...stage.entry }, ...sinks, ...queues];
     const [gridLeft, gridTop, gridWidth, gridHeight] = manifest.floor.grid.bounds;
+
+    it("fits the entire rocked stage, all furniture, lights, access routes and crowded interaction bounds", () => {
+      const rock = manifest.stage.motion?.rock;
+      if (rock === undefined) return;
+      const max = (level: Level | undefined): number => level === undefined ? 0 : typeof level === "number" ? Math.abs(level)
+        : "curve" in level ? Math.max(...level.curve.map(p => p[1]))
+        : Math.max(...manifest.atmosphere!.table.map(row => Math.abs(row[level.channel]! * (level.scale ?? 1))), Math.abs(manifest.atmosphere!.delivered[level.channel]! * (level.scale ?? 1)));
+      const degrees = max(rock.degrees), drift = max(rock.drift), bob = Math.round(max(manifest.stage.motion?.bob?.amplitude));
+      const fits = (box: DeckBox, name: string) => {
+        const b = rockedBounds(box, rock.pivot, degrees, drift, bob);
+        expect(b.left, `${name} rocked left`).toBeGreaterThanOrEqual(0);
+        expect(b.right, `${name} rocked right`).toBeLessThanOrEqual(stage.width);
+        expect(b.top, `${name} rocked top`).toBeGreaterThanOrEqual(stage.fit.top);
+        expect(b.bottom, `${name} rocked bottom`).toBeLessThanOrEqual(stage.fit.bottom);
+      };
+      const sprite = (s: Sprite, at: readonly [number, number], name: string, sway = 0) => {
+        const [w, h] = size(s), [rx, ry] = s.rect ?? [0, 0];
+        let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (image(s.image).alpha(rx + x, ry + y) > 0) {
+          left = Math.min(left, x); right = Math.max(right, x + 1); top = Math.min(top, y); bottom = Math.max(bottom, y + 1);
+        }
+        if (left !== Infinity) fits({ left: at[0] + left - sway, right: at[0] + right + sway, top: at[1] + top, bottom: at[1] + bottom }, name);
+      };
+      sprite(manifest.stage.backdrop.sprite, [0, 0], "backdrop");
+      for (const p of manifest.stage.parts) {
+        const sway = p.behaviour?.kind === "sway" ? Math.min(p.behaviour.limit, Math.round(max(p.behaviour.amplitude))) : 0;
+        sprite(p.sprite, p.at, p.id, sway);
+        if (p.replacesPiece) sprite(p.replacesPiece.sprite, p.replacesPiece.at, p.id);
+        if (p.behaviour?.kind === "cycle") for (const frame of [...p.behaviour.frames.sprites, ...(p.behaviour.variants ?? []).flatMap(v => v.frames)]) sprite(frame, p.at, p.id);
+      }
+      for (const p of manifest.stage.pieces) sprite(p.sprite, p.at, p.id);
+      for (const p of manifest.stage.props) sprite(p.sprite, [p.at[0] - p.feet[0], p.at[1] - p.feet[1]], p.id);
+      for (const light of manifest.stage.lights) {
+        const style = manifest.stage.lightStyles[light.style]!;
+        fits({ left: light.at[0] - style.origin[0], top: light.at[1] - style.origin[1], right: light.at[0] - style.origin[0] + Math.max(...style.glyph.map(r => r.length)), bottom: light.at[1] - style.origin[1] + style.glyph.length }, light.id);
+        for (const glow of style.glow) fits({ left: light.at[0] + glow.at[0] - glow.radius, right: light.at[0] + glow.at[0] + glow.radius, top: light.at[1] + glow.at[1] - glow.radius, bottom: light.at[1] + glow.at[1] + glow.radius }, light.id);
+      }
+      const cast = compileCast(manifest);
+      const fidgets = Object.values(manifest.cast.fidgets).flatMap(f => f?.keys ?? []);
+      const dx = Math.max(0, ...fidgets.map(k => Math.abs(k.dx)));
+      const dy = Math.max(Math.abs(cast.rise), ...fidgets.map(k => Math.abs(k.dy)));
+      for (const state of STATES) {
+        const crew = createCrew(stage, cast); applyCrew(crew, Array.from({ length: 24 }, (_, i) => ({ ...worker(`rock-${i}`, state), asks: true })), { snap: true });
+        const figures = crewFigures(crew, 0, { still: false }), marks = askMarks(figures, cast);
+        for (const f of figures) { const b = figureBox(f, cast, marks.get(f.key)); if (b) fits(b, `${state} ${f.key}`); }
+      }
+      // Every floor/entry/access path is linear: its vertices bound every intermediate foot position.
+      const routes = [...manifest.floor.areas.flatMap(a => a.polygon), manifest.portals.entry.at,
+        ...(manifest.portals.entry.kind === "walk-in" ? [manifest.portals.entry.from] : []),
+        ...manifest.zones.zones.flatMap(z => z.posts.flatMap(p => p.transit?.path ?? []))];
+      for (const at of routes) for (const poses of Object.values(manifest.cast.lanes)) for (const pose of Object.values(poses)) {
+        const reach = Math.max(pose.feet[0], pose.rect[2] - pose.feet[0]);
+        fits({ left: at[0] - reach - dx, right: at[0] + reach + dx, top: at[1] - pose.feet[1] - BADGE_SIZE.height - 3 - dy, bottom: at[1] + pose.rect[3] - pose.feet[1] + dy }, "crew route");
+      }
+    });
 
     it("keeps walking entry corridors clear and their actors inside the fit", () => {
       expect(walkingEntryProblems(manifest)).toEqual([]);

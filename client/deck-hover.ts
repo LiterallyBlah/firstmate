@@ -18,6 +18,7 @@ import type { DeckCast } from "./deck-cast";
 import { ASK_GAP, ASK_SIZE, BADGE_GAP, BADGE_SIZE } from "./deck-badges";
 import { figureStanding, type Figure } from "./deck-crew";
 import { depthOf } from "./deck-scene";
+import { stageToWorld, worldToStage, type StageTransform } from "./deck-stage-motion";
 
 /** How the deck sits on the canvas: `world`'s scale and offset (`fitDeck`), in CSS pixels. */
 export interface DeckFit {
@@ -27,10 +28,7 @@ export interface DeckFit {
 }
 
 /** The ship's bob this frame, in deck pixels. */
-export interface DeckOffset {
-  x: number;
-  y: number;
-}
+export type DeckOffset = StageTransform;
 
 export interface DeckBox {
   left: number;
@@ -167,12 +165,13 @@ export function figureBox(figure: Figure, cast: DeckCast, mark?: AskMark): DeckB
 
 /** The canvas point `(x, y)` in deck pixels. */
 export function toDeck(point: { x: number; y: number }, fit: DeckFit, bob: DeckOffset): { x: number; y: number } {
-  return { x: (point.x - fit.x) / fit.scale - bob.x, y: (point.y - fit.y) / fit.scale - bob.y };
+  return worldToStage({ x: (point.x - fit.x) / fit.scale, y: (point.y - fit.y) / fit.scale }, bob);
 }
 
 /** The deck point `(x, y)` on the canvas. */
 export function toCanvas(point: { x: number; y: number }, fit: DeckFit, bob: DeckOffset): { x: number; y: number } {
-  return { x: fit.x + (point.x + bob.x) * fit.scale, y: fit.y + (point.y + bob.y) * fit.scale };
+  const world = stageToWorld(point, bob);
+  return { x: fit.x + world.x * fit.scale, y: fit.y + world.y * fit.scale };
 }
 
 /**

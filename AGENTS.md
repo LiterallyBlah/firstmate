@@ -485,6 +485,14 @@ Office was withdrawn after visual review; its files are retained at
   packed into each packing zone, each in sight and in the pointer's reach.
   Run it with `npm run lint:deck-packs`. `node docs/deck-settings/render.mjs '?setting=ship&overlay=1'` draws
   the selected pack's floor, posts, zones, marks and fit box over its own deck. See `docs/deck-settings/authoring.md`.
+- **Whole-stage rocking**: `stage-rock@1` optionally gives the whole stage a rigid pivoted rotation and sideways drift
+  (`client/deck-stage-motion.ts`). Hull/furniture/crew/interaction graphics and the spotlight/veil share
+  the transform; pointer inversion and focus/label anchors use the same arithmetic. Ambience, the independent
+  attention carrier and the off-stage effects slot stay level. Full/lite use existing atmosphere clocks;
+  still is level. Rocked packs always use the authored fit; unopted packs keep the old fit and pixels.
+  The pack linter bounds the full angular sweep plus bob/drift for art, lights, routes and crowded targets.
+  See `docs/deck-settings/authoring.md` for the strict fields, limits and layer rationale.
+
 - **No module-level "the setting"**: the stage is compiled per pack (`compileStage`, `client/deck-stage.ts`) and
   handed to the crew, the geometry and the renderer; caches are keyed by id (`packOnce` in `client/deck-mount.ts`)
   or held on the compiled floor; and the view takes the id as a prop (`setting`, the default

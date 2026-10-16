@@ -79,7 +79,8 @@ export interface DeckParts {
   /** The highest row anything drawn reaches: 0, or above the stage's top (the ship's tall mast). */
   top: number;
   /** The stage's bob, or null when it does not. */
-  bob: NonNullable<Stage["motion"]>["bob"] | null;
+  bob: NonNullable<NonNullable<Stage["motion"]>["bob"]> | null;
+  motion: Stage["motion"];
   /** Every piece's depth, including pieces whose optional image did not arrive. */
   pieceDepths: ReadonlyMap<string, number>;
   /** Every image something was left out for lacking, once each, in the pack's order. */
@@ -199,6 +200,7 @@ export function compileParts(manifest: SettingManifest, has: (image: string) => 
     lights,
     top: Math.min(0, ...parts.map((part) => part.at[1])),
     bob: stage.motion?.bob ?? null,
+    motion: stage.motion,
     pieceDepths: depthById,
     missing: inOrder(missing),
     required: inOrder(required),
