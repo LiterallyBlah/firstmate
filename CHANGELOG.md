@@ -153,6 +153,9 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **The shark keeps you on deck.** Clicking its body or speech bubble, or choosing its keyboard Focus action,
+  zooms to the selected worker and opens the crew focus panel in place.
+
 - **The deck ladder sits against the mast, behind the sail.** Its climb follows the mast's vertical axis;
   the below-deck sleeping crew and the rest of the ship's art stay unchanged.
 

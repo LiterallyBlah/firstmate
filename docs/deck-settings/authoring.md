@@ -190,15 +190,15 @@ Author the route and foreground pieces together so the worker stays visible and 
 ## Attention carrier
 
 Optional top-level `attentionCarrier` requires **`attention-carrier@1`**. It describes one independently
-placed Converse target: `at` (top left), `size`, nonempty sprite `frames`, positive `frameMs`, and
+placed focus target: `at` (top left), `size`, nonempty sprite `frames`, positive `frameMs`, and
 `loiter: { amplitude: [dx,dy], periodMs }`. Amplitudes are nonnegative integer pixels. Every frame must
 match `size`, fit its source image, and the entire target plus loiter must fit the stage's horizontal
 bounds and `stage.fit` vertically. The strict schema validates these rules and all image references.
 
 The engine owns eligibility: live workers in Blocked, with pending permissions, or named by unanswered
 first-mate suggestions. Stale feeds and unreachable remote workers are excluded. One selected identity
-persists across polls; the engine's legend selects among multiple workers and provides keyboard Converse.
-Clicking the carrier opens that worker's existing conversation, never sends a message. Packs cannot
+persists across polls; the engine's legend selects among multiple workers and provides keyboard focus.
+Clicking the carrier zooms to that worker and opens the same crew focus panel in place, never sends a message. Packs cannot
 choose a callback, action, attention condition or text expression. Without this capability, existing
 per-worker suggestion markers and bubbles are retained.
 

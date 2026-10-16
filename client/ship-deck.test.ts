@@ -399,7 +399,7 @@ interface FakeEngine extends DeckEngine {
   stops: number;
   resize?: (width: number, height: number) => void;
   hover?: (hover: DeckHover | null) => void;
-  select?: (key: string | null, action?: "converse") => void;
+  select?: (key: string | null, action?: "attention") => void;
 }
 
 function deferred<T>() {
@@ -1087,7 +1087,7 @@ describe("the ship deck view", () => {
       const { root } = await mounted();
       expect(text(root)).toContain("Point at a sailor to see who it is; click one to focus it and act on it.");
       const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
-      expect(canvasHost.props.accessibilityLabel).toBe("Ship deck: 2 working, 2 waiting, 2 blocked, 2 idle. Arrow keys focus a sailor.");
+      expect(canvasHost.props.accessibilityLabel).toBe("Ship deck: 2 working, 2 waiting, 2 blocked, 2 idle, 1 need your response; use Focus below. Arrow keys focus a sailor.");
       expect(canvasHost.props.focusable).toBe(true);
     });
 
@@ -1138,39 +1138,58 @@ describe("the ship deck view", () => {
   });
 
   describe("replies on deck", () => {
-    it("routes carrier and keyboard actions to the selected worker, preserving selection and rejecting stale or removed targets", async () => {
+    it("focuses the selected attention worker in place, preserving selection and rejecting invalid targets", async () => {
       const engine = viewEngine();
-      const opened: string[] = [];
       let cards = [card("b", "blocked"), card("c", "blocked")];
       cards[1]!.taskId = "task-c";
-      const props = () => ({ cards, theme, engine, os: "web", suggestions: [{ label: "Discuss task-c", prompt: "Discuss task-c" }], onReply() {}, onConverse: (key: string) => opened.push(key), renderFocus: () => createElement("FocusCard") });
+      const props = () => ({ cards, theme, engine, os: "web", suggestions: [{ label: "Discuss task-c", prompt: "Discuss task-c" }], onReply() {},
+        renderFocus: (card: FleetCard, close: () => void) => createElement("FocusCard", { card, close }) });
       await act(async () => { renderer = create(createElement(ShipDeckView, props()), { createNodeMock: () => fakeHost() }); });
       await act(flush);
       const root = renderer!;
       const button = (label: string) => root.root.find(node => (node.type as unknown) === "Pressable" && node.props.accessibilityLabel === label);
+      const focused = () => root.root.findAll(node => (node.type as unknown) === "FocusCard").map(node => node.props.card.key);
       expect(text(root)).toContain("2 need your response");
       expect(engine.drawings[0]!.updates.at(-1)?.attentionKey).toBe("b");
-      await act(async () => engine.select?.("b", "converse"));
-      expect(opened).toEqual(["b"]);
-      expect(root.root.findAllByProps({ testID: "firstmate-deck-focus" })).toEqual([]);
+      await act(async () => engine.select?.("b", "attention"));
+      expect(focused()).toEqual(["b"]);
+      expect(engine.drawings[0]!.focuses.at(-1)).toBe("b");
       await act(async () => button("Next worker needing a response").props.onPress());
-      await act(async () => button("Converse with Task c").props.onPress());
-      expect(opened).toEqual(["b", "c"]);
+      const openC = button("Focus on Task c").props.onPress;
+      await act(async () => openC());
+      expect(focused()).toEqual(["c"]);
+      expect(engine.drawings[0]!.focuses.at(-1)).toBe("c");
+      expect(engine.starts).toHaveLength(1);
+      expect(engine.drawings[0]!.destroyed).toBe(0);
       cards = [card("a", "blocked"), ...cards.reverse()];
       await act(async () => root.update(createElement(ShipDeckView, props())));
       expect(engine.drawings[0]!.updates.at(-1)?.attentionKey).toBe("c");
-      await act(async () => engine.hover?.({ key: "c", action: "converse", x: 50, top: 200, bottom: 240, width: 800, height: 400, floor: null }));
-      expect(text(root)).toContain("Click to open Converse");
+      expect(focused()).toEqual(["c"]);
+      await act(async () => root.root.find(node => (node.type as unknown) === "FocusCard").props.close());
+      expect(engine.drawings[0]!.focuses.at(-1)).toBeNull();
+      await act(async () => engine.hover?.({ key: "c", action: "attention", x: 50, top: 200, bottom: 240, width: 800, height: 400, floor: null }));
+      expect(text(root)).toContain("Click to focus on deck");
       expect(root.root.findAllByProps({ testID: "firstmate-deck-bubble" })).toEqual([]);
+      await act(async () => openC());
       cards = cards.filter(card => card.key !== "c");
       await act(async () => root.update(createElement(ShipDeckView, props())));
-      await act(async () => engine.select?.("c", "converse"));
-      expect(opened).toEqual(["b", "c"]);
+      expect(focused()).toEqual([]);
+      // Old pointer and keyboard callbacks must both recheck the current crew.
+      await act(async () => { engine.select?.("c", "attention"); openC(); });
+      expect(focused()).toEqual([]);
       expect(engine.drawings[0]!.updates.at(-1)?.attentionKey).toBe("a");
+      cards = cards.map(each => each.key === "b" ? { ...each, column: "working" } : each);
+      await act(async () => root.update(createElement(ShipDeckView, props())));
+      await act(async () => engine.select?.("b", "attention"));
+      expect(focused()).toEqual([]);
       await act(async () => root.update(createElement(ShipDeckView, { ...props(), stale: true })));
-      await act(async () => engine.select?.("a", "converse"));
-      expect(opened).toEqual(["b", "c"]);
+      await act(async () => engine.select?.("a", "attention"));
+      expect(focused()).toEqual([]);
       expect(root.root.findAllByProps({ testID: "firstmate-deck-attention" })).toEqual([]);
+      const { renderFocus: _focus, ...withoutFocus } = props();
+      await act(async () => root.update(createElement(ShipDeckView, withoutFocus)));
+      await act(async () => engine.select?.("a", "attention"));
+      expect(focused()).toEqual([]);
     });
     /** One suggestion names b1's crewmate by its agent id; the other names no one. */
     const land = { label: "Land b1", prompt: "Merge agent-b1's branch, captain's word." };
@@ -1182,7 +1201,7 @@ describe("the ship deck view", () => {
     afterEach(() => answeredReplies.keepOnly([]));
 
     async function mounted(options: { replyBlocked?: string | null } = {}) {
-      const engine = viewEngine();
+      const engine = viewEngine({ presentation: { ...deckPresentation(shipManifest()), attentionCarrier: false } });
       const picked: Array<{ label: string; prompt: string }> = [];
       const focusReplies: unknown[] = [];
       const props = {

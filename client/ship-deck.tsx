@@ -27,8 +27,8 @@
  *
  * **Attention**: a pack with `attention-carrier@1` replaces per-worker reply markers with one independent
  * target for the selected worker. Blocked workers, pending permissions and linked first-mate suggestions
- * qualify; stale workers never do. The legend selects among them and offers keyboard Converse. The carrier
- * opens the existing drawer through `onConverse`, sending nothing. Packs without it retain the suggestion
+ * qualify; stale workers never do. The legend selects among them and offers keyboard focus. The carrier
+ * focuses that worker in place, just like a sailor click. Packs without it retain the suggestion
  * bubbles (`client/deck-replies.ts`); focused cards still offer their suggestions through `onReply`.
  *
  * The canvas lives in a childless `View` (`client/deck-mount.ts` explains the escape hatch). A renderer
@@ -114,7 +114,7 @@ export function SailorLabel({ sailor, hover, theme, colour }: { sailor: DeckSail
         </Text>
       )}
       {caption.stale === null ? null : <Text style={{ color: colors.statusWarning, fontSize: 12 }}>{caption.stale}</Text>}
-      {hover.action === "converse" ? <Text style={{ color: colors.foreground, fontSize: 12 }}>Click to open Converse</Text> : null}
+      {hover.action === "attention" ? <Text style={{ color: colors.foreground, fontSize: 12 }}>Click to focus on deck</Text> : null}
     </View>
   );
 }
@@ -214,7 +214,6 @@ function DeckView({
   renderFocus,
   suggestions = NO_SUGGESTIONS,
   onReply,
-  onConverse,
   replyBlocked = null,
   setting = DEFAULT_DECK_SETTING,
   onFailure,
@@ -231,8 +230,6 @@ function DeckView({
   suggestions?: readonly Suggestion[];
   /** Sends a reply the way the strip sends a suggestion. Without it, the deck offers no replies. */
   onReply?: (reply: Suggestion) => void;
-  /** Opens the worker's existing Converse drawer, by card key; never sends a message. */
-  onConverse?: (key: string) => void;
   /** Why a reply cannot be sent just now (`replyBlockedText`), or null. */
   replyBlocked?: string | null;
   /** The fleet load is failing: the deck shows the last crew it saw, greyed. */
@@ -247,7 +244,7 @@ function DeckView({
 }) {
   const answered = useSyncExternalStore(answeredReplies.subscribe, answeredReplies.version);
   const [carrierMode, setCarrierMode] = useState(false);
-  const usesCarrier = carrierMode && onConverse !== undefined;
+  const usesCarrier = carrierMode && renderFocus !== undefined;
   const [selectedAttention, setSelectedAttention] = useState<string | null>(null);
   const offers = onReply !== undefined;
   // `answered` is the store's version: a pick, or a send that failed, changes what is still waiting.
@@ -296,15 +293,13 @@ function DeckView({
   const mount = useRef<DeckMount | null>(null);
   const sceneRef = useRef(scene);
   sceneRef.current = scene;
-  const converseRef = useRef(onConverse);
-  converseRef.current = onConverse;
-  const converse = (key: string) => {
-    if (sceneRef.current.sailors.some(sailor => sailor.key === key && sailor.asks && !sailor.stale)) converseRef.current?.(key);
-  };
   const focusedRef = useRef(focused);
   focusedRef.current = focused;
   const focusableRef = useRef(focusable);
   focusableRef.current = focusable;
+  const focusAttention = (key: string) => {
+    if (focusableRef.current && sceneRef.current.sailors.some(sailor => sailor.key === key && sailor.asks && !sailor.stale)) setFocused(key);
+  };
   /** The sailor focused last, so the arrows go on from it after Esc. */
   const lastFocused = useRef<string | null>(null);
 
@@ -314,7 +309,7 @@ function DeckView({
       setStatus(next);
       setCarrierMode(next.kind === "drawing" && next.presentation?.attentionCarrier === true);
     }, setHover, (key, action) => {
-      if (action === "converse" && key !== null && converseRef.current !== undefined) { converse(key); return; }
+      if (action === "attention") { if (key !== null) focusAttention(key); return; }
       if (focusableRef.current) setFocused((now) => nextFocus(now, key));
     });
     started.focus(focusedRef.current);
@@ -451,7 +446,7 @@ function DeckView({
   const { colors } = theme;
   const crew = scene.sailors.length;
   const lost = scene.stale === 0 ? "" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
-  const asked = speakers.size === 0 ? "" : usesCarrier ? `, ${speakers.size} need your response; use Converse below` : `, ${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you to pick`;
+  const asked = speakers.size === 0 ? "" : usesCarrier ? `, ${speakers.size} need your response; use Focus below` : `, ${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you to pick`;
   const summary = `${DECK_STATES.map((state) => `${scene.counts[state]} ${state}`).join(", ")}${asked}${lost}`;
   const note = deckStatusText(status, presentation);
   // A sailor with replies waiting speaks in its bubble instead of wearing the label.
@@ -605,8 +600,8 @@ function DeckView({
               )}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Converse with ${attentionSailor.caption.title}`}
-                onPress={() => converse(attentionSailor.key)}
+                accessibilityLabel={`Focus on ${attentionSailor.caption.title}`}
+                onPress={() => focusAttention(attentionSailor.key)}
                 style={{ flexShrink: 1, minWidth: 0, paddingVertical: 4 }}
               >
                 <Text

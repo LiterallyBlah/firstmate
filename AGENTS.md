@@ -517,7 +517,7 @@ Office was withdrawn after visual review; its files are retained at
 - **The reply shark** (`docs/deck-enrichment/reply-shark-review.md`) uses generic `attention-carrier@1`:
   one generated carrier in the near sea for a selected worker needing the captain. The legend selects among
   blocked workers, pending permissions and linked suggestions, retaining identity across polls. Body, bubble
-  and keyboard action open that worker's Converse via the existing card-to-conversation key conversion.
+  and keyboard action zoom to that worker and open its crew focus panel in place, keeping the deck mounted.
   No send occurs. Stale, closed and removed workers have no signal; ordinary sailor focus is unchanged.
   Packs without the capability retain their per-worker suggestion markers. Lite/reduced motion hold frame
   zero; hidden scenes pause on the existing clock. Missing art leaves an engine bubble and keyboard action.
