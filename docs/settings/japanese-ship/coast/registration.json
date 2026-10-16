@@ -1,0 +1,176 @@
+{
+  "baseline": "bae5478",
+  "width": 2880,
+  "height": 184,
+  "top": 20,
+  "speed": 2.4,
+  "lapSeconds": 1200,
+  "berths": [
+    370,
+    1330,
+    2290
+  ],
+  "landmarks": [
+    {
+      "id": "sakura-torii",
+      "source": [
+        0,
+        0,
+        532,
+        520
+      ],
+      "trim": [
+        19,
+        196,
+        505,
+        311
+      ],
+      "at": [
+        10,
+        38
+      ],
+      "size": [
+        234,
+        144
+      ],
+      "litPixels": 0
+    },
+    {
+      "id": "pagoda-hill",
+      "source": [
+        532,
+        0,
+        492,
+        520
+      ],
+      "trim": [
+        7,
+        71,
+        474,
+        442
+      ],
+      "at": [
+        490,
+        38
+      ],
+      "size": [
+        154,
+        144
+      ],
+      "litPixels": 73
+    },
+    {
+      "id": "fishing-village",
+      "source": [
+        1024,
+        0,
+        512,
+        520
+      ],
+      "trim": [
+        3,
+        205,
+        493,
+        310
+      ],
+      "at": [
+        970,
+        38
+      ],
+      "size": [
+        229,
+        144
+      ],
+      "litPixels": 215
+    },
+    {
+      "id": "snow-peak",
+      "source": [
+        0,
+        0,
+        1536,
+        1024
+      ],
+      "trim": [
+        26,
+        239,
+        1494,
+        544
+      ],
+      "at": [
+        1450,
+        84
+      ],
+      "size": [
+        270,
+        98
+      ],
+      "litPixels": 0
+    },
+    {
+      "id": "cliff-castle",
+      "source": [
+        540,
+        540,
+        520,
+        484
+      ],
+      "trim": [
+        8,
+        21,
+        512,
+        415
+      ],
+      "at": [
+        1930,
+        38
+      ],
+      "size": [
+        178,
+        144
+      ],
+      "litPixels": 26
+    },
+    {
+      "id": "bamboo-shrine",
+      "source": [
+        1060,
+        540,
+        476,
+        484
+      ],
+      "trim": [
+        0,
+        90,
+        459,
+        341
+      ],
+      "at": [
+        2410,
+        38
+      ],
+      "size": [
+        194,
+        144
+      ],
+      "litPixels": 62
+    }
+  ],
+  "imageBytes": 977432,
+  "sources": {
+    "landmarks": "f68db6a361ea55cb68a6f50d018db7f27ae44d5babe7ef6008a24f56b710b37d",
+    "landmarks-night": "52b1a2545a4a9b0bab948abd8e95bb64f482dcd133f4a3980239ad1227f3abb4",
+    "snow-peak": "8f0f9b86e6bb3f98d48ef2d249e0a13f1bb61af08c543242dc0b89ca24c19dd6"
+  },
+  "removed": [
+    "coast-front",
+    "coast-dawn-front",
+    "coast-morning-front",
+    "coast-afternoon-front",
+    "coast-dusk-front",
+    "coast-night-front",
+    "coast-storm-shade",
+    "umibozu",
+    "umibozu-sink"
+  ]
+}

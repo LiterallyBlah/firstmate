@@ -3,7 +3,7 @@
   "formatVersion": 1,
   "id": "japanese-ship",
   "name": "Sakura coast",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "requires": [
     "atmosphere@1",
     "attention-carrier@1",
@@ -173,22 +173,6 @@
       ],
       "sha256": "be0b0aec9f8660c36be89cd5b6574b5806e874b4b9c30237a822f2bd441dc259"
     },
-    "coast-front": {
-      "path": "coast-front.png",
-      "size": [
-        1200,
-        280
-      ],
-      "sha256": "8296f93520dd3d26729bd993d59117ddaa2ca7f32b7f43a3cc74b3354770ae08"
-    },
-    "coast-night-front": {
-      "path": "coast-night-front.png",
-      "size": [
-        1200,
-        280
-      ],
-      "sha256": "e58ea6357222dee42c992c67e4982ccaa6ab55866a40f7cfb28c8d2a9060d804"
-    },
     "wake-motion": {
       "path": "wake-motion.png",
       "size": [
@@ -204,14 +188,6 @@
         44
       ],
       "sha256": "df64d3473e0fe36347e990918b400d287f9c6babe9e470c99772461825b20c7b"
-    },
-    "umibozu": {
-      "path": "umibozu.png",
-      "size": [
-        288,
-        80
-      ],
-      "sha256": "5ba473d716c4300474db4b52080cd0eb8a5e898046110dd1b3790211e52572c2"
     },
     "dragon": {
       "path": "dragon.png",
@@ -397,14 +373,6 @@
       ],
       "sha256": "55e3def62f78d7cd6322d81ecee7ffc638d85aaba555f13366805497e622cf3d"
     },
-    "coast-dawn-front": {
-      "path": "coast-dawn-front.png",
-      "size": [
-        1200,
-        280
-      ],
-      "sha256": "ccaf012bf2639c98c0369a1c687726cf750ce52a9f7e6d4ac4ce11605d7f2514"
-    },
     "coast-morning": {
       "path": "coast-morning.png",
       "size": [
@@ -412,14 +380,6 @@
         400
       ],
       "sha256": "c9d9251c0081677b1677a1945759a23aabfe2605b699f2a8a8af6ccd8fb01db8"
-    },
-    "coast-morning-front": {
-      "path": "coast-morning-front.png",
-      "size": [
-        1200,
-        280
-      ],
-      "sha256": "2e0c0f94de82595bedd22c87f0d27cf6a0e9e260e71fae84ce32d6e12bdc8cb3"
     },
     "coast-afternoon": {
       "path": "coast-afternoon.png",
@@ -429,14 +389,6 @@
       ],
       "sha256": "b723e114ced9280deb7ab22e44e8f728aa376d1379e5908f45b2bf41856faad5"
     },
-    "coast-afternoon-front": {
-      "path": "coast-afternoon-front.png",
-      "size": [
-        1200,
-        280
-      ],
-      "sha256": "489cfd94b3d84be00b3e27d614583557b8d774b999341685d2425055b76e1ab5"
-    },
     "coast-dusk": {
       "path": "coast-dusk.png",
       "size": [
@@ -444,14 +396,6 @@
         400
       ],
       "sha256": "e78d72c555e32895387cb2b0137fa0d838f3b962e3e668d9ff3a0d45d6c7cd72"
-    },
-    "coast-dusk-front": {
-      "path": "coast-dusk-front.png",
-      "size": [
-        1200,
-        280
-      ],
-      "sha256": "505141afd636eaaa8d385e67b70e8d0a9513fab1b266f267c9542dd5d1de5073"
     },
     "bay-far-midday": {
       "path": "bay-far-midday.png",
@@ -525,14 +469,6 @@
       ],
       "sha256": "5b679d823ef1fd8e44aa6c147c7ca4ff456ed4aa03e631294328c5f9dd28490c"
     },
-    "umibozu-sink": {
-      "path": "umibozu-sink.png",
-      "size": [
-        216,
-        80
-      ],
-      "sha256": "885b115de548a738dcae480554b05cd396815fcac9e254e1a848431425bbd4eb"
-    },
     "open-night-sea": {
       "path": "open-night-sea.png",
       "size": [
@@ -541,13 +477,77 @@
       ],
       "sha256": "b8aae82fa6c2156d4cdf370a607dfadaea4738c69809320b44c59db0bed331b5"
     },
-    "coast-storm-shade": {
-      "path": "coast-storm-shade.png",
+    "voyage-coast-dawn": {
+      "path": "voyage-coast-dawn.png",
       "size": [
-        2400,
-        280
+        2880,
+        184
       ],
-      "sha256": "091f259121c29e667f07433fc6f035035a414286a60c240e8f8a883f4f6a6390"
+      "sha256": "e681342a5e13c6f942723b6af37d0d0ed20fa38e7ae5e3bb3af33f4c35c7572e"
+    },
+    "voyage-coast-morning": {
+      "path": "voyage-coast-morning.png",
+      "size": [
+        2880,
+        184
+      ],
+      "sha256": "b4b9f0159f342607861c64eca7de43c7abf836954fc8f3da5b2c384fa5bf7d6a"
+    },
+    "voyage-coast-midday": {
+      "path": "voyage-coast-midday.png",
+      "size": [
+        2880,
+        184
+      ],
+      "sha256": "65b02d40c81d02a43b6df0042c2d6dd6b5799c0ef067eade8530ed5adc44853d"
+    },
+    "voyage-coast-afternoon": {
+      "path": "voyage-coast-afternoon.png",
+      "size": [
+        2880,
+        184
+      ],
+      "sha256": "829cfda785aafd99f86d8720eb14ea55c4300de9651ab955be0c897ff6cb5048"
+    },
+    "voyage-coast-dusk": {
+      "path": "voyage-coast-dusk.png",
+      "size": [
+        2880,
+        184
+      ],
+      "sha256": "f3f50fc4d82b036cec837228ab6467bc8104106f3f16c24b3e20e3f827f0063e"
+    },
+    "voyage-coast-night": {
+      "path": "voyage-coast-night.png",
+      "size": [
+        2880,
+        184
+      ],
+      "sha256": "2f922140593f7a5a07ac5ea9fb83bdeb25074ad648bdc8d299c8b367e0de1eed"
+    },
+    "voyage-lights": {
+      "path": "voyage-lights.png",
+      "size": [
+        2880,
+        736
+      ],
+      "sha256": "60806714488d15714db7f6d3f7a8e891b6002239f78167350fda3e8247d1fcec"
+    },
+    "voyage-shade": {
+      "path": "voyage-shade.png",
+      "size": [
+        5760,
+        184
+      ],
+      "sha256": "08fea362b38e619056d4f3594e19fd750d78e0af37f9e71ff486f1ee7306f896"
+    },
+    "voyage-umibozu": {
+      "path": "voyage-umibozu.png",
+      "size": [
+        2880,
+        1280
+      ],
+      "sha256": "894559be38a3e33cb48c0abc8de23889d82bd4d38451483f647cb1abadeb037d"
     }
   },
   "preview": "preview",
@@ -3435,14 +3435,14 @@
       }
     },
     {
-      "id": "coast-foreground",
+      "id": "voyage-coast",
       "slot": "back",
       "order": 4,
       "lite": "run",
       "still": "first-frame",
       "behaviour": {
         "kind": "phase-strip",
-        "top": -30,
+        "top": 20,
         "span": [
           -4096,
           4608
@@ -3450,7 +3450,7 @@
         "frames": {
           "sprites": [
             {
-              "image": "coast-front"
+              "image": "voyage-coast-midday"
             }
           ],
           "frameMs": 1000
@@ -3458,37 +3458,38 @@
         "byPhase": {
           "dawn": [
             {
-              "image": "coast-dawn-front"
+              "image": "voyage-coast-dawn"
             }
           ],
           "morning": [
             {
-              "image": "coast-morning-front"
+              "image": "voyage-coast-morning"
             }
           ],
           "midday": [
             {
-              "image": "coast-front"
+              "image": "voyage-coast-midday"
             }
           ],
           "afternoon": [
             {
-              "image": "coast-afternoon-front"
+              "image": "voyage-coast-afternoon"
             }
           ],
           "dusk": [
             {
-              "image": "coast-dusk-front"
+              "image": "voyage-coast-dusk"
             }
           ],
           "night": [
             {
-              "image": "coast-night-front"
+              "image": "voyage-coast-night"
             }
           ]
         },
         "drift": {
-          "pxPerSecond": 0
+          "pxPerSecond": 2.4,
+          "clock": "voyage"
         }
       }
     },
@@ -3786,141 +3787,146 @@
       "lite": "hide",
       "still": "hide",
       "behaviour": {
-        "kind": "cycle",
+        "kind": "strip",
+        "top": 100,
+        "span": [
+          -4096,
+          4608
+        ],
         "frames": {
           "sprites": [
             {
-              "image": "umibozu",
+              "image": "voyage-umibozu",
               "rect": [
-                144,
                 0,
-                72,
+                0,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu",
+              "image": "voyage-umibozu",
               "rect": [
-                144,
                 0,
-                72,
+                0,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu",
+              "image": "voyage-umibozu",
               "rect": [
-                216,
                 0,
-                72,
+                0,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu",
+              "image": "voyage-umibozu",
               "rect": [
-                72,
                 0,
-                72,
+                0,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu",
+              "image": "voyage-umibozu",
               "rect": [
                 0,
                 0,
-                72,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu-sink",
+              "image": "voyage-umibozu",
               "rect": [
                 0,
                 0,
-                72,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu-sink",
+              "image": "voyage-umibozu",
               "rect": [
-                72,
                 0,
-                72,
+                0,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu-sink",
+              "image": "voyage-umibozu",
               "rect": [
-                144,
                 0,
-                72,
+                0,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu-sink",
+              "image": "voyage-umibozu",
               "rect": [
-                144,
                 0,
-                72,
+                0,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu-sink",
+              "image": "voyage-umibozu",
               "rect": [
-                72,
                 0,
-                72,
+                0,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu-sink",
+              "image": "voyage-umibozu",
               "rect": [
                 0,
                 0,
-                72,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu",
+              "image": "voyage-umibozu",
               "rect": [
                 0,
                 0,
-                72,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu",
+              "image": "voyage-umibozu",
               "rect": [
-                72,
                 0,
-                72,
+                0,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu",
+              "image": "voyage-umibozu",
               "rect": [
-                216,
                 0,
-                72,
+                0,
+                2880,
                 80
               ]
             },
             {
-              "image": "umibozu",
+              "image": "voyage-umibozu",
               "rect": [
-                144,
                 0,
-                72,
+                0,
+                2880,
                 80
               ]
             }
@@ -3928,26 +3934,163 @@
           "frameMs": 500,
           "clock": "swell"
         },
-        "at": [
-          100,
-          178
-        ],
-        "anchor": [
-          36,
-          78
-        ],
-        "opacity": {
-          "curve": [
-            [
-              0.78,
-              0
+        "drift": {
+          "pxPerSecond": 2.4,
+          "clock": "voyage"
+        },
+        "variants": [
+          {
+            "id": "storm",
+            "frames": [
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  80,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  160,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  240,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  320,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  400,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  480,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  560,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  640,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  720,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  800,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  880,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  960,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  1040,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  1120,
+                  2880,
+                  80
+                ]
+              },
+              {
+                "image": "voyage-umibozu",
+                "rect": [
+                  0,
+                  1200,
+                  2880,
+                  80
+                ]
+              }
             ],
-            [
-              0.780001,
-              1
+            "blend": "over",
+            "opacity": [
+              [
+                0.78,
+                0
+              ],
+              [
+                0.780001,
+                1
+              ]
             ]
-          ]
-        }
+          }
+        ]
       }
     },
     {
@@ -5015,14 +5158,14 @@
       }
     },
     {
-      "id": "coast-storm-shade",
+      "id": "voyage-shade",
       "slot": "back",
       "order": 4.1,
       "lite": "run",
       "still": "hide",
       "behaviour": {
         "kind": "strip",
-        "top": -30,
+        "top": 20,
         "span": [
           -4096,
           4608
@@ -5030,31 +5173,32 @@
         "frames": {
           "sprites": [
             {
-              "image": "coast-storm-shade",
+              "image": "voyage-shade",
               "rect": [
                 0,
                 0,
-                1200,
-                280
+                2880,
+                184
               ]
             }
           ],
           "frameMs": 1000
         },
         "drift": {
-          "pxPerSecond": 0
+          "pxPerSecond": 2.4,
+          "clock": "voyage"
         },
         "variants": [
           {
             "id": "storm",
             "frames": [
               {
-                "image": "coast-storm-shade",
+                "image": "voyage-shade",
                 "rect": [
-                  1200,
+                  2880,
                   0,
-                  1200,
-                  280
+                  2880,
+                  184
                 ]
               }
             ],
@@ -5071,6 +5215,233 @@
             ]
           }
         ]
+      }
+    },
+    {
+      "id": "voyage-lights",
+      "slot": "back",
+      "order": 4.2,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "phase-strip",
+        "top": 20,
+        "span": [
+          -4096,
+          4608
+        ],
+        "frames": {
+          "sprites": [
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            }
+          ],
+          "frameMs": 700
+        },
+        "byPhase": {
+          "dawn": [
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            }
+          ],
+          "morning": [
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            }
+          ],
+          "midday": [
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            }
+          ],
+          "afternoon": [
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            }
+          ],
+          "dusk": [
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                0,
+                2880,
+                184
+              ]
+            }
+          ],
+          "night": [
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                184,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                368,
+                2880,
+                184
+              ]
+            },
+            {
+              "image": "voyage-lights",
+              "rect": [
+                0,
+                552,
+                2880,
+                184
+              ]
+            }
+          ]
+        },
+        "drift": {
+          "pxPerSecond": 2.4,
+          "clock": "voyage"
+        }
       }
     }
   ],
@@ -5116,7 +5487,8 @@
         "weather": 0,
         "wind": 0.5,
         "sail": 0.55,
-        "billow": 0.4
+        "billow": 0.4,
+        "voyage-pace": 1
       },
       {
         "at": 0.35,
@@ -5127,7 +5499,8 @@
         "weather": 0,
         "wind": 1,
         "sail": 1,
-        "billow": 0.5
+        "billow": 0.5,
+        "voyage-pace": 1
       },
       {
         "at": 1,
@@ -5138,7 +5511,8 @@
         "weather": 0.55,
         "wind": 3,
         "sail": 2.4,
-        "billow": 0.65
+        "billow": 0.65,
+        "voyage-pace": 1
       }
     ],
     "delivered": {
@@ -5149,13 +5523,15 @@
       "weather": 0,
       "wind": 1,
       "sail": 1,
-      "billow": 0.5
+      "billow": 0.5,
+      "voyage-pace": 1
     },
     "clocks": {
       "water": "pace",
       "swell": "swell",
       "wind": "wind",
-      "sail": "sail"
+      "sail": "sail",
+      "voyage": "voyage-pace"
     }
   },
   "attentionCarrier": {
