@@ -66,3 +66,9 @@ the pixel gate passed 1180 tests but hit the existing PR-watch 400 ms budget ass
 run is retained in [tests.log](tests.log); no unrelated watch code or test threshold was changed.
 Paseo 0.11's production compiler and Hermes parse pass; no Pixi or class syntax enters the
 client bundle. See [compile-results.json](compile-results.json).
+
+The completed frozen-ship gate passes: **81/81 shots pixel-identical to main**, without toolbar
+masking or expected-change exceptions. See [gate-results.json](gate-results.json) and
+[gate.log](gate.log). The compiled implementation is `477e923`; later commits add evidence only.
+The original Windows CI job passed its failed-job retry, and both Linux/Windows push and PR
+checks passed on evidence head `69c4a71`. The earlier red was the unrelated PR-watch flake.
