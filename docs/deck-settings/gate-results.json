@@ -1,7 +1,7 @@
 {
-  "base": "compiled main edda14e",
-  "branch": "HEAD 4ef2de0",
-  "compiledBranch": "4ef2de0",
+  "base": "compiled main b0152f3",
+  "branch": "HEAD 2b4f097",
+  "compiledBranch": "2b4f097",
   "maskToolbar": false,
   "control": null,
   "scenarios": [
@@ -15,23 +15,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 16011,
-          "firstDifference": [
-            624,
-            907
-          ],
-          "box": [
-            24,
-            907,
-            1060,
-            1761
-          ],
-          "sha": [
-            "1720c380cd1e870e",
-            "886a7da89d045270"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "886a7da89d045270",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -53,23 +39,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 4393,
-          "firstDifference": [
-            312,
-            454
-          ],
-          "box": [
-            12,
-            454,
-            530,
-            880
-          ],
-          "sha": [
-            "7b56fca43f441ee4",
-            "7a6cfa071a668ce0"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "7a6cfa071a668ce0",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -92,23 +64,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 16011,
-          "firstDifference": [
-            624,
-            907
-          ],
-          "box": [
-            24,
-            907,
-            1060,
-            1761
-          ],
-          "sha": [
-            "e493c1e78c884825",
-            "dceb6e22708feb99"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "dceb6e22708feb99",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -130,23 +88,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 4393,
-          "firstDifference": [
-            312,
-            454
-          ],
-          "box": [
-            12,
-            454,
-            530,
-            880
-          ],
-          "sha": [
-            "6223f5a51c4c12fc",
-            "f341aeb1dae63186"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "f341aeb1dae63186",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -168,23 +112,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 4393,
-          "firstDifference": [
-            312,
-            454
-          ],
-          "box": [
-            12,
-            454,
-            530,
-            880
-          ],
-          "sha": [
-            "a0f7073e64237148",
-            "b295ca8240e040ab"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b295ca8240e040ab",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -207,23 +137,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 1424322,
-          "firstDifference": [
-            1417,
-            226
-          ],
-          "box": [
-            24,
-            226,
-            2855,
-            1767
-          ],
-          "sha": [
-            "955f4cffc56ebd6a",
-            "283135d26e3bfa9a"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "283135d26e3bfa9a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -246,23 +162,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 1417178,
-          "firstDifference": [
-            1417,
-            226
-          ],
-          "box": [
-            24,
-            226,
-            2855,
-            1767
-          ],
-          "sha": [
-            "2d010dcf4ecc18ff",
-            "b73323c4fef602f9"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b73323c4fef602f9",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -283,23 +185,9 @@
       "shots": [
         {
           "shot": "lost",
-          "identical": false,
-          "differingPixels": 398949,
-          "firstDifference": [
-            634,
-            152
-          ],
-          "box": [
-            12,
-            152,
-            1427,
-            886
-          ],
-          "sha": [
-            "fd623a0e800da096",
-            "3d374fb466210cbf"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "3d374fb466210cbf",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -321,23 +209,9 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": false,
-          "differingPixels": 16039,
-          "firstDifference": [
-            624,
-            907
-          ],
-          "box": [
-            24,
-            907,
-            1060,
-            1761
-          ],
-          "sha": [
-            "66e4327531b32732",
-            "026348fb38e6303c"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "026348fb38e6303c",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -350,23 +224,9 @@
         },
         {
           "shot": "1s",
-          "identical": false,
-          "differingPixels": 16023,
-          "firstDifference": [
-            624,
-            912
-          ],
-          "box": [
-            24,
-            912,
-            1060,
-            1761
-          ],
-          "sha": [
-            "815392f4df8eac0c",
-            "1f4b17040dce2e2e"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "1f4b17040dce2e2e",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -379,23 +239,9 @@
         },
         {
           "shot": "2.5s",
-          "identical": false,
-          "differingPixels": 15995,
-          "firstDifference": [
-            624,
-            918
-          ],
-          "box": [
-            24,
-            918,
-            1060,
-            1761
-          ],
-          "sha": [
-            "5654a17e55c17568",
-            "37843d6fb20e1ba7"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "37843d6fb20e1ba7",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -408,23 +254,9 @@
         },
         {
           "shot": "5s",
-          "identical": false,
-          "differingPixels": 16011,
-          "firstDifference": [
-            624,
-            907
-          ],
-          "box": [
-            24,
-            907,
-            1060,
-            1761
-          ],
-          "sha": [
-            "46bd2796bdfdf27b",
-            "0b676ca808f366ac"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "0b676ca808f366ac",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -437,23 +269,9 @@
         },
         {
           "shot": "10s",
-          "identical": false,
-          "differingPixels": 16039,
-          "firstDifference": [
-            624,
-            907
-          ],
-          "box": [
-            24,
-            907,
-            1060,
-            1761
-          ],
-          "sha": [
-            "e5ed5ff21ee29d0c",
-            "c8e40b6850e858a3"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c8e40b6850e858a3",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -466,23 +284,9 @@
         },
         {
           "shot": "25s",
-          "identical": false,
-          "differingPixels": 16023,
-          "firstDifference": [
-            624,
-            912
-          ],
-          "box": [
-            24,
-            912,
-            1060,
-            1761
-          ],
-          "sha": [
-            "af7119881d593b2d",
-            "d581e29105ad4386"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "d581e29105ad4386",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -495,23 +299,9 @@
         },
         {
           "shot": "49s",
-          "identical": false,
-          "differingPixels": 16016,
-          "firstDifference": [
-            624,
-            924
-          ],
-          "box": [
-            24,
-            924,
-            1060,
-            1761
-          ],
-          "sha": [
-            "fc6470003b8fe563",
-            "314421663847544c"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "314421663847544c",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -524,23 +314,9 @@
         },
         {
           "shot": "73s",
-          "identical": false,
-          "differingPixels": 16023,
-          "firstDifference": [
-            624,
-            912
-          ],
-          "box": [
-            24,
-            912,
-            1060,
-            1761
-          ],
-          "sha": [
-            "c3861e4b47a10fea",
-            "658ea54015040cc1"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "658ea54015040cc1",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -562,23 +338,9 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": false,
-          "differingPixels": 356148,
-          "firstDifference": [
-            133,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "154deb49e67eead8",
-            "40f9c6365fb1e932"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "40f9c6365fb1e932",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -591,23 +353,9 @@
         },
         {
           "shot": "5.4s",
-          "identical": false,
-          "differingPixels": 359759,
-          "firstDifference": [
-            156,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "50bd288c6e8f9707",
-            "8778ff69e10e0c5e"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "8778ff69e10e0c5e",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -620,23 +368,9 @@
         },
         {
           "shot": "10.4s",
-          "identical": false,
-          "differingPixels": 355077,
-          "firstDifference": [
-            181,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "0224f0ac5b1be34c",
-            "5a251949efd91eec"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "5a251949efd91eec",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -649,23 +383,9 @@
         },
         {
           "shot": "15.4s",
-          "identical": false,
-          "differingPixels": 357897,
-          "firstDifference": [
-            204,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "23b608a0b1941b61",
-            "befa83de3dcfafc7"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "befa83de3dcfafc7",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -678,23 +398,9 @@
         },
         {
           "shot": "20.4s",
-          "identical": false,
-          "differingPixels": 357440,
-          "firstDifference": [
-            227,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "8d1376b73e31da64",
-            "3e339e6cd05a496e"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "3e339e6cd05a496e",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -707,23 +413,9 @@
         },
         {
           "shot": "25.4s",
-          "identical": false,
-          "differingPixels": 356764,
-          "firstDifference": [
-            249,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "a07038a2087dd472",
-            "a4ffd0071e3cc8df"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "a4ffd0071e3cc8df",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -736,23 +428,9 @@
         },
         {
           "shot": "30.4s",
-          "identical": false,
-          "differingPixels": 363297,
-          "firstDifference": [
-            275,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "4a88ea09d38e84b9",
-            "b0e307df6c3b6d3a"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b0e307df6c3b6d3a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -765,23 +443,9 @@
         },
         {
           "shot": "flash-33.5s",
-          "identical": false,
-          "differingPixels": 353986,
-          "firstDifference": [
-            289,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "fb385fe3b9d1cb22",
-            "d4e933a1e6612742"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "d4e933a1e6612742",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -794,23 +458,9 @@
         },
         {
           "shot": "flash-33.6s",
-          "identical": false,
-          "differingPixels": 357346,
-          "firstDifference": [
-            289,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "77dee2fadf0d3f35",
-            "6cce1d4cd1183420"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "6cce1d4cd1183420",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -823,23 +473,9 @@
         },
         {
           "shot": "35.4s",
-          "identical": false,
-          "differingPixels": 368234,
-          "firstDifference": [
-            298,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "d843ea5932084977",
-            "2c141109a1381645"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "2c141109a1381645",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -852,23 +488,9 @@
         },
         {
           "shot": "40.4s",
-          "identical": false,
-          "differingPixels": 363329,
-          "firstDifference": [
-            320,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "560c05f483860ab9",
-            "bf19a37893613c2f"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "bf19a37893613c2f",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -881,23 +503,9 @@
         },
         {
           "shot": "45.4s",
-          "identical": false,
-          "differingPixels": 359159,
-          "firstDifference": [
-            343,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "87b8b235a83ce880",
-            "c91dd810e4b01016"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c91dd810e4b01016",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -910,23 +518,9 @@
         },
         {
           "shot": "flash-48.9s",
-          "identical": false,
-          "differingPixels": 364619,
-          "firstDifference": [
-            360,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "c5bece454a51e206",
-            "bcabc58231f01d08"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "bcabc58231f01d08",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -939,23 +533,9 @@
         },
         {
           "shot": "flash-49.0s",
-          "identical": false,
-          "differingPixels": 363361,
-          "firstDifference": [
-            360,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "80955e77a1d14ebf",
-            "1e54c2c231c2eefe"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "1e54c2c231c2eefe",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -968,23 +548,9 @@
         },
         {
           "shot": "50.4s",
-          "identical": false,
-          "differingPixels": 357975,
-          "firstDifference": [
-            369,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "10c9091a82d62f46",
-            "06e61b70f2cf2358"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "06e61b70f2cf2358",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -997,23 +563,9 @@
         },
         {
           "shot": "55.4s",
-          "identical": false,
-          "differingPixels": 357147,
-          "firstDifference": [
-            391,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "ecffe7409a1b8c58",
-            "89d108e256d94d87"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "89d108e256d94d87",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1026,23 +578,9 @@
         },
         {
           "shot": "60.4s",
-          "identical": false,
-          "differingPixels": 359974,
-          "firstDifference": [
-            414,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "6f36b9a0e147c608",
-            "731854b0b12798cc"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "731854b0b12798cc",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1055,23 +593,9 @@
         },
         {
           "shot": "65.4s",
-          "identical": false,
-          "differingPixels": 351120,
-          "firstDifference": [
-            437,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "0faac004870d9618",
-            "3b4a6241080a13ae"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "3b4a6241080a13ae",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1084,23 +608,9 @@
         },
         {
           "shot": "70.4s",
-          "identical": false,
-          "differingPixels": 356484,
-          "firstDifference": [
-            462,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "7edfeeee1fe38f6b",
-            "6646a3df2fee2d2a"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "6646a3df2fee2d2a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1113,23 +623,9 @@
         },
         {
           "shot": "75.4s",
-          "identical": false,
-          "differingPixels": 356440,
-          "firstDifference": [
-            485,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "d3f1598540002f17",
-            "e1220ee20a8321f5"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e1220ee20a8321f5",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1142,23 +638,9 @@
         },
         {
           "shot": "80.4s",
-          "identical": false,
-          "differingPixels": 353500,
-          "firstDifference": [
-            508,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "b95d93b0fd614e37",
-            "863234127f3e13c8"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "863234127f3e13c8",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1171,23 +653,9 @@
         },
         {
           "shot": "85.4s",
-          "identical": false,
-          "differingPixels": 361565,
-          "firstDifference": [
-            530,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "10ebbc1c21662b34",
-            "b1518e95dbc623eb"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b1518e95dbc623eb",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1200,23 +668,9 @@
         },
         {
           "shot": "90.4s",
-          "identical": false,
-          "differingPixels": 358506,
-          "firstDifference": [
-            556,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "37d574118793a0bd",
-            "48d55add7ca08c9d"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "48d55add7ca08c9d",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1229,23 +683,9 @@
         },
         {
           "shot": "95.4s",
-          "identical": false,
-          "differingPixels": 365817,
-          "firstDifference": [
-            579,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "23166ac0803a628a",
-            "02367334e54a674b"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "02367334e54a674b",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1258,23 +698,9 @@
         },
         {
           "shot": "100.4s",
-          "identical": false,
-          "differingPixels": 362783,
-          "firstDifference": [
-            601,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "41957136dfeb2769",
-            "e0a1b9368f75f740"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e0a1b9368f75f740",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1287,23 +713,9 @@
         },
         {
           "shot": "105.4s",
-          "identical": false,
-          "differingPixels": 365006,
-          "firstDifference": [
-            624,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "2fd14bd89314cbbe",
-            "8f2fdec4b8c4e229"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "8f2fdec4b8c4e229",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1316,23 +728,9 @@
         },
         {
           "shot": "110.4s",
-          "identical": false,
-          "differingPixels": 353902,
-          "firstDifference": [
-            647,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "c020c4d53ba93604",
-            "c2e98172e94aac7c"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c2e98172e94aac7c",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1345,23 +743,9 @@
         },
         {
           "shot": "115.4s",
-          "identical": false,
-          "differingPixels": 355180,
-          "firstDifference": [
-            672,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "9ba7bfa2d0c9b453",
-            "34178960ad529b24"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "34178960ad529b24",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1374,23 +758,9 @@
         },
         {
           "shot": "120.4s",
-          "identical": false,
-          "differingPixels": 355879,
-          "firstDifference": [
-            695,
-            93
-          ],
-          "box": [
-            12,
-            93,
-            1427,
-            883
-          ],
-          "sha": [
-            "4a00f8c0766119cf",
-            "5f2df5cbf40f7605"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "5f2df5cbf40f7605",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1412,23 +782,9 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": false,
-          "differingPixels": 4370,
-          "firstDifference": [
-            312,
-            454
-          ],
-          "box": [
-            12,
-            454,
-            530,
-            880
-          ],
-          "sha": [
-            "fa2f8e5ce951c047",
-            "4c93e4cc3a83a8f3"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "4c93e4cc3a83a8f3",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1441,23 +797,9 @@
         },
         {
           "shot": "10s",
-          "identical": false,
-          "differingPixels": 4370,
-          "firstDifference": [
-            312,
-            454
-          ],
-          "box": [
-            12,
-            454,
-            530,
-            880
-          ],
-          "sha": [
-            "906b465f875309c8",
-            "a1b9e3dab4dd958c"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "a1b9e3dab4dd958c",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1479,23 +821,9 @@
       "shots": [
         {
           "shot": "aboard",
-          "identical": false,
-          "differingPixels": 16039,
-          "firstDifference": [
-            624,
-            907
-          ],
-          "box": [
-            24,
-            907,
-            1060,
-            1761
-          ],
-          "sha": [
-            "66e4327531b32732",
-            "026348fb38e6303c"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "026348fb38e6303c",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1508,23 +836,9 @@
         },
         {
           "shot": "changed",
-          "identical": false,
-          "differingPixels": 1462636,
-          "firstDifference": [
-            271,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "f3406b027f451a5d",
-            "d8f08d0eb309caf2"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "d8f08d0eb309caf2",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1537,23 +851,9 @@
         },
         {
           "shot": "walking-1000ms",
-          "identical": false,
-          "differingPixels": 1465162,
-          "firstDifference": [
-            282,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "8081dcd44601c7e3",
-            "43d70591dc75cb36"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "43d70591dc75cb36",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1566,23 +866,9 @@
         },
         {
           "shot": "walking-2000ms",
-          "identical": false,
-          "differingPixels": 1470658,
-          "firstDifference": [
-            288,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "1fc8528c27c14a63",
-            "b5873a3b408d80e8"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b5873a3b408d80e8",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1595,23 +881,9 @@
         },
         {
           "shot": "walking-3000ms",
-          "identical": false,
-          "differingPixels": 1494265,
-          "firstDifference": [
-            299,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "5c4377c3535a12ca",
-            "1c7ef92dbd1be8c4"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "1c7ef92dbd1be8c4",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1624,23 +896,9 @@
         },
         {
           "shot": "walking-5000ms",
-          "identical": false,
-          "differingPixels": 1462862,
-          "firstDifference": [
-            316,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "7c6e507891fbace8",
-            "224c059e33e870b3"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "224c059e33e870b3",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1653,23 +911,9 @@
         },
         {
           "shot": "walking-8000ms",
-          "identical": false,
-          "differingPixels": 1498906,
-          "firstDifference": [
-            345,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "ad43fe507641d538",
-            "b5b60e11ca0c08b7"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b5b60e11ca0c08b7",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1682,23 +926,9 @@
         },
         {
           "shot": "arrived",
-          "identical": false,
-          "differingPixels": 1449359,
-          "firstDifference": [
-            453,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "741d237aa815277e",
-            "6fcd03d0254fcc6a"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "6fcd03d0254fcc6a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1711,23 +941,9 @@
         },
         {
           "shot": "hatch-200ms",
-          "identical": false,
-          "differingPixels": 1464630,
-          "firstDifference": [
-            458,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "115b28811c102912",
-            "498ce8ac395fc645"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "498ce8ac395fc645",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1740,23 +956,9 @@
         },
         {
           "shot": "hatch-400ms",
-          "identical": false,
-          "differingPixels": 1466206,
-          "firstDifference": [
-            458,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "8c16cd81e41bd546",
-            "64da754ea9ed9ee6"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "64da754ea9ed9ee6",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1769,23 +971,9 @@
         },
         {
           "shot": "hatch-700ms",
-          "identical": false,
-          "differingPixels": 1466629,
-          "firstDifference": [
-            464,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "17745bcecf7cc01d",
-            "0884e71df501675e"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "0884e71df501675e",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1798,23 +986,9 @@
         },
         {
           "shot": "hatch-1500ms",
-          "identical": false,
-          "differingPixels": 1478705,
-          "firstDifference": [
-            470,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "9d51cbad264eaaba",
-            "e1ae9e440015a577"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e1ae9e440015a577",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1827,23 +1001,9 @@
         },
         {
           "shot": "hatch-3000ms",
-          "identical": false,
-          "differingPixels": 1451628,
-          "firstDifference": [
-            481,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1767
-          ],
-          "sha": [
-            "fd8d1bc14aa67a08",
-            "e5cf9064a17c3834"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e5cf9064a17c3834",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1856,23 +1016,9 @@
         },
         {
           "shot": "leaving-300ms",
-          "identical": false,
-          "differingPixels": 1700801,
-          "firstDifference": [
-            574,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "9f15554b1f09dcda",
-            "ac376c96b90c4a54"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "ac376c96b90c4a54",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1885,23 +1031,9 @@
         },
         {
           "shot": "leaving-800ms",
-          "identical": false,
-          "differingPixels": 1700801,
-          "firstDifference": [
-            574,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "67b939918207b097",
-            "8f47476b64270777"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "8f47476b64270777",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1914,23 +1046,9 @@
         },
         {
           "shot": "leaving-1400ms",
-          "identical": false,
-          "differingPixels": 1739448,
-          "firstDifference": [
-            579,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "61a483a3cba919a8",
-            "e35b92bc140a21fe"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e35b92bc140a21fe",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1943,23 +1061,9 @@
         },
         {
           "shot": "leaving-2000ms",
-          "identical": false,
-          "differingPixels": 1757505,
-          "firstDifference": [
-            585,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "3472b53825118ac8",
-            "1cf29259e6c3880f"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "1cf29259e6c3880f",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1972,23 +1076,9 @@
         },
         {
           "shot": "leaving-2400ms",
-          "identical": false,
-          "differingPixels": 1748486,
-          "firstDifference": [
-            591,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "f118f388f83ab583",
-            "97298c36d7a6a3ae"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "97298c36d7a6a3ae",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2001,23 +1091,9 @@
         },
         {
           "shot": "leaving-2700ms",
-          "identical": false,
-          "differingPixels": 1741156,
-          "firstDifference": [
-            596,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "938705034721d0b1",
-            "903dc2b7b126770c"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "903dc2b7b126770c",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2030,23 +1106,9 @@
         },
         {
           "shot": "leaving-3000ms",
-          "identical": false,
-          "differingPixels": 1750645,
-          "firstDifference": [
-            596,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "6b092b711992e070",
-            "aec7d445e79e2a18"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "aec7d445e79e2a18",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2059,23 +1121,9 @@
         },
         {
           "shot": "leaving-3300ms",
-          "identical": false,
-          "differingPixels": 1730659,
-          "firstDifference": [
-            602,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "cedbb5836f90370f",
-            "6863bf9fc58e79d8"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "6863bf9fc58e79d8",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2088,23 +1136,9 @@
         },
         {
           "shot": "leaving-3600ms",
-          "identical": false,
-          "differingPixels": 1731682,
-          "firstDifference": [
-            602,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "530f2ad6f887954d",
-            "fc2e5429c3765aff"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "fc2e5429c3765aff",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2117,23 +1151,9 @@
         },
         {
           "shot": "leaving-4000ms",
-          "identical": false,
-          "differingPixels": 1723607,
-          "firstDifference": [
-            608,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "8093bbae7a4d49bc",
-            "cd777d1a06c466ef"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "cd777d1a06c466ef",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2146,23 +1166,9 @@
         },
         {
           "shot": "leaving-4600ms",
-          "identical": false,
-          "differingPixels": 1699095,
-          "firstDifference": [
-            614,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "da76de1d6bcece87",
-            "ea9cfc6abf7def85"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "ea9cfc6abf7def85",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2175,23 +1181,9 @@
         },
         {
           "shot": "leaving-5400ms",
-          "identical": false,
-          "differingPixels": 1704267,
-          "firstDifference": [
-            619,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "5b3490626a1e45c8",
-            "4afa2bba3364915f"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "4afa2bba3364915f",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2204,23 +1196,9 @@
         },
         {
           "shot": "leaving-7000ms",
-          "identical": false,
-          "differingPixels": 1750639,
-          "firstDifference": [
-            637,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "c8be38691966296b",
-            "39f102435722682e"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "39f102435722682e",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2233,23 +1211,9 @@
         },
         {
           "shot": "after",
-          "identical": false,
-          "differingPixels": 1708771,
-          "firstDifference": [
-            826,
-            186
-          ],
-          "box": [
-            24,
-            186,
-            2855,
-            1772
-          ],
-          "sha": [
-            "5355e859f5b744df",
-            "06b6fa74fa19b630"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. The persistent Suggestions control changes the former short footer height, so the existing responsive camera fits the unchanged scene to the remaining canvas; the shark also remains when no worker needs attention.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "06b6fa74fa19b630",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2271,23 +1235,9 @@
       "shots": [
         {
           "shot": "100ms",
-          "identical": false,
-          "differingPixels": 16096,
-          "firstDifference": [
-            599,
-            933
-          ],
-          "box": [
-            24,
-            933,
-            1060,
-            1761
-          ],
-          "sha": [
-            "4ada9fd6ee6924f8",
-            "c9037edb3c07b644"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. Ordinary worker focus and zoom remain unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c9037edb3c07b644",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2300,23 +1250,9 @@
         },
         {
           "shot": "300ms",
-          "identical": false,
-          "differingPixels": 12143,
-          "firstDifference": [
-            28,
-            1732
-          ],
-          "box": [
-            24,
-            1732,
-            1060,
-            1761
-          ],
-          "sha": [
-            "0a2824ad8a4f56dc",
-            "acaa186e25d51427"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. Ordinary worker focus and zoom remain unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "acaa186e25d51427",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2329,23 +1265,9 @@
         },
         {
           "shot": "1.5s",
-          "identical": false,
-          "differingPixels": 12143,
-          "firstDifference": [
-            28,
-            1732
-          ],
-          "box": [
-            24,
-            1732,
-            1060,
-            1761
-          ],
-          "sha": [
-            "cff71350005f0ecd",
-            "00ac6a9146684431"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. Ordinary worker focus and zoom remain unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "00ac6a9146684431",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2358,23 +1280,9 @@
         },
         {
           "shot": "back-out",
-          "identical": false,
-          "differingPixels": 15984,
-          "firstDifference": [
-            624,
-            901
-          ],
-          "box": [
-            24,
-            901,
-            1060,
-            1761
-          ],
-          "sha": [
-            "12bd4e47dbcb682f",
-            "4b7db8227224bf16"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible. Ordinary worker focus and zoom remain unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "4b7db8227224bf16",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2395,23 +1303,9 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": false,
-          "differingPixels": 4370,
-          "firstDifference": [
-            312,
-            454
-          ],
-          "box": [
-            12,
-            454,
-            530,
-            880
-          ],
-          "sha": [
-            "281ff5a5a606561c",
-            "bc93f9988651a734"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "bc93f9988651a734",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2424,23 +1318,9 @@
         },
         {
           "shot": "2s",
-          "identical": false,
-          "differingPixels": 4370,
-          "firstDifference": [
-            312,
-            454
-          ],
-          "box": [
-            12,
-            454,
-            530,
-            880
-          ],
-          "sha": [
-            "5d690c906d2b36a6",
-            "e910971626367f61"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e910971626367f61",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2453,23 +1333,9 @@
         },
         {
           "shot": "6s",
-          "identical": false,
-          "differingPixels": 4391,
-          "firstDifference": [
-            312,
-            460
-          ],
-          "box": [
-            12,
-            460,
-            530,
-            880
-          ],
-          "sha": [
-            "47a274907ca8e43e",
-            "49866e4cd1703530"
-          ],
-          "intentional": "Shark suggestions replace worker selection in the footer; per-sailor response markers remain visible.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "49866e4cd1703530",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2487,6 +1353,6 @@
   "flakes": [],
   "shots": 81,
   "passed": true,
-  "identical": false,
-  "intentionalShots": 81
+  "identical": true,
+  "intentionalShots": 0
 }
