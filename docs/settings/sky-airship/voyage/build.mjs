@@ -28,6 +28,7 @@ m.ambience.push({id:'voyage-cascade',slot:'back',order:4.51,optional:false,lite:
 for(const row of m.atmosphere.table)row.voyage=1;m.atmosphere.delivered.voyage=1;m.atmosphere.clocks.voyage='voyage';m.requires=[...new Set([...m.requires,'phase-strip@1'])].sort();m.stage.fit.top=-90;
 for(const e of m.ambience)if(['sea-far','sea-mid','sea-near','mist'].includes(e.id))e.behaviour.span=[-4096,4576];
 for(const id of ['sea-far','sea-far-storm','sea-mid','sea-mid-storm','sea-near','sea-near-storm'])save(id,decodePng(fs.readFileSync(resolve(pack,id+'.png'))));
+const preview=resolve(here,'renders/wide-day.png');if(fs.existsSync(preview))save('preview',quant(nearest(decodePng(fs.readFileSync(preview)),384,202),64));
 fs.writeFileSync(file,JSON.stringify(m,null,2)+'\n');fs.writeFileSync(resolve(here,'layout.json'),JSON.stringify(layers,null,2)+'\n');
 console.log('Pack bytes',Object.values(m.images).reduce((n,a)=>n+fs.statSync(resolve(pack,a.path)).size,0));
 
