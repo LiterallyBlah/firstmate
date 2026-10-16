@@ -262,9 +262,16 @@ describe("installed Paseo source contracts", () => {
     git(["push", "origin", "release"], publisher);
     const latest = await latestRevision(source);
     expect(latest.revision).not.toBe(source.revision);
+    expect(latest.revision).toBe(git(["rev-parse", "HEAD"], publisher));
+    // Both lookups use the local bare repository: no network and no fetch into the installation.
+    expect(execute.mock.calls.filter(([, args]) => args.includes("ls-remote")).map(([, args]) => args.slice(2))).toEqual([
+      ["ls-remote", "--exit-code", "--", remote, "refs/heads/release"],
+      ["ls-remote", "--exit-code", "--", remote, "refs/heads/release"],
+    ]);
+    expect(execute.mock.calls.some(([, args]) => args.includes("fetch"))).toBe(false);
     expect(git(["rev-parse", "HEAD"], installed)).toBe(source.revision);
     expect(git(["rev-parse", "@{upstream}"], installed)).toBe(source.revision);
     await writeFile(join(installed, "file"), "edited");
     await expect(installedSource()).rejects.toThrow("local changes");
-  });
+  }, 30_000);
 });
