@@ -194,7 +194,7 @@ describe("the sail's billow", () => {
   });
 
   it("is drawn only with its strip, on the tall mast it is fitted to", () => {
-    expect(drawn()).toEqual(["tall-mast", "topmast", "sail", "access-ladder"]);
+    expect(drawn()).toEqual(["tall-mast", "topmast", "access-ladder", "sail"]);
     expect(drawn("sails-main-sail")).toEqual(["tall-mast", "topmast", "access-ladder"]);
     expect(drawn("mast-tall-mast")).toEqual(["masthead"]);
   });

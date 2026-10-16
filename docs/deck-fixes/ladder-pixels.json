@@ -1,0 +1,1390 @@
+{
+  "base": "compiled main b3d70ec",
+  "compiledBranch": "88c5d6f",
+  "unchangedImages": 84,
+  "onlyManifestChanges": [
+    "version",
+    "access-ladder placement and order",
+    "mast-fore transit path"
+  ],
+  "outsideCanvas": 0,
+  "shots": [
+    {
+      "name": "still-noon-dark/open",
+      "sha": [
+        "ac05ea2a90bbd6bf",
+        "01ca0bf89f1a77a8"
+      ],
+      "differingPixels": 31306,
+      "box": [
+        1395,
+        455,
+        1531,
+        1276
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "still-noon-light/open",
+      "sha": [
+        "c75172b2cbb8df46",
+        "a34d647cf2185b4e"
+      ],
+      "differingPixels": 7896,
+      "box": [
+        697,
+        228,
+        764,
+        637
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "still-night/open",
+      "sha": [
+        "85a2408047a80599",
+        "b59db4bda9d8cc03"
+      ],
+      "differingPixels": 31306,
+      "box": [
+        1395,
+        455,
+        1531,
+        1276
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "still-dawn/open",
+      "sha": [
+        "6e66edf391fc7471",
+        "b850389e74a43e84"
+      ],
+      "differingPixels": 7896,
+      "box": [
+        697,
+        228,
+        764,
+        637
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "still-dusk-to-night/open",
+      "sha": [
+        "f132424015901eea",
+        "18dd4cb175192be8"
+      ],
+      "differingPixels": 7896,
+      "box": [
+        697,
+        228,
+        764,
+        637
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "still-busy/open",
+      "sha": [
+        "0680b9e2de3ff580",
+        "5ebbe418901d3c6b"
+      ],
+      "differingPixels": 26231,
+      "box": [
+        1395,
+        455,
+        1531,
+        1276
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "still-all-idle/open",
+      "sha": [
+        "c669e3abfa22fbf0",
+        "1047cfe42321dbbc"
+      ],
+      "differingPixels": 33641,
+      "box": [
+        1395,
+        455,
+        1531,
+        1276
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "still-feed-lost/lost",
+      "sha": [
+        "c92f4c043dd6b849",
+        "da2f8ff21ceff7e3"
+      ],
+      "differingPixels": 7151,
+      "box": [
+        699,
+        276,
+        761,
+        654
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-noon/0.4s",
+      "sha": [
+        "3d4cd03605c903f0",
+        "80671b414c55402a"
+      ],
+      "differingPixels": 31794,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-noon/1s",
+      "sha": [
+        "4b6930945164c5a8",
+        "2bbca14a32cc43a3"
+      ],
+      "differingPixels": 31983,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-noon/2.5s",
+      "sha": [
+        "183f4643b288cec4",
+        "c291d9665570cafc"
+      ],
+      "differingPixels": 32011,
+      "box": [
+        1395,
+        455,
+        1531,
+        1276
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-noon/5s",
+      "sha": [
+        "d0cc2d27aebc279f",
+        "9000da583e678f63"
+      ],
+      "differingPixels": 32011,
+      "box": [
+        1395,
+        455,
+        1531,
+        1276
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-noon/10s",
+      "sha": [
+        "6a97b1e2f5f81250",
+        "8746206cd5eff88c"
+      ],
+      "differingPixels": 31794,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-noon/25s",
+      "sha": [
+        "f656f806f106777a",
+        "0033d7423f204871"
+      ],
+      "differingPixels": 32494,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-noon/49s",
+      "sha": [
+        "3a1df9b8a74ea59b",
+        "edbf99ca344b60c2"
+      ],
+      "differingPixels": 32494,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-noon/73s",
+      "sha": [
+        "c7013d6be38c9b4a",
+        "ce99bbb92f7b898a"
+      ],
+      "differingPixels": 32494,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/0.4s",
+      "sha": [
+        "cd0240d1dc034bc4",
+        "d426ec6f0cc25c4e"
+      ],
+      "differingPixels": 6897,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/5.4s",
+      "sha": [
+        "32fc92c3a859c45d",
+        "f0181747f9bf7b55"
+      ],
+      "differingPixels": 6897,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/10.4s",
+      "sha": [
+        "d64ef41d32e29c88",
+        "a8e51d6c0092fe7b"
+      ],
+      "differingPixels": 6845,
+      "box": [
+        697,
+        233,
+        764,
+        643
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/15.4s",
+      "sha": [
+        "e208323a3cb27985",
+        "0379712489790ffe"
+      ],
+      "differingPixels": 6827,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/20.4s",
+      "sha": [
+        "41da9e95eabc22fc",
+        "396d831f82114ffd"
+      ],
+      "differingPixels": 6827,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/25.4s",
+      "sha": [
+        "8a8615c2a42fa45f",
+        "91be680b23da29c7"
+      ],
+      "differingPixels": 6651,
+      "box": [
+        697,
+        228,
+        764,
+        637
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/30.4s",
+      "sha": [
+        "d948c81ffa28b694",
+        "1d9433c51f391459"
+      ],
+      "differingPixels": 6884,
+      "box": [
+        697,
+        225,
+        764,
+        635
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/flash-33.5s",
+      "sha": [
+        "2b81891a6823dcde",
+        "c0175c9f5b4580b6"
+      ],
+      "differingPixels": 6800,
+      "box": [
+        697,
+        233,
+        764,
+        643
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/flash-33.6s",
+      "sha": [
+        "ac793bc7996da98e",
+        "6d6229837a149d64"
+      ],
+      "differingPixels": 6827,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/35.4s",
+      "sha": [
+        "f3ea116077d6dee1",
+        "94852211d416f2d0"
+      ],
+      "differingPixels": 6884,
+      "box": [
+        697,
+        222,
+        764,
+        632
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/40.4s",
+      "sha": [
+        "088f39c9951b688f",
+        "6516673d4e572a05"
+      ],
+      "differingPixels": 6787,
+      "box": [
+        697,
+        222,
+        764,
+        632
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/45.4s",
+      "sha": [
+        "fb20d56ea468dfae",
+        "2908fab08f66bcc2"
+      ],
+      "differingPixels": 6775,
+      "box": [
+        697,
+        225,
+        764,
+        635
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/flash-48.9s",
+      "sha": [
+        "5ca5fa8af805886d",
+        "09f2354cb72a0243"
+      ],
+      "differingPixels": 6826,
+      "box": [
+        697,
+        225,
+        764,
+        635
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/flash-49.0s",
+      "sha": [
+        "be8f87b662d0de39",
+        "b21aada21c5200b9"
+      ],
+      "differingPixels": 6775,
+      "box": [
+        697,
+        225,
+        764,
+        635
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/50.4s",
+      "sha": [
+        "5dfa1a56efcfb8e3",
+        "23404ace49db0c21"
+      ],
+      "differingPixels": 6543,
+      "box": [
+        697,
+        228,
+        764,
+        637
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/55.4s",
+      "sha": [
+        "f9dd5cdb994f666a",
+        "8e6bf9ecb7699e88"
+      ],
+      "differingPixels": 6839,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/60.4s",
+      "sha": [
+        "0549ceeec58d1f3a",
+        "08921fe377429e5d"
+      ],
+      "differingPixels": 6839,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/65.4s",
+      "sha": [
+        "dd59b51b2a2b9a54",
+        "c26f60357f35b9d7"
+      ],
+      "differingPixels": 6847,
+      "box": [
+        697,
+        233,
+        764,
+        643
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/70.4s",
+      "sha": [
+        "ca13344f97622164",
+        "9491fbf6fb3e4d0a"
+      ],
+      "differingPixels": 6806,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/75.4s",
+      "sha": [
+        "92a803ddd922cd72",
+        "2f01af41ba6c5539"
+      ],
+      "differingPixels": 6827,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/80.4s",
+      "sha": [
+        "aad992353cc21468",
+        "fc2d749eea4bb57c"
+      ],
+      "differingPixels": 6585,
+      "box": [
+        697,
+        228,
+        764,
+        637
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/85.4s",
+      "sha": [
+        "c2ce1ae833e62b1c",
+        "35961803fbd5bbd4"
+      ],
+      "differingPixels": 6884,
+      "box": [
+        697,
+        225,
+        764,
+        635
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/90.4s",
+      "sha": [
+        "d0e5a86d7bab81c3",
+        "29a0960aab5b61be"
+      ],
+      "differingPixels": 6884,
+      "box": [
+        697,
+        225,
+        764,
+        635
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/95.4s",
+      "sha": [
+        "c5a96646dd5f9d33",
+        "ab6cc2f31eb9a737"
+      ],
+      "differingPixels": 6884,
+      "box": [
+        697,
+        222,
+        764,
+        632
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/100.4s",
+      "sha": [
+        "33ea0629b887a57e",
+        "58ed33272682cefc"
+      ],
+      "differingPixels": 6826,
+      "box": [
+        697,
+        225,
+        764,
+        635
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/105.4s",
+      "sha": [
+        "007a287b062ca1cb",
+        "25926f7003d4a6b0"
+      ],
+      "differingPixels": 6814,
+      "box": [
+        697,
+        225,
+        764,
+        635
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/110.4s",
+      "sha": [
+        "e03f73396e22b0ec",
+        "1cbe7118ffdacb8d"
+      ],
+      "differingPixels": 6585,
+      "box": [
+        697,
+        228,
+        764,
+        637
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/115.4s",
+      "sha": [
+        "8205514637361563",
+        "ae4090e0b67a7c7b"
+      ],
+      "differingPixels": 6897,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-storm/120.4s",
+      "sha": [
+        "b184191ef4d9f7f1",
+        "4c3448568d9dfa3a"
+      ],
+      "differingPixels": 6904,
+      "box": [
+        697,
+        233,
+        764,
+        643
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-night/0.4s",
+      "sha": [
+        "1d46434c46608d91",
+        "283f8db9caf4b9ff"
+      ],
+      "differingPixels": 8243,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-night/10s",
+      "sha": [
+        "cc2ca47ab74575a3",
+        "e2fdd9066a2a066c"
+      ],
+      "differingPixels": 8243,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/aboard",
+      "sha": [
+        "3d4cd03605c903f0",
+        "80671b414c55402a"
+      ],
+      "differingPixels": 31794,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/changed",
+      "sha": [
+        "c64b3f00c59e907e",
+        "1803cf9271947ab9"
+      ],
+      "differingPixels": 31794,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/walking-1000ms",
+      "sha": [
+        "a1ce4d8e5e1a1752",
+        "72fb348d7e91eebe"
+      ],
+      "differingPixels": 32494,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/walking-2000ms",
+      "sha": [
+        "dc97cb5f8ca3fccb",
+        "400045995a7ae015"
+      ],
+      "differingPixels": 32011,
+      "box": [
+        1395,
+        455,
+        1531,
+        1276
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/walking-3000ms",
+      "sha": [
+        "1be84e85ac4d33f2",
+        "b3a76fd4c633fd41"
+      ],
+      "differingPixels": 32439,
+      "box": [
+        1395,
+        444,
+        1531,
+        1264
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/walking-5000ms",
+      "sha": [
+        "a0d7604e57017dd7",
+        "c215c03f19036d19"
+      ],
+      "differingPixels": 31283,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/walking-8000ms",
+      "sha": [
+        "4087f6c5b5dea58c",
+        "349170dfeb49c494"
+      ],
+      "differingPixels": 32439,
+      "box": [
+        1395,
+        444,
+        1531,
+        1264
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/arrived",
+      "sha": [
+        "793fda04b49d9348",
+        "94a10073cff01b4c"
+      ],
+      "differingPixels": 31983,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/hatch-200ms",
+      "sha": [
+        "130e27ca73282a6d",
+        "3303e5524dca10eb"
+      ],
+      "differingPixels": 31816,
+      "box": [
+        1395,
+        455,
+        1531,
+        1276
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/hatch-400ms",
+      "sha": [
+        "50e84b621d16d676",
+        "c52725fc7d23329a"
+      ],
+      "differingPixels": 31816,
+      "box": [
+        1395,
+        455,
+        1531,
+        1276
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/hatch-700ms",
+      "sha": [
+        "68a55bcad33e5f36",
+        "baaf48593163488a"
+      ],
+      "differingPixels": 31821,
+      "box": [
+        1395,
+        449,
+        1531,
+        1270
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/hatch-1500ms",
+      "sha": [
+        "75c9f910cd387a6c",
+        "9f0f0b04f95d84cb"
+      ],
+      "differingPixels": 31751,
+      "box": [
+        1395,
+        444,
+        1531,
+        1264
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/hatch-3000ms",
+      "sha": [
+        "b3b8aeae3738a013",
+        "ca08871a1cacf97a"
+      ],
+      "differingPixels": 29519,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-300ms",
+      "sha": [
+        "6a6e8fed2a04e311",
+        "6964a2b68d33a17a"
+      ],
+      "differingPixels": 30013,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-800ms",
+      "sha": [
+        "1584e3f9821efaa2",
+        "2dd82e1d5588134a"
+      ],
+      "differingPixels": 29047,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-1400ms",
+      "sha": [
+        "c70257542b78f67f",
+        "c7bd663c0bba67cc"
+      ],
+      "differingPixels": 29692,
+      "box": [
+        1395,
+        449,
+        1531,
+        1270
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-2000ms",
+      "sha": [
+        "b46157c7af8c8d83",
+        "c9aa7f2daac3285e"
+      ],
+      "differingPixels": 28071,
+      "box": [
+        1395,
+        444,
+        1531,
+        1230
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-2400ms",
+      "sha": [
+        "d9e3e9752346a6ed",
+        "5306ba11bb52fc84"
+      ],
+      "differingPixels": 29389,
+      "box": [
+        1395,
+        444,
+        1531,
+        1264
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-2700ms",
+      "sha": [
+        "ece02483ac0c2aab",
+        "90b0f4531d2f5173"
+      ],
+      "differingPixels": 30229,
+      "box": [
+        1395,
+        449,
+        1531,
+        1270
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-3000ms",
+      "sha": [
+        "a92ce7edafc36ca5",
+        "b73c2020aefb4f16"
+      ],
+      "differingPixels": 29254,
+      "box": [
+        1395,
+        449,
+        1531,
+        1270
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-3300ms",
+      "sha": [
+        "af7a498715c84af6",
+        "3566d661c539fb1a"
+      ],
+      "differingPixels": 29005,
+      "box": [
+        1395,
+        455,
+        1531,
+        1276
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-3600ms",
+      "sha": [
+        "54f1c6601d54f75a",
+        "0b838737e1b5d13d"
+      ],
+      "differingPixels": 29197,
+      "box": [
+        1395,
+        455,
+        1531,
+        1276
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-4000ms",
+      "sha": [
+        "06288877aa879231",
+        "fe4e7dd839b88b6a"
+      ],
+      "differingPixels": 29106,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-4600ms",
+      "sha": [
+        "db5bf88c8b9bef33",
+        "bfbdf7fe15dfe55a"
+      ],
+      "differingPixels": 29383,
+      "box": [
+        1395,
+        467,
+        1531,
+        1287
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-5400ms",
+      "sha": [
+        "422d03a83fa92c01",
+        "ddd5af63627290cf"
+      ],
+      "differingPixels": 29519,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/leaving-7000ms",
+      "sha": [
+        "68bfcb932eb3bee8",
+        "cac990bfcec35b36"
+      ],
+      "differingPixels": 29655,
+      "box": [
+        1395,
+        444,
+        1531,
+        1264
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "moving-crew/after",
+      "sha": [
+        "341c0fe0dbe868b5",
+        "ed7471effd5e0772"
+      ],
+      "differingPixels": 29519,
+      "box": [
+        1395,
+        461,
+        1531,
+        1282
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "focus/100ms",
+      "sha": [
+        "a191061cdd7fbb57",
+        "64697adea880c914"
+      ],
+      "differingPixels": 32604,
+      "box": [
+        1386,
+        478,
+        1524,
+        1315
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": null
+    },
+    {
+      "name": "focus/300ms",
+      "sha": [
+        "76bea2de7406114f",
+        "2c3bc06c07b25118"
+      ],
+      "differingPixels": 54709,
+      "box": [
+        1141,
+        912,
+        1369,
+        1677
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": null
+    },
+    {
+      "name": "focus/1.5s",
+      "sha": [
+        "e8a80ed06a2af17d",
+        "71eaad017f8b6c02"
+      ],
+      "differingPixels": 53369,
+      "box": [
+        988,
+        1180,
+        1291,
+        1677
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": null
+    },
+    {
+      "name": "focus/back-out",
+      "sha": [
+        "1c89a7ed03ce7d80",
+        "1e44d230807236ec"
+      ],
+      "differingPixels": 32004,
+      "box": [
+        1395,
+        449,
+        1531,
+        1270
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": null
+    },
+    {
+      "name": "lite-software-renderer/0.4s",
+      "sha": [
+        "a04c86341b11af68",
+        "1b269a5aff92e055"
+      ],
+      "differingPixels": 8240,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "lite-software-renderer/2s",
+      "sha": [
+        "5bb3bfd39ee3a9de",
+        "2c062e524cccc4c9"
+      ],
+      "differingPixels": 8240,
+      "box": [
+        697,
+        230,
+        764,
+        640
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    },
+    {
+      "name": "lite-software-renderer/6s",
+      "sha": [
+        "d5d52e5fb592edcf",
+        "a078e40571514ed1"
+      ],
+      "differingPixels": 8413,
+      "box": [
+        697,
+        233,
+        764,
+        643
+      ],
+      "outsideCanvas": 0,
+      "belowDeck": 0,
+      "outsideMastStrip": 0
+    }
+  ]
+}

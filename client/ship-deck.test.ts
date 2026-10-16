@@ -730,7 +730,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
 
     const whole = await packArt(await failing([]), warn, cut);
     expect(whole.image).toEqual({ png: setting.images.deck });
-    expect(whole.parts.parts.map((part) => part.id)).toEqual(["tall-mast", "topmast", "sail", "access-ladder"]);
+    expect(whole.parts.parts.map((part) => part.id)).toEqual(["tall-mast", "topmast", "access-ladder", "sail"]);
     expect(whole.parts.pieces.map((piece) => [piece.id, piece.by])).toEqual([
       ["near", null],
       ["mast", "tall-mast"],

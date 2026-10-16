@@ -166,7 +166,7 @@ load or the element falls back under the usual ambience rules. Ambience keeps it
 `post-transit@1` adds optional `transit` to a zone post:
 
 ```json
-{ "path": [[222,-35],[218,-35]], "speed": 24,
+{ "path": [[211,98],[211,-35],[218,-35]], "speed": 24,
   "poses": ["climb-a","climb-b"], "stepMs": 260, "settled": "lookout",
   "front": "mast", "needs": ["mast-tall-mast","polish-ladder"] }
 ```

@@ -1,411 +1,411 @@
 {
-  "review": "docs/deck-enrichment/polish-review.md",
-  "base": "compiled main dfecf41",
+  "review": "docs/deck-fixes/ladder-review.md",
+  "base": "compiled main b3d70ec",
   "shots": {
     "still-noon-dark/open": {
-      "main": "4bc948d064b81110",
-      "branch": "ac05ea2a90bbd6bf",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. All pixels outside the canvas are identical."
+      "main": "ac05ea2a90bbd6bf",
+      "branch": "01ca0bf89f1a77a8",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "still-noon-light/open": {
-      "main": "fd5b1e52b10dc378",
-      "branch": "c75172b2cbb8df46",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. All pixels outside the canvas are identical."
+      "main": "c75172b2cbb8df46",
+      "branch": "a34d647cf2185b4e",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "still-night/open": {
-      "main": "f192b174cc4bbcf6",
-      "branch": "85a2408047a80599",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Authored phase tint darkens stage and actor bodies while preserving engine badges. All pixels outside the canvas are identical."
+      "main": "85a2408047a80599",
+      "branch": "b59db4bda9d8cc03",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "still-dawn/open": {
-      "main": "7852c4c8774f7f10",
-      "branch": "6e66edf391fc7471",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Authored phase tint darkens stage and actor bodies while preserving engine badges. All pixels outside the canvas are identical."
+      "main": "6e66edf391fc7471",
+      "branch": "b850389e74a43e84",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "still-dusk-to-night/open": {
-      "main": "bdf5835d2e928649",
-      "branch": "f132424015901eea",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Authored phase tint darkens stage and actor bodies while preserving engine badges. All pixels outside the canvas are identical."
+      "main": "f132424015901eea",
+      "branch": "18dd4cb175192be8",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "still-busy/open": {
-      "main": "6632a099bf9fb4b5",
-      "branch": "0680b9e2de3ff580",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. All pixels outside the canvas are identical."
+      "main": "0680b9e2de3ff580",
+      "branch": "5ebbe418901d3c6b",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "still-all-idle/open": {
-      "main": "6ffa79ff8f8e975d",
-      "branch": "c669e3abfa22fbf0",
-      "reason": "Scalloped foam, wider calm sea and the new ladder; resting hull targets retain their art and positions. All pixels outside the canvas are identical."
+      "main": "c669e3abfa22fbf0",
+      "branch": "1047cfe42321dbbc",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "still-feed-lost/lost": {
-      "main": "99baa855a1510c6d",
-      "branch": "c92f4c043dd6b849",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. All pixels outside the canvas are identical."
+      "main": "c92f4c043dd6b849",
+      "branch": "da2f8ff21ceff7e3",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-noon/0.4s": {
-      "main": "5964fd6d3069bc37",
-      "branch": "3d4cd03605c903f0",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "3d4cd03605c903f0",
+      "branch": "80671b414c55402a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-noon/1s": {
-      "main": "fe0c3dae3614396b",
-      "branch": "4b6930945164c5a8",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "4b6930945164c5a8",
+      "branch": "2bbca14a32cc43a3",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-noon/2.5s": {
-      "main": "68bc201b0ee59f27",
-      "branch": "183f4643b288cec4",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "183f4643b288cec4",
+      "branch": "c291d9665570cafc",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-noon/5s": {
-      "main": "caf568df641f2d12",
-      "branch": "d0cc2d27aebc279f",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "d0cc2d27aebc279f",
+      "branch": "9000da583e678f63",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-noon/10s": {
-      "main": "5d1dc0863a6ac1fb",
-      "branch": "6a97b1e2f5f81250",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "6a97b1e2f5f81250",
+      "branch": "8746206cd5eff88c",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-noon/25s": {
-      "main": "58c8bf8a0cc1b651",
-      "branch": "f656f806f106777a",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "f656f806f106777a",
+      "branch": "0033d7423f204871",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-noon/49s": {
-      "main": "c37b43e6867991b8",
-      "branch": "3a1df9b8a74ea59b",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "3a1df9b8a74ea59b",
+      "branch": "edbf99ca344b60c2",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-noon/73s": {
-      "main": "17f176618067212e",
-      "branch": "c7013d6be38c9b4a",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "c7013d6be38c9b4a",
+      "branch": "ce99bbb92f7b898a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/0.4s": {
-      "main": "335da02eb5eeea5c",
-      "branch": "cd0240d1dc034bc4",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "cd0240d1dc034bc4",
+      "branch": "d426ec6f0cc25c4e",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/5.4s": {
-      "main": "89d810c2d76e1650",
-      "branch": "32fc92c3a859c45d",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "32fc92c3a859c45d",
+      "branch": "f0181747f9bf7b55",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/10.4s": {
-      "main": "3da8cbd48771cb37",
-      "branch": "d64ef41d32e29c88",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "d64ef41d32e29c88",
+      "branch": "a8e51d6c0092fe7b",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/15.4s": {
-      "main": "d13f95eef0e00d52",
-      "branch": "e208323a3cb27985",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "e208323a3cb27985",
+      "branch": "0379712489790ffe",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/20.4s": {
-      "main": "16145e4d48c8103c",
-      "branch": "41da9e95eabc22fc",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "41da9e95eabc22fc",
+      "branch": "396d831f82114ffd",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/25.4s": {
-      "main": "359343851fddf6a9",
-      "branch": "8a8615c2a42fa45f",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "8a8615c2a42fa45f",
+      "branch": "91be680b23da29c7",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/30.4s": {
-      "main": "80529acc45c3331f",
-      "branch": "d948c81ffa28b694",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "d948c81ffa28b694",
+      "branch": "1d9433c51f391459",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/flash-33.5s": {
-      "main": "d20233a073d7e8e1",
-      "branch": "2b81891a6823dcde",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "2b81891a6823dcde",
+      "branch": "c0175c9f5b4580b6",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/flash-33.6s": {
-      "main": "dc94dd14253cfd77",
-      "branch": "ac793bc7996da98e",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "ac793bc7996da98e",
+      "branch": "6d6229837a149d64",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/35.4s": {
-      "main": "7e38435eb32a7e59",
-      "branch": "f3ea116077d6dee1",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "f3ea116077d6dee1",
+      "branch": "94852211d416f2d0",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/40.4s": {
-      "main": "656eb28007abf8ec",
-      "branch": "088f39c9951b688f",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "088f39c9951b688f",
+      "branch": "6516673d4e572a05",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/45.4s": {
-      "main": "9e74ff99d72fa1fc",
-      "branch": "fb20d56ea468dfae",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "fb20d56ea468dfae",
+      "branch": "2908fab08f66bcc2",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/flash-48.9s": {
-      "main": "4ea4fcd3f16085f5",
-      "branch": "5ca5fa8af805886d",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "5ca5fa8af805886d",
+      "branch": "09f2354cb72a0243",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/flash-49.0s": {
-      "main": "ae3a53f60e545e7a",
-      "branch": "be8f87b662d0de39",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "be8f87b662d0de39",
+      "branch": "b21aada21c5200b9",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/50.4s": {
-      "main": "d08d682aecce8aab",
-      "branch": "5dfa1a56efcfb8e3",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "5dfa1a56efcfb8e3",
+      "branch": "23404ace49db0c21",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/55.4s": {
-      "main": "6fd0b91a47c17b63",
-      "branch": "f9dd5cdb994f666a",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "f9dd5cdb994f666a",
+      "branch": "8e6bf9ecb7699e88",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/60.4s": {
-      "main": "20b54b8e068ad9b7",
-      "branch": "0549ceeec58d1f3a",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "0549ceeec58d1f3a",
+      "branch": "08921fe377429e5d",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/65.4s": {
-      "main": "94759518e6ba9e90",
-      "branch": "dd59b51b2a2b9a54",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "dd59b51b2a2b9a54",
+      "branch": "c26f60357f35b9d7",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/70.4s": {
-      "main": "8ff43f702b20d194",
-      "branch": "ca13344f97622164",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "ca13344f97622164",
+      "branch": "9491fbf6fb3e4d0a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/75.4s": {
-      "main": "bd1ba0938617dfdb",
-      "branch": "92a803ddd922cd72",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "92a803ddd922cd72",
+      "branch": "2f01af41ba6c5539",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/80.4s": {
-      "main": "5b217171d0029b5a",
-      "branch": "aad992353cc21468",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "aad992353cc21468",
+      "branch": "fc2d749eea4bb57c",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/85.4s": {
-      "main": "181bf7a215ef7034",
-      "branch": "c2ce1ae833e62b1c",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "c2ce1ae833e62b1c",
+      "branch": "35961803fbd5bbd4",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/90.4s": {
-      "main": "7207f96a4b6dcc45",
-      "branch": "d0e5a86d7bab81c3",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "d0e5a86d7bab81c3",
+      "branch": "29a0960aab5b61be",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/95.4s": {
-      "main": "426fc933d42714ef",
-      "branch": "c5a96646dd5f9d33",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "c5a96646dd5f9d33",
+      "branch": "ab6cc2f31eb9a737",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/100.4s": {
-      "main": "840b88aa349d2a69",
-      "branch": "33ea0629b887a57e",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "33ea0629b887a57e",
+      "branch": "58ed33272682cefc",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/105.4s": {
-      "main": "cf47d46b2cf73d01",
-      "branch": "007a287b062ca1cb",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "007a287b062ca1cb",
+      "branch": "25926f7003d4a6b0",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/110.4s": {
-      "main": "44b310bb505d403a",
-      "branch": "e03f73396e22b0ec",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "e03f73396e22b0ec",
+      "branch": "1cbe7118ffdacb8d",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/115.4s": {
-      "main": "71a0beb08e054ecc",
-      "branch": "8205514637361563",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "8205514637361563",
+      "branch": "ae4090e0b67a7c7b",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-storm/120.4s": {
-      "main": "44928aafff84ba67",
-      "branch": "b184191ef4d9f7f1",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "b184191ef4d9f7f1",
+      "branch": "4c3448568d9dfa3a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-night/0.4s": {
-      "main": "6f78dbdd0335e339",
-      "branch": "1d46434c46608d91",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Authored phase tint darkens stage and actor bodies while preserving engine badges. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "1d46434c46608d91",
+      "branch": "283f8db9caf4b9ff",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-night/10s": {
-      "main": "76c06f17d5fa0299",
-      "branch": "cc2ca47ab74575a3",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Authored phase tint darkens stage and actor bodies while preserving engine badges. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "cc2ca47ab74575a3",
+      "branch": "e2fdd9066a2a066c",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/aboard": {
-      "main": "5964fd6d3069bc37",
-      "branch": "3d4cd03605c903f0",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "3d4cd03605c903f0",
+      "branch": "80671b414c55402a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/changed": {
-      "main": "ed73d7dd2eb514c5",
-      "branch": "c64b3f00c59e907e",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "c64b3f00c59e907e",
+      "branch": "1803cf9271947ab9",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/walking-1000ms": {
-      "main": "a3867fe1f2ffba58",
-      "branch": "a1ce4d8e5e1a1752",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "a1ce4d8e5e1a1752",
+      "branch": "72fb348d7e91eebe",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/walking-2000ms": {
-      "main": "e813df3df21ea2c2",
-      "branch": "dc97cb5f8ca3fccb",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "dc97cb5f8ca3fccb",
+      "branch": "400045995a7ae015",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/walking-3000ms": {
-      "main": "8e007946ff620e5b",
-      "branch": "1be84e85ac4d33f2",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "1be84e85ac4d33f2",
+      "branch": "b3a76fd4c633fd41",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/walking-5000ms": {
-      "main": "f6d50923102fc3c7",
-      "branch": "a0d7604e57017dd7",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "a0d7604e57017dd7",
+      "branch": "c215c03f19036d19",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/walking-8000ms": {
-      "main": "2eea1df9cd262cb8",
-      "branch": "4087f6c5b5dea58c",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "4087f6c5b5dea58c",
+      "branch": "349170dfeb49c494",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/arrived": {
-      "main": "0128de12a715d561",
-      "branch": "793fda04b49d9348",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "793fda04b49d9348",
+      "branch": "94a10073cff01b4c",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/hatch-200ms": {
-      "main": "a659dcffee7483b6",
-      "branch": "130e27ca73282a6d",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "130e27ca73282a6d",
+      "branch": "3303e5524dca10eb",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/hatch-400ms": {
-      "main": "abf44be2a646143d",
-      "branch": "50e84b621d16d676",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "50e84b621d16d676",
+      "branch": "c52725fc7d23329a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/hatch-700ms": {
-      "main": "d5109ce033abc424",
-      "branch": "68a55bcad33e5f36",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "68a55bcad33e5f36",
+      "branch": "baaf48593163488a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/hatch-1500ms": {
-      "main": "ce42b65d54d20607",
-      "branch": "75c9f910cd387a6c",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "75c9f910cd387a6c",
+      "branch": "9f0f0b04f95d84cb",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/hatch-3000ms": {
-      "main": "3ee6d9e9767fe820",
-      "branch": "b3b8aeae3738a013",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "b3b8aeae3738a013",
+      "branch": "ca08871a1cacf97a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-300ms": {
-      "main": "102c1bb048cc82b6",
-      "branch": "6a6e8fed2a04e311",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "6a6e8fed2a04e311",
+      "branch": "6964a2b68d33a17a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-800ms": {
-      "main": "cc64f83bc7676bb1",
-      "branch": "1584e3f9821efaa2",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "1584e3f9821efaa2",
+      "branch": "2dd82e1d5588134a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-1400ms": {
-      "main": "9c0aa989d673e59d",
-      "branch": "c70257542b78f67f",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "c70257542b78f67f",
+      "branch": "c7bd663c0bba67cc",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-2000ms": {
-      "main": "c7d55eaf339da8df",
-      "branch": "b46157c7af8c8d83",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "b46157c7af8c8d83",
+      "branch": "c9aa7f2daac3285e",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-2400ms": {
-      "main": "09b0f29a33f4376b",
-      "branch": "d9e3e9752346a6ed",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "d9e3e9752346a6ed",
+      "branch": "5306ba11bb52fc84",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-2700ms": {
-      "main": "e01e604874f0c012",
-      "branch": "ece02483ac0c2aab",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "ece02483ac0c2aab",
+      "branch": "90b0f4531d2f5173",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-3000ms": {
-      "main": "83c408d1c1249d3d",
-      "branch": "a92ce7edafc36ca5",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "a92ce7edafc36ca5",
+      "branch": "b73c2020aefb4f16",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-3300ms": {
-      "main": "a56194757a63c2cb",
-      "branch": "af7a498715c84af6",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "af7a498715c84af6",
+      "branch": "3566d661c539fb1a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-3600ms": {
-      "main": "ad0b77df9b20ec41",
-      "branch": "54f1c6601d54f75a",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "54f1c6601d54f75a",
+      "branch": "0b838737e1b5d13d",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-4000ms": {
-      "main": "dc4db4cb19d0328a",
-      "branch": "06288877aa879231",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "06288877aa879231",
+      "branch": "fe4e7dd839b88b6a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-4600ms": {
-      "main": "5ff9e0f6d6c883b2",
-      "branch": "db5bf88c8b9bef33",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "db5bf88c8b9bef33",
+      "branch": "bfbdf7fe15dfe55a",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-5400ms": {
-      "main": "4cfaf730193aace3",
-      "branch": "422d03a83fa92c01",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "422d03a83fa92c01",
+      "branch": "ddd5af63627290cf",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/leaving-7000ms": {
-      "main": "7cf0861a3b8cdee1",
-      "branch": "68bfcb932eb3bee8",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "68bfcb932eb3bee8",
+      "branch": "cac990bfcec35b36",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "moving-crew/after": {
-      "main": "33ba23abd8a913d8",
-      "branch": "341c0fe0dbe868b5",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical."
+      "main": "341c0fe0dbe868b5",
+      "branch": "ed7471effd5e0772",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "focus/100ms": {
-      "main": "20ac2253e6caccec",
-      "branch": "a191061cdd7fbb57",
-      "reason": "The same focused worker now occupies the raised nest, so the existing camera follows that position; new generated lookout art and ladder. Focus panel and surrounding UI remain identical. All pixels outside the canvas are identical."
+      "main": "a191061cdd7fbb57",
+      "branch": "64697adea880c914",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "focus/300ms": {
-      "main": "5f0f2760308a60d6",
-      "branch": "76bea2de7406114f",
-      "reason": "The same focused worker now occupies the raised nest, so the existing camera follows that position; new generated lookout art and ladder. Focus panel and surrounding UI remain identical. All pixels outside the canvas are identical."
+      "main": "76bea2de7406114f",
+      "branch": "2c3bc06c07b25118",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "focus/1.5s": {
-      "main": "1ce303953b7bbfe6",
-      "branch": "e8a80ed06a2af17d",
-      "reason": "The same focused worker now occupies the raised nest, so the existing camera follows that position; new generated lookout art and ladder. Focus panel and surrounding UI remain identical. All pixels outside the canvas are identical."
+      "main": "e8a80ed06a2af17d",
+      "branch": "71eaad017f8b6c02",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "focus/back-out": {
-      "main": "3abddb24e5624ff6",
-      "branch": "1c89a7ed03ce7d80",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. All pixels outside the canvas are identical."
+      "main": "1c89a7ed03ce7d80",
+      "branch": "1e44d230807236ec",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "lite-software-renderer/0.4s": {
-      "main": "54b4401b8f23b91b",
-      "branch": "a04c86341b11af68",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "a04c86341b11af68",
+      "branch": "1b269a5aff92e055",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "lite-software-renderer/2s": {
-      "main": "66d90059c5cc80dc",
-      "branch": "5bb3bfd39ee3a9de",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "5bb3bfd39ee3a9de",
+      "branch": "2c062e524cccc4c9",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     },
     "lite-software-renderer/6s": {
-      "main": "b82569701f347294",
-      "branch": "d5d52e5fb592edcf",
-      "reason": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical."
+      "main": "d5d52e5fb592edcf",
+      "branch": "a078e40571514ed1",
+      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
     }
   }
 }
