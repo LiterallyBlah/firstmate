@@ -1,0 +1,6 @@
+{
+  "phase": "before",
+  "setting": "japanese-ship",
+  "mode": "still",
+  "observer": "canvas PNGs and public DOM attributes only"
+}
