@@ -593,13 +593,29 @@
       ],
       "sha256": "6e73f7c86080f29870fa4f6ca0b5260e336475fd175f1d38b925bfe9afbf5b99"
     },
+    "sea-floor": {
+      "path": "sea-floor.png",
+      "size": [
+        704,
+        192
+      ],
+      "sha256": "572a501cd28821a95313fffd12fde434794da21c1154845bbef70ccfe8a01591"
+    },
+    "sea-floor-storm": {
+      "path": "sea-floor-storm.png",
+      "size": [
+        704,
+        192
+      ],
+      "sha256": "adcd7b45da7326c578fb73c05faff797dcf83aaa83d753bc1b21cc4d9fdc2cec"
+    },
     "sea-near": {
       "path": "sea-near.png",
       "size": [
         1408,
         160
       ],
-      "sha256": "715f58d141198b2d5c55bfa2c2e5dfcb4c423ae35511f98bfce7b127f5f8c458"
+      "sha256": "d5963db15ff0a3b1c5e02bcea3cec463c38cb6c2cea621d94107aff3fdc795e4"
     },
     "sea-near-storm": {
       "path": "sea-near-storm.png",
@@ -607,7 +623,7 @@
         1408,
         160
       ],
-      "sha256": "7a09e375022b31b0bc6e9d4b0869b36f503d18218986ce6a56dc74ad0b0f25ee"
+      "sha256": "a580a0c3f12a2004c9b338af96505763c679fabc0dbd312a66cc113ca63dd025"
     },
     "mist-0": {
       "path": "mist-0.png",
@@ -3427,6 +3443,58 @@
             ]
           ]
         }
+      }
+    },
+    {
+      "id": "sea-floor",
+      "slot": "front",
+      "order": 4.9,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "tile",
+        "frames": {
+          "sprites": [
+            {
+              "image": "sea-floor"
+            }
+          ],
+          "frameMs": 1000,
+          "clock": "cloud"
+        },
+        "origin": 398,
+        "bands": [
+          {
+            "slot": "front",
+            "fromRow": 398
+          }
+        ],
+        "drift": {
+          "pxPerSecond": 3.8,
+          "clock": "wind"
+        },
+        "variants": [
+          {
+            "id": "sea-floor-storm",
+            "frames": [
+              {
+                "image": "sea-floor-storm"
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                0.95,
+                1
+              ]
+            ]
+          }
+        ]
       }
     },
     {

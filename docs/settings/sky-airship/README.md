@@ -20,11 +20,15 @@ banks, coordinated storm-dark art, taller cumulus forms and high wisps. The
 unchanged approved ship/crew/whale behavior. Additional phase captures:
 [pink dawn](review/dawn.png) and [gold dusk](review/dusk.png).
 
+The [tall-pane continuation](narrow/README.md) fills below the near cloud bank at
+every viewport height. Its day/night/storm evidence covers wide, square, tall and
+very tall panes; wide and square captures remain pixel-identical.
+
 ## Pack and provenance
 
 Only `setting.json` and its referenced PNGs ship in `art/settings/sky-airship/`.
-The 89 PNGs remain below the **1,000,000-byte** budget; exact bytes are recorded in
-[validation.json](validation.json). The pack uses 26 existing catalogue capabilities. There are no engine, schema,
+The 91 PNGs remain below the **1,000,000-byte** budget; current bytes and preservation checks are recorded in
+[narrow/audit.json](narrow/audit.json). The pack uses 26 existing catalogue capabilities. There are no engine, schema,
 client or server changes, new dependencies in the plugin, timers or runtime scripts.
 The picker names it **Sky pirates**. Both existing packs remain untouched.
 
