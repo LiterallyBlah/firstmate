@@ -1,0 +1,407 @@
+{
+  "sources": {
+    "ship": {
+      "sha256": "3d91588b2694c73c0a73ef15c130c575e97fb6b68c5eb77927cd28f23f527dc3"
+    },
+    "coast": {
+      "sha256": "a1a5a569596f5d6c1db0c94727f55bc0ef265cdd634c91b2a988232da1fea06a"
+    },
+    "coast-night": {
+      "sha256": "c5abe9b4b3efe23e453babbe991762e7bf84490453f4a52782003c1ce985248d"
+    },
+    "ripples": {
+      "sha256": "c6779dce24fdb131ffcbf79603c395bf840cda6eefbdc4688a1e7443722143e6"
+    },
+    "wake": {
+      "sha256": "dc73265b951f178d581e28e29f67d0772bf6779d4c5f2305514e4554ba262bad"
+    },
+    "reply-shark": {
+      "sha256": "47c0d77cdaa0afdfde6795f7d22006b3848fc71de376348ac2f8e1e5a2258d69"
+    },
+    "sleep-window": {
+      "sha256": "80258efadbc1842873dc7e8e932248f97a68e878412918d078345e761e7e8632"
+    },
+    "crew-indigo": {
+      "sha256": "0c517220e143ddbadb8a03f4671ce1cc6203e6accb61c0ec8b29be629c93afd8"
+    },
+    "crew-russet": {
+      "sha256": "6754f811c0be00f66eec85b8086e0d5e22b8a112941ea8dcda0331a15b75fd43"
+    }
+  },
+  "images": {
+    "ship": {
+      "path": "ship.png",
+      "size": [
+        480,
+        320
+      ],
+      "sha256": "7a051bc79b2eb68a5526de09786d857bb871daefdad697b3761330339d398ebf"
+    },
+    "coast": {
+      "path": "coast.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "72329e05567e2ca32906de956d4c612659f7fe7bd0cf5f1571cc62cd088e567f"
+    },
+    "coast-night": {
+      "path": "coast-night.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "1d84250f9b02ba6f662ee70b4c44f0af345b81fc7c250805aa05bd99da30c163"
+    },
+    "ripples": {
+      "path": "ripples.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "9a2521f7f513e1cba41bd47400022894ad50786831810087aae80a36b4a7d0cb"
+    },
+    "wake": {
+      "path": "wake.png",
+      "size": [
+        128,
+        36
+      ],
+      "sha256": "2c0cf7a816d9c72f527d07072e4dd859626e7e652bed3262e6a67499776fbd97"
+    },
+    "reply-shark": {
+      "path": "reply-shark.png",
+      "size": [
+        56,
+        44
+      ],
+      "sha256": "ca9dc08091fd6906e3aee890477ba1872268cf8c64f2e85a6ed800fb809db8d5"
+    },
+    "sleep-window": {
+      "path": "sleep-window.png",
+      "size": [
+        14,
+        16
+      ],
+      "sha256": "3544d22798d564e16e7661b40a57afc784d071c302cb7ff9877c6fd58d3ef2bb"
+    },
+    "crew-indigo": {
+      "path": "crew-indigo.png",
+      "size": [
+        384,
+        36
+      ],
+      "sha256": "8d48b9f76ff5620dada337d55010ce9a28abb3e683161cc57af7ab21b2844d69"
+    },
+    "crew-russet": {
+      "path": "crew-russet.png",
+      "size": [
+        384,
+        36
+      ],
+      "sha256": "82fe6d631b97ba1b3e3376e931bf24b73f864b77685985028559003c80f82d92"
+    },
+    "preview": {
+      "path": "preview.png",
+      "size": [
+        384,
+        202
+      ],
+      "sha256": "1b5f3304a882bf244405cceb205869cf2ca64e113dc29efd986e14bc106195ae"
+    }
+  },
+  "lanes": {
+    "indigo": {
+      "stand": {
+        "rect": [
+          8,
+          2,
+          15,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "front-a": {
+        "rect": [
+          40,
+          2,
+          15,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "front-pass": {
+        "rect": [
+          72,
+          2,
+          15,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "front-b": {
+        "rect": [
+          104,
+          2,
+          15,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "side-idle": {
+        "rect": [
+          138,
+          2,
+          11,
+          32
+        ],
+        "feet": [
+          6,
+          32
+        ]
+      },
+      "side-a": {
+        "rect": [
+          168,
+          2,
+          16,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "side-pass": {
+        "rect": [
+          202,
+          2,
+          11,
+          32
+        ],
+        "feet": [
+          6,
+          32
+        ]
+      },
+      "side-b": {
+        "rect": [
+          232,
+          2,
+          16,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "pull-a": {
+        "rect": [
+          259,
+          4,
+          25,
+          30
+        ],
+        "feet": [
+          13,
+          30
+        ]
+      },
+      "pull-b": {
+        "rect": [
+          294,
+          4,
+          19,
+          30
+        ],
+        "feet": [
+          10,
+          30
+        ]
+      },
+      "waiting": {
+        "rect": [
+          327,
+          2,
+          17,
+          32
+        ],
+        "feet": [
+          9,
+          32
+        ]
+      },
+      "rest": {
+        "rect": [
+          359,
+          10,
+          18,
+          24
+        ],
+        "feet": [
+          9,
+          24
+        ]
+      }
+    },
+    "russet": {
+      "stand": {
+        "rect": [
+          8,
+          2,
+          15,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "front-a": {
+        "rect": [
+          40,
+          2,
+          15,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "front-pass": {
+        "rect": [
+          72,
+          2,
+          15,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "front-b": {
+        "rect": [
+          104,
+          2,
+          15,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "side-idle": {
+        "rect": [
+          138,
+          2,
+          12,
+          32
+        ],
+        "feet": [
+          6,
+          32
+        ]
+      },
+      "side-a": {
+        "rect": [
+          168,
+          2,
+          16,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "side-pass": {
+        "rect": [
+          202,
+          2,
+          12,
+          32
+        ],
+        "feet": [
+          6,
+          32
+        ]
+      },
+      "side-b": {
+        "rect": [
+          232,
+          2,
+          16,
+          32
+        ],
+        "feet": [
+          8,
+          32
+        ]
+      },
+      "pull-a": {
+        "rect": [
+          259,
+          4,
+          26,
+          30
+        ],
+        "feet": [
+          13,
+          30
+        ]
+      },
+      "pull-b": {
+        "rect": [
+          294,
+          4,
+          19,
+          30
+        ],
+        "feet": [
+          10,
+          30
+        ]
+      },
+      "waiting": {
+        "rect": [
+          327,
+          2,
+          17,
+          32
+        ],
+        "feet": [
+          9,
+          32
+        ]
+      },
+      "rest": {
+        "rect": [
+          359,
+          10,
+          18,
+          24
+        ],
+        "feet": [
+          9,
+          24
+        ]
+      }
+    }
+  }
+}

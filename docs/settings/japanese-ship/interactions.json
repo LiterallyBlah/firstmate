@@ -1,0 +1,49 @@
+{
+  "checks": [
+    "picker offers ship and Sakura coast only; failed save stays put; saved scene survives reload; ship geometry restored",
+    "all four crew states render; generated shark body and bubble focus their worker in place on the same canvas",
+    "day/night preserve composition; still motion is stable; full motion changes rendered pixels",
+    "24 separate sleeping windows focus 24 distinct workers",
+    "stale feed removes reply target; compact footer fits 900 and 640 pixel panes"
+  ],
+  "focused": [
+    "Sleeper 00: details and actions",
+    "Sleeper 01: details and actions",
+    "Sleeper 02: details and actions",
+    "Sleeper 03: details and actions",
+    "Sleeper 04: details and actions",
+    "Sleeper 05: details and actions",
+    "Sleeper 06: details and actions",
+    "Sleeper 07: details and actions",
+    "Sleeper 08: details and actions",
+    "Sleeper 09: details and actions",
+    "Sleeper 10: details and actions",
+    "Sleeper 11: details and actions",
+    "Sleeper 12: details and actions",
+    "Sleeper 13: details and actions",
+    "Sleeper 14: details and actions",
+    "Sleeper 15: details and actions",
+    "Sleeper 16: details and actions",
+    "Sleeper 17: details and actions",
+    "Sleeper 18: details and actions",
+    "Sleeper 19: details and actions",
+    "Sleeper 20: details and actions",
+    "Sleeper 21: details and actions",
+    "Sleeper 22: details and actions",
+    "Sleeper 23: details and actions"
+  ],
+  "screenshots": [
+    "picker.png",
+    "day.png",
+    "day-canvas.png",
+    "floor-overlay.png",
+    "shark-focus.png",
+    "night.png",
+    "moving.png",
+    "sleepers-24.png",
+    "stale.png",
+    "split-900.png",
+    "split-640.png"
+  ],
+  "errors": []
+}
