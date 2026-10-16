@@ -587,25 +587,27 @@ function FleetViewBody({
     );
   }
 
+  const mateStatus = mate === null ? null : (
+    <Chip theme={theme} text={agentStatusLabel(mate)} color={agentStatusTone(theme, mate)} />
+  );
+  const taskCounts = data === null ? null : (
+    <Text style={[styles.meta, { flexShrink: 1, fontSize: compact ? 11 : 12 }]} numberOfLines={1}>
+      {[
+        counts.working + " working",
+        counts.blocked + " blocked",
+        counts.queued + " queued",
+        counts.done + " done",
+      ].join(" · ")}
+    </Text>
+  );
   const header = (
     <View style={[styles.header, { paddingTop: 8, gap: 6 }]} nativeID="firstmate-home-header">
       <View style={[styles.headerRow, { flexWrap: "nowrap" }]}>
         <Icon name="Ship" size={16} color={theme.colors.foreground} />
         <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <Text style={[styles.title, { fontSize: 17 }]}>FirstMate</Text>
-          {mate === null ? null : (
-            <Chip theme={theme} text={agentStatusLabel(mate)} color={agentStatusTone(theme, mate)} />
-          )}
-          {data === null ? null : (
-            <Text style={[styles.meta, { flexShrink: 1 }]} numberOfLines={1}>
-              {[
-                counts.working + " working",
-                counts.blocked + " blocked",
-                counts.queued + " queued",
-                counts.done + " done",
-              ].join(" · ")}
-            </Text>
-          )}
+          {compact ? null : mateStatus}
+          {compact ? null : taskCounts}
         </View>
         {home && !compact && mate !== null && data !== null && !values.boardCollapsed ? (
           <Segmented
@@ -627,6 +629,9 @@ function FleetViewBody({
             onChange={selectHomePane}
           />
         ) : null}
+        {compact && shell !== undefined ? (
+          <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} compact />
+        ) : null}
         <HeaderActions
           theme={theme}
           navigation={navigation}
@@ -646,7 +651,13 @@ function FleetViewBody({
           }}
         />
       </View>
-      {shell === undefined ? null : (
+      {compact && (mate !== null || data !== null) ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {mateStatus}
+          {taskCounts}
+        </View>
+      ) : null}
+      {compact || shell === undefined ? null : (
         <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} />
       )}
     </View>
