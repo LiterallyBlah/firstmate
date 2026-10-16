@@ -26,6 +26,9 @@
     },
     "polish-kraken": {
       "sha256": "4daddb400481721142eda7328572dfe7126eef5d33da5da26dc0bd1192d03f2a"
+    },
+    "preview-canvas": {
+      "sha256": "0b85d2a09dc1bc688cdaa5b1243e7e62d378ddc1808a0b026629b2c274503c1f"
     }
   },
   "images": {

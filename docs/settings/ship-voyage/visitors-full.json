@@ -1,0 +1,11 @@
+{
+  "mode": "full",
+  "dolphinSeconds": 24,
+  "leaps": 4,
+  "whaleSeconds": 60,
+  "whaleDriftPixels": 102,
+  "whalePlayback": 5,
+  "hiddenPane": "pixels pause and resume changing",
+  "returnToReduced": "pixel stable; visitor hide policy",
+  "errors": []
+}

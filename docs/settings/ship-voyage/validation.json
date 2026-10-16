@@ -1,20 +1,30 @@
 {
   "pack": {
     "id": "ship",
+    "name": "Pirate voyage",
     "version": "2.0.0",
-    "images": 138,
-    "imageBytes": 809482,
-    "manifestSha256": "24b79ce861622b765a1a23000daccebf1f9b553bf85003927e83c22d235f4325"
+    "images": 159,
+    "imageBytes": 984461,
+    "manifestSha256": "5a86601ad57d09be7e9eac9d570f3c81e3756249647adf9ddae8ea5fffe1899e",
+    "preview": "preview"
   },
   "packLint": {
     "files": 3,
-    "passed": 69
+    "passed": 69,
+    "command": "npm.cmd run lint:deck-packs -- --maxWorkers=1 --testTimeout=30000"
   },
   "typecheck": "passed",
   "suite": {
     "files": 101,
     "passed": 1180,
-    "skipped": 3
+    "skipped": 4,
+    "platforms": [
+      "windows-latest",
+      "ubuntu-latest"
+    ],
+    "artCommit": "7b0f3500d38bea66e3dcb9c00d3c7f4850a3749a",
+    "run": "https://github.com/LiterallyBlah/firstmate/actions/runs/38964934030",
+    "localNote": "Shared Windows runs hit timeouts and a PR-watch wall-clock budget assertion. Isolated CI passes without relaxing assertions or repository timeouts."
   },
   "rpcTests": 14,
   "fullMode": "full",
@@ -22,13 +32,17 @@
   "still": "pixel stable",
   "crowd": {
     "still": 24,
-    "rocking": 24
+    "rocking": 24,
+    "stateCrowds": 4,
+    "stateClicks": 96
   },
   "engineGate": {
     "shots": 81,
     "identical": true,
     "flakes": 0,
-    "baselineMigration": "identical 81-shot arrays"
+    "base": "compiled main b1458b4",
+    "compiledBranch": "029389d",
+    "baselineMigration": "unchanged frozen fixture; no exception hashes changed"
   },
   "hermes": {
     "main": "parsed",
@@ -43,10 +57,29 @@
     "playbackSpeed": 60
   },
   "night": {
-    "manifestSha256": "24b79ce861622b765a1a23000daccebf1f9b553bf85003927e83c22d235f4325",
+    "manifestSha256": "5a86601ad57d09be7e9eac9d570f3c81e3756249647adf9ddae8ea5fffe1899e",
     "night": "night",
     "voyageSeconds": 1070,
     "frames": 40,
     "errors": []
+  },
+  "visitors": {
+    "full": {
+      "mode": "full",
+      "dolphinSeconds": 24,
+      "leaps": 4,
+      "whaleSeconds": 60,
+      "whaleDriftPixels": 102,
+      "whalePlayback": 5,
+      "hiddenPane": "pixels pause and resume changing",
+      "returnToReduced": "pixel stable; visitor hide policy",
+      "errors": []
+    },
+    "lite": {
+      "mode": "lite",
+      "still": "pixel stable",
+      "visitors": "both hide in lite and still",
+      "errors": []
+    }
   }
 }
