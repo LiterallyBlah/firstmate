@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict';import fs from 'node:fs';import {createRequire} from 'node:module';import {resolve} from 'node:path';import {pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';import fs from 'node:fs';import {createRequire} from 'node:module';import {resolve} from 'node:path';import {pathToFileURL} from 'node:url';
 const req=createRequire(resolve('docs/board-list/package.json')),outfile=resolve('.generated/serpent-engine.mjs');
 await req('esbuild').build({stdin:{contents:"export {elementMotion} from './client/deck-ambience';export {variantBlend} from './client/deck-variants';export {foamSegments} from './client/deck-environment';",resolveDir:process.cwd()},outfile,bundle:true,platform:'node',format:'esm',logLevel:'silent'});
 const {elementMotion,variantBlend,foamSegments}=await import(pathToFileURL(outfile));const m=JSON.parse(fs.readFileSync('art/settings/sky-airship/setting.json')),e=m.ambience.find(e=>e.id==='sky-serpent');

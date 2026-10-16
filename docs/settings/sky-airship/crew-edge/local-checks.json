@@ -1,0 +1,31 @@
+{
+  "tests": {
+    "command": "npm.cmd test -- --maxWorkers=1",
+    "exitCode": 0,
+    "passed": 1180,
+    "skipped": 3
+  },
+  "typecheck": {
+    "exitCode": 0
+  },
+  "packLint": {
+    "command": "npm.cmd run lint:deck-packs -- --maxWorkers=1 --testTimeout=20000",
+    "exitCode": 0,
+    "passed": 69
+  },
+  "frozenShip": {
+    "shots": 81,
+    "pixelIdentical": true
+  },
+  "crowd": {
+    "clicks": 192,
+    "normalBowClicks": 6,
+    "errors": 0
+  },
+  "sceneRegression": {
+    "errors": 0,
+    "lookout": true,
+    "departure": true,
+    "rocking": true
+  }
+}
