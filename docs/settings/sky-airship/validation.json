@@ -1,0 +1,58 @@
+{
+  "imageCount": 89,
+  "imageBytes": 861653,
+  "imageBudget": 1000000,
+  "requiredCapabilities": [
+    "stage@1",
+    "floor@1",
+    "zones@1",
+    "zone-appearance@1",
+    "post-transit@1",
+    "attention-carrier@1",
+    "carrier-surface@1",
+    "stable-posts@1",
+    "cast@1",
+    "pose-fidgets@1",
+    "rise@1",
+    "choreography@1",
+    "phase-tint@1",
+    "bob@1",
+    "sway@1",
+    "cycle@1",
+    "flicker@1",
+    "backdrop-cycle@1",
+    "flash@1",
+    "drifters@1",
+    "flyby@1",
+    "tile@1",
+    "strip@1",
+    "variants@1",
+    "day-cycle@1",
+    "atmosphere@1"
+  ],
+  "packLint": {
+    "files": 3,
+    "passed": 66
+  },
+  "typecheck": "passed",
+  "suite": {
+    "files": 97,
+    "passed": 1155,
+    "skipped": 3,
+    "workers": 1,
+    "note": "Initial concurrent run hit the existing pr-watch 400 ms wall-clock budget test; isolated full rerun passed without source changes."
+  },
+  "shipGate": {
+    "shots": 81,
+    "passed": true,
+    "identical": true,
+    "pageErrors": []
+  },
+  "hermes": "both compiled plugin bundles parsed; vendor Pixi excluded from bundles",
+  "packageDryRun": {
+    "packFiles": 90,
+    "docsFiles": 0
+  },
+  "scope": "Only new pack and its docs; both installed packs and engine source unchanged",
+  "cloudAudit": "cloud-preservation.json"
+}
