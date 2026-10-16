@@ -19,12 +19,12 @@
  *
  * A remote worker has no timeline here: its recent text log, read every ten
  * seconds through the remote request path, and its permissions are answered on
- * its host. Open in Paseo (↗) is kept for what only Paseo has — model and mode,
- * the worktree's files, terminals — and for history past the tail read here.
+ * its host. Open in its own tab (↗) opens Paseo's native agent conversation
+ * for model and mode, the worktree's files and terminals.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
-import { Icon, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
+import { Icon, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
@@ -32,6 +32,10 @@ import { Platform, Pressable, SafeAreaView, ScrollView, Text, View } from "react
 import { interruptCrew, steerCrew, type FleetCard } from "../shared/fleet";
 import { interruptRemoteCrew, remoteCrewLogs, steerRemoteCrew } from "../shared/remote-crew";
 import { activityRows, type ActivityRow, type PlanStatus } from "./activity-rows";
+import { GrowingChatInput } from "./growing-chat-input";
+import { MessageCopy } from "./message-copy";
+import { useWorkspaceFileLink } from "./workspace-file-link";
+import type { ChatImageLoader } from "./local-chat-image";
 import { CrewCard } from "./card";
 import {
   SPEAKER_LABELS,
@@ -80,6 +84,7 @@ function isLong(text: string): boolean {
 interface DrawerProps {
   /** The worker, by `watchKey`. */
   watchKey: string;
+  serverId?: string | undefined;
   /** Null once the worker has left the board — ended, archived, or its host removed. */
   card: FleetCard | null;
   theme: PluginTheme;
@@ -100,7 +105,7 @@ export function ConverseDrawer(props: DrawerProps) {
   const worker = target.kind === "thread" ? (workerKey === null ? null : converseTarget(workerKey)) : target;
   const itemKey = target.kind === "thread" ? target.itemKey : props.card === null ? null : itemTagKey(props.card);
   return (
-    <View style={{ flex: 1, minHeight: 0 }}>
+    <View style={{ flex: 1, minHeight: 0, backgroundColor: props.theme.colors.surface0 }}>
       {worker === null || itemKey === null ? null : (
         <View style={{ padding: 8 }}>
           <Segmented theme={props.theme} value={discussion ? "discussion" : "worker"} options={[
@@ -266,11 +271,12 @@ function useSends(deliver: (text: string) => Promise<unknown>, seen: (text: stri
 // ---------------------------------------------------------------------------
 
 function LocalConverse({ agentId, ...props }: DrawerProps & { agentId: string }) {
-  const { card, theme, compact, onOpen, onChanged } = props;
+  const { card, theme, compact, onChanged } = props;
   const toast = useToast();
   const steer = useRpc(steerCrew);
   const interrupt = useRpc(interruptCrew);
   const agent = card?.agent ?? null;
+  const workspaceLinks = useWorkspaceFileLink(theme, undefined, { serverId: props.serverId, worker: agent === null ? null : { workspaceId: agent.workspaceId, cwd: agent.cwd } });
   const revision = agent === null ? "" : `${agent.updatedAt}:${agent.pendingPermissions}`;
   const timeline = useAgentTimeline(agentId, revision, TIMELINE_LIMIT);
   const rows = useMemo(() => activityRows(timeline.entries), [timeline.entries]);
@@ -291,9 +297,7 @@ function LocalConverse({ agentId, ...props }: DrawerProps & { agentId: string })
     setModeState(next);
   }
 
-  function openLink(url: string): void {
-    void openExternalUrl(url).catch((caught: unknown) => toast.error(errorText(caught)));
-  }
+  const openLink = workspaceLinks.open;
 
   const hint =
     card === null
@@ -339,14 +343,12 @@ function LocalConverse({ agentId, ...props }: DrawerProps & { agentId: string })
     >
       <ScrollView {...follow.scrollProps} contentContainerStyle={{ padding: compact ? 10 : 14, gap: 8 }} automaticallyAdjustKeyboardInsets>
         {timeline.hasOlder ? (
-          <TranscriptLine theme={theme} icon="History">
-            Only the latest activity is shown here.{" "}
-            {onOpen === null ? null : (
-              <Text accessibilityRole="link" style={{ color: theme.colors.accent, textDecorationLine: "underline" }} onPress={onOpen}>
-                The rest is in Paseo.
-              </Text>
-            )}
-          </TranscriptLine>
+          <IconButton theme={theme} icon="History"
+            label={timeline.loadingOlder ? "Loading earlier messages..." : "Load earlier messages"}
+            showLabel disabled={timeline.loadingOlder}
+            onPress={() => timeline.loadOlder((prefix, hasOlder) => {
+              if (!hasOlder || activityRows(prefix).length > 0) follow.preserveOnPrepend();
+            })} />
         ) : null}
         {timeline.error === null ? null : <Text style={{ color: theme.colors.statusDanger, fontSize: 12 }}>{timeline.error}</Text>}
         {rows.length === 0 && pending.length === 0 && sends.sends.length === 0 ? (
@@ -354,9 +356,9 @@ function LocalConverse({ agentId, ...props }: DrawerProps & { agentId: string })
             {timeline.loading ? "Loading the worker's conversation…" : "Nothing has happened yet."}
           </Text>
         ) : mode === "conversation" ? (
-          <ConversationRows rows={conversationRows(rows)} theme={theme} onOpenLink={openLink} />
+          <ConversationRows rows={conversationRows(rows)} theme={theme} onOpenLink={openLink} imageLoader={workspaceLinks.imageLoader} />
         ) : (
-          <ActivityRows rows={rows} theme={theme} onOpenLink={openLink} />
+          <ActivityRows rows={rows} theme={theme} onOpenLink={openLink} imageLoader={workspaceLinks.imageLoader} />
         )}
         <SentRows sends={sends.sends} theme={theme} onRetry={(send) => void sends.submit(send.text, send.id)} onDismiss={sends.dismiss} />
         {pending.map((request) => (
@@ -378,6 +380,7 @@ function LocalConverse({ agentId, ...props }: DrawerProps & { agentId: string })
         ) : null}
       </ScrollView>
       {follow.away ? <JumpToEnd theme={theme} onPress={follow.jumpToEnd} /> : null}
+      {workspaceLinks.dialog}
     </DrawerShell>
   );
 }
@@ -599,17 +602,6 @@ function DrawerShell({
           <Text accessibilityRole="header" style={styles.title} numberOfLines={2}>
             {title}
           </Text>
-          {onOpen === null ? null : (
-            <IconButton
-              icon="ExternalLink"
-              label="Open in Paseo"
-              tooltip="Open in Paseo, for what only Paseo has: model and mode, the worktree's files, terminals. What you type there is not relayed to the first mate."
-              tooltipAlign="end"
-              tooltipSide="bottom"
-              theme={theme}
-              onPress={onOpen}
-            />
-          )}
           {card === null ? null : (
             <IconButton
               icon="Ellipsis"
@@ -666,7 +658,22 @@ function DrawerShell({
           <CrewCard card={card} theme={theme} compact={compact} presentation="drawer" opener={null} onChanged={onChanged} />
         </ScrollView>
       ) : null}
-      {transcriptSwitch === null ? null : <View style={{ paddingHorizontal: compact ? 10 : 12, paddingBottom: 8 }}>{transcriptSwitch}</View>}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ alignItems: "center", gap: 6, paddingHorizontal: compact ? 10 : 12, paddingBottom: 8 }}>
+        {transcriptSwitch}
+          {onOpen === null ? null : (
+            <IconButton
+              icon="ExternalLink"
+              label="Open in its own tab"
+              showLabel
+              tooltip="Open this worker's native Paseo conversation tab. The Deck stays open. Messages sent there are not relayed to the first mate."
+              tooltipAlign="end"
+              tooltipSide="bottom"
+              theme={theme}
+              onPress={onOpen}
+            />
+          )}
+
+      </ScrollView>
       <View style={styles.frame}>{children}</View>
       {composer}
     </View>
@@ -791,11 +798,11 @@ function Composer({
         <Text style={{ color: colors.foregroundMuted, fontSize: 11 }} numberOfLines={2}>
           {recipient}
         </Text>
-        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
-          <TextInput
+        <View style={{ flexDirection: "row", alignItems: "flex-end", borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.surface1 }}>
+          <GrowingChatInput theme={theme}
             value={draft}
             onChangeText={setDraft}
-            placeholder={submitOnEnter ? `${placeholder} (Enter sends, Shift+Enter for a new line)` : placeholder}
+            placeholder={placeholder}
             placeholderTextColor={colors.foregroundMuted}
             accessibilityLabel={recipient}
             multiline
@@ -811,22 +818,8 @@ function Composer({
                   }
                 : undefined
             }
-            style={{
-              flex: 1,
-              color: colors.foreground,
-              fontSize: 13,
-              minHeight: 44,
-              maxHeight: 160,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 8,
-              paddingHorizontal: 10,
-              paddingVertical: 8,
-              backgroundColor: colors.surface1,
-              textAlignVertical: "top",
-            }}
           />
-          <View style={{ gap: 6 }}>
+          <View style={{ flexDirection: "row", gap: 4, padding: 5 }}>
             {running ? (
               <IconButton icon="Square" label="Interrupt" tooltip="Stop this worker's current turn." tooltipAlign="end" theme={theme} onPress={onInterrupt} />
             ) : null}
@@ -998,7 +991,7 @@ function ToolRow({
         )}
       </View>
       {!expanded || row.detail === null ? null : row.markdown ? (
-        <Markdown source={row.detail} theme={theme} fontSize={12} onOpenLink={onOpenLink} />
+        <Markdown source={row.detail} theme={theme} fontSize={12} onOpenLink={onOpenLink} chatTools />
       ) : (
         <Text selectable style={styles.detail}>
           {row.detail}
@@ -1008,7 +1001,7 @@ function ToolRow({
   );
 }
 
-function ConversationRows({ rows, theme, onOpenLink }: { rows: readonly ConversationRow[]; theme: PluginTheme; onOpenLink: (url: string) => void }) {
+function ConversationRows({ rows, theme, onOpenLink, imageLoader }: { rows: readonly ConversationRow[]; theme: PluginTheme; onOpenLink: (url: string, title?: string) => void; imageLoader: ChatImageLoader }) {
   const styles = useRowStyles(theme);
   const open = useOpenRows();
 
@@ -1016,10 +1009,11 @@ function ConversationRows({ rows, theme, onOpenLink }: { rows: readonly Conversa
     switch (row.kind) {
       case "said":
         return row.speaker === "worker" ? (
-          <Markdown source={row.text} theme={theme} onOpenLink={onOpenLink} />
+          <View style={{ gap: 6 }}><Markdown source={row.text} theme={theme} onOpenLink={onOpenLink} chatTools workspaceAware imageLoader={imageLoader} /><View style={{ alignSelf: "flex-start" }}><MessageCopy text={row.text} theme={theme} /></View></View>
         ) : (
           <View style={row.speaker === "you" ? styles.captain : styles.prompt}>
             <FoldedText rowKey={row.key} text={row.text} style={styles.promptText} open={open} theme={theme} />
+            <View style={{ alignSelf: "flex-start" }}><MessageCopy text={row.text} theme={theme} /></View>
           </View>
         );
       case "tools": {
@@ -1084,7 +1078,7 @@ function activityLabel(row: ActivityRow): string | undefined {
   return row.kind === "prompt" ? (row.captain ? SPEAKER_LABELS.you : SPEAKER_LABELS.prompt) : ACTIVITY_LABELS[row.kind];
 }
 
-function ActivityRows({ rows, theme, onOpenLink }: { rows: readonly ActivityRow[]; theme: PluginTheme; onOpenLink: (url: string) => void }) {
+function ActivityRows({ rows, theme, onOpenLink, imageLoader }: { rows: readonly ActivityRow[]; theme: PluginTheme; onOpenLink: (url: string, title?: string) => void; imageLoader: ChatImageLoader }) {
   const styles = useRowStyles(theme);
   const open = useOpenRows();
 
@@ -1101,6 +1095,7 @@ function ActivityRows({ rows, theme, onOpenLink }: { rows: readonly ActivityRow[
         return (
           <View style={row.captain ? styles.captain : styles.prompt}>
             <FoldedText rowKey={row.key} text={row.text} style={styles.promptText} open={open} theme={theme} />
+            <View style={{ alignSelf: "flex-start" }}><MessageCopy text={row.text} theme={theme} /></View>
           </View>
         );
       case "reasoning":
@@ -1110,7 +1105,7 @@ function ActivityRows({ rows, theme, onOpenLink }: { rows: readonly ActivityRow[
           </View>
         );
       case "reply":
-        return <Markdown source={row.text} theme={theme} onOpenLink={onOpenLink} />;
+        return <View style={{ gap: 6 }}><Markdown source={row.text} theme={theme} onOpenLink={onOpenLink} chatTools workspaceAware imageLoader={imageLoader} /><View style={{ alignSelf: "flex-start" }}><MessageCopy text={row.text} theme={theme} /></View></View>;
       case "tool":
         return <ToolRow row={row} theme={theme} open={open} onOpenLink={onOpenLink} />;
       case "plan":

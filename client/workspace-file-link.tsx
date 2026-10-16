@@ -7,25 +7,25 @@ import { fileLineDescription, parseFileLink } from "./workspace-links";
 import { openWorkspaceForFile, resolveWorkspaceFile, type WorkspaceFileSelection, type WorkspaceLinkServices } from "./workspace-link-routing";
 import { IconButton, MONOSPACE, Spinner, errorText } from "./ui";
 import { readChatImage } from "../shared/chat-images";
-import { chatImageRequest, localImageLink } from "./chat-image-routing";
+import { chatImageRequest, localImageLink, type ChatImageContext } from "./chat-image-routing";
 import { LocalChatImage, type ChatImageLoader } from "./local-chat-image";
 
 type LinkState = { kind: "image"; href: string; title?: string | undefined } | { kind: "loading" } | { kind: "error"; message: string } | { kind: "selection"; selection: WorkspaceFileSelection } | null;
 
 /** The SDK can open a workspace, not its file pane. Show the manual selection before leaving chat. */
-export function useWorkspaceFileLink(theme: PluginTheme, navigation: PluginScreenProps["navigation"], imageContext?: { serverId?: string; home?: string }) {
+export function useWorkspaceFileLink(theme: PluginTheme, navigation: PluginScreenProps["navigation"], imageContext?: ChatImageContext) {
   const hosts = useHosts(), toast = useToast();
   const readImage = useRpc(readChatImage);
   const hostsRef = useRef(hosts);
   hostsRef.current = hosts;
   const services: WorkspaceLinkServices = useMemo(() => ({ hosts: () => hostsRef.current, client: getPaseoClient }), []);
   const imageLoader: ChatImageLoader = useMemo(() => ({
-    key: JSON.stringify([imageContext?.serverId, imageContext?.home]),
+    key: JSON.stringify([imageContext?.serverId, imageContext?.home, imageContext?.worker]),
     async read(href, title) {
       try { return await readImage(await chatImageRequest(href, title, { ...imageContext, services })); }
       catch { return { status: "unavailable", reason: "path" }; }
     },
-  }), [readImage, services, imageContext?.serverId, imageContext?.home]);
+  }), [readImage, services, imageContext?.serverId, imageContext?.home, imageContext?.worker?.workspaceId, imageContext?.worker?.cwd, imageContext?.worker === null]);
   const generation = useRef(0);
   const [state, setState] = useState<LinkState>(null);
   const [opening, setOpening] = useState(false);
@@ -75,7 +75,7 @@ export function useWorkspaceFileLink(theme: PluginTheme, navigation: PluginScree
     path: { color: theme.colors.foreground, fontFamily: MONOSPACE, fontSize: 13, lineHeight: 19 },
   };
   const dialog = state?.kind === "image"
-    ? <LocalChatImage key={`${state.href}:${state.title}`} uri={state.href} title={state.title} label="Image from the first mate" theme={theme} loader={imageLoader} viewerOnly onClose={close} />
+    ? <LocalChatImage key={`${state.href}:${state.title}`} uri={state.href} title={state.title} label={imageContext?.worker === undefined ? "Image from the first mate" : "Image from the worker"} theme={theme} loader={imageLoader} viewerOnly onClose={close} />
     : <Modal title="Workspace file link" open={state !== null} onOpenChange={value => { if (!value) close(); }}>
     <Modal.Content>
       {state?.kind === "loading" ? <View style={{ flexDirection: "row", gap: 8 }}><Spinner size={16} color={theme.colors.foregroundMuted} /><Text style={styles.text}>Finding the workspace…</Text></View> : null}

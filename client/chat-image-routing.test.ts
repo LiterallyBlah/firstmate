@@ -33,3 +33,15 @@ it("opts local Markdown images into the reader, retaining provenance and leaving
   expect(localImageLink("file:///C:/worktree/preview%20image.PNG")).toBe(true);
   for (const href of ["https://example.com/x.png", "data:image/png;base64,x", "notes.txt"]) expect(localImageLink(href)).toBe(false);
 });
+
+it("resolves worker images from its cwd within its registered workspace, never the mate's home", async () => {
+  const c = { ...context(), worker: { workspaceId: "worktree", cwd: "C:/worktree/subdir" } };
+  expect(await chatImageRequest("preview.png", undefined, c)).toEqual({ root: { kind: "workspace", workspaceId: "worktree" }, path: "subdir/preview.png" });
+  expect(await chatImageRequest("C:/worktree/preview.png", undefined, c)).toEqual({ root: { kind: "workspace", workspaceId: "worktree" }, path: "preview.png" });
+  for (const href of ["../preview.png", "C:/home/preview.png", "C:/outside/preview.png"]) await expect(chatImageRequest(href, undefined, c)).rejects.toThrow();
+  await expect(chatImageRequest("preview.png", "firstmate:home", c)).rejects.toThrow();
+  await expect(chatImageRequest("preview.png", "firstmate:serverId=remote&workspaceId=worktree", c)).rejects.toThrow();
+  await expect(chatImageRequest("preview.png", undefined, { ...c, worker: null })).rejects.toThrow();
+  await expect(chatImageRequest("preview.png", undefined, { ...c, worker: { ...c.worker, workspaceId: null } })).rejects.toThrow();
+  await expect(chatImageRequest("preview.png", undefined, { ...c, serverId: undefined })).rejects.toThrow();
+});

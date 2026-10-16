@@ -6,10 +6,12 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
 import type { PluginScreenProps } from "@getpaseo/plugin/client";
-import { Icon, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
+import { Icon, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Image, Platform, Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
+
+import { GrowingChatInput } from "./growing-chat-input";
 
 import type { ImagePart } from "../shared/attachments";
 import { MAX_FILE_CANDIDATES, findHomeFiles } from "../shared/files";
@@ -286,26 +288,6 @@ export function MateChat({
         backgroundColor: colors.surface1,
       },
       inputActions: { flexDirection: "row" as const, gap: 6, padding: 5 },
-      inputBox: { flex: 1, minWidth: 0, minHeight: 40, maxHeight: 160, overflow: "hidden" as const },
-      inputText: {
-        color: colors.foreground,
-        // The measuring text and native input must wrap with the same font.
-        fontFamily: Platform.OS === "ios" ? "System" : "sans-serif",
-        fontSize: 14,
-        lineHeight: 20,
-        paddingHorizontal: 10,
-        paddingVertical: 10,
-      },
-      input: {
-        position: "absolute" as const,
-        top: 0,
-        left: 0,
-        width: "100%" as const,
-        height: "100%" as const,
-        borderWidth: 0,
-        backgroundColor: "transparent",
-        textAlignVertical: "top" as const,
-      },
     };
   }, [theme, compact]);
 
@@ -533,39 +515,25 @@ export function MateChat({
             </View>
           )}
           <View style={styles.inputRow}>
-            <View style={styles.inputBox}>
-              {/* Text measures the placeholder or draft without textarea scrollHeight feedback, and shrinks
-                  after sending/deleting or a shared draft update from another chat. */}
-              <Text
-                accessible={false}
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                aria-hidden
-                pointerEvents="none"
-                style={[styles.inputText, { opacity: 0 }]}
-              >
-                {(draft || placeholder) + "\u200b"}
-              </Text>
-              <TextInput
-                value={draft}
-                onChangeText={setDraft}
-                placeholder={placeholder}
-                placeholderTextColor={theme.colors.foregroundMuted}
-                multiline
-                numberOfLines={1}
-                onKeyPress={
-                  submitOnEnter
-                    ? (event: WebKeyPressEvent) => {
-                        // Nothing to send, or a send in flight: Enter is left alone, as Paseo leaves it.
-                        if (!isSendKey(event.nativeEvent) || sending || !hasContent(draft, attachments)) return;
-                        event.preventDefault();
-                        sendDraft();
-                      }
-                    : undefined
-                }
-                style={[styles.inputText, styles.input]}
-              />
-            </View>
+            <GrowingChatInput
+              theme={theme}
+              value={draft}
+              onChangeText={setDraft}
+              placeholder={placeholder}
+              placeholderTextColor={theme.colors.foregroundMuted}
+              multiline
+              numberOfLines={1}
+              onKeyPress={
+                submitOnEnter
+                  ? (event: WebKeyPressEvent) => {
+                      // Nothing to send, or a send in flight: Enter is left alone, as Paseo leaves it.
+                      if (!isSendKey(event.nativeEvent) || sending || !hasContent(draft, attachments)) return;
+                      event.preventDefault();
+                      sendDraft();
+                    }
+                  : undefined
+              }
+            />
             <View style={styles.inputActions}>
               {canAttachFiles ? (
                 <IconButton icon="Paperclip" label="Attach files or images" theme={theme} onPress={openPicker} />

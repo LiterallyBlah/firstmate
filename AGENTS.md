@@ -1194,14 +1194,16 @@ what the sidebar needs to.
 
 Every card and list row has a **💬** at rest (`MessagesSquare`), a sibling of the card's
 toggle — pressing it never folds the card, and pressing the card still only expands it. It opens the
-**Converse drawer** (`client/converse.tsx`) in the right-hand pane: **docked** beside the list or board
+**Converse drawer** (`client/converse.tsx`) in the right-hand pane: **docked** beside the list, board or deck
 when the pane fits both (`drawerDocks`: 380 pt of drawer and 300 of surface), with ✕; **over** them
 when it does not, with a back button named after the view ("‹ List"); filling the Crew tab on a phone
 ("‹ Crew"). The surface underneath stays mounted (`display: none` when covered), so Esc, ✕ or back
 return to it scrolled where it was, and focus goes back to the 💬 (`converseButtonId`,
 `focusWebElement`). The open worker is `watching` in module scope; its 💬 is lit. Pressing *Crew* again
-also closes it. The deck's focus panel still opens it through `watchOpener` (now labelled Converse),
-which moves the pane to Crew — the deck's own entry is a later change, kept out of the deck's files.
+also closes it. Deck's Converse and Steer open the same drawer. A narrow Deck uses an absolute overlay:
+its canvas keeps its dimensions, scene and focused sailor underneath, with the covered view inert.
+The deck yields its document keyboard handler while Converse is open, and ignores an already-handled
+Escape when the drawer closes. Interrupt, Relaunch and End retain the card's guards and inline results.
 
 **Items without a worker open a light discussion with the existing first mate.** Opening is read-only;
 Send calls `firstmate.item.discuss`, using `askMate` and its lifecycle guards. The discussion template
@@ -1232,7 +1234,7 @@ No steer, receipt id, or burst relay code changes for live workers.
 
 The drawer is a non-modal `complementary` region named "Conversation with ‹title›". Top to bottom:
 the title, state chip and tags; the glance — status line, captain's call, error, link, one line each;
-**↗** Open in Paseo, an icon now, local workers only, for what only Paseo has; **⋯** for the card's
+**↗ Open in its own tab**, local workers only, opens the native Paseo agent tab on demand; **⋯** for the card's
 details and actions (`presentation: "drawer"`: always open, no title, no Steer); **Conversation |
 Activity**; the transcript; and the composer. Its Esc is bound in the capture phase, since a text box
 keeps its key presses.
@@ -1263,7 +1265,11 @@ every tool call with an expandable detail (a shell command's output from its end
 file's content from its start, all clipped to 40 lines), and only the **latest** plan, because each
 update restates the whole list. Claude's task tools reach the timeline as that plan
 (`claude/task-state.ts` in Paseo); Codex, OpenCode and ACP providers send it directly. `hasOlder` on
-the page says when the tail is not the whole story, and the view points at Paseo for the rest.
+the page offers Load earlier messages through the shared history hook, preserving the reading offset.
+Worker replies reuse chat Markdown, code/message copy and the local image reader. Unqualified worker
+images resolve from its cwd inside its registered workspace, never the first mate's home; missing or
+remote identities fail closed. Both chats share `GrowingChatInput`, with the first mate's existing
+one-line measurement and 160-point cap. `docs/deck-side-converse/` records the fixture checks and shots.
 
 Rows — here and in the chat — are keyed by their entry's `seqStart` (`rowKey`). The entry's end grows
 while a tool call runs or a reply streams, and its position in the page shifts by one with every new

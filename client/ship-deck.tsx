@@ -134,6 +134,7 @@ export function deckKeyAction(key: string, context: { focused: boolean; onCanvas
 interface DeckKeyEvent {
   key: string;
   shiftKey: boolean;
+  defaultPrevented?: boolean;
   preventDefault(): void;
 }
 interface FocusTarget {
@@ -217,6 +218,7 @@ function DeckView({
   replyBlocked = null,
   setting = DEFAULT_DECK_SETTING,
   onFailure,
+  conversationOpen = false,
 }: {
   cards: readonly FleetCard[];
   theme: PluginTheme;
@@ -245,6 +247,8 @@ function DeckView({
   setting?: string;
   /** Selection may fall back when a non-default pack fails to load. */
   onFailure?: () => void;
+  /** A sibling conversation owns keyboard focus while the scene stays live. */
+  conversationOpen?: boolean;
 }) {
   const answered = useSyncExternalStore(answeredReplies.subscribe, answeredReplies.version);
   const [carrierMode, setCarrierMode] = useState(false);
@@ -386,6 +390,7 @@ function DeckView({
   // Opened, the panel takes the keyboard; closed, the deck has it back, unless it went somewhere else meanwhile.
   const wasOpen = useRef(false);
   useEffect(() => {
+    if (conversationOpen) return;
     const doc = (globalThis as { document?: KeyDocument }).document;
     const panelNode: unknown = panel.current;
     const hostNode: unknown = host.current;
@@ -394,14 +399,16 @@ function DeckView({
     const lost = doc?.activeElement === undefined || doc.activeElement === null || doc.activeElement === doc.body;
     if (!open && wasOpen.current && isFocusTarget(hostNode) && lost) hostNode.focus({ preventScroll: true });
     wasOpen.current = open;
-  }, [open, focused]);
+  }, [open, focused, conversationOpen]);
 
   useEffect(() => {
-    if (!web) return;
+    if (!web || conversationOpen) return;
     const doc = (globalThis as { document?: KeyDocument }).document;
     if (doc === undefined || typeof doc.addEventListener !== "function") return;
     const keys = doc;
     function onKey(event: DeckKeyEvent): void {
+      // Closing a sibling drawer can reattach this listener before that same Escape bubbles here.
+      if (event.defaultPrevented) return;
       if (!focusableRef.current) return;
       const current = focusedRef.current;
       const action = deckKeyAction(event.key, { focused: current !== null, onCanvas: keys.activeElement === host.current });
@@ -435,7 +442,7 @@ function DeckView({
     }
     keys.addEventListener("keydown", onKey);
     return () => keys.removeEventListener("keydown", onKey);
-  }, [web]);
+  }, [web, conversationOpen]);
 
   // Wait for the carrier's live anchor before taking focus, including keyboard opening.
   useEffect(() => {
