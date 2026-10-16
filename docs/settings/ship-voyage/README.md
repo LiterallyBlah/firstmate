@@ -68,7 +68,7 @@ the interaction and lighthouse clips play at their captured timing. Long-route s
 | Navy chase and peak storm | [frigate chase](review/polish-final/frigate-chase.gif), [lightning](review/polish-final/storm-lightning.png) |
 | Night beacon | [lighthouse sweep](review/polish-final/lighthouse-night.gif) |
 | Real surface split | [suggestion shark](review/polish-final/suggestion-shark.gif) |
-| Marine life | [distribution](review/polish-final/marine-distribution.png), [dolphin leaps, real time](review/polish-final/dolphin-leaps.gif), [whale passage, 5?](review/polish-final/whale-passage-5x.gif), [reduced](review/polish-final/visitors-reduced.png), [lite](review/polish-final/visitors-lite.png) |
+| Marine life | [distribution](review/polish-final/marine-distribution.png), [dolphin leaps, real time](review/polish-final/dolphin-leaps.gif), [whale passage, 5x](review/polish-final/whale-passage-5x.gif), [reduced](review/polish-final/visitors-reduced.png), [lite](review/polish-final/visitors-lite.png) |
 | Bow clearance | [before](review/polish-final/bow-before.png), [after](review/polish-final/bow-after.png) |
 | Picker | [name and thumbnail](review/polish-final/picker.png) |
 | Geometry and depth | [floor overlay](review/polish-final/floor-overlay.png) |
