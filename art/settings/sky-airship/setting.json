@@ -759,9 +759,9 @@
       "path": "preview.png",
       "size": [
         384,
-        200
+        202
       ],
-      "sha256": "56c1be96ce3e615c093f8eecacc10041ccd859ac5845c6be53925ab31091d757"
+      "sha256": "c70455ac23c90cee74015007559df0cc736ba1a1e671e0f1031552681f37767d"
     },
     "serpent-clear": {
       "path": "serpent-clear.png",
