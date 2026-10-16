@@ -43,7 +43,9 @@ pure crew geometry, and clicks go through the real rendered canvas.
 
 Validation: pack lint 66/66; typecheck; full suite 1,155 passed and 3 skipped
 across 97 files. Paseo compiler and React Native 0.81.5 Hermes pass for both main
-and branch, with zero bundle growth. This is browser fixture evidence, not an
+and branch, with zero bundle growth. [Ship gate](../../../deck-settings/gate-results.json):
+81/81 pixel-identical to main, including still, full-motion and software-renderer
+scenarios, with no exceptions. Ubuntu and Windows CI passed. This is browser fixture evidence, not an
 installed plugin or physical-device session.
 
 ## Reproduce (PowerShell)
