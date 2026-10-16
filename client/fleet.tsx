@@ -850,6 +850,7 @@ function FleetViewBody({
       theme={theme}
       stale={fleet.error !== null}
       suggestions={data.suggestions}
+      onRemove={dismissSuggestion}
       replyBlocked={replyBlockedText({
         mate: mate !== null,
         sending: mateSender.sending,

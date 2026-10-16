@@ -170,6 +170,9 @@ export function MateChat({
     if (sending) follow.pin();
   }, [sending]);
   const submitOnEnter = Platform.OS === "web" && !compact;
+  const placeholder = submitOnEnter
+    ? "Tell the first mate what you need, captain… (Enter sends, Shift+Enter for a new line)"
+    : "Tell the first mate what you need, captain…";
   /** The timeline's snapshot is re-read with every stream event; the board's poll is the fallback. */
   const status = timeline.agent?.status ?? mate.status;
   const usage = timeline.agent?.lastUsage;
@@ -531,7 +534,7 @@ export function MateChat({
           )}
           <View style={styles.inputRow}>
             <View style={styles.inputBox}>
-              {/* Text measures wrapping without textarea scrollHeight feedback, and shrinks
+              {/* Text measures the placeholder or draft without textarea scrollHeight feedback, and shrinks
                   after sending/deleting or a shared draft update from another chat. */}
               <Text
                 accessible={false}
@@ -541,16 +544,12 @@ export function MateChat({
                 pointerEvents="none"
                 style={[styles.inputText, { opacity: 0 }]}
               >
-                {draft + "\u200b"}
+                {(draft || placeholder) + "\u200b"}
               </Text>
               <TextInput
                 value={draft}
                 onChangeText={setDraft}
-                placeholder={
-                  submitOnEnter
-                    ? "Tell the first mate what you need, captain… (Enter sends, Shift+Enter for a new line)"
-                    : "Tell the first mate what you need, captain…"
-                }
+                placeholder={placeholder}
                 placeholderTextColor={theme.colors.foregroundMuted}
                 multiline
                 numberOfLines={1}
