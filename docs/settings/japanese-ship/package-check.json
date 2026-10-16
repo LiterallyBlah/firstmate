@@ -1,0 +1,27 @@
+{
+  "files": [
+    "art/settings/japanese-ship/cloud-bank.png",
+    "art/settings/japanese-ship/cloud-puff.png",
+    "art/settings/japanese-ship/cloud-wisp.png",
+    "art/settings/japanese-ship/coast-front.png",
+    "art/settings/japanese-ship/coast-night-front.png",
+    "art/settings/japanese-ship/coast-night.png",
+    "art/settings/japanese-ship/coast.png",
+    "art/settings/japanese-ship/crew-indigo.png",
+    "art/settings/japanese-ship/crew-russet.png",
+    "art/settings/japanese-ship/masthead.png",
+    "art/settings/japanese-ship/preview.png",
+    "art/settings/japanese-ship/reply-shark-motion.png",
+    "art/settings/japanese-ship/reply-shark.png",
+    "art/settings/japanese-ship/rig-fixed.png",
+    "art/settings/japanese-ship/ripples.png",
+    "art/settings/japanese-ship/sail-billow.png",
+    "art/settings/japanese-ship/setting.json",
+    "art/settings/japanese-ship/ship.png",
+    "art/settings/japanese-ship/sleep-window.png",
+    "art/settings/japanese-ship/wake-motion.png",
+    "art/settings/japanese-ship/wake.png"
+  ],
+  "sourceFilesShipped": false,
+  "docsFilesShipped": false
+}

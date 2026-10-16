@@ -1,0 +1,40 @@
+{
+  "approvedReviewHead": "76ce830b41935d8dc52444d075703938fd5b706a",
+  "unchangedImageHashes": {
+    "coast": "72329e05567e2ca32906de956d4c612659f7fe7bd0cf5f1571cc62cd088e567f",
+    "coast-night": "1d84250f9b02ba6f662ee70b4c44f0af345b81fc7c250805aa05bd99da30c163",
+    "ripples": "9a2521f7f513e1cba41bd47400022894ad50786831810087aae80a36b4a7d0cb",
+    "wake": "2c0cf7a816d9c72f527d07072e4dd859626e7e652bed3262e6a67499776fbd97",
+    "reply-shark": "ca9dc08091fd6906e3aee890477ba1872268cf8c64f2e85a6ed800fb809db8d5",
+    "sleep-window": "3544d22798d564e16e7661b40a57afc784d071c302cb7ff9877c6fd58d3ef2bb",
+    "crew-indigo": "8d48b9f76ff5620dada337d55010ce9a28abb3e683161cc57af7ab21b2844d69",
+    "crew-russet": "82fe6d631b97ba1b3e3376e931bf24b73f864b77685985028559003c80f82d92"
+  },
+  "unchangedData": [
+    "cast",
+    "copy",
+    "dayCycle",
+    "atmosphere",
+    "attentionCarrier",
+    "palette"
+  ],
+  "shipPalette": {
+    "approvedColours": 48,
+    "usedColours": 48,
+    "newColours": 0
+  },
+  "centralKeel": {
+    "xFrom": 120,
+    "xTo": 375,
+    "row": 284,
+    "rowSpread": 0
+  },
+  "reanchored": [
+    "deck floor and mast/ladder obstacles",
+    "working, waiting and blocked crew posts",
+    "below-deck sleeping windows and packed overflow",
+    "hatch entry/exit and concealed hold passage",
+    "foreground hull, mast, ladder and deckhouse depth crops",
+    "wake at the new waterline"
+  ]
+}

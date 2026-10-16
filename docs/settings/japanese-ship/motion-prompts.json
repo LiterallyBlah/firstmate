@@ -1,0 +1,21 @@
+{
+  "tool": "image_gen built-in",
+  "date": "2026-10-16",
+  "prompts": [
+    {
+      "id": "sail",
+      "prompt": "Use case: precise-object-edit. Edit target: the attached approved pixel-art Japanese broadside ship. Generate the SECOND ANIMATION FRAME only. Keep the identical 3:2 transparent canvas, exact camera, every ship position, all hull/deckhouse/mast/ladder/rigging/yardarm pixels unchanged. Change ONLY the ivory sail fabric between the two horizontal spars: it catches a little more wind, softly billows right by 2-3 original pixels, the vertical panel folds curve slightly and their cream shadow bands shift a little. This is a subtle two-frame game animation, NOT a new sail design or ship redesign. Keep the exact eight sewn panels, exact top attachment to horizontal yardarm at y70, same lower spar at y191, original warm cream palette, crisp native pixel edges, no blur, no antialiasing, no new colours. Sail cloth should remain present in same location and original silhouette nearly unchanged. Full ship same size and placement as reference, with true transparent background. Level horizontal keel and broadside deck absolutely unchanged. No water, text, labels, extra flags, or scenery. Output 1536x1024 transparent.",
+      "source": "sources/sail-billow.png"
+    },
+    {
+      "id": "coast",
+      "prompt": "Use case: precise-object-edit. Edit target: the supplied approved Sakura coast pixel-art backdrop. Remove ONLY the three white cloud groups from the blue sky, fill their footprints with matching clean blue sky. Preserve the entire rocky sakura island, all trees, distant mountains, every water texture, horizon and original camera/layout/colors exactly. No new elements, no other changes. This is a layer separation for animating the original clouds independently. Same landscape 3:2 composition, opaque 1536x1024. Crisp pixel art, no smoothing. Do not move or repaint the island.",
+      "source": "sources/coast-clear.png"
+    },
+    {
+      "id": "night",
+      "prompt": "Use case: precise-object-edit. Edit target: the supplied approved night Sakura coast pixel-art backdrop. Remove ONLY the three blue cloud groups from the dark blue night sky, replacing their footprints with matching clean dark blue sky and sparse subtle stars. Preserve the entire island, all sakura trees, distant mountains, every water texture, horizon, palette, and original layout exactly. No new moon or elements and no other changes. This is a layer separation so the original clouds can be animated independently. Same 3:2 landscape opaque 1536x1024, crisp pixel art, no smoothing. The island must stay absolutely unchanged.",
+      "source": "sources/coast-night-clear.png"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "base": "e5c7f75",
+  "packRevision": "3a7647e",
+  "compiledRevision": "3a7647e",
+  "tests": {
+    "files": 93,
+    "passed": 1101,
+    "skipped": 3
+  },
+  "packLint": {
+    "files": 3,
+    "passed": 51
+  },
+  "typecheck": "passed",
+  "clientBundle": {
+    "byteIdentical": true,
+    "bytes": 685206,
+    "sha256": "2c0a854bc259e6397ce6318a822dd78fa54a28e46c8f5ac9166b8ad5d9d2a53e",
+    "classTokens": 0
+  },
+  "protectedPathsChanged": [],
+  "gate": {
+    "shots": 81,
+    "passed": true,
+    "identical": true,
+    "maskToolbar": false,
+    "intentionalShots": 0,
+    "flakes": [],
+    "pageErrors": [],
+    "baselinesRegenerated": false,
+    "compiledBranch": "3a7647e"
+  },
+  "motionAudit": "motion-review.md",
+  "motionFull": "motion-full.json",
+  "motionLite": "motion-lite.json",
+  "motionArtAudit": "motion-art-audit.json"
+}
