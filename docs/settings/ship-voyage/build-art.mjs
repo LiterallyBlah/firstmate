@@ -126,8 +126,9 @@ for(const id of ['rain-clear','rain-0','rain-1','rain-2','rain-3']){
 }
 polishAtmosphere({source,save,read,baseline,clone,pixel,put,blit,fit,tint});
 for(const id of ['moon','sky-stars']){const a=blank(512,2048);blit(a,read(resolve(out,images[id].path)),0,0);save(id,a);}
-// Picker thumbnail is a real reviewed canvas frame, reduced like the other installed packs.
-save('preview',quant(nearest(read(resolve(here,'review/polish-final/day-canvas.png')),384,200),48));
+// Frozen thumbnail of the reviewed daytime canvas (384x200, 48 colours).
+// Keep this source independent of regenerated review evidence.
+save('preview',source('preview-canvas'));
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({sources,images,parts,landmarks,lamp},null,2)+'\n');
 writeFileSync(resolve(here,'review/coast-registration.png'),encode(day));
 writeFileSync(resolve(here,'review/coast-night-registration.png'),encode(dark));
