@@ -179,6 +179,11 @@ describe("independent remote access", () => {
     });
     const helper = join(home, "tools", "remote.mjs");
     await writeFile(helper, fill(await readTemplate(TEMPLATES.remoteHelper), { remoteQueueJson: JSON.stringify(join(directory, "remote-requests")) }));
+    // This test counts helper commands, not the independent background collector.
+    // A successful request schedules a fresh poll on the next one-second tick;
+    // its four listing calls could otherwise race the refused-command assertion.
+    // Keep the real queue pump; collection is exercised separately above.
+    vi.spyOn(service, "poll").mockResolvedValue();
     service.start();
     const brief = "- Start here.\nWork in C:\\Users\\captain\\repo\\src and keep \\\\server\\share as written.\n";
     await mkdir(join(home, "data", "task"), { recursive: true });
