@@ -45,15 +45,6 @@ import { cacheSentImages, canAttachFiles, pickFiles, receiveFiles, type OfferedF
 /** A run of tool calls shows this many before folding the rest behind a count. */
 const TOOL_RUN_VISIBLE = 2;
 
-/**
- * The composer's height; longer text scrolls inside it. Fixed rather than
- * grown with the text: on the web renderer a textarea's reported content
- * height is never less than its own height, so a box sized from it can grow
- * but never shrink back.
- */
-const INPUT_HEIGHT = 120;
-const INPUT_HEIGHT_COMPACT = 80;
-
 type Group = { key: string; row: TranscriptRow } | { key: string; tools: Extract<TranscriptRow, { kind: "tool" }>[] };
 
 /** Consecutive tool rows become one group, so a supervision pass is a line, not a page. */
@@ -122,6 +113,7 @@ export function MateChat({
   imageContext?: { serverId?: string; home?: string };
 }) {
   const toast = useToast();
+  const [toolbarWidth, setToolbarWidth] = useState(0);
   useEffect(cacheSentImages, []);
   const workspaceLinks = useWorkspaceFileLink(theme, navigation, imageContext ?? {});
   /** Shared with the surface's suggestion buttons: one message on its way at a time — see `./mate-send`. */
@@ -262,7 +254,8 @@ export function MateChat({
         backgroundColor: colors.surface0,
       },
       composer: { padding: compact ? 8 : 10, gap: 8 },
-      quick: { flexDirection: "row" as const, flexWrap: "wrap" as const, gap: 6 },
+      quick: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
+      prompts: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
       chips: { flexDirection: "row" as const, flexWrap: "wrap" as const, gap: 6 },
       dropZone: {
         position: "absolute" as const,
@@ -281,20 +274,33 @@ export function MateChat({
         backgroundColor: colors.surface1,
       },
       dropText: { color: colors.foreground, fontSize: 13 },
-      inputRow: { flexDirection: "row" as const, alignItems: "flex-end" as const, gap: 8 },
-      inputActions: { gap: 6 },
-      input: {
-        flex: 1,
-        color: colors.foreground,
-        fontSize: 14,
-        lineHeight: 20,
+      inputRow: {
+        flexDirection: "row" as const,
+        alignItems: "flex-end" as const,
         borderWidth: 1,
         borderColor: colors.border,
         borderRadius: 8,
-        height: compact ? INPUT_HEIGHT_COMPACT : INPUT_HEIGHT,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
         backgroundColor: colors.surface1,
+      },
+      inputActions: { flexDirection: "row" as const, gap: 6, padding: 5 },
+      inputBox: { flex: 1, minWidth: 0, minHeight: 40, maxHeight: 160, overflow: "hidden" as const },
+      inputText: {
+        color: colors.foreground,
+        // The measuring text and native input must wrap with the same font.
+        fontFamily: Platform.OS === "ios" ? "System" : "sans-serif",
+        fontSize: 14,
+        lineHeight: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+      },
+      input: {
+        position: "absolute" as const,
+        top: 0,
+        left: 0,
+        width: "100%" as const,
+        height: "100%" as const,
+        borderWidth: 0,
+        backgroundColor: "transparent",
         textAlignVertical: "top" as const,
       },
     };
@@ -477,38 +483,32 @@ export function MateChat({
       */}
       <SafeAreaView style={styles.composerFrame}>
         <View style={styles.composer}>
-          <View style={styles.quick}>
-            {navigation === undefined ? null : (
+          <View style={styles.quick} onLayout={(event) => setToolbarWidth(event.nativeEvent.layout.width)}>
+            <View style={styles.prompts}>
               <IconButton
+                icon="Compass"
+                label="Bearings"
+                tooltip="Ask for a fresh fleet overview from saved records and live crew."
+                showLabel={toolbarWidth >= 400}
                 theme={theme}
-                icon="ExternalLink"
-                label="Full conversation"
-                tooltip="Open Paseo's full chat for activity, interrupt, history and native composer tools."
-                showLabel={!compact}
-                onPress={() => navigation.openAgent({ agentId: mate.id })}
+                disabled={sending}
+                onPress={() => sendCommand("bearings")}
               />
-            )}
-            <IconButton
-              icon="Compass"
-              label="Bearings"
-              tooltip="Ask for a fresh fleet overview from saved records and live crew."
-              showLabel
-              theme={theme}
-              disabled={sending}
-              onPress={() => sendCommand("bearings")}
-            />
-            <IconButton
-              icon="Anchor"
-              label="Ahoy"
-              tooltip="Recap this conversation and walk through open decisions. First contact gives Bearings."
-              showLabel
-              theme={theme}
-              disabled={sending}
-              onPress={() => sendCommand("ahoy")}
-            />
+              <IconButton
+                icon="Anchor"
+                label="Ahoy"
+                tooltip="Recap this conversation and walk through open decisions. First contact gives Bearings."
+                showLabel={toolbarWidth >= 400}
+                theme={theme}
+                disabled={sending}
+                onPress={() => sendCommand("ahoy")}
+              />
+            </View>
             <MateControls
               theme={theme}
-              compact={compact}
+              onOpenConversation={
+                navigation === undefined ? undefined : () => navigation.openAgent({ agentId: mate.id })
+              }
               usedTokens={usage?.contextWindowUsedTokens}
               maxTokens={usage?.contextWindowMaxTokens}
               running={status === "running" || status === "initializing"}
@@ -530,29 +530,43 @@ export function MateChat({
             </View>
           )}
           <View style={styles.inputRow}>
-            <TextInput
-              value={draft}
-              onChangeText={setDraft}
-              placeholder={
-                submitOnEnter
-                  ? "Tell the first mate what you need, captain… (Enter sends, Shift+Enter for a new line)"
-                  : "Tell the first mate what you need, captain…"
-              }
-              placeholderTextColor={theme.colors.foregroundMuted}
-              multiline
-              onKeyPress={
-                submitOnEnter
-                  ? (event: WebKeyPressEvent) => {
-                      // Nothing to send, or a send in flight: Enter is left alone, as Paseo leaves it.
-                      if (!isSendKey(event.nativeEvent) || sending || !hasContent(draft, attachments)) return;
-                      event.preventDefault();
-                      sendDraft();
-                    }
-                  : undefined
-              }
-              style={styles.input}
-            />
-            {/* Stacked on the right, so the box keeps its full width: attach above send. */}
+            <View style={styles.inputBox}>
+              {/* Text measures wrapping without textarea scrollHeight feedback, and shrinks
+                  after sending/deleting or a shared draft update from another chat. */}
+              <Text
+                accessible={false}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                aria-hidden
+                pointerEvents="none"
+                style={[styles.inputText, { opacity: 0 }]}
+              >
+                {draft + "\u200b"}
+              </Text>
+              <TextInput
+                value={draft}
+                onChangeText={setDraft}
+                placeholder={
+                  submitOnEnter
+                    ? "Tell the first mate what you need, captain… (Enter sends, Shift+Enter for a new line)"
+                    : "Tell the first mate what you need, captain…"
+                }
+                placeholderTextColor={theme.colors.foregroundMuted}
+                multiline
+                numberOfLines={1}
+                onKeyPress={
+                  submitOnEnter
+                    ? (event: WebKeyPressEvent) => {
+                        // Nothing to send, or a send in flight: Enter is left alone, as Paseo leaves it.
+                        if (!isSendKey(event.nativeEvent) || sending || !hasContent(draft, attachments)) return;
+                        event.preventDefault();
+                        sendDraft();
+                      }
+                    : undefined
+                }
+                style={[styles.inputText, styles.input]}
+              />
+            </View>
             <View style={styles.inputActions}>
               {canAttachFiles ? (
                 <IconButton icon="Paperclip" label="Attach files or images" theme={theme} onPress={openPicker} />

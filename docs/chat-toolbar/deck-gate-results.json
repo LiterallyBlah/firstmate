@@ -1,0 +1,1358 @@
+{
+  "base": "compiled main 47e305d",
+  "branch": "HEAD 47e305d",
+  "compiledBranch": "47e305d",
+  "maskToolbar": false,
+  "control": null,
+  "scenarios": [
+    {
+      "scenario": "still-noon-dark",
+      "options": {
+        "theme": "dark",
+        "scale": 2,
+        "reducedMotion": "reduce"
+      },
+      "shots": [
+        {
+          "shot": "open",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "886a7da89d045270",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "still",
+            "data-firstmate-deck-weather": "still",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "still-noon-light",
+      "options": {
+        "theme": "light",
+        "reducedMotion": "reduce"
+      },
+      "shots": [
+        {
+          "shot": "open",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "7a6cfa071a668ce0",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "still",
+            "data-firstmate-deck-weather": "still",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "still-night",
+      "options": {
+        "time": 1791943200000,
+        "scale": 2,
+        "reducedMotion": "reduce"
+      },
+      "shots": [
+        {
+          "shot": "open",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "dceb6e22708feb99",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "still",
+            "data-firstmate-deck-weather": "still",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "night"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "still-dawn",
+      "options": {
+        "time": 1791955800000,
+        "reducedMotion": "reduce"
+      },
+      "shots": [
+        {
+          "shot": "open",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "f341aeb1dae63186",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "still",
+            "data-firstmate-deck-weather": "still",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "dawn"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "still-dusk-to-night",
+      "options": {
+        "time": 1792008900000,
+        "reducedMotion": "reduce"
+      },
+      "shots": [
+        {
+          "shot": "open",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b295ca8240e040ab",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "still",
+            "data-firstmate-deck-weather": "still",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "night"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "still-busy",
+      "options": {
+        "working": 8,
+        "scale": 2,
+        "reducedMotion": "reduce"
+      },
+      "shots": [
+        {
+          "shot": "open",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "283135d26e3bfa9a",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "still",
+            "data-firstmate-deck-weather": "still",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "still-all-idle",
+      "options": {
+        "working": 0,
+        "scale": 2,
+        "reducedMotion": "reduce"
+      },
+      "shots": [
+        {
+          "shot": "open",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b73323c4fef602f9",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "still",
+            "data-firstmate-deck-weather": "still",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "still-feed-lost",
+      "options": {
+        "reducedMotion": "reduce"
+      },
+      "shots": [
+        {
+          "shot": "lost",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "3d374fb466210cbf",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "still",
+            "data-firstmate-deck-weather": "still",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "moving-noon",
+      "options": {
+        "fakeClock": true,
+        "scale": 2
+      },
+      "shots": [
+        {
+          "shot": "0.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "026348fb38e6303c",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "1s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "1f4b17040dce2e2e",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "2.5s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "37843d6fb20e1ba7",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "5s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "0b676ca808f366ac",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "10s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c8e40b6850e858a3",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "25s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "d581e29105ad4386",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "49s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "314421663847544c",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "73s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "658ea54015040cc1",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "moving-storm",
+      "options": {
+        "fakeClock": true,
+        "working": 8
+      },
+      "shots": [
+        {
+          "shot": "0.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "40f9c6365fb1e932",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "5.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "8778ff69e10e0c5e",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "10.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "5a251949efd91eec",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "15.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "befa83de3dcfafc7",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "20.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "3e339e6cd05a496e",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "25.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "a4ffd0071e3cc8df",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "30.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b0e307df6c3b6d3a",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "flash-33.5s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "d4e933a1e6612742",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "lightning",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "flash-33.6s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "6cce1d4cd1183420",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "lightning",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "35.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "2c141109a1381645",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "40.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "bf19a37893613c2f",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "45.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c91dd810e4b01016",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "flash-48.9s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "bcabc58231f01d08",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "lightning",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "flash-49.0s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "1e54c2c231c2eefe",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "lightning",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "50.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "06e61b70f2cf2358",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "55.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "89d108e256d94d87",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "60.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "731854b0b12798cc",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "65.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "3b4a6241080a13ae",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "70.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "6646a3df2fee2d2a",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "75.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e1220ee20a8321f5",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "80.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "863234127f3e13c8",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "85.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b1518e95dbc623eb",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "90.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "48d55add7ca08c9d",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "95.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "02367334e54a674b",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "100.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e0a1b9368f75f740",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "105.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "8f2fdec4b8c4e229",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "110.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c2e98172e94aac7c",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "115.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "34178960ad529b24",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "120.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "5f2df5cbf40f7605",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "moving-night",
+      "options": {
+        "fakeClock": true,
+        "time": 1791943200000
+      },
+      "shots": [
+        {
+          "shot": "0.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "4c93e4cc3a83a8f3",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "night"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "10s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "a1b9e3dab4dd958c",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "night"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "moving-crew",
+      "options": {
+        "fakeClock": true,
+        "scale": 2
+      },
+      "shots": [
+        {
+          "shot": "aboard",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "026348fb38e6303c",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "changed",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "d8f08d0eb309caf2",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "walking-1000ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "43d70591dc75cb36",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.91",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "walking-2000ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b5873a3b408d80e8",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.94",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "walking-3000ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "1c7ef92dbd1be8c4",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.95",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "walking-5000ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "224c059e33e870b3",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.98",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "walking-8000ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b5b60e11ca0c08b7",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.99",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "arrived",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "6fcd03d0254fcc6a",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "hatch-200ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "498ce8ac395fc645",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "hatch-400ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "64da754ea9ed9ee6",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "hatch-700ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "0884e71df501675e",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "hatch-1500ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e1ae9e440015a577",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "hatch-3000ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e5cf9064a17c3834",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-300ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "ac376c96b90c4a54",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-800ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "8f47476b64270777",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-1400ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e35b92bc140a21fe",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-2000ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "1cf29259e6c3880f",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-2400ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "97298c36d7a6a3ae",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-2700ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "903dc2b7b126770c",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-3000ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "aec7d445e79e2a18",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-3300ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "6863bf9fc58e79d8",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-3600ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "fc2e5429c3765aff",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-4000ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "cd777d1a06c466ef",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-4600ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "ea9cfc6abf7def85",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-5400ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "4afa2bba3364915f",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "leaving-7000ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "39f102435722682e",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "after",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "06b6fa74fa19b630",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "1.00",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "focus",
+      "options": {
+        "fakeClock": true,
+        "scale": 2
+      },
+      "shots": [
+        {
+          "shot": "100ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c9037edb3c07b644",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "300ms",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "acaa186e25d51427",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "1.5s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "00ac6a9146684431",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "back-out",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "4b7db8227224bf16",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "full",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    },
+    {
+      "scenario": "lite-software-renderer",
+      "options": {
+        "fakeClock": true
+      },
+      "shots": [
+        {
+          "shot": "0.4s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "bc93f9988651a734",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "lite",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "2s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e910971626367f61",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "lite",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        },
+        {
+          "shot": "6s",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "49866e4cd1703530",
+          "canvas": {
+            "data-firstmate-deck": "webgl",
+            "data-firstmate-deck-setting": "ship",
+            "data-firstmate-deck-motion": "lite",
+            "data-firstmate-deck-weather": "0.88",
+            "data-firstmate-deck-flash": "",
+            "data-firstmate-deck-sky": "midday"
+          },
+          "canvasMatchesMain": true
+        }
+      ]
+    }
+  ],
+  "pageErrors": [],
+  "flakes": [],
+  "shots": 81,
+  "passed": true,
+  "identical": true,
+  "intentionalShots": 0
+}
