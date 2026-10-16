@@ -110,6 +110,10 @@ try {
     const { checkAttention } = await import("../deck-enrichment/check-attention.mjs");
     await checkAttention(view, manifest);
   }
+  if (process.env.CHECK_POLISH === "1") {
+    const { checkPolish } = await import("../deck-enrichment/check-polish.mjs");
+    await checkPolish(view, manifest);
+  }
   if (errors.length !== 0) throw new Error(errors.join("\n"));
   console.log(JSON.stringify({ setting: actual, overlay: drawn, selectionCheck: process.env.CHECK_SELECTION === "1", errors }));
 } finally {

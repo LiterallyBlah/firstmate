@@ -1,18 +1,18 @@
 {
   "paseoCompiler": "0.11.0",
   "main": {
-    "commit": "b830b37",
-    "clientBytes": 651782,
-    "serverBytes": 344534,
-    "ms": 6158
-  },
-  "branch": {
-    "commit": "ccfe291",
+    "commit": "dfecf41",
     "clientBytes": 660162,
     "serverBytes": 345885,
-    "ms": 2606
+    "ms": 6586
   },
-  "clientGrowthBytes": 8380,
+  "branch": {
+    "commit": "01d7276",
+    "clientBytes": 664133,
+    "serverBytes": 348042,
+    "ms": 2479
+  },
+  "clientGrowthBytes": 3971,
   "vendoredPixiBytes": 840663,
   "hermesc": "node_modules/react-native/sdks/hermesc (react-native 0.81.5)",
   "hermesParse": {

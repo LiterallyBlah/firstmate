@@ -1,7 +1,7 @@
 {
-  "base": "compiled main b830b37",
-  "branch": "HEAD ccfe291",
-  "compiledBranch": "ccfe291",
+  "base": "compiled main dfecf41",
+  "branch": "HEAD 01d7276",
+  "compiledBranch": "01d7276",
   "maskToolbar": false,
   "control": null,
   "scenarios": [
@@ -16,22 +16,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 41244,
+          "differingPixels": 690465,
           "firstDifference": [
-            425,
-            1391
+            1458,
+            227
           ],
           "box": [
-            24,
-            1391,
-            1129,
-            1775
+            26,
+            227,
+            2853,
+            1677
           ],
           "sha": [
-            "92640de9b57dad20",
-            "4bc948d064b81110"
+            "4bc948d064b81110",
+            "ac05ea2a90bbd6bf"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -54,22 +54,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 10822,
+          "differingPixels": 172749,
           "firstDifference": [
-            212,
-            695
+            728,
+            113
           ],
           "box": [
-            12,
-            695,
-            565,
-            887
+            13,
+            113,
+            1426,
+            838
           ],
           "sha": [
-            "c0882914577cdddb",
-            "fd5b1e52b10dc378"
+            "fd5b1e52b10dc378",
+            "c75172b2cbb8df46"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -93,22 +93,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 41244,
+          "differingPixels": 1847596,
           "firstDifference": [
-            425,
-            1391
+            1418,
+            226
           ],
           "box": [
-            24,
-            1391,
-            1129,
-            1775
+            26,
+            226,
+            2853,
+            1677
           ],
           "sha": [
-            "ba98371e1afab437",
-            "f192b174cc4bbcf6"
+            "f192b174cc4bbcf6",
+            "85a2408047a80599"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Authored phase tint darkens stage and actor bodies while preserving engine badges. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -131,22 +131,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 10822,
+          "differingPixels": 461813,
           "firstDifference": [
-            212,
-            695
+            728,
+            113
           ],
           "box": [
-            12,
-            695,
-            565,
-            887
+            13,
+            113,
+            1426,
+            838
           ],
           "sha": [
-            "a837f0b6c16c374b",
-            "7852c4c8774f7f10"
+            "7852c4c8774f7f10",
+            "6e66edf391fc7471"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Authored phase tint darkens stage and actor bodies while preserving engine badges. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -169,22 +169,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 10822,
+          "differingPixels": 461826,
           "firstDifference": [
-            212,
-            695
+            728,
+            113
           ],
           "box": [
-            12,
-            695,
-            565,
-            887
+            13,
+            113,
+            1426,
+            838
           ],
           "sha": [
-            "50ad97752db68a76",
-            "bdf5835d2e928649"
+            "bdf5835d2e928649",
+            "f132424015901eea"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Authored phase tint darkens stage and actor bodies while preserving engine badges. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -208,22 +208,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 40914,
+          "differingPixels": 649104,
           "firstDifference": [
-            425,
-            1391
+            1458,
+            227
           ],
           "box": [
-            24,
-            1391,
-            1043,
-            1775
+            26,
+            227,
+            2853,
+            1677
           ],
           "sha": [
-            "b0267f1972f3ed24",
-            "6632a099bf9fb4b5"
+            "6632a099bf9fb4b5",
+            "0680b9e2de3ff580"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -247,22 +247,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 40914,
+          "differingPixels": 560065,
           "firstDifference": [
-            425,
-            1391
+            1412,
+            266
           ],
           "box": [
-            24,
-            1391,
-            1043,
-            1775
+            26,
+            266,
+            2853,
+            1677
           ],
           "sha": [
-            "330e117b877c8d4a",
-            "6ffa79ff8f8e975d"
+            "6ffa79ff8f8e975d",
+            "c669e3abfa22fbf0"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Scalloped foam, wider calm sea and the new ladder; resting hull targets retain their art and positions. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -283,9 +283,23 @@
       "shots": [
         {
           "shot": "lost",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "99baa855a1510c6d",
+          "identical": false,
+          "differingPixels": 172364,
+          "firstDifference": [
+            728,
+            171
+          ],
+          "box": [
+            13,
+            171,
+            1426,
+            838
+          ],
+          "sha": [
+            "99baa855a1510c6d",
+            "c92f4c043dd6b849"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -308,22 +322,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 41207,
+          "differingPixels": 778769,
           "firstDifference": [
-            431,
-            1397
+            1458,
+            233
           ],
           "box": [
-            24,
-            1397,
-            1129,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "890a8721e8b43b6b",
-            "5964fd6d3069bc37"
+            "5964fd6d3069bc37",
+            "3d4cd03605c903f0"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -337,22 +351,22 @@
         {
           "shot": "1s",
           "identical": false,
-          "differingPixels": 41067,
+          "differingPixels": 761908,
           "firstDifference": [
-            436,
-            1397
+            1458,
+            233
           ],
           "box": [
-            24,
-            1397,
-            1129,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "5ca5073dc9aa2d79",
-            "fe0c3dae3614396b"
+            "fe0c3dae3614396b",
+            "4b6930945164c5a8"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -366,22 +380,22 @@
         {
           "shot": "2.5s",
           "identical": false,
-          "differingPixels": 40899,
+          "differingPixels": 777459,
           "firstDifference": [
-            425,
-            1391
+            1458,
+            227
           ],
           "box": [
-            24,
-            1391,
-            1129,
-            1775
+            26,
+            227,
+            2853,
+            1677
           ],
           "sha": [
-            "737b59559dec0dc1",
-            "68bc201b0ee59f27"
+            "68bc201b0ee59f27",
+            "183f4643b288cec4"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -395,22 +409,22 @@
         {
           "shot": "5s",
           "identical": false,
-          "differingPixels": 40632,
+          "differingPixels": 792734,
           "firstDifference": [
-            425,
-            1391
+            1458,
+            227
           ],
           "box": [
-            24,
-            1391,
-            1129,
-            1775
+            26,
+            227,
+            2853,
+            1677
           ],
           "sha": [
-            "121438cfddde32a7",
-            "caf568df641f2d12"
+            "caf568df641f2d12",
+            "d0cc2d27aebc279f"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -424,22 +438,22 @@
         {
           "shot": "10s",
           "identical": false,
-          "differingPixels": 40859,
+          "differingPixels": 773579,
           "firstDifference": [
-            431,
-            1397
+            1458,
+            233
           ],
           "box": [
-            24,
-            1397,
-            1129,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "e5ecc955a29572d9",
-            "5d1dc0863a6ac1fb"
+            "5d1dc0863a6ac1fb",
+            "6a97b1e2f5f81250"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -453,22 +467,22 @@
         {
           "shot": "25s",
           "identical": false,
-          "differingPixels": 40496,
+          "differingPixels": 749825,
           "firstDifference": [
-            436,
-            1397
+            1458,
+            233
           ],
           "box": [
-            24,
-            1397,
-            1129,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "54bf805792050e52",
-            "58c8bf8a0cc1b651"
+            "58c8bf8a0cc1b651",
+            "f656f806f106777a"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -482,22 +496,22 @@
         {
           "shot": "49s",
           "identical": false,
-          "differingPixels": 41055,
+          "differingPixels": 772815,
           "firstDifference": [
-            436,
-            1397
+            1458,
+            233
           ],
           "box": [
-            24,
-            1397,
-            1129,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "e98249d67d739771",
-            "c37b43e6867991b8"
+            "c37b43e6867991b8",
+            "3a1df9b8a74ea59b"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -511,22 +525,22 @@
         {
           "shot": "73s",
           "identical": false,
-          "differingPixels": 41097,
+          "differingPixels": 770057,
           "firstDifference": [
-            436,
-            1397
+            1458,
+            233
           ],
           "box": [
-            24,
-            1397,
-            1129,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "b2541c7de7904bf6",
-            "17f176618067212e"
+            "17f176618067212e",
+            "c7013d6be38c9b4a"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -549,22 +563,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 10650,
+          "differingPixels": 166680,
           "firstDifference": [
-            215,
-            698
+            728,
+            116
           ],
           "box": [
-            12,
-            698,
-            521,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "7ea0f7f4a2e7919b",
-            "335da02eb5eeea5c"
+            "335da02eb5eeea5c",
+            "cd0240d1dc034bc4"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -578,22 +592,22 @@
         {
           "shot": "5.4s",
           "identical": false,
-          "differingPixels": 10555,
+          "differingPixels": 161151,
           "firstDifference": [
-            215,
-            698
+            728,
+            116
           ],
           "box": [
-            12,
-            698,
-            521,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "459375d074e69afe",
-            "89d810c2d76e1650"
+            "89d810c2d76e1650",
+            "32fc92c3a859c45d"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -607,22 +621,22 @@
         {
           "shot": "10.4s",
           "identical": false,
-          "differingPixels": 10455,
+          "differingPixels": 166076,
           "firstDifference": [
-            238,
-            698
+            728,
+            119
           ],
           "box": [
-            12,
-            698,
-            521,
-            887
+            13,
+            119,
+            1426,
+            838
           ],
           "sha": [
-            "706d2b1000b3cdb5",
-            "3da8cbd48771cb37"
+            "3da8cbd48771cb37",
+            "d64ef41d32e29c88"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -636,22 +650,22 @@
         {
           "shot": "15.4s",
           "identical": false,
-          "differingPixels": 10590,
+          "differingPixels": 166218,
           "firstDifference": [
-            218,
-            698
+            728,
+            116
           ],
           "box": [
-            12,
-            698,
-            521,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "e8439269e08e7e3e",
-            "d13f95eef0e00d52"
+            "d13f95eef0e00d52",
+            "e208323a3cb27985"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -665,22 +679,22 @@
         {
           "shot": "20.4s",
           "identical": false,
-          "differingPixels": 10626,
+          "differingPixels": 170651,
           "firstDifference": [
-            218,
-            695
+            728,
+            116
           ],
           "box": [
-            12,
-            695,
-            521,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "14d64a86f64cc6ed",
-            "16145e4d48c8103c"
+            "16145e4d48c8103c",
+            "41da9e95eabc22fc"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -694,22 +708,22 @@
         {
           "shot": "25.4s",
           "identical": false,
-          "differingPixels": 10379,
+          "differingPixels": 158721,
           "firstDifference": [
-            229,
-            695
+            728,
+            113
           ],
           "box": [
-            12,
-            695,
-            521,
-            887
+            13,
+            113,
+            1426,
+            838
           ],
           "sha": [
-            "49a3ebd9d1877c35",
-            "359343851fddf6a9"
+            "359343851fddf6a9",
+            "8a8615c2a42fa45f"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -723,22 +737,22 @@
         {
           "shot": "30.4s",
           "identical": false,
-          "differingPixels": 10428,
+          "differingPixels": 159030,
           "firstDifference": [
-            218,
-            692
+            728,
+            111
           ],
           "box": [
-            12,
-            692,
-            521,
-            887
+            13,
+            111,
+            1426,
+            838
           ],
           "sha": [
-            "f81cd9fc7748cd4e",
-            "80529acc45c3331f"
+            "80529acc45c3331f",
+            "d948c81ffa28b694"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -752,22 +766,22 @@
         {
           "shot": "flash-33.5s",
           "identical": false,
-          "differingPixels": 10443,
+          "differingPixels": 156964,
           "firstDifference": [
-            212,
-            695
+            728,
+            119
           ],
           "box": [
-            12,
-            695,
-            521,
-            887
+            13,
+            119,
+            1426,
+            838
           ],
           "sha": [
-            "4d1fb0d304143394",
-            "d20233a073d7e8e1"
+            "d20233a073d7e8e1",
+            "2b81891a6823dcde"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -781,22 +795,22 @@
         {
           "shot": "flash-33.6s",
           "identical": false,
-          "differingPixels": 10551,
+          "differingPixels": 170275,
           "firstDifference": [
-            212,
-            695
+            728,
+            116
           ],
           "box": [
-            12,
-            695,
-            521,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "40548e57209528b6",
-            "dc94dd14253cfd77"
+            "dc94dd14253cfd77",
+            "ac793bc7996da98e"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -810,22 +824,22 @@
         {
           "shot": "35.4s",
           "identical": false,
-          "differingPixels": 10579,
+          "differingPixels": 164370,
           "firstDifference": [
-            215,
-            692
+            728,
+            108
           ],
           "box": [
-            12,
-            692,
-            521,
-            887
+            13,
+            108,
+            1426,
+            838
           ],
           "sha": [
-            "6b105ad6540c6909",
-            "7e38435eb32a7e59"
+            "7e38435eb32a7e59",
+            "f3ea116077d6dee1"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -839,22 +853,22 @@
         {
           "shot": "40.4s",
           "identical": false,
-          "differingPixels": 10659,
+          "differingPixels": 170752,
           "firstDifference": [
-            215,
-            692
+            728,
+            108
           ],
           "box": [
-            12,
-            692,
-            521,
-            887
+            13,
+            108,
+            1426,
+            838
           ],
           "sha": [
-            "84aa9562e3fdcd88",
-            "656eb28007abf8ec"
+            "656eb28007abf8ec",
+            "088f39c9951b688f"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -868,22 +882,22 @@
         {
           "shot": "45.4s",
           "identical": false,
-          "differingPixels": 10460,
+          "differingPixels": 172330,
           "firstDifference": [
-            215,
-            692
+            728,
+            111
           ],
           "box": [
-            12,
-            692,
-            521,
-            887
+            13,
+            111,
+            1426,
+            838
           ],
           "sha": [
-            "c79ee5ab0ebbf286",
-            "9e74ff99d72fa1fc"
+            "9e74ff99d72fa1fc",
+            "fb20d56ea468dfae"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -897,22 +911,22 @@
         {
           "shot": "flash-48.9s",
           "identical": false,
-          "differingPixels": 10505,
+          "differingPixels": 160025,
           "firstDifference": [
-            218,
-            698
+            728,
+            111
           ],
           "box": [
-            12,
-            698,
-            521,
-            887
+            13,
+            111,
+            1426,
+            838
           ],
           "sha": [
-            "5dce51818e24ce25",
-            "4ea4fcd3f16085f5"
+            "4ea4fcd3f16085f5",
+            "5ca5fa8af805886d"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -926,22 +940,22 @@
         {
           "shot": "flash-49.0s",
           "identical": false,
-          "differingPixels": 10562,
+          "differingPixels": 162504,
           "firstDifference": [
-            218,
-            698
+            728,
+            111
           ],
           "box": [
-            12,
-            698,
-            521,
-            887
+            13,
+            111,
+            1426,
+            838
           ],
           "sha": [
-            "3d8093e768cd05c4",
-            "ae3a53f60e545e7a"
+            "ae3a53f60e545e7a",
+            "be8f87b662d0de39"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -955,22 +969,22 @@
         {
           "shot": "50.4s",
           "identical": false,
-          "differingPixels": 10344,
+          "differingPixels": 165139,
           "firstDifference": [
-            212,
-            695
+            728,
+            113
           ],
           "box": [
-            12,
-            695,
-            521,
-            887
+            13,
+            113,
+            1426,
+            838
           ],
           "sha": [
-            "6b32f7ef459353b6",
-            "d08d682aecce8aab"
+            "d08d682aecce8aab",
+            "5dfa1a56efcfb8e3"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -984,22 +998,22 @@
         {
           "shot": "55.4s",
           "identical": false,
-          "differingPixels": 10466,
+          "differingPixels": 164245,
           "firstDifference": [
-            212,
-            695
+            728,
+            116
           ],
           "box": [
-            12,
-            695,
-            521,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "1480ebe96652b852",
-            "6fd0b91a47c17b63"
+            "6fd0b91a47c17b63",
+            "f9dd5cdb994f666a"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1013,22 +1027,22 @@
         {
           "shot": "60.4s",
           "identical": false,
-          "differingPixels": 10354,
+          "differingPixels": 158170,
           "firstDifference": [
-            209,
-            698
+            728,
+            116
           ],
           "box": [
-            12,
-            698,
-            521,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "38d891bb792d572b",
-            "20b54b8e068ad9b7"
+            "20b54b8e068ad9b7",
+            "0549ceeec58d1f3a"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1042,22 +1056,22 @@
         {
           "shot": "65.4s",
           "identical": false,
-          "differingPixels": 10522,
+          "differingPixels": 168723,
           "firstDifference": [
-            209,
-            698
+            728,
+            119
           ],
           "box": [
-            12,
-            698,
-            521,
-            887
+            13,
+            119,
+            1426,
+            838
           ],
           "sha": [
-            "ffb27316d9ac561a",
-            "94759518e6ba9e90"
+            "94759518e6ba9e90",
+            "dd59b51b2a2b9a54"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1071,22 +1085,22 @@
         {
           "shot": "70.4s",
           "identical": false,
-          "differingPixels": 10480,
+          "differingPixels": 166385,
           "firstDifference": [
-            206,
-            698
+            728,
+            116
           ],
           "box": [
-            12,
-            698,
-            521,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "0d1fadd611c6e9ff",
-            "8ff43f702b20d194"
+            "8ff43f702b20d194",
+            "ca13344f97622164"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1100,22 +1114,22 @@
         {
           "shot": "75.4s",
           "identical": false,
-          "differingPixels": 10463,
+          "differingPixels": 159625,
           "firstDifference": [
-            206,
-            698
+            728,
+            116
           ],
           "box": [
-            12,
-            698,
-            521,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "df68c6d1947c6e8b",
-            "bd1ba0938617dfdb"
+            "bd1ba0938617dfdb",
+            "92a803ddd922cd72"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1129,22 +1143,22 @@
         {
           "shot": "80.4s",
           "identical": false,
-          "differingPixels": 10410,
+          "differingPixels": 157079,
           "firstDifference": [
-            206,
-            695
+            728,
+            113
           ],
           "box": [
-            12,
-            695,
-            521,
-            887
+            13,
+            113,
+            1426,
+            838
           ],
           "sha": [
-            "07044a661601e52e",
-            "5b217171d0029b5a"
+            "5b217171d0029b5a",
+            "aad992353cc21468"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1158,22 +1172,22 @@
         {
           "shot": "85.4s",
           "identical": false,
-          "differingPixels": 10357,
+          "differingPixels": 164642,
           "firstDifference": [
-            206,
-            695
+            728,
+            111
           ],
           "box": [
-            12,
-            695,
-            521,
-            887
+            13,
+            111,
+            1426,
+            838
           ],
           "sha": [
-            "05c668d1a77cc46f",
-            "181bf7a215ef7034"
+            "181bf7a215ef7034",
+            "c2ce1ae833e62b1c"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1187,22 +1201,22 @@
         {
           "shot": "90.4s",
           "identical": false,
-          "differingPixels": 10539,
+          "differingPixels": 167768,
           "firstDifference": [
-            206,
-            692
+            728,
+            111
           ],
           "box": [
-            12,
-            692,
-            521,
-            887
+            13,
+            111,
+            1426,
+            838
           ],
           "sha": [
-            "5f7fdfa468f6e610",
-            "7207f96a4b6dcc45"
+            "7207f96a4b6dcc45",
+            "d0e5a86d7bab81c3"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1216,22 +1230,22 @@
         {
           "shot": "95.4s",
           "identical": false,
-          "differingPixels": 10295,
+          "differingPixels": 167248,
           "firstDifference": [
-            209,
-            692
+            728,
+            108
           ],
           "box": [
-            12,
-            692,
-            521,
-            887
+            13,
+            108,
+            1426,
+            838
           ],
           "sha": [
-            "25cbb07c060d2ef2",
-            "426fc933d42714ef"
+            "426fc933d42714ef",
+            "c5a96646dd5f9d33"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1245,22 +1259,22 @@
         {
           "shot": "100.4s",
           "identical": false,
-          "differingPixels": 10489,
+          "differingPixels": 165408,
           "firstDifference": [
-            209,
-            692
+            728,
+            111
           ],
           "box": [
-            12,
-            692,
-            521,
-            887
+            13,
+            111,
+            1426,
+            838
           ],
           "sha": [
-            "8e8d2da8390d0b8e",
-            "840b88aa349d2a69"
+            "840b88aa349d2a69",
+            "33ea0629b887a57e"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1274,22 +1288,22 @@
         {
           "shot": "105.4s",
           "identical": false,
-          "differingPixels": 10488,
+          "differingPixels": 164196,
           "firstDifference": [
-            209,
-            692
+            728,
+            111
           ],
           "box": [
-            12,
-            692,
-            521,
-            887
+            13,
+            111,
+            1426,
+            838
           ],
           "sha": [
-            "7d1829708851470b",
-            "cf47d46b2cf73d01"
+            "cf47d46b2cf73d01",
+            "007a287b062ca1cb"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1303,22 +1317,22 @@
         {
           "shot": "110.4s",
           "identical": false,
-          "differingPixels": 10673,
+          "differingPixels": 167737,
           "firstDifference": [
-            212,
-            695
+            728,
+            113
           ],
           "box": [
-            12,
-            695,
-            521,
-            887
+            13,
+            113,
+            1426,
+            838
           ],
           "sha": [
-            "5b38dfd910111c99",
-            "44b310bb505d403a"
+            "44b310bb505d403a",
+            "e03f73396e22b0ec"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1332,22 +1346,22 @@
         {
           "shot": "115.4s",
           "identical": false,
-          "differingPixels": 10633,
+          "differingPixels": 165774,
           "firstDifference": [
-            212,
-            695
+            728,
+            116
           ],
           "box": [
-            12,
-            695,
-            521,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "58782349e367cadd",
-            "71a0beb08e054ecc"
+            "71a0beb08e054ecc",
+            "8205514637361563"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1361,22 +1375,22 @@
         {
           "shot": "120.4s",
           "identical": false,
-          "differingPixels": 10544,
+          "differingPixels": 166413,
           "firstDifference": [
-            215,
-            698
+            728,
+            119
           ],
           "box": [
-            12,
-            698,
-            521,
-            887
+            13,
+            119,
+            1426,
+            838
           ],
           "sha": [
-            "d9f60c95588d56c6",
-            "44928aafff84ba67"
+            "44928aafff84ba67",
+            "b184191ef4d9f7f1"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1399,22 +1413,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 10811,
+          "differingPixels": 476498,
           "firstDifference": [
-            215,
-            698
+            728,
+            116
           ],
           "box": [
-            12,
-            698,
-            565,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "96bafd66c10e1ac3",
-            "6f78dbdd0335e339"
+            "6f78dbdd0335e339",
+            "1d46434c46608d91"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Authored phase tint darkens stage and actor bodies while preserving engine badges. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1428,22 +1442,22 @@
         {
           "shot": "10s",
           "identical": false,
-          "differingPixels": 10725,
+          "differingPixels": 474250,
           "firstDifference": [
-            215,
-            698
+            728,
+            116
           ],
           "box": [
-            12,
-            698,
-            565,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "38b9d624acb3e3fd",
-            "76c06f17d5fa0299"
+            "76c06f17d5fa0299",
+            "cc2ca47ab74575a3"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Authored phase tint darkens stage and actor bodies while preserving engine badges. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1466,22 +1480,22 @@
         {
           "shot": "aboard",
           "identical": false,
-          "differingPixels": 41207,
+          "differingPixels": 778769,
           "firstDifference": [
-            431,
-            1397
+            1458,
+            233
           ],
           "box": [
-            24,
-            1397,
-            1129,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "890a8721e8b43b6b",
-            "5964fd6d3069bc37"
+            "5964fd6d3069bc37",
+            "3d4cd03605c903f0"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1495,22 +1509,22 @@
         {
           "shot": "changed",
           "identical": false,
-          "differingPixels": 40097,
+          "differingPixels": 710870,
           "firstDifference": [
-            431,
-            1397
+            1458,
+            233
           ],
           "box": [
-            24,
-            1397,
-            1045,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "fc0ec2739b655557",
-            "ed73d7dd2eb514c5"
+            "ed73d7dd2eb514c5",
+            "c64b3f00c59e907e"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1524,22 +1538,22 @@
         {
           "shot": "walking-1000ms",
           "identical": false,
-          "differingPixels": 40714,
+          "differingPixels": 748628,
           "firstDifference": [
-            436,
-            1385
+            1458,
+            233
           ],
           "box": [
-            24,
-            1385,
-            1045,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "aaf01089084bb2d9",
-            "a3867fe1f2ffba58"
+            "a3867fe1f2ffba58",
+            "a1ce4d8e5e1a1752"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1553,22 +1567,22 @@
         {
           "shot": "walking-2000ms",
           "identical": false,
-          "differingPixels": 40257,
+          "differingPixels": 727181,
           "firstDifference": [
-            425,
-            1391
+            1458,
+            227
           ],
           "box": [
-            24,
-            1391,
-            1045,
-            1775
+            26,
+            227,
+            2853,
+            1677
           ],
           "sha": [
-            "e0d01809af4e8ba6",
-            "e813df3df21ea2c2"
+            "e813df3df21ea2c2",
+            "dc97cb5f8ca3fccb"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1582,22 +1596,22 @@
         {
           "shot": "walking-3000ms",
           "identical": false,
-          "differingPixels": 40366,
+          "differingPixels": 734603,
           "firstDifference": [
-            413,
-            1391
+            1458,
+            215
           ],
           "box": [
-            24,
-            1391,
-            1045,
-            1775
+            26,
+            215,
+            2853,
+            1677
           ],
           "sha": [
-            "5dd64f5b1f50d214",
-            "8e007946ff620e5b"
+            "8e007946ff620e5b",
+            "1be84e85ac4d33f2"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1611,22 +1625,22 @@
         {
           "shot": "walking-5000ms",
           "identical": false,
-          "differingPixels": 40730,
+          "differingPixels": 669347,
           "firstDifference": [
-            431,
-            1397
+            1458,
+            233
           ],
           "box": [
-            24,
-            1397,
-            1045,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "e67cee8fb7d612a3",
-            "f6d50923102fc3c7"
+            "f6d50923102fc3c7",
+            "a0d7604e57017dd7"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1640,22 +1654,22 @@
         {
           "shot": "walking-8000ms",
           "identical": false,
-          "differingPixels": 40434,
+          "differingPixels": 670075,
           "firstDifference": [
-            413,
-            1391
+            1458,
+            215
           ],
           "box": [
-            24,
-            1391,
-            1045,
-            1775
+            26,
+            215,
+            2853,
+            1677
           ],
           "sha": [
-            "01f3bf24466c85b5",
-            "2eea1df9cd262cb8"
+            "2eea1df9cd262cb8",
+            "4087f6c5b5dea58c"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1669,22 +1683,22 @@
         {
           "shot": "arrived",
           "identical": false,
-          "differingPixels": 40954,
+          "differingPixels": 699236,
           "firstDifference": [
-            436,
-            1391
+            1458,
+            233
           ],
           "box": [
-            24,
-            1391,
-            1045,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "d04addecde4f1f9d",
-            "0128de12a715d561"
+            "0128de12a715d561",
+            "793fda04b49d9348"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1698,22 +1712,22 @@
         {
           "shot": "hatch-200ms",
           "identical": false,
-          "differingPixels": 40904,
+          "differingPixels": 709445,
           "firstDifference": [
-            436,
-            1385
+            1458,
+            227
           ],
           "box": [
-            24,
-            1385,
-            1045,
-            1775
+            26,
+            227,
+            2853,
+            1677
           ],
           "sha": [
-            "10fcff4c8d70326b",
-            "a659dcffee7483b6"
+            "a659dcffee7483b6",
+            "130e27ca73282a6d"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1727,22 +1741,22 @@
         {
           "shot": "hatch-400ms",
           "identical": false,
-          "differingPixels": 40216,
+          "differingPixels": 688716,
           "firstDifference": [
-            436,
-            1385
+            1458,
+            227
           ],
           "box": [
-            24,
-            1385,
-            1045,
-            1775
+            26,
+            227,
+            2853,
+            1677
           ],
           "sha": [
-            "e02ab02656fbd3b5",
-            "abf44be2a646143d"
+            "abf44be2a646143d",
+            "50e84b621d16d676"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1756,22 +1770,22 @@
         {
           "shot": "hatch-700ms",
           "identical": false,
-          "differingPixels": 40349,
+          "differingPixels": 713363,
           "firstDifference": [
-            431,
-            1385
+            1458,
+            221
           ],
           "box": [
-            24,
-            1385,
-            1045,
-            1775
+            26,
+            221,
+            2853,
+            1677
           ],
           "sha": [
-            "49dc2a8b35d57afd",
-            "d5109ce033abc424"
+            "d5109ce033abc424",
+            "68a55bcad33e5f36"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1785,22 +1799,22 @@
         {
           "shot": "hatch-1500ms",
           "identical": false,
-          "differingPixels": 40437,
+          "differingPixels": 700617,
           "firstDifference": [
-            453,
-            1402
+            1458,
+            215
           ],
           "box": [
-            24,
-            1402,
-            1045,
-            1775
+            26,
+            215,
+            2853,
+            1677
           ],
           "sha": [
-            "ce8cc35174ff63cc",
-            "ce42b65d54d20607"
+            "ce42b65d54d20607",
+            "75c9f910cd387a6c"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1814,22 +1828,22 @@
         {
           "shot": "hatch-3000ms",
           "identical": false,
-          "differingPixels": 40882,
+          "differingPixels": 704842,
           "firstDifference": [
-            419,
-            1385
+            1458,
+            233
           ],
           "box": [
-            24,
-            1385,
-            1045,
-            1775
+            26,
+            233,
+            2853,
+            1677
           ],
           "sha": [
-            "efa4e2a6937ebde7",
-            "3ee6d9e9767fe820"
+            "3ee6d9e9767fe820",
+            "b3b8aeae3738a013"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1842,9 +1856,23 @@
         },
         {
           "shot": "leaving-300ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "102c1bb048cc82b6",
+          "identical": false,
+          "differingPixels": 744906,
+          "firstDifference": [
+            1458,
+            233
+          ],
+          "box": [
+            26,
+            233,
+            2853,
+            1677
+          ],
+          "sha": [
+            "102c1bb048cc82b6",
+            "6a6e8fed2a04e311"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1857,9 +1885,23 @@
         },
         {
           "shot": "leaving-800ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "cc64f83bc7676bb1",
+          "identical": false,
+          "differingPixels": 727066,
+          "firstDifference": [
+            1458,
+            233
+          ],
+          "box": [
+            26,
+            233,
+            2853,
+            1677
+          ],
+          "sha": [
+            "cc64f83bc7676bb1",
+            "1584e3f9821efaa2"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1872,9 +1914,23 @@
         },
         {
           "shot": "leaving-1400ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "9c0aa989d673e59d",
+          "identical": false,
+          "differingPixels": 722318,
+          "firstDifference": [
+            1458,
+            221
+          ],
+          "box": [
+            26,
+            221,
+            2853,
+            1677
+          ],
+          "sha": [
+            "9c0aa989d673e59d",
+            "c70257542b78f67f"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1887,9 +1943,23 @@
         },
         {
           "shot": "leaving-2000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "c7d55eaf339da8df",
+          "identical": false,
+          "differingPixels": 689969,
+          "firstDifference": [
+            1458,
+            215
+          ],
+          "box": [
+            26,
+            215,
+            2853,
+            1677
+          ],
+          "sha": [
+            "c7d55eaf339da8df",
+            "b46157c7af8c8d83"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1902,9 +1972,23 @@
         },
         {
           "shot": "leaving-2400ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "09b0f29a33f4376b",
+          "identical": false,
+          "differingPixels": 729239,
+          "firstDifference": [
+            1458,
+            215
+          ],
+          "box": [
+            26,
+            215,
+            2853,
+            1677
+          ],
+          "sha": [
+            "09b0f29a33f4376b",
+            "d9e3e9752346a6ed"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1917,9 +2001,23 @@
         },
         {
           "shot": "leaving-2700ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "e01e604874f0c012",
+          "identical": false,
+          "differingPixels": 695480,
+          "firstDifference": [
+            1458,
+            221
+          ],
+          "box": [
+            26,
+            221,
+            2853,
+            1677
+          ],
+          "sha": [
+            "e01e604874f0c012",
+            "ece02483ac0c2aab"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1932,9 +2030,23 @@
         },
         {
           "shot": "leaving-3000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "83c408d1c1249d3d",
+          "identical": false,
+          "differingPixels": 713704,
+          "firstDifference": [
+            1458,
+            221
+          ],
+          "box": [
+            26,
+            221,
+            2853,
+            1677
+          ],
+          "sha": [
+            "83c408d1c1249d3d",
+            "a92ce7edafc36ca5"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1947,9 +2059,23 @@
         },
         {
           "shot": "leaving-3300ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "a56194757a63c2cb",
+          "identical": false,
+          "differingPixels": 724693,
+          "firstDifference": [
+            1458,
+            227
+          ],
+          "box": [
+            26,
+            227,
+            2853,
+            1677
+          ],
+          "sha": [
+            "a56194757a63c2cb",
+            "af7a498715c84af6"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1962,9 +2088,23 @@
         },
         {
           "shot": "leaving-3600ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "ad0b77df9b20ec41",
+          "identical": false,
+          "differingPixels": 716503,
+          "firstDifference": [
+            1458,
+            227
+          ],
+          "box": [
+            26,
+            227,
+            2853,
+            1677
+          ],
+          "sha": [
+            "ad0b77df9b20ec41",
+            "54f1c6601d54f75a"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1977,9 +2117,23 @@
         },
         {
           "shot": "leaving-4000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "dc4db4cb19d0328a",
+          "identical": false,
+          "differingPixels": 673519,
+          "firstDifference": [
+            1458,
+            233
+          ],
+          "box": [
+            26,
+            233,
+            2853,
+            1677
+          ],
+          "sha": [
+            "dc4db4cb19d0328a",
+            "06288877aa879231"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1992,9 +2146,23 @@
         },
         {
           "shot": "leaving-4600ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "5ff9e0f6d6c883b2",
+          "identical": false,
+          "differingPixels": 704779,
+          "firstDifference": [
+            1458,
+            238
+          ],
+          "box": [
+            26,
+            238,
+            2853,
+            1677
+          ],
+          "sha": [
+            "5ff9e0f6d6c883b2",
+            "db5bf88c8b9bef33"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2007,9 +2175,23 @@
         },
         {
           "shot": "leaving-5400ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "4cfaf730193aace3",
+          "identical": false,
+          "differingPixels": 718299,
+          "firstDifference": [
+            1458,
+            233
+          ],
+          "box": [
+            26,
+            233,
+            2853,
+            1677
+          ],
+          "sha": [
+            "4cfaf730193aace3",
+            "422d03a83fa92c01"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2022,9 +2204,23 @@
         },
         {
           "shot": "leaving-7000ms",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "7cf0861a3b8cdee1",
+          "identical": false,
+          "differingPixels": 682646,
+          "firstDifference": [
+            1458,
+            215
+          ],
+          "box": [
+            26,
+            215,
+            2853,
+            1677
+          ],
+          "sha": [
+            "7cf0861a3b8cdee1",
+            "68bfcb932eb3bee8"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2037,9 +2233,23 @@
         },
         {
           "shot": "after",
-          "identical": true,
-          "differingPixels": 0,
-          "sha": "33ba23abd8a913d8",
+          "identical": false,
+          "differingPixels": 636845,
+          "firstDifference": [
+            1458,
+            233
+          ],
+          "box": [
+            26,
+            233,
+            2853,
+            1677
+          ],
+          "sha": [
+            "33ba23abd8a913d8",
+            "341c0fe0dbe868b5"
+          ],
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. New walking/working/portal actor frames and the raised working post; existing floor paths and portal timelines retained. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2062,22 +2272,22 @@
         {
           "shot": "100ms",
           "identical": false,
-          "differingPixels": 11084,
+          "differingPixels": 2134318,
           "firstDifference": [
-            28,
-            1746
+            220,
+            186
           ],
           "box": [
-            24,
-            1746,
-            1129,
-            1775
+            26,
+            186,
+            2853,
+            1677
           ],
           "sha": [
-            "99f07b3e04fab7b4",
-            "20ac2253e6caccec"
+            "20ac2253e6caccec",
+            "a191061cdd7fbb57"
           ],
-          "intentional": "The attention footer offers Converse for the selected worker. The carrier is hidden while a sailor is focused; every canvas pixel remains identical.",
+          "intentional": "The same focused worker now occupies the raised nest, so the existing camera follows that position; new generated lookout art and ladder. Focus panel and surrounding UI remain identical. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2091,22 +2301,22 @@
         {
           "shot": "300ms",
           "identical": false,
-          "differingPixels": 11084,
+          "differingPixels": 3946840,
           "firstDifference": [
-            28,
-            1746
+            35,
+            186
           ],
           "box": [
-            24,
-            1746,
-            1129,
-            1775
+            26,
+            186,
+            2853,
+            1677
           ],
           "sha": [
-            "29a75fc666e8eba1",
-            "5f0f2760308a60d6"
+            "5f0f2760308a60d6",
+            "76bea2de7406114f"
           ],
-          "intentional": "The attention footer offers Converse for the selected worker. The carrier is hidden while a sailor is focused; every canvas pixel remains identical.",
+          "intentional": "The same focused worker now occupies the raised nest, so the existing camera follows that position; new generated lookout art and ladder. Focus panel and surrounding UI remain identical. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2120,22 +2330,22 @@
         {
           "shot": "1.5s",
           "identical": false,
-          "differingPixels": 11084,
+          "differingPixels": 3939482,
           "firstDifference": [
-            28,
-            1746
+            35,
+            186
           ],
           "box": [
-            24,
-            1746,
-            1129,
-            1775
+            26,
+            186,
+            2853,
+            1677
           ],
           "sha": [
-            "78cf04356b506c01",
-            "1ce303953b7bbfe6"
+            "1ce303953b7bbfe6",
+            "e8a80ed06a2af17d"
           ],
-          "intentional": "The attention footer offers Converse for the selected worker. The carrier is hidden while a sailor is focused; every canvas pixel remains identical.",
+          "intentional": "The same focused worker now occupies the raised nest, so the existing camera follows that position; new generated lookout art and ladder. Focus panel and surrounding UI remain identical. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2149,22 +2359,22 @@
         {
           "shot": "back-out",
           "identical": false,
-          "differingPixels": 41007,
+          "differingPixels": 752021,
           "firstDifference": [
-            413,
-            1397
+            1458,
+            221
           ],
           "box": [
-            24,
-            1397,
-            1129,
-            1775
+            26,
+            221,
+            2853,
+            1677
           ],
           "sha": [
-            "5a5f3397963f6e5d",
-            "3abddb24e5624ff6"
+            "3abddb24e5624ff6",
+            "1c89a7ed03ce7d80"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2186,22 +2396,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 10779,
+          "differingPixels": 191714,
           "firstDifference": [
-            212,
-            695
+            728,
+            116
           ],
           "box": [
-            12,
-            695,
-            565,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "29be3e26bca548ab",
-            "54b4401b8f23b91b"
+            "54b4401b8f23b91b",
+            "a04c86341b11af68"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2215,22 +2425,22 @@
         {
           "shot": "2s",
           "identical": false,
-          "differingPixels": 10779,
+          "differingPixels": 190373,
           "firstDifference": [
-            212,
-            695
+            728,
+            116
           ],
           "box": [
-            12,
-            695,
-            565,
-            887
+            13,
+            116,
+            1426,
+            838
           ],
           "sha": [
-            "2512cdd923ff84e6",
-            "66d90059c5cc80dc"
+            "66d90059c5cc80dc",
+            "5bb3bfd39ee3a9de"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2244,22 +2454,22 @@
         {
           "shot": "6s",
           "identical": false,
-          "differingPixels": 10779,
+          "differingPixels": 190120,
           "firstDifference": [
-            212,
-            695
+            728,
+            119
           ],
           "box": [
-            12,
-            695,
-            565,
-            887
+            13,
+            119,
+            1426,
+            838
           ],
           "sha": [
-            "b1aa9428d9dabd3c",
-            "b82569701f347294"
+            "b82569701f347294",
+            "d5d52e5fb592edcf"
           ],
-          "intentional": "Generated reply shark and speech bubble loiter in the sea for the selected worker; the existing footer offers Converse and selection. Every pixel outside those additions remains identical.",
+          "intentional": "Generated crew poses, scalloped foam and wider sea variation; new ladder and occupied rigid nest with tip-only sway. Generated gull frames and crew cycles run on the existing motion clocks; weather elements and timings are unchanged. All pixels outside the canvas are identical.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2278,5 +2488,5 @@
   "shots": 81,
   "passed": true,
   "identical": false,
-  "intentionalShots": 66
+  "intentionalShots": 81
 }

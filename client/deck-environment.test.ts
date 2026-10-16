@@ -264,6 +264,7 @@ const ambienceImages = new Set(
  */
 function packImages(options: { extras?: Extras | null; without?: readonly string[] }, art: StillWater, atlas: unknown = { atlas: true }) {
   const handles = new Set(shipManifest().zones.zones.flatMap((zone) => zone.appearance === undefined ? [] : [zone.appearance.sprite.image]));
+  for (const look of shipCast().looks) if (!look.optional) handles.add(look.image);
   for (const sprite of shipManifest().attentionCarrier?.frames ?? []) handles.add(sprite.image);
   const images = new Map(
     [...shipViews().paths].flatMap(([id, path]): Array<[string, unknown]> => {
@@ -370,9 +371,14 @@ async function start(
   // The pack's images by id, as the mount hands them over: the atlas, the ambience's, and whatever of the extras arrived.
   const atlas = { atlas: true };
   const { images, masks, ambience, parts } = packImages(options, art, atlas);
+  // These renderer tests isolate floor motion and explicit tint fixtures. The shipped raised station/night
+  // palette are covered by post-transit tests and the real compiled-browser polish checks and visual gate.
+  const floorStage = compileStage(shipManifest(), (id) => images.has(id));
+  floorStage.transits = new Map();
+  floorStage.phaseTint = null;
   const drawing = await startDeck(
     pixi,
-    { stage: options.stage ?? shipStage(), cast: shipCast(), parts, ambience: options.ambience ?? ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, effects: shipManifest().effects, attentionCarrier: options.attentionCarrier, presentation: deckPresentation(shipManifest()) },
+    { stage: options.stage ?? floorStage, cast: shipCast(), parts, ambience: options.ambience ?? ambience, atmosphere: compileAtmosphere(shipManifest()), images, masks, image: atlas, effects: shipManifest().effects, attentionCarrier: options.attentionCarrier, presentation: deckPresentation(shipManifest()) },
     host,
     options.scene ?? deckScene([], theme),
     { width: 800, height: 400 },
@@ -552,7 +558,7 @@ describe("the generated environment on the deck", () => {
       if (byLabel(deck.app.stage, "gull").some((gull) => gull.visible)) gullSeen = true;
     }
     expect(positions.size).toBeGreaterThan(100);
-    expect([...positions].every((x) => Number.isInteger(x) && x >= 0 && x < 256)).toBe(true);
+    expect([...positions].every((x) => Number.isInteger(x) && x >= 0 && x < 512)).toBe(true);
     expect(one(deck.app.stage, "sea:front").position.x).toBe(far.position.x);
     expect(gullSeen).toBe(true);
     deck.drawing.destroy();
@@ -661,7 +667,7 @@ const lookPaths = shipCast()
   .looks.filter((look) => look.optional)
   .map((look) => shipViews().paths.get(look.image)!);
 /** The tall mast's, the sail's and the plank's images: what the extras once had of the stage. */
-const stagePaths = ["mast-tall-mast", "sails-main-sail", "plank-plank"].map(pathOf);
+const stagePaths = ["mast-tall-mast", "sails-main-sail", "plank-plank", "polish-ladder"].map(pathOf);
 /** The extras as a test hands them over — the shark and splash, the looks, the stage's own and the water — each a token naming its path. */
 const extras: DeckExtrasImages = {
   manifest: extrasManifest,
@@ -808,7 +814,7 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
     deck.advance(16);
     const ship = one(deck.app.stage, "ship");
-    expect(ship.children.map((child) => child.label)).toEqual(["hull:0", "hull:1", "hull:2", "tall-mast", "topmast", "sail", "deck"]);
+    expect(ship.children.map((child) => child.label)).toEqual(["hull:0", "hull:1", "hull:2", "tall-mast", "topmast", "sail", "access-ladder", "deck"]);
     // The hull's short rig — its crow's nest, upper mast and stays — is not drawn: the slices go round it.
     const [cutX, , cutWidth, cutHeight] = stagePart("tall-mast").cutout!;
     const slices = ["hull:0", "hull:1", "hull:2"].map((label) => one(ship, label) as FakeSprite);
@@ -821,9 +827,9 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     const head = one(ship, "topmast") as FakeSprite;
     const shaft = one(ship, "tall-mast") as FakeSprite;
     expect([texturePath(head), texturePath(shaft)]).toEqual(["mast/tall-mast.png", "mast/tall-mast.png"]);
-    expect([head.position.y, head.texture.frame.y, head.texture.frame.height]).toEqual([-80, 0, 52]);
+    expect([head.position.y, head.texture.frame.y, head.texture.frame.height]).toEqual([-80, 0, 20]);
     expect(Math.abs(head.position.x - 187)).toBeLessThanOrEqual(1);
-    expect([shaft.position.x, shaft.position.y, shaft.texture.frame.y, shaft.texture.frame.height]).toEqual([187, -28, 52, 140]);
+    expect([shaft.position.x, shaft.position.y, shaft.texture.frame.y, shaft.texture.frame.height]).toEqual([187, -60, 20, 172]);
     // The taller sail on it, at its yard's lashing point, one 114 × 84 state of its strip.
     const sail = one(ship, "sail") as FakeSprite;
     expect([sail.position.x, sail.position.y]).toEqual([154, -15]);
@@ -840,7 +846,7 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     deck.drawing.destroy();
   });
 
-  it("sways the tall mast's crow's nest a pixel each way and holds its shaft and foot still", async () => {
+  it("sways the mast tip a pixel each way and holds the occupied basket, shaft and foot still", async () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
     deck.advance(0);
     const head = one(deck.app.stage, "topmast") as FakeSprite;
@@ -849,7 +855,7 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     for (let frame = 0; frame < 300; frame += 1) {
       deck.advance(34);
       sways.add(head.position.x - 187);
-      expect([shaft.position.x, shaft.position.y, head.position.y]).toEqual([187, -28, -80]);
+      expect([shaft.position.x, shaft.position.y, head.position.y]).toEqual([187, -60, -80]);
     }
     expect(sways).toEqual(new Set([-1, 0, 1]));
     deck.drawing.destroy();
@@ -916,9 +922,8 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     expect(new Set(worn).size).toBe(8);
     for (const sailor of scene.sailors) {
       const { sprite } = sailorSprites(deck.app.stage, sailor.key);
-      const [x, y, width, height] = standing(shipCast(), "base", "hauling").frame;
-      const outfit = standing(shipCast(), "outfit", "hauling").frame;
-      expect([[x, y, width, height], outfit]).toContainEqual([sprite.texture.frame.x, sprite.texture.frame.y, sprite.texture.frame.width, sprite.texture.frame.height]);
+      const look = shipCast().looks.find(look => pathOf(look.image) === texturePath(sprite))!;
+      expect([sprite.texture.frame.x, sprite.texture.frame.y, sprite.texture.frame.width, sprite.texture.frame.height]).toEqual(standing(shipCast(), look.lane, "hauling").frame);
     }
     deck.drawing.destroy();
     const partial = { manifest: extrasManifest, images: new Map([...extras.images].filter(([path]) => !path.includes("bosun"))) };
@@ -934,7 +939,7 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras, stage, scene: crewScene([["rest", "idle"]]) });
     deck.advance(0);
     const { sprite, upper } = sailorSprites(deck.app.stage, "rest");
-    const lane = sprite.texture.frame.x === standing(shipCast(), "outfit", "side-idle").frame[0] ? "outfit" : "base";
+    const lane = shipCast().looks.find(look => pathOf(look.image) === texturePath(sprite))!.lane;
     const posed = standing(shipCast(), lane, "side-idle");
     const seen = { whole: 0, out: 0 };
     for (let frame = 0; frame < 200; frame += 1) {
@@ -1501,7 +1506,9 @@ describe("the reply marker on deck", () => {
     const heights = new Set<number>();
     for (let elapsed = 0; elapsed < 3200; elapsed += 100) {
       moving.advance(100);
-      heights.add(ask(moving, "a").position.y);
+      // Subtract the changing pose's head height: this test isolates the indicator's own one-pixel bob.
+      const sprite = sailorSprites(moving.app.stage, "a").sprite;
+      heights.add(ask(moving, "a").position.y + sprite.texture.frame.height);
     }
     expect(heights.size).toBe(2);
     moving.drawing.destroy();

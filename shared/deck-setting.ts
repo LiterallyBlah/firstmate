@@ -31,6 +31,7 @@ export const ENGINE_CAPABILITIES = [
   "floor@1",
   "zones@1",
   "zone-appearance@1",
+  "post-transit@1",
   "attention-carrier@1",
   "stable-posts@1",
   "cast@1",
@@ -212,7 +213,16 @@ const Zones = z.strictObject({
   zones: z.array(
     z.strictObject({
       id: Id,
-      posts: z.array(z.strictObject({ id: Id, at: Point, facing: z.enum(["left", "right", "front"]) })).min(1),
+      posts: z.array(z.strictObject({
+        id: Id, at: Point, facing: z.enum(["left", "right", "front"]),
+        /** A reversible route from this floor post to an off-floor station. Only its primary holder uses it. */
+        transit: z.strictObject({
+          path: z.array(Point).min(1), speed: z.number().positive(),
+          poses: z.array(Id).min(1), stepMs: Ms, settled: Id,
+          front: Id,
+          needs: z.array(Id).min(1).optional(),
+        }).optional(),
+      })).min(1),
       /** `nearest`: nearest the worker; `ordered`: first free; `stable`: identity-hashed preference, nearest free on collision. */
       assign: z.enum(["nearest", "ordered", "stable"]),
       /**
@@ -582,6 +592,7 @@ export function settingImageIds(manifest: SettingManifest): string[] {
 export function capabilitiesUsed(manifest: SettingManifest): string[] {
   const used = new Set<string>(["stage@1", "floor@1", "zones@1", "cast@1"]);
   if (manifest.zones.zones.some((zone) => zone.appearance !== undefined)) used.add("zone-appearance@1");
+  if (manifest.zones.zones.some((zone) => zone.posts.some((post) => post.transit !== undefined))) used.add("post-transit@1");
   if (manifest.attentionCarrier !== undefined) used.add("attention-carrier@1");
   if (manifest.zones.zones.some((zone) => zone.assign === "stable")) used.add("stable-posts@1");
   if (Object.values(manifest.cast.fidgets).some((fidget) => fidget?.keys.some((key) => key.pose !== undefined))) used.add("pose-fidgets@1");
@@ -655,6 +666,9 @@ export function settingProblems(manifest: SettingManifest): string[] {
   const { roles } = manifest.cast;
   const poses = new Set<string>([roles.stand, ...roles.walkFront, ...roles.walkSide, ...Object.values(roles.settled).map((settled) => settled.pose)]);
   for (const fidget of Object.values(manifest.cast.fidgets)) for (const key of fidget?.keys ?? []) if (key.pose !== undefined) poses.add(key.pose);
+  for (const zone of manifest.zones.zones) for (const post of zone.posts) if (post.transit !== undefined) {
+    for (const pose of [...post.transit.poses, post.transit.settled]) poses.add(pose);
+  }
   for (const exit of Object.values(manifest.portals.exits)) {
     if (exit.kind === "choreography") for (const segment of exit.actor) if (typeof segment.pose === "string") poses.add(segment.pose);
   }
@@ -666,6 +680,25 @@ export function settingProblems(manifest: SettingManifest): string[] {
   unique("posts", manifest.zones.zones.flatMap((zone) => zone.posts.map((post) => post.id)));
   for (const [state, zone] of Object.entries(manifest.zones.byState)) if (!zones.has(zone)) missing("zone", zone, `zones.byState.${state}`);
   for (const zone of zones) if (manifest.copy.zones[zone] === undefined) problems.push(`copy.zones has no words for zone "${zone}"`);
+  for (const zone of manifest.zones.zones) for (const post of zone.posts) {
+    if (post.transit === undefined) continue;
+    for (const image of post.transit.needs ?? []) if (manifest.images[image] === undefined) missing("image", image, `post ${post.id}`);
+    if (zone.appearance !== undefined) problems.push(`post ${post.id} cannot combine transit with zone appearance`);
+    if (!manifest.stage.pieces.some((piece) => piece.id === post.transit!.front)) missing("piece", post.transit.front, `post ${post.id}`);
+    let previous = post.at;
+    for (const [index, point] of [post.at, ...post.transit.path].entries()) {
+      if (index > 0 && point[0] === previous[0] && point[1] === previous[1]) problems.push(`post ${post.id} has a zero-length transit segment`);
+      previous = point;
+      // Every pose, including its badge clearance, must remain inside the stage's fit along the whole route.
+      for (const frames of Object.values(manifest.cast.lanes)) for (const pose of [...post.transit.poses, post.transit.settled]) {
+        const frame = frames[pose];
+        if (frame !== undefined && (point[0] - frame.feet[0] < 0 || point[0] - frame.feet[0] + frame.rect[2] > manifest.stage.size[0]
+          || point[1] - frame.feet[1] - 9 < manifest.stage.fit.top || point[1] - frame.feet[1] + frame.rect[3] > manifest.stage.fit.bottom)) {
+          problems.push(`post ${post.id} transit pose ${pose} leaves the stage fit`);
+        }
+      }
+    }
+  }
   for (const zone of manifest.zones.zones) {
     const appearance = zone.appearance;
     if (appearance === undefined) continue;

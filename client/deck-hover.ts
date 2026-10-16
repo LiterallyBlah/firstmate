@@ -203,7 +203,7 @@ export function sailorAt(
 
 /** A stationary handle uses the same piece-relative depth as the renderer. */
 function figureDepth(figure: Figure): number {
-  return (figure.appearance?.depth ?? depthOf(figure.row, 0)) + figure.x / 10000;
+  return (figure.depth ?? figure.appearance?.depth ?? depthOf(figure.row, 0)) + figure.x / 10000;
 }
 
 /**

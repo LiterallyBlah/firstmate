@@ -29,6 +29,7 @@ import {
   type Point,
 } from "./deck-geometry";
 import { fidgetAt } from "./deck-cast";
+import { postTransitAt } from "./deck-post-transit";
 
 // The ship's cast, under the names its constants had in the deck's code.
 const STATE_POSES = Object.fromEntries((["working", "waiting", "blocked", "idle"] as const).map((state) => [state, shipCast().settled[state].pose])) as Record<DeckState, string>;
@@ -202,7 +203,7 @@ describe("the crew on deck", () => {
     }
     expect(PLACES).toEqual({ working: "station", waiting: "helm", blocked: "bow", idle: "rest" });
     const poses = Object.fromEntries(crewFigures(crew, 0, { still: true }).map((figure) => [figure.state, figure.pose]));
-    expect(poses).toEqual(STATE_POSES);
+    expect(poses).toEqual({ ...STATE_POSES, working: "lookout" });
   });
 
   it("never stacks two sailors: distinct anchors while they last, then a spot beside a shared one, all on open deck", () => {
@@ -242,7 +243,8 @@ describe("the crew on deck", () => {
   it("shows a new state at once, and only then walks the sailor there", () => {
     const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a", "working")], { snap: false });
-    const start = { x: crew.walkers.get("a")!.x, y: crew.walkers.get("a")!.y };
+    const first = crewFigures(crew, 0, { still: true })[0]!;
+    const start = { x: first.x, y: first.row };
     applyCrew(crew, [sailor("a", "waiting")], { snap: false });
     // The state (the mark and the legend) is the new one before the sprite has moved a pixel.
     let figure = crewFigures(crew, 0, { still: false })[0]!;
@@ -252,7 +254,7 @@ describe("the crew on deck", () => {
     figure = crewFigures(crew, 1000, { still: false })[0]!;
     expect(figure.state).toBe("waiting");
     expect(figure.moving).toBe(true);
-    expect(figure.pose).toMatch(/walk|idle/);
+    expect(figure.pose).toMatch(/walk|idle|pass|climb/);
     expect({ x: figure.x, y: figure.row }).not.toEqual(start);
     run(crew, 20_000);
     expect(anchorAt(crew.walkers.get("a")!)?.place).toBe("helm");
@@ -287,8 +289,8 @@ describe("the crew on deck", () => {
       poses.add(`${figure.pose}${figure.flip ? ":flip" : ""}`);
       rises.add(figure.row - figure.y);
     }
-    expect(poses).toEqual(new Set(["side-walk-a:flip", "side-idle:flip", "side-walk-b:flip"]));
-    expect(rises).toEqual(new Set([0, 1]));
+    expect(poses).toEqual(new Set(shipCast().walkSide.map(pose => `${pose}:flip`)));
+    expect(rises).toEqual(new Set([0])); // Passing motion is drawn into the registered frames.
   });
 
   it("brings a new crewmate up through the hatch and sends an archived one off by the plank", () => {
@@ -355,16 +357,16 @@ describe("the crew on deck", () => {
     for (const state of ["working", "waiting", "blocked"] as const) {
       const seen = new Set<string>();
       for (let at = 0; at < 8000; at += 50) {
-        const { dx, dy } = idleMotion(state, "right", 3, at);
+        const { dx, dy, pose } = idleMotion(state, "right", 3, at);
         expect(Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && Number.isInteger(dx) && Number.isInteger(dy)).toBe(true);
-        seen.add(`${dx},${dy}`);
+        seen.add(`${dx},${dy},${pose}`);
       }
       expect(seen.size, state).toBeGreaterThan(1);
     }
     // At ease, the feet never move: the sailor breathes in place instead.
     for (let at = 0; at < 8000; at += 50) expect(idleMotion("idle", "front", 3, at)).toEqual({ dx: 0, dy: 0 });
     // A sailor facing left hauls to the left.
-    expect(new Set(Array.from({ length: 40 }, (_, i) => idleMotion("working", "left", 0, i * 100).dx))).toEqual(new Set([0, -1]));
+    expect(new Set(Array.from({ length: 40 }, (_, i) => idleMotion("working", "left", 0, i * 100).pose))).toEqual(new Set(["hauling", "hauling-pull"]));
   });
 
   it("under reduced motion jumps every change, with no hatch, no walk and no sway, and still shows the state", () => {
@@ -452,7 +454,8 @@ describe("idle crew at rest", () => {
   it("walks a sailor that goes idle to its rest spot, and back to a station when work comes, never in a jump", () => {
     const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a", "working")], { snap: false });
-    const station = { x: crew.walkers.get("a")!.x, y: crew.walkers.get("a")!.y };
+    const first = crewFigures(crew, 0, { still: true })[0]!;
+    const station = { x: first.x, y: first.row };
     applyCrew(crew, [sailor("a", "idle")], { snap: false });
     // Idle at once, in the mark and the legend; the sprite walks.
     let figure = crewFigures(crew, 0, { still: false })[0]!;
@@ -461,7 +464,8 @@ describe("idle crew at rest", () => {
     const seen: Point[] = [];
     for (let at = 0; at < 20_000; at += 33) {
       stepCrew(crew, 33);
-      const walker = crew.walkers.get("a")!;
+      const current = crew.walkers.get("a")!;
+      const walker = current.transit === null ? current : postTransitAt(current.transit.route, current.transit.ms, false);
       const last = seen.at(-1) ?? station;
       // A walk: never more than a frame's stride at a time.
       expect(Math.hypot(walker.x - last.x, walker.y - last.y)).toBeLessThanOrEqual(1.1);

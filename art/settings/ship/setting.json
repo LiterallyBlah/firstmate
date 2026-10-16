@@ -3,17 +3,20 @@
   "formatVersion": 1,
   "id": "ship",
   "name": "Ship's deck",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "requires": [
     "stage@1",
     "floor@1",
     "zones@1",
     "zone-appearance@1",
+    "post-transit@1",
     "attention-carrier@1",
     "cast@1",
+    "pose-fidgets@1",
     "rise@1",
     "sink@1",
     "choreography@1",
+    "phase-tint@1",
     "bob@1",
     "sway@1",
     "cycle@1",
@@ -88,54 +91,6 @@
       ],
       "sha256": "07b8f2326843536f117abb77a547872c878f9e3140cefd037d6d95ad85303d6b"
     },
-    "crew-variants-01-bosun": {
-      "path": "crew-variants/01-bosun.png",
-      "size": [
-        426,
-        275
-      ],
-      "sha256": "75a10a5125f12c7f7abfe75db6fc9e5831be4a72f2e604b35d403998315c62a2"
-    },
-    "crew-variants-02-old-salt": {
-      "path": "crew-variants/02-old-salt.png",
-      "size": [
-        426,
-        275
-      ],
-      "sha256": "a20615e33aaad32bffda1ab0241d9ee1060242d14f1b9533f192e6d3c94b1f83"
-    },
-    "crew-variants-03-navigator": {
-      "path": "crew-variants/03-navigator.png",
-      "size": [
-        426,
-        275
-      ],
-      "sha256": "43d9c5738f29d985182d9a06ea25827ff89152f8652bf1d068f0477eb07179cf"
-    },
-    "crew-variants-04-carpenter": {
-      "path": "crew-variants/04-carpenter.png",
-      "size": [
-        426,
-        275
-      ],
-      "sha256": "d9f7cddbff82577369f6c5a2e00a023ff87c6cb3f69da00043c7e3a5c481935d"
-    },
-    "crew-variants-05-rigger": {
-      "path": "crew-variants/05-rigger.png",
-      "size": [
-        426,
-        275
-      ],
-      "sha256": "160143fc879e15a4588829e246a5002eab65345cd337b1f07531ec930e97cbac"
-    },
-    "crew-variants-06-deckhand": {
-      "path": "crew-variants/06-deckhand.png",
-      "size": [
-        426,
-        275
-      ],
-      "sha256": "3b8d2e8a364d2e7f5a5ab0c4059f0d8f148c7e28b9134aac1d58979ea32b486e"
-    },
     "deck": {
       "path": "deck.png",
       "size": [
@@ -150,7 +105,7 @@
         96,
         32
       ],
-      "sha256": "2b6d4fdc383ff27c9dcde52f2cd808ef429aab4d6a925b6d75c958110a9003e2"
+      "sha256": "82301dc34dda8988d3ac9ee850b6e9063ba51d73b8a2950ed153402a8905e214"
     },
     "mast-tall-mast": {
       "path": "mast/tall-mast.png",
@@ -182,15 +137,15 @@
         256,
         16
       ],
-      "sha256": "385c1e52e2d3b973287915d6dd4ed630edc526d4be645c2e8494d7a4afe67727"
+      "sha256": "b3d33528dbbbe1e1c4cba2c90ec7ca6780a5619780b977ba178193ceaef8a412"
     },
     "sea-water-tile": {
       "path": "sea/water-tile.png",
       "size": [
-        256,
+        512,
         128
       ],
-      "sha256": "bba28137ac6a6eca95276fe33d0b098806715a8d64529a63b60fc0fee81d5111"
+      "sha256": "b0ae82c7a88e765abd5e322a77d5f671caca75fa08f09e1be766be02243f7f4b"
     },
     "shark-chomp": {
       "path": "shark/chomp.png",
@@ -339,34 +294,34 @@
     "storm-sea-frame-0": {
       "path": "storm/sea/frame-0.png",
       "size": [
-        256,
+        512,
         128
       ],
-      "sha256": "b0f485b9741b68fff804857e93ab525d9b4d71a11c0867c0d7f9072468b8de6a"
+      "sha256": "0efa6cfdf3bdf35ddabccc6fcbc2cbf8b8d32246ab1e09f0bef5a199cbde8742"
     },
     "storm-sea-frame-1": {
       "path": "storm/sea/frame-1.png",
       "size": [
-        256,
+        512,
         128
       ],
-      "sha256": "e5951b2181aacfd0a8af4d9aa0dad96b672457d5aff7f575e40cc36522c69d79"
+      "sha256": "070e9d13a6f2575b903a1339a2dfa4e4ca6bbd01a88153a8b2ae0755a46d077c"
     },
     "storm-sea-frame-2": {
       "path": "storm/sea/frame-2.png",
       "size": [
-        256,
+        512,
         128
       ],
-      "sha256": "e6158c6a1b70b3874c10f8e4e34e1f86da9dcd05c73d05ec89bf7cf1637392cd"
+      "sha256": "441a13d4557ff51d41e82d98d9d72bd7f18d0f8d36d7e30bbe917c5fb76b6105"
     },
     "storm-sea-frame-3": {
       "path": "storm/sea/frame-3.png",
       "size": [
-        256,
+        512,
         128
       ],
-      "sha256": "ec148bab843e73ef964f233405d77a8483a567f0ec929a5ee917b21929034a78"
+      "sha256": "6fe33a7e221d654d236b245b8d42dcfa60dc9a1b34699a48de57e3ed39c8b8a7"
     },
     "storm-sky-overcast": {
       "path": "storm/sky/overcast.png",
@@ -438,7 +393,7 @@
         256,
         16
       ],
-      "sha256": "13ed086bedfcd0c699fa149593f5073f8051212f84d3cec1f6199a13780b9722"
+      "sha256": "b3d33528dbbbe1e1c4cba2c90ec7ca6780a5619780b977ba178193ceaef8a412"
     },
     "water-foam-frame-1": {
       "path": "water/foam/frame-1.png",
@@ -446,7 +401,7 @@
         256,
         16
       ],
-      "sha256": "ef862b8e2ad35e22faece685ca5d300792fa9263ea5da33b2ed89560237e1461"
+      "sha256": "15aca5a4ea64a8eac484a829dc956d20e45b97e6a63ec0e78424e81ff2943281"
     },
     "water-foam-frame-2": {
       "path": "water/foam/frame-2.png",
@@ -454,39 +409,39 @@
         256,
         16
       ],
-      "sha256": "514662a41953f3a4dede58a8dd30b04268220d145dc9e72911fbe6469b4c7716"
+      "sha256": "e0d80ceead84ce7dbcb2b7346156593d2f9754a7d9644462080a891fac07b9f6"
     },
     "water-sea-frame-0": {
       "path": "water/sea/frame-0.png",
       "size": [
-        256,
+        512,
         128
       ],
-      "sha256": "50ad57414c16c509dfd7b1c833940f509570d176bb7f49e099eaee6743070748"
+      "sha256": "b0ae82c7a88e765abd5e322a77d5f671caca75fa08f09e1be766be02243f7f4b"
     },
     "water-sea-frame-1": {
       "path": "water/sea/frame-1.png",
       "size": [
-        256,
+        512,
         128
       ],
-      "sha256": "79e6fe374bb4b791336997514b622d96caa87b1d16bb9603c6e6a83623ab9792"
+      "sha256": "45f36bd6bd3aed1f302b0bfecd46d151818ce8e8415447b120217e9df8c78a7b"
     },
     "water-sea-frame-2": {
       "path": "water/sea/frame-2.png",
       "size": [
-        256,
+        512,
         128
       ],
-      "sha256": "1582b6553d532838d9291076e0e3cb5cce56fd7c6ab58d4972efc1a55fd3b2ad"
+      "sha256": "97d4ae5106bc66dd20cd06c59e4f6a49c43faab6c3dda4c436b5a4a0dd5cf135"
     },
     "water-sea-frame-3": {
       "path": "water/sea/frame-3.png",
       "size": [
-        256,
+        512,
         128
       ],
-      "sha256": "8863ae4f4078a15200c96c2c514a3c91c9b19887c403f0c86dc3bafd17d6468c"
+      "sha256": "4a67fc9cac79e252886474e820c3b7383a9ed333cbf1df5872a50fc12538e95a"
     },
     "water-wake-frame-0": {
       "path": "water/wake/frame-0.png",
@@ -695,6 +650,78 @@
         48
       ],
       "sha256": "e23e5c428fe1e601baaa5f0c4117aef360e104e9705cdf32b4d250d947355ce4"
+    },
+    "polish-crew-base": {
+      "path": "polish/crew-base.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "f96427e170fe0c9f7942973cc1ba203ace6be601ba6fdadb92e2aa04932e7fe4"
+    },
+    "polish-crew-outfit": {
+      "path": "polish/crew-outfit.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "d772b7e841ea983ec258d7f5d0caf65f2a63346f8be1302776bcb03dc30af9be"
+    },
+    "polish-crew-bosun": {
+      "path": "polish/crew-bosun.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "b229c0097665e55108215222e66f89c7d3a54915ce5f04280eb8e90b55006dd7"
+    },
+    "polish-crew-old-salt": {
+      "path": "polish/crew-old-salt.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "993f578bf8dbffb90fa6b5a39d8d2e580a1f5a04c5f3080e5f9c0e1553bdc8fe"
+    },
+    "polish-crew-navigator": {
+      "path": "polish/crew-navigator.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "cf76c8427a67e0ec81238ea0a28c7d3d50874b5e0303b59d99386f2c133e78b7"
+    },
+    "polish-crew-carpenter": {
+      "path": "polish/crew-carpenter.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "4866f8fc6eb6e5a6e457aef5e372a70cf4870c4c4fbc646016e3495cd7479bef"
+    },
+    "polish-crew-rigger": {
+      "path": "polish/crew-rigger.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "bcc4a8f311a3241bd9ef28408909de50f75999574040ba7ac6ea8cbb8d1e2871"
+    },
+    "polish-crew-deckhand": {
+      "path": "polish/crew-deckhand.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "6cb2398ee3115d596d4fec12dab2d07060a993def55668f0581947d525972586"
+    },
+    "polish-ladder": {
+      "path": "polish/ladder.png",
+      "size": [
+        14,
+        144
+      ],
+      "sha256": "fe0728f4d5761d8b16658bf1296971ea5e00a0b279a95949a93b1af0590dc2a7"
     }
   },
   "stage": {
@@ -737,14 +764,14 @@
           "image": "mast-tall-mast",
           "rect": [
             0,
-            52,
+            20,
             48,
-            140
+            172
           ]
         },
         "at": [
           187,
-          -28
+          -60
         ],
         "cutout": [
           117,
@@ -783,7 +810,7 @@
             0,
             0,
             48,
-            52
+            20
           ]
         },
         "at": [
@@ -888,6 +915,21 @@
             "channel": "billow"
           }
         }
+      },
+      {
+        "id": "access-ladder",
+        "needs": [
+          "tall-mast"
+        ],
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "polish-ladder"
+        },
+        "at": [
+          215,
+          -38
+        ]
       }
     ],
     "pieces": [
@@ -1006,6 +1048,24 @@
         "baseline": {
           "over": "near"
         }
+      },
+      {
+        "id": "nest-rim",
+        "optional": true,
+        "sprite": {
+          "image": "mast-tall-mast",
+          "rect": [
+            0,
+            32,
+            48,
+            16
+          ]
+        },
+        "at": [
+          187,
+          -48
+        ],
+        "baseline": 112
       }
     ],
     "props": [
@@ -1205,7 +1265,12 @@
         "lite": "run",
         "still": "first-frame"
       }
-    ]
+    ],
+    "tintByPhase": {
+      "dawn": "#CBC1CE",
+      "dusk": "#B8A1B8",
+      "night": "#687594"
+    }
   },
   "floor": {
     "areas": [
@@ -1402,10 +1467,34 @@
           {
             "id": "mast-fore",
             "at": [
-              194,
-              106
+              222,
+              98
             ],
-            "facing": "right"
+            "facing": "right",
+            "transit": {
+              "path": [
+                [
+                  222,
+                  -35
+                ],
+                [
+                  218,
+                  -35
+                ]
+              ],
+              "speed": 24,
+              "poses": [
+                "climb-a",
+                "climb-b"
+              ],
+              "stepMs": 260,
+              "settled": "lookout",
+              "front": "mast",
+              "needs": [
+                "mast-tall-mast",
+                "polish-ladder"
+              ]
+            }
           },
           {
             "id": "mast-aft",
@@ -1666,120 +1755,228 @@
   "cast": {
     "lanes": {
       "base": {
-        "front-idle": {
+        "front-walk-a": {
           "rect": [
-            0,
-            243,
+            8,
+            3,
+            16,
+            33
+          ],
+          "feet": [
+            8,
+            33
+          ]
+        },
+        "front-pass-a": {
+          "rect": [
+            40,
+            4,
             16,
             32
           ],
           "feet": [
             8,
-            32
-          ]
-        },
-        "front-walk-a": {
-          "rect": [
-            17,
-            243,
-            16,
-            32
-          ],
-          "feet": [
-            7,
             32
           ]
         },
         "front-walk-b": {
           "rect": [
-            34,
-            243,
+            72,
+            3,
+            16,
+            33
+          ],
+          "feet": [
+            9,
+            33
+          ]
+        },
+        "front-pass-b": {
+          "rect": [
+            104,
+            4,
             16,
             32
           ],
           "feet": [
-            8,
+            9,
             32
-          ]
-        },
-        "side-idle": {
-          "rect": [
-            132,
-            243,
-            11,
-            31
-          ],
-          "feet": [
-            6,
-            31
           ]
         },
         "side-walk-a": {
           "rect": [
-            144,
-            243,
-            16,
-            31
+            6,
+            44,
+            20,
+            32
           ],
           "feet": [
-            8,
-            31
+            10,
+            32
+          ]
+        },
+        "side-pass-a": {
+          "rect": [
+            42,
+            44,
+            12,
+            32
+          ],
+          "feet": [
+            6,
+            32
           ]
         },
         "side-walk-b": {
           "rect": [
-            161,
-            243,
-            15,
-            31
+            70,
+            44,
+            20,
+            32
           ],
           "feet": [
-            7,
-            31
+            10,
+            32
+          ]
+        },
+        "side-pass-b": {
+          "rect": [
+            106,
+            44,
+            12,
+            32
+          ],
+          "feet": [
+            5,
+            32
+          ]
+        },
+        "front-idle": {
+          "rect": [
+            8,
+            84,
+            16,
+            32
+          ],
+          "feet": [
+            8,
+            32
           ]
         },
         "hauling": {
           "rect": [
-            222,
-            243,
-            22,
-            30
+            35,
+            85,
+            26,
+            31
           ],
           "feet": [
-            9,
-            30
+            10,
+            31
           ]
         },
-        "leaning": {
+        "hauling-pull": {
           "rect": [
-            245,
-            243,
-            15,
+            67,
+            86,
+            25,
             30
           ],
           "feet": [
-            4,
+            11,
             30
           ]
         },
         "waiting": {
           "rect": [
-            51,
-            243,
-            14,
+            104,
+            84,
+            15,
             32
           ],
           "feet": [
-            7,
+            8,
             32
+          ]
+        },
+        "climb-a": {
+          "rect": [
+            8,
+            121,
+            16,
+            35
+          ],
+          "feet": [
+            10,
+            35
+          ]
+        },
+        "climb-b": {
+          "rect": [
+            40,
+            122,
+            15,
+            34
+          ],
+          "feet": [
+            9,
+            34
+          ]
+        },
+        "lookout": {
+          "rect": [
+            71,
+            122,
+            18,
+            34
+          ],
+          "feet": [
+            10,
+            34
+          ]
+        },
+        "thinking": {
+          "rect": [
+            105,
+            122,
+            14,
+            34
+          ],
+          "feet": [
+            8,
+            34
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            42,
+            44,
+            12,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "leaning": {
+          "rect": [
+            105,
+            122,
+            14,
+            34
+          ],
+          "feet": [
+            8,
+            34
           ]
         }
       },
       "outfit": {
-        "front-idle": {
+        "front-walk-a": {
           "rect": [
-            66,
-            243,
+            8,
+            4,
             16,
             32
           ],
@@ -1788,10 +1985,10 @@
             32
           ]
         },
-        "front-walk-a": {
+        "front-pass-a": {
           "rect": [
-            83,
-            243,
+            40,
+            4,
             16,
             32
           ],
@@ -1802,86 +1999,1502 @@
         },
         "front-walk-b": {
           "rect": [
-            100,
-            243,
+            72,
+            3,
+            16,
+            33
+          ],
+          "feet": [
+            9,
+            33
+          ]
+        },
+        "front-pass-b": {
+          "rect": [
+            104,
+            4,
             16,
             32
           ],
           "feet": [
-            8,
+            9,
             32
-          ]
-        },
-        "side-idle": {
-          "rect": [
-            177,
-            243,
-            11,
-            31
-          ],
-          "feet": [
-            5,
-            31
           ]
         },
         "side-walk-a": {
           "rect": [
-            189,
-            243,
-            16,
-            31
+            5,
+            44,
+            21,
+            32
           ],
           "feet": [
-            8,
-            31
+            11,
+            32
+          ]
+        },
+        "side-pass-a": {
+          "rect": [
+            42,
+            44,
+            12,
+            32
+          ],
+          "feet": [
+            6,
+            32
           ]
         },
         "side-walk-b": {
           "rect": [
-            206,
-            243,
-            15,
-            31
+            69,
+            44,
+            21,
+            32
           ],
           "feet": [
-            7,
-            31
+            11,
+            32
+          ]
+        },
+        "side-pass-b": {
+          "rect": [
+            105,
+            44,
+            13,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "front-idle": {
+          "rect": [
+            8,
+            84,
+            16,
+            32
+          ],
+          "feet": [
+            8,
+            32
           ]
         },
         "hauling": {
           "rect": [
-            261,
-            243,
-            19,
-            30
+            35,
+            85,
+            26,
+            31
           ],
           "feet": [
-            9,
-            30
+            10,
+            31
           ]
         },
-        "leaning": {
+        "hauling-pull": {
           "rect": [
-            281,
-            243,
-            15,
+            67,
+            86,
+            26,
             30
           ],
           "feet": [
-            4,
+            11,
             30
           ]
         },
         "waiting": {
           "rect": [
-            117,
-            243,
+            104,
+            84,
+            15,
+            32
+          ],
+          "feet": [
+            9,
+            32
+          ]
+        },
+        "climb-a": {
+          "rect": [
+            8,
+            121,
+            16,
+            35
+          ],
+          "feet": [
+            10,
+            35
+          ]
+        },
+        "climb-b": {
+          "rect": [
+            40,
+            122,
+            16,
+            34
+          ],
+          "feet": [
+            10,
+            34
+          ]
+        },
+        "lookout": {
+          "rect": [
+            71,
+            122,
+            18,
+            34
+          ],
+          "feet": [
+            10,
+            34
+          ]
+        },
+        "thinking": {
+          "rect": [
+            104,
+            122,
+            15,
+            34
+          ],
+          "feet": [
+            8,
+            34
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            42,
+            44,
+            12,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "leaning": {
+          "rect": [
+            104,
+            122,
+            15,
+            34
+          ],
+          "feet": [
+            8,
+            34
+          ]
+        }
+      },
+      "bosun": {
+        "front-walk-a": {
+          "rect": [
+            6,
+            3,
+            19,
+            33
+          ],
+          "feet": [
+            9,
+            33
+          ]
+        },
+        "front-pass-a": {
+          "rect": [
+            38,
+            3,
+            19,
+            33
+          ],
+          "feet": [
+            9,
+            33
+          ]
+        },
+        "front-walk-b": {
+          "rect": [
+            70,
+            3,
+            19,
+            33
+          ],
+          "feet": [
+            10,
+            33
+          ]
+        },
+        "front-pass-b": {
+          "rect": [
+            102,
+            3,
+            19,
+            33
+          ],
+          "feet": [
+            11,
+            33
+          ]
+        },
+        "side-walk-a": {
+          "rect": [
+            5,
+            44,
+            22,
+            32
+          ],
+          "feet": [
+            11,
+            32
+          ]
+        },
+        "side-pass-a": {
+          "rect": [
+            41,
+            44,
+            13,
+            32
+          ],
+          "feet": [
+            7,
+            32
+          ]
+        },
+        "side-walk-b": {
+          "rect": [
+            69,
+            44,
+            22,
+            32
+          ],
+          "feet": [
+            11,
+            32
+          ]
+        },
+        "side-pass-b": {
+          "rect": [
+            105,
+            44,
             14,
             32
           ],
           "feet": [
             7,
             32
+          ]
+        },
+        "front-idle": {
+          "rect": [
+            6,
+            84,
+            19,
+            32
+          ],
+          "feet": [
+            10,
+            32
+          ]
+        },
+        "hauling": {
+          "rect": [
+            34,
+            84,
+            28,
+            32
+          ],
+          "feet": [
+            11,
+            32
+          ]
+        },
+        "hauling-pull": {
+          "rect": [
+            66,
+            85,
+            27,
+            31
+          ],
+          "feet": [
+            12,
+            31
+          ]
+        },
+        "waiting": {
+          "rect": [
+            103,
+            84,
+            18,
+            32
+          ],
+          "feet": [
+            10,
+            32
+          ]
+        },
+        "climb-a": {
+          "rect": [
+            7,
+            120,
+            18,
+            36
+          ],
+          "feet": [
+            11,
+            36
+          ]
+        },
+        "climb-b": {
+          "rect": [
+            39,
+            120,
+            18,
+            36
+          ],
+          "feet": [
+            8,
+            36
+          ]
+        },
+        "lookout": {
+          "rect": [
+            69,
+            121,
+            21,
+            35
+          ],
+          "feet": [
+            11,
+            35
+          ]
+        },
+        "thinking": {
+          "rect": [
+            103,
+            121,
+            17,
+            35
+          ],
+          "feet": [
+            9,
+            35
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            41,
+            44,
+            13,
+            32
+          ],
+          "feet": [
+            7,
+            32
+          ]
+        },
+        "leaning": {
+          "rect": [
+            103,
+            121,
+            17,
+            35
+          ],
+          "feet": [
+            9,
+            35
+          ]
+        }
+      },
+      "old-salt": {
+        "front-walk-a": {
+          "rect": [
+            7,
+            3,
+            17,
+            33
+          ],
+          "feet": [
+            8,
+            33
+          ]
+        },
+        "front-pass-a": {
+          "rect": [
+            40,
+            3,
+            16,
+            33
+          ],
+          "feet": [
+            7,
+            33
+          ]
+        },
+        "front-walk-b": {
+          "rect": [
+            71,
+            3,
+            17,
+            33
+          ],
+          "feet": [
+            9,
+            33
+          ]
+        },
+        "front-pass-b": {
+          "rect": [
+            103,
+            3,
+            17,
+            33
+          ],
+          "feet": [
+            9,
+            33
+          ]
+        },
+        "side-walk-a": {
+          "rect": [
+            5,
+            44,
+            21,
+            32
+          ],
+          "feet": [
+            11,
+            32
+          ]
+        },
+        "side-pass-a": {
+          "rect": [
+            41,
+            44,
+            13,
+            32
+          ],
+          "feet": [
+            7,
+            32
+          ]
+        },
+        "side-walk-b": {
+          "rect": [
+            69,
+            44,
+            21,
+            32
+          ],
+          "feet": [
+            11,
+            32
+          ]
+        },
+        "side-pass-b": {
+          "rect": [
+            105,
+            44,
+            13,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "front-idle": {
+          "rect": [
+            8,
+            84,
+            16,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "hauling": {
+          "rect": [
+            35,
+            85,
+            26,
+            31
+          ],
+          "feet": [
+            10,
+            31
+          ]
+        },
+        "hauling-pull": {
+          "rect": [
+            67,
+            86,
+            26,
+            30
+          ],
+          "feet": [
+            11,
+            30
+          ]
+        },
+        "waiting": {
+          "rect": [
+            104,
+            84,
+            16,
+            32
+          ],
+          "feet": [
+            9,
+            32
+          ]
+        },
+        "climb-a": {
+          "rect": [
+            7,
+            121,
+            17,
+            35
+          ],
+          "feet": [
+            11,
+            35
+          ]
+        },
+        "climb-b": {
+          "rect": [
+            40,
+            122,
+            16,
+            34
+          ],
+          "feet": [
+            9,
+            34
+          ]
+        },
+        "lookout": {
+          "rect": [
+            70,
+            122,
+            19,
+            34
+          ],
+          "feet": [
+            10,
+            34
+          ]
+        },
+        "thinking": {
+          "rect": [
+            104,
+            122,
+            15,
+            34
+          ],
+          "feet": [
+            8,
+            34
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            41,
+            44,
+            13,
+            32
+          ],
+          "feet": [
+            7,
+            32
+          ]
+        },
+        "leaning": {
+          "rect": [
+            104,
+            122,
+            15,
+            34
+          ],
+          "feet": [
+            8,
+            34
+          ]
+        }
+      },
+      "navigator": {
+        "front-walk-a": {
+          "rect": [
+            7,
+            3,
+            17,
+            33
+          ],
+          "feet": [
+            8,
+            33
+          ]
+        },
+        "front-pass-a": {
+          "rect": [
+            39,
+            4,
+            17,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "front-walk-b": {
+          "rect": [
+            71,
+            3,
+            17,
+            33
+          ],
+          "feet": [
+            10,
+            33
+          ]
+        },
+        "front-pass-b": {
+          "rect": [
+            103,
+            4,
+            17,
+            32
+          ],
+          "feet": [
+            9,
+            32
+          ]
+        },
+        "side-walk-a": {
+          "rect": [
+            5,
+            44,
+            21,
+            32
+          ],
+          "feet": [
+            11,
+            32
+          ]
+        },
+        "side-pass-a": {
+          "rect": [
+            40,
+            44,
+            15,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "side-walk-b": {
+          "rect": [
+            69,
+            44,
+            21,
+            32
+          ],
+          "feet": [
+            11,
+            32
+          ]
+        },
+        "side-pass-b": {
+          "rect": [
+            104,
+            44,
+            15,
+            32
+          ],
+          "feet": [
+            7,
+            32
+          ]
+        },
+        "front-idle": {
+          "rect": [
+            8,
+            84,
+            16,
+            32
+          ],
+          "feet": [
+            9,
+            32
+          ]
+        },
+        "hauling": {
+          "rect": [
+            34,
+            85,
+            27,
+            31
+          ],
+          "feet": [
+            10,
+            31
+          ]
+        },
+        "hauling-pull": {
+          "rect": [
+            67,
+            86,
+            26,
+            30
+          ],
+          "feet": [
+            11,
+            30
+          ]
+        },
+        "waiting": {
+          "rect": [
+            103,
+            84,
+            17,
+            32
+          ],
+          "feet": [
+            10,
+            32
+          ]
+        },
+        "climb-a": {
+          "rect": [
+            8,
+            121,
+            16,
+            35
+          ],
+          "feet": [
+            10,
+            35
+          ]
+        },
+        "climb-b": {
+          "rect": [
+            40,
+            122,
+            16,
+            34
+          ],
+          "feet": [
+            9,
+            34
+          ]
+        },
+        "lookout": {
+          "rect": [
+            70,
+            122,
+            19,
+            34
+          ],
+          "feet": [
+            10,
+            34
+          ]
+        },
+        "thinking": {
+          "rect": [
+            104,
+            122,
+            15,
+            34
+          ],
+          "feet": [
+            8,
+            34
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            40,
+            44,
+            15,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "leaning": {
+          "rect": [
+            104,
+            122,
+            15,
+            34
+          ],
+          "feet": [
+            8,
+            34
+          ]
+        }
+      },
+      "carpenter": {
+        "front-walk-a": {
+          "rect": [
+            7,
+            3,
+            17,
+            33
+          ],
+          "feet": [
+            8,
+            33
+          ]
+        },
+        "front-pass-a": {
+          "rect": [
+            39,
+            3,
+            17,
+            33
+          ],
+          "feet": [
+            8,
+            33
+          ]
+        },
+        "front-walk-b": {
+          "rect": [
+            72,
+            3,
+            16,
+            33
+          ],
+          "feet": [
+            9,
+            33
+          ]
+        },
+        "front-pass-b": {
+          "rect": [
+            104,
+            3,
+            16,
+            33
+          ],
+          "feet": [
+            9,
+            33
+          ]
+        },
+        "side-walk-a": {
+          "rect": [
+            5,
+            44,
+            21,
+            32
+          ],
+          "feet": [
+            11,
+            32
+          ]
+        },
+        "side-pass-a": {
+          "rect": [
+            41,
+            44,
+            13,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "side-walk-b": {
+          "rect": [
+            69,
+            44,
+            21,
+            32
+          ],
+          "feet": [
+            11,
+            32
+          ]
+        },
+        "side-pass-b": {
+          "rect": [
+            105,
+            44,
+            14,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "front-idle": {
+          "rect": [
+            8,
+            84,
+            16,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "hauling": {
+          "rect": [
+            34,
+            85,
+            27,
+            31
+          ],
+          "feet": [
+            11,
+            31
+          ]
+        },
+        "hauling-pull": {
+          "rect": [
+            67,
+            86,
+            26,
+            30
+          ],
+          "feet": [
+            11,
+            30
+          ]
+        },
+        "waiting": {
+          "rect": [
+            104,
+            84,
+            16,
+            32
+          ],
+          "feet": [
+            9,
+            32
+          ]
+        },
+        "climb-a": {
+          "rect": [
+            7,
+            120,
+            17,
+            36
+          ],
+          "feet": [
+            10,
+            36
+          ]
+        },
+        "climb-b": {
+          "rect": [
+            40,
+            121,
+            16,
+            35
+          ],
+          "feet": [
+            10,
+            35
+          ]
+        },
+        "lookout": {
+          "rect": [
+            70,
+            122,
+            19,
+            34
+          ],
+          "feet": [
+            10,
+            34
+          ]
+        },
+        "thinking": {
+          "rect": [
+            104,
+            122,
+            15,
+            34
+          ],
+          "feet": [
+            8,
+            34
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            41,
+            44,
+            13,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "leaning": {
+          "rect": [
+            104,
+            122,
+            15,
+            34
+          ],
+          "feet": [
+            8,
+            34
+          ]
+        }
+      },
+      "rigger": {
+        "front-walk-a": {
+          "rect": [
+            8,
+            3,
+            16,
+            33
+          ],
+          "feet": [
+            8,
+            33
+          ]
+        },
+        "front-pass-a": {
+          "rect": [
+            40,
+            3,
+            16,
+            33
+          ],
+          "feet": [
+            8,
+            33
+          ]
+        },
+        "front-walk-b": {
+          "rect": [
+            72,
+            3,
+            15,
+            33
+          ],
+          "feet": [
+            8,
+            33
+          ]
+        },
+        "front-pass-b": {
+          "rect": [
+            104,
+            3,
+            16,
+            33
+          ],
+          "feet": [
+            9,
+            33
+          ]
+        },
+        "side-walk-a": {
+          "rect": [
+            6,
+            43,
+            20,
+            33
+          ],
+          "feet": [
+            10,
+            33
+          ]
+        },
+        "side-pass-a": {
+          "rect": [
+            41,
+            43,
+            13,
+            33
+          ],
+          "feet": [
+            7,
+            33
+          ]
+        },
+        "side-walk-b": {
+          "rect": [
+            70,
+            43,
+            20,
+            33
+          ],
+          "feet": [
+            10,
+            33
+          ]
+        },
+        "side-pass-b": {
+          "rect": [
+            105,
+            43,
+            13,
+            33
+          ],
+          "feet": [
+            6,
+            33
+          ]
+        },
+        "front-idle": {
+          "rect": [
+            8,
+            84,
+            15,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "hauling": {
+          "rect": [
+            35,
+            85,
+            26,
+            31
+          ],
+          "feet": [
+            10,
+            31
+          ]
+        },
+        "hauling-pull": {
+          "rect": [
+            67,
+            86,
+            25,
+            30
+          ],
+          "feet": [
+            10,
+            30
+          ]
+        },
+        "waiting": {
+          "rect": [
+            104,
+            84,
+            15,
+            32
+          ],
+          "feet": [
+            9,
+            32
+          ]
+        },
+        "climb-a": {
+          "rect": [
+            8,
+            122,
+            16,
+            34
+          ],
+          "feet": [
+            10,
+            34
+          ]
+        },
+        "climb-b": {
+          "rect": [
+            40,
+            123,
+            16,
+            33
+          ],
+          "feet": [
+            10,
+            33
+          ]
+        },
+        "lookout": {
+          "rect": [
+            71,
+            123,
+            18,
+            33
+          ],
+          "feet": [
+            10,
+            33
+          ]
+        },
+        "thinking": {
+          "rect": [
+            105,
+            123,
+            14,
+            33
+          ],
+          "feet": [
+            8,
+            33
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            41,
+            43,
+            13,
+            33
+          ],
+          "feet": [
+            7,
+            33
+          ]
+        },
+        "leaning": {
+          "rect": [
+            105,
+            123,
+            14,
+            33
+          ],
+          "feet": [
+            8,
+            33
+          ]
+        }
+      },
+      "deckhand": {
+        "front-walk-a": {
+          "rect": [
+            8,
+            4,
+            16,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "front-pass-a": {
+          "rect": [
+            40,
+            4,
+            16,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "front-walk-b": {
+          "rect": [
+            72,
+            4,
+            16,
+            32
+          ],
+          "feet": [
+            9,
+            32
+          ]
+        },
+        "front-pass-b": {
+          "rect": [
+            104,
+            4,
+            16,
+            32
+          ],
+          "feet": [
+            9,
+            32
+          ]
+        },
+        "side-walk-a": {
+          "rect": [
+            6,
+            44,
+            20,
+            32
+          ],
+          "feet": [
+            10,
+            32
+          ]
+        },
+        "side-pass-a": {
+          "rect": [
+            42,
+            44,
+            12,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "side-walk-b": {
+          "rect": [
+            70,
+            44,
+            20,
+            32
+          ],
+          "feet": [
+            10,
+            32
+          ]
+        },
+        "side-pass-b": {
+          "rect": [
+            105,
+            44,
+            13,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "front-idle": {
+          "rect": [
+            8,
+            84,
+            16,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "hauling": {
+          "rect": [
+            35,
+            85,
+            26,
+            31
+          ],
+          "feet": [
+            10,
+            31
+          ]
+        },
+        "hauling-pull": {
+          "rect": [
+            67,
+            85,
+            25,
+            31
+          ],
+          "feet": [
+            11,
+            31
+          ]
+        },
+        "waiting": {
+          "rect": [
+            104,
+            84,
+            15,
+            32
+          ],
+          "feet": [
+            9,
+            32
+          ]
+        },
+        "climb-a": {
+          "rect": [
+            8,
+            122,
+            16,
+            34
+          ],
+          "feet": [
+            10,
+            34
+          ]
+        },
+        "climb-b": {
+          "rect": [
+            40,
+            122,
+            16,
+            34
+          ],
+          "feet": [
+            10,
+            34
+          ]
+        },
+        "lookout": {
+          "rect": [
+            71,
+            122,
+            18,
+            34
+          ],
+          "feet": [
+            10,
+            34
+          ]
+        },
+        "thinking": {
+          "rect": [
+            105,
+            122,
+            14,
+            34
+          ],
+          "feet": [
+            8,
+            34
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            42,
+            44,
+            12,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "leaning": {
+          "rect": [
+            105,
+            122,
+            14,
+            34
+          ],
+          "feet": [
+            8,
+            34
           ]
         }
       }
@@ -1889,63 +3502,63 @@
     "looks": [
       {
         "id": "base",
-        "image": "deck",
+        "image": "polish-crew-base",
         "lane": "base",
         "optional": false
       },
       {
         "id": "outfit",
-        "image": "deck",
+        "image": "polish-crew-outfit",
         "lane": "outfit",
         "optional": false
       },
       {
         "id": "bosun",
-        "image": "crew-variants-01-bosun",
-        "lane": "base"
+        "image": "polish-crew-bosun",
+        "lane": "bosun"
       },
       {
         "id": "old-salt",
-        "image": "crew-variants-02-old-salt",
-        "lane": "base"
+        "image": "polish-crew-old-salt",
+        "lane": "old-salt"
       },
       {
         "id": "navigator",
-        "image": "crew-variants-03-navigator",
-        "lane": "base"
+        "image": "polish-crew-navigator",
+        "lane": "navigator"
       },
       {
         "id": "carpenter",
-        "image": "crew-variants-04-carpenter",
-        "lane": "base"
+        "image": "polish-crew-carpenter",
+        "lane": "carpenter"
       },
       {
         "id": "rigger",
-        "image": "crew-variants-05-rigger",
-        "lane": "base"
+        "image": "polish-crew-rigger",
+        "lane": "rigger"
       },
       {
         "id": "deckhand",
-        "image": "crew-variants-06-deckhand",
-        "lane": "base"
+        "image": "polish-crew-deckhand",
+        "lane": "deckhand"
       }
     ],
     "roles": {
       "stand": "front-idle",
       "walkFront": [
         "front-walk-a",
-        "front-idle",
+        "front-pass-a",
         "front-walk-b",
-        "front-idle"
+        "front-pass-b"
       ],
       "walkSide": [
         "side-walk-a",
-        "side-idle",
+        "side-pass-a",
         "side-walk-b",
-        "side-idle"
+        "side-pass-b"
       ],
-      "rise": 1,
-      "stepMs": 150,
+      "rise": 0,
+      "stepMs": 160,
       "settled": {
         "working": {
           "pose": "hauling",
@@ -1956,7 +3569,7 @@
           "mirror": "none"
         },
         "blocked": {
-          "pose": "front-idle",
+          "pose": "thinking",
           "mirror": "none"
         },
         "idle": {
@@ -1967,61 +3580,56 @@
     },
     "fidgets": {
       "working": {
-        "periodMs": 900,
+        "periodMs": 1200,
         "seedMs": 37,
         "keys": [
           {
             "fromMs": 0,
-            "dx": 1,
+            "dx": 0,
             "dy": 0,
-            "towardFacing": true
+            "pose": "hauling"
           },
           {
-            "fromMs": 450,
+            "fromMs": 600,
             "dx": 0,
-            "dy": -1
+            "dy": 0,
+            "pose": "hauling-pull"
           }
         ]
       },
       "waiting": {
-        "periodMs": 2600,
+        "periodMs": 2800,
         "seedMs": 37,
         "keys": [
           {
             "fromMs": 0,
             "dx": 0,
-            "dy": -1
+            "dy": 0,
+            "pose": "waiting"
           },
           {
-            "fromMs": 900,
+            "fromMs": 2200,
             "dx": 0,
-            "dy": 0
+            "dy": 0,
+            "pose": "front-idle"
           }
         ]
       },
       "blocked": {
-        "periodMs": 4000,
+        "periodMs": 4600,
         "seedMs": 37,
         "keys": [
           {
             "fromMs": 0,
-            "dx": -1,
-            "dy": 0
-          },
-          {
-            "fromMs": 300,
             "dx": 0,
-            "dy": 0
+            "dy": 0,
+            "pose": "thinking"
           },
           {
-            "fromMs": 600,
-            "dx": 1,
-            "dy": 0
-          },
-          {
-            "fromMs": 900,
+            "fromMs": 3400,
             "dx": 0,
-            "dy": 0
+            "dy": 0,
+            "pose": "front-idle"
           }
         ]
       },
