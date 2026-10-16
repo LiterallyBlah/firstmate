@@ -5,6 +5,7 @@ export const FLEET_PANELS = {
   deck: { id: "firstmate-deck", title: "Deck", icon: "Ship" },
   board: { id: "firstmate-board", title: "Board", icon: "Columns3" },
   crew: { id: "firstmate-crew", title: "Crew", icon: "Users" },
+  chat: { id: "firstmate-chat", title: "Chat", icon: "MessageSquare" },
 } as const;
 
 export type FleetView = keyof typeof FLEET_PANELS;
@@ -19,5 +20,5 @@ export function homeWorkspace(fleet: Fleet | null): string | null {
 }
 
 export function chatIsVisible(view: FleetView | "home", compact: boolean, tab: string, collapsed: boolean): boolean {
-  return view === "home" && (compact ? tab === "chat" : !collapsed);
+  return view === "chat" || (view === "home" && (compact ? tab === "chat" : !collapsed));
 }

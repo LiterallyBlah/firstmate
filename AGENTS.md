@@ -139,23 +139,28 @@ launcher. Home uses the saved `crewView`, defaulting to List; the two views shar
 host/tag filters, actions and open worker conversation. Switching views preserves a draft; pressing
 the selected view again returns from the conversation to its tasks. Compact Home exposes First mate,
 List, Board and Files in the existing tab row. The standalone Crew (List), Board and Deck destinations
-keep their own layouts. `client/workspace-panels.tsx` registers `firstmate-deck`, `firstmate-board` and
-`firstmate-crew` through `addWorkspacePanel`, workspace location only. The older contextual workspace
-and agent panels remain separate. `client/shell.ts` holds the fixed identities and home-workspace rule.
+keep their own layouts. `client/workspace-panels.tsx` registers `firstmate-deck`, `firstmate-board`,
+`firstmate-crew` and `firstmate-chat` through `addWorkspacePanel`, workspace location only. The older
+contextual workspace and agent panels are titled **FirstMate here**, with an **Open chat** shortcut.
+`client/shell.ts` holds the fixed identities and home-workspace rule.
 The callbacks are closed over the contributing installation, never a global navigation singleton.
 
 Paseo owns tab creation/focus/deduplication, closing, splits, ordering and layout persistence. The
 launcher calls `client.openPanel` with that fixed panel id and the configured first mate's home
 workspace. An adopted mate outside the home never lends its workspace to this launcher. Paseo lists
-plugin panels in all workspaces; one opened elsewhere explains that and links to the correct home.
+plugin panels in all workspaces; Deck/Board/Crew opened elsewhere explain that and link to the correct home.
+Chat works in any workspace and always reads the configured first mate from the shared fleet query,
+including its launch/adopt state when none exists. A home file opened from Chat uses a dialog.
 Until a mate has a verified home workspace, the shortcuts are disabled. No tabs, terminals, browsers
 or agents are created on render, reload or restoration.
 
 `FleetSurface` shares the existing Board, TaskList and SelectedDeckView rather than forking them.
 `client/fleet-query.ts` owns the fleet query/cache. Drawers and Crew's completed-task choice are keyed
-by host, workspace and view. There is no first-mate composer in the workspace views; suggestions
-use the existing per-mate send gate and return to Home's chat. Only a visible Home chat clears
-first-mate attention. Workspace views retain the permission banner. Deck keeps the migrated scene
+by host, workspace and view. Chat and Home mount the same `MateChat`: per-mate drafts, attachments,
+sent images and send gate are shared. Sending rereads the stores to reject a stale copy's cleared draft;
+each transcript keeps its own scroll position with the same follow/jump rules. A visible Home chat or
+Chat tab clears first-mate attention. Deck/Board/Crew suggestions return to Home's chat and those views
+retain the permission banner. Deck keeps the migrated scene
 engine, installed-setting selection and unavailable state on compact/native clients; leaving it
 unmounts its canvas, and its existing zero-size/document-hidden guard pauses a retained hidden pane.
 
