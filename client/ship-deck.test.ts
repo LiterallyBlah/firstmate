@@ -317,6 +317,7 @@ describe("the deck's art", () => {
       "bollard-gunwale-fore",
       "mast",
       "near",
+      "nest-rim",
     ]);
     expect(shipStage().pieces.find((piece) => piece.id === "near")?.baseline).toBeNull();
   });
@@ -729,7 +730,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
 
     const whole = await packArt(await failing([]), warn, cut);
     expect(whole.image).toEqual({ png: setting.images.deck });
-    expect(whole.parts.parts.map((part) => part.id)).toEqual(["tall-mast", "topmast", "sail"]);
+    expect(whole.parts.parts.map((part) => part.id)).toEqual(["tall-mast", "topmast", "sail", "access-ladder"]);
     expect(whole.parts.pieces.map((piece) => [piece.id, piece.by])).toEqual([
       ["near", null],
       ["mast", "tall-mast"],
@@ -738,6 +739,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
       ["bollard-gunwale-fore", null],
       ["bollard-gunwale-aft", null],
       ["plank", null],
+      ["nest-rim", null],
     ]);
     expect(whole.effects).toEqual(shipManifest().effects);
     expect(whole.ambience.elements.map((element) => element.id)).toEqual(["sky", "overcast", "stars", "lightning", "clouds", "gull", "sea", "wake", "foam", "spindrift", "weather-serpent", "weather-kraken"]);
@@ -749,7 +751,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     // Without a frame of the sea and its still tile, the sea is a flat fill; without the wake's, no wake. Without the tall
     // mast, no topmast and no sail: the hull's own masthead in the topmast's place, its mast piece its own.
     const partial = await packArt(
-      await failing(["sky-dusk", "water-sea-frame-1", "sea-water-tile", "gull-flap-strip", "water-wake-frame-0", "crew-variants-03-navigator", "mast-tall-mast", "plank-plank"]),
+      await failing(["sky-dusk", "water-sea-frame-1", "sea-water-tile", "gull-flap-strip", "water-wake-frame-0", "polish-crew-navigator", "mast-tall-mast", "plank-plank"]),
       warn,
       cut,
     );
@@ -767,16 +769,20 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     const skyless = await packArt(await failing(["sky-dusk", "water-foam-frame-2"]), warn, cut);
     expect(skyless.ambience.elements.map((element) => element.id)).toEqual(["gull", "sea", "wake", "foam-still", "spindrift", "weather-serpent", "weather-kraken"]);
     // A look is the cast's: its image is the pack's, by id, and one that did not decode is not handed out.
-    expect(partial.images.has("crew-variants-03-navigator")).toBe(false);
-    expect(partial.images.has("crew-variants-01-bosun")).toBe(true);
+    expect(partial.images.has("polish-crew-navigator")).toBe(false);
+    expect(partial.images.has("polish-crew-bosun")).toBe(true);
+    expect(partial.stage.transits.size).toBe(0);
     const without = (path: string) => `[firstmate] the deck's ${path} did not load; drawing without it:`;
     expect(warnings).toEqual([
       ...["mast/tall-mast.png", "plank/plank.png"].map(without),
-      ...["gull/flap-strip.png", "sea/water-tile.png", "sky/dusk.png", "water/sea/frame-1.png", "water/wake/frame-0.png", "crew-variants/03-navigator.png"].map(without),
+      ...["gull/flap-strip.png", "sea/water-tile.png", "sky/dusk.png", "water/sea/frame-0.png", "water/sea/frame-1.png", "water/wake/frame-0.png", "polish/crew-navigator.png"].map(without),
       ...["sky/dusk.png", "water/foam/frame-2.png"].map(without),
     ]);
 
     await expect(packArt(await failing(["deck"]), warn, cut)).rejects.toThrow("bad png");
+    await expect(packArt(await failing(["polish-crew-base"]), warn, cut)).rejects.toThrow("bad png");
+    const withoutLadder = await packArt(await failing(["polish-ladder"]), warn, cut);
+    expect(withoutLadder.stage.transits.size).toBe(0);
   });
 
   it("warns once for a missing effect image shared by keys, while retaining other decoded frames", async () => {

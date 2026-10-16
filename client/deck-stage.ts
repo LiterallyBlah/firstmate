@@ -10,6 +10,7 @@ import { compileChoreography, type Choreography, type DeckDeparture } from "./de
 import { createFloor, type Anchor, type Floor, type Point } from "./deck-geometry";
 import { compilePhaseTint, type PhaseTint } from "./deck-phase-tint";
 import { pieceDepths } from "./deck-parts";
+import { compilePostTransit, type PostTransit } from "./deck-post-transit";
 
 type Rect = readonly [number, number, number, number];
 
@@ -51,6 +52,7 @@ export interface DeckStage {
   phaseTint: PhaseTint | null;
   floor: Floor;
   zones: ReadonlyMap<string, Zone>;
+  transits: ReadonlyMap<string, PostTransit>;
   /** Where each activity state sends its worker. */
   zoneOf(state: ActivityState): Zone;
   /** Where an arrival joins the navigable floor. */
@@ -74,7 +76,7 @@ const colour = (hex: string) => Number.parseInt(hex.slice(1), 16);
 
 const point = ([x, y]: readonly [number, number]): Point => ({ x, y });
 
-export function compileStage(manifest: SettingManifest): DeckStage {
+export function compileStage(manifest: SettingManifest, hasImage: (id: string) => boolean = () => true): DeckStage {
   const { stage, floor, zones, portals } = manifest;
   const depths = pieceDepths(stage.pieces);
   const compiledZones = new Map<string, Zone>(
@@ -119,6 +121,11 @@ export function compileStage(manifest: SettingManifest): DeckStage {
       walkSpeed: floor.walkSpeed,
     }),
     zones: compiledZones,
+    transits: new Map(zones.zones.flatMap((zone) => zone.posts.flatMap((post) => {
+      if (post.transit?.needs?.some((id) => !hasImage(id))) return [];
+      const route = compilePostTransit(post, depths);
+      return route === null ? [] : [[post.id, route] as const];
+    }))),
     zoneOf: (state) => compiledZones.get(zones.byState[state])!,
     entry: point(portals.entry.at),
     walkIn: arrival === null ? null : { from: arrival.queue.at, walkMs: timeline!.releaseMs, choreography: arrival },

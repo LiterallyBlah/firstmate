@@ -284,7 +284,7 @@ describe("the crew leaving by the plank", () => {
       for (const figure of crewFigures(crew, 0, { still: false })) if (figure.key.startsWith("a")) layers.add(legacyLayer(figure.layer));
       sharks = Math.max(sharks, plankEffects(crew).filter((effect) => effect.shark !== null).length);
     });
-    expect([...layers]).toEqual(["deck", "rail", "sea"]);
+    expect([...layers]).toEqual(["rail", "deck", "sea"]); // Starts in the raised station's piece layer, then descends.
     expect(sharks).toBe(1);
     expect(crew.walkers.has("a")).toBe(false);
     expect(crew.departures).toEqual([]);
@@ -393,7 +393,7 @@ describe("leaving under reduced motion", () => {
           x: before.x,
           y: before.y,
           pose: before.pose,
-          layer: "floor",
+          layer: before.layer,
           departing: true,
         });
         alphas.push(ghost.alpha);
@@ -478,9 +478,14 @@ describe("the shark and splash, as served", () => {
 
 describe("ship choreography migration golden", () => {
   it("matches the pre-migration timeline at every millisecond for both sides and every drift", () => {
+    // Freeze the original walk contract for this historical choreography regression. New generated art
+    // changes its pose names/pacing, not the authored exit's timing, marks, effects or trajectory.
+    const originalCast = { ...shipCast(), standRows: 32, stepMs: 150, rise: 1,
+      walkFront: ["front-walk-a", "front-idle", "front-walk-b", "front-idle"],
+      walkSide: ["side-walk-a", "side-idle", "side-walk-b", "side-idle"] };
     for (const sample of golden.samples) {
       const hash = createHash("sha256");
-      for (let t = 0; t <= PLANK_EXIT_MS; t++) hash.update(JSON.stringify(plankExit(t, { side: sample.side as -1 | 1, drift: sample.drift })) + "\n");
+      for (let t = 0; t <= PLANK_EXIT_MS; t++) hash.update(JSON.stringify(plankExit(t, { side: sample.side as -1 | 1, drift: sample.drift }, originalCast)) + "\n");
       expect(hash.digest("hex"), JSON.stringify(sample)).toBe(sample.sha256);
     }
   });

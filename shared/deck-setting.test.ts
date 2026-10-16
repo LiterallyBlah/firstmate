@@ -29,7 +29,7 @@ describe("a setting manifest", () => {
   it("is whole for the ship: nothing it names is missing, and it needs exactly what it uses", () => {
     expect(settingProblems(shipManifest())).toEqual([]);
     expect(capabilitiesUsed(shipManifest())).toEqual(shipManifest().requires);
-    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["stable-posts@1", "pose-fidgets@1", "walk-in@1", "phase-tint@1", "phase-frames@1"]);
+    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["stable-posts@1", "walk-in@1", "phase-frames@1"]);
   });
 
   it("names every image it draws with once, the backdrop first", () => {
@@ -113,6 +113,7 @@ describe("wall-clock frames in the closed catalogue", () => {
     const manifest = structuredClone(shipManifest());
     // This behaviour needs neither a day cycle nor an atmosphere clock.
     manifest.dayCycle = undefined;
+    manifest.stage.tintByPhase = undefined;
     manifest.atmosphere = undefined;
     manifest.stage.parts = [];
     manifest.stage.motion = undefined;

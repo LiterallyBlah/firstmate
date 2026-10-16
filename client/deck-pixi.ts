@@ -700,6 +700,7 @@ export async function startDeck(
         part.alpha = (figure.stale ? stage.palette.staleAlpha : 1) * figure.alpha;
       }
       const hovered = figure.key === hoveredKey || figure.key === focusKey;
+      sprites.mark.visible = figure.offFloor !== true;
       // The focused sailor stands over the veil; it goes back among the pieces once the camera is out. One off
       // the plank is in the sea.
       const parent = figure.layer === "effects" ? overboard : figure.key === spotKey ? spot : deck;

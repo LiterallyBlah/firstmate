@@ -55,8 +55,8 @@ export const HATCH_MS = 700;
 export const FADE_MS = 600;
 export const SHARK_MOUTH: readonly [number, number] = [13, -22];
 export const legacyLayer = (layer: ActorLayer): PlankLayer => typeof layer === "object" ? "rail" : layer === "floor" ? "deck" : "sea";
-export function plankExit(t: number, options: { side: -1 | 1; drift: number }): PlankMoment {
-  const moment = choreographyAt(choreography(shipStage(), "plank"), t, { ...options, cast: shipCast(), lane: shipCast().looks[0]!.lane });
+export function plankExit(t: number, options: { side: -1 | 1; drift: number }, cast = shipCast()): PlankMoment {
+  const moment = choreographyAt(choreography(shipStage(), "plank"), t, { ...options, cast, lane: cast.looks[0]!.lane });
   const actor = moment.actor;
   const shark = moment.effects.find((effect) => effect.effect === "shark");
   const splash = moment.effects.find((effect) => effect.effect === "splash");
