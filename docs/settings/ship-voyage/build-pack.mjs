@@ -50,12 +50,17 @@ pack.portals.exits.plank=departure;
 // Sky/day/cloud behavior is preserved, with the world's horizon registered to the larger ship.
 for(const id of ['sky','overcast','stars','lightning','clouds','gull']){
  const e=structuredClone(old.ambience.find(e=>e.id===id));
- if(id==='sky')e.behaviour.placement.stageRow=horizon;
+ if(id==='sky'){e.behaviour.placement.stageRow=horizon;e.behaviour.size=[512,2048];}
+ if(id==='overcast'){e.behaviour.alpha={curve:[[.5,0],[.95,1]]};e.behaviour.dayOnly=false;}
  if(id==='gull'){e.behaviour.rows=[30,170];e.behaviour.speed=27;}
  pack.ambience.push(e);
 }
 pack.ambience.push(ambient('moon','back',2.1,{kind:'overlay',image:'moon',space:'sky',alpha:'night',hiddenBy:['overcast']}));
-// Original ocean tile: one shared origin across rear and foreground bands, always fills visible bottom.
+// The sky plate continues into turquoise distance water. A separate day-cycle depth plate
+// fills the foreground; both are independent of the voyage strip. The tiled floor beneath
+// them covers arbitrary pane extents, and translucent animated ripples cross both water bands.
+pack.ambience.push(ambient('sea-floor','back',-1,{kind:'tile',frames:{sprites:[sprite('sea-fill')],frameMs:1000},drift:{pxPerSecond:0},origin:horizon,bands:[{slot:'back',fromRow:horizon},{slot:'front',fromRow:waterline}]}));
+pack.ambience.push(ambient('sea-depth','front',5.9,{kind:'backdrop-cycle',size:[512,2048],phases:Object.fromEntries(phases.map(p=>[p,'sea-depth-'+p])),placement:{horizonRow:512,stageRow:waterline}}));
 for(const id of ['sea','sea-still']){const e=structuredClone(old.ambience.find(e=>e.id===id));e.order=6;e.behaviour.origin=horizon;e.behaviour.bands=[{slot:'back',fromRow:horizon},{slot:'front',fromRow:waterline}];pack.ambience.push(e);}
 pack.ambience.push(ambient('voyage-coast','back',6.1,{kind:'phase-strip',top:101,span,frames:{sprites:[sprite('coast-midday')],frameMs:1000},drift:{pxPerSecond:1.7,clock:'voyage'},byPhase:Object.fromEntries(phases.map(p=>[p,[sprite('coast-'+p)]]))}));
 pack.ambience.push(ambient('lighthouse-beam','back',6.2,{kind:'phase-strip',top:101,span,frames:{sprites:Array(4).fill(sprite('beam-clear')),frameMs:700,clock:'life'},drift:{pxPerSecond:1.7,clock:'voyage'},byPhase:Object.fromEntries(phases.map(p=>[p,p==='night'?seq('beam'):Array(4).fill(sprite('beam-clear'))]))}));
@@ -63,12 +68,12 @@ for(const id of ['wake','foam','foam-still','spindrift','weather-serpent','weath
  const e=structuredClone(old.ambience.find(e=>e.id===id));
  if(id==='wake')e.behaviour.at=[590,waterline];
  if(id==='foam'||id==='foam-still'){e.behaviour.span=[110,590];e.behaviour.top=waterline-9;}
- if(id==='spindrift')e.behaviour.at=[96,waterline];
+ if(id==='spindrift'){e.behaviour.at=[96,waterline];e.behaviour.anchor=[30,39];e.behaviour.opacity={curve:[[.65,0],[1,.95]]};}
  if(id==='weather-serpent')e.behaviour.at=[36,358];
- if(id==='weather-kraken')e.behaviour.at=[603,358];
+ if(id==='weather-kraken'){e.behaviour.at=[603,368];e.behaviour.anchor=[53,80];e.behaviour.frames.sprites=seq('kraken-polish');e.behaviour.opacity={curve:[[.72,0],[.96,1]]};delete e.behaviour.variants;}
  pack.ambience.push(e);
 }
-pack.ambience.push(ambient('rain','front',11,{kind:'tile',frames:{sprites:Array(4).fill(sprite('rain-clear')),frameMs:90,clock:'water-drift'},drift:{pxPerSecond:8,clock:'water-drift'},origin:0,bands:[{slot:'front',fromRow:0}],variants:[{id:'storm-rain',frames:seq('rain'),blend:'over',opacity:[[.65,0],[1,.5]]}]},{lite:'freeze',still:'hide'}));
+pack.ambience.push(ambient('rain','front',11,{kind:'tile',frames:{sprites:Array(4).fill(sprite('rain-clear')),frameMs:70,clock:'water-drift'},drift:{pxPerSecond:12,clock:'water-drift'},origin:0,bands:[{slot:'front',fromRow:0}],variants:[{id:'storm-rain',frames:seq('rain'),blend:'over',opacity:[[.55,0],[1,.85]]}]},{lite:'freeze',still:'hide'}));
 // Quiet intervals are explicit repeated frames, separate from drift and ship rocking.
 pack.ambience.push(ambient('dolphins','front',8.5,{...cycle([sprite('dolphin-0'),...seq('dolphin'),sprite('dolphin-3'),...Array(14).fill(sprite('dolphin-3'))],260,'life'),at:[185,375],anchor:[32,52]},{lite:'run',still:'first-frame'}));
 pack.ambience.push(ambient('whale-spout','back',6.4,{...cycle([...Array(12).fill(sprite('whale-0')),sprite('whale-1'),sprite('whale-2'),sprite('whale-3')],550,'life'),at:[75,209],anchor:[35,47]}));
