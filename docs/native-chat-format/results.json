@@ -1,0 +1,103 @@
+{
+  "paseoRevision": "337e81a9c6d4551dbcede5930c21408776d06b1b",
+  "fixture": "Compiled plugin; actual Paseo user row source and projection/model; synthetic sessions and host services. No installed app/device test.",
+  "secondAgentPixels": "identical in all three viewport/theme pairs",
+  "results": [
+    {
+      "file": "mate-1100-dark-main.png",
+      "registrations": 0,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    },
+    {
+      "file": "mate-1100-dark-branch.png",
+      "registrations": 1,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    },
+    {
+      "file": "second-1100-dark-main.png",
+      "registrations": 0,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    },
+    {
+      "file": "second-1100-dark-branch.png",
+      "registrations": 1,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    },
+    {
+      "file": "mate-390-dark-main.png",
+      "registrations": 0,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    },
+    {
+      "file": "mate-390-dark-branch.png",
+      "registrations": 1,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    },
+    {
+      "file": "second-390-dark-main.png",
+      "registrations": 0,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    },
+    {
+      "file": "second-390-dark-branch.png",
+      "registrations": 1,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    },
+    {
+      "file": "mate-390-light-main.png",
+      "registrations": 0,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    },
+    {
+      "file": "mate-390-light-branch.png",
+      "registrations": 1,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    },
+    {
+      "file": "second-390-light-main.png",
+      "registrations": 0,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    },
+    {
+      "file": "second-390-light-branch.png",
+      "registrations": 1,
+      "secondUnchanged": true,
+      "protectedUnchanged": true,
+      "cacheStable": true,
+      "errors": []
+    }
+  ]
+}
