@@ -77,8 +77,36 @@
   "twinkle": "nonempty distinct frames",
   "nearCoverage": "tile to visible bottom; back/front share origin and clock",
   "umibozu": {
-    "before": "element opacity 0..0.85 times rise-variant crossfade; about 0.153 opacity at intensity 0.9",
+    "before": "element opacity 0..0.85 times rise-variant crossfade",
+    "oldBodyAlphaAt90Percent": 0.15275932099924894,
     "after": "one opaque rise/settle/submerge cycle; full strength above 0.780001; no stable crew intensity in reveal interval",
+    "stableAlphas": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
     "frames": 15
   }
 }

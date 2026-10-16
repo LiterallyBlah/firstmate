@@ -1,0 +1,126 @@
+{
+  "samples": [
+    {
+      "ms": 0,
+      "opaqueBodyPixels": 1306
+    },
+    {
+      "ms": 250,
+      "opaqueBodyPixels": 382
+    },
+    {
+      "ms": 500,
+      "opaqueBodyPixels": 392
+    },
+    {
+      "ms": 750,
+      "opaqueBodyPixels": 0
+    },
+    {
+      "ms": 1000,
+      "opaqueBodyPixels": 0
+    },
+    {
+      "ms": 1250,
+      "opaqueBodyPixels": 0
+    },
+    {
+      "ms": 1500,
+      "opaqueBodyPixels": 392
+    },
+    {
+      "ms": 1750,
+      "opaqueBodyPixels": 392
+    },
+    {
+      "ms": 2000,
+      "opaqueBodyPixels": 1316
+    },
+    {
+      "ms": 2250,
+      "opaqueBodyPixels": 1330
+    },
+    {
+      "ms": 2500,
+      "opaqueBodyPixels": 2904
+    },
+    {
+      "ms": 2750,
+      "opaqueBodyPixels": 4680
+    },
+    {
+      "ms": 3000,
+      "opaqueBodyPixels": 4692
+    },
+    {
+      "ms": 3250,
+      "opaqueBodyPixels": 5506
+    },
+    {
+      "ms": 3500,
+      "opaqueBodyPixels": 5470
+    },
+    {
+      "ms": 3750,
+      "opaqueBodyPixels": 7156
+    },
+    {
+      "ms": 4000,
+      "opaqueBodyPixels": 7147
+    },
+    {
+      "ms": 4250,
+      "opaqueBodyPixels": 7210
+    },
+    {
+      "ms": 4500,
+      "opaqueBodyPixels": 7136
+    },
+    {
+      "ms": 4750,
+      "opaqueBodyPixels": 7207
+    },
+    {
+      "ms": 5000,
+      "opaqueBodyPixels": 5514
+    },
+    {
+      "ms": 5250,
+      "opaqueBodyPixels": 4672
+    },
+    {
+      "ms": 5500,
+      "opaqueBodyPixels": 4696
+    },
+    {
+      "ms": 5750,
+      "opaqueBodyPixels": 2880
+    },
+    {
+      "ms": 6000,
+      "opaqueBodyPixels": 2897
+    },
+    {
+      "ms": 6250,
+      "opaqueBodyPixels": 1290
+    },
+    {
+      "ms": 6500,
+      "opaqueBodyPixels": 383
+    },
+    {
+      "ms": 6750,
+      "opaqueBodyPixels": 392
+    },
+    {
+      "ms": 7000,
+      "opaqueBodyPixels": 0
+    },
+    {
+      "ms": 7250,
+      "opaqueBodyPixels": 0
+    }
+  ],
+  "peakOpaqueBodyPixels": 7210,
+  "observer": "real canvas PNGs; exact opaque sprite colours"
+}
