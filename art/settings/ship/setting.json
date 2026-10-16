@@ -3,7 +3,7 @@
   "formatVersion": 1,
   "id": "ship",
   "name": "Ship's deck",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "requires": [
     "stage@1",
     "floor@1",
@@ -866,6 +866,21 @@
         }
       },
       {
+        "id": "access-ladder",
+        "needs": [
+          "tall-mast"
+        ],
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "polish-ladder"
+        },
+        "at": [
+          204,
+          -38
+        ]
+      },
+      {
         "id": "sail",
         "needs": [
           "tall-mast"
@@ -915,21 +930,6 @@
             "channel": "billow"
           }
         }
-      },
-      {
-        "id": "access-ladder",
-        "needs": [
-          "tall-mast"
-        ],
-        "lite": "run",
-        "still": "first-frame",
-        "sprite": {
-          "image": "polish-ladder"
-        },
-        "at": [
-          215,
-          -38
-        ]
       }
     ],
     "pieces": [
@@ -1474,7 +1474,11 @@
             "transit": {
               "path": [
                 [
-                  222,
+                  211,
+                  98
+                ],
+                [
+                  211,
                   -35
                 ],
                 [

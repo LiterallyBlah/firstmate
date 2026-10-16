@@ -24,18 +24,31 @@ describe("the ship's stage, compiled", () => {
     expect(parts.parts.map((part) => [part.id, part.place, part.at])).toEqual([
       ["tall-mast", "tall-mast", [187, -60]],
       ["topmast", "topmast", [187, -80]],
+      ["access-ladder", "access-ladder", [204, -38]],
       ["sail", "sail", [154, -15]],
-      ["access-ladder", "access-ladder", [215, -38]],
     ]);
     expect(parts.backdrop).toEqual({ image: "deck", rect: [0, 0, 426, 161] });
     expect(parts.cutout).toEqual([117, 0, 149, 71]);
     expect(parts.top).toBe(-80);
-    expect(parts.parts[2]!.frames.map((frame) => frame.rect)).toEqual([
+    expect(parts.parts.find((part) => part.id === "sail")!.frames.map((frame) => frame.rect)).toEqual([
       [0, 0, 114, 84],
       [114, 0, 114, 84],
     ]);
     expect(parts.bob).toEqual({ periodS: 6.2, amplitude: { channel: "heave" }, clock: "swell" });
     expect([parts.missing, parts.required]).toEqual([[], []]);
+  });
+
+  it("keeps the vertical access ladder and climbing shaft centred on the mast, behind the sail", () => {
+    const { parts } = compileParts(ship, all);
+    const ladder = parts.find((part) => part.id === "access-ladder")!;
+    const mast = parts.find((part) => part.id === "tall-mast")!;
+    const axis = mast.at[0] + mast.cut.rect[2] / 2;
+    expect(ladder.at[0] + ladder.cut.rect[2] / 2).toBe(axis);
+    expect(ladder.behaviour).toBeUndefined();
+    expect(parts.indexOf(ladder)).toBeLessThan(parts.findIndex((part) => part.id === "sail"));
+    const post = ship.zones.zones.flatMap((zone) => zone.posts).find((post) => post.id === "mast-fore")!;
+    expect(post.transit!.path.slice(0, 2)).toEqual([[axis, post.at[1]], [axis, -35]]);
+    expect(post.transit!.path.at(-1)).toEqual([218, -35]);
   });
 
   it("stands the tall mast's own rows in for the mast piece at its row, and the plank just in front of the near rail", () => {

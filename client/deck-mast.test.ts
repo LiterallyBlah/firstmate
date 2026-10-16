@@ -149,7 +149,7 @@ describe("the tall mast on the hull", () => {
 
   it("is drawn only with its image, its rows standing in for the mast piece; without it, the hull's own masthead", () => {
     const whole = compileParts(ship, () => true);
-    expect(whole.parts.map((each) => each.id)).toEqual(["tall-mast", "topmast", "sail", "access-ladder"]);
+    expect(whole.parts.map((each) => each.id)).toEqual(["tall-mast", "topmast", "access-ladder", "sail"]);
     expect(whole.cutout).toEqual(mast.clears);
     expect(whole.pieces.find((piece) => piece.id === mast.replaces)?.by).toBe("tall-mast");
     const bare = compileParts(ship, (image) => image !== tallMast.sprite.image);

@@ -814,7 +814,7 @@ describe("the sail, the crew's looks and the wake on the deck", () => {
     const deck = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras });
     deck.advance(16);
     const ship = one(deck.app.stage, "ship");
-    expect(ship.children.map((child) => child.label)).toEqual(["hull:0", "hull:1", "hull:2", "tall-mast", "topmast", "sail", "access-ladder", "deck"]);
+    expect(ship.children.map((child) => child.label)).toEqual(["hull:0", "hull:1", "hull:2", "tall-mast", "topmast", "access-ladder", "sail", "deck"]);
     // The hull's short rig — its crow's nest, upper mast and stays — is not drawn: the slices go round it.
     const [cutX, , cutWidth, cutHeight] = stagePart("tall-mast").cutout!;
     const slices = ["hull:0", "hull:1", "hull:2"].map((label) => one(ship, label) as FakeSprite);
