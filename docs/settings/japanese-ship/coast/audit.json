@@ -1,0 +1,18 @@
+{
+  "baseline": "bae5478",
+  "imageBytes": 977432,
+  "lapSeconds": 1200,
+  "direction": "rightward scenery for left-facing bow",
+  "checks": [
+    "parent stage, cast, interaction and departure contracts unchanged",
+    "parent water, stars, moon and weather unchanged",
+    "six registered day phases",
+    "night-only lamps share voyage coordinates",
+    "all four scenery layers share world drift",
+    "three non-overlapping open-water spirit berths",
+    "all approved opaque spirit pose pixels retained",
+    "spirit hidden in lite/still, full strength above 78% storm",
+    "transparent loop boundaries; independent sky/water fills retained"
+  ],
+  "errors": []
+}
