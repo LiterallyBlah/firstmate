@@ -32,11 +32,11 @@ interactive effects in their approved water positions.
 
 `evidence/` contains wide, tall-narrow and square day/dusk/night/storm views,
 full/lite/reduced motion, and the authoring overlay. `coast-native-motion.gif`
-shows ten seconds at the **shipped 1x rate**. The two `*-full-lap-60x.gif` clips
+shows ten seconds at the **shipped 1x rate**. The three `*-full-lap-60x.gif` clips
 are explicitly accelerated review fixtures: only the four shared voyage drifts
 are multiplied by 60, showing a whole 20-minute coast lap in 20 seconds. Water,
 weather, light and spirit pose clocks remain at their native rates. The pack
-itself always uses 2.4 px/s. `lap-*.png` samples make every landmark reviewable.
+itself always uses 2.4 px/s. `*-sample-*.png` frames make every landmark reviewable.
 
 `audit.json` verifies the parent contracts and unchanged images, registered phase
 geometry, night-only lights, shared drift, open-water berths, exact original spirit
