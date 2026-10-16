@@ -1,0 +1,55 @@
+{
+  "results": [
+    {
+      "name": "wide",
+      "theme": "light",
+      "passed": true
+    },
+    {
+      "name": "wide",
+      "theme": "dark",
+      "passed": true
+    },
+    {
+      "name": "narrow",
+      "theme": "light",
+      "passed": true
+    },
+    {
+      "name": "narrow",
+      "theme": "dark",
+      "passed": true
+    },
+    {
+      "name": "phone",
+      "theme": "light",
+      "passed": true
+    },
+    {
+      "name": "phone",
+      "theme": "dark",
+      "passed": true
+    },
+    {
+      "name": "list",
+      "theme": "light",
+      "passed": true
+    },
+    {
+      "name": "list",
+      "theme": "dark",
+      "passed": true
+    },
+    {
+      "name": "board",
+      "theme": "light",
+      "passed": true
+    },
+    {
+      "name": "board",
+      "theme": "dark",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

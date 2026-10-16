@@ -1,0 +1,16 @@
+import { fleet } from "../board-list/fixtures";
+const local = structuredClone(fleet.cards.find(card => card.agent));
+local.title = "Polish the crew conversation";
+local.key = "conversation-worker";
+local.taskId = "conversation-worker";
+local.column = "working";
+local.agent = { ...local.agent, id: "conversation-worker", status: "running", pendingPermissions: 0, cwd: "C:/Sample/Worker", workspaceId: "worker-space" };
+local.report = { state: "working", text: "Checking the conversation beside the live deck" };
+local.url = null;
+const remote = structuredClone(fleet.cards.find(card => card.remote));
+remote.title = "Remote review";
+remote.key = "remote-review";
+fleet.cards = [local, remote];
+fleet.suggestions = [];
+window.fixtureTheme = new URLSearchParams(location.search).has("light") ? { colors: { surface1: "#fff", foreground: "#171717", border: "#d3d3d3" } } : undefined;
+import "../shell-phase1/panel.jsx";
