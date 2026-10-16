@@ -1,0 +1,18 @@
+{
+  "mainRevision": "b09b3b08b849c369226bcb3b88f522998dc35c61",
+  "branchRevision": "b09b3b0",
+  "captures": [
+    {
+      "setting": "japanese-ship",
+      "main": "759dbf8e141fd9acc653ddbd2b74790ca9a46737489c44f7ea5477760d9f7cd2",
+      "branch": "759dbf8e141fd9acc653ddbd2b74790ca9a46737489c44f7ea5477760d9f7cd2",
+      "identical": true
+    },
+    {
+      "setting": "sky-airship",
+      "main": "6de86f6bcb08d0725950d093b6e1b975270167dca7170c43444bb3dc7870b5d3",
+      "branch": "6de86f6bcb08d0725950d093b6e1b975270167dca7170c43444bb3dc7870b5d3",
+      "identical": true
+    }
+  ]
+}

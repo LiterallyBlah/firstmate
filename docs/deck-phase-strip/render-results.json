@@ -1,0 +1,139 @@
+{
+  "samples": {
+    "dawn": [
+      180,
+      130,
+      90
+    ],
+    "day": [
+      80,
+      160,
+      100
+    ],
+    "dusk": [
+      130,
+      80,
+      100
+    ],
+    "night": [
+      30,
+      50,
+      80
+    ],
+    "dusk-half": [
+      80,
+      65,
+      90
+    ],
+    "dawn-half": [
+      105,
+      90,
+      85
+    ],
+    "dawn-beam": [
+      24,
+      27,
+      26
+    ],
+    "day-beam": [
+      24,
+      27,
+      26
+    ],
+    "dusk-beam": [
+      24,
+      27,
+      26
+    ],
+    "dusk-half-beam": [
+      105,
+      94,
+      52
+    ],
+    "dawn-half-beam": [
+      105,
+      94,
+      52
+    ]
+  },
+  "shots": [
+    {
+      "name": "dawn",
+      "hash": "5104f69790222fa7702efed30e121bd07a5ef4cf2d72cfb2247f09348299c291",
+      "motion": "still",
+      "width": 1414,
+      "height": 750
+    },
+    {
+      "name": "day",
+      "hash": "458c967619c7b43f74230191d6cd8215f65114264ce669f9f49480bac527a7b3",
+      "motion": "still",
+      "width": 1414,
+      "height": 750
+    },
+    {
+      "name": "dusk",
+      "hash": "0daddbdb73fbfe3e4513aa7858b81eadcc324dd77cb5fa9aa978404fbf072dfc",
+      "motion": "still",
+      "width": 1414,
+      "height": 750
+    },
+    {
+      "name": "night",
+      "hash": "416c7a52ab187df3f139b0ca7657e6da111abe72e9f8bb903fb5e33ef12d1db9",
+      "motion": "still",
+      "width": 1414,
+      "height": 750
+    },
+    {
+      "name": "dusk-half",
+      "hash": "f88303cf14070b819c6cf729d47722ff89b90a79fdb48de673ae1bc5870956f5",
+      "motion": "still",
+      "width": 1414,
+      "height": 750
+    },
+    {
+      "name": "dawn-half",
+      "hash": "489e75b1c97279270c1f8c4a1e554404b18d2c19c2efb1d53ea4086b0ea84c0b",
+      "motion": "still",
+      "width": 1414,
+      "height": 750
+    },
+    {
+      "name": "still-before",
+      "hash": "f88303cf14070b819c6cf729d47722ff89b90a79fdb48de673ae1bc5870956f5",
+      "motion": "still",
+      "width": 1414,
+      "height": 750
+    },
+    {
+      "name": "still-after",
+      "hash": "f88303cf14070b819c6cf729d47722ff89b90a79fdb48de673ae1bc5870956f5",
+      "motion": "still",
+      "width": 1414,
+      "height": 750
+    },
+    {
+      "name": "drift-0",
+      "hash": "bff2289b9b07ece73953da2d77937a37cfaf45c2561ad206bc3d2d82b30e394b",
+      "motion": "full",
+      "width": 1414,
+      "height": 750
+    },
+    {
+      "name": "drift-2s",
+      "hash": "a8278fc296cf754bdb25aeb68209922ac0bed2c57098c350634b035270add2b1",
+      "motion": "full",
+      "width": 1414,
+      "height": 750
+    },
+    {
+      "name": "reduced-after-motion",
+      "hash": "f88303cf14070b819c6cf729d47722ff89b90a79fdb48de673ae1bc5870956f5",
+      "motion": "still",
+      "width": 1414,
+      "height": 750
+    }
+  ],
+  "errors": []
+}
