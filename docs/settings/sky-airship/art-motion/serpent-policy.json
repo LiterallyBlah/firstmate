@@ -1,0 +1,69 @@
+{
+  "hidden": [
+    "lite",
+    "still",
+    "reduced motion (still)",
+    "intensity <= 0.82",
+    "null intensity"
+  ],
+  "peakOpacity": 0.95,
+  "route": {
+    "top": -8,
+    "bottom": 36,
+    "slot": "back",
+    "order": 6.1,
+    "bodyWidth": 78,
+    "repeat": 2048,
+    "peakPixelsPerSecond": 59.4
+  },
+  "positions": [
+    {
+      "lap": 900,
+      "xs": [
+        -124
+      ]
+    },
+    {
+      "lap": 1000,
+      "xs": [
+        -24
+      ]
+    },
+    {
+      "lap": 1100,
+      "xs": [
+        76
+      ]
+    },
+    {
+      "lap": 1200,
+      "xs": [
+        176
+      ]
+    },
+    {
+      "lap": 1300,
+      "xs": [
+        276
+      ]
+    },
+    {
+      "lap": 1400,
+      "xs": [
+        376
+      ]
+    },
+    {
+      "lap": 1500,
+      "xs": [
+        476
+      ]
+    },
+    {
+      "lap": 1600,
+      "xs": [
+        576
+      ]
+    }
+  ]
+}

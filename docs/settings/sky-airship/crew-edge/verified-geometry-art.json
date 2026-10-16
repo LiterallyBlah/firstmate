@@ -1,0 +1,1179 @@
+{
+  "preservedCrewPixels": 11028,
+  "states": [
+    {
+      "state": "blocked",
+      "resolved": [
+        {
+          "key": "Crew 0",
+          "x": 114,
+          "y": 234,
+          "box": {
+            "left": 108,
+            "top": 195,
+            "right": 121,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 0"
+        },
+        {
+          "key": "Crew 1",
+          "x": 142,
+          "y": 234,
+          "box": {
+            "left": 136,
+            "top": 195,
+            "right": 149,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 1"
+        },
+        {
+          "key": "Crew 10",
+          "x": 170,
+          "y": 234,
+          "box": {
+            "left": 164,
+            "top": 195,
+            "right": 177,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 10"
+        },
+        {
+          "key": "Crew 11",
+          "x": 100,
+          "y": 234,
+          "box": {
+            "left": 94,
+            "top": 195,
+            "right": 107,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 11"
+        },
+        {
+          "key": "Crew 12",
+          "x": 128,
+          "y": 234,
+          "box": {
+            "left": 122,
+            "top": 195,
+            "right": 135,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 12"
+        },
+        {
+          "key": "Crew 13",
+          "x": 156,
+          "y": 234,
+          "box": {
+            "left": 150,
+            "top": 195,
+            "right": 163,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 13"
+        },
+        {
+          "key": "Crew 14",
+          "x": 184,
+          "y": 234,
+          "box": {
+            "left": 178,
+            "top": 195,
+            "right": 191,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 14"
+        },
+        {
+          "key": "Crew 15",
+          "x": 198,
+          "y": 234,
+          "box": {
+            "left": 192,
+            "top": 195,
+            "right": 205,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 15"
+        },
+        {
+          "key": "Crew 16",
+          "x": 212,
+          "y": 234,
+          "box": {
+            "left": 206,
+            "top": 195,
+            "right": 219,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 16"
+        },
+        {
+          "key": "Crew 17",
+          "x": 226,
+          "y": 234,
+          "box": {
+            "left": 220,
+            "top": 195,
+            "right": 233,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 17"
+        },
+        {
+          "key": "Crew 18",
+          "x": 240,
+          "y": 234,
+          "box": {
+            "left": 234,
+            "top": 195,
+            "right": 247,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 18"
+        },
+        {
+          "key": "Crew 19",
+          "x": 254,
+          "y": 234,
+          "box": {
+            "left": 248,
+            "top": 195,
+            "right": 261,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 19"
+        },
+        {
+          "key": "Crew 2",
+          "x": 268,
+          "y": 234,
+          "box": {
+            "left": 262,
+            "top": 195,
+            "right": 275,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 2"
+        },
+        {
+          "key": "Crew 20",
+          "x": 282,
+          "y": 234,
+          "box": {
+            "left": 276,
+            "top": 195,
+            "right": 289,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 20"
+        },
+        {
+          "key": "Crew 21",
+          "x": 296,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 303,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 21"
+        },
+        {
+          "key": "Crew 22",
+          "x": 310,
+          "y": 234,
+          "box": {
+            "left": 304,
+            "top": 195,
+            "right": 317,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 22"
+        },
+        {
+          "key": "Crew 23",
+          "x": 324,
+          "y": 234,
+          "box": {
+            "left": 318,
+            "top": 195,
+            "right": 331,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 23"
+        },
+        {
+          "key": "Crew 3",
+          "x": 338,
+          "y": 234,
+          "box": {
+            "left": 332,
+            "top": 195,
+            "right": 345,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 3"
+        },
+        {
+          "key": "Crew 4",
+          "x": 352,
+          "y": 234,
+          "box": {
+            "left": 346,
+            "top": 195,
+            "right": 359,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 4"
+        },
+        {
+          "key": "Crew 5",
+          "x": 366,
+          "y": 234,
+          "box": {
+            "left": 360,
+            "top": 195,
+            "right": 373,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 5"
+        },
+        {
+          "key": "Crew 6",
+          "x": 380,
+          "y": 234,
+          "box": {
+            "left": 374,
+            "top": 195,
+            "right": 387,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 6"
+        },
+        {
+          "key": "Crew 7",
+          "x": 394,
+          "y": 207,
+          "box": {
+            "left": 388,
+            "top": 168,
+            "right": 401,
+            "bottom": 207
+          },
+          "centreWinner": "Crew 7"
+        },
+        {
+          "key": "Crew 8",
+          "x": 408,
+          "y": 207,
+          "box": {
+            "left": 402,
+            "top": 168,
+            "right": 415,
+            "bottom": 207
+          },
+          "centreWinner": "Crew 8"
+        },
+        {
+          "key": "Crew 9",
+          "x": 422,
+          "y": 207,
+          "box": {
+            "left": 416,
+            "top": 168,
+            "right": 429,
+            "bottom": 207
+          },
+          "centreWinner": "Crew 9"
+        }
+      ]
+    },
+    {
+      "state": "working",
+      "resolved": [
+        {
+          "key": "Crew 0",
+          "x": 246,
+          "y": 44,
+          "box": {
+            "left": 232,
+            "top": 5,
+            "right": 260,
+            "bottom": 44
+          },
+          "centreWinner": "Crew 0"
+        },
+        {
+          "key": "Crew 1",
+          "x": 226,
+          "y": 234,
+          "box": {
+            "left": 214,
+            "top": 195,
+            "right": 238,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 1"
+        },
+        {
+          "key": "Crew 10",
+          "x": 198,
+          "y": 234,
+          "box": {
+            "left": 186,
+            "top": 195,
+            "right": 210,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 10"
+        },
+        {
+          "key": "Crew 11",
+          "x": 310,
+          "y": 234,
+          "box": {
+            "left": 298,
+            "top": 195,
+            "right": 322,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 11"
+        },
+        {
+          "key": "Crew 12",
+          "x": 338,
+          "y": 234,
+          "box": {
+            "left": 326,
+            "top": 195,
+            "right": 350,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 12"
+        },
+        {
+          "key": "Crew 13",
+          "x": 366,
+          "y": 234,
+          "box": {
+            "left": 354,
+            "top": 195,
+            "right": 378,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 13"
+        },
+        {
+          "key": "Crew 14",
+          "x": 184,
+          "y": 234,
+          "box": {
+            "left": 172,
+            "top": 195,
+            "right": 196,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 14"
+        },
+        {
+          "key": "Crew 15",
+          "x": 240,
+          "y": 234,
+          "box": {
+            "left": 228,
+            "top": 195,
+            "right": 252,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 15"
+        },
+        {
+          "key": "Crew 16",
+          "x": 296,
+          "y": 234,
+          "box": {
+            "left": 284,
+            "top": 195,
+            "right": 308,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 16"
+        },
+        {
+          "key": "Crew 17",
+          "x": 324,
+          "y": 234,
+          "box": {
+            "left": 312,
+            "top": 195,
+            "right": 336,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 17"
+        },
+        {
+          "key": "Crew 18",
+          "x": 352,
+          "y": 234,
+          "box": {
+            "left": 340,
+            "top": 195,
+            "right": 364,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 18"
+        },
+        {
+          "key": "Crew 19",
+          "x": 170,
+          "y": 234,
+          "box": {
+            "left": 158,
+            "top": 195,
+            "right": 182,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 19"
+        },
+        {
+          "key": "Crew 2",
+          "x": 254,
+          "y": 234,
+          "box": {
+            "left": 242,
+            "top": 195,
+            "right": 266,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 2"
+        },
+        {
+          "key": "Crew 20",
+          "x": 268,
+          "y": 234,
+          "box": {
+            "left": 256,
+            "top": 195,
+            "right": 280,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 20"
+        },
+        {
+          "key": "Crew 21",
+          "x": 282,
+          "y": 234,
+          "box": {
+            "left": 270,
+            "top": 195,
+            "right": 294,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 21"
+        },
+        {
+          "key": "Crew 22",
+          "x": 380,
+          "y": 234,
+          "box": {
+            "left": 368,
+            "top": 195,
+            "right": 392,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 22"
+        },
+        {
+          "key": "Crew 23",
+          "x": 156,
+          "y": 234,
+          "box": {
+            "left": 144,
+            "top": 195,
+            "right": 168,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 23"
+        },
+        {
+          "key": "Crew 3",
+          "x": 142,
+          "y": 234,
+          "box": {
+            "left": 130,
+            "top": 195,
+            "right": 154,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 3"
+        },
+        {
+          "key": "Crew 4",
+          "x": 128,
+          "y": 234,
+          "box": {
+            "left": 116,
+            "top": 195,
+            "right": 140,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 4"
+        },
+        {
+          "key": "Crew 5",
+          "x": 114,
+          "y": 234,
+          "box": {
+            "left": 102,
+            "top": 195,
+            "right": 126,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 5"
+        },
+        {
+          "key": "Crew 6",
+          "x": 100,
+          "y": 234,
+          "box": {
+            "left": 88,
+            "top": 195,
+            "right": 112,
+            "bottom": 234
+          },
+          "centreWinner": "Crew 6"
+        },
+        {
+          "key": "Crew 7",
+          "x": 394,
+          "y": 207,
+          "box": {
+            "left": 382,
+            "top": 168,
+            "right": 406,
+            "bottom": 207
+          },
+          "centreWinner": "Crew 7"
+        },
+        {
+          "key": "Crew 8",
+          "x": 408,
+          "y": 207,
+          "box": {
+            "left": 396,
+            "top": 168,
+            "right": 420,
+            "bottom": 207
+          },
+          "centreWinner": "Crew 8"
+        },
+        {
+          "key": "Crew 9",
+          "x": 422,
+          "y": 207,
+          "box": {
+            "left": 410,
+            "top": 168,
+            "right": 434,
+            "bottom": 207
+          },
+          "centreWinner": "Crew 9"
+        }
+      ]
+    },
+    {
+      "state": "waiting",
+      "resolved": [
+        {
+          "key": "Crew 0",
+          "x": 394,
+          "y": 205,
+          "box": {
+            "left": 385,
+            "top": 166,
+            "right": 402,
+            "bottom": 205
+          },
+          "centreWinner": "Crew 0"
+        },
+        {
+          "key": "Crew 1",
+          "x": 408,
+          "y": 205,
+          "box": {
+            "left": 399,
+            "top": 166,
+            "right": 416,
+            "bottom": 205
+          },
+          "centreWinner": "Crew 1"
+        },
+        {
+          "key": "Crew 10",
+          "x": 422,
+          "y": 205,
+          "box": {
+            "left": 413,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          },
+          "centreWinner": "Crew 10"
+        },
+        {
+          "key": "Crew 11",
+          "x": 380,
+          "y": 224,
+          "box": {
+            "left": 371,
+            "top": 185,
+            "right": 388,
+            "bottom": 224
+          },
+          "centreWinner": "Crew 11"
+        },
+        {
+          "key": "Crew 12",
+          "x": 366,
+          "y": 222,
+          "box": {
+            "left": 357,
+            "top": 183,
+            "right": 374,
+            "bottom": 222
+          },
+          "centreWinner": "Crew 12"
+        },
+        {
+          "key": "Crew 13",
+          "x": 352,
+          "y": 220,
+          "box": {
+            "left": 343,
+            "top": 181,
+            "right": 360,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 13"
+        },
+        {
+          "key": "Crew 14",
+          "x": 338,
+          "y": 220,
+          "box": {
+            "left": 329,
+            "top": 181,
+            "right": 346,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 14"
+        },
+        {
+          "key": "Crew 15",
+          "x": 324,
+          "y": 220,
+          "box": {
+            "left": 315,
+            "top": 181,
+            "right": 332,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 15"
+        },
+        {
+          "key": "Crew 16",
+          "x": 310,
+          "y": 220,
+          "box": {
+            "left": 301,
+            "top": 181,
+            "right": 318,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 16"
+        },
+        {
+          "key": "Crew 17",
+          "x": 296,
+          "y": 220,
+          "box": {
+            "left": 287,
+            "top": 181,
+            "right": 304,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 17"
+        },
+        {
+          "key": "Crew 18",
+          "x": 282,
+          "y": 232,
+          "box": {
+            "left": 273,
+            "top": 193,
+            "right": 290,
+            "bottom": 232
+          },
+          "centreWinner": "Crew 18"
+        },
+        {
+          "key": "Crew 19",
+          "x": 268,
+          "y": 232,
+          "box": {
+            "left": 259,
+            "top": 193,
+            "right": 276,
+            "bottom": 232
+          },
+          "centreWinner": "Crew 19"
+        },
+        {
+          "key": "Crew 2",
+          "x": 254,
+          "y": 232,
+          "box": {
+            "left": 245,
+            "top": 193,
+            "right": 262,
+            "bottom": 232
+          },
+          "centreWinner": "Crew 2"
+        },
+        {
+          "key": "Crew 20",
+          "x": 240,
+          "y": 232,
+          "box": {
+            "left": 231,
+            "top": 193,
+            "right": 248,
+            "bottom": 232
+          },
+          "centreWinner": "Crew 20"
+        },
+        {
+          "key": "Crew 21",
+          "x": 226,
+          "y": 220,
+          "box": {
+            "left": 217,
+            "top": 181,
+            "right": 234,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 21"
+        },
+        {
+          "key": "Crew 22",
+          "x": 212,
+          "y": 220,
+          "box": {
+            "left": 203,
+            "top": 181,
+            "right": 220,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 22"
+        },
+        {
+          "key": "Crew 23",
+          "x": 198,
+          "y": 220,
+          "box": {
+            "left": 189,
+            "top": 181,
+            "right": 206,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 23"
+        },
+        {
+          "key": "Crew 3",
+          "x": 184,
+          "y": 220,
+          "box": {
+            "left": 175,
+            "top": 181,
+            "right": 192,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 3"
+        },
+        {
+          "key": "Crew 4",
+          "x": 170,
+          "y": 220,
+          "box": {
+            "left": 161,
+            "top": 181,
+            "right": 178,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 4"
+        },
+        {
+          "key": "Crew 5",
+          "x": 156,
+          "y": 220,
+          "box": {
+            "left": 147,
+            "top": 181,
+            "right": 164,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 5"
+        },
+        {
+          "key": "Crew 6",
+          "x": 142,
+          "y": 220,
+          "box": {
+            "left": 133,
+            "top": 181,
+            "right": 150,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 6"
+        },
+        {
+          "key": "Crew 7",
+          "x": 128,
+          "y": 220,
+          "box": {
+            "left": 119,
+            "top": 181,
+            "right": 136,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 7"
+        },
+        {
+          "key": "Crew 8",
+          "x": 114,
+          "y": 220,
+          "box": {
+            "left": 105,
+            "top": 181,
+            "right": 122,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 8"
+        },
+        {
+          "key": "Crew 9",
+          "x": 100,
+          "y": 220,
+          "box": {
+            "left": 91,
+            "top": 181,
+            "right": 108,
+            "bottom": 220
+          },
+          "centreWinner": "Crew 9"
+        }
+      ]
+    },
+    {
+      "state": "idle",
+      "resolved": [
+        {
+          "key": "Crew 0",
+          "x": 96,
+          "y": 274,
+          "box": {
+            "left": 89,
+            "top": 249,
+            "right": 103,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 0"
+        },
+        {
+          "key": "Crew 1",
+          "x": 110,
+          "y": 274,
+          "box": {
+            "left": 103,
+            "top": 249,
+            "right": 117,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 1"
+        },
+        {
+          "key": "Crew 10",
+          "x": 124,
+          "y": 274,
+          "box": {
+            "left": 117,
+            "top": 249,
+            "right": 131,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 10"
+        },
+        {
+          "key": "Crew 11",
+          "x": 138,
+          "y": 274,
+          "box": {
+            "left": 131,
+            "top": 249,
+            "right": 145,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 11"
+        },
+        {
+          "key": "Crew 12",
+          "x": 152,
+          "y": 274,
+          "box": {
+            "left": 145,
+            "top": 249,
+            "right": 159,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 12"
+        },
+        {
+          "key": "Crew 13",
+          "x": 166,
+          "y": 274,
+          "box": {
+            "left": 159,
+            "top": 249,
+            "right": 173,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 13"
+        },
+        {
+          "key": "Crew 14",
+          "x": 180,
+          "y": 274,
+          "box": {
+            "left": 173,
+            "top": 249,
+            "right": 187,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 14"
+        },
+        {
+          "key": "Crew 15",
+          "x": 194,
+          "y": 274,
+          "box": {
+            "left": 187,
+            "top": 249,
+            "right": 201,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 15"
+        },
+        {
+          "key": "Crew 16",
+          "x": 208,
+          "y": 274,
+          "box": {
+            "left": 201,
+            "top": 249,
+            "right": 215,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 16"
+        },
+        {
+          "key": "Crew 17",
+          "x": 222,
+          "y": 274,
+          "box": {
+            "left": 215,
+            "top": 249,
+            "right": 229,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 17"
+        },
+        {
+          "key": "Crew 18",
+          "x": 236,
+          "y": 274,
+          "box": {
+            "left": 229,
+            "top": 249,
+            "right": 243,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 18"
+        },
+        {
+          "key": "Crew 19",
+          "x": 250,
+          "y": 274,
+          "box": {
+            "left": 243,
+            "top": 249,
+            "right": 257,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 19"
+        },
+        {
+          "key": "Crew 2",
+          "x": 264,
+          "y": 274,
+          "box": {
+            "left": 257,
+            "top": 249,
+            "right": 271,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 2"
+        },
+        {
+          "key": "Crew 20",
+          "x": 278,
+          "y": 274,
+          "box": {
+            "left": 271,
+            "top": 249,
+            "right": 285,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 20"
+        },
+        {
+          "key": "Crew 21",
+          "x": 292,
+          "y": 274,
+          "box": {
+            "left": 285,
+            "top": 249,
+            "right": 299,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 21"
+        },
+        {
+          "key": "Crew 22",
+          "x": 306,
+          "y": 274,
+          "box": {
+            "left": 299,
+            "top": 249,
+            "right": 313,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 22"
+        },
+        {
+          "key": "Crew 23",
+          "x": 320,
+          "y": 274,
+          "box": {
+            "left": 313,
+            "top": 249,
+            "right": 327,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 23"
+        },
+        {
+          "key": "Crew 3",
+          "x": 334,
+          "y": 274,
+          "box": {
+            "left": 327,
+            "top": 249,
+            "right": 341,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 3"
+        },
+        {
+          "key": "Crew 4",
+          "x": 348,
+          "y": 274,
+          "box": {
+            "left": 341,
+            "top": 249,
+            "right": 355,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 4"
+        },
+        {
+          "key": "Crew 5",
+          "x": 362,
+          "y": 274,
+          "box": {
+            "left": 355,
+            "top": 249,
+            "right": 369,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 5"
+        },
+        {
+          "key": "Crew 6",
+          "x": 376,
+          "y": 274,
+          "box": {
+            "left": 369,
+            "top": 249,
+            "right": 383,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 6"
+        },
+        {
+          "key": "Crew 7",
+          "x": 390,
+          "y": 274,
+          "box": {
+            "left": 383,
+            "top": 249,
+            "right": 397,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 7"
+        },
+        {
+          "key": "Crew 8",
+          "x": 404,
+          "y": 274,
+          "box": {
+            "left": 397,
+            "top": 249,
+            "right": 411,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 8"
+        },
+        {
+          "key": "Crew 9",
+          "x": 418,
+          "y": 274,
+          "box": {
+            "left": 411,
+            "top": 249,
+            "right": 425,
+            "bottom": 274
+          },
+          "centreWinner": "Crew 9"
+        }
+      ]
+    }
+  ],
+  "rain": "All four transitions shift exactly eight rows downward, including wrap",
+  "carrier": "All four frames exactly horizontally reflected; alpha rows unchanged"
+}

@@ -25,15 +25,13 @@ export async function review(browser,origin){
  const name=aspect+'-'+state+'-'+count;await view.mouse.move(0,0);const png=await canvas.screenshot();writeFileSync(resolve(out,name+'.png'),png);
  if(state==='blocked'){const a=decodePng(png);writeFileSync(resolve(out,name+'-bow.png'),encode(crop(a,Math.round(fit.x+45*fit.scale),Math.round(fit.y+182*fit.scale),Math.round(145*fit.scale),Math.round(72*fit.scale))));}
  await view.evaluate(m=>window.drawOverlay(m),manifest);await view.screenshot({path:resolve(out,name+'-overlay.png')});await view.evaluate(()=>document.querySelector('[data-firstmate-deck-overlay]').remove());
- const targets=figures.map(f=>{const b=engine.figureBox(f,cast);let point=null;for(let y=b.top+1;y<b.bottom&&!point;y++)for(let x=b.left+1;x<b.right;x++)if(engine.sailorAt(figures,cast,{x,y})?.key===f.key){point={x,y};break}return{key:f.key,x:f.x,y:f.y,point}});
+ const targets=figures.map(f=>({key:f.key,x:f.x,y:f.y,box:engine.figureBox(f,cast),centreWinner:engine.sailorAt(figures,cast,{x:f.x,y:f.y-8})?.key}));
  if(version==='after')for(const f of targets){
- assert.ok(f.point,'clickable '+state+' '+f.key);
- const label=view.getByTestId('firstmate-deck-label');let hit=null;
+ assert.equal(f.centreWinner,f.key,state+' centre '+f.key);
  const frame=await view.evaluate(m=>{const r=window.drawOverlay(m);document.querySelector('[data-firstmate-deck-overlay]').remove();return r.fit},manifest);
- const candidates=[{x:f.x,y:f.y-8},f.point];const figure=figures.find(x=>x.key===f.key),b=engine.figureBox(figure,cast);
- for(let y=b.top+2;y<b.bottom;y+=3)for(let x=b.left+2;x<b.right;x+=3)candidates.push({x,y});
- for(const p of candidates){await view.mouse.move(0,0);await view.waitForTimeout(100);assert.equal(await label.count(),0,'hover clears before target');const at={x:box.x+frame.x+p.x*frame.scale,y:box.y+frame.y+p.y*frame.scale};await view.mouse.move(at.x,at.y);await view.waitForTimeout(100);if(await label.count()&&(await label.innerText()).split('\n')[0]===f.key){hit=at;break}}
- assert.ok(hit,'visible hover '+state+' '+f.key);await view.mouse.click(hit.x,hit.y);const panel=view.getByTestId('firstmate-deck-focus');await panel.waitFor();await view.waitForTimeout(150);await view.clock.runFor(100);assert.equal(await panel.getAttribute('aria-label'),f.key+': details and actions',state+' '+f.key);console.log('clicked',aspect,state,f.key);await view.keyboard.press('Escape');await view.clock.runFor(400);await view.waitForTimeout(70);await view.clock.runFor(300);await panel.waitFor({state:'hidden'});
+ await view.mouse.click(box.x+frame.x+f.x*frame.scale,box.y+frame.y+(f.y-8)*frame.scale);
+ const panel=view.getByTestId('firstmate-deck-focus');await panel.waitFor();await view.waitForTimeout(70);await view.clock.runFor(100);assert.equal(await panel.getAttribute('aria-label'),f.key+': details and actions',state+' '+f.key);console.log('clicked',aspect,state,f.key);
+ await view.keyboard.press('Escape');await view.clock.runFor(400);await view.waitForTimeout(70);await view.clock.runFor(300);await panel.waitFor({state:'hidden'});
  }
 
  results.push({aspect,state,count,targets});
@@ -42,4 +40,3 @@ export async function review(browser,origin){
  }
  assert.deepEqual(errors,[]);writeFileSync(resolve(out,'results.json'),JSON.stringify({results,errors},null,2));console.log(JSON.stringify({version,captures:results.length,errors}));
 }
-

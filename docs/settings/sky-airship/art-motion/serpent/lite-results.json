@@ -1,0 +1,15 @@
+{
+  "results": [
+    {
+      "aspect": "wide",
+      "intensity": 1,
+      "motion": "lite"
+    },
+    {
+      "aspect": "tall",
+      "intensity": 1,
+      "motion": "lite"
+    }
+  ],
+  "errors": []
+}
