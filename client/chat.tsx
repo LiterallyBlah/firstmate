@@ -109,6 +109,7 @@ export function MateChat({
   onChanged,
   onOpenFile,
   navigation,
+  imageContext,
 }: {
   mate: AgentSummary;
   theme: PluginTheme;
@@ -118,10 +119,11 @@ export function MateChat({
   /** Opens a home file in the Files view, the same way a watch's name does. */
   onOpenFile: (path: string) => void;
   navigation?: PluginScreenProps["navigation"];
+  imageContext?: { serverId?: string; home?: string };
 }) {
   const toast = useToast();
   useEffect(cacheSentImages, []);
-  const workspaceLinks = useWorkspaceFileLink(theme, navigation);
+  const workspaceLinks = useWorkspaceFileLink(theme, navigation, imageContext ?? {});
   /** Shared with the surface's suggestion buttons: one message on its way at a time — see `./mate-send`. */
   const { sending, send, command: sendMateCommand } = useMateSender(mate.id);
   const timeline = useAgentTimeline(mate.id, `${mate.updatedAt}:${mate.pendingPermissions}`);
@@ -396,6 +398,7 @@ export function MateChat({
               onOpenFile={onOpenFile}
               workspaceAware
               chatTools
+              imageLoader={workspaceLinks.imageLoader}
             />
             <View style={{ alignItems: "flex-start" }}>
               <MessageCopy text={row.text} theme={theme} />

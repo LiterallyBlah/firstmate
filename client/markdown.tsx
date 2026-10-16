@@ -19,11 +19,13 @@ import { useMemo, type ReactNode } from "react";
 import { Text, View } from "react-native";
 
 import { inlineTokens, type FileLookup } from "./file-links";
-import { parseMarkdown, type Block } from "./markdown-parse";
+import { inlineTexts, parseMarkdown, type Block } from "./markdown-parse";
 import { MONOSPACE } from "./ui";
 import { ChatImage } from "./chat-image";
 import { MessageCopy } from "./message-copy";
 import { markdownImage } from "./markdown-image";
+import { LocalChatImage, type ChatImageLoader } from "./local-chat-image";
+import { localImageLink } from "./chat-image-routing";
 
 interface MarkdownStyles {
   paragraph: object;
@@ -95,6 +97,7 @@ interface InlineContext {
   workspaceAware: boolean;
   theme: PluginTheme;
   chatTools: boolean;
+  imageLoader?: ChatImageLoader | undefined;
 }
 
 function renderInline(text: string, styles: MarkdownStyles, context: InlineContext): ReactNode[] {
@@ -126,7 +129,7 @@ function renderInline(text: string, styles: MarkdownStyles, context: InlineConte
             accessibilityRole="link"
             accessibilityHint={`Opens ${token.path} in Files`}
             style={token.code ? [styles.inlineCode, styles.link] : styles.link}
-            onPress={() => onOpenFile?.(token.path)}
+            onPress={() => context.imageLoader && localImageLink(token.path) ? context.onOpenLink(token.path, "firstmate:home") : onOpenFile?.(token.path)}
           >
             {token.text}
           </Text>
@@ -205,13 +208,15 @@ function renderBlocks(blocks: Block[], styles: MarkdownStyles, context: InlineCo
         );
       default: {
         const lines = block.text.split("\n");
-        if (context.chatTools && lines.some((line) => markdownImage(line) !== null))
+        if (context.chatTools && lines.some((line) => markdownImage(line, !!context.imageLoader) !== null))
           return (
             <View key={index} style={{ gap: 6 }}>
               {lines.map((line, lineIndex) => {
-                const image = markdownImage(line);
+                const image = markdownImage(line, !!context.imageLoader);
                 return image !== null ? (
-                  <ChatImage key={lineIndex} {...image} theme={context.theme} />
+                  context.imageLoader && !/^(?:https?:|data:)/i.test(image.uri)
+                    ? <LocalChatImage key={lineIndex} {...image} theme={context.theme} loader={context.imageLoader} />
+                    : <ChatImage key={lineIndex} {...image} theme={context.theme} />
                 ) : (
                   <Text key={lineIndex} selectable style={styles.paragraph}>
                     {renderInline(line, styles, context)}
@@ -239,6 +244,7 @@ export function Markdown({
   onOpenFile = null,
   workspaceAware = false,
   chatTools = false,
+  imageLoader,
 }: {
   source: string;
   theme: PluginTheme;
@@ -251,12 +257,24 @@ export function Markdown({
   workspaceAware?: boolean;
   /** Image previews and copy controls for the conversation, without altering file/card renderers. */
   chatTools?: boolean;
+  imageLoader?: ChatImageLoader;
 }) {
   const styles = useMarkdownStyles(theme, fontSize);
   const blocks = useMemo(() => parseMarkdown(source), [source]);
+  // File links remain readable/copyable; their image appears in the same message.
+  // Whole-line Markdown images already render at their position in the blocks.
+  const localLinks = imageLoader && chatTools ? inlineTexts(blocks).flatMap(text => text.split("\n").flatMap(line => {
+    if (markdownImage(line, true)) return [];
+    return inlineTokens(line, files, { workspaceAware }).flatMap(token => {
+      if (token.kind === "file" && localImageLink(token.path)) return [{ uri: token.path, title: "firstmate:home", label: token.text }];
+      if (token.kind === "link" && localImageLink(token.url)) return [{ uri: token.url, title: token.title, label: token.text }];
+      return [];
+    });
+  })) : [];
   return (
     <View style={{ gap: 6 }}>
-      {renderBlocks(blocks, styles, { lookup: files, onOpenLink, onOpenFile, workspaceAware, theme, chatTools })}
+      {renderBlocks(blocks, styles, { lookup: files, onOpenLink, onOpenFile, workspaceAware, theme, chatTools, imageLoader })}
+      {imageLoader ? localLinks.map((image, index) => <LocalChatImage key={`${image.uri}:${index}`} {...image} theme={theme} loader={imageLoader} />) : null}
     </View>
   );
 }

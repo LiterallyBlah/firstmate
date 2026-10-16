@@ -1,20 +1,31 @@
 import type { PluginTheme } from "@getpaseo/plugin";
-import { getPaseoClient, openExternalUrl, useHosts, type PluginScreenProps } from "@getpaseo/plugin/client";
+import { getPaseoClient, openExternalUrl, useHosts, useRpc, type PluginScreenProps } from "@getpaseo/plugin/client";
 import { copyText, Modal, useToast } from "@getpaseo/plugin/client/react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { fileLineDescription, parseFileLink } from "./workspace-links";
 import { openWorkspaceForFile, resolveWorkspaceFile, type WorkspaceFileSelection, type WorkspaceLinkServices } from "./workspace-link-routing";
 import { IconButton, MONOSPACE, Spinner, errorText } from "./ui";
+import { readChatImage } from "../shared/chat-images";
+import { chatImageRequest, localImageLink } from "./chat-image-routing";
+import { LocalChatImage, type ChatImageLoader } from "./local-chat-image";
 
-type LinkState = { kind: "loading" } | { kind: "error"; message: string } | { kind: "selection"; selection: WorkspaceFileSelection } | null;
+type LinkState = { kind: "image"; href: string; title?: string | undefined } | { kind: "loading" } | { kind: "error"; message: string } | { kind: "selection"; selection: WorkspaceFileSelection } | null;
 
 /** The SDK can open a workspace, not its file pane. Show the manual selection before leaving chat. */
-export function useWorkspaceFileLink(theme: PluginTheme, navigation: PluginScreenProps["navigation"]) {
+export function useWorkspaceFileLink(theme: PluginTheme, navigation: PluginScreenProps["navigation"], imageContext?: { serverId?: string; home?: string }) {
   const hosts = useHosts(), toast = useToast();
+  const readImage = useRpc(readChatImage);
   const hostsRef = useRef(hosts);
   hostsRef.current = hosts;
   const services: WorkspaceLinkServices = useMemo(() => ({ hosts: () => hostsRef.current, client: getPaseoClient }), []);
+  const imageLoader: ChatImageLoader = useMemo(() => ({
+    key: JSON.stringify([imageContext?.serverId, imageContext?.home]),
+    async read(href, title) {
+      try { return await readImage(await chatImageRequest(href, title, { ...imageContext, services })); }
+      catch { return { status: "unavailable", reason: "path" }; }
+    },
+  }), [readImage, services, imageContext?.serverId, imageContext?.home]);
   const generation = useRef(0);
   const [state, setState] = useState<LinkState>(null);
   const [opening, setOpening] = useState(false);
@@ -25,6 +36,10 @@ export function useWorkspaceFileLink(theme: PluginTheme, navigation: PluginScree
     const request = ++generation.current;
     setOpening(false);
     try {
+      if (imageContext !== undefined && localImageLink(href)) {
+        setState({ kind: "image", href, title });
+        return;
+      }
       if (title === "firstmate:home" && !/^https?:\/\//i.test(href)) throw new Error("This home file is missing, outside the confined home, or not yet checked. Open the home Files view to inspect it.");
       const parsed = parseFileLink(href, title);
       if (parsed.kind === "external") {
@@ -59,7 +74,9 @@ export function useWorkspaceFileLink(theme: PluginTheme, navigation: PluginScree
     muted: { color: theme.colors.foregroundMuted, fontSize: 13, lineHeight: 19 },
     path: { color: theme.colors.foreground, fontFamily: MONOSPACE, fontSize: 13, lineHeight: 19 },
   };
-  const dialog = <Modal title="Workspace file link" open={state !== null} onOpenChange={value => { if (!value) close(); }}>
+  const dialog = state?.kind === "image"
+    ? <LocalChatImage key={`${state.href}:${state.title}`} uri={state.href} title={state.title} label="Image from the first mate" theme={theme} loader={imageLoader} viewerOnly onClose={close} />
+    : <Modal title="Workspace file link" open={state !== null} onOpenChange={value => { if (!value) close(); }}>
     <Modal.Content>
       {state?.kind === "loading" ? <View style={{ flexDirection: "row", gap: 8 }}><Spinner size={16} color={theme.colors.foregroundMuted} /><Text style={styles.text}>Finding the workspace…</Text></View> : null}
       {state?.kind === "error" ? <Text selectable accessibilityRole="alert" style={styles.text}>{state.message}</Text> : null}
@@ -76,5 +93,5 @@ export function useWorkspaceFileLink(theme: PluginTheme, navigation: PluginScree
       </>}
     </Modal.Content>
   </Modal>;
-  return { open, dialog };
+  return { open, dialog, imageLoader };
 }
