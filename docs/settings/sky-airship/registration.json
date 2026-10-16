@@ -1,0 +1,1095 @@
+{
+  "sources": {
+    "stage": {
+      "sha256": "e792d498f9564e08234c593e6c0ce0065dc1f206b1c3c2e4a360ffdfa3b6cc89"
+    },
+    "crew": {
+      "sha256": "3347fe4c929baf8973f53602e6ba4d4cddd9fa6a8e7366345a638cc486d969e6"
+    },
+    "sky": {
+      "sha256": "16298e01cff558912cc19fc6ee3c0761aa017adcc78073104cebf36e2091f8a1"
+    },
+    "sky-night": {
+      "sha256": "13c7068791610e62a66f8f992e9662ea1aed3536c47a4d4f3a5bbc978e0edd87"
+    },
+    "atlas": {
+      "sha256": "4cc6b4183e6e195c0ce7c178801f9f5df45c73badd13b5ea896d4628a671797b"
+    },
+    "whales": {
+      "sha256": "edcfd60a7a2457d5c64a846795b9b6a622a811a263668ed0cca4aa59d5897a69"
+    },
+    "weather": {
+      "sha256": "3661e2201dd0d8a8e3a12c72d73baf8516abed6e41965da70ad4b5f8eba8df75"
+    }
+  },
+  "images": {
+    "ship": {
+      "path": "ship.png",
+      "size": [
+        480,
+        320
+      ],
+      "sha256": "79ad30354d989ea68aab7b51773b6a8c4ab4e855fed2177206bfa825a32ce5d9"
+    },
+    "balloon-0": {
+      "path": "balloon-0.png",
+      "size": [
+        394,
+        82
+      ],
+      "sha256": "86f93a0ebd9ec1d252c57d891c9cbdbeda8beb763accd6b80aaf6ef926769141"
+    },
+    "balloon-1": {
+      "path": "balloon-1.png",
+      "size": [
+        394,
+        82
+      ],
+      "sha256": "9ae8e3547a8e4d567210bd399e0b14441b68e6767d52e965c361e9ee11c89092"
+    },
+    "balloon-2": {
+      "path": "balloon-2.png",
+      "size": [
+        394,
+        82
+      ],
+      "sha256": "86f93a0ebd9ec1d252c57d891c9cbdbeda8beb763accd6b80aaf6ef926769141"
+    },
+    "balloon-3": {
+      "path": "balloon-3.png",
+      "size": [
+        394,
+        82
+      ],
+      "sha256": "191bec3c9d0d607f5f51dc95f749ed10ad7201422e19bc3a6ff04cc24a75caca"
+    },
+    "rig-0": {
+      "path": "rig-0.png",
+      "size": [
+        322,
+        81
+      ],
+      "sha256": "64459622b2aa2139632d8e0429fa49069dff89f9da53dfe41d476e2256bc2228"
+    },
+    "rig-1": {
+      "path": "rig-1.png",
+      "size": [
+        322,
+        81
+      ],
+      "sha256": "706704423e87236b4d42937963f88aab67b6a33989d606b169970507c7ddad0a"
+    },
+    "rig-2": {
+      "path": "rig-2.png",
+      "size": [
+        322,
+        81
+      ],
+      "sha256": "64459622b2aa2139632d8e0429fa49069dff89f9da53dfe41d476e2256bc2228"
+    },
+    "rig-3": {
+      "path": "rig-3.png",
+      "size": [
+        322,
+        81
+      ],
+      "sha256": "9769d11249e87a553b25e2d90f22d53966545f828fa4b450dfcd2a0e241b26d7"
+    },
+    "flag-0": {
+      "path": "flag-0.png",
+      "size": [
+        64,
+        35
+      ],
+      "sha256": "17c77f8ab929d30c446dc378bba834cbf180907e82dfc494d73f78f2f00f0f3d"
+    },
+    "flag-1": {
+      "path": "flag-1.png",
+      "size": [
+        64,
+        35
+      ],
+      "sha256": "6f70e34088ce5593d3ff2213ace2f8eadd85ad20ff96c01bfdac58d16dc35abd"
+    },
+    "flag-2": {
+      "path": "flag-2.png",
+      "size": [
+        64,
+        35
+      ],
+      "sha256": "17c77f8ab929d30c446dc378bba834cbf180907e82dfc494d73f78f2f00f0f3d"
+    },
+    "flag-3": {
+      "path": "flag-3.png",
+      "size": [
+        64,
+        35
+      ],
+      "sha256": "cdb7c31a3922169c7699524d1fe2a2afd4c69ec8ce0ffbd09445382eeb82fc28"
+    },
+    "sail-left-0": {
+      "path": "sail-left-0.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "f8d3d05809f8b3d1a4543689525eeffdcfb0c581c4f43cf3148fd1458041fb12"
+    },
+    "sail-left-1": {
+      "path": "sail-left-1.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "2ec63ee86616228f4133a161ef6d80ac8075b17c210f1f4e5300d7ad4b034dd8"
+    },
+    "sail-left-2": {
+      "path": "sail-left-2.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "f8d3d05809f8b3d1a4543689525eeffdcfb0c581c4f43cf3148fd1458041fb12"
+    },
+    "sail-left-3": {
+      "path": "sail-left-3.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "4e411848f1b5264b3156a331e98f7561326c209d2ee456e3038a30915d360058"
+    },
+    "sail-right-0": {
+      "path": "sail-right-0.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "5626c4c831e0cb1782e0ad06e14c903d57d47298926c5cc42d37564ca363f1d7"
+    },
+    "sail-right-1": {
+      "path": "sail-right-1.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "a9e455ea11d597e545d907b50df6f469054e2d7a8c730111d790428487963ca9"
+    },
+    "sail-right-2": {
+      "path": "sail-right-2.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "5626c4c831e0cb1782e0ad06e14c903d57d47298926c5cc42d37564ca363f1d7"
+    },
+    "sail-right-3": {
+      "path": "sail-right-3.png",
+      "size": [
+        57,
+        61
+      ],
+      "sha256": "fe1ea6743c2e09593342158724177b613f34cfbe6f6ed064b4c83c7d69e17ac4"
+    },
+    "propeller-0": {
+      "path": "propeller-0.png",
+      "size": [
+        24,
+        66
+      ],
+      "sha256": "8a14410755c1125866164fb058d9d58bb6e1eb6564e3c7584769d76c623a1d84"
+    },
+    "propeller-1": {
+      "path": "propeller-1.png",
+      "size": [
+        24,
+        66
+      ],
+      "sha256": "08efe3262f935173771be66f1392fc82f91f317a7617f727162b3a1cd5483a62"
+    },
+    "propeller-2": {
+      "path": "propeller-2.png",
+      "size": [
+        24,
+        66
+      ],
+      "sha256": "14aa841a124d9b26fc9c864f6f29debb5ebc6a4fcb38664b8f035b42ee0d18a6"
+    },
+    "propeller-3": {
+      "path": "propeller-3.png",
+      "size": [
+        24,
+        66
+      ],
+      "sha256": "08efe3262f935173771be66f1392fc82f91f317a7617f727162b3a1cd5483a62"
+    },
+    "fixed": {
+      "path": "fixed.png",
+      "size": [
+        480,
+        320
+      ],
+      "sha256": "e84ec2545b86bde73b809a04843be2096fb7847461a8ddc5c90ef6299d3bfac9"
+    },
+    "crew-navy": {
+      "path": "crew-navy.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "07f81b5dce505b9c0a893e20d6ef5f94a28b872a18f47ab175a66984613e423e"
+    },
+    "crew-russet": {
+      "path": "crew-russet.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "8041424a4ee71dd382af2a17932e19a3166e8c88a5449e3baf02465dae951dc4"
+    },
+    "sky-day": {
+      "path": "sky-day.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "0f90372906cfd89f2662b5aed2ccbd09d4b1b461eb630e910f3e946b847a7a63"
+    },
+    "sky-night": {
+      "path": "sky-night.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "2e2d84050d1463e5239dbd7558c3e41e758148dccc191e3ad0c82fa916ad46db"
+    },
+    "sky-dawn": {
+      "path": "sky-dawn.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "65927d3b6dc32ef43b71c22f70f0882f902eb06b24a8de4d3e74583ae01f1037"
+    },
+    "sky-dusk": {
+      "path": "sky-dusk.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "5883254ec29c0a703470ba3909289a2c8f46243acaa11a759441955421780cbf"
+    },
+    "cloud-bank": {
+      "path": "cloud-bank.png",
+      "size": [
+        128,
+        48
+      ],
+      "sha256": "e2f564257f489add6f4bef4acdc775d47798626d058d235391e03d698934fcf8"
+    },
+    "cloud-puff": {
+      "path": "cloud-puff.png",
+      "size": [
+        64,
+        38
+      ],
+      "sha256": "2581bd4e8f4d8653c116c5a6e38671bbf78e5aaabe72ef5c6bff9f3b76ee36fc"
+    },
+    "cloud-wisp": {
+      "path": "cloud-wisp.png",
+      "size": [
+        96,
+        24
+      ],
+      "sha256": "41268e6e047fce5cb1a7e7b88adb92de5e681d2fa380f5deb32bdc416db739c3"
+    },
+    "sleep-window": {
+      "path": "sleep-window.png",
+      "size": [
+        14,
+        16
+      ],
+      "sha256": "f8651608c9e157d1441b0446e991ce1340a08b094d14386944d3e4b0ca58f416"
+    },
+    "gull-up": {
+      "path": "gull-up.png",
+      "size": [
+        24,
+        20
+      ],
+      "sha256": "54d40f0a7fd8823b71d12afb5fcd74fa0bcd7d6cf1043ed4a6d58cc6ff888942"
+    },
+    "gull-down": {
+      "path": "gull-down.png",
+      "size": [
+        24,
+        20
+      ],
+      "sha256": "7ff81b820eecbc0967d85add63b53b136c23d5e5e984f7f084551c7a54f931e7"
+    },
+    "distant-airship": {
+      "path": "distant-airship.png",
+      "size": [
+        48,
+        30
+      ],
+      "sha256": "d21f48ca87ea73c8e99905ea17911ee32ae94c652de1b8baccf0bacaf7723cf0"
+    },
+    "serpent-0": {
+      "path": "serpent-0.png",
+      "size": [
+        110,
+        86
+      ],
+      "sha256": "c4286c5279e599307ad35b7d97a0d67385ff0dfa975813140d62e1293dcbf1ed"
+    },
+    "serpent-1": {
+      "path": "serpent-1.png",
+      "size": [
+        110,
+        86
+      ],
+      "sha256": "d0b201a6a99f1b6bcc029da231adff5b1c79dda4dcbf704aa022ea32de07798e"
+    },
+    "serpent-2": {
+      "path": "serpent-2.png",
+      "size": [
+        110,
+        86
+      ],
+      "sha256": "c3faff99073682efaa314be88ed22c8f1f9f6458998df22d260e4081ef428719"
+    },
+    "serpent-3": {
+      "path": "serpent-3.png",
+      "size": [
+        110,
+        86
+      ],
+      "sha256": "e4cebf96d387983b24fccb1ac7f80fda59ac8b8beebcce3ded21a830afc5d864"
+    },
+    "smoke-0": {
+      "path": "smoke-0.png",
+      "size": [
+        24,
+        44
+      ],
+      "sha256": "5fb6cd55a4a32b109be8e8e07990023d13a6f11620d926ae11963ce08114d333"
+    },
+    "smoke-1": {
+      "path": "smoke-1.png",
+      "size": [
+        24,
+        44
+      ],
+      "sha256": "a2a60a359944051d97f722934ecef68c57f9af072581fa31326310eb8c17ba37"
+    },
+    "smoke-2": {
+      "path": "smoke-2.png",
+      "size": [
+        24,
+        44
+      ],
+      "sha256": "58264fca60cdb082d1a672d1c8e7aff9693628d7a3f4f1fee7f22c154ba92380"
+    },
+    "smoke-3": {
+      "path": "smoke-3.png",
+      "size": [
+        24,
+        44
+      ],
+      "sha256": "f0e1783817515d225273629e9f5627e9a481f2b1abe0065e107cedd9d7100ab1"
+    },
+    "vapour-0": {
+      "path": "vapour-0.png",
+      "size": [
+        80,
+        20
+      ],
+      "sha256": "33fe0b19c9fdf8bfd4596f60b0c5f541a301508a9b2848a037f72f644510f1e7"
+    },
+    "vapour-1": {
+      "path": "vapour-1.png",
+      "size": [
+        80,
+        20
+      ],
+      "sha256": "842ecdabfd10a06fd6dd323a4be354788b8a1703174c36cb95b0e97de49d717b"
+    },
+    "vapour-2": {
+      "path": "vapour-2.png",
+      "size": [
+        80,
+        20
+      ],
+      "sha256": "6b05bd0f10ed04857b6eb070f51c5b23864b0133273ae89817167a88eaf8832e"
+    },
+    "vapour-3": {
+      "path": "vapour-3.png",
+      "size": [
+        80,
+        20
+      ],
+      "sha256": "5e08806558b045db7ee4e0ccff5b36710b4ed8f7477f4c98864228a107911936"
+    },
+    "carrier-0": {
+      "path": "carrier-0.png",
+      "size": [
+        56,
+        44
+      ],
+      "sha256": "619a51b9044b0331861b53befac5bdbcffff777232aaddfce5565be62db9737f"
+    },
+    "carrier-1": {
+      "path": "carrier-1.png",
+      "size": [
+        56,
+        44
+      ],
+      "sha256": "3241a09ed53aa7c68bf316e5415623571f66c033909e3c93d43873a49fbc1ada"
+    },
+    "carrier-2": {
+      "path": "carrier-2.png",
+      "size": [
+        56,
+        44
+      ],
+      "sha256": "d02b57884041abcf8a85e8a08f199dec4b836ac6c7b973d5af2233c12dfe922d"
+    },
+    "carrier-3": {
+      "path": "carrier-3.png",
+      "size": [
+        56,
+        44
+      ],
+      "sha256": "be50fb07355547555363cdfd0574c441d3d620e87e080eba921b2b6d9dc6c555"
+    },
+    "whale-0": {
+      "path": "whale-0.png",
+      "size": [
+        96,
+        80
+      ],
+      "sha256": "26bf698eb938e64bc01c875c7fa5c0422df40d2e35f70f42962a4e1f726e31a3"
+    },
+    "whale-1": {
+      "path": "whale-1.png",
+      "size": [
+        96,
+        80
+      ],
+      "sha256": "352a184a1243b10abea21b62f52d1b12acbb57dc02ac699e4b6042022e799c28"
+    },
+    "whale-2": {
+      "path": "whale-2.png",
+      "size": [
+        96,
+        80
+      ],
+      "sha256": "5556f07e01c44de454487bf1acfaad9c13ca56ce5506de4603ecfeda03658d79"
+    },
+    "whale-3": {
+      "path": "whale-3.png",
+      "size": [
+        96,
+        80
+      ],
+      "sha256": "1e57b4a03d0a719d21495330841154ecb1537dd495885a67fcf28a04220b5ea5"
+    },
+    "puff-0": {
+      "path": "puff-0.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "3d68bf7c0576dca4679a9e23d69692206dc1e8a889bbdd806d79b167b62aa2af"
+    },
+    "puff-1": {
+      "path": "puff-1.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "460daf6482f8c0ffe6085230737f18196009f99f6140aa234c229c3584ae80fe"
+    },
+    "puff-2": {
+      "path": "puff-2.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "c72ede7ede2b9d82f31081f43ae59f3d30d581cb6ee250499b476bac5d42c2ff"
+    },
+    "puff-3": {
+      "path": "puff-3.png",
+      "size": [
+        64,
+        48
+      ],
+      "sha256": "8a73635550c8d04a1d9e7ebd119a05e537b124cbe146b806e1be164b4504c0f9"
+    },
+    "cloud-sea-0": {
+      "path": "cloud-sea-0.png",
+      "size": [
+        160,
+        48
+      ],
+      "sha256": "662aa8f92533fb7aaca6e19883eadeaeeee57064539eeb111640f27e169205e3"
+    },
+    "cloud-sea-1": {
+      "path": "cloud-sea-1.png",
+      "size": [
+        160,
+        48
+      ],
+      "sha256": "190b484eb9a07cb0655baa72c89ccba7c33426ce060002e996557bade064df80"
+    },
+    "cloud-sea-2": {
+      "path": "cloud-sea-2.png",
+      "size": [
+        160,
+        48
+      ],
+      "sha256": "892bd51101de93f75178288f0d606ce349e8a91d9a64069303fcc0243715e1e3"
+    },
+    "cloud-sea-3": {
+      "path": "cloud-sea-3.png",
+      "size": [
+        160,
+        48
+      ],
+      "sha256": "ca7d39259f25f1fe7e6483bcb446f1876c896b27aed97666d6353e402a44638e"
+    },
+    "mist-0": {
+      "path": "mist-0.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "cffada04a2170281c46fa81d916c552d15d08892c2de8ccd428620c95125dc83"
+    },
+    "mist-1": {
+      "path": "mist-1.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "a0602e276ad80c8065da03b3db39f07a94d4f8339fa1e9b567083bfd381e237b"
+    },
+    "mist-2": {
+      "path": "mist-2.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "cffada04a2170281c46fa81d916c552d15d08892c2de8ccd428620c95125dc83"
+    },
+    "mist-3": {
+      "path": "mist-3.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "a0602e276ad80c8065da03b3db39f07a94d4f8339fa1e9b567083bfd381e237b"
+    },
+    "thunderhead": {
+      "path": "thunderhead.png",
+      "size": [
+        180,
+        64
+      ],
+      "sha256": "defaa6fb5f55a5886ef720d052350bff65c906aadf7d6423c6c7230cc7de772c"
+    },
+    "lightning-0": {
+      "path": "lightning-0.png",
+      "size": [
+        70,
+        105
+      ],
+      "sha256": "9890beb5cd8f8c15fccb6e5f2e7525a6e5eb833c41a49a26f46ead657d604ca2"
+    },
+    "lightning-1": {
+      "path": "lightning-1.png",
+      "size": [
+        70,
+        105
+      ],
+      "sha256": "4c71b3e181b491e2a321bad23ae6a6de8e1dc638fe928f38f5e7ef8d4c15c8a2"
+    },
+    "rain-clear": {
+      "path": "rain-clear.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "550a7e24934a43814a398ee72c84f6b30320667c1231967f57cbeb5eb2341798"
+    },
+    "rain-0": {
+      "path": "rain-0.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "4924ea7351e3db8f69ae48d91bc4d6373bfcf17442dfc8d23afae7afd43ca7e5"
+    },
+    "rain-1": {
+      "path": "rain-1.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "48fec1e270352eb7903f1abf5152289e0ec11cadad18cd43be4f1b8d5cb5eb0a"
+    },
+    "rain-2": {
+      "path": "rain-2.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "6570785caab7fdde854aa96bd06a5e6edb33e98e484c5b7f35ef9d7b5b8923bc"
+    },
+    "rain-3": {
+      "path": "rain-3.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "bb9a1a87c022b51a232f03b99762da4100b9a628c5d219b97cb9bad3b55584ef"
+    },
+    "preview": {
+      "path": "preview.png",
+      "size": [
+        384,
+        256
+      ],
+      "sha256": "392bef09558172f36d2c11836037c4c0d5a6456f8b3f49ced999c935c18b802e"
+    }
+  },
+  "lanes": {
+    "navy": {
+      "stand": {
+        "rect": [
+          2,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "front-a": {
+        "rect": [
+          34,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "front-pass": {
+        "rect": [
+          66,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "front-b": {
+        "rect": [
+          98,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "side-idle": {
+        "rect": [
+          130,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "side-a": {
+        "rect": [
+          162,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "side-pass": {
+        "rect": [
+          194,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "side-b": {
+        "rect": [
+          226,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "crank-a": {
+        "rect": [
+          258,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "crank-b": {
+        "rect": [
+          290,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "waiting": {
+        "rect": [
+          322,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "rest": {
+        "rect": [
+          354,
+          10,
+          28,
+          24
+        ],
+        "feet": [
+          14,
+          24
+        ]
+      },
+      "climb-a": {
+        "rect": [
+          386,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "climb-b": {
+        "rect": [
+          418,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "lookout": {
+        "rect": [
+          450,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "fall": {
+        "rect": [
+          482,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      }
+    },
+    "russet": {
+      "stand": {
+        "rect": [
+          2,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "front-a": {
+        "rect": [
+          34,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "front-pass": {
+        "rect": [
+          66,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "front-b": {
+        "rect": [
+          98,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "side-idle": {
+        "rect": [
+          130,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "side-a": {
+        "rect": [
+          162,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "side-pass": {
+        "rect": [
+          194,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "side-b": {
+        "rect": [
+          226,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "crank-a": {
+        "rect": [
+          258,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "crank-b": {
+        "rect": [
+          290,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "waiting": {
+        "rect": [
+          322,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "rest": {
+        "rect": [
+          354,
+          10,
+          28,
+          24
+        ],
+        "feet": [
+          14,
+          24
+        ]
+      },
+      "climb-a": {
+        "rect": [
+          386,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "climb-b": {
+        "rect": [
+          418,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "lookout": {
+        "rect": [
+          450,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      },
+      "fall": {
+        "rect": [
+          482,
+          4,
+          28,
+          30
+        ],
+        "feet": [
+          14,
+          30
+        ]
+      }
+    }
+  },
+  "pieces": {
+    "balloon": [
+      45,
+      48,
+      394,
+      82
+    ],
+    "rig": [
+      66,
+      130,
+      322,
+      81
+    ],
+    "flag": [
+      240,
+      4,
+      64,
+      35
+    ],
+    "sail-left": [
+      31,
+      102,
+      57,
+      61
+    ],
+    "sail-right": [
+      401,
+      102,
+      57,
+      61
+    ],
+    "propeller": [
+      453,
+      211,
+      24,
+      66
+    ]
+  }
+}
