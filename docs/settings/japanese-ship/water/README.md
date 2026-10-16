@@ -57,8 +57,8 @@ The correction removes the rise crossfade and sequences the opaque art directly:
 fully risen, settled, low dome, clipped sinking poses, submerged, then the reverse
 rise. The original dark silhouette, glowing eyes and base spray are preserved.
 Two sinking crops and an empty frame complete the waterline transition without
-fading the body. Its existing horizon anchor, behind-ship slot and swell clock stay
-the same. Lite's frozen first frame is the fully risen pose; still hides weather.
+fading the body. Its behind-ship slot and swell clock stay the same. Lite, still and
+reduced motion hide the spirit completely.
 
 A narrow reveal interval from 0.78 to 0.780001 replaces the long body fade. No
 attainable steady crew intensity lies inside it: the engine's weighted targets are
@@ -66,14 +66,21 @@ multiples of 1/24. Every steady target therefore gives either zero or full opaci
 and storm targets have full strength. The existing clock remains continuous; this
 is a repeating rise/settle/submerge cycle, not a new weather-triggered animation API.
 
-The tall capture also exposes an inherited composition constraint: the enlarged
-coast backdrop brings the island behind the fixed world horizon anchor `[58, 163]`.
-The spirit's position and the backdrop placement are unchanged here; the wide view
-retains the open-water horizon behind it. This is visible in the paired evidence.
+The initial tall capture exposed a second bug: the coast backdrop enlarged to fill
+the pane while the spirit's world anchor stayed fixed. The engine's cycle was
+already world-anchored; its water/land reference was moving with viewport shape.
+The correction puts the approved island in a stationary world phase strip and
+uses a separate open-sky/sea fill plate to cover the pane. The spirit's world
+waterline is now `[100, 178]`, in the open gap left of the island and behind the
+ship. Its position is independent of viewport edges and the backdrop's cover scale.
+The six phase sets retain the island's pixels through row 245, with a mirrored
+far shore outside the normal view and a feathered water edge. A synchronized
+weather matte retains storm shading without dimming the later spirit.
+See [the anchor correction and before/after evidence](anchor/README.md).
 
 `audit.mjs` evaluates the old multiplication with the engine's pure curve/blend
-functions, checks all 25 steady intensity values, checks binary sprite alpha and
-the lite pose, and verifies preservation of the original art and unrelated data.
+functions, checks all 25 steady intensity values, binary sprite alpha, hidden lite
+and still states, world placement, and preservation of island pixels and unrelated data.
 
 ## Evidence
 
@@ -96,7 +103,7 @@ is checked in an isolated sea crop, not just by changing crew pixels.
 
 `crew.json` records 192 exact target clicks: all 24 workers in each of four states,
 by day and night. `lite.json` records the established SwiftShader and keyboard
-focus check. `audit.json` records the image budget: **992,029 / 1,000,000 bytes**.
+focus check. `audit.json` records the image budget: **922,871 / 1,000,000 bytes**.
 
 `ship-gate.json` records all **81 frozen Ship shots pixel-identical to main**, with
 no browser errors, flakes, masks or intentional-difference allowances used.

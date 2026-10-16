@@ -27,6 +27,7 @@
     "rise@1",
     "stable-posts@1",
     "stage@1",
+    "strip@1",
     "sway@1",
     "tile@1",
     "variants@1",
@@ -66,7 +67,7 @@
         600,
         400
       ],
-      "sha256": "9cfddb5aded4fac975828b8dd991c1c8acfd2c06f4d52ad280866e057cc978cb"
+      "sha256": "4745247a4f549ad42767a334b8a9bf83008f184e0f0c71f115353989f5f9e679"
     },
     "coast-night": {
       "path": "coast-night.png",
@@ -74,7 +75,7 @@
         600,
         400
       ],
-      "sha256": "86ea9731b9d116a8e133b315a48bcc8feeb22fac319cde2b021938b0335f7306"
+      "sha256": "11df7879b4f031a984be93b18a37526c2317b5ac083e39879baae382804766f5"
     },
     "wake": {
       "path": "wake.png",
@@ -175,18 +176,18 @@
     "coast-front": {
       "path": "coast-front.png",
       "size": [
-        600,
-        400
+        1200,
+        280
       ],
-      "sha256": "ad3fa19118a487502b28979620586630c5ea6f6dd43697acde88e56dbd8d8d07"
+      "sha256": "8296f93520dd3d26729bd993d59117ddaa2ca7f32b7f43a3cc74b3354770ae08"
     },
     "coast-night-front": {
       "path": "coast-night-front.png",
       "size": [
-        600,
-        400
+        1200,
+        280
       ],
-      "sha256": "116f375f38c2518076c9f39fcd064c37021fe250f536315af674411b0bef9acf"
+      "sha256": "e58ea6357222dee42c992c67e4982ccaa6ab55866a40f7cfb28c8d2a9060d804"
     },
     "wake-motion": {
       "path": "wake-motion.png",
@@ -394,15 +395,15 @@
         600,
         400
       ],
-      "sha256": "7ce0665ca7e47594145d3b5da1db10331b9e7fd82c4c8cf18e4f36985c292328"
+      "sha256": "c7014b06356313b328a5c0f14bb66ef302df3beb8c971d6e0c390f23c167eab2"
     },
     "coast-dawn-front": {
       "path": "coast-dawn-front.png",
       "size": [
-        600,
-        400
+        1200,
+        280
       ],
-      "sha256": "b0058a42b8df5cfd61c2d458ca3dced337619735ce47606233e0decc13da8a52"
+      "sha256": "ccaf012bf2639c98c0369a1c687726cf750ce52a9f7e6d4ac4ce11605d7f2514"
     },
     "coast-morning": {
       "path": "coast-morning.png",
@@ -410,15 +411,15 @@
         600,
         400
       ],
-      "sha256": "f526f59a3d696a72f5917001d920775e99f738c4fb41e6a20ae0c96755ae0a50"
+      "sha256": "8064d78b7d65f37800393c5924f4de748937eed589e6cfe2d1cdcf718c6c12f5"
     },
     "coast-morning-front": {
       "path": "coast-morning-front.png",
       "size": [
-        600,
-        400
+        1200,
+        280
       ],
-      "sha256": "2d3e004b5b5fbd88e1822f79abdb8a495aa2ca6be5f165b98bf25e29943c59c0"
+      "sha256": "2e0c0f94de82595bedd22c87f0d27cf6a0e9e260e71fae84ce32d6e12bdc8cb3"
     },
     "coast-afternoon": {
       "path": "coast-afternoon.png",
@@ -426,15 +427,15 @@
         600,
         400
       ],
-      "sha256": "8f346e364cb862dac2603c6a6568e423670c3b053612f1245a8eda4d4e0e85b9"
+      "sha256": "a2a8ca9e2e856f61a851f52a7df72a1326f23cb0eeac1bd9526e5a345f272446"
     },
     "coast-afternoon-front": {
       "path": "coast-afternoon-front.png",
       "size": [
-        600,
-        400
+        1200,
+        280
       ],
-      "sha256": "1c7edf34240e00a8bcee3f17bff432c04ee45e42c222bd2c038d2cfd68d88866"
+      "sha256": "489cfd94b3d84be00b3e27d614583557b8d774b999341685d2425055b76e1ab5"
     },
     "coast-dusk": {
       "path": "coast-dusk.png",
@@ -442,15 +443,15 @@
         600,
         400
       ],
-      "sha256": "a17d85f4e88ed512943a0f0634d73cde4e84e588f8ddcc78f0ab9ef20073ad07"
+      "sha256": "5df4a6bf2be9bcbbd759b42a6d886dfa400c9359d9a05942a2ca604e2e3997d3"
     },
     "coast-dusk-front": {
       "path": "coast-dusk-front.png",
       "size": [
-        600,
-        400
+        1200,
+        280
       ],
-      "sha256": "022b8910fb395443f1db24c876c6bcf858384310237183a58dbe3cdc242a802d"
+      "sha256": "505141afd636eaaa8d385e67b70e8d0a9513fab1b266f267c9542dd5d1de5073"
     },
     "bay-far-midday": {
       "path": "bay-far-midday.png",
@@ -531,6 +532,22 @@
         80
       ],
       "sha256": "885b115de548a738dcae480554b05cd396815fcac9e254e1a848431425bbd4eb"
+    },
+    "open-night-sea": {
+      "path": "open-night-sea.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "fa7cdd2e16028df7151ce283f2df57610c646de0c2d0fa75a1904b2549a016df"
+    },
+    "coast-storm-shade": {
+      "path": "coast-storm-shade.png",
+      "size": [
+        2400,
+        280
+      ],
+      "sha256": "091f259121c29e667f07433fc6f035035a414286a60c240e8f8a883f4f6a6390"
     }
   },
   "preview": "preview",
@@ -3260,7 +3277,7 @@
           "midday": "coast",
           "afternoon": "coast-afternoon",
           "dusk": "coast-dusk",
-          "night": "coast-night-front"
+          "night": "open-night-sea"
         },
         "placement": {
           "horizonRow": 180,
@@ -3424,28 +3441,54 @@
       "lite": "run",
       "still": "first-frame",
       "behaviour": {
-        "kind": "backdrop-cycle",
-        "size": [
-          600,
-          400
+        "kind": "phase-strip",
+        "top": -30,
+        "span": [
+          -4096,
+          4608
         ],
-        "phases": {
-          "dawn": "coast-dawn-front",
-          "morning": "coast-morning-front",
-          "midday": "coast-front",
-          "afternoon": "coast-afternoon-front",
-          "dusk": "coast-dusk-front",
-          "night": "coast-night-front"
+        "frames": {
+          "sprites": [
+            {
+              "image": "coast-front"
+            }
+          ],
+          "frameMs": 1000
         },
-        "placement": {
-          "horizonRow": 180,
-          "stageRow": 150
+        "byPhase": {
+          "dawn": [
+            {
+              "image": "coast-dawn-front"
+            }
+          ],
+          "morning": [
+            {
+              "image": "coast-morning-front"
+            }
+          ],
+          "midday": [
+            {
+              "image": "coast-front"
+            }
+          ],
+          "afternoon": [
+            {
+              "image": "coast-afternoon-front"
+            }
+          ],
+          "dusk": [
+            {
+              "image": "coast-dusk-front"
+            }
+          ],
+          "night": [
+            {
+              "image": "coast-night-front"
+            }
+          ]
         },
-        "tint": {
-          "to": "#4D647D",
-          "amount": {
-            "channel": "weather"
-          }
+        "drift": {
+          "pxPerSecond": 0
         }
       }
     },
@@ -3740,7 +3783,7 @@
       "id": "umibozu",
       "slot": "back",
       "order": 6.5,
-      "lite": "freeze",
+      "lite": "hide",
       "still": "hide",
       "behaviour": {
         "kind": "cycle",
@@ -3886,8 +3929,8 @@
           "clock": "swell"
         },
         "at": [
-          58,
-          163
+          100,
+          178
         ],
         "anchor": [
           36,
@@ -4968,6 +5011,65 @@
         "alpha": "night",
         "hiddenBy": [
           "overcast"
+        ]
+      }
+    },
+    {
+      "id": "coast-storm-shade",
+      "slot": "back",
+      "order": 4.1,
+      "lite": "run",
+      "still": "hide",
+      "behaviour": {
+        "kind": "strip",
+        "top": -30,
+        "span": [
+          -4096,
+          4608
+        ],
+        "frames": {
+          "sprites": [
+            {
+              "image": "coast-storm-shade",
+              "rect": [
+                0,
+                0,
+                1200,
+                280
+              ]
+            }
+          ],
+          "frameMs": 1000
+        },
+        "drift": {
+          "pxPerSecond": 0
+        },
+        "variants": [
+          {
+            "id": "storm",
+            "frames": [
+              {
+                "image": "coast-storm-shade",
+                "rect": [
+                  1200,
+                  0,
+                  1200,
+                  280
+                ]
+              }
+            ],
+            "blend": "over",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                1,
+                0.5
+              ]
+            ]
+          }
         ]
       }
     }

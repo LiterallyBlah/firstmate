@@ -70,7 +70,8 @@ export async function review(browser, origin) {
       const inks=new Set();for(let i=0;i<spirit.rgba.length;i+=4)if(spirit.rgba[i+3]===255&&spirit.rgba[i+1]<65)inks.add([...spirit.rgba.subarray(i,i+3)].join(','));
       for(let i=0;i<30;i++){
         await view.clock.runFor(250);const bytes=await canvas.screenshot(),a=decodePng(bytes);
-        const region=crop(a,Math.round(fit.x+22*fit.scale),Math.round(fit.y+85*fit.scale),Math.round(72*fit.scale),Math.round(80*fit.scale));
+        const b=manifest.ambience.find(e=>e.id==='umibozu').behaviour;
+        const region=crop(a,Math.round(fit.x+(b.at[0]-b.anchor[0])*fit.scale),Math.round(fit.y+(b.at[1]-b.anchor[1])*fit.scale),Math.round(72*fit.scale),Math.round(80*fit.scale));
         let solid=0;for(let p=0;p<region.rgba.length;p+=4)if(inks.has([...region.rgba.subarray(p,p+3)].join(',')))solid++;
         samples.push({ms:i*250,opaqueBodyPixels:solid});if(solid>best){best=solid;peak=bytes;}
         const s=nearest(region,288,320),palette=quantize(s.rgba,128);gif.writeFrame(applyPalette(s.rgba,palette),s.width,s.height,{palette,delay:250,repeat:0});

@@ -1,10 +1,8 @@
 {
   "baseline": "b1458b4",
-  "imageBytes": 992029,
+  "imageBytes": 922871,
   "preservedImages": [
     "ship",
-    "coast",
-    "coast-night",
     "wake",
     "reply-shark",
     "sleep-window",
@@ -17,8 +15,6 @@
     "cloud-bank",
     "cloud-puff",
     "cloud-wisp",
-    "coast-front",
-    "coast-night-front",
     "wake-motion",
     "reply-shark-motion",
     "umibozu",
@@ -41,15 +37,7 @@
     "rain-0",
     "rain-1",
     "clear-weather",
-    "moon-sky",
-    "coast-dawn",
-    "coast-dawn-front",
-    "coast-morning",
-    "coast-morning-front",
-    "coast-afternoon",
-    "coast-afternoon-front",
-    "coast-dusk",
-    "coast-dusk-front"
+    "moon-sky"
   ],
   "unchanged": [
     "stage",
