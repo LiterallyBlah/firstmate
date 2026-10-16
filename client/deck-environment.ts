@@ -14,7 +14,8 @@
  *   level (the ship's mood: a shade greyer as the crew gets busy).
  * - **An overlay** (`overlay@1`) — a sprite in a backdrop's placement: the stars, faded with the night's share and
  *   hidden as far as the overcast shows; the overcast, along its curve over the weather's intensity, by day only and in
- *   the backdrop's tint.
+ *   the backdrop's tint. Intensity-driven overlays extend their edge pixels into any uncovered viewport area;
+ *   their original image and horizon stay fixed. Night overlays retain the backdrop's placement alone.
  * - **A flash** (`flash@1`, the lightning) — now and then, under a drifter in view (`client/deck-flash.ts`).
  * - **Drifters** (`drifters@1`, the clouds) — in a backdrop's own placement and pixels, drifting right on their clock
  *   and coloured by the day and the backdrop's tint (`client/deck-clouds.ts`), each under its variants as the weather
@@ -24,7 +25,8 @@
  * - **A tile** (`tile@1`, the sea) — its frames repeated both ways in each of its bands, every band from its own row
  *   (`<id>:back` from the ship's horizon behind the hull, `<id>:front` from its waterline in front of it) and all of
  *   them on one tile origin, so the second band's first row is cut to line up and the waterline is the hull's edge,
- *   not a seam across the water. Every tile on the same frame, scrolled sideways a whole pixel at a time.
+ *   not a seam across the water. A single band starting at or above stage row zero fills the viewport upward too,
+ *   on the same grid. Every tile on the same frame, scrolled sideways a whole pixel at a time.
  * - **A strip** (`strip@1`, the foam) — its frames repeated sideways within its span from its top row, cut from a
  *   scrolling repeat into a few sprites a frame, so it never runs out past the span.
  * - **A cycle** (`cycle@1`, the wake and the spindrift) — one sprite, its anchor on its point, its frames in turn, its
@@ -261,8 +263,20 @@ function ambienceLayers(
     const sprite = new pixi.Sprite(spriteTexture(cut, { image: behaviour.image }, ambience.sizes));
     sprite.label = `${space.element.id}:${element.id}`;
     if (behaviour.alpha !== "night") sprite.visible = false;
-    views.set(element.id, own(element, [sprite]));
-    return { element, space, sprite, peak: behaviour.alpha === "night" ? 0 : curvePeak(behaviour.alpha.curve) };
+    // Weather overlays fill beyond their backdrop with its edge pixels. Keep the original image
+    // untouched (including its horizon); night art such as moons and stars stays in its own space.
+    const [width, height] = ambience.sizes.get(behaviour.image)!;
+    const edges = behaviour.alpha === "night" ? [] : [-1, 0, 1].flatMap((row) => [-1, 0, 1].flatMap((column) => {
+      if (row === 0 && column === 0) return [];
+      const texture = cut(behaviour.image, column < 0 ? 0 : column > 0 ? width - 1 : 0,
+        row < 0 ? 0 : row > 0 ? height - 1 : 0, column === 0 ? width : 1, row === 0 ? height : 1);
+      const edge = new pixi.Sprite(texture);
+      edge.label = `${sprite.label}:edge:${column}:${row}`;
+      return [{ row, column, sprite: edge }];
+    }));
+    const sprites = [sprite, ...edges.map((edge) => edge.sprite)];
+    views.set(element.id, own(element, sprites));
+    return { element, space, sprite, sprites, edges, width, height, peak: behaviour.alpha === "night" ? 0 : curvePeak(behaviour.alpha.curve) };
   });
 
   // Drifters, each sprite its three slot masks, one over the other in a container placed in its backdrop's pixels.
@@ -347,9 +361,19 @@ function ambienceLayers(
         }
         layer.view = { left: (visible.left - layer.place.x) / layer.place.scale, right: (visible.right - layer.place.x) / layer.place.scale };
       }
-      for (const { space, sprite } of overlays) {
+      for (const { space, sprite, edges, width, height } of overlays) {
         sprite.position.set(space.place.x, space.place.y);
         sprite.scale.set(space.place.scale);
+        const { x, y, scale } = space.place;
+        const right = x + width * scale, bottom = y + height * scale;
+        for (const edge of edges) {
+          const left = edge.column < 0 ? Math.min(x, visible.left) : edge.column > 0 ? right : x;
+          const top = edge.row < 0 ? Math.min(y, visible.top) : edge.row > 0 ? bottom : y;
+          const w = edge.column < 0 ? x - left : edge.column > 0 ? Math.max(0, visible.right - right) : width * scale;
+          const h = edge.row < 0 ? y - top : edge.row > 0 ? Math.max(0, visible.bottom - bottom) : height * scale;
+          edge.sprite.position.set(left, top);
+          edge.sprite.scale.set(w / (edge.column === 0 ? width : 1), h / (edge.row === 0 ? height : 1));
+        }
       }
       // Again here, not only in `draw`: a still deck's camera can lay the backdrop out anew without a draw after.
       for (const layer of drifters.values()) layer.layout();
@@ -381,7 +405,7 @@ function ambienceLayers(
       const alphas = new Map(
         overlays.map(({ element }) => [element.id, element.behaviour.alpha === "night" ? blend.night : opacityAt(element.behaviour.alpha.curve, intensity)]),
       );
-      for (const { element, space, sprite } of overlays) {
+      for (const { element, space, sprites } of overlays) {
         const { behaviour } = element;
         let alpha = alphas.get(element.id)!;
         if (behaviour.dayOnly === true) alpha = alpha * (1 - blend.night);
@@ -390,9 +414,11 @@ function ambienceLayers(
           for (const hider of overlays) if (behaviour.hiddenBy.includes(hider.element.id) && hider.peak > 0) covered = Math.max(covered, alphas.get(hider.element.id)! / hider.peak);
           alpha = alpha * (1 - covered);
         }
-        sprite.alpha = alpha;
-        sprite.visible = alpha > 0 && elementMotion(element, plan) !== "hide";
-        if (behaviour.tint === "space") sprite.tint = space.tint;
+        for (const sprite of sprites) {
+          sprite.alpha = alpha;
+          sprite.visible = alpha > 0 && elementMotion(element, plan) !== "hide";
+          if (behaviour.tint === "space") sprite.tint = space.tint;
+        }
       }
       for (const layer of drifters.values()) layer.draw(seconds, plan, weather, blend);
       for (const { element, under, frames, sprite, salt } of flashes) {
@@ -631,6 +657,7 @@ function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, 
   const { behaviour } = element;
   const { sprites } = behaviour.frames;
   const [tileWidth, tileHeight] = spriteSize(sprites[0]!, sizes);
+  const fullHeight = fullHeightTile(behaviour);
   // Each band's first row of tiles is cut to start where the band does, so every band shares the origin.
   const bands = behaviour.bands.map((band) => ({ ...band, cut: (((band.fromRow - behaviour.origin) % tileHeight) + tileHeight) % tileHeight }));
   const frameTextures = (sprite: { image: string; rect?: [number, number, number, number] | undefined }) => {
@@ -651,7 +678,7 @@ function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, 
   let frame = 0;
   /** Every tile: its band, whether it is that band's first row (cut to line up), and each variant's tile over it. */
   let tiles: Array<{ band: number; sprite: PixiSprite; atCut: boolean; over: PixiSprite[] }> = [];
-  let tiled = { left: 0, right: 0, bottom: 0 };
+  let tiled = { left: 0, right: 0, top: 0, bottom: 0 };
   const texture = (of: typeof frames, band: number, atCut: boolean) => (atCut ? of[frame]!.cut[band]! : of[frame]!.whole);
 
   function tile(band: number, atCut: boolean, x: number, y: number): void {
@@ -672,9 +699,9 @@ function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, 
     back: inSlot("back"),
     front: inSlot("front"),
     layout(visible: VisibleWorld) {
-      if (tiles.length > 0 && visible.left >= tiled.left && visible.right <= tiled.right && visible.bottom <= tiled.bottom) return;
+      if (tiles.length > 0 && visible.left >= tiled.left && visible.right <= tiled.right && (!fullHeight || visible.top >= tiled.top) && visible.bottom <= tiled.bottom) return;
       // A tile's width of slack either side, so a scroll of up to a tile never shows an edge.
-      tiled = { left: Math.floor(visible.left) - 8, right: Math.ceil(visible.right) + 8, bottom: Math.ceil(visible.bottom) + 8 };
+      tiled = { left: Math.floor(visible.left) - 8, right: Math.ceil(visible.right) + 8, top: Math.floor(visible.top), bottom: Math.ceil(visible.bottom) + 8 };
       for (const { band, sprite, over: layered } of tiles) {
         holders[band]!.removeChild(sprite);
         sprite.destroy();
@@ -687,6 +714,11 @@ function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, 
       const first = Math.floor(tiled.left / tileWidth) * tileWidth - tileWidth;
       for (let x = first; x < tiled.right + tileWidth; x += tileWidth) {
         bands.forEach(function (band, index) {
+          if (fullHeight && tiled.top < band.fromRow) {
+            const top = behaviour.origin + Math.floor((tiled.top - behaviour.origin) / tileHeight) * tileHeight;
+            for (let y = top; y < tiled.bottom; y += tileHeight) tile(index, false, x, y);
+            return;
+          }
           if (band.cut === 0) {
             for (let y = band.fromRow; y < tiled.bottom; y += tileHeight) tile(index, false, x, y);
             return;
@@ -725,6 +757,11 @@ function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, 
   };
 }
 
+/** A single band starting at/above the stage top covers the whole scene, unlike horizon/waterline bands. */
+function fullHeightTile(behaviour: AmbientElement<"tile">["behaviour"]): boolean {
+  return behaviour.bands.length === 1 && behaviour.bands[0]!.fromRow <= 0;
+}
+
 /** A tile with nothing to draw it with: each band filled flat from its row down with the pack's `fallbackFill`. */
 function flatLayer(pixi: PixiModule, element: AmbientElement<"tile">, fill: number): WaterLayer {
   const bands = element.behaviour.bands.map(function (band) {
@@ -740,7 +777,10 @@ function flatLayer(pixi: PixiModule, element: AmbientElement<"tile">, fill: numb
       const left = Math.floor(visible.left) - 8;
       const width = Math.ceil(visible.right) + 8 - left;
       const bottom = Math.ceil(visible.bottom) + 8;
-      for (const { band, graphics } of bands) graphics.clear().rect(left, band.fromRow, width, bottom - band.fromRow).fill(fill);
+      for (const { band, graphics } of bands) {
+        const top = fullHeightTile(element.behaviour) ? Math.min(band.fromRow, Math.floor(visible.top)) : band.fromRow;
+        graphics.clear().rect(left, top, width, bottom - top).fill(fill);
+      }
     },
     draw() {},
   };

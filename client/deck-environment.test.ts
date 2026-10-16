@@ -412,6 +412,120 @@ const one = (root: FakeContainer, label: string) => {
 };
 const texturePath = (sprite: FakeContainer) => ((sprite as FakeSprite).texture.source.resource as { image: string }).image;
 
+const overcastEdges = [-1, 0, 1].flatMap((y) => [-1, 0, 1].filter((x) => x !== 0 || y !== 0).map((x) => `sky:overcast:edge:${x}:${y}`));
+
+describe("viewport weather coverage, independent of setting names", () => {
+  const full = { level: "full", animate: true, fps: 30, ambient: true } as const;
+  const weather = { clocks: {}, channels: {}, intensity: 1 };
+  function make(origin = 0, missing = false) {
+    const frames = { sprites: [{ image: "a" }, { image: "b" }], frameMs: 100 };
+    const tile = { kind: "tile", frames, origin, bands: [{ slot: "front", fromRow: 0 }], drift: { pxPerSecond: 3 },
+      variants: [{ id: "heavy", frames: [{ image: "b" }, { image: "a" }], blend: "over", opacity: [[0, 0], [1, 0.5]] }] } as const;
+    // A synthetic pack: tiny non-square textures expose grid alignment and edge crops.
+    const manifest = { ...shipManifest(),
+      images: Object.fromEntries(["a", "b", "sky", "veil"].map((image) => [image, { path: image, size: [32, 24], sha256: "" }])),
+      ambience: [
+        { id: "weather", slot: "front", order: 5, lite: "freeze", still: "hide", behaviour: tile },
+        { id: "water", slot: "back", order: 2, lite: "freeze", still: "first-frame", behaviour: { ...tile, bands: [{ slot: "back", fromRow: 12 }, { slot: "front", fromRow: 20 }] } },
+        { id: "low-band", slot: "back", order: 2, lite: "freeze", still: "first-frame", behaviour: { ...tile, bands: [{ slot: "back", fromRow: 12 }] } },
+        { id: "background", slot: "back", order: 0, lite: "run", still: "first-frame", behaviour: { kind: "backdrop-cycle", size: [32, 24], placement: { horizonRow: 16, stageRow: 16 },
+          phases: Object.fromEntries(shipManifest().dayCycle!.phases.map((phase) => [phase.id, "sky"])) } },
+        { id: "darkening", slot: "back", order: 1, lite: "freeze", still: "hide", behaviour: { kind: "overlay", space: "background", image: "veil", alpha: { curve: [[0, 0], [1, 0.7]] } } },
+        { id: "night-art", slot: "back", order: 1, lite: "freeze", still: "first-frame", behaviour: { kind: "overlay", space: "background", image: "veil", alpha: "night" } },
+        { id: "positioned", slot: "front", order: 3, lite: "freeze", still: "first-frame", behaviour: { kind: "cycle", frames, at: [10, 20], anchor: [3, 4] } },
+      ],
+    } as unknown as SettingManifest;
+    const ambience = compileAmbience(manifest, () => !missing);
+    const scenery = createScenery(pixi, { width: 32, height: 24 }, {
+      ambience, atmosphere: compileAtmosphere(manifest), masks: new Map(),
+      images: new Map(["a", "b", "sky", "veil"].map((image) => [image, { image }])),
+    });
+    return { scenery, front: scenery.front as unknown as FakeContainer, back: scenery.back as unknown as FakeContainer };
+  }
+  const bounds = (sprite: FakeSprite) => ({ left: sprite.position.x, top: sprite.position.y,
+    right: sprite.position.x + sprite.texture.frame.width * sprite.scale.x,
+    bottom: sprite.position.y + sprite.texture.frame.height * sprite.scale.y });
+
+  it.each([0, 5])("fills every aspect on the original grid, with origin %s, including top-only growth and resizing back", (origin) => {
+    const { scenery, front, back } = make(origin);
+    const cycle = one(front, "positioned");
+    for (const visible of [
+      { left: 0, right: 32, top: 0, bottom: 24 },
+      { left: 0, right: 32, top: -170.5, bottom: 24 },
+      { left: -100.2, right: 132.3, top: -4, bottom: 28 },
+      { left: -20, right: 52, top: -20, bottom: 52 },
+      { left: 0, right: 32, top: 0, bottom: 24 },
+    ]) {
+      scenery.layout(visible);
+      scenery.draw(1.15, full, 720, weather);
+      const base = one(front, "weather:front"), heavy = one(front, "weather:front:heavy");
+      const tiles = base.children as FakeSprite[];
+      expect(heavy.alpha).toBe(0.5);
+      expect(base.position.x).toBe(heavy.position.x);
+      expect(base.position.x).toBe(3);
+      expect(heavy.children.map((s) => s.position)).toEqual(tiles.map((s) => s.position));
+      expect(tiles.every((s) => texturePath(s) === "b")).toBe(true);
+      expect(heavy.children.every((s) => texturePath(s) === "a")).toBe(true);
+      // Every sample is in exactly one repeat, with the same texel phase on either side of y=0.
+      for (const x of [visible.left, (visible.left + visible.right) / 2, visible.right - 0.01]) {
+        for (const y of [visible.top, 0, visible.bottom - 0.01]) {
+          const hits = tiles.filter((s) => { const b = bounds(s); return x >= b.left + base.position.x && x < b.right + base.position.x && y >= b.top && y < b.bottom; });
+          expect(hits).toHaveLength(1);
+          const s = hits[0]!;
+          expect(((s.position.y - s.texture.frame.y - origin) % 24 + 24) % 24).toBe(0);
+        }
+      }
+      expect(Math.min(...one(back, "water:back").children.map((s) => s.position.y))).toBe(12);
+      expect(Math.min(...one(front, "water:front").children.map((s) => s.position.y))).toBe(20);
+      expect(Math.min(...one(back, "low-band:back").children.map((s) => s.position.y))).toBe(12);
+      expect(cycle.position).toMatchObject({ x: 7, y: 16 });
+      expect(cycle.scale).toMatchObject({ x: 1, y: 1 });
+      expect(byLabel(front, "positioned")).toHaveLength(1);
+    }
+    scenery.destroy();
+  });
+
+  it("extends weather overlay edge pixels without moving its image or extending night art", () => {
+    const { scenery, back } = make();
+    for (const visible of [{ left: 0, right: 32, top: 0, bottom: 24 }, { left: -80, right: 112, top: -100, bottom: 300 }]) {
+      scenery.layout(visible);
+      scenery.draw(0, full, 720, weather);
+      const base = one(back, "background:darkening") as FakeSprite;
+      const sky = one(back, "background:under");
+      expect(base.position).toEqual(sky.position);
+      expect(base.scale).toEqual(sky.scale);
+      const overlays = back.children.filter((s) => s instanceof FakeSprite && texturePath(s) === "veil" && s !== one(back, "background:night-art")) as FakeSprite[];
+      expect(overlays).toHaveLength(9);
+      for (const x of [visible.left, (visible.left + visible.right) / 2, visible.right - 0.01]) {
+        for (const y of [visible.top, (visible.top + visible.bottom) / 2, visible.bottom - 0.01]) {
+          expect(overlays.filter((s) => { const b = bounds(s); return x >= b.left && x < b.right && y >= b.top && y < b.bottom; })).toHaveLength(1);
+        }
+      }
+      expect(overlays.every((s) => s.alpha === 0.7)).toBe(true);
+      expect(byLabel(back, "background:night-art")).toHaveLength(1);
+    }
+    scenery.destroy();
+  });
+
+  it("keeps lite frames and drift frozen, hides weather in still, and extends a missing tile's flat fallback", () => {
+    const { scenery, front, back } = make();
+    scenery.layout({ left: -20, right: 50, top: -100, bottom: 100 });
+    scenery.draw(0.15, full, 720, weather);
+    scenery.draw(9, { ...full, level: "lite" }, 720, weather);
+    expect(one(front, "weather:front").position.x).toBe(0);
+    expect(one(front, "weather:front").children.every((s) => texturePath(s) === "a")).toBe(true);
+    scenery.draw(9, { ...full, level: "still" }, 720, { ...weather, intensity: null });
+    expect(one(front, "weather:front").visible).toBe(false);
+    expect(one(front, "weather:front:heavy").visible).toBe(false);
+    expect(one(back, "background:darkening").visible).toBe(false);
+    scenery.destroy();
+    const missing = make(0, true);
+    missing.scenery.layout({ left: -20, right: 50, top: -100, bottom: 100 });
+    expect((one(missing.front, "weather:front") as FakeGraphics).shapes[0]!.slice(0, 5)).toEqual(["rect", -28, -100, 86, 208]);
+    missing.scenery.destroy();
+  });
+});
+
 describe("phase strips in the shared strip renderer", () => {
   const full = { level: "full", animate: true, fps: 30, ambient: true } as const;
   const lite = { ...full, level: "lite", fps: 12, ambient: false } as const;
@@ -574,7 +688,7 @@ describe("the generated environment on the deck", () => {
     expect(one(worldLayer, "spot").children).toHaveLength(0);
     const back = one(deck.app.stage, "scenery:back");
     // No clouds without their masks, and no lightning without clouds to stand under.
-    expect(back.children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:overcast", "sky:stars", "gull", "gull", "sea:back"]);
+    expect(back.children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:overcast", ...overcastEdges, "sky:stars", "gull", "gull", "sea:back"]);
     // No wake without its frames: the one drawn in code is retired.
     expect(one(deck.app.stage, "scenery:front").children.map((child) => child.label)).toEqual(["sea:front", "foam"]);
     // The crew's deck is inside the ship, so every sailor is in front of the sky and the far sea.
@@ -686,7 +800,7 @@ describe("the generated environment on the deck", () => {
     const deck = await start(null, { now: new Date(2026, 9, 14, 12, 0) });
     deck.advance(16);
     expect(one(deck.app.stage, "world").children.map((child) => child.label)).toEqual(["scenery:back", "ship", "scenery:front", "overboard", "veil", "spot", "attention-carrier"]);
-    expect(one(deck.app.stage, "scenery:back").children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:overcast", "sky:stars", "gull", "gull", "sea:back"]);
+    expect(one(deck.app.stage, "scenery:back").children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:overcast", ...overcastEdges, "sky:stars", "gull", "gull", "sea:back"]);
     expect(deck.app.canvas.attributes.get(DECK_SKY_ATTRIBUTE)).toBe("midday");
     const far = one(deck.app.stage, "sea:back") as FakeGraphics;
     const near = one(deck.app.stage, "sea:front") as FakeGraphics;
@@ -713,7 +827,7 @@ describe("the generated environment on the deck", () => {
     skyless.drawing.destroy();
     const starless = await start(environment, { now: new Date(2026, 9, 14, 12, 0), extras: { ...extras, masks: "all" }, without: ["sky-stars", "gull-flap-strip"] });
     starless.advance(16);
-    expect(one(starless.app.stage, "scenery:back").children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:overcast", "flash:lightning", "clouds", "sea:back", "sea:back:rough-sea"]);
+    expect(one(starless.app.stage, "scenery:back").children.map((child) => child.label)).toEqual(["sky:under", "sky:over", "sky:overcast", ...overcastEdges, "flash:lightning", "clouds", "sea:back", "sea:back:rough-sea"]);
     starless.drawing.destroy();
   });
 
@@ -1484,7 +1598,7 @@ describe("the clouds in the sky", () => {
     expect(one(deck.app.stage, "scenery:back").children.map((child) => child.label)).toEqual([
       "sky:under",
       "sky:over",
-      "sky:overcast",
+      "sky:overcast", ...overcastEdges,
       "sky:stars",
       "flash:lightning",
       "clouds",
@@ -1959,7 +2073,7 @@ describe("the heavy weather on the deck, at the top of the dial", () => {
   const working = (count: number) => crewScene(Array.from({ length: count }, (_, index): [string, DeckState] => [`hand-${index}`, "working"]));
   /** The extras, with every cloud and every cloud variant cut into its masks. */
   const stormy: Extras = { ...extras, masks: "all" };
-  const LAYERS = ["sky:overcast", "flash:lightning", "sea:back:rough-sea", "sea:front:rough-sea", "wake:heavy-wake", "spindrift", "clouds:storm-puff:shadow"];
+  const LAYERS = ["sky:overcast", ...overcastEdges, "flash:lightning", "sea:back:rough-sea", "sea:front:rough-sea", "wake:heavy-wake", "spindrift", "clouds:storm-puff:shadow"];
   const shown = (stage: FakeContainer, label: string) => byLabel(stage, label).filter((node) => node.visible);
   const frameOf = (path: string) => path.replace(/^.*frame-(\d)\.png$/, "$1");
 

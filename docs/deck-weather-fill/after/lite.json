@@ -1,0 +1,158 @@
+{
+  "results": [
+    {
+      "setting": "sky-airship",
+      "aspect": "wide",
+      "mode": "lite",
+      "viewport": {
+        "width": 1600,
+        "height": 700
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 1574,
+        "height": 535
+      },
+      "weather": "1.00",
+      "flash": ""
+    },
+    {
+      "setting": "sky-airship",
+      "aspect": "square",
+      "mode": "lite",
+      "viewport": {
+        "width": 1000,
+        "height": 1000
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 974,
+        "height": 835
+      },
+      "weather": "1.00",
+      "flash": ""
+    },
+    {
+      "setting": "sky-airship",
+      "aspect": "tall-narrow",
+      "mode": "lite",
+      "viewport": {
+        "width": 650,
+        "height": 1500
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 624,
+        "height": 1335
+      },
+      "weather": "1.00",
+      "flash": ""
+    },
+    {
+      "setting": "japanese-ship",
+      "aspect": "wide",
+      "mode": "lite",
+      "viewport": {
+        "width": 1600,
+        "height": 700
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 1574,
+        "height": 535
+      },
+      "weather": "1.00",
+      "flash": ""
+    },
+    {
+      "setting": "japanese-ship",
+      "aspect": "square",
+      "mode": "lite",
+      "viewport": {
+        "width": 1000,
+        "height": 1000
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 974,
+        "height": 835
+      },
+      "weather": "1.00",
+      "flash": ""
+    },
+    {
+      "setting": "japanese-ship",
+      "aspect": "tall-narrow",
+      "mode": "lite",
+      "viewport": {
+        "width": 650,
+        "height": 1500
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 624,
+        "height": 1335
+      },
+      "weather": "1.00",
+      "flash": ""
+    },
+    {
+      "setting": "ship",
+      "aspect": "wide",
+      "mode": "lite",
+      "viewport": {
+        "width": 1600,
+        "height": 700
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 1574,
+        "height": 535
+      },
+      "weather": "1.00",
+      "flash": ""
+    },
+    {
+      "setting": "ship",
+      "aspect": "square",
+      "mode": "lite",
+      "viewport": {
+        "width": 1000,
+        "height": 1000
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 974,
+        "height": 835
+      },
+      "weather": "1.00",
+      "flash": ""
+    },
+    {
+      "setting": "ship",
+      "aspect": "tall-narrow",
+      "mode": "lite",
+      "viewport": {
+        "width": 650,
+        "height": 1500
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 624,
+        "height": 1335
+      },
+      "weather": "1.00",
+      "flash": ""
+    }
+  ],
+  "errors": []
+}
