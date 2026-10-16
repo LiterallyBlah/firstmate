@@ -1,7 +1,8 @@
 # The deck as a scene engine and setting packs: the migration's gate
 
-The Deck is a setting-independent **scene engine** with two pure-data **setting packs**:
-`art/settings/ship/` and `art/settings/office/`, each a `setting.json` and the PNGs it names. The nine-step
+The Deck is a setting-independent **scene engine** with pure-data **setting packs**:
+`art/settings/ship/` is released; Office was withdrawn to `docs/settings/office/withdrawn-pack/`
+after visual review and is neither offered nor shipped. Each pack is a `setting.json` and the PNGs it names. The nine-step
 migration and its reviewed capability slices are recorded below. Every step must draw the ship exactly
 as main does; this folder holds that gate. [Authoring a third setting](authoring.md) uses the same format,
 closed versioned catalogue, pack linter and debug overlay.

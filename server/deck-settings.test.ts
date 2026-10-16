@@ -111,6 +111,12 @@ describe("the Pixi build the daemon serves", () => {
 });
 
 describe("the settings the daemon serves", () => {
+  it("withdraws office from both pickers and refuses a saved office selection", async () => {
+    const settings = await listDeckSettings(async () => root);
+    expect(settings.map((setting) => setting.id)).not.toContain("office");
+    await expect(readDeckSetting("office", async () => root)).rejects.toThrow("no deck setting called office");
+  });
+
   it("lists the ship, which this engine draws", async () => {
     const settings = await listDeckSettings(async () => root);
     expect(settings.map((setting) => setting.id)).toContain("ship");
