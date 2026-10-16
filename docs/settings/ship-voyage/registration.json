@@ -1013,6 +1013,174 @@
       ],
       "sha256": "5d5c75b74e39661983954acf9fbdbbca9a2ddaea3e8cb059769f701cedc647d9"
     },
+    "dolphin-submerged": {
+      "path": "dolphin-submerged.png",
+      "size": [
+        96,
+        40
+      ],
+      "sha256": "50c01b558b0257ae3ea091c6380f7407b97e9a06638842a269c8b4a5fa999b8c"
+    },
+    "dolphin-leap-0-0": {
+      "path": "dolphin-leap-0-0.png",
+      "size": [
+        96,
+        40
+      ],
+      "sha256": "585c69809b7eae226854a679061b23a6140131fac748c50c56f442eec45e174b"
+    },
+    "dolphin-leap-0-1": {
+      "path": "dolphin-leap-0-1.png",
+      "size": [
+        96,
+        40
+      ],
+      "sha256": "49213e7e49e4addf906715cca2ae48477e2aec808463061e929e670c9a5b1fbe"
+    },
+    "dolphin-leap-0-2": {
+      "path": "dolphin-leap-0-2.png",
+      "size": [
+        96,
+        40
+      ],
+      "sha256": "17e1ab96cf2afe8002178df73b0e69e483776ef5051cb21a7bd2bc43f73320ce"
+    },
+    "dolphin-leap-0-3": {
+      "path": "dolphin-leap-0-3.png",
+      "size": [
+        96,
+        40
+      ],
+      "sha256": "2e36fc849ad61fb0fc6bcfad1512d653cd315647c1ee8e462aa6d012d4de06ff"
+    },
+    "dolphin-leap-1-0": {
+      "path": "dolphin-leap-1-0.png",
+      "size": [
+        96,
+        40
+      ],
+      "sha256": "82d1872ed960c072a3988556fd5273bd898bb7c9425465111b3212b25d030c5f"
+    },
+    "dolphin-leap-1-1": {
+      "path": "dolphin-leap-1-1.png",
+      "size": [
+        96,
+        40
+      ],
+      "sha256": "e579ca4980a1eca989373b2a90cab89b056b83e2935f6e02c333e3551804e541"
+    },
+    "dolphin-leap-1-2": {
+      "path": "dolphin-leap-1-2.png",
+      "size": [
+        96,
+        40
+      ],
+      "sha256": "90b7c0d1f3e969b8a225b8196a534b555a8df3c0e5c24452011bc0ca185f1814"
+    },
+    "dolphin-leap-1-3": {
+      "path": "dolphin-leap-1-3.png",
+      "size": [
+        96,
+        40
+      ],
+      "sha256": "ff4f099087ed075c5e3e9177397089dce68deb3032111d3500b563a581126ff5"
+    },
+    "dolphin-splash-0": {
+      "path": "dolphin-splash-0.png",
+      "size": [
+        96,
+        40
+      ],
+      "sha256": "eeae3b58dc66d60423251b29f31d7592684df82612f7324b0e7e94bda5dde187"
+    },
+    "dolphin-splash-1": {
+      "path": "dolphin-splash-1.png",
+      "size": [
+        96,
+        40
+      ],
+      "sha256": "4d04a747f3b5c5da92a0d6f82485387c1aa2f9e62a4624ce4fb098eca0b3aca7"
+    },
+    "whale-submerged": {
+      "path": "whale-submerged.png",
+      "size": [
+        2048,
+        47
+      ],
+      "sha256": "f3bf6ff7d64d8830179c2194039485906b679c1f5e0d33372b428ed27716f006"
+    },
+    "whale-voyage-0": {
+      "path": "whale-voyage-0.png",
+      "size": [
+        2048,
+        47
+      ],
+      "sha256": "04f3f39a40fc0a7350d7ff7b36947e1355c75fb081051fc60ea14954dd15df9a"
+    },
+    "whale-voyage-1": {
+      "path": "whale-voyage-1.png",
+      "size": [
+        2048,
+        47
+      ],
+      "sha256": "0f57a1889e07f0ffad641efc622a415ea5a0897dd609ee403625deb271bb0d2c"
+    },
+    "whale-voyage-2": {
+      "path": "whale-voyage-2.png",
+      "size": [
+        2048,
+        47
+      ],
+      "sha256": "9e114f423302d9f4242e8821c99bb718d8f315b9f0232eec760f94d72938dc9b"
+    },
+    "whale-voyage-3": {
+      "path": "whale-voyage-3.png",
+      "size": [
+        2048,
+        47
+      ],
+      "sha256": "5e36f88506e648f0045a2301624f94ea081fc753f362182657a0b4d91dd37ef0"
+    },
+    "navy-away": {
+      "path": "navy-away.png",
+      "size": [
+        1536,
+        88
+      ],
+      "sha256": "49300de41460afe86409f65099884c240001568b4b4d6e3ce7f113785492f8fe"
+    },
+    "navy-lane-0": {
+      "path": "navy-lane-0.png",
+      "size": [
+        1536,
+        88
+      ],
+      "sha256": "4f2dad5d82aef87ffd3498775451b6d99c8860993fa418209066c2a8f17b0b4f"
+    },
+    "navy-lane-1": {
+      "path": "navy-lane-1.png",
+      "size": [
+        1536,
+        88
+      ],
+      "sha256": "717a6f61a0f9cd21c9e55602b1ae727cb688564d17ef6e167a9de03318754671"
+    },
+    "navy-lane-2": {
+      "path": "navy-lane-2.png",
+      "size": [
+        1536,
+        88
+      ],
+      "sha256": "4f2dad5d82aef87ffd3498775451b6d99c8860993fa418209066c2a8f17b0b4f"
+    },
+    "navy-lane-3": {
+      "path": "navy-lane-3.png",
+      "size": [
+        1536,
+        88
+      ],
+      "sha256": "717a6f61a0f9cd21c9e55602b1ae727cb688564d17ef6e167a9de03318754671"
+    },
     "coast-midday": {
       "path": "coast-midday.png",
       "size": [
@@ -1300,6 +1468,14 @@
         80
       ],
       "sha256": "e89bb9b2f21ccebaddd4b326f0e1018780ab2bf5ff61f984668a77ec6d4e2409"
+    },
+    "preview": {
+      "path": "preview.png",
+      "size": [
+        384,
+        200
+      ],
+      "sha256": "0b85d2a09dc1bc688cdaa5b1243e7e62d378ddc1808a0b026629b2c274503c1f"
     }
   },
   "parts": {
