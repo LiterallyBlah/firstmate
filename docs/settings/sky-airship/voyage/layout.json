@@ -1,0 +1,83 @@
+[
+  {
+    "id": "voyage-far",
+    "width": 1024,
+    "height": 90,
+    "top": -50,
+    "order": 2.4,
+    "objects": [
+      [
+        "rocks",
+        40,
+        28,
+        54
+      ],
+      [
+        "ruins",
+        350,
+        12,
+        65
+      ],
+      [
+        "rocks",
+        720,
+        40,
+        42
+      ]
+    ]
+  },
+  {
+    "id": "voyage-middle",
+    "width": 1536,
+    "height": 150,
+    "top": -86,
+    "order": 3.3,
+    "objects": [
+      [
+        "city",
+        70,
+        10,
+        126
+      ],
+      [
+        "beacon",
+        570,
+        5,
+        68
+      ],
+      [
+        "ruins",
+        1060,
+        24,
+        100
+      ]
+    ]
+  },
+  {
+    "id": "voyage-near",
+    "width": 2048,
+    "height": 180,
+    "top": -64,
+    "order": 4.5,
+    "objects": [
+      [
+        "falls",
+        340,
+        0,
+        166
+      ],
+      [
+        "dock",
+        1030,
+        4,
+        176
+      ],
+      [
+        "rocks",
+        1720,
+        30,
+        110
+      ]
+    ]
+  }
+]
