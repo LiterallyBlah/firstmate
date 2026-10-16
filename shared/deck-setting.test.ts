@@ -29,7 +29,7 @@ describe("a setting manifest", () => {
   it("is whole for the ship: nothing it names is missing, and it needs exactly what it uses", () => {
     expect(settingProblems(shipManifest())).toEqual([]);
     expect(capabilitiesUsed(shipManifest())).toEqual(shipManifest().requires);
-    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["carrier-surface@1", "stable-posts@1", "walk-in@1", "phase-frames@1"]);
+    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["carrier-surface@1", "stable-posts@1", "walk-in@1", "stage-rock@1", "phase-frames@1"]);
   });
 
   it("names every image it draws with once, the backdrop first", () => {
@@ -202,7 +202,7 @@ it("rejects undeclared fields at every level of the closed catalogue instead of 
   const changes: Array<(manifest: SettingManifest) => void> = [
     (manifest) => { Reflect.set(manifest, "script", "run()"); },
     (manifest) => { Reflect.set(manifest.stage, "onDraw", "hook"); },
-    (manifest) => { Reflect.set(manifest.stage.motion!.bob, "expression", "sin(t)"); },
+    (manifest) => { Reflect.set(manifest.stage.motion!.bob!, "expression", "sin(t)"); },
     (manifest) => { Reflect.set(manifest.ambience[0]!.behaviour, "when", "busy"); },
     (manifest) => { Reflect.set(manifest.cast.roles, "choosePose", "callback"); },
     (manifest) => { Reflect.set(manifest.portals.entry, "condition", "ready"); },

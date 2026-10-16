@@ -64,7 +64,8 @@ import { depthOf, type DeckScene, type DeckState } from "./deck-scene";
 import { elementMotion, type DeckAmbience } from "./deck-ambience";
 import type { DrifterMasks } from "./deck-clouds";
 import { createScenery } from "./deck-environment";
-import { bobAt, dutyFrame, flickerAt, glassTint, glyphRects, swayAt, type Cut, type DeckParts } from "./deck-parts";
+import { dutyFrame, flickerAt, glassTint, glyphRects, swayAt, type Cut, type DeckParts } from "./deck-parts";
+import { stageMotionAt, stageToWorld, worldToStage, type StageTransform } from "./deck-stage-motion";
 import type { DeckStage } from "./deck-stage";
 import { localMinute, SKY_REFRESH_MS } from "./deck-sky";
 import { phaseTintAt } from "./deck-phase-tint";
@@ -93,6 +94,7 @@ export interface PixiContainer {
   label: string;
   position: PixiPoint;
   scale: PixiPoint;
+  rotation: number;
   zIndex: number;
   sortableChildren: boolean;
   visible: boolean;
@@ -582,7 +584,7 @@ export async function startDeck(
   let drawnFigures: Figure[] = [];
   /** Where each reply marker hangs in that frame (`askMarks`). */
   let drawnMarks: ReadonlyMap<string, AskMark> = new Map();
-  let drawnBob = { x: 0, y: 0 };
+  let drawnBob: StageTransform = { x: 0, y: 0 };
   let drawnTint = 0xffffff;
   // The weather opens at the crew's, as the crew already aboard is simply there.
   let atmosphere = openingAtmosphere(art.atmosphere, crewIntensity(scene.sailors));
@@ -864,9 +866,9 @@ export async function startDeck(
     atmosphere = stepAtmosphere(art.atmosphere, atmosphere, stepMs, crewIntensity(current.sailors), moving);
     const weather = moving ? weatherOf(art.atmosphere, atmosphere) : deliveredWeather(art.atmosphere, seconds);
     // The stage's bob, never on a still deck; each part's sway and cycle as it says it moves.
-    const { bob: bobbing } = parts;
-    const bob = { x: 0, y: moving && bobbing !== null ? bobAt(clockOf(weather, bobbing.clock, seconds), bobbing.periodS, levelAt(bobbing.amplitude, weather)) : 0 };
+    const bob = stageMotionAt(parts.motion, seconds, weather, moving);
     ship.position.set(bob.x, bob.y);
+    ship.rotation = bob.rotation ?? 0;
     for (const { part, sprite, frames } of rig) {
       const run = elementMotion(part, plan) === "run";
       const { behaviour } = part;
@@ -897,6 +899,7 @@ export async function startDeck(
     drawnMarks = askMarks(drawnFigures, cast);
     drawnBob = bob;
     spot.position.set(bob.x, bob.y);
+    spot.rotation = bob.rotation ?? 0;
     aim(elapsedMs, moving);
     drawAttention(elapsedMs, plan, clockOf(weather, carrier?.surface?.ripple.clock, seconds) * 1000, tint);
     findHover();
@@ -954,7 +957,7 @@ export async function startDeck(
     if (focusKey !== null) {
       const figure = drawnFigures.find((each) => each.key === focusKey);
       const box = figure === undefined ? null : figureBox(figure, cast);
-      if (box !== null) focusPoint = boxMiddle(box);
+      if (box !== null) focusPoint = parts.motion?.rock === undefined ? boxMiddle(box) : stageToWorld(boxMiddle(box), drawnBob);
     }
     const target: DeckShot = { amount: focusKey === null ? 0 : 1, point: focusPoint };
     if (zoom !== null && moving) {
@@ -971,12 +974,12 @@ export async function startDeck(
 
   /** Fits the world to the canvas through the camera's shot, and lays the scenery and veil out over what shows. */
   function fit(): void {
-    const base = fitDeck(app.screen, deckBox(stage, parts.top), app.renderer.resolution, stage.fit.margin);
+    const base = fitDeck(app.screen, deckBox(stage, parts.motion?.rock === undefined ? parts.top : -1), app.renderer.resolution, stage.fit.margin);
     const { scale, x, y } = cameraFit(base, shot, focusLayout(app.screen), app.renderer.resolution, stage.actorHeight);
     veil.visible = shot.amount > 0;
     veil.alpha = FOCUS_VEIL_ALPHA * Math.max(0, Math.min(1, shot.amount));
     // The scenery and the veil are laid out again only when what shows has changed: the shot, or the canvas.
-    const laid = `${scale}:${x}:${y}:${app.screen.width}:${app.screen.height}`;
+    const laid = `${scale}:${x}:${y}:${app.screen.width}:${app.screen.height}` + (parts.motion?.rock === undefined ? "" : `:${drawnBob.x}:${drawnBob.y}:${drawnBob.rotation}`);
     if (laid === drawnLayout) return;
     drawnLayout = laid;
     world.scale.set(scale);
@@ -985,7 +988,14 @@ export async function startDeck(
     if (scale <= 0) return;
     const visible = visibleWorld(drawnFit, app.screen);
     scenery.layout(visible);
-    veil.clear().rect(visible.left - 1, visible.top - 1, visible.right - visible.left + 2, visible.bottom - visible.top + 2).fill(stage.palette.veil);
+    if (parts.motion?.rock !== undefined) {
+      // The veil rides the stage too; inverse viewport corners ensure its rotated rectangle still covers the screen.
+      const corners = [visible.left, visible.right].flatMap(x => [visible.top, visible.bottom].map(y => worldToStage({ x, y }, drawnBob)));
+      const left = Math.min(...corners.map(p => p.x)), top = Math.min(...corners.map(p => p.y));
+      veil.position.set(drawnBob.x, drawnBob.y);
+      veil.rotation = drawnBob.rotation ?? 0;
+      veil.clear().rect(left - 1, top - 1, Math.max(...corners.map(p => p.x)) - left + 2, Math.max(...corners.map(p => p.y)) - top + 2).fill(stage.palette.veil);
+    } else veil.clear().rect(visible.left - 1, visible.top - 1, visible.right - visible.left + 2, visible.bottom - visible.top + 2).fill(stage.palette.veil);
   }
 
   /**
