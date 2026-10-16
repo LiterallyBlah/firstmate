@@ -31,6 +31,8 @@
  *   opacity its level (the wake's the weather's wake channel, the spindrift's a curve over intensity).
  * - **Phase frames** (`phase-frames@1`) — one anchored sprite selected by the local hour or minute, modulo its
  *   frame count. Independent of simulation time and intensity; held at frame zero or hidden in reduced motion.
+ * - **Phase strips** (`phase-strip@1`) — a strip's day sets sharing its frame index and crops. Eased phase weights
+ *   sum into a transparent intermediate, preserving opaque pixels and fading transparent details both ways.
  *
  * Each runs, holds still (its first frame, no drift) or is not drawn as its element says for a software renderer and
  * reduced motion (`elementMotion`). A tile, strip or cycle has its **variants** over it (`client/deck-variants.ts`):
@@ -48,7 +50,7 @@
  * drawn in code in an element's place any more: without its art and a fallback, an element is not drawn (the wake).
  *
  * Every texture is cut from its own image once, except a strip's crops, which are made as the scroll first reaches them
- * and kept: at most a few hundred small objects on a few dozen images' sources.
+ * and kept: bounded by the repeat width, crop widths and distinct frame sets, sharing their image sources.
  */
 import { elementMotion, elementsOf, type AmbientElement, type DayCycle, type DeckAmbience } from "./deck-ambience";
 import { flybyPose, flybysAt, type MotionPlan } from "./deck-ambient";
@@ -56,6 +58,7 @@ import { clockOf, deliveredWeather, levelAt, shade, tintToward, type DeckAtmosph
 import { cloudColours, cloudField, cloudX, hexColour, variantPalette, type DrifterMasks } from "./deck-clouds";
 import { flashAt, flashSalt, underCloud } from "./deck-flash";
 import { phaseFrameAt } from "./deck-phase-frames";
+import { phaseStripSets, phaseStripWeights } from "./deck-phase-strip";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
 import { backdropPlacement, dayBlend, dominantPhase, NO_DAY, scrollOffset, type DayBlend, type Placement } from "./deck-sky";
 import { cycleFrame, curvePeak, opacityAt, variantBlend, type Variant } from "./deck-variants";
@@ -119,9 +122,11 @@ type Cut = (image: string, x: number, y: number, width: number, height: number) 
 function textureCutter(pixi: PixiModule, images: (image: string) => unknown) {
   const sources = new Map<string, PixiTextureSource>();
   const made: PixiTexture[] = [];
+  const effects: Array<{ destroy(): void }> = [];
   return {
     sources,
     made,
+    effects,
     cut(image: string, x: number, y: number, width: number, height: number): PixiTexture {
       let source = sources.get(image);
       if (source === undefined) {
@@ -134,6 +139,7 @@ function textureCutter(pixi: PixiModule, images: (image: string) => unknown) {
       return texture;
     },
     destroy() {
+      for (const effect of effects) effect.destroy();
       for (const texture of made) texture.destroy();
       for (const source of sources.values()) source.destroy();
     },
@@ -159,8 +165,8 @@ export function createScenery(pixi: PixiModule, stage: StageSize, art: SceneryAr
   front.label = "scenery:front";
   const cutter = textureCutter(pixi, (image) => art.images.get(image));
   const layers = ambienceLayers(pixi, stage, art.ambience, art.masks, cutter, seed);
-  back.addChild(...layers.back);
-  front.addChild(...layers.front);
+  if (layers.back.length > 0) back.addChild(...layers.back);
+  if (layers.front.length > 0) front.addChild(...layers.front);
   return {
     back,
     front,
@@ -313,6 +319,7 @@ function ambienceLayers(
   const water: WaterLayer[] = [
     ...tiles,
     ...elementsOf(ambience, "strip").map((element) => placedLayer(element.id, stripLayer(pixi, element, cut, ambience.sizes))),
+    ...elementsOf(ambience, "phase-strip").map((element) => placedLayer(element.id, stripLayer(pixi, element, cut, ambience.sizes, phases, cutter.effects))),
     ...elementsOf(ambience, "cycle").map((element) => placedLayer(element.id, cycleLayer(pixi, element, cut, ambience.sizes))),
   ];
   const flats = ambience.flats.map((element) => ({ element, layer: flatLayer(pixi, element, ambience.fallbackFill) }));
@@ -402,7 +409,7 @@ function ambienceLayers(
         sprite.position.set(place.x + spot.x * place.scale, place.y + spot.y * place.scale);
         sprite.scale.set(place.scale);
       }
-      for (const layer of water) layer.draw(seconds, plan, weather);
+      for (const layer of water) layer.draw(seconds, plan, weather, blend);
       for (const { element, frames, sprite } of phaseFrames) {
         const motion = elementMotion(element, plan);
         sprite.visible = motion !== "hide";
@@ -554,7 +561,7 @@ interface WaterLayer {
   readonly back: PixiContainer[];
   readonly front: PixiContainer[];
   layout(visible: VisibleWorld): void;
-  draw(seconds: number, plan: MotionPlan, weather: Weather): void;
+  draw(seconds: number, plan: MotionPlan, weather: Weather, blend: DayBlend): void;
 }
 
 /**
@@ -743,7 +750,7 @@ function flatLayer(pixi: PixiModule, element: AmbientElement<"tile">, fill: numb
  * A strip (`strip@1`): its frames repeated sideways within its span from its top row, drifting with the world, cut from
  * the repeat into a few sprites a frame; its variants' strips cut alike over it.
  */
-function stripLayer(pixi: PixiModule, element: AmbientElement<"strip">, cut: Cut, sizes: DeckAmbience["sizes"]): WaterLayer {
+function stripLayer(pixi: PixiModule, element: AmbientElement<"strip"> | AmbientElement<"phase-strip">, cut: Cut, sizes: DeckAmbience["sizes"], phases: DayCycle["phases"] = [], effects: Array<{ destroy(): void }> = []): WaterLayer {
   const { behaviour } = element;
   const [period, height] = spriteSize(behaviour.frames.sprites[0]!, sizes);
   const span = { left: behaviour.span[0], right: behaviour.span[1] };
@@ -774,31 +781,55 @@ function stripLayer(pixi: PixiModule, element: AmbientElement<"strip">, cut: Cut
     }
     return { container, pieces, sprites };
   };
-  const main = strip(element.place, behaviour.frames.sprites);
-  const variants = behaviour.variants ?? [];
+  const phaseSets = behaviour.kind === "phase-strip" ? phaseStripSets(behaviour, phases) : null;
+  const phaseLayers = phaseSets === null ? [] : [...new Set(phaseSets)].map((sprites, index) => strip(`${element.place}:phase-${index}`, sprites));
+  const main = phaseSets === null ? strip(element.place, behaviour.frames.sprites) : null;
+  const variants = behaviour.kind === "strip" ? behaviour.variants ?? [] : [];
   const over = variants.map((variant) => strip(`${element.place}:${variant.id}`, variant.frames));
   for (const layered of over) layered.container.visible = false;
-  const views = [main.container, ...over.map((layered) => layered.container)];
+  const layers = main === null ? phaseLayers : [main, ...over];
+  let views = layers.map((layered) => layered.container);
+  if (phaseSets !== null) {
+    // Sum premultiplied phase colours/alpha into a transparent intermediate, then composite once.
+    // Ordinary source-over crossfades dim opaque pixels and leave ghosts in transparent night beams.
+    const holder = new pixi.Container();
+    holder.label = element.place;
+    const filter = new pixi.AlphaFilter({ alpha: 1 });
+    effects.push(filter);
+    holder.filters = [filter];
+    for (const layered of phaseLayers) layered.container.blendMode = "add";
+    holder.addChild(...views);
+    views = [holder];
+  }
   let drawn = "";
   return {
     back: element.slot === "back" ? views : [],
     front: element.slot === "front" ? views : [],
     layout() {},
-    draw(seconds, plan, weather) {
+    draw(seconds, plan, weather, blend) {
       const motion = elementMotion(element, plan);
       const run = motion === "run";
       const lap = run ? scrollOffset(clockOf(weather, behaviour.drift.clock, seconds), behaviour.drift.pxPerSecond, period) : 0;
       const frame = frameOn(weather, behaviour.frames, seconds, run);
       const mix = variantBlend(variants, weather.intensity);
-      main.container.alpha = mix.base;
-      main.container.visible = motion !== "hide" && mix.base > 0;
+      if (main !== null) {
+        main.container.alpha = mix.base;
+        main.container.visible = motion !== "hide" && mix.base > 0;
+      }
       over.forEach(function (layered, index) {
         layered.container.alpha = mix.layers[index]!;
         layered.container.visible = motion !== "hide" && layered.container.alpha > 0;
       });
+      if (phaseSets !== null) {
+        const weights = phaseStripWeights<readonly Sprite[]>(phaseSets, blend);
+        for (const layered of phaseLayers) {
+          layered.container.alpha = weights.get(layered.sprites) ?? 0;
+          layered.container.visible = motion !== "hide" && layered.container.alpha > 0;
+        }
+      }
       if (`${frame}:${lap}` === drawn) return;
       const segments = foamSegments(span, period, lap);
-      for (const layered of [main, ...over]) {
+      for (const layered of layers) {
         layered.pieces.forEach(function (sprite, index) {
           const segment = segments[index];
           sprite.visible = segment !== undefined;

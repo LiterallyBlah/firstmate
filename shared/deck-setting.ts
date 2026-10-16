@@ -55,6 +55,7 @@ export const ENGINE_CAPABILITIES = [
   "flyby@1",
   "tile@1",
   "strip@1",
+  "phase-strip@1",
   "variants@1",
   "day-cycle@1",
   "atmosphere@1",
@@ -439,6 +440,11 @@ const Tile = z.strictObject({
 });
 /** `strip@1`: frames repeated sideways within a span from a row, drifting, cut into crops a frame. */
 const Strip = z.strictObject({ kind: z.literal("strip"), frames: Frames, top: Px, span: z.tuple([Px, Px]), drift: Drift, variants: Variants });
+/** `phase-strip@1`: a strip's base and day-phase sets, all on one frame index and drift. */
+const PhaseStrip = z.strictObject({
+  kind: z.literal("phase-strip"), frames: Frames, top: Px, span: z.tuple([Px, Px]), drift: Drift,
+  byPhase: z.record(Id, z.array(Sprite).min(1)),
+});
 /** `cycle@1` in the ambience: frames in turn with an anchor on a point. */
 const AmbientCycle = Cycle.extend({ at: Point, anchor: Point });
 /** `phase-frames@1`: a discrete local hour or minute, modulo the frame count; no simulation clock or expression. */
@@ -454,7 +460,7 @@ const AmbienceElement = z.strictObject({
   ...ElementBase,
   slot: z.enum(["back", "front"]),
   order: z.number(),
-  behaviour: z.discriminatedUnion("kind", [BackdropCycle, Overlay, Flash, Drifters, Flyby, Tile, Strip, AmbientCycle, PhaseFrames]),
+  behaviour: z.discriminatedUnion("kind", [BackdropCycle, Overlay, Flash, Drifters, Flyby, Tile, Strip, PhaseStrip, AmbientCycle, PhaseFrames]),
 });
 
 const DayCycle = z.strictObject({
@@ -582,6 +588,8 @@ function ambienceSprites(behaviour: AmbienceBehaviour): Array<z.infer<typeof Spr
       return behaviour.frames.map((frame) => frame.sprite);
     case "phase-frames":
       return behaviour.frames;
+    case "phase-strip":
+      return [...behaviour.frames.sprites, ...Object.values(behaviour.byPhase).flat()];
     case "drifters":
       return behaviour.sprites.flatMap((sprite) => [{ image: sprite.image }, ...variants(sprite.variants)]);
     case "flyby":
@@ -821,12 +829,33 @@ export function settingProblems(manifest: SettingManifest): string[] {
   // Day phases, clocks and channels.
   const phases = new Set((manifest.dayCycle?.phases ?? []).map((phase) => phase.id));
   if (manifest.dayCycle !== undefined) {
+    unique("day phases", manifest.dayCycle.phases.map((phase) => phase.id));
     for (const phase of [manifest.dayCycle.night, manifest.dayCycle.fallback]) if (!phases.has(phase)) missing("day phase", phase, "dayCycle");
   }
   const phaseRefs: Array<[string, string]> = [];
   for (const phase of Object.keys(manifest.stage.tintByPhase ?? {})) phaseRefs.push([phase, "stage.tintByPhase"]);
   for (const element of manifest.ambience) {
     const behaviour = element.behaviour;
+    if (behaviour.kind === "phase-strip") {
+      if (manifest.dayCycle === undefined) problems.push(`${element.id} phase-strip needs dayCycle`);
+      for (const phase of Object.keys(behaviour.byPhase)) phaseRefs.push([phase, element.id]);
+      if (behaviour.span[1] <= behaviour.span[0]) problems.push(`${element.id} phase-strip span must increase`);
+      const base = behaviour.frames.sprites;
+      const size = (sprite: z.infer<typeof Sprite>) => sprite.rect?.slice(2) ?? manifest.images[sprite.image]?.size;
+      const expected = size(base[0]!);
+      for (const [phase, sprites] of [["base", base], ...Object.entries(behaviour.byPhase)] as const) {
+        if (sprites.length !== base.length) problems.push(`${element.id} phase-strip ${phase} frame count must match base`);
+        for (const sprite of sprites) {
+          const actual = size(sprite), image = manifest.images[sprite.image];
+          if (expected === undefined || actual?.[0] !== expected[0] || actual?.[1] !== expected[1])
+            problems.push(`${element.id} phase-strip ${phase} frame sizes must match base`);
+          if (sprite.rect !== undefined && image !== undefined) {
+            const [x, y, w, h] = sprite.rect;
+            if (x < 0 || y < 0 || x + w > image.size[0] || y + h > image.size[1]) problems.push(`${element.id} phase-strip crop leaves its image`);
+          }
+        }
+      }
+    }
     if (behaviour.kind === "backdrop-cycle") for (const phase of Object.keys(behaviour.phases)) phaseRefs.push([phase, element.id]);
     if (behaviour.kind === "drifters") {
       for (const phase of Object.keys(behaviour.byPhase)) phaseRefs.push([phase, element.id]);

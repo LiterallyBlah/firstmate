@@ -19,6 +19,12 @@ const params = new URLSearchParams(process.argv[2] ?? "");
 const setting = process.env.SETTING ?? params.get("setting") ?? "ship";
 if (!/^[a-z0-9-]+$/.test(setting)) throw new Error("invalid setting id");
 const overlay = process.env.OVERLAY === "1" || params.get("overlay") === "1";
+const phaseStripReview = process.env.PHASE_STRIP_REVIEW === "1";
+let phaseStripFixture;
+if (phaseStripReview) {
+  await build({ entryPoints: [join(root, "test/phase-strip-fixture.ts")], outfile: join(generated, "phase-strip-fixture.mjs"), bundle: true, platform: "node", format: "esm", logLevel: "warning" });
+  phaseStripFixture = (await import(pathToFileURL(join(generated, "phase-strip-fixture.mjs")).href)).applyPhaseStripFixture;
+}
 
 const hostPlugins = [
   {
@@ -47,6 +53,12 @@ const answers = {
   "firstmate.deck.settings": () => server.listDeckSettings(at),
   "firstmate.deck.setting": async (input) => {
     const pack = await server.readDeckSetting(input.id, at);
+    if (phaseStripReview) {
+      const directory = join(root, "test/fixtures/phase-strip");
+      const scene = JSON.parse(await readFile(join(directory, "scene.json"), "utf8"));
+      return { manifest: phaseStripFixture(pack.manifest, scene), images: { ...pack.images,
+        "phase-test": (await readFile(join(directory, "atlas.png"))).toString("base64") } };
+    }
     if (process.env.SHARK_REVIEW !== "before") return pack;
     const { mainRevision } = JSON.parse(await readFile(join(generated, "compiled-inputs.json"), "utf8"));
     const manifest = JSON.parse(execFileSync("git", ["show", `${mainRevision}:art/settings/${input.id}/setting.json`], { cwd: root, encoding: "utf8" }));
@@ -75,7 +87,7 @@ const http = createServer(async (request, response) => {
     } else if (path === "/host.js" || path === "/overlay.js" || path === "/bundle/branch.js") {
       response.setHeader("Content-Type", "application/javascript");
       const file = { "/host.js": "gate-host.js", "/overlay.js": "overlay-draw.js", "/bundle/branch.js": "branch.client.js" }[path];
-      response.end(await readFile(join(generated, process.env.SHARK_REVIEW === "before" && file === "branch.client.js" ? "main.client.js" : file)));
+      response.end(await readFile(join(generated, (process.env.SHARK_REVIEW === "before" || process.env.RENDER_TREE === "main") && file === "branch.client.js" ? "main.client.js" : file)));
     } else {
       response.setHeader("Content-Type", "text/html");
       response.end(page);
@@ -88,6 +100,10 @@ const http = createServer(async (request, response) => {
 await new Promise((done) => http.listen(0, "127.0.0.1", done));
 const browser = await chromium.launch({ channel: "msedge", headless: true, ...(process.env.CHECK_JAPANESE_LITE === "1" || process.env.WATERLINE_LITE === "1" ? { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] } : {}) });
 try {
+  if (phaseStripReview) {
+    const { review } = await import("../deck-phase-strip/review.mjs");
+    await review(browser, `http://127.0.0.1:${http.address().port}`, generated);
+  } else {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, reducedMotion: "reduce", timezoneId: "UTC" });
   const view = await context.newPage();
   const errors = [];
@@ -168,6 +184,7 @@ try {
   }
   if (errors.length !== 0) throw new Error(errors.join("\n"));
   console.log(JSON.stringify({ setting: actual, overlay: drawn, selectionCheck: process.env.CHECK_SELECTION === "1", errors }));
+  }
 } finally {
   await browser.close();
   http.close();

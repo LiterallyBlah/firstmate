@@ -164,6 +164,10 @@ describe.each(packs)("the %s pack", (id) => {
         case "phase-frames":
           oneSize(behaviour.frames, element.id);
           break;
+        case "phase-strip":
+          oneSize(behaviour.frames.sprites, element.id);
+          lined(behaviour.frames.sprites, Object.entries(behaviour.byPhase).map(([id, frames]) => ({ id, frames })), element.id);
+          break;
         case "tile":
         case "strip":
         case "cycle":

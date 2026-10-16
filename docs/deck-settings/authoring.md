@@ -18,7 +18,7 @@ or capabilities as incompatible, with a reason. The pane falls back to ship and 
 | Layout and workers | `stage`, `floor`, `zones`, `zone-appearance`, `post-transit`, `stable-posts`, `cast`, `pose-fidgets` |
 | Portals and effects | `rise`, `walk-in`, `sink`, `choreography` |
 | Stage motion and light | `phase-tint`, `bob`, `stage-rock`, `sway`, `cycle`, `flicker` |
-| Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `strip`, `variants` |
+| Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `strip`, `phase-strip`, `variants` |
 | Time and activity | `phase-frames`, `day-cycle`, `atmosphere` |
 
 Each entry is spelled `<name>@1` in `requires`. The schema and `settingProblems` define all parameters
@@ -199,6 +199,58 @@ Full motion follows the wall clock. Lite honors `run`, `freeze` (frame zero) or 
 elapsed time. Hidden scenes do not redraw. The renderer shares its existing local-time sample with the backdrop
 and phase tint; this behaviour adds no timer and reads neither simulation clocks nor intensity. All frames must
 load or the element falls back under the usual ambience rules. Ambience keeps its own colours, outside stage tint.
+
+## Phase strips
+
+`phase-strip@1` adds a day-aware strip, without changing `strip@1` or opting any existing pack in:
+
+```json
+{ "kind": "phase-strip", "top": 40, "span": [-2048, 2560],
+  "frames": { "sprites": [{ "image": "coast-day" }], "frameMs": 1000 },
+  "drift": { "pxPerSecond": 1.7, "clock": "voyage" },
+  "byPhase": {
+    "day": [{ "image": "coast-day" }],
+    "night": [{ "image": "coast-night" }]
+  } }
+```
+
+The element keeps the usual `slot`, `order`, `lite`, `still`, `needs` and `fallback` fields. `frames`
+is the required base and supplies the only frame count, `frameMs` and optional frame clock. Every
+`byPhase` key must exist in `dayCycle`; every set has the base's frame count and every sprite has the
+base's size. Crops must stay inside their declared images. The span must increase. All images use
+the existing PNG inventory, SHA-256 and 1,000,000-byte pack budget. Fields are strict; intensity
+variants are not part of this capability.
+
+Placement, positive whole-pixel drift, horizontal wrap and fixed world span are exactly those of a
+strip. All phase sets use **one frame index and one horizontal offset**, including when the frame
+clock differs from the drift clock. The existing `dayBlend` supplies eased weights from the same
+local-time sample as backdrops and phase tint. Phase colours and alpha are summed in a transparent
+intermediate and composited once: opaque land stays opaque, and a transparent daytime beam can
+fade both in and out. This uses Pixi's built-in alpha filter, clipped to the viewport; packs cannot
+supply filters or shader code. Each phase strip adds one filtered layer, so prefer a few compact
+layers and profile long repeat widths and resizes before shipping art.
+
+An omitted phase uses the available defined set with the nearest anchor minute in the circular
+24-hour day. Ties use the first candidate in `dayCycle.phases` order. If no phase sets remain,
+every phase uses the base (`byPhase: {}` is valid). A set with any failed image is dropped whole,
+recorded as missing, then resolved by the same rule; a failed base invokes the element's ordinary
+fallback or omission. Identical resolved sets draw once at full weight. Define every phase explicitly
+when a particular dusk/dawn treatment matters. Invalid wall time uses `dayCycle.fallback`.
+
+For a small synchronized light/beam cycle, use a **second phase strip**, with the same repeat width,
+`span`, drift speed and drift clock, and a shallow transparent plate whose light sits at the same
+source x coordinate. Its `top` may differ. Give it its own frame cycle (e.g. three 16-pixel-high beam
+frames) and explicit transparent sets for unlit phases. Those sets must match the beam base's count
+and size, not the coast's. This keeps the large coast at one frame while both strips drift together;
+there are no element-id links, route controllers or new clocks beyond the existing atmosphere table.
+
+Full and lite `run` advance normally. Lite `freeze` and still `first-frame` reset the frame and
+horizontal offset to zero while retaining the current day blend; `hide` draws nothing. Reduced
+motion reads day changes on the existing minute refresh, and hidden panes use the existing pause.
+No timer, pack-id branch, persistent voyage state or new behaviour language is added.
+
+The small [test fixture](../../test/fixtures/phase-strip/scene.json) and
+[render evidence](../deck-phase-strip/README.md) live outside `art/` and are not shipped.
 
 ## Access to a raised station
 

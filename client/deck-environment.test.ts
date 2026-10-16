@@ -33,6 +33,7 @@ import { deckScene, depthOf, type DeckScene, type DeckSailor, type DeckState } f
 import { shipCast, shipElement, shipManifest, shipStage, shipViews, shipWater } from "../test/ship-pack";
 import { standing } from "./deck-cast";
 import { compileStage, type DeckStage } from "./deck-stage";
+import { phaseStripFixture } from "../test/phase-strip-fixture";
 
 // The ship's cast, under the names its constants had in the deck's code.
 const BREATH_ROWS = shipCast().breath!.rows;
@@ -218,6 +219,8 @@ const elementImages = (id: string) =>
           return behaviour.frames.map((frame) => frame.sprite.image);
         case "phase-frames":
           return behaviour.frames.map((frame) => frame.image);
+        case "phase-strip":
+          return [...behaviour.frames.sprites, ...Object.values(behaviour.byPhase).flat()].map((frame) => frame.image);
         case "drifters":
           return behaviour.sprites.flatMap((sprite) => [sprite.image, ...(sprite.variants ?? []).map((variant) => variant.frames[0]!.image)]);
         case "flyby":
@@ -408,6 +411,74 @@ const one = (root: FakeContainer, label: string) => {
   return node;
 };
 const texturePath = (sprite: FakeContainer) => ((sprite as FakeSprite).texture.source.resource as { image: string }).image;
+
+describe("phase strips in the shared strip renderer", () => {
+  const full = { level: "full", animate: true, fps: 30, ambient: true } as const;
+  const lite = { ...full, level: "lite", fps: 12, ambient: false } as const;
+  const still = { level: "still", animate: false, fps: 0, ambient: false } as const;
+  function make() {
+    const manifest = phaseStripFixture();
+    const ambience = compileAmbience(manifest, () => true);
+    const filters: Array<{ destroyed: boolean; destroy(): void }> = [];
+    const module = { ...pixi, AlphaFilter: function () {
+      const filter = { destroyed: false, destroy() { this.destroyed = true; } }; filters.push(filter); return filter;
+    } } as unknown as PixiModule;
+    const atmosphere = compileAtmosphere(manifest);
+    const scenery = createScenery(module, shipStage(), { ...sceneryArt({}), ambience, atmosphere });
+    const back = scenery.back as unknown as FakeContainer;
+    const phase = (element: string, index: number) => one(back, `${element}:phase-${index}`);
+    const pixels = (layer: FakeContainer) => layer.children.filter((child) => child.visible).map((child) => ({
+      x: child.position.x, y: child.position.y, crop: (child as FakeSprite).texture.frame,
+    }));
+    return { scenery, atmosphere, phase, pixels, filters, ambience, module };
+  }
+
+  it("shares crops, wrap and frame clocks across both phases and a separate beam; holds only motion in still", () => {
+    const { scenery, atmosphere, phase, pixels, filters } = make();
+    scenery.layout({ left: -20, right: 440, top: -80, bottom: 220 });
+    const weather = { ...deliveredWeather(atmosphere, 0), clocks: { voyage: 1.1 } };
+    scenery.draw(999, full, 19.5 * 60, weather);
+    expect(phase("test-coast", 2).alpha).toBe(0.84375);
+    expect(phase("test-coast", 3).alpha).toBe(0.15625);
+    const dusk = pixels(phase("test-coast", 2)), night = pixels(phase("test-coast", 3));
+    expect(dusk.map((p) => [p.x, p.crop.x, p.crop.width])).toEqual(night.map((p) => [p.x, p.crop.x, p.crop.width]));
+    expect(dusk[0]!.crop.x).toBe(248); // floor(1.1 * 8), independent of scene seconds
+    const beam = pixels(phase("test-beam", 3));
+    expect(beam.map((p) => [p.x, p.crop.x, p.crop.width])).toEqual(dusk.map((p) => [p.x, p.crop.x, p.crop.width]));
+    expect(beam[0]!.crop.y).toBe(208); // beam frame 3 modulo 3
+    scenery.draw(999, lite, 19.5 * 60, { ...weather, clocks: { voyage: 32.45 } });
+    expect(pixels(phase("test-coast", 3))[0]!.crop.x).toBe(253); // whole lap + 3 pixels
+    expect(pixels(phase("test-beam", 3))[0]!.crop.y).toBe(208);
+    scenery.draw(999, full, 19.5 * 60, { ...weather, clocks: { voyage: 0.45 } });
+    expect(pixels(phase("test-beam", 3))[0]!.crop.y).toBe(224);
+    scenery.draw(999, still, 21 * 60, weather);
+    expect(pixels(phase("test-beam", 3))[0]!.crop.y).toBe(208);
+    expect(pixels(phase("test-coast", 3))[0]!.crop.x).toBe(0);
+    expect(phase("test-coast", 3).alpha).toBe(1);
+    scenery.draw(999, still, 12 * 60, weather);
+    expect(phase("test-coast", 3).visible).toBe(false);
+    expect(phase("test-coast", 1).alpha).toBe(1);
+    scenery.destroy();
+    expect(filters).toHaveLength(2);
+    expect(filters.every((filter) => filter.destroyed)).toBe(true);
+  });
+
+  it("honors lite freeze/hide and still hide without changing the day blend", () => {
+    const { scenery: initial, ambience, module, atmosphere } = make();
+    initial.destroy();
+    ambience.elements[0]!.lite = "freeze";
+    ambience.elements[1]!.lite = "hide";
+    ambience.elements[0]!.still = "hide";
+    const scenery = createScenery(module, shipStage(), { ...sceneryArt({}), ambience, atmosphere });
+    const back = scenery.back as unknown as FakeContainer;
+    scenery.draw(12, lite, 21 * 60);
+    expect((one(back, "test-coast:phase-3").children[0] as FakeSprite).texture.frame.x).toBe(0);
+    expect(one(back, "test-beam:phase-3").visible).toBe(false);
+    scenery.draw(12, still, 21 * 60);
+    expect(one(back, "test-coast:phase-3").visible).toBe(false);
+    scenery.destroy();
+  });
+});
 
 describe("wall-clock frame layers", () => {
   const definition = (): SettingManifest => ({
