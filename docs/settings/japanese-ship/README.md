@@ -104,3 +104,15 @@ The ship gate compares all 81 full interface captures against main `87c26d2`,
 including the condensed footer. This addition expects **zero changed pixels**:
 `docs/deck-settings/expected-changes.json` has an empty shot map. Historical shark
 and ladder evidence remains preserved in its own reviews.
+
+The [completed 81-shot gate](../../deck-settings/gate-results.json) passes with every
+capture pixel-identical, no masks, no expected differences, no flakes, and no browser
+errors. This includes motion through a two-minute storm, crew entry/departure, camera
+focus, and software rendering, as well as the complete condensed footer.
+
+Typecheck, all 1,091 tests in 90 files (three existing skips), and all 51 pack-lint
+checks pass. [validation.json](validation.json) records the protected-file audit and
+byte-identical client bundles; [compile-results.json](compile-results.json) records
+Paseo compilation, zero bundle growth, and Hermes parsing. The bundle contains no
+`class` tokens. The compiler and gate pin pack revision `b61a32f`; the following
+evidence commit changes documentation only.
