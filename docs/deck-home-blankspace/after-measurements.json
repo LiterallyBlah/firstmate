@@ -1,0 +1,312 @@
+[
+  {
+    "width": 1440,
+    "light": false,
+    "trigger": {
+      "x": 1282.203125,
+      "y": 97,
+      "width": 145.796875,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "caption": {
+      "x": 678,
+      "y": 97,
+      "width": 750,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "title": {
+      "x": 678,
+      "y": 101.5,
+      "width": 79.96875,
+      "height": 19,
+      "flexGrow": "0",
+      "flexShrink": "1",
+      "alignItems": "normal"
+    }
+  },
+  {
+    "width": 1440,
+    "light": true,
+    "trigger": {
+      "x": 1282.203125,
+      "y": 97,
+      "width": 145.796875,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "caption": {
+      "x": 678,
+      "y": 97,
+      "width": 750,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "title": {
+      "x": 678,
+      "y": 101.5,
+      "width": 79.96875,
+      "height": 19,
+      "flexGrow": "0",
+      "flexShrink": "1",
+      "alignItems": "normal"
+    }
+  },
+  {
+    "width": 1100,
+    "light": false,
+    "trigger": {
+      "x": 942.203125,
+      "y": 97,
+      "width": 145.796875,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "caption": {
+      "x": 525,
+      "y": 97,
+      "width": 563,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "title": {
+      "x": 525,
+      "y": 101.5,
+      "width": 79.96875,
+      "height": 19,
+      "flexGrow": "0",
+      "flexShrink": "1",
+      "alignItems": "normal"
+    }
+  },
+  {
+    "width": 1100,
+    "light": true,
+    "trigger": {
+      "x": 942.203125,
+      "y": 97,
+      "width": 145.796875,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "caption": {
+      "x": 525,
+      "y": 97,
+      "width": 563,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "title": {
+      "x": 525,
+      "y": 101.5,
+      "width": 79.96875,
+      "height": 19,
+      "flexGrow": "0",
+      "flexShrink": "1",
+      "alignItems": "normal"
+    }
+  },
+  {
+    "width": 800,
+    "light": false,
+    "trigger": {
+      "x": 642.203125,
+      "y": 162,
+      "width": 145.796875,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "caption": {
+      "x": 390,
+      "y": 135,
+      "width": 398,
+      "height": 55,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "title": {
+      "x": 390,
+      "y": 135,
+      "width": 79.96875,
+      "height": 19,
+      "flexGrow": "0",
+      "flexShrink": "1",
+      "alignItems": "normal"
+    }
+  },
+  {
+    "width": 800,
+    "light": true,
+    "trigger": {
+      "x": 642.203125,
+      "y": 162,
+      "width": 145.796875,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "caption": {
+      "x": 390,
+      "y": 135,
+      "width": 398,
+      "height": 55,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "title": {
+      "x": 390,
+      "y": 135,
+      "width": 79.96875,
+      "height": 19,
+      "flexGrow": "0",
+      "flexShrink": "1",
+      "alignItems": "normal"
+    }
+  },
+  {
+    "width": 638,
+    "light": false,
+    "trigger": {
+      "x": 480.203125,
+      "y": 180,
+      "width": 145.796875,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "caption": {
+      "x": 350,
+      "y": 153,
+      "width": 276,
+      "height": 55,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "title": {
+      "x": 350,
+      "y": 153,
+      "width": 79.96875,
+      "height": 19,
+      "flexGrow": "0",
+      "flexShrink": "1",
+      "alignItems": "normal"
+    }
+  },
+  {
+    "width": 638,
+    "light": true,
+    "trigger": {
+      "x": 480.203125,
+      "y": 180,
+      "width": 145.796875,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "caption": {
+      "x": 350,
+      "y": 153,
+      "width": 276,
+      "height": 55,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "title": {
+      "x": 350,
+      "y": 153,
+      "width": 79.96875,
+      "height": 19,
+      "flexGrow": "0",
+      "flexShrink": "1",
+      "alignItems": "normal"
+    }
+  },
+  {
+    "width": 390,
+    "light": false,
+    "trigger": {
+      "x": 232.203125,
+      "y": 166,
+      "width": 145.796875,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "caption": {
+      "x": 12,
+      "y": 139,
+      "width": 366,
+      "height": 55,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "title": {
+      "x": 12,
+      "y": 139,
+      "width": 79.96875,
+      "height": 19,
+      "flexGrow": "0",
+      "flexShrink": "1",
+      "alignItems": "normal"
+    }
+  },
+  {
+    "width": 390,
+    "light": true,
+    "trigger": {
+      "x": 232.203125,
+      "y": 166,
+      "width": 145.796875,
+      "height": 28,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "caption": {
+      "x": 12,
+      "y": 139,
+      "width": 366,
+      "height": 55,
+      "flexGrow": "0",
+      "flexShrink": "0",
+      "alignItems": "center"
+    },
+    "title": {
+      "x": 12,
+      "y": 139,
+      "width": 79.96875,
+      "height": 19,
+      "flexGrow": "0",
+      "flexShrink": "1",
+      "alignItems": "normal"
+    }
+  }
+]
