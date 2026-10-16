@@ -4,13 +4,21 @@ A Japanese coastal merchant ship rounds a rocky island covered in pink and ivory
 sakura, shown in a level side-on broadside with the original ship's slight top-down
 camera. Warm cedar, an indigo hull, a cream sewn sail, and practical indigo/russet
 crew keep the scene readable as pixel art. The curved shoreline and stern wake
-suggest the turn; the existing engine supplies gentle heave, drifting water,
-working poses, and walking crew. This is the second installed setting, selectable
+suggest the turn; the existing engine supplies billowing cloth, swaying upper rigging,
+drifting clouds/water, cycling wake and shark, gentle heave, fidgets, and walking crew.
+This is the second installed setting, selectable
 as **Sakura coast** in both scene pickers. The original ship remains the default.
 
 ![Daytime scene](review/day-canvas.png)
 
 ![Nighttime scene](review/night.png)
+
+![Sail motion, real day render](review/sail-motion.gif)
+
+The [element-by-element animation audit](motion-review.md) compares the original Ship,
+the approved broadside before this fix, and the finished motion. The old sail was static;
+the new one demonstrably changes texture and cloth pixels independently of hull bob.
+[Whole-scene animated preview](review/day-motion.gif).
 
 The revised hull follows the approved art review's camera correction: horizontal
 keel and long deck rails, a modest bow at the stern's rail height, and a visible open
@@ -18,21 +26,23 @@ deck. The mast stays vertical; its ladder lies flat against it and disappears be
 the sail. Crew posts, hatch entry/exit, sleepers, mast/ladder depth crops, and the
 stern shelter are registered to the new hull. The same wake is moved to its new
 waterline. The original 48-colour ship palette is locked in `ship-palette.json`.
-The island's day/night art, both crew sheets, sleeping-window sprite, water, wake,
-reply shark, and their other behaviours are preserved.
-The [broadside audit](broadside-audit.json) records unchanged hashes for those eight
+The island's day/night pixels, both crew sheets, sleeping-window sprite, water, wake,
+reply shark, and their original first frames are preserved. Clouds are now detached
+from the sky and independently animated; new wake/shark frames and crew fidgets fill
+the remaining motion gaps, as the animation audit details.
+The historical [broadside audit](broadside-audit.json) records unchanged hashes for those eight
 images, the unchanged behaviour data, the retained palette, and the central keel's
 single horizontal pixel row. This revision rebases cleanly onto `e5c7f75`, preserving
 the inline Deck and chat-parity work in #77 and #79 without modifying their source.
 
-The shipped pack is only `art/settings/japanese-ship/setting.json` and ten PNGs.
-It uses 17 existing catalogue capabilities, without engine, schema, client, server,
+The shipped pack is only `art/settings/japanese-ship/setting.json` and twenty PNGs.
+It uses 19 existing catalogue capabilities, without engine, schema, client, server,
 tab chrome, or footer changes. The office remains withdrawn. Image payload is
-215,656 bytes, including the picker thumbnail. The original ship's files are untouched.
+about 361 KB, including the picker thumbnail. The original ship's files are untouched.
 
 ## Art provenance and registration
 
-All nine current source images were generated with the built-in `image_gen` tool on
+All source images were generated with the built-in `image_gen` tool on
 2026-10-16 for this task. No downloaded stock art or new hand-drawn vector stand-ins.
 [prompts.json](prompts.json) records the initial prompts and
 [broadside-prompt.json](broadside-prompt.json) records the camera correction, with
@@ -65,6 +75,12 @@ resize of the real renderer's reviewed daytime screenshot, not concept art.
 
 Only derived art and JSON ship. Sources, prompts, generators and review captures
 remain under `docs/`, which `npm pack --dry-run` excludes.
+
+The subsequent motion sources and registration are recorded in
+[motion-prompts.json](motion-prompts.json) and [motion-review.md](motion-review.md).
+`build-motion.mjs` runs after `build-art.mjs` to separate the approved rig/clouds and
+register the generated billow and clear skies. It preserves the original hull and
+uses only existing palette colours; its frame-zero reconstruction is asserted.
 
 ## Scene contract and review
 
@@ -102,6 +118,7 @@ dependencies, Paseo's compiler and Edge:
 
 ```powershell
 node docs/settings/japanese-ship/build-art.mjs
+node docs/settings/japanese-ship/build-motion.mjs
 node docs/settings/japanese-ship/build-pack.mjs
 npm.cmd run typecheck
 npm.cmd test -- --reporter=dot --maxWorkers=4
@@ -134,5 +151,5 @@ Typecheck, all 1,101 tests in 93 files (three existing skips), and all 51 pack-l
 checks pass. [validation.json](validation.json) records the protected-file audit and
 byte-identical client bundles; [compile-results.json](compile-results.json) records
 Paseo compilation, zero bundle growth, and Hermes parsing. The bundle contains no
-`class` tokens. The compiler and gate pin revision `ad16c93`; the following
-evidence commit changes documentation only.
+`class` tokens. The compiler and gate pin the motion implementation revision recorded
+in those JSON files; the following evidence commit changes documentation only.

@@ -17,8 +17,10 @@
     "sink@1",
     "phase-tint@1",
     "bob@1",
+    "sway@1",
     "cycle@1",
     "backdrop-cycle@1",
+    "drifters@1",
     "tile@1",
     "day-cycle@1",
     "atmosphere@1"
@@ -56,7 +58,7 @@
         600,
         400
       ],
-      "sha256": "72329e05567e2ca32906de956d4c612659f7fe7bd0cf5f1571cc62cd088e567f"
+      "sha256": "9cfddb5aded4fac975828b8dd991c1c8acfd2c06f4d52ad280866e057cc978cb"
     },
     "coast-night": {
       "path": "coast-night.png",
@@ -64,7 +66,7 @@
         600,
         400
       ],
-      "sha256": "1d84250f9b02ba6f662ee70b4c44f0af345b81fc7c250805aa05bd99da30c163"
+      "sha256": "86ea9731b9d116a8e133b315a48bcc8feeb22fac319cde2b021938b0335f7306"
     },
     "ripples": {
       "path": "ripples.png",
@@ -120,7 +122,87 @@
         384,
         202
       ],
-      "sha256": "ce725cd4c3f00410f1075bf755b6477fb6b73f3a5deedf09da5f46c78fe2ad84"
+      "sha256": "bc6fff6be9a9ded60fcbe81a05a4ffb8a31fe291db91a05245cfcc481002becb"
+    },
+    "rig-fixed": {
+      "path": "rig-fixed.png",
+      "size": [
+        352,
+        184
+      ],
+      "sha256": "c944b7d74527b47f86376d6cc60c7c3baf372c59ad00d44c8f6284f492621c55"
+    },
+    "masthead": {
+      "path": "masthead.png",
+      "size": [
+        51,
+        37
+      ],
+      "sha256": "40050826163f6c353b57dfb8e6d381ca5eae95cb33e0bab0843b7d301a481ec2"
+    },
+    "sail-billow": {
+      "path": "sail-billow.png",
+      "size": [
+        404,
+        114
+      ],
+      "sha256": "3ecbcce3647b0ffff5d65e55fae230fdfe73db33fdb30762cbcea1c7d78f4929"
+    },
+    "cloud-bank": {
+      "path": "cloud-bank.png",
+      "size": [
+        158,
+        47
+      ],
+      "sha256": "535f4f7bbf215ab37b1b3e8a5e7a63e39177f7e9b18d2caa0c12ed1f7eb500a4"
+    },
+    "cloud-puff": {
+      "path": "cloud-puff.png",
+      "size": [
+        94,
+        22
+      ],
+      "sha256": "3629787a0c66e535b24cf61287dfe1f8e4367db31401e7a004c1501e0920edb7"
+    },
+    "cloud-wisp": {
+      "path": "cloud-wisp.png",
+      "size": [
+        76,
+        22
+      ],
+      "sha256": "be0b0aec9f8660c36be89cd5b6574b5806e874b4b9c30237a822f2bd441dc259"
+    },
+    "coast-front": {
+      "path": "coast-front.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "ad3fa19118a487502b28979620586630c5ea6f6dd43697acde88e56dbd8d8d07"
+    },
+    "coast-night-front": {
+      "path": "coast-night-front.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "116f375f38c2518076c9f39fcd064c37021fe250f536315af674411b0bef9acf"
+    },
+    "wake-motion": {
+      "path": "wake-motion.png",
+      "size": [
+        384,
+        36
+      ],
+      "sha256": "8934bedd29c32c93308724c83415eddd206ce93eca43453002f38ee7489e5f9c"
+    },
+    "reply-shark-motion": {
+      "path": "reply-shark-motion.png",
+      "size": [
+        224,
+        44
+      ],
+      "sha256": "df64d3473e0fe36347e990918b400d287f9c6babe9e470c99772461825b20c7b"
     }
   },
   "preview": "preview",
@@ -149,7 +231,100 @@
         "image": "ship"
       }
     },
-    "parts": [],
+    "parts": [
+      {
+        "id": "fixed-rig",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "rig-fixed"
+        },
+        "at": [
+          55,
+          30
+        ],
+        "cutout": [
+          55,
+          30,
+          352,
+          184
+        ]
+      },
+      {
+        "id": "masthead",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "masthead"
+        },
+        "at": [
+          214,
+          30
+        ],
+        "behaviour": {
+          "kind": "sway",
+          "amplitude": {
+            "channel": "heave",
+            "scale": 1.0833333333333335
+          },
+          "periodS": 6.2,
+          "phase": -1,
+          "limit": 1,
+          "clock": "swell"
+        }
+      },
+      {
+        "id": "sail",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "sail-billow",
+          "rect": [
+            0,
+            0,
+            202,
+            114
+          ]
+        },
+        "at": [
+          145,
+          75
+        ],
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "sail-billow",
+                "rect": [
+                  0,
+                  0,
+                  202,
+                  114
+                ]
+              },
+              {
+                "image": "sail-billow",
+                "rect": [
+                  202,
+                  0,
+                  202,
+                  114
+                ]
+              }
+            ],
+            "frameMs": 850,
+            "clock": "sail"
+          },
+          "duty": {
+            "channel": "billow"
+          }
+        }
+      }
+    ],
     "pieces": [
       {
         "id": "hull-front",
@@ -954,8 +1129,42 @@
           }
         ]
       },
-      "waiting": null,
-      "blocked": null,
+      "waiting": {
+        "periodMs": 2800,
+        "seedMs": 37,
+        "keys": [
+          {
+            "fromMs": 0,
+            "dx": 0,
+            "dy": 0,
+            "pose": "waiting"
+          },
+          {
+            "fromMs": 2200,
+            "dx": 0,
+            "dy": 0,
+            "pose": "stand"
+          }
+        ]
+      },
+      "blocked": {
+        "periodMs": 4600,
+        "seedMs": 37,
+        "keys": [
+          {
+            "fromMs": 0,
+            "dx": 0,
+            "dy": 0,
+            "pose": "side-idle"
+          },
+          {
+            "fromMs": 3400,
+            "dx": 0,
+            "dy": 0,
+            "pose": "stand"
+          }
+        ]
+      },
       "idle": null
     }
   },
@@ -1021,7 +1230,7 @@
     {
       "id": "sea-ripples",
       "slot": "back",
-      "order": 1,
+      "order": 5,
       "lite": "freeze",
       "still": "first-frame",
       "behaviour": {
@@ -1055,7 +1264,7 @@
     {
       "id": "turning-wake",
       "slot": "back",
-      "order": 2,
+      "order": 6,
       "lite": "freeze",
       "still": "first-frame",
       "behaviour": {
@@ -1064,9 +1273,27 @@
           "sprites": [
             {
               "image": "wake"
+            },
+            {
+              "image": "wake-motion",
+              "rect": [
+                128,
+                0,
+                128,
+                36
+              ]
+            },
+            {
+              "image": "wake-motion",
+              "rect": [
+                256,
+                0,
+                128,
+                36
+              ]
             }
           ],
-          "frameMs": 500,
+          "frameMs": 240,
           "clock": "water"
         },
         "opacity": {
@@ -1080,6 +1307,109 @@
           0,
           0
         ]
+      }
+    },
+    {
+      "id": "clouds",
+      "slot": "back",
+      "order": 3,
+      "lite": "freeze",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "drifters",
+        "space": "coast",
+        "clock": "wind",
+        "slots": 3,
+        "margin": 32,
+        "topMin": 6,
+        "lanes": [
+          [
+            78,
+            82
+          ],
+          [
+            96,
+            100
+          ],
+          [
+            124,
+            128
+          ]
+        ],
+        "palette": [
+          "#7EBBED",
+          "#C7DFF0",
+          "#F8EDE0"
+        ],
+        "byPhase": {
+          "day": [
+            "#7EBBED",
+            "#C7DFF0",
+            "#F8EDE0"
+          ],
+          "night": [
+            "#1A3E6C",
+            "#1E4076",
+            "#385890"
+          ]
+        },
+        "sprites": [
+          {
+            "id": "puff",
+            "image": "cloud-puff",
+            "size": [
+              94,
+              22
+            ],
+            "pxPerSecond": 0.45
+          },
+          {
+            "id": "wisp",
+            "image": "cloud-wisp",
+            "size": [
+              76,
+              22
+            ],
+            "pxPerSecond": 0.3
+          },
+          {
+            "id": "bank",
+            "image": "cloud-bank",
+            "size": [
+              158,
+              47
+            ],
+            "pxPerSecond": 0.35
+          }
+        ]
+      }
+    },
+    {
+      "id": "coast-foreground",
+      "slot": "back",
+      "order": 4,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "backdrop-cycle",
+        "size": [
+          600,
+          400
+        ],
+        "phases": {
+          "day": "coast-front",
+          "night": "coast-night-front"
+        },
+        "placement": {
+          "horizonRow": 180,
+          "stageRow": 150
+        },
+        "tint": {
+          "to": "#4D647D",
+          "amount": {
+            "channel": "weather"
+          }
+        }
       }
     }
   ],
@@ -1106,7 +1436,10 @@
         "swell": 0.75,
         "heave": 0.7,
         "wake": 0.4,
-        "weather": 0
+        "weather": 0,
+        "wind": 0.5,
+        "sail": 0.55,
+        "billow": 0.4
       },
       {
         "at": 0.35,
@@ -1114,7 +1447,10 @@
         "swell": 1,
         "heave": 1,
         "wake": 0.65,
-        "weather": 0
+        "weather": 0,
+        "wind": 1,
+        "sail": 1,
+        "billow": 0.5
       },
       {
         "at": 1,
@@ -1122,7 +1458,10 @@
         "swell": 1.2,
         "heave": 1.6,
         "wake": 1,
-        "weather": 0.25
+        "weather": 0.25,
+        "wind": 3,
+        "sail": 2.4,
+        "billow": 0.65
       }
     ],
     "delivered": {
@@ -1130,11 +1469,16 @@
       "swell": 1,
       "heave": 1,
       "wake": 0.7,
-      "weather": 0
+      "weather": 0,
+      "wind": 1,
+      "sail": 1,
+      "billow": 0.5
     },
     "clocks": {
       "water": "pace",
-      "swell": "swell"
+      "swell": "swell",
+      "wind": "wind",
+      "sail": "sail"
     }
   },
   "attentionCarrier": {
@@ -1149,6 +1493,33 @@
     "frames": [
       {
         "image": "reply-shark"
+      },
+      {
+        "image": "reply-shark-motion",
+        "rect": [
+          56,
+          0,
+          56,
+          44
+        ]
+      },
+      {
+        "image": "reply-shark-motion",
+        "rect": [
+          112,
+          0,
+          56,
+          44
+        ]
+      },
+      {
+        "image": "reply-shark-motion",
+        "rect": [
+          168,
+          0,
+          56,
+          44
+        ]
       }
     ],
     "frameMs": 450,
