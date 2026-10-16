@@ -3,7 +3,7 @@
   "formatVersion": 1,
   "id": "sky-airship",
   "name": "Sky pirates",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "requires": [
     "stage@1",
     "floor@1",
@@ -19,6 +19,7 @@
     "choreography@1",
     "phase-tint@1",
     "bob@1",
+    "stage-rock@1",
     "sway@1",
     "cycle@1",
     "flicker@1",
@@ -767,12 +768,12 @@
   },
   "stage": {
     "size": [
-      480,
+      488,
       320
     ],
     "fit": {
-      "top": -4,
-      "bottom": 324,
+      "top": -14,
+      "bottom": 334,
       "margin": 0.94
     },
     "actorHeight": 42,
@@ -782,6 +783,38 @@
         "amplitude": {
           "channel": "heave"
         },
+        "clock": "swell"
+      },
+      "rock": {
+        "pivot": [
+          240,
+          220
+        ],
+        "degrees": {
+          "curve": [
+            [
+              0,
+              0.4
+            ],
+            [
+              1,
+              1.2
+            ]
+          ]
+        },
+        "drift": {
+          "curve": [
+            [
+              0,
+              0.3
+            ],
+            [
+              1,
+              1
+            ]
+          ]
+        },
+        "periodS": 8,
         "clock": "swell"
       }
     },
