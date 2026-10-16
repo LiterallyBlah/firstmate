@@ -6,8 +6,8 @@ nearest-neighbour sampling. No Pixi internals or texture metadata are inspected.
 
 | Element | Ship's deck | Sky pirates |
 | --- | --- | --- |
-| Hull | Whole-ship vertical bob on swell clock | Whole-ship bob, 5.6-second base period, 2 pixels calm to 4 at peak; level broadside retained |
-| Sideways hull motion | No whole-hull sideways transform | **whole-hull sideways rock: not supported by the engine (same as Ship's deck)** |
+| Hull | Whole-ship vertical bob on swell clock | Whole-ship bob, 5.6-second base period, 2 pixels calm to 4 at peak; coupled with gentle rigid rocking |
+| Sideways hull motion | No whole-hull sideways transform | Whole-stage `stage-rock@1`: 0.4? calm to 1.2? at peak about [240,220], plus 0.3?1 pixel sideways drift; 8-second base period on the swell clock |
 | Balloon / sail cloth | Two-frame sail billow | Four generated-pixel balloon frames breathe and sway; both side sails billow with a two-pixel belly displacement |
 | Rigging / masthead | Upper mast sway; lower rig and ladder fixed to hull | Four rig frames with one-pixel lateral displacement; pennant sway; central access ladder remains fixed relative to hull |
 | Flag | Part motion above the deck | Four flutter frames, 180 ms base timing, plus independent lookout-pennant sway |
@@ -24,14 +24,15 @@ nearest-neighbour sampling. No Pixi internals or texture metadata are inspected.
 | Clouds | Seeded, independently drifting cloud field | Six varied shapes: small puff, broken bank, tall tower, feather, curl and anvil. Separate high-wisp and sea-tower fields; dawn pink, dusk gold and moonlit blue phase palettes; storm palette variants |
 | Birds / passing ship | Seeded flybys | Flapping gulls and a distant airship flyby, disabled at night |
 | Day cycle | Backdrop phase crossfade and tint | Pink-gold dawn, blue day, amber dusk and night with stars/moon; phase tint and lantern light |
-| Busy fleet | Faster environmental clocks | Faster clouds, cloth, smoke, propeller and increasing heave as work builds |
+| Busy fleet | Faster environmental clocks | Faster clouds, cloth, smoke, propeller and increasing heave, roll and sideways drift as work builds |
 | Storm | Rain, lightning and peak creature | Dark cloud variants, thunderhead, four rain frames, bounded lightning, four sky-serpent poses at peak |
 | Islands / distant mountains | Fixed backdrop scenery | **Static** island and mountain art; no waterfalls are present, so no waterfall animation is claimed |
 | Stars / moon | Backdrop features | **Static** within night backdrop; the day-cycle transition changes their visibility |
 
 The balloon, rig and sail sway is encoded in finite PNG frames, driven by the
 existing part-cycle catalogue; the pennant also uses the catalogue's sway directly.
-This uses the approved Ship's deck motion model without adding engine behavior.
+The new whole-stage rock uses the separately reviewed generic engine capability;
+all aboard share its transform while the surrounding world remains level.
 The fixed hull detail, wheel, figurehead and rails move with the hull, but have no
 independent articulation. The thunderhead's one-frame shape is static while its
 intensity opacity changes; drifting dark clouds and rain supply storm movement.
@@ -59,8 +60,25 @@ sampling to avoid holes, and rain retains the generated translucent stroke cores
 before native-scale registration rather than losing them to the opaque-art cutoff.
 
 Reduced motion freezes at the resting frame with stable pixel output; wall-clock
-phase changes still update. Lite keeps authored part cycles, bob and crew motion,
+phase changes still update. Lite keeps authored part cycles, bob, whole-stage rock and crew motion,
 freezes rain/serpent and the attention carrier, and hides lightning and flybys.
 Hidden panes retain the existing engine pause behavior. No new motion loop exists.
 
 All fixture verification is local browser evidence, not a physical-device test.
+
+## Whole-stage rocking opt-in
+
+The [calm clip](stage-rock/rock-calm.gif) and [storm clip](stage-rock/rock-storm.gif)
+show the hull, balloon, rig, lamps and crew moving together. Rotation is gentle
+(0.4? to 1.2? each way); in-phase sideways drift is 0.3 to 1 logical pixel.
+The existing swell pace makes the eight-second base period about ten seconds
+when calm and 6.15 seconds at peak. Vertical bob keeps its independent phase.
+
+The stage fit reserves the full sweep: width 488 rather than 480, and vertical
+rows -14 through 334 rather than -4 through 324. No art, floor, post or portal
+coordinate changes. The extra right clearance contains the propeller vapour.
+
+Sky, distant scenery, cloud banks, weather, the attention whale and off-stage
+portal effects stay level. Full/lite rock; reduced motion holds level.
+[Validation and review](stage-rock/README.md) records the established renders,
+still and moving 24-worker clicks, clips, full suite, pack lint, Hermes and ship gate.
