@@ -7,7 +7,13 @@
  * arriving at the end is brought into view whole.
  */
 import { useRef, useState } from "react";
-import type { LayoutChangeEvent, LayoutRectangle, NativeScrollEvent, NativeSyntheticEvent, ScrollView } from "react-native";
+import type {
+  LayoutChangeEvent,
+  LayoutRectangle,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollView,
+} from "react-native";
 
 /** How close to the end still counts as being there, in points. */
 const END_SLACK = 40;
@@ -37,16 +43,20 @@ export function useFollowEnd() {
   const revealed = useRef(new Set<string>());
   /** The content height last reported by `onContentSizeChange` — what the end was last followed to. */
   const knownHeight = useRef(0);
+  const offset = useRef(0);
+  const prepend = useRef<{ height: number; offset: number } | null>(null);
   /** Whether the reader is away from the end, for the button that brings them back. */
   const [away, setAway] = useState(false);
 
   /** Follow the end again — the reader just sent something, or answered something. */
   function pin(): void {
+    prepend.current = null;
     pinnedToEnd.current = true;
   }
 
   /** Back to the end, now, whatever the reader was doing — the button's press. */
   function jumpToEnd(): void {
+    prepend.current = null;
     pinnedToEnd.current = true;
     setAway(false);
     scroller.current?.scrollToEnd({ animated: false });
@@ -72,6 +82,7 @@ export function useFollowEnd() {
   function reveal(id: string, layout: LayoutRectangle): void {
     if (revealed.current.has(id)) return;
     revealed.current.add(id);
+    prepend.current = null;
     const fits = layout.height + 16 <= viewport.current;
     pinnedToEnd.current = fits;
     // After this layout pass, so the scroll view's content already includes the card.
@@ -87,10 +98,18 @@ export function useFollowEnd() {
     scrollEventThrottle: 100,
     onScroll(event: NativeSyntheticEvent<NativeScrollEvent>): void {
       const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+      offset.current = contentOffset.y;
       pinnedToEnd.current = isAtEnd(contentOffset.y, layoutMeasurement.height, contentSize.height, knownHeight.current);
       setAway(!pinnedToEnd.current);
     },
     onContentSizeChange(_width: number, height: number): void {
+      if (prepend.current !== null) {
+        const anchor = prepend.current;
+        prepend.current = null;
+        knownHeight.current = height;
+        scroller.current?.scrollTo({ y: Math.max(0, anchor.offset + height - anchor.height), animated: false });
+        return;
+      }
       knownHeight.current = height;
       keepAtEnd();
     },
@@ -99,5 +118,10 @@ export function useFollowEnd() {
     },
   };
 
-  return { pin, keepAtEnd, reveal, away, jumpToEnd, scrollProps };
+  function preserveOnPrepend(): void {
+    prepend.current = { height: knownHeight.current, offset: offset.current };
+    pinnedToEnd.current = false;
+    setAway(true);
+  }
+  return { pin, keepAtEnd, reveal, away, jumpToEnd, scrollProps, preserveOnPrepend };
 }
