@@ -92,7 +92,7 @@ try {
         page.on("pageerror", (error) => errors.push(error.message));
         await page.clock.setFixedTime(new Date("2026-10-16T08:00:00Z"));
         await page.goto(`${url}/${mode}?${light ? "light=1&" : ""}desktop=1`);
-        await button(page, "Open Crew").waitFor();
+        await button(page, mode === "after" && width === 390 ? "Open" : "Open Crew").waitFor();
         const header =
           mode === "after" ? page.locator("#firstmate-home-header") : button(page, "Open Crew").locator("../../../..");
         heights[mode] = (await header.boundingBox()).height;
