@@ -81,7 +81,7 @@ const http = createServer(async (request, response) => {
   }
 });
 await new Promise((done) => http.listen(0, "127.0.0.1", done));
-const browser = await chromium.launch({ channel: "msedge", headless: true, ...(process.env.CHECK_JAPANESE_LITE === "1" ? { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] } : {}) });
+const browser = await chromium.launch({ channel: "msedge", headless: true, ...(process.env.CHECK_JAPANESE_LITE === "1" || process.env.WATERLINE_LITE === "1" ? { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] } : {}) });
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, reducedMotion: "reduce", timezoneId: "UTC" });
   const view = await context.newPage();

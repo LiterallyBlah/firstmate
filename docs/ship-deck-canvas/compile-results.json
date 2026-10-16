@@ -4,15 +4,15 @@
     "commit": "edda14e",
     "clientBytes": 685206,
     "serverBytes": 348209,
-    "ms": 7055
+    "ms": 6697
   },
   "branch": {
-    "commit": "f241257",
-    "clientBytes": 689605,
-    "serverBytes": 348466,
-    "ms": 2158
+    "commit": "4ef2de0",
+    "clientBytes": 692654,
+    "serverBytes": 349293,
+    "ms": 2947
   },
-  "clientGrowthBytes": 4399,
+  "clientGrowthBytes": 7448,
   "vendoredPixiBytes": 840663,
   "hermesc": "node_modules/react-native/sdks/hermesc (react-native 0.81.5)",
   "hermesParse": {
