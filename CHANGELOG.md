@@ -22,7 +22,8 @@ Git repository or local directory; it is marked private to prevent accidental np
 ### Changed
 
 - Rewrite the README around this fork's current features, with synthetic screenshots of both Deck
-  scenes, Home, List, Board and Chat; retain prominent upstream credit and the MIT license.
+  scenes, Home, List, Board and Chat, plus looping Deck and chat demonstrations replacing the old
+  demo; retain prominent upstream credit and the MIT license.
 
 - **The ship's wake trails steeper.** The stern wake behind the deck now falls away at about 16° instead of about
   7°, so it reads as water streaming off a ship under way rather than lying flat behind it. Same timing, same place
