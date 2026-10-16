@@ -15,9 +15,108 @@
  */
 import { Platform } from "react-native";
 import { rasterImageType } from "../shared/attachments";
+import { connectImageCache, retainedImages, type ImageCache } from "./image-cache";
+import { sentImages } from "./sent-images";
+
+/** A browser-local cache only; native pickers/storage are not exported by the host SDK. */
+export function cacheSentImages(): void {
+  if (Platform.OS !== "web") return;
+  const slot = Symbol.for("paseo.firstmate.image-cache");
+  if (Reflect.get(globalThis, slot)) return;
+  function warn(error: unknown): void {
+    console.warn("[firstmate] sent-image cache unavailable:", error);
+  }
+  try {
+    const cache = browserImageCache();
+    if (cache === null) return;
+    Reflect.set(globalThis, slot, connectImageCache(sentImages, cache, warn));
+  } catch (error) {
+    // Some browser profiles deny even reading the indexedDB property.
+    warn(error);
+  }
+}
+
+function browserImageCache(): ImageCache | null {
+  interface Request<T> {
+    result: T;
+    error?: unknown;
+    onsuccess: (() => void) | null;
+    onerror: (() => void) | null;
+  }
+  interface Transaction {
+    error?: unknown;
+    oncomplete: (() => void) | null;
+    onerror: (() => void) | null;
+    onabort: (() => void) | null;
+    objectStore(name: string): { getAll(): Request<unknown[]>; put(value: unknown): void; delete(id: string): void };
+  }
+  interface Database {
+    createObjectStore(name: string, options: { keyPath: string }): void;
+    transaction(name: string, mode: "readonly" | "readwrite"): Transaction;
+    close(): void;
+    onversionchange: (() => void) | null;
+  }
+  const factory = (
+    globalThis as {
+      indexedDB?: {
+        open(
+          name: string,
+          version: number,
+        ): Request<Database> & { onupgradeneeded: (() => void) | null; onblocked: (() => void) | null };
+      };
+    }
+  ).indexedDB;
+  if (factory === undefined) return null;
+  const database = new Promise<Database>((resolve, reject) => {
+    const request = factory.open("paseo.firstmate.sent-images", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("images", { keyPath: "id" });
+    request.onsuccess = () => {
+      request.result.onversionchange = () => request.result.close();
+      resolve(request.result);
+    };
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error("Image cache upgrade blocked"));
+  });
+  return {
+    read: () =>
+      database.then(
+        (db) =>
+          new Promise((resolve, reject) => {
+            const tx = db.transaction("images", "readonly");
+            const request = tx.objectStore("images").getAll();
+            tx.oncomplete = () => resolve(retainedImages(request.result));
+            tx.onerror = tx.onabort = () => reject(tx.error);
+          }),
+      ),
+    write: (id, images) =>
+      database.then(
+        (db) =>
+          new Promise<void>((resolve, reject) => {
+            // One transaction merges this tab's change with other browser tabs before pruning.
+            const tx = db.transaction("images", "readwrite");
+            const store = tx.objectStore("images");
+            if (images.length === 0) store.delete(id);
+            else store.put({ id, images, savedAt: Date.now() });
+            const request = store.getAll();
+            request.onsuccess = () => {
+              const keep = new Set(retainedImages(request.result).map((row) => row.id));
+              for (const row of request.result) {
+                const key = (row as { id: string }).id;
+                if (!keep.has(key)) store.delete(key);
+              }
+            };
+            tx.oncomplete = () => resolve();
+            tx.onerror = tx.onabort = () => reject(tx.error);
+          }),
+      ),
+  };
+}
 
 /** Browser attributes omitted by React Native Web. Native keeps its own accessibility props. */
-export function webAttributes(attributes: Record<string, string | null>, cursor?: string): { ref?: (node: unknown) => void } {
+export function webAttributes(
+  attributes: Record<string, string | null>,
+  cursor?: string,
+): { ref?: (node: unknown) => void } {
   if (Platform.OS !== "web") return {};
   return {
     ref: (node) => {
@@ -96,10 +195,7 @@ export function tooltipPlacement(
     return null;
   const anchor = trigger as Element,
     tip = popup as Element;
-  if (
-    typeof anchor.getBoundingClientRect !== "function" ||
-    typeof tip.getBoundingClientRect !== "function"
-  )
+  if (typeof anchor.getBoundingClientRect !== "function" || typeof tip.getBoundingClientRect !== "function")
     return null;
   const a = anchor.getBoundingClientRect(),
     b = tip.getBoundingClientRect();
@@ -107,11 +203,7 @@ export function tooltipPlacement(
     right = (web.innerWidth ?? Infinity) - 2,
     top = 0,
     bottom = web.innerHeight ?? Infinity;
-  for (
-    let parent = anchor.parentElement;
-    parent !== null;
-    parent = parent.parentElement
-  ) {
+  for (let parent = anchor.parentElement; parent !== null; parent = parent.parentElement) {
     const style = web.getComputedStyle(parent),
       bounds = parent.getBoundingClientRect();
     // A wide containing row also bounds help, so it cannot spill into an adjacent pane.
@@ -125,16 +217,11 @@ export function tooltipPlacement(
     }
   }
   const scale = anchor.offsetWidth > 0 ? a.width / anchor.offsetWidth : 1;
-  const x = Math.max(
-    left,
-    Math.min(align === "end" ? a.right - b.width : a.left, right - b.width),
-  );
+  const x = Math.max(left, Math.min(align === "end" ? a.right - b.width : a.left, right - b.width));
   const placedSide =
     side === "top" && a.top - b.height < top && a.bottom + b.height <= bottom
       ? "bottom"
-      : side === "bottom" &&
-          a.bottom + b.height > bottom &&
-          a.top - b.height >= top
+      : side === "bottom" && a.bottom + b.height > bottom && a.top - b.height >= top
         ? "top"
         : side;
   return {
@@ -145,7 +232,11 @@ export function tooltipPlacement(
 }
 
 /** Keep DOM keyboard listeners at the web boundary and remove them on unmount. */
-export function bindWebKeys(target: unknown, onKey: (key: string, shift: boolean, repeat: boolean) => boolean, capture = false): () => void {
+export function bindWebKeys(
+  target: unknown,
+  onKey: (key: string, shift: boolean, repeat: boolean) => boolean,
+  capture = false,
+): () => void {
   // A hover tooltip needs Escape even while keyboard focus is elsewhere.
   target ??= (globalThis as WebGlobals).document;
   if (Platform.OS !== "web" || typeof target !== "object" || target === null) return () => {};

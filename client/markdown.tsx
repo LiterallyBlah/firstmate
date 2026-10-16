@@ -21,6 +21,9 @@ import { Text, View } from "react-native";
 import { inlineTokens, type FileLookup } from "./file-links";
 import { parseMarkdown, type Block } from "./markdown-parse";
 import { MONOSPACE } from "./ui";
+import { ChatImage } from "./chat-image";
+import { MessageCopy } from "./message-copy";
+import { markdownImage } from "./markdown-image";
 
 interface MarkdownStyles {
   paragraph: object;
@@ -47,7 +50,12 @@ function useMarkdownStyles(theme: PluginTheme, fontSize: number): MarkdownStyles
     () => ({
       paragraph: { color: theme.colors.foreground, fontSize, lineHeight: Math.round(fontSize * 1.45) },
       heading: { color: theme.colors.foreground, fontSize: fontSize + 1, fontWeight: "600" as const, marginTop: 4 },
-      headingLarge: { color: theme.colors.foreground, fontSize: fontSize + 3, fontWeight: "700" as const, marginTop: 6 },
+      headingLarge: {
+        color: theme.colors.foreground,
+        fontSize: fontSize + 3,
+        fontWeight: "700" as const,
+        marginTop: 6,
+      },
       listRow: { flexDirection: "row" as const, gap: 6 },
       listMarker: { color: theme.colors.foregroundMuted, fontSize, lineHeight: Math.round(fontSize * 1.45) },
       listText: { flex: 1 },
@@ -85,6 +93,8 @@ interface InlineContext {
   onOpenLink: (url: string, title?: string) => void;
   onOpenFile: ((path: string) => void) | null;
   workspaceAware: boolean;
+  theme: PluginTheme;
+  chatTools: boolean;
 }
 
 function renderInline(text: string, styles: MarkdownStyles, context: InlineContext): ReactNode[] {
@@ -123,7 +133,12 @@ function renderInline(text: string, styles: MarkdownStyles, context: InlineConte
         );
       default:
         return (
-          <Text key={index} accessibilityRole="link" style={token.code ? [styles.inlineCode, styles.link] : styles.link} onPress={() => context.onOpenLink(token.url, token.title)}>
+          <Text
+            key={index}
+            accessibilityRole="link"
+            style={token.code ? [styles.inlineCode, styles.link] : styles.link}
+            onPress={() => context.onOpenLink(token.url, token.title)}
+          >
             {token.text}
           </Text>
         );
@@ -154,6 +169,11 @@ function renderBlocks(blocks: Block[], styles: MarkdownStyles, context: InlineCo
       case "code":
         return (
           <View key={index} style={styles.codeBlock}>
+            {context.chatTools ? (
+              <View style={{ alignItems: "flex-end" }}>
+                <MessageCopy text={block.text} theme={context.theme} label="Copy code" />
+              </View>
+            ) : null}
             <Text selectable style={styles.codeText}>
               {block.text}
             </Text>
@@ -183,12 +203,29 @@ function renderBlocks(blocks: Block[], styles: MarkdownStyles, context: InlineCo
             ))}
           </View>
         );
-      default:
+      default: {
+        const lines = block.text.split("\n");
+        if (context.chatTools && lines.some((line) => markdownImage(line) !== null))
+          return (
+            <View key={index} style={{ gap: 6 }}>
+              {lines.map((line, lineIndex) => {
+                const image = markdownImage(line);
+                return image !== null ? (
+                  <ChatImage key={lineIndex} {...image} theme={context.theme} />
+                ) : (
+                  <Text key={lineIndex} selectable style={styles.paragraph}>
+                    {renderInline(line, styles, context)}
+                  </Text>
+                );
+              })}
+            </View>
+          );
         return (
           <Text key={index} selectable style={styles.paragraph}>
             {renderInline(block.text, styles, context)}
           </Text>
         );
+      }
     }
   });
 }
@@ -201,6 +238,7 @@ export function Markdown({
   files = noFiles,
   onOpenFile = null,
   workspaceAware = false,
+  chatTools = false,
 }: {
   source: string;
   theme: PluginTheme;
@@ -211,8 +249,14 @@ export function Markdown({
   onOpenFile?: ((path: string) => void) | null;
   /** FirstMate chat resolves workspace references at click time; bare relative Markdown links need provenance. */
   workspaceAware?: boolean;
+  /** Image previews and copy controls for the conversation, without altering file/card renderers. */
+  chatTools?: boolean;
 }) {
   const styles = useMarkdownStyles(theme, fontSize);
   const blocks = useMemo(() => parseMarkdown(source), [source]);
-  return <View style={{ gap: 6 }}>{renderBlocks(blocks, styles, { lookup: files, onOpenLink, onOpenFile, workspaceAware })}</View>;
+  return (
+    <View style={{ gap: 6 }}>
+      {renderBlocks(blocks, styles, { lookup: files, onOpenLink, onOpenFile, workspaceAware, theme, chatTools })}
+    </View>
+  );
 }

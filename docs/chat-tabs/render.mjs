@@ -139,6 +139,10 @@ try {
   await page.goto(url + "/?no-mate");
   await page.getByRole("button", { name: "Launch the first mate", exact: true }).waitFor();
   assert.equal(await input(chat).count(), 0);
+  if (process.env.CHAT_PARITY === "1") {
+    const { checkParity } = await import("../chat-parity/check.mjs");
+    await checkParity(page, url);
+  }
   assert.deepEqual(errors, []);
   console.log(
     "Chat registration, foreign workspace, launcher, context shortcut, shared draft/image/send gate, remount, failed send, mate replacement, filtered watch, read state, phone layout and launch state passed.",
