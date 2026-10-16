@@ -127,7 +127,7 @@ function renderInline(text: string, styles: MarkdownStyles, context: InlineConte
           <Text
             key={index}
             accessibilityRole="link"
-            accessibilityHint={`Opens ${token.path} in Files`}
+            accessibilityHint={context.imageLoader && localImageLink(token.path) ? `Enlarge ${token.path}` : `Opens ${token.path} in Files`}
             style={token.code ? [styles.inlineCode, styles.link] : styles.link}
             onPress={() => context.imageLoader && localImageLink(token.path) ? context.onOpenLink(token.path, "firstmate:home") : onOpenFile?.(token.path)}
           >

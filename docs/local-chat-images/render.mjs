@@ -58,8 +58,9 @@ try {
     await page.screenshot({ path: resolve(here, `${name}-inline.png`) });
     await page.getByRole("button", { name: "Enlarge deck render", exact: true }).click();
     await page.getByRole("dialog", { name: "Deck render", exact: true }).waitFor();
-    await page.getByRole("button", { name: "Zoom in", exact: true }).click();
     await page.screenshot({ path: resolve(here, `${name}-viewer.png`) });
+    await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+    await page.getByRole("button", { name: "Fit image", exact: true }).click();
     await page.getByRole("button", { name: "Close", exact: true }).click();
     await page.getByRole("link", { name: "Open the deck image", exact: true }).click();
     await page.getByRole("dialog", { name: "Image from the first mate", exact: true }).waitFor();
