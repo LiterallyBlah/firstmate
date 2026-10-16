@@ -6,7 +6,7 @@
  * interval in the display settings and refetched right after any action. The
  * chat reads the first mate's timeline directly and streams.
  *
- * Suggestions occupy one line above the crew; watches open from Home's header.
+ * Machines, suggestions and tags share one compact toolbar; watches open from Home's header.
  * Crew groups tasks by urgency in one scroll container. Board keeps full-height
  * columns in one horizontal row on wide screens. Deck uses the setting engine.
  *
@@ -58,13 +58,11 @@ import { useMateSender } from "./mate-send";
 import { ResizeHandle } from "./resize-handle";
 import { clampShare, MIN_SPLIT_WIDTH } from "./resize-layout";
 import { hostTabs, onTab, shownHostTab } from "./host-tabs";
-import { HostTabRow } from "./host-tab-row";
-import { HostHealthCard, useRemotes } from "./remotes";
+import { useRemotes } from "./remotes";
 import { SelectedDeckView } from "./deck-setting-view";
 import { DeckSceneSwitcher } from "./deck-scene-switcher";
-import { SuggestionStrip } from "./suggestions";
 import { TaskList } from "./task-list";
-import { ItemTagFilter } from "./item-tags";
+import { TaskToolbar } from "./task-toolbar";
 import { matchesTags, tagScopeCards } from "../shared/item-tags";
 import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
 import { focusWebElement } from "./web";
@@ -677,34 +675,24 @@ function FleetViewBody({
   }
 
   const tabs = hostTabs(data.cards, remoteHosts);
-  const tabHost = remoteHosts.find((host) => host.serverId === hostTab) ?? null;
   const hostCards = data.cards.filter((card) => onTab(card, hostTab));
   const tagCards = tagScopeCards(hostCards, crewView === "list" ? showDone : !values.collapsedColumns.includes("done"));
   const filteredCards = hostCards.filter((card) => matchesTags(card, values.tagFilter));
   const board = (
     <View style={{ flex: 1, minHeight: 0 }}>
-      {tabs.length === 0 ? null : (
-        <HostTabRow
-          tabs={tabs}
-          selected={hostTab}
-          theme={theme}
-          compact={compact}
-          onSelect={(id) => save({ hostTab: id })}
-        />
-      )}
-      {tabHost === null ? null : <HostHealthCard key={tabHost.serverId} host={tabHost} theme={theme} />}
-      <SuggestionStrip
-        suggestions={data.suggestions}
+      <TaskToolbar
         theme={theme}
-        disabled={mateSender.sending}
+        tabs={tabs}
+        hosts={remoteHosts}
+        hostTab={hostTab}
+        onHostChange={(id) => save({ hostTab: id })}
+        suggestions={data.suggestions}
+        sending={mateSender.sending}
         onPick={suggest}
         onRemove={dismissSuggestion}
-      />
-      <ItemTagFilter
-        cards={tagCards}
-        selected={values.tagFilter}
-        theme={theme}
-        onChange={(tagFilter) => save({ tagFilter })}
+        tagCards={tagCards}
+        selectedTags={values.tagFilter}
+        onTagsChange={(tagFilter) => save({ tagFilter })}
       />
       {hostCards.length > 0 && filteredCards.length === 0 ? (
         <Text style={{ color: theme.colors.foregroundMuted, padding: 12 }}>
