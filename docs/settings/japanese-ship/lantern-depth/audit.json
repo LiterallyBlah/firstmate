@@ -1,0 +1,146 @@
+{
+  "baseline": "96d5914",
+  "onlyThreeDepthsChanged": true,
+  "results": [
+    {
+      "file": "day-blocked.png",
+      "pixels": 8550,
+      "bounds": [
+        862,
+        959,
+        973,
+        1071
+      ]
+    },
+    {
+      "file": "day-working.png",
+      "pixels": 7745,
+      "bounds": [
+        1755,
+        925,
+        1867,
+        1036
+      ]
+    },
+    {
+      "file": "day-ready.png",
+      "pixels": 7475,
+      "bounds": [
+        1799,
+        898,
+        2078,
+        1036
+      ]
+    },
+    {
+      "file": "day-idle.png",
+      "pixels": 0,
+      "bounds": null
+    },
+    {
+      "file": "night-blocked.png",
+      "pixels": 8550,
+      "bounds": [
+        862,
+        959,
+        973,
+        1071
+      ]
+    },
+    {
+      "file": "night-working.png",
+      "pixels": 7745,
+      "bounds": [
+        1755,
+        925,
+        1867,
+        1036
+      ]
+    },
+    {
+      "file": "night-ready.png",
+      "pixels": 7371,
+      "bounds": [
+        1799,
+        898,
+        2078,
+        1036
+      ]
+    },
+    {
+      "file": "night-idle.png",
+      "pixels": 0,
+      "bounds": null
+    },
+    {
+      "file": "posts/day-blocked.png",
+      "pixels": 3826,
+      "bounds": [
+        913,
+        959,
+        960,
+        1066
+      ]
+    },
+    {
+      "file": "posts/day-working.png",
+      "pixels": 5591,
+      "bounds": [
+        1755,
+        928,
+        1867,
+        1036
+      ]
+    },
+    {
+      "file": "posts/day-ready.png",
+      "pixels": 1014,
+      "bounds": [
+        1859,
+        903,
+        2078,
+        998
+      ]
+    },
+    {
+      "file": "posts/day-idle.png",
+      "pixels": 0,
+      "bounds": null
+    },
+    {
+      "file": "posts/night-blocked.png",
+      "pixels": 3826,
+      "bounds": [
+        913,
+        959,
+        960,
+        1066
+      ]
+    },
+    {
+      "file": "posts/night-working.png",
+      "pixels": 5591,
+      "bounds": [
+        1755,
+        928,
+        1867,
+        1036
+      ]
+    },
+    {
+      "file": "posts/night-ready.png",
+      "pixels": 1014,
+      "bounds": [
+        1859,
+        903,
+        2078,
+        998
+      ]
+    },
+    {
+      "file": "posts/night-idle.png",
+      "pixels": 0,
+      "bounds": null
+    }
+  ]
+}

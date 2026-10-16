@@ -65,5 +65,7 @@ export function addParity(pack){
   pack.effects={dragon:{size:[92,128],points:{anchor:[46,120],mouth:[24,110]},frames:Object.fromEntries(dragonFrames.map((k,i)=>[k,frame('dragon',i*92,92,128)]))},splash:{size:[48,32],points:{anchor:[24,27]},frames:{impact:sprite('splash-impact'),burst:sprite('splash-burst')}}};
   const style=structuredClone(ship.stage.lightStyles.lantern);Object.assign(style,{glyph:registration.lantern,origin:[4,0],inks:{a:'#161E30',b:'#FFD688',c:'#943E41'},glow:[{at:[0,7],radius:13,colour:'#FFB050',alpha:.12},{at:[0,7],radius:7,colour:'#FFC070',alpha:.2}]});
   pack.stage.lightStyles={chochin:style};
-  pack.stage.lights=[[125,218],[332,210],[398,201]].map((at,i)=>({id:'chochin-'+i,style:'chochin',at,row:245,seed:i*2.3,lite:'run',still:'first-frame'}));
+  // Rail lamps precede the open deck (row 224+); the stern lamp must also clear
+  // the shelter at row 228, while staying behind sailors in front (row 229+).
+  pack.stage.lights=[[125,218],[332,210],[398,201]].map((at,i)=>({id:'chochin-'+i,style:'chochin',at,row:[223,223,228][i],seed:i*2.3,lite:'run',still:'first-frame'}));
 }
