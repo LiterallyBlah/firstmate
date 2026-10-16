@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {decodePng} from '../../../test/png.ts';
 import {blank,crop,nearest,encode,quant,paste,bounds} from '../japanese-ship/build-art.mjs';
+import {cloudFloor} from './narrow/build-floor.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),out=resolve(here,'../../../art/settings/sky-airship');
 mkdirSync(out,{recursive:true});
 const images={},sources={},lanes={};
@@ -103,7 +104,12 @@ for(const [name,rect,w,h,colours]of [
  // A reflected continuation makes both joins pixel-continuous without a blend seam.
  // Each original panorama is already wider than the stage; the continuation doubles its repeat period.
  const loop=a=>{const b=blank(a.width*2,a.height);for(let y=0;y<a.height;y++)for(let x=0;x<b.width;x++)put(b,x,y,pixel(a,x<a.width?x:b.width-1-x,y));return b;};
- save(name,loop(foundation(day)));save(name+'-storm',loop(foundation(storm)));
+ const registeredDay=loop(foundation(day)),registeredStorm=loop(foundation(storm));
+ if(name==='sea-near'){
+  const floor=cloudFloor(registeredDay,registeredStorm,source('cloud-floor'));
+  save('sea-floor',floor.tile);save('sea-floor-storm',floor.stormTile);
+ }
+ save(name,registeredDay);save(name+'-storm',registeredStorm);
 }
 const mist=quant(fit(bits[2],160,16,8),3,cloudPalette);frames('mist',[0,1,2,3].map(f=>{const b=blank(160,18);paste(b,mist,0,f%2);return b;}));
 frames('mist-storm',[0,1,2,3].map(f=>{const b=blank(160,18),a=clone(mist);for(let i=0;i<a.rgba.length;i+=4)if(a.rgba[i+3]){a.rgba[i]=Math.round(a.rgba[i]*.36);a.rgba[i+1]=Math.round(a.rgba[i+1]*.4);a.rgba[i+2]=Math.round(a.rgba[i+2]*.5);}paste(b,a,0,f%2);return b;}));
