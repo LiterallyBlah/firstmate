@@ -842,6 +842,7 @@ function FleetViewBody({
 
   const deckScene = (
     <SelectedDeckView
+      captionActions={home ? <DeckSceneSwitcher theme={theme} compact={compact || paneWidth < 638} /> : null}
       setting={values.deckSetting}
       cards={data.cards}
       theme={theme}
@@ -874,14 +875,7 @@ function FleetViewBody({
       )}
     />
   );
-  const inlineDeck = watching !== null ? conversation : (
-    <View style={{ flex: 1, minHeight: 0 }}>
-      <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 12, paddingVertical: 6 }}>
-        <DeckSceneSwitcher theme={theme} compact={compact || paneWidth < 638} />
-      </View>
-      {deckScene}
-    </View>
-  );
+  const inlineDeck = watching !== null ? conversation : deckScene;
 
   if (!home) {
     return (
