@@ -213,10 +213,10 @@
     "sail-screen": {
       "path": "sail-screen.png",
       "size": [
-        23,
-        150
+        28,
+        174
       ],
-      "sha256": "76fc1c8ee67ecb62e34999965b815b223c6a5d1a6d521e9cd02eff295e3725a5"
+      "sha256": "00c603fce58638679e228ceafd99160168423311bb4603b15d1c643b2371502e"
     },
     "seam-0": {
       "path": "seam-0.png",
@@ -1747,12 +1747,10 @@
           "image": "sail-screen"
         },
         "at": [
-          286,
-          115
+          284,
+          96
         ],
-        "baseline": {
-          "over": "mast"
-        }
+        "baseline": 321
       },
       {
         "id": "capstan",

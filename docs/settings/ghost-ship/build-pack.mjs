@@ -31,7 +31,7 @@ tintByPhase:{dawn:'#CABACA',morning:'#CFDCD8',midday:'#CDDCD5',afternoon:'#D5CFB
 backdrop:{sprite:s('ship')},parts:partList,pieces:[
 {id:'hull-front',sprite:{image:'ship',rect:[24,340,752,126]},at:[24,340],baseline:null},
 {id:'mast',sprite:{image:'ship',rect:[286,66,24,270]},at:[286,66],baseline:320},
-{id:'sail-screen',sprite:s('sail-screen'),at:[286,115],baseline:{over:'mast'}},
+{id:'sail-screen',sprite:s('sail-screen'),at:[284,96],baseline:321},
 {id:'capstan',sprite:{image:'ship',rect:[370,299,32,36]},at:[370,299],baseline:334},
 {id:'stern-rail',sprite:{image:'ship',rect:[675,263,94,12]},at:[675,263],baseline:274},
 {id:'plank',sprite:{image:'ship',rect:[28,259,86,16]},at:[28,259],baseline:{over:'hull-front'}}],props:[],lightStyles:{lantern},
@@ -99,6 +99,7 @@ writeFileSync(resolve(out,'setting.json'),JSON.stringify(pack,null,2)+'\n');
 // Only remove orphan PNGs generated into this exact owned pack directory.
 for(const file of readdirSync(out))if(file.endsWith('.png')&&!Object.values(pack.images).some(i=>i.path===file))unlinkSync(resolve(out,file));
 console.log(JSON.stringify({id:pack.id,images:Object.keys(pack.images).length,bytes:Object.values(pack.images).reduce((n,a)=>n+readFileSync(resolve(out,a.path)).length,0)}));
+
 
 
 
