@@ -34,6 +34,10 @@ function deckRpc(name) {
 export function useRpc(contract) {
   if (contract.name === "firstmate.fleet.load") return loadFleet;
   if (contract.name.startsWith("firstmate.deck.")) return deckRpc(contract.name);
+  if (contract.name === "firstmate.mate.ask" && window.fixtureSharkSend) return input => {
+    window.fixtureCalls.push({ name: contract.name, input });
+    return new Promise((resolve, reject) => { window.finishSharkSend = error => error ? reject(new Error(error)) : resolve({ agentId: "mate" }); });
+  };
   return boardListRpc(contract);
 }
 

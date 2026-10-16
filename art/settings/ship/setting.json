@@ -3,7 +3,7 @@
   "formatVersion": 1,
   "id": "ship",
   "name": "Ship's deck",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "requires": [
     "stage@1",
     "floor@1",
@@ -5146,6 +5146,7 @@
     "staleAlpha": 0.6
   },
   "attentionCarrier": {
+    "bubbleHeight": 24,
     "at": [
       4,
       122
