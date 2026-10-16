@@ -113,6 +113,19 @@ window.drawOverlay = function drawOverlay(manifest) {
       g.lineTo(px(post.x) + facing * 10, py(post.y) + (facing === 0 ? 8 : 0));
       g.stroke();
       label(post.id, px(post.x) + 5, py(post.y) - 4, colour);
+      const transit = stage.transits.get(post.id);
+      if (transit !== undefined) {
+        g.setLineDash([5, 3]);
+        g.beginPath();
+        transit.points.forEach((point, index) => {
+          if (index === 0) g.moveTo(px(point.x), py(point.y));
+          else g.lineTo(px(point.x), py(point.y));
+        });
+        g.stroke();
+        g.setLineDash([]);
+        const end = transit.points.at(-1);
+        label(`${post.id}: ${transit.settled}`, px(end.x) + 8, py(end.y) - 4, colour);
+      }
     }
   });
 

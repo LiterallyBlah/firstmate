@@ -87,14 +87,14 @@ function sailor(key: string, state: DeckState = "idle", identity = `agent-${key}
 }
 
 describe("the sail and the crew's looks, as served", () => {
-  it("fit the atlas: every look the atlas's size, with every pose drawn at the base lane's frames and nothing outside them", () => {
-    const frames = SAILOR_POSES.flatMap((pose) => [standing(shipCast(), "base", pose).frame, standing(shipCast(), "outfit", pose).frame]);
-    const inside = (x: number, y: number) => frames.some(([fx, fy, fw, fh]) => x >= fx && x < fx + fw && y >= fy && y < fy + fh);
+  it("fit each generated atlas: every pose in its own lane, with no unframed opaque pixels", () => {
     for (const look of shipCast().looks.filter((each) => each.image !== shipManifest().stage.backdrop.sprite.image)) {
+      const frames = SAILOR_POSES.map(pose => standing(shipCast(), look.lane, pose).frame);
+      const inside = (x: number, y: number) => frames.some(([fx, fy, fw, fh]) => x >= fx && x < fx + fw && y >= fy && y < fy + fh);
       const png = decodePng(readFileSync(art(shipManifest().images[look.image]!.path)));
-      expect([png.width, png.height], look.id).toEqual(shipManifest().images[shipManifest().stage.backdrop.sprite.image]!.size);
+      expect([png.width, png.height], look.id).toEqual(shipManifest().images[look.image]!.size);
       for (const pose of SAILOR_POSES) {
-        const [fx, fy, fw, fh] = standing(shipCast(), "base", pose).frame;
+        const [fx, fy, fw, fh] = standing(shipCast(), look.lane, pose).frame;
         let opaque = 0;
         for (let y = fy; y < fy + fh; y += 1) for (let x = fx; x < fx + fw; x += 1) if (png.alpha(x, y) === 255) opaque += 1;
         expect(opaque, `${look.id} ${pose}`).toBeGreaterThan(40);
@@ -139,7 +139,7 @@ describe("who wears which look", () => {
     expect(crewLooks(missing)).not.toContain("navigator");
     expect(crewLooks(missing)).toHaveLength(7);
     expect(ATLAS_LOOKS).toEqual(["base", "outfit"]);
-    expect([lookLane("base"), lookLane("outfit"), lookLane("bosun")]).toEqual(["base", "outfit", "base"]);
+    expect([lookLane("base"), lookLane("outfit"), lookLane("bosun")]).toEqual(["base", "outfit", "bosun"]);
   });
 
   it("dresses each sailor by its agent id, spreading a crew over every look", () => {
@@ -194,8 +194,8 @@ describe("the sail's billow", () => {
   });
 
   it("is drawn only with its strip, on the tall mast it is fitted to", () => {
-    expect(drawn()).toEqual(["tall-mast", "topmast", "sail"]);
-    expect(drawn("sails-main-sail")).toEqual(["tall-mast", "topmast"]);
+    expect(drawn()).toEqual(["tall-mast", "topmast", "sail", "access-ladder"]);
+    expect(drawn("sails-main-sail")).toEqual(["tall-mast", "topmast", "access-ladder"]);
     expect(drawn("mast-tall-mast")).toEqual(["masthead"]);
   });
 });

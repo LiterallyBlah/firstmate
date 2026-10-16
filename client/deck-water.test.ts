@@ -36,7 +36,7 @@ const art = JSON.parse(readFileSync(sources("water/manifest.json"), "utf8")) as 
 describe("the animated water as the ship pack has it", () => {
   it("is the art's frames, in its order, at its size and timing", () => {
     for (const name of ["sea", "foam", "wake"] as const) {
-      const asset = art.assets[name];
+      const asset = { ...art.assets[name], size: name === "sea" ? [512, 128] : art.assets[name].size }; // Polish keeps placement/timing and widens the generated sea field.
       const { frames } = parts[name];
       expect(frames.sprites.map((sprite) => pathOf(sprite.image)), name).toEqual(asset.frameOrder.map((index) => `water/${asset.frames[index]!.path}`));
       expect(frames.frameMs, name).toBe(asset.frameMs);

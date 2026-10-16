@@ -1,0 +1,2050 @@
+[
+  {
+    "look": "base",
+    "pose": "front-walk-a",
+    "source": [
+      87,
+      29,
+      145,
+      295
+    ],
+    "output": [
+      8,
+      3,
+      16,
+      33
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "front-pass-a",
+    "source": [
+      353,
+      29,
+      144,
+      292
+    ],
+    "output": [
+      40,
+      4,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "front-walk-b",
+    "source": [
+      625,
+      29,
+      144,
+      295
+    ],
+    "output": [
+      72,
+      3,
+      16,
+      33
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "front-pass-b",
+    "source": [
+      888,
+      30,
+      143,
+      291
+    ],
+    "output": [
+      104,
+      4,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "side-walk-a",
+    "source": [
+      69,
+      371,
+      181,
+      288
+    ],
+    "output": [
+      6,
+      44,
+      20,
+      32
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "side-pass-a",
+    "source": [
+      369,
+      371,
+      107,
+      289
+    ],
+    "output": [
+      42,
+      44,
+      12,
+      32
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "side-walk-b",
+    "source": [
+      612,
+      371,
+      181,
+      289
+    ],
+    "output": [
+      70,
+      44,
+      20,
+      32
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "side-pass-b",
+    "source": [
+      910,
+      371,
+      111,
+      289
+    ],
+    "output": [
+      106,
+      44,
+      12,
+      32
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "front-idle",
+    "source": [
+      83,
+      710,
+      144,
+      290
+    ],
+    "output": [
+      8,
+      84,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "hauling",
+    "source": [
+      320,
+      722,
+      238,
+      278
+    ],
+    "output": [
+      35,
+      85,
+      26,
+      31
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "hauling-pull",
+    "source": [
+      611,
+      732,
+      231,
+      268
+    ],
+    "output": [
+      67,
+      86,
+      25,
+      30
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "waiting",
+    "source": [
+      920,
+      710,
+      132,
+      289
+    ],
+    "output": [
+      104,
+      84,
+      15,
+      32
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "climb-a",
+    "source": [
+      97,
+      1052,
+      145,
+      315
+    ],
+    "output": [
+      8,
+      121,
+      16,
+      35
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "climb-b",
+    "source": [
+      344,
+      1052,
+      140,
+      311
+    ],
+    "output": [
+      40,
+      122,
+      15,
+      34
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "lookout",
+    "source": [
+      621,
+      1057,
+      165,
+      306
+    ],
+    "output": [
+      71,
+      122,
+      18,
+      34
+    ]
+  },
+  {
+    "look": "base",
+    "pose": "thinking",
+    "source": [
+      914,
+      1057,
+      128,
+      306
+    ],
+    "output": [
+      105,
+      122,
+      14,
+      34
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "front-walk-a",
+    "source": [
+      84,
+      29,
+      150,
+      295
+    ],
+    "output": [
+      8,
+      4,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "front-pass-a",
+    "source": [
+      350,
+      30,
+      148,
+      294
+    ],
+    "output": [
+      40,
+      4,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "front-walk-b",
+    "source": [
+      623,
+      29,
+      148,
+      296
+    ],
+    "output": [
+      72,
+      3,
+      16,
+      33
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "front-pass-b",
+    "source": [
+      884,
+      29,
+      149,
+      293
+    ],
+    "output": [
+      104,
+      4,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "side-walk-a",
+    "source": [
+      65,
+      370,
+      188,
+      290
+    ],
+    "output": [
+      5,
+      44,
+      21,
+      32
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "side-pass-a",
+    "source": [
+      368,
+      370,
+      111,
+      291
+    ],
+    "output": [
+      42,
+      44,
+      12,
+      32
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "side-walk-b",
+    "source": [
+      608,
+      370,
+      187,
+      291
+    ],
+    "output": [
+      69,
+      44,
+      21,
+      32
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "side-pass-b",
+    "source": [
+      905,
+      370,
+      119,
+      291
+    ],
+    "output": [
+      105,
+      44,
+      13,
+      32
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "front-idle",
+    "source": [
+      80,
+      711,
+      147,
+      291
+    ],
+    "output": [
+      8,
+      84,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "hauling",
+    "source": [
+      318,
+      721,
+      240,
+      281
+    ],
+    "output": [
+      35,
+      85,
+      26,
+      31
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "hauling-pull",
+    "source": [
+      608,
+      728,
+      234,
+      275
+    ],
+    "output": [
+      67,
+      86,
+      26,
+      30
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "waiting",
+    "source": [
+      914,
+      711,
+      140,
+      290
+    ],
+    "output": [
+      104,
+      84,
+      15,
+      32
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "climb-a",
+    "source": [
+      95,
+      1052,
+      148,
+      317
+    ],
+    "output": [
+      8,
+      121,
+      16,
+      35
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "climb-b",
+    "source": [
+      340,
+      1052,
+      146,
+      312
+    ],
+    "output": [
+      40,
+      122,
+      16,
+      34
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "lookout",
+    "source": [
+      617,
+      1055,
+      168,
+      311
+    ],
+    "output": [
+      71,
+      122,
+      18,
+      34
+    ]
+  },
+  {
+    "look": "outfit",
+    "pose": "thinking",
+    "source": [
+      910,
+      1056,
+      132,
+      310
+    ],
+    "output": [
+      104,
+      122,
+      15,
+      34
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "front-walk-a",
+    "source": [
+      78,
+      39,
+      166,
+      289
+    ],
+    "output": [
+      6,
+      3,
+      19,
+      33
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "front-pass-a",
+    "source": [
+      342,
+      38,
+      170,
+      290
+    ],
+    "output": [
+      38,
+      3,
+      19,
+      33
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "front-walk-b",
+    "source": [
+      610,
+      38,
+      171,
+      290
+    ],
+    "output": [
+      70,
+      3,
+      19,
+      33
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "front-pass-b",
+    "source": [
+      875,
+      39,
+      169,
+      289
+    ],
+    "output": [
+      102,
+      3,
+      19,
+      33
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "side-walk-a",
+    "source": [
+      63,
+      376,
+      191,
+      287
+    ],
+    "output": [
+      5,
+      44,
+      22,
+      32
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "side-pass-a",
+    "source": [
+      365,
+      376,
+      115,
+      287
+    ],
+    "output": [
+      41,
+      44,
+      13,
+      32
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "side-walk-b",
+    "source": [
+      600,
+      376,
+      194,
+      287
+    ],
+    "output": [
+      69,
+      44,
+      22,
+      32
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "side-pass-b",
+    "source": [
+      897,
+      376,
+      121,
+      287
+    ],
+    "output": [
+      105,
+      44,
+      14,
+      32
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "front-idle",
+    "source": [
+      70,
+      719,
+      171,
+      283
+    ],
+    "output": [
+      6,
+      84,
+      19,
+      32
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "hauling",
+    "source": [
+      309,
+      722,
+      252,
+      280
+    ],
+    "output": [
+      34,
+      84,
+      28,
+      32
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "hauling-pull",
+    "source": [
+      604,
+      727,
+      238,
+      275
+    ],
+    "output": [
+      66,
+      85,
+      27,
+      31
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "waiting",
+    "source": [
+      898,
+      719,
+      162,
+      283
+    ],
+    "output": [
+      103,
+      84,
+      18,
+      32
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "climb-a",
+    "source": [
+      89,
+      1052,
+      160,
+      317
+    ],
+    "output": [
+      7,
+      120,
+      18,
+      36
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "climb-b",
+    "source": [
+      336,
+      1052,
+      156,
+      318
+    ],
+    "output": [
+      39,
+      120,
+      18,
+      36
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "lookout",
+    "source": [
+      604,
+      1062,
+      185,
+      307
+    ],
+    "output": [
+      69,
+      121,
+      21,
+      35
+    ]
+  },
+  {
+    "look": "bosun",
+    "pose": "thinking",
+    "source": [
+      907,
+      1063,
+      147,
+      306
+    ],
+    "output": [
+      103,
+      121,
+      17,
+      35
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "front-walk-a",
+    "source": [
+      81,
+      26,
+      158,
+      300
+    ],
+    "output": [
+      7,
+      3,
+      17,
+      33
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "front-pass-a",
+    "source": [
+      348,
+      26,
+      151,
+      298
+    ],
+    "output": [
+      40,
+      3,
+      16,
+      33
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "front-walk-b",
+    "source": [
+      617,
+      26,
+      153,
+      300
+    ],
+    "output": [
+      71,
+      3,
+      17,
+      33
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "front-pass-b",
+    "source": [
+      882,
+      26,
+      156,
+      300
+    ],
+    "output": [
+      103,
+      3,
+      17,
+      33
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "side-walk-a",
+    "source": [
+      64,
+      365,
+      190,
+      296
+    ],
+    "output": [
+      5,
+      44,
+      21,
+      32
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "side-pass-a",
+    "source": [
+      363,
+      365,
+      115,
+      296
+    ],
+    "output": [
+      41,
+      44,
+      13,
+      32
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "side-walk-b",
+    "source": [
+      606,
+      365,
+      191,
+      297
+    ],
+    "output": [
+      69,
+      44,
+      21,
+      32
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "side-pass-b",
+    "source": [
+      903,
+      365,
+      117,
+      297
+    ],
+    "output": [
+      105,
+      44,
+      13,
+      32
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "front-idle",
+    "source": [
+      79,
+      709,
+      149,
+      293
+    ],
+    "output": [
+      8,
+      84,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "hauling",
+    "source": [
+      318,
+      717,
+      240,
+      285
+    ],
+    "output": [
+      35,
+      85,
+      26,
+      31
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "hauling-pull",
+    "source": [
+      607,
+      724,
+      235,
+      278
+    ],
+    "output": [
+      67,
+      86,
+      26,
+      30
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "waiting",
+    "source": [
+      913,
+      709,
+      144,
+      293
+    ],
+    "output": [
+      104,
+      84,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "climb-a",
+    "source": [
+      91,
+      1052,
+      153,
+      317
+    ],
+    "output": [
+      7,
+      121,
+      17,
+      35
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "climb-b",
+    "source": [
+      338,
+      1052,
+      149,
+      314
+    ],
+    "output": [
+      40,
+      122,
+      16,
+      34
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "lookout",
+    "source": [
+      613,
+      1054,
+      170,
+      312
+    ],
+    "output": [
+      70,
+      122,
+      19,
+      34
+    ]
+  },
+  {
+    "look": "old-salt",
+    "pose": "thinking",
+    "source": [
+      909,
+      1054,
+      135,
+      312
+    ],
+    "output": [
+      104,
+      122,
+      15,
+      34
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "front-walk-a",
+    "source": [
+      84,
+      26,
+      152,
+      301
+    ],
+    "output": [
+      7,
+      3,
+      17,
+      33
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "front-pass-a",
+    "source": [
+      348,
+      26,
+      152,
+      298
+    ],
+    "output": [
+      39,
+      4,
+      17,
+      32
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "front-walk-b",
+    "source": [
+      613,
+      26,
+      158,
+      302
+    ],
+    "output": [
+      71,
+      3,
+      17,
+      33
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "front-pass-b",
+    "source": [
+      883,
+      26,
+      155,
+      298
+    ],
+    "output": [
+      103,
+      4,
+      17,
+      32
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "side-walk-a",
+    "source": [
+      65,
+      371,
+      189,
+      290
+    ],
+    "output": [
+      5,
+      44,
+      21,
+      32
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "side-pass-a",
+    "source": [
+      351,
+      371,
+      140,
+      291
+    ],
+    "output": [
+      40,
+      44,
+      15,
+      32
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "side-walk-b",
+    "source": [
+      609,
+      369,
+      190,
+      292
+    ],
+    "output": [
+      69,
+      44,
+      21,
+      32
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "side-pass-b",
+    "source": [
+      892,
+      370,
+      140,
+      292
+    ],
+    "output": [
+      104,
+      44,
+      15,
+      32
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "front-idle",
+    "source": [
+      79,
+      708,
+      147,
+      294
+    ],
+    "output": [
+      8,
+      84,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "hauling",
+    "source": [
+      316,
+      720,
+      245,
+      283
+    ],
+    "output": [
+      34,
+      85,
+      27,
+      31
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "hauling-pull",
+    "source": [
+      606,
+      724,
+      236,
+      279
+    ],
+    "output": [
+      67,
+      86,
+      26,
+      30
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "waiting",
+    "source": [
+      904,
+      709,
+      158,
+      292
+    ],
+    "output": [
+      103,
+      84,
+      17,
+      32
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "climb-a",
+    "source": [
+      94,
+      1052,
+      148,
+      318
+    ],
+    "output": [
+      8,
+      121,
+      16,
+      35
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "climb-b",
+    "source": [
+      338,
+      1052,
+      147,
+      314
+    ],
+    "output": [
+      40,
+      122,
+      16,
+      34
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "lookout",
+    "source": [
+      613,
+      1055,
+      172,
+      312
+    ],
+    "output": [
+      70,
+      122,
+      19,
+      34
+    ]
+  },
+  {
+    "look": "navigator",
+    "pose": "thinking",
+    "source": [
+      909,
+      1057,
+      135,
+      310
+    ],
+    "output": [
+      104,
+      122,
+      15,
+      34
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "front-walk-a",
+    "source": [
+      85,
+      32,
+      148,
+      293
+    ],
+    "output": [
+      7,
+      3,
+      17,
+      33
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "front-pass-a",
+    "source": [
+      350,
+      32,
+      147,
+      291
+    ],
+    "output": [
+      39,
+      3,
+      17,
+      33
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "front-walk-b",
+    "source": [
+      622,
+      32,
+      146,
+      293
+    ],
+    "output": [
+      72,
+      3,
+      16,
+      33
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "front-pass-b",
+    "source": [
+      886,
+      32,
+      146,
+      290
+    ],
+    "output": [
+      104,
+      3,
+      16,
+      33
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "side-walk-a",
+    "source": [
+      65,
+      374,
+      187,
+      287
+    ],
+    "output": [
+      5,
+      44,
+      21,
+      32
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "side-pass-a",
+    "source": [
+      367,
+      375,
+      117,
+      287
+    ],
+    "output": [
+      41,
+      44,
+      13,
+      32
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "side-walk-b",
+    "source": [
+      609,
+      375,
+      187,
+      287
+    ],
+    "output": [
+      69,
+      44,
+      21,
+      32
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "side-pass-b",
+    "source": [
+      906,
+      375,
+      123,
+      286
+    ],
+    "output": [
+      105,
+      44,
+      14,
+      32
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "front-idle",
+    "source": [
+      81,
+      717,
+      146,
+      285
+    ],
+    "output": [
+      8,
+      84,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "hauling",
+    "source": [
+      318,
+      723,
+      241,
+      279
+    ],
+    "output": [
+      34,
+      85,
+      27,
+      31
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "hauling-pull",
+    "source": [
+      608,
+      732,
+      234,
+      271
+    ],
+    "output": [
+      67,
+      86,
+      26,
+      30
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "waiting",
+    "source": [
+      914,
+      716,
+      140,
+      285
+    ],
+    "output": [
+      104,
+      84,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "climb-a",
+    "source": [
+      95,
+      1052,
+      148,
+      317
+    ],
+    "output": [
+      7,
+      120,
+      17,
+      36
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "climb-b",
+    "source": [
+      340,
+      1052,
+      145,
+      314
+    ],
+    "output": [
+      40,
+      121,
+      16,
+      35
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "lookout",
+    "source": [
+      617,
+      1063,
+      168,
+      303
+    ],
+    "output": [
+      70,
+      122,
+      19,
+      34
+    ]
+  },
+  {
+    "look": "carpenter",
+    "pose": "thinking",
+    "source": [
+      908,
+      1063,
+      134,
+      303
+    ],
+    "output": [
+      104,
+      122,
+      15,
+      34
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "front-walk-a",
+    "source": [
+      85,
+      14,
+      147,
+      310
+    ],
+    "output": [
+      8,
+      3,
+      16,
+      33
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "front-pass-a",
+    "source": [
+      353,
+      14,
+      145,
+      310
+    ],
+    "output": [
+      40,
+      3,
+      16,
+      33
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "front-walk-b",
+    "source": [
+      624,
+      14,
+      144,
+      310
+    ],
+    "output": [
+      72,
+      3,
+      15,
+      33
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "front-pass-b",
+    "source": [
+      886,
+      14,
+      146,
+      310
+    ],
+    "output": [
+      104,
+      3,
+      16,
+      33
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "side-walk-a",
+    "source": [
+      66,
+      354,
+      187,
+      306
+    ],
+    "output": [
+      6,
+      43,
+      20,
+      33
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "side-pass-a",
+    "source": [
+      363,
+      354,
+      124,
+      308
+    ],
+    "output": [
+      41,
+      43,
+      13,
+      33
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "side-walk-b",
+    "source": [
+      609,
+      354,
+      187,
+      308
+    ],
+    "output": [
+      70,
+      43,
+      20,
+      33
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "side-pass-b",
+    "source": [
+      906,
+      354,
+      122,
+      308
+    ],
+    "output": [
+      105,
+      43,
+      13,
+      33
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "front-idle",
+    "source": [
+      82,
+      703,
+      144,
+      299
+    ],
+    "output": [
+      8,
+      84,
+      15,
+      32
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "hauling",
+    "source": [
+      317,
+      713,
+      242,
+      289
+    ],
+    "output": [
+      35,
+      85,
+      26,
+      31
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "hauling-pull",
+    "source": [
+      612,
+      720,
+      230,
+      282
+    ],
+    "output": [
+      67,
+      86,
+      25,
+      30
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "waiting",
+    "source": [
+      913,
+      703,
+      137,
+      299
+    ],
+    "output": [
+      104,
+      84,
+      15,
+      32
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "climb-a",
+    "source": [
+      96,
+      1052,
+      146,
+      316
+    ],
+    "output": [
+      8,
+      122,
+      16,
+      34
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "climb-b",
+    "source": [
+      338,
+      1052,
+      146,
+      313
+    ],
+    "output": [
+      40,
+      123,
+      16,
+      33
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "lookout",
+    "source": [
+      617,
+      1052,
+      164,
+      313
+    ],
+    "output": [
+      71,
+      123,
+      18,
+      33
+    ]
+  },
+  {
+    "look": "rigger",
+    "pose": "thinking",
+    "source": [
+      912,
+      1052,
+      129,
+      313
+    ],
+    "output": [
+      105,
+      123,
+      14,
+      33
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "front-walk-a",
+    "source": [
+      85,
+      29,
+      148,
+      296
+    ],
+    "output": [
+      8,
+      4,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "front-pass-a",
+    "source": [
+      352,
+      29,
+      147,
+      294
+    ],
+    "output": [
+      40,
+      4,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "front-walk-b",
+    "source": [
+      622,
+      29,
+      147,
+      296
+    ],
+    "output": [
+      72,
+      4,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "front-pass-b",
+    "source": [
+      884,
+      29,
+      148,
+      293
+    ],
+    "output": [
+      104,
+      4,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "side-walk-a",
+    "source": [
+      66,
+      366,
+      186,
+      293
+    ],
+    "output": [
+      6,
+      44,
+      20,
+      32
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "side-pass-a",
+    "source": [
+      367,
+      366,
+      111,
+      295
+    ],
+    "output": [
+      42,
+      44,
+      12,
+      32
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "side-walk-b",
+    "source": [
+      609,
+      366,
+      185,
+      295
+    ],
+    "output": [
+      70,
+      44,
+      20,
+      32
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "side-pass-b",
+    "source": [
+      906,
+      366,
+      118,
+      295
+    ],
+    "output": [
+      105,
+      44,
+      13,
+      32
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "front-idle",
+    "source": [
+      80,
+      709,
+      148,
+      293
+    ],
+    "output": [
+      8,
+      84,
+      16,
+      32
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "hauling",
+    "source": [
+      316,
+      716,
+      241,
+      286
+    ],
+    "output": [
+      35,
+      85,
+      26,
+      31
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "hauling-pull",
+    "source": [
+      609,
+      722,
+      233,
+      280
+    ],
+    "output": [
+      67,
+      85,
+      25,
+      31
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "waiting",
+    "source": [
+      913,
+      710,
+      141,
+      291
+    ],
+    "output": [
+      104,
+      84,
+      15,
+      32
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "climb-a",
+    "source": [
+      92,
+      1052,
+      151,
+      315
+    ],
+    "output": [
+      8,
+      122,
+      16,
+      34
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "climb-b",
+    "source": [
+      340,
+      1052,
+      145,
+      312
+    ],
+    "output": [
+      40,
+      122,
+      16,
+      34
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "lookout",
+    "source": [
+      619,
+      1052,
+      166,
+      313
+    ],
+    "output": [
+      71,
+      122,
+      18,
+      34
+    ]
+  },
+  {
+    "look": "deckhand",
+    "pose": "thinking",
+    "source": [
+      912,
+      1052,
+      131,
+      314
+    ],
+    "output": [
+      105,
+      122,
+      14,
+      34
+    ]
+  }
+]

@@ -438,6 +438,8 @@ export function packArt(
   if (lacking !== undefined) return Promise.reject(pack.failed.get(lacking) ?? new Error(`the setting's ${lacking} did not load`));
   for (const id of parts.missing) warn(`[firstmate] the deck's ${pathOf(id)} did not load; drawing without it:`, pack.failed.get(id));
   const cast = compileCast(pack.manifest);
+  const absentLook = cast.looks.find((look) => !look.optional && !pack.images.has(look.image));
+  if (absentLook !== undefined) return Promise.reject(pack.failed.get(absentLook.image) ?? new Error(`the setting's ${absentLook.image} did not load`));
   const effectImages = new Set(Object.values(pack.manifest.effects).flatMap((effect) => Object.values(effect.frames).map((sprite) => sprite.image)));
   for (const id of effectImages) if (!pack.images.has(id)) warn(`[firstmate] the deck's ${pathOf(id)} did not load; drawing without it:`, pack.failed.get(id));
   const uncut = new Map<string, unknown>();
@@ -454,7 +456,7 @@ export function packArt(
       const failed = pack.failed.get(look.image);
       if (failed !== undefined) warn(`[firstmate] the deck's ${pathOf(look.image)} did not load; drawing without it:`, failed);
     }
-    return { stage: compileStage(pack.manifest), cast, parts, ambience, atmosphere: compileAtmosphere(pack.manifest), images: pack.images, masks, image: atlas, effects: pack.manifest.effects, attentionCarrier: pack.manifest.attentionCarrier, presentation: deckPresentation(pack.manifest) };
+    return { stage: compileStage(pack.manifest, (id) => pack.images.has(id)), cast, parts, ambience, atmosphere: compileAtmosphere(pack.manifest), images: pack.images, masks, image: atlas, effects: pack.manifest.effects, attentionCarrier: pack.manifest.attentionCarrier, presentation: deckPresentation(pack.manifest) };
   });
 }
 

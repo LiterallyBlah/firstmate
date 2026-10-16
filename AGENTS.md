@@ -426,6 +426,10 @@ is recorded in `docs/deck-settings/README.md`. The two built-in packs are `art/s
   `zone-appearance@1` adds a settled zone's fixed sprite, feet anchor and foreground piece. The engine keeps
   identity, state and badges; sprite bounds/depth drive hit testing and focus. Cast motion resumes while walking.
   Only explicit packing areas with visible handles can use non-spill floor; ordinary overflow stays out.
+  `post-transit@1` gives a post an authored reversible access path from navigable floor to a raised station,
+  with speed, moving/settled poses and piece-relative depth (`client/deck-post-transit.ts`). Only its primary
+  holder takes the route. It descends before changing posts, reverses continuously on reassignment, and snaps
+  in reduced motion. Missing declared art dependencies leave the station on the floor. No pack callbacks.
   The office's commissioning contract, historical draft, provenance and runtime review live in
   `docs/settings/office/`. Its installed manifest has real image digests and copies of the verified PNGs.
   `test/office-draft.test.ts` preserves the original geometry/registration checks; generic pack lint checks
