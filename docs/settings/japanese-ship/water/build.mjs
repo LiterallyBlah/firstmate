@@ -93,6 +93,21 @@ for(const [id,dim]of [['stars',false],['stars-dim',true]]){
   save(id,a);
 }
 delete p.images.ripples;try{unlinkSync(resolve(out,'ripples.png'));}catch(e){if(e.code!=='ENOENT')throw e;}
+// The old rise variant multiplied two weather fades (15% body at intensity .9).
+// Register sinking crops from the existing opaque dome, clipped at its waterline.
+const spirit=decodePng(readFileSync(resolve(out,'umibozu.png'))),sink=blank(72*3,80);
+for(let f=0;f<2;f++)for(let y=0;y<78;y++)for(let x=0;x<72;x++){
+  const dy=y+(f+1)*8;if(dy>=78)continue;
+  sink.rgba.set(spirit.rgba.subarray((y*spirit.width+x)*4,(y*spirit.width+x)*4+4),(dy*sink.width+f*72+x)*4);
+}
+save('umibozu-sink',sink);
+const spiritElement=p.ambience.find(e=>e.id==='umibozu');
+const pose=i=>({image:'umibozu',rect:[i*72,0,72,80]}),submerge=i=>({image:'umibozu-sink',rect:[i*72,0,72,80]});
+spiritElement.behaviour.frames={sprites:[pose(2),pose(2),pose(3),pose(1),pose(0),submerge(0),submerge(1),submerge(2),submerge(2),submerge(1),submerge(0),pose(0),pose(1),pose(3),pose(2)],frameMs:500,clock:'swell'};
+// A near-step reveal, below the first attainable storm target (19/24). No stable
+// crew intensity lies inside this interval, so the body cannot hang half-faded.
+spiritElement.behaviour.opacity={curve:[[.78,0],[.780001,1]]};
+delete spiritElement.behaviour.variants;
 p.requires=[...new Set([...p.requires,'phase-strip@1'])].sort();p.version='1.1.0';
 writeFileSync(resolve(out,'setting.json'),JSON.stringify(p,null,2)+'\n');
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({baseline,sourceHashes:Object.fromEntries(['swell','stars'].map(n=>[n,sha(readFileSync(resolve(here,'sources',n+'.png')))])),imageBytes:Object.values(p.images).reduce((n,i)=>n+readFileSync(resolve(out,i.path)).length,0)},null,2)+'\n');
