@@ -1,0 +1,9 @@
+{
+  "tool": "image_gen.imagegen",
+  "date": "2026-10-16",
+  "source": "../sources/cloud-floor.png",
+  "reference": "art/settings/sky-airship/sea-near.png at 96d5914",
+  "transparent_background": false,
+  "prompt": "Create one seamless repeating opaque CLOUD SEA TEXTURE for a pixel art game. Reference image is style and palette only: soft volumetric ivory cloud tops, periwinkle lavender-blue shadows, fine pixel texture. Output landscape 1536x1024, fill absolutely the entire image edge to edge with layered cloud billows viewed obliquely from above, fairly uniform sized billows distributed in depth throughout, NO sky, NO horizon, NO gaps, NO transparency, NO objects, NO text. This is a texture tile, so the top/bottom and left/right edges should match seamlessly. Keep shadow and highlight balance consistent across height, no gradient and no flat bottom strip. Match the reference's creamy ivory highlights and lavender shadows closely.",
+  "registration": "build-floor.mjs: aspect-preserving crop and nearest-neighbour registration, 32-pixel wrap overlaps, original near-bank palette, storm palette correspondence, 48-row opaque foot transition"
+}
