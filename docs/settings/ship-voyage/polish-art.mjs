@@ -7,15 +7,17 @@ export function polishAtmosphere({source,save,read,baseline,clone,pixel,put,blit
  const bayer=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
  const mix=(a,b,t)=>a.map((v,c)=>v+(b[c]-v)*Math.max(0,Math.min(1,t)));
  const dither=(rgb,x,y)=>rgb.map(v=>Math.max(0,Math.min(255,4*Math.floor(v/4+(bayer[y%4][x%4]+.5)/16))));
- // Register the generated gradient's row means, then quantize with fine ordered dithering.
- // This avoids median-cut's broad flat bins, especially when tall panes magnify sky pixels.
+ // Fit a continuous colour curve through averaged source regions, then dither.
+ // Raw generated rows retain subtle terrace boundaries that tall panes amplify.
  const seaPalettes={dawn:[[99,166,179],[42,102,139],[28,68,106]],morning:[[55,191,201],[21,123,170],[16,87,141]],midday:[[35,195,211],[12,119,174],[13,88,144]],afternoon:[[66,182,189],[26,121,162],[21,82,130]],dusk:[[134,124,157],[57,76,115],[26,44,78]],night:[[29,56,91],[15,35,64],[9,21,43]]};
  for(const [i,phase]of phases.entries()) {
   const rows=[];
   for(let y=0;y<512;y++){const sum=[0,0,0];for(let x=16;x<496;x++){const p=pixel(sky,(i%3)*512+x,Math.floor(i/3)*512+y);for(let c=0;c<3;c++)sum[c]+=p[c];}rows.push(sum.map(v=>v/480));}
+  const average=(from,to)=>[0,1,2].map(c=>rows.slice(from,to).reduce((n,r)=>n+r[c],0)/(to-from));
+  const top=average(8,40),middle=average(224,288),bottom=average(472,504);
   const a=blank(512,2048),front=blank(512,2048),[far,near,deep]=seaPalettes[phase];
   for(let y=0;y<2048;y++)for(let x=0;x<512;x++){
-   const skyY=Math.min(511,y/213*511),lo=Math.floor(skyY),skyRGB=mix(rows[lo],rows[Math.min(511,lo+1)],skyY-lo);
+   const t=Math.min(1,y/212),skyRGB=top.map((v,c)=>v*(1-t)**2+2*middle[c]*t*(1-t)+bottom[c]*t*t);
    const depthRGB=mix(near,deep,(y-512)/500);
    const rgb=y<213?skyRGB:mix(far,near,(y-213)/72);
    put(a,x,y,[...dither(rgb,x,y),255]);if(y>=512)put(front,x,y,[...dither(depthRGB,x,y),255]);

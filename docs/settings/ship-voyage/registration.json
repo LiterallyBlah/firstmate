@@ -131,7 +131,7 @@
         512,
         2048
       ],
-      "sha256": "7f8111665ccb3111c07f731860192ee83d12bc14c5b60ac9264e97fb916e4b47"
+      "sha256": "f5547100be816fe8d33daa528aacd6461e924c85aa0ff7ea295635e135f6d722"
     },
     "sky-dawn": {
       "path": "sky-dawn.png",
@@ -139,7 +139,7 @@
         512,
         2048
       ],
-      "sha256": "d2db3e016f97868d20ad6bceeb9123ec477758241380acfb42cc2c54de4ed068"
+      "sha256": "1c1e5026cee73c4006e03968ba1bd4423b0cb08e6e3472cb634d49de955b17b4"
     },
     "sky-dusk": {
       "path": "sky-dusk.png",
@@ -147,7 +147,7 @@
         512,
         2048
       ],
-      "sha256": "0a80011177508c8a1719f5e105045364b257a2385f64f946d44953d6b3d1bd8d"
+      "sha256": "59dedda7600660ecf06e1fe99072d4461893da805b2ed21c4bfec268e4df2148"
     },
     "sky-midday": {
       "path": "sky-midday.png",
@@ -155,7 +155,7 @@
         512,
         2048
       ],
-      "sha256": "5d10d6b0fd87764afedd3e20369d349e8a966bcaa431d4c6e8222cf9bce973dc"
+      "sha256": "b7d4e68699cf6aa2d6c2d20de11156b1b9e1799f1b2d867ac596304f064bb7b9"
     },
     "sky-morning": {
       "path": "sky-morning.png",
@@ -163,7 +163,7 @@
         512,
         2048
       ],
-      "sha256": "4772894e6da702ccb2e9aaacf7e4cfdce7352c5d6a674fe4b9fa73c0b07fb312"
+      "sha256": "3e369ea4823301ad34ee2139c90afa0eb0077512de8b8293b9c511e6eb34cfe1"
     },
     "sky-night": {
       "path": "sky-night.png",
@@ -171,7 +171,7 @@
         512,
         2048
       ],
-      "sha256": "f4143174135988b371da7ab4a34efaad40754293f4abbd2579393814c309f2c8"
+      "sha256": "8f7fb94a6fd827588cfe8dd909c38e7bd7e92c7619b93dd32283322b9c96122d"
     },
     "sky-stars": {
       "path": "sky-stars.png",
