@@ -7,7 +7,7 @@ nearest-neighbour sampling. No Pixi internals or texture metadata are inspected.
 | Element | Ship's deck | Sky pirates |
 | --- | --- | --- |
 | Hull | Whole-ship vertical bob on swell clock | Whole-ship bob, 5.6-second base period, 2 pixels calm to 4 at peak; coupled with gentle rigid rocking |
-| Sideways hull motion | No whole-hull sideways transform | Whole-stage `stage-rock@1`: 0.4? calm to 1.2? at peak about [240,220], plus 0.3?1 pixel sideways drift; 8-second base period on the swell clock |
+| Sideways hull motion | No whole-hull sideways transform | Whole-stage `stage-rock@1`: 0.4° calm to 1.2° at peak about [240,220], plus 0.3–1 pixel sideways drift; 8-second base period on the swell clock |
 | Balloon / sail cloth | Two-frame sail billow | Four generated-pixel balloon frames breathe and sway; both side sails billow with a two-pixel belly displacement |
 | Rigging / masthead | Upper mast sway; lower rig and ladder fixed to hull | Four rig frames with one-pixel lateral displacement; pennant sway; central access ladder remains fixed relative to hull |
 | Flag | Part motion above the deck | Four flutter frames, 180 ms base timing, plus independent lookout-pennant sway |
@@ -70,7 +70,7 @@ All fixture verification is local browser evidence, not a physical-device test.
 
 The [calm clip](stage-rock/rock-calm.gif) and [storm clip](stage-rock/rock-storm.gif)
 show the hull, balloon, rig, lamps and crew moving together. Rotation is gentle
-(0.4? to 1.2? each way); in-phase sideways drift is 0.3 to 1 logical pixel.
+(0.4° to 1.2° each way); in-phase sideways drift is 0.3 to 1 logical pixel.
 The existing swell pace makes the eight-second base period about ten seconds
 when calm and 6.15 seconds at peak. Vertical bob keeps its independent phase.
 
