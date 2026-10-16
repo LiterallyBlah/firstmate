@@ -9,8 +9,9 @@
  * `clientMessageId`, and the chat finds the images again by it.
  *
  * Kept on `globalThis`, like `./draft` and `./attachments`, so they survive
- * the surface unmounting and the bundle being evaluated afresh; not persisted
- * and not shared between devices, as in Paseo. The oldest are dropped past a
+ * the surface unmounting and the bundle being evaluated afresh. The web chat
+ * also caches these locally in IndexedDB (`image-cache`); never shared between devices.
+ * The oldest are dropped past a
  * count and a size, and that message then shows its words alone, as before.
  * Pure apart from that one slot.
  */
@@ -25,15 +26,17 @@ export interface SentImageStore {
   get(messageId: string | undefined): readonly ImagePart[];
   set(messageId: string, images: readonly ImagePart[]): void;
   forget(messageId: string): void;
+  entries(): [string, readonly ImagePart[]][];
   /** Bumped by every change, for `useSyncExternalStore`. */
   version(): number;
-  subscribe(listener: () => void): () => void;
+  subscribe(listener: (messageId: string) => void): () => void;
 }
 
 const NONE: readonly ImagePart[] = [];
 
 /** A registered symbol, so each evaluation of the bundle names the same slot. */
 const SLOT = Symbol.for("paseo.firstmate.sent-images");
+const EVENTS = Symbol.for("paseo.firstmate.sent-images.events");
 
 /** The images kept on `root`; every store built on the same root shares them. */
 export function createSentImageStore(
@@ -46,11 +49,16 @@ export function createSentImageStore(
     Reflect.set(root, SLOT, kept);
   }
   const store = kept;
-  const listeners = new Set<() => void>();
-  let revision = 0;
-  function changed(): void {
-    revision += 1;
-    listeners.forEach((listener) => listener());
+  type Events = { revision: number; listeners: Set<(messageId: string) => void> };
+  let events = Reflect.get(root, EVENTS) as Events | undefined;
+  if (events === undefined) {
+    events = { revision: 0, listeners: new Set() };
+    Reflect.set(root, EVENTS, events);
+  }
+  const shared = events;
+  function changed(messageId: string): void {
+    shared.revision += 1;
+    shared.listeners.forEach((listener) => listener(messageId));
   }
   function size(): number {
     let total = 0;
@@ -66,16 +74,18 @@ export function createSentImageStore(
       for (const oldest of store.keys()) {
         if (store.size <= 1 || (store.size <= limits.messages && size() <= limits.chars)) break;
         store.delete(oldest);
+        changed(oldest);
       }
-      changed();
+      changed(messageId);
     },
     forget: (messageId) => {
-      if (store.delete(messageId)) changed();
+      if (store.delete(messageId)) changed(messageId);
     },
-    version: () => revision,
+    version: () => shared.revision,
+    entries: () => [...store.entries()],
     subscribe: (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
+      shared.listeners.add(listener);
+      return () => shared.listeners.delete(listener);
     },
   };
 }

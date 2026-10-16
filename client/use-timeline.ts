@@ -2,11 +2,13 @@ import { usePaseo } from "@getpaseo/plugin/client";
 import { useEffect, useRef, useState } from "react";
 
 import type { TimelinePage, TimelineEntry } from "./transcript-rows";
+import { mergeTimelineHistory } from "./timeline-history";
 
 /** Wait for a pause in the stream before re-reading, so one burst is one read. */
 const QUIET_MS = 300;
 /** A stream that never pauses is still re-read this often. */
 const CEILING_MS = 1500;
+type BeforeHistoryCommit = (prefix: readonly TimelineEntry[], hasOlder: boolean) => void;
 
 export interface AgentTimeline {
   entries: TimelineEntry[];
@@ -20,6 +22,8 @@ export interface AgentTimeline {
   hasOlder: boolean;
   error: string | null;
   loading: boolean;
+  loadingOlder: boolean;
+  loadOlder(beforeCommit?: BeforeHistoryCommit): void;
 }
 
 /**
@@ -35,11 +39,13 @@ export function useAgentTimeline(agentId: string | null, revision = "", limit = 
   const paseo = usePaseo();
   /** The current subscription's re-read, for the revision effect below. */
   const reread = useRef<() => void>(() => {});
+  const older = useRef<(beforeCommit?: BeforeHistoryCommit) => void>(() => {});
   const [entries, setEntries] = useState<TimelineEntry[]>([]);
   const [agent, setAgent] = useState<TimelinePage["agent"]>(null);
   const [hasOlder, setHasOlder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
   useEffect(() => {
     if (agentId === null) {
@@ -48,9 +54,12 @@ export function useAgentTimeline(agentId: string | null, revision = "", limit = 
       setHasOlder(false);
       setError(null);
       setLoading(false);
+      setLoadingOlder(false);
       return;
     }
     const timeline = paseo.agents.ref(agentId).timeline;
+    let kept: TimelinePage | null = null;
+    let keepHistory = false;
     let alive = true;
     let inFlight = false;
     let queued = false;
@@ -67,18 +76,41 @@ export function useAgentTimeline(agentId: string | null, revision = "", limit = 
 
     // An async function, not an async arrow: Hermes evaluates an async arrow
     // in an eval'd bundle to `undefined`.
-    async function load(): Promise<void> {
+    async function load(before = false, beforeCommit?: BeforeHistoryCommit): Promise<void> {
       if (inFlight) {
-        queued = true;
+        if (!before) queued = true;
         return;
       }
+      if (before && (!kept?.hasOlder || kept.startCursor === null)) return;
       inFlight = true;
+      if (before) setLoadingOlder(true);
       try {
-        const page = await timeline.refetch({ direction: "tail", limit, projection: "projected" });
+        const page = await timeline.refetch({
+          direction: before ? "before" : "tail",
+          limit,
+          projection: "projected",
+          ...(before && kept?.startCursor ? { cursor: kept.startCursor } : {}),
+        });
         if (!alive) return;
-        setEntries(page.entries);
+        if (page.error) throw new Error(page.error);
+        if (before && (page.staleCursor || page.reset || page.gap || page.epoch !== kept?.epoch)) {
+          kept = null;
+          keepHistory = false;
+          queued = true;
+          return;
+        }
+        if (before) {
+          keepHistory = true;
+          const first = kept?.entries[0]?.seqStart ?? Infinity;
+          beforeCommit?.(
+            page.entries.filter((entry) => entry.seqEnd < first),
+            page.hasOlder,
+          );
+        }
+        kept = keepHistory ? mergeTimelineHistory(kept, page) : page;
+        setEntries(kept.entries);
         if (page.agent !== null) setAgent(page.agent);
-        setHasOlder(page.hasOlder);
+        setHasOlder(kept.hasOlder);
         setError(page.error ?? null);
       } catch (cause) {
         if (alive) setError(cause instanceof Error ? cause.message : String(cause));
@@ -86,6 +118,7 @@ export function useAgentTimeline(agentId: string | null, revision = "", limit = 
         inFlight = false;
         if (alive) {
           setLoading(false);
+          setLoadingOlder(false);
           if (queued) {
             queued = false;
             void load();
@@ -106,12 +139,16 @@ export function useAgentTimeline(agentId: string | null, revision = "", limit = 
     }
 
     reread.current = schedule;
+    older.current = (beforeCommit) => {
+      void load(true, beforeCommit);
+    };
     void load();
     const unsubscribe = timeline.subscribe(schedule);
     return () => {
       alive = false;
       clearTimers();
       unsubscribe();
+      older.current = () => {};
     };
   }, [paseo, agentId, limit]);
 
@@ -125,5 +162,13 @@ export function useAgentTimeline(agentId: string | null, revision = "", limit = 
     if (revision !== "") reread.current();
   }, [revision]);
 
-  return { entries, agent, hasOlder, error, loading };
+  return {
+    entries,
+    agent,
+    hasOlder,
+    error,
+    loading,
+    loadingOlder,
+    loadOlder: (beforeCommit) => older.current(beforeCommit),
+  };
 }

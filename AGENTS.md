@@ -89,7 +89,9 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/sidebar.tsx`          | The sidebar item: the FirstMate row and its badge.                                         |
 | `client/chat.tsx`             | The first mate's conversation, folded to the words, and the composer.                      |
 | `client/draft.ts`, `attachments.ts` | The unsent message and what is attached to it, kept on `globalThis` across reloads.  |
-| `client/sent-images.ts`       | The images the captain sent, kept by message id for the chat to draw: the timeline has none. |
+| `client/sent-images.ts`, `image-cache.ts` | Sent images by message id (the timeline has none), shared by both chats and cached in browser IndexedDB. |
+| `client/chat-image.tsx`, `message-copy.tsx` | Conversation image viewer and host clipboard actions; Markdown opts into these only for chat. |
+| `client/timeline-history.ts` | Projected earlier pages merged with the live tail, with epoch/gap/overlap guards. |
 | `shared/files.ts`, `server/files.ts` | The home as files: list, read, write — confined to the home, saved against the version opened. |
 | `client/files.tsx`            | The Files view: the home's folders, a text editor, a Markdown preview.                     |
 | `client/open-file.ts`         | The file open in the Files view, and what a save changes about it. Pure.                   |
@@ -1468,8 +1470,18 @@ message's words alone (`submittedPromptText` in Paseo's agent manager keeps text
 transcript cannot show an image from it; Paseo's app shows one from its local copy of the message. The
 chat does the same (`client/sent-images.ts`): a message with images is sent with a `firstmate-captain-`
 `messageId`, its images kept under that id on `globalThis`, and the captain's row whose `clientMessageId`
-matches draws them. Local like Paseo's — gone after an app restart and on another device, where the row
-shows the words, or `(attachments)`. `docs/image-preview/` has the replay.
+matches draws them. Browser clients also cache the association and bytes in a plugin-specific IndexedDB
+database (`image-cache.ts`, the browser adapter in `web.ts`), bounded to 50 messages and 128 MiB of base64.
+Failed sends delete their cache entry; cache failures never prevent sending. The cache is local to the
+browser profile, so another device or a message sent outside the plugin still has only words or
+`(attachments)`. Native clients have no host storage/picker API. `docs/image-preview/` records the first
+memory-only fix; `docs/chat-parity/README.md` records the current capabilities and boundaries.
+
+Both chats use the same image viewer, copy controls and **Full conversation** shortcut. The chat's
+Markdown opts into image lines and code copy with `chatTools`; other Markdown consumers keep their
+existing rendering. Earlier history is loaded by public `before` cursors in `useAgentTimeline`,
+retained through live-tail reads, and discarded on an epoch change or gap. `follow-end` preserves
+the reading offset when older content is prepended; its ordinary follow/jump/permission rules remain.
 
 ## The remote helper
 

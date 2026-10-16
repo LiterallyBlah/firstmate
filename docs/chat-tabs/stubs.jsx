@@ -25,13 +25,48 @@ let entries = [
   }),
 ];
 const listeners = new Set();
+if (params.has("parity") && sessionStorage.parityEntries) {
+  entries = JSON.parse(sessionStorage.parityEntries);
+  seq = entries.at(-1)?.seqEnd ?? 0;
+}
+let epoch = "fixture-1";
+function notify() {
+  if (params.has("parity")) sessionStorage.parityEntries = JSON.stringify(entries);
+  listeners.forEach((listener) => listener({ type: "timeline" }));
+}
+window.appendChatItems = (items) => {
+  entries = [...entries, ...items.map(entry)];
+  notify();
+};
+window.replaceChatItems = (items) => {
+  seq = 0;
+  epoch += "-new";
+  entries = items.map(entry);
+  notify();
+};
+window.copiedText = [];
+export const copyText = async (text) => {
+  window.copiedText.push(text);
+};
 const timeline = {
   refetch: async (input) => {
     window.timelineReads.push(input);
+    if (input.direction === "before" && window.failHistory) throw new Error("History is offline");
+    const available =
+      input.direction === "before" ? entries.filter((entry) => entry.seqEnd < input.cursor.seq) : entries;
+    const shown = available.slice(-(input.limit ?? 150));
     return {
-      entries: structuredClone(entries),
+      entries: structuredClone(shown),
       agent: { ...window.chatMate, pendingPermissions: [] },
-      hasOlder: false,
+      epoch,
+      direction: input.direction,
+      reset: false,
+      staleCursor: input.cursor !== undefined && input.cursor.epoch !== epoch,
+      gap: false,
+      window: { minSeq: entries[0]?.seqStart ?? 0, maxSeq: seq, nextSeq: seq + 1 },
+      startCursor: shown.length ? { epoch, seq: shown[0].seqStart } : null,
+      endCursor: shown.length ? { epoch, seq: shown.at(-1).seqEnd } : null,
+      hasOlder: shown.length > 0 && shown[0].seqStart > entries[0].seqStart,
       error: null,
     };
   },
@@ -60,7 +95,7 @@ async function ask(input) {
     });
   if (window.failSend) throw new Error("Fixture send failed");
   entries = [...entries, entry({ type: "user_message", text: input.text, clientMessageId: input.messageId })];
-  listeners.forEach((listener) => listener({ type: "timeline" }));
+  notify();
   return { agentId: window.chatMate.id };
 }
 const rpcs = new Map();
