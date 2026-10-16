@@ -1,5 +1,5 @@
 /**
- * FirstMate Home (chat, list/board overview, home files and launcher) and its
+ * FirstMate Home (chat, list/board/deck overview, home files and launcher) and its
  * dedicated workspace views. Paseo owns the Deck, Board and Crew tabs.
  *
  * Everything on it comes from one RPC, `firstmate.fleet.load`, polled at the
@@ -41,7 +41,7 @@ import {
   type Fleet,
   type Suggestion,
 } from "../shared/fleet";
-import { displaySettings, type CrewView, type DisplaySettings } from "../shared/settings";
+import { displaySettings, type CrewView, type DisplaySettings, type HomePane } from "../shared/settings";
 import { Board } from "./board";
 import { CrewCard, converseButtonId, watchOpener } from "./card";
 import { FilesView, type FilesRequest } from "./files";
@@ -72,10 +72,10 @@ import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
 export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
-type Tab = "chat" | "board" | "files";
+type Tab = "chat" | HomePane;
 let cachedTab: Tab = "chat";
-/** Home has an overview and its own files; full views live in Paseo workspace tabs. */
-type RightPane = "board" | "files";
+/** Home's inline views share the same renderers as the dedicated workspace tabs. */
+type RightPane = HomePane;
 let cachedRightPane: RightPane = "board";
 /** Independent view state survives reopening without carrying a drawer into another tab or host. */
 const viewState = new Map<string, { watching: string | null; showDone: boolean }>();
@@ -94,7 +94,7 @@ const DEFAULT_DISPLAY: DisplaySettings = displaySettings.schema.parse({});
 const SAVE_DELAY_MS = 400;
 
 function paneName(pane: RightPane, crewView: CrewView): string {
-  return pane === "files" ? "Home files" : crewView === "list" ? "List" : "Board";
+  return pane === "files" ? "Home files" : pane === "deck" ? "Deck" : crewView === "list" ? "List" : "Board";
 }
 
 type FleetSurfaceProps = PluginScreenProps & {
@@ -137,7 +137,7 @@ function FleetViewBody({
   const values: DisplaySettings = { ...saved, ...override };
   const [share, setShare] = useState<number | null>(null);
   const [tab, setTabState] = useState<Tab>(cachedTab);
-  const [rightPane, setRightPaneState] = useState(cachedRightPane);
+  const [rightPane, setRightPaneState] = useState(display.status === "ready" ? saved.homePane : cachedRightPane);
   const [watching, setWatchingState] = useState(remembered?.watching ?? null);
   /** The right-hand pane's width, which decides whether the drawer docks beside the crew or covers it. */
   const [paneWidth, setPaneWidth] = useState(0);
@@ -159,11 +159,19 @@ function FleetViewBody({
   }, [queryClient]);
 
   const shownTab = tab;
-  /** Deck has a dedicated destination; unsupported clients explain its availability there. */
+  /** Keep the standalone Deck tab's availability policy; inline Deck measures its narrower container. */
   const deck = deckOffered(Platform.OS, compact);
   const pane: RightPane = rightPane;
   /** The drawer sits beside the list or board, rather than over it, on a wide pane with room for both. */
-  const docked = view !== "deck" && !compact && drawerDocks(paneWidth);
+  const onDeck = view === "deck" || (home && (compact ? shownTab : pane) === "deck");
+  const docked = !onDeck && !compact && drawerDocks(paneWidth);
+
+  useEffect(() => {
+    if (!home || display.status !== "ready") return;
+    cachedRightPane = values.homePane;
+    setRightPaneState(values.homePane);
+    setTabState((current) => (current === "chat" ? current : values.homePane));
+  }, [home, display.status, values.homePane]);
 
   /**
    * Layout changes are drawn at once and saved behind, batched: a save is
@@ -237,15 +245,16 @@ function FleetViewBody({
     if (next === "board" && pane === "board" && !keepConversation) setWatching(null);
     cachedRightPane = next;
     setRightPaneState(next);
+    save({ homePane: next });
   }
 
   /** List and Board are presentations of the same tasks, filters and open conversation. */
-  function selectHomePane(next: CrewView | "files"): void {
-    const changingView = next !== "files" && next !== crewView;
+  function selectHomePane(next: CrewView | "files" | "deck"): void {
+    const changingView = (next === "list" || next === "board") && next !== crewView;
     if (changingView) save({ crewView: next });
-    const destination = next === "files" ? "files" : "board";
+    const destination = next === "files" || next === "deck" ? next : "board";
+    setRightPane(destination, changingView);
     if (compact) setTab(destination, changingView);
-    else setRightPane(destination, changingView);
   }
 
   /** Opens a worker's conversation, or closes it (`null`) and gives focus back to the 💬 that opened it. */
@@ -420,7 +429,7 @@ function FleetViewBody({
       return;
     }
     if (compact) setTab("files");
-    else setRightPane("files");
+    setRightPane("files");
     const reveal = revealFilesPatch(compact, values.boardCollapsed);
     if (reveal !== null) save(reveal);
     setFilesRequest({ path, at: Date.now() });
@@ -616,7 +625,7 @@ function FleetViewBody({
         {home && !compact && mate !== null && data !== null && !values.boardCollapsed ? (
           <Segmented
             theme={theme}
-            value={pane === "files" ? "files" : crewView}
+            value={pane === "board" ? crewView : pane}
             options={[
               {
                 value: "list",
@@ -629,6 +638,7 @@ function FleetViewBody({
                 tooltip: "Show the same tasks in status columns.",
               },
               { value: "files", label: "Home files", tooltip: "Browse and edit files in the FirstMate home." },
+              { value: "deck", label: "Deck", tooltip: "Show the crew on deck beside the first mate." },
             ]}
             onChange={selectHomePane}
           />
@@ -812,7 +822,7 @@ function FleetViewBody({
           theme={theme}
           compact={compact}
           docked={docked}
-          backLabel={view === "deck" ? "Deck" : crewView === "list" ? (home ? "List" : "Crew") : "Board"}
+          backLabel={onDeck ? "Deck" : crewView === "list" ? (home ? "List" : "Crew") : "Board"}
           onClose={() => setWatching(null)}
           onOpen={
             navigation === undefined || watchedLocalId === null
@@ -829,6 +839,42 @@ function FleetViewBody({
       {conversation}
     </View>
   );
+
+  const deckScene = (
+    <SelectedDeckView
+      setting={values.deckSetting}
+      cards={data.cards}
+      theme={theme}
+      stale={fleet.error !== null}
+      suggestions={data.suggestions}
+      replyBlocked={replyBlockedText({
+        mate: mate !== null,
+        sending: mateSender.sending,
+      })}
+      onReply={(reply) => {
+        if (suggest(reply.prompt))
+          toast.show(`Sending to the first mate: ${reply.label}`, {
+            variant: "success",
+          });
+      }}
+      renderFocus={(card, close, replies) => (
+        <CrewCard
+          card={card}
+          theme={theme}
+          compact={compact}
+          presentation="focus"
+          onClose={close}
+          replies={replies}
+          // Converse replaces the scene until the drawer closes.
+          opener={watchOpener(card, (key) => {
+            setWatching(key);
+          })}
+          onChanged={refresh}
+        />
+      )}
+    />
+  );
+  const inlineDeck = watching !== null ? conversation : deckScene;
 
   if (!home) {
     return (
@@ -867,38 +913,7 @@ function FleetViewBody({
               Deck needs a wide web or desktop window. Open Crew or Board from FirstMate Home on this device.
             </Text>
           ) : (
-            <SelectedDeckView
-              setting={values.deckSetting}
-              cards={data.cards}
-              theme={theme}
-              stale={fleet.error !== null}
-              suggestions={data.suggestions}
-              replyBlocked={replyBlockedText({
-                mate: mate !== null,
-                sending: mateSender.sending,
-              })}
-              onReply={(reply) => {
-                if (suggest(reply.prompt))
-                  toast.show(`Sending to the first mate: ${reply.label}`, {
-                    variant: "success",
-                  });
-              }}
-              renderFocus={(card, close, replies) => (
-                <CrewCard
-                  card={card}
-                  theme={theme}
-                  compact={false}
-                  presentation="focus"
-                  onClose={close}
-                  replies={replies}
-                  // Converse replaces the scene until the drawer closes.
-                  opener={watchOpener(card, (key) => {
-                    setWatching(key);
-                  })}
-                  onChanged={refresh}
-                />
-              )}
-            />
+            deckScene
           )}
         </View>
       </View>
@@ -911,6 +926,7 @@ function FleetViewBody({
       { id: "list", label: "List" },
       { id: "board", label: "Board" },
       { id: "files", label: "Files" },
+      { id: "deck", label: "Deck" },
     ] as const;
     const selected = shownTab === "board" ? crewView : shownTab;
     return (
@@ -938,6 +954,8 @@ function FleetViewBody({
             chat
           ) : shownTab === "board" ? (
             crew
+          ) : shownTab === "deck" ? (
+            inlineDeck
           ) : (
             <FilesView theme={theme} compact request={filesRequest} />
           )}
@@ -993,7 +1011,13 @@ function FleetViewBody({
           </View>
         ) : (
           <View style={{ flex: 1, minWidth: 0 }} onLayout={(event) => setPaneWidth(event.nativeEvent.layout.width)}>
-            {pane === "board" ? crew : <FilesView theme={theme} compact={false} request={filesRequest} />}
+            {pane === "board" ? (
+              crew
+            ) : pane === "deck" ? (
+              inlineDeck
+            ) : (
+              <FilesView theme={theme} compact={false} request={filesRequest} />
+            )}
           </View>
         )}
       </View>
