@@ -41,7 +41,7 @@ const answers = {
   "firstmate.deck.engine": async () => {
     const engine = await server.readDeckEngine(at);
     // Read-only observer for animation review; the plugin and renderer run unmodified.
-    if (process.env.CHECK_JAPANESE_MOTION !== "1") return engine;
+    if (process.env.CHECK_JAPANESE_MOTION !== "1" && process.env.WATERLINE_REVIEW !== "1") return engine;
     return { ...engine, source: engine.source + `\n;const init=PIXI.Application.prototype.init;PIXI.Application.prototype.init=async function(...args){await init.apply(this,args);globalThis.motionReviewApp=this;};` };
   },
   "firstmate.deck.settings": () => server.listDeckSettings(at),
@@ -128,6 +128,10 @@ try {
   if (process.env.SHARK_REVIEW) {
     const { checkSharkSuggestions } = await import("../deck-shark-suggestions/check.mjs");
     await checkSharkSuggestions(view, manifest, process.env.SHARK_REVIEW);
+  }
+  if (process.env.WATERLINE_REVIEW === "1") {
+    const { checkWaterline } = await import("../deck-shark-suggestions/check-waterline.mjs");
+    await checkWaterline(view, manifest);
   }
   if (process.env.CHECK_POLISH === "1") {
     const { checkPolish } = await import("../deck-enrichment/check-polish.mjs");

@@ -68,7 +68,7 @@ import { bobAt, dutyFrame, flickerAt, glassTint, glyphRects, swayAt, type Cut, t
 import type { DeckStage } from "./deck-stage";
 import { localMinute, SKY_REFRESH_MS } from "./deck-sky";
 import { phaseTintAt } from "./deck-phase-tint";
-import { carrierAt, carrierHit, carrierHover, type AttentionCarrier } from "./deck-attention";
+import { carrierAt, carrierHit, carrierHover, carrierRipples, type AttentionCarrier } from "./deck-attention";
 
 /** Marks the canvas with its renderer, so the live check can read it in the app's DevTools. */
 export const DECK_CANVAS_ATTRIBUTE = "data-firstmate-deck";
@@ -306,17 +306,27 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
 
   const crops = new Map<string, PixiTexture>();
   const carrier = art.attentionCarrier;
-  const attention = carrier?.frames.map(sprite => art.images.has(sprite.image)
-    ? cutOf({ image: sprite.image, rect: sprite.rect ?? [0, 0, ...carrier.size] }) : null) ?? [];
+  const attention = carrier?.frames.map(sprite => {
+    if (!art.images.has(sprite.image)) return null;
+    const [x, y, w, h] = sprite.rect ?? [0, 0, ...carrier.size];
+    return cutOf({ image: sprite.image, rect: [x, y, w, carrier.surface?.row ?? h] });
+  }) ?? [];
   const attentionBody = carrier?.frames.map(sprite => {
     if (!art.images.has(sprite.image)) return null;
     const [x, y, w, h] = sprite.rect ?? [0, 0, ...carrier.size];
     const top = carrier.bubbleHeight ?? 0;
-    return cutOf({ image: sprite.image, rect: [x, y + top, w, h - top] });
+    return cutOf({ image: sprite.image, rect: [x, y + top, w, (carrier.surface?.row ?? h) - top] });
   }) ?? [];
+  const submerged = carrier?.surface === undefined ? [] : carrier.frames.map(sprite => {
+    if (!art.images.has(sprite.image)) return null;
+    const [x, y, w, h] = sprite.rect ?? [0, 0, ...carrier.size];
+    const row = carrier.surface!.row;
+    return cutOf({ image: sprite.image, rect: [x, y + row, w, h - row] });
+  });
   return {
     attention,
     attentionBody,
+    submerged,
     hull,
     effects,
     rig,
@@ -605,29 +615,54 @@ export async function startDeck(
   const attention = new pixi.Container();
   attention.label = "attention-carrier";
   const attentionSprite = new pixi.Sprite(textures.attention.find(texture => texture !== null) ?? textures.hull[0]!.texture);
+  attentionSprite.label = "carrier-above-surface";
+  const submergedSprite = new pixi.Sprite(textures.submerged.find(texture => texture !== null) ?? textures.hull[0]!.texture);
+  submergedSprite.label = "carrier-submerged";
+  submergedSprite.visible = false;
+  const rippleBack = new pixi.Graphics();
+  const rippleFront = new pixi.Graphics();
+  rippleBack.label = "carrier-ripple-back";
+  rippleFront.label = "carrier-ripple-front";
   const attentionFallback = new pixi.Graphics();
+  attentionFallback.label = "carrier-fallback";
   // Image failure retains a marker while suggestions exist, plus the keyboard action.
   if (carrier !== undefined) {
     const scale = Math.min(1, carrier.size[0] / ASK_SIZE.width, carrier.size[1] / ASK_SIZE.height);
     attentionFallback.scale.set(scale);
     attentionFallback.position.set(Math.floor((carrier.size[0] - ASK_SIZE.width * scale) / 2), Math.floor((carrier.size[1] - ASK_SIZE.height * scale) / 2));
   }
-  attention.addChild(attentionSprite, attentionFallback);
+  attention.addChild(rippleBack, attentionSprite, submergedSprite, rippleFront, attentionFallback);
   world.addChild(attention);
   let carrierKey: string | null = null;
   let carrierPlace = { x: 0, y: 0, frame: 0 };
 
-  function drawAttention(ms: number, plan: MotionPlan): void {
+  function drawAttention(ms: number, plan: MotionPlan, surfaceMs: number, tint: number): void {
     carrierKey = carrier === undefined || focusKey !== null ? null : "suggestions";
     attention.visible = carrierKey !== null;
     if (carrier === undefined || carrierKey === null) return;
-    carrierPlace = carrierAt(carrier, ms, plan.level === "full");
+    const clock = carrier.surface === undefined ? ms : surfaceMs;
+    carrierPlace = carrierAt(carrier, clock, plan.level === "full");
     attention.position.set(carrierPlace.x, carrierPlace.y);
     const frames = current.hasSuggestions ? textures.attention : textures.attentionBody;
     const texture = frames[carrierPlace.frame] ?? frames.find(each => each !== null);
     attentionSprite.position.set(0, current.hasSuggestions ? 0 : carrier.bubbleHeight ?? 0);
     attentionSprite.visible = texture != null;
     if (texture != null) attentionSprite.texture = texture;
+    const under = textures.submerged[carrierPlace.frame] ?? textures.submerged.find(each => each !== null);
+    submergedSprite.visible = texture != null && under != null;
+    if (carrier.surface !== undefined && under != null) {
+      submergedSprite.texture = under;
+      submergedSprite.position.set(0, carrier.surface.row);
+      submergedSprite.tint = hexColour(carrier.surface.submergedTint);
+      submergedSprite.alpha = carrier.surface.submergedAlpha;
+      rippleBack.clear(); rippleFront.clear();
+      rippleBack.visible = rippleFront.visible = texture != null;
+      rippleBack.tint = rippleFront.tint = tint;
+      for (const arc of carrierRipples(carrier, clock, plan.level === "full")) {
+        (arc.back ? rippleBack : rippleFront).rect(arc.x, arc.y, arc.width, 1)
+          .fill(hexColour(arc.foam ? carrier.surface.ripple.colour : carrier.surface.ripple.shade));
+      }
+    }
     attentionFallback.visible = texture == null && current.hasSuggestions === true;
     if (texture == null) drawAsk(attentionFallback, current.palette.ask, { left: 0, top: 0, flip: false, framed: false });
   }
@@ -863,7 +898,7 @@ export async function startDeck(
     drawnBob = bob;
     spot.position.set(bob.x, bob.y);
     aim(elapsedMs, moving);
-    drawAttention(elapsedMs, plan);
+    drawAttention(elapsedMs, plan, clockOf(weather, carrier?.surface?.ripple.clock, seconds) * 1000, tint);
     findHover();
     drawSailors(drawnFigures, drawnMarks, elapsedMs, !moving);
     drawEffects();

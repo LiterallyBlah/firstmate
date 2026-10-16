@@ -205,6 +205,14 @@ nonnegative and smaller than the sprite height. When there are no suggestions th
 away, preserving the body's position; the carrier stays clickable and opens an empty-state bubble.
 If omitted, the complete sprite stays visible. No image is rewritten.
 
+Optional `surface` requires **`carrier-surface@1`**. It splits each frame at `row`, below `bubbleHeight`
+and at least three rows above the bottom. The target must be at least 32 pixels wide. Lower rows use
+`submergedTint` and `submergedAlpha` (0..1); upper rows and the speech marker remain clear. `ripple`
+specifies two pixel-arc inks (`colour`, `shade`), a positive `periodMs`, and an existing atmosphere `clock`.
+The arcs cross the waterline and travel with the target. The surface, swim frames and loiter all use that
+clock, so they follow the water's pace together. Ripple ink follows the stage's day tint. Lite and still
+hold the surface and target at their first pose. Packs without `surface` retain their existing drawing.
+
 The carrier draws above the foreground, outside stage bob/tint. It hides during ordinary worker focus.
 On full motion its frames cycle and its position follows whole-pixel sines (`x = dx·sin(phase)`,
 `y = dy·sin(2·phase)`) on the existing simulation clock. Lite and reduced motion hold frame zero at `at`;

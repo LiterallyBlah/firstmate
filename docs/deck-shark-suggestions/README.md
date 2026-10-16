@@ -13,9 +13,20 @@ The legend's Suggestions button provides the keyboard route.
 
 ## Sakura coast position
 
-Only the carrier's pack anchor moves: `[14,273]` → `[8,164]`, into open water ahead of the bow and clear
-of the bow rope. Size, frames, loiter, hull, island, crew layout and motion are unchanged. No PNG changes.
-Ship's deck retains its positions and art; its pack adds only marker crop metadata and a version bump.
+The carrier's pack anchor is `[100,274]`, in the foreground sea below the forward hull. This is near the
+reviewed `[100,304]` alternative, moved up 30 logical pixels so the complete target plus loiter stays
+inside the existing fit at wide aspect ratios. The hull, island, camera, layout and image data are unchanged.
+
+Sakura opts into `carrier-surface@1`: row 29 cuts across the body, preserving the dorsal fin and upper
+back. The lower 15 rows are deep blue at 22% opacity, with a thin pixel ripple crossing the waterline.
+The ripple, swim frames and loiter share the existing `water` clock and freeze together in lite/reduced
+motion. The marker and suggestions stay above water. The original sprite supports this split cleanly;
+no generated or edited art is needed. Ship's deck has no surface setting and keeps its drawing and motion.
+
+Waterline close-ups: [day](review/waterline-day-close.png), [night](review/waterline-night-close.png).
+Moving frames: [one](review/waterline-moving-0.png), [two](review/waterline-moving-5.png),
+[three](review/waterline-moving-10.png). [Runtime motion assertions](review/waterline-full-checks.json)
+verify crop registration, attachment, swim/ripple changes and reduced-motion freezing.
 
 | View | Before | After | Open bubbles |
 | --- | --- | --- | --- |
@@ -44,8 +55,7 @@ payload, rather than pretending a live agent responded.
 The real compiled plugin, Pixi renderer and pack RPC reader run in headless Edge; only host APIs and
 the fleet are fixtures. This is not an installed desktop/device test. No plugin reload or install occurred.
 
-- Full suite: 93 files, 1,101 passed, 3 skipped (`npm.cmd test -- --maxWorkers=2`). The first unrestricted
-  run competed with browser captures and hit watch/update timing failures; both pass with two workers.
+- Full suite: 93 files, 1,103 passed, 3 skipped (`npm.cmd test -- --maxWorkers=2`).
 - Typecheck and pack lint pass. Package dry run includes both packs and excludes docs/tests.
 - Paseo 0.11 compiler and Hermes pass; Pixi remains served, not bundled.
 - [Sakura coast interaction assertions](review/japanese-ship-checks.json) and
@@ -56,7 +66,7 @@ the fleet are fixtures. This is not an installed desktop/device test. No plugin 
   suggestion footer, restored sailor markers and persistent shark. Where the old footer was shorter
   (one or no worker needing attention), the new persistent control changes the canvas height and its
   existing responsive fit. That accounts for broad pixel differences in busy/idle/stale/storm and later
-  crew shots; pack positions, motion and image data remain identical. Focus still uses the same camera.
+  crew shots; the Ship's deck pack positions, motion and image data remain identical. Focus uses the same camera.
   All canvas renderer/motion/weather/sky metadata matches main; no page errors.
 - [Pack audit](art-audit.json) proves that all 104 images and all remaining manifest fields are unchanged.
 
@@ -76,9 +86,13 @@ $env:SHARK_REVIEW='after'
 node docs/deck-settings/render.mjs '?setting=japanese-ship'
 node docs/deck-settings/render.mjs '?setting=ship'
 Remove-Item Env:SHARK_REVIEW
+$env:WATERLINE_REVIEW='1'
+node docs/deck-settings/render.mjs '?setting=japanese-ship'
+Remove-Item Env:WATERLINE_REVIEW
 $env:SAVE='1'
 node docs/deck-settings/gate.mjs
 ```
 
 “Before” uses the compiler's pinned main bundle and that commit's original pack manifest, with the
 unchanged images. The exact gate hashes cover full screenshots; no masked regions or tolerances.
+Day/night captures remount at the requested hour and assert the canvas sky phase before capture.

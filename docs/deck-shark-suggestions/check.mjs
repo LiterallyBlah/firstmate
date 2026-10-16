@@ -10,12 +10,11 @@ export async function checkSharkSuggestions(view, manifest, phase) {
   const canvas = view.locator('canvas[data-firstmate-deck]');
   const popup = view.getByTestId('firstmate-deck-suggestions');
   const refresh = async () => { await view.getByRole('button', { name: 'Refresh', exact: true }).click(); await view.waitForTimeout(500); };
-  await view.evaluate(() => window.changeFleet(fleet => {
+  const seed = async () => view.evaluate(() => window.changeFleet(fleet => {
     fleet.cards = fleet.cards.filter(c => c.agent !== null && c.agent.status !== 'closed').slice(0, 4);
     fleet.cards[0].column = 'blocked';
     fleet.suggestions = [{ label: 'Review next steps', prompt: 'Review the next steps for the fleet.' }, { label: 'Take bearings', prompt: 'Give me a summary of the current work.' }, { label: 'Plan tomorrow', prompt: 'Help me plan tomorrow.' }];
   }));
-  await refresh();
   const shot = async name => { await view.mouse.move(1, 1); await view.screenshot({ path: join(output, `${manifest.id}-${phase}-${name}.png`) }); };
   const shark = async () => {
     const fit = await view.evaluate(m => { const { fit } = window.drawOverlay(m); document.querySelector('[data-firstmate-deck-overlay]').remove(); return fit; }, manifest);
@@ -24,10 +23,24 @@ export async function checkSharkSuggestions(view, manifest, phase) {
   };
   for (const hour of [12, 0]) {
     await view.clock.setFixedTime(new Date(`2026-10-14T${String(hour).padStart(2, '0')}:00:00Z`));
+    // Reduced motion redraws the sky on its minute timer; mount at the requested hour explicitly.
+    await view.reload();
+    await view.getByRole('button', { name: 'Open Deck', exact: true }).click();
+    await canvas.waitFor(); await seed(); await refresh();
+    const phaseAtNoon = manifest.dayCycle.phases.filter(p => p.localMinute <= 720).at(-1).id;
+    assert.equal(await canvas.getAttribute('data-firstmate-deck-sky'), hour === 12 ? phaseAtNoon : manifest.dayCycle.night);
     for (const width of [900, 640]) {
       await view.setViewportSize({ width, height: 900 });
       await view.waitForTimeout(500);
       await shot(`${hour === 12 ? 'day' : 'night'}-${width}`);
+      if (phase !== 'before' && manifest.attentionCarrier.surface && width === 900) {
+        const fit = await view.evaluate(m => { const { fit } = window.drawOverlay(m); document.querySelector('[data-firstmate-deck-overlay]').remove(); return fit; }, manifest);
+        const deck = await canvas.boundingBox(), [x, y] = manifest.attentionCarrier.at;
+        await view.screenshot({ path: join(output, `waterline-${hour === 12 ? 'day' : 'night'}-close.png`), clip: {
+          x: deck.x + fit.x + (x - 8) * fit.scale, y: deck.y + fit.y + (y - 4) * fit.scale,
+          width: 72 * fit.scale, height: 52 * fit.scale
+        }});
+      }
       if (phase !== 'before') {
         await shark();
         await popup.waitFor();

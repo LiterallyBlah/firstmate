@@ -5,6 +5,25 @@ import type { DeckFit, DeckHover } from "./deck-hover";
 
 export type AttentionCarrier = NonNullable<SettingManifest["attentionCarrier"]>;
 
+/** Thin pixel arcs at the surface, in carrier coordinates. The front arc crosses the submerged body. */
+export function carrierRipples(carrier: AttentionCarrier, ms: number, moving: boolean) {
+  const surface = carrier.surface;
+  if (surface === undefined) return [];
+  const phase = moving ? Math.floor(ms / surface.ripple.periodMs * 4) % 4 : 0;
+  const inset = phase === 1 || phase === 2 ? 1 : 2;
+  const width = carrier.size[0], row = surface.row;
+  return [
+    { x: inset + 5, y: row - 2, width: width - (inset + 5) * 2, back: true, foam: false },
+    { x: inset + 1, y: row - 1, width: 6, back: true, foam: true },
+    { x: width - inset - 7, y: row - 1, width: 6, back: true, foam: true },
+    { x: inset, y: row, width: 4, back: false, foam: true },
+    { x: width - inset - 4, y: row, width: 4, back: false, foam: true },
+    { x: inset + 3, y: row + 1, width: width - (inset + 3) * 2, back: false, foam: false },
+    { x: inset + 7 + phase, y: row + 2, width: Math.max(1, Math.floor(width / 4)), back: false, foam: true },
+    { x: width - inset - 16, y: row + 2, width: 7, back: false, foam: true },
+  ];
+}
+
 /** Blocked is the board's request for the captain; Ready and a failed job alone are not. */
 export function needsResponse(card: FleetCard): boolean {
   return card.column === "blocked" || (card.agent?.pendingPermissions ?? card.remote?.worker?.pendingPermissions ?? 0) > 0;

@@ -529,6 +529,9 @@ Office was withdrawn after visual review; its files are retained at
   The carrier stays with no suggestions or crew; `bubbleHeight` names the sprite's top marker-only rows,
   hidden when the list is empty. Its body remains clickable for the empty-state bubble. Lite/reduced motion
   hold frame zero; hidden scenes pause on the existing clock. Missing art retains the keyboard action.
+  Optional `carrier-surface@1` splits the sprite at a pack-defined waterline, tints its submerged rows,
+  and draws a pixel ripple attached to it. The ripple, swim and loiter share the pack's water clock;
+  marker rows stay clear. Packs without this capability keep their original carrier rendering.
 - **Walking is A* over a 2 px grid** of the pack's polygons (main deck, stairs, quarterdeck and the
   below-deck room with its single access corridor) minus obstacle footprints, pulled tight. The only way to the helm is the stairs, which belong to the `near`
   piece, so a climbing sailor passes behind their balustrade.
