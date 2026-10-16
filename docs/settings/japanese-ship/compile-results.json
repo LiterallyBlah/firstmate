@@ -4,13 +4,13 @@
     "commit": "e5c7f75",
     "clientBytes": 685206,
     "serverBytes": 348209,
-    "ms": 10164
+    "ms": 7108
   },
   "branch": {
-    "commit": "f799642",
+    "commit": "ad16c93",
     "clientBytes": 685206,
     "serverBytes": 348209,
-    "ms": 3927
+    "ms": 3602
   },
   "clientGrowthBytes": 0,
   "vendoredPixiBytes": 840663,

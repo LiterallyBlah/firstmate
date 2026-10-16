@@ -1,9 +1,10 @@
 {
-  "base": "e7abadd",
-  "packRevision": "6f159cc",
+  "base": "e5c7f75",
+  "packRevision": "ad16c93",
+  "compiledRevision": "ad16c93",
   "tests": {
-    "files": 90,
-    "passed": 1091,
+    "files": 93,
+    "passed": 1101,
     "skipped": 3
   },
   "packLint": {
@@ -13,13 +14,12 @@
   "typecheck": "passed",
   "clientBundle": {
     "byteIdentical": true,
-    "bytes": 668861,
-    "sha256": "9187e5258d073222a3d3d26e94b79be4bf7b9e27bc0ae9c131e7f44f57b8bafc",
+    "bytes": 685206,
+    "sha256": "2c0a854bc259e6397ce6318a822dd78fa54a28e46c8f5ac9166b8ad5d9d2a53e",
     "classTokens": 0
   },
   "protectedPathsChanged": [],
-  "rebuild": "build-art.mjs and build-pack.mjs reproduce the committed art, manifest and registration without a diff",
-  "compiledRevision": "ec1ec52",
+  "broadsideAudit": "broadside-audit.json",
   "gate": {
     "shots": 81,
     "passed": true,

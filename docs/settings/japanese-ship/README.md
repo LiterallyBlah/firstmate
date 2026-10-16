@@ -134,5 +134,5 @@ Typecheck, all 1,101 tests in 93 files (three existing skips), and all 51 pack-l
 checks pass. [validation.json](validation.json) records the protected-file audit and
 byte-identical client bundles; [compile-results.json](compile-results.json) records
 Paseo compilation, zero bundle growth, and Hermes parsing. The bundle contains no
-`class` tokens. The compiler and gate pin revision `ec1ec52`; the following
+`class` tokens. The compiler and gate pin revision `ad16c93`; the following
 evidence commit changes documentation only.
