@@ -32,9 +32,10 @@ export function polishAtmosphere({source,save,read,baseline,clone,pixel,put,blit
    const dx=Math.round(Math.sin(y/9+f*Math.PI/2)*2),p=pixel(calm,(x+dx+256)%256,y),l=(p[0]*.3+p[1]*.59+p[2]*.11);
    // Retain the generated whitecaps and dark troughs over each phase's own water colour.
    const colour=l>190?[220,249,246,165]:l>145?[112,219,226,60]:l<90?[3,37,77,80]:[0,0,0,0];
-   put(ripples,x,y,colour);put(storm,x,y,pixel(rough[Math.floor(f/2)],(x+dx+256)%256,y));
+   put(ripples,x,y,colour);put(storm,x,y,pixel(rough[0],(x+dx+256)%256,y));
   }
   save('water-sea-frame-'+f,ripples);save('storm-sea-frame-'+f,storm);
+  save('far-sea-'+f,nearest(ripples,128,32));save('far-storm-'+f,nearest(storm,128,32));
  }
  // Fallback shares the new transparent ripples, not the old opaque navy tile.
  const fallback=blank(256,128);for(let y=0;y<128;y++)for(let x=0;x<256;x++){const p=pixel(calm,x,y),l=p[0]*.3+p[1]*.59+p[2]*.11;put(fallback,x,y,l>190?[220,249,246,165]:l>145?[112,219,226,60]:l<90?[3,37,77,80]:[0,0,0,0]);}save('sea-water-tile',fallback);

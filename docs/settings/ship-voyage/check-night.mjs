@@ -35,7 +35,7 @@ export async function review(browser,origin){
  const point=async(x,y)=>{const fit=await view.evaluate(m=>{const r=window.drawOverlay(m);document.querySelector('[data-firstmate-deck-overlay]').remove();return r.fit;},manifest);const b=await canvas.boundingBox();await view.mouse.click(b.x+fit.x+x*fit.scale,b.y+fit.y+y*fit.scale);};
  const panel=view.getByTestId('firstmate-deck-focus'),bubble=view.getByTestId('firstmate-deck-suggestions');
  const close=async()=>{await view.keyboard.press('Escape');await view.clock.runFor(400);await view.waitForTimeout(70);await view.clock.runFor(300);await panel.waitFor({state:'hidden'});await bubble.waitFor({state:'hidden'});};
- await set(mixed);await view.clock.setSystemTime(new Date('2026-10-18T23:00:00Z'));await view.clock.runFor(61000);await refresh();await shot('night-wide');
+ await set(mixed);await view.clock.setSystemTime(new Date('2026-10-18T23:00:00Z'));await view.clock.fastForward(61000);await refresh();await shot('night-wide');
  await view.setViewportSize({width:700,height:1400});await view.clock.runFor(600);await shot('night-tall-narrow');await view.setViewportSize({width:1440,height:900});await view.clock.runFor(600);
  await view.evaluate(()=>{window.requestAnimationFrame=cb=>window.setTimeout(()=>cb(performance.now()),100);window.cancelAnimationFrame=h=>window.clearTimeout(h);});await set([]);await view.emulateMedia({reducedMotion:'no-preference'});
  for(let i=0;i<5;i++){await view.clock.runFor(100000);console.log('night voyage '+((i+1)*100)+'s');}await shot('port-night-wide');

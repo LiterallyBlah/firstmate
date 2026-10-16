@@ -259,7 +259,7 @@
         256,
         128
       ],
-      "sha256": "d84566928d9e3b4c3d8ba834eb5bae1f8ff7b168d9f31a4be6ad8e4947f77e53"
+      "sha256": "780200fbd89840d653f90dfb1c4af431a1ef56b5edea0fd54cf8259b8b0acf73"
     },
     "storm-sea-frame-3": {
       "path": "storm-sea-frame-3.png",
@@ -267,7 +267,7 @@
         256,
         128
       ],
-      "sha256": "16d9f641f7cf3a26241b75cb6b03e3625bb4da84d2e5acc20d0e015268e1de01"
+      "sha256": "2c413e257163cd250dcd6ec5162236e0d37fe0d55fcd77ef73eaf222e583de4d"
     },
     "storm-sky-overcast": {
       "path": "storm-sky-overcast.png",
@@ -1204,6 +1204,70 @@
         128
       ],
       "sha256": "dbcf2bdc3d8df2836d410f6dee132267f4cc8085e7534172d3559917dce8c3f0"
+    },
+    "far-sea-0": {
+      "path": "far-sea-0.png",
+      "size": [
+        128,
+        32
+      ],
+      "sha256": "da94e902f48aebe4570da20bf668777b0c4ff59ac377d4724bd0360717af2b1b"
+    },
+    "far-storm-0": {
+      "path": "far-storm-0.png",
+      "size": [
+        128,
+        32
+      ],
+      "sha256": "e673f61cbc92ae4ab6046115d01c7e0bf88926e5ee584c33790284115e253e84"
+    },
+    "far-sea-1": {
+      "path": "far-sea-1.png",
+      "size": [
+        128,
+        32
+      ],
+      "sha256": "4cb4e82a08e7490d53b1d2ce5653c26926dacc7f3edbdf277d344c0162d819e2"
+    },
+    "far-storm-1": {
+      "path": "far-storm-1.png",
+      "size": [
+        128,
+        32
+      ],
+      "sha256": "2431136054a365118346e489ebdaebc90155f6553989f6b6d4d5882d94036483"
+    },
+    "far-sea-2": {
+      "path": "far-sea-2.png",
+      "size": [
+        128,
+        32
+      ],
+      "sha256": "b216de427e373c9f65d90e1e37916b445e605f31b3747a0203bfb860e2a761d5"
+    },
+    "far-storm-2": {
+      "path": "far-storm-2.png",
+      "size": [
+        128,
+        32
+      ],
+      "sha256": "ee9b4dff3d2fd80c757f11b0e2a3ffbcb5cf20b96a3b43c504468da65f634c9f"
+    },
+    "far-sea-3": {
+      "path": "far-sea-3.png",
+      "size": [
+        128,
+        32
+      ],
+      "sha256": "6602ef3b9dac445013c9826acca8b8280c39dd6d75734b194d2500bdc0efce1f"
+    },
+    "far-storm-3": {
+      "path": "far-storm-3.png",
+      "size": [
+        128,
+        32
+      ],
+      "sha256": "d90159357a19e2ce6d03e7454a7ef5337bf8773e9bab8bbd8aeb2ec1eaf57428"
     },
     "kraken-polish-0": {
       "path": "kraken-polish-0.png",
