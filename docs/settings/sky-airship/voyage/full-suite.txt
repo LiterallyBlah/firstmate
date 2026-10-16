@@ -1,0 +1,15 @@
+
+> @gpambrozio/paseo-firstmate@0.4.0 test
+> vitest run --passWithNoTests --maxWorkers=1
+
+
+ RUN  v5.0.3 C:/Users/micha/.paseo/worktrees/23z5sbxl/sky-crew-edge
+
+
+ Test Files  101 passed (101)
+      Tests  1180 passed | 3 skipped (1183)
+   Start at  22:31:53
+   Duration  96.24s (tests 83%, import 13%, transform 3%, setup 1%, worker 1%)
+
+    Isolate  101 workers spawned · ~137ms startup each (spawn + environment, per file)
+             at least ~13.71s faster with isolate: false — reuses workers across files instead of one per file

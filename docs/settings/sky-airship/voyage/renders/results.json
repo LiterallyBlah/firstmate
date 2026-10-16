@@ -1,0 +1,45 @@
+{
+  "results": [
+    {
+      "aspect": "wide",
+      "phase": "day",
+      "intensity": "still"
+    },
+    {
+      "aspect": "wide",
+      "phase": "dusk",
+      "intensity": "still"
+    },
+    {
+      "aspect": "wide",
+      "phase": "night",
+      "intensity": "still"
+    },
+    {
+      "aspect": "wide",
+      "phase": "storm",
+      "intensity": "1.00"
+    },
+    {
+      "aspect": "tall",
+      "phase": "day",
+      "intensity": "still"
+    },
+    {
+      "aspect": "tall",
+      "phase": "dusk",
+      "intensity": "still"
+    },
+    {
+      "aspect": "tall",
+      "phase": "night",
+      "intensity": "still"
+    },
+    {
+      "aspect": "tall",
+      "phase": "storm",
+      "intensity": "1.00"
+    }
+  ],
+  "errors": []
+}
