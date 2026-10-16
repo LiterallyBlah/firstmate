@@ -20,27 +20,28 @@ const pack={
     motion:{bob:{periodS:7.4,amplitude:{channel:'heave'},clock:'swell'}},
     backdrop:{sprite:sprite('ship')},parts:[],
     pieces:[
-      {id:'hull-front',sprite:{image:'ship',rect:[48,245,390,47]},at:[48,245],baseline:null},
-      {id:'mast',sprite:{image:'ship',rect:[230,194,29,46]},at:[230,194],baseline:237},
-      {id:'stern-shelter',sprite:{image:'ship',rect:[357,172,89,65]},at:[357,172],baseline:218}
+      {id:'hull-front',sprite:{image:'ship',rect:[38,247,413,43]},at:[38,247],baseline:null},
+      {id:'mast',sprite:{image:'ship',rect:[229,194,20,47]},at:[229,194],baseline:239},
+      {id:'mast-ladder',sprite:{image:'ship',rect:[245,194,10,39]},at:[245,194],baseline:232},
+      {id:'stern-shelter',sprite:{image:'ship',rect:[373,181,89,62]},at:[373,181],baseline:228}
     ],props:[],lightStyles:{},lights:[],tintByPhase:{night:'#7184A1'}},
   floor:{areas:[
-    {id:'deck',polygon:[[58,216],[160,223],[270,223],[346,217],[400,216],[402,230],[350,239],[300,242],[180,242],[100,232],[58,220]]},
-    {id:'hold-passage',polygon:[[174,231],[180,231],[180,264],[174,264]],spill:false},
-    {id:'hold',polygon:[[86,245],[386,245],[386,264],[86,264]],spill:false}
-  ],obstacles:[{id:'mast-foot',rect:[234,229,24,12]}],grid:{cell:2,bounds:[48,208,370,64]},walkSpeed:28},
+    {id:'deck',polygon:[[44,224],[362,224],[390,229],[390,243],[130,244],[76,237],[44,229]]},
+    {id:'hold-passage',polygon:[[159,234],[165,234],[165,269],[159,269]],spill:false},
+    {id:'hold',polygon:[[66,250],[426,250],[426,270],[66,270]],spill:false}
+  ],obstacles:[{id:'mast-foot',rect:[231,230,16,10]},{id:'ladder-foot',rect:[247,226,8,7]}],grid:{cell:2,bounds:[38,218,400,56]},walkSpeed:28},
   zones:{byState:{working:'rigging',waiting:'stern',blocked:'bow',idle:'rest'},zones:[
-    zone('rigging',[[206,232],[224,237],[270,232],[294,232],[316,231],[337,228]],'right'),
-    zone('stern',[[354,228],[374,227],[394,225]]),
-    zone('bow',[[94,224],[116,228],[140,231]],'left'),
-    {id:'rest',posts:posts('rest',[[100,263],[134,263],[168,263],[202,263],[236,263],[270,263],[304,263],[338,263],[372,263]]),assign:'ordered',overflow:{kind:'pack',areas:[[94,263,284,1]],spacing:[12,1],fallback:[10,1]},labelFloor:276,appearance:{sprite:sprite('sleep-window'),feet:[7,16],front:'hull-front'}}
+    zone('rigging',[[200,233],[222,240],[270,233],[294,233],[316,233],[338,233]],'right'),
+    zone('stern',[[352,235],[369,238],[387,240]]),
+    zone('bow',[[83,230],[106,234],[130,235]],'left'),
+    {id:'rest',posts:posts('rest',[[86,269],[124,269],[162,269],[200,269],[238,269],[276,269],[314,269],[352,269],[390,269]]),assign:'ordered',overflow:{kind:'pack',areas:[[78,269,328,1]],spacing:[14,1],fallback:[12,1]},labelFloor:282,appearance:{sprite:sprite('sleep-window'),feet:[7,16],front:'hull-front'}}
   ]},
   cast:{lanes,looks:['indigo','russet'].map(id=>({id,image:'crew-'+id,lane:id,optional:false})),roles:{stand:'stand',walkFront:['front-a','front-pass','front-b','stand'],walkSide:['side-a','side-pass','side-b','side-idle'],rise:1,stepMs:170,settled:{working:{pose:'pull-a',mirror:'facing'},waiting:{pose:'waiting',mirror:'none'},blocked:{pose:'side-idle',mirror:'facing'},idle:{pose:'rest',mirror:'none'}}},fidgets:{working:{periodMs:1600,seedMs:1700,keys:[{fromMs:0,dx:0,dy:0,pose:'pull-a'},{fromMs:800,dx:0,dy:0,pose:'pull-b'}]},waiting:null,blocked:null,idle:null}},
-  portals:{entry:{kind:'rise',at:[180,233],ms:1200},exits:{hold:{kind:'sink',at:[180,233],ms:1100}},byDeparture:{done:'hold',failed:'hold',closed:'hold',removed:'hold'},still:{fadeMs:350}},effects:{},
+  portals:{entry:{kind:'rise',at:[163,235],ms:1200},exits:{hold:{kind:'sink',at:[163,235],ms:1100}},byDeparture:{done:'hold',failed:'hold',closed:'hold',removed:'hold'},still:{fadeMs:350}},effects:{},
   ambience:[
     {id:'coast',slot:'back',order:0,lite:'run',still:'first-frame',behaviour:{kind:'backdrop-cycle',size:[600,400],phases:{day:'coast',night:'coast-night'},placement:{horizonRow:180,stageRow:150},tint:{to:'#4D647D',amount:{channel:'weather'}}}},
     {id:'sea-ripples',slot:'back',order:1,lite:'freeze',still:'first-frame',behaviour:{kind:'tile',frames:{sprites:[sprite('ripples')],frameMs:500,clock:'water'},drift:{pxPerSecond:3,clock:'water'},origin:214,bands:[{slot:'back',fromRow:214},{slot:'front',fromRow:290}]}},
-    {id:'turning-wake',slot:'back',order:2,lite:'freeze',still:'first-frame',behaviour:{kind:'cycle',frames:{sprites:[sprite('wake')],frameMs:500,clock:'water'},opacity:{channel:'wake'},at:[342,252],anchor:[0,0]}}
+    {id:'turning-wake',slot:'back',order:2,lite:'freeze',still:'first-frame',behaviour:{kind:'cycle',frames:{sprites:[sprite('wake')],frameMs:500,clock:'water'},opacity:{channel:'wake'},at:[342,264],anchor:[0,0]}}
   ],
   dayCycle:{phases:[{id:'day',localMinute:480},{id:'night',localMinute:1200}],fadeMinutes:90,night:'night',fallback:'day'},
   atmosphere:{table:[{at:0,pace:.45,swell:.75,heave:.7,wake:.4,weather:0},{at:.35,pace:1,swell:1,heave:1,wake:.65,weather:0},{at:1,pace:1.8,swell:1.2,heave:1.6,wake:1,weather:.25}],delivered:{pace:1,swell:1,heave:1,wake:.7,weather:0},clocks:{water:'pace',swell:'swell'}},

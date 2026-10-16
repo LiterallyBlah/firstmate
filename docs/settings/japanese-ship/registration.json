@@ -1,7 +1,7 @@
 {
   "sources": {
     "ship": {
-      "sha256": "3d91588b2694c73c0a73ef15c130c575e97fb6b68c5eb77927cd28f23f527dc3"
+      "sha256": "f52b4aea13092cc42a6289a19091af3966237d898f657c1b4f6e18818a5dfebb"
     },
     "coast": {
       "sha256": "a1a5a569596f5d6c1db0c94727f55bc0ef265cdd634c91b2a988232da1fea06a"
@@ -35,7 +35,7 @@
         480,
         320
       ],
-      "sha256": "7a051bc79b2eb68a5526de09786d857bb871daefdad697b3761330339d398ebf"
+      "sha256": "99fb6369cfa6430117da11e08ae3efb0d7770121767d7526d8a1680f4e02825f"
     },
     "coast": {
       "path": "coast.png",
@@ -107,7 +107,7 @@
         384,
         202
       ],
-      "sha256": "1b5f3304a882bf244405cceb205869cf2ca64e113dc29efd986e14bc106195ae"
+      "sha256": "ce725cd4c3f00410f1075bf755b6477fb6b73f3a5deedf09da5f46c78fe2ad84"
     }
   },
   "lanes": {
