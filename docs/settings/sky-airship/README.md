@@ -13,14 +13,22 @@ shallower balloon and a smaller suggestion whale, away from the plank.
 [Suggestion whale](review/suggestion-whale.gif) · [Arrival and lookout](review/hatch-and-lookout.gif) ·
 [Storm motion](review/storm-alive.gif) · [Motion audit](motion-review.md)
 
+The captain's cloud revision adds three independently drifting volumetric sea
+banks, coordinated storm-dark art, taller cumulus forms and high wisps. The
+[cloud review](cloud-review.md), [generation prompts](cloud-prompts.json) and
+[preservation audit](cloud-preservation.json) document the revised art and the
+unchanged approved ship/crew/whale behavior. Additional phase captures:
+[pink dawn](review/dawn.png) and [gold dusk](review/dusk.png).
+
 ## Pack and provenance
 
 Only `setting.json` and its referenced PNGs ship in `art/settings/sky-airship/`.
-The 80 PNGs total **383,606 bytes** (budget: 1,000,000). The pack uses 26 existing catalogue capabilities. There are no engine, schema,
+The 89 PNGs remain below the **1,000,000-byte** budget; exact bytes are recorded in
+[validation.json](validation.json). The pack uses 26 existing catalogue capabilities. There are no engine, schema,
 client or server changes, new dependencies in the plugin, timers or runtime scripts.
 The picker names it **Sky pirates**. Both existing packs remain untouched.
 
-Seven new image-generation outputs, recorded in [production-prompts.json](production-prompts.json),
+Seven initial image-generation outputs, recorded in [production-prompts.json](production-prompts.json),
 are kept in [sources/](sources/). `build-art.mjs` registers their generated pixels
 at native scale with nearest-neighbour sampling, binary transparency and bounded
 palettes. The balloon compression preserves the hull's level rail and keel.
@@ -88,17 +96,18 @@ expose that label as pack data, and no engine wording was changed.
 [Validation](validation.json): pack lint 66/66; typecheck passes; full suite
 1,155 passed, three skipped across 97 files. [Ship gate](ship-gate.json): **81/81
 pixel-identical** to pinned main `47e305d`, no page errors. [Compiler/Hermes](compile-results.json):
-both plugin bundles parse, zero client/server bundle growth. These engine checks
-were compiled at `8419011`; subsequent changes are the pack preview, balloon/rain
-pixel registration and documentation, with engine and existing-pack files unchanged. [Full](motion-full.json) and
+both plugin bundles parse, zero client/server bundle growth. The cloud revision's
+engine checks were compiled at `9ced243`; the revision changes only this pack's
+cloud art/data, preview and documentation, with engine and existing-pack files unchanged. [Full](motion-full.json) and
 [lite](lite.json) browser reviews pass without page errors. The package dry run
-contains exactly 81 new pack files and no `docs/` files.
+contains exactly 90 new pack files and no `docs/` files.
 
 ```powershell
 node docs/ship-deck-canvas/compile.mjs
 node docs/deck-settings/render.mjs '?setting=sky-airship'
 node docs/deck-settings/render.mjs '?setting=sky-airship&overlay=1'
 node docs/settings/sky-airship/review.mjs
+node docs/settings/sky-airship/audit-clouds.mjs
 $env:AIRSHIP_LITE='1'; node docs/settings/sky-airship/review.mjs
 Remove-Item Env:AIRSHIP_LITE
 node docs/deck-settings/gate.mjs
