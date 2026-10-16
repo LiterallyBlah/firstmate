@@ -8,7 +8,7 @@ import { useDeckSettings } from "./deck-setting-query";
 import { OptionPicker } from "./option-picker";
 
 /** Saves the same global document as plugin settings; the fleet follows the saved value. */
-export function DeckSceneSwitcher({ theme }: { theme: PluginTheme }) {
+export function DeckSceneSwitcher({ theme, compact = false }: { theme: PluginTheme; compact?: boolean }) {
   const display = useSettings(displaySettings);
   const installed = useDeckSettings();
   const toast = useToast();
@@ -56,7 +56,7 @@ export function DeckSceneSwitcher({ theme }: { theme: PluginTheme }) {
       }))}
       disabled={busy || display.status !== "ready" || installed.data === undefined}
       theme={theme}
-      compact={false}
+      compact={compact}
       onSelect={(id) => {
         void select(id);
       }}

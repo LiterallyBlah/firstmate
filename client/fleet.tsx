@@ -874,7 +874,14 @@ function FleetViewBody({
       )}
     />
   );
-  const inlineDeck = watching !== null ? conversation : deckScene;
+  const inlineDeck = watching !== null ? conversation : (
+    <View style={{ flex: 1, minHeight: 0 }}>
+      <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 12, paddingVertical: 6 }}>
+        <DeckSceneSwitcher theme={theme} compact={compact || paneWidth < 638} />
+      </View>
+      {deckScene}
+    </View>
+  );
 
   if (!home) {
     return (
@@ -883,7 +890,7 @@ function FleetViewBody({
           <View style={styles.headerRow}>
             <Text style={styles.title}>{FLEET_PANELS[view].title}</Text>
             <View style={styles.spacer} />
-            {view === "deck" && deck ? <DeckSceneSwitcher theme={theme} /> : null}
+            {view === "deck" && deck ? <DeckSceneSwitcher theme={theme} compact={compact || width < 900} /> : null}
             {shell === undefined ? null : (
               <IconButton theme={theme} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
             )}
