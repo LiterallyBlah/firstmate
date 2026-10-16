@@ -64,7 +64,7 @@ for(const [name,w,h,top,speed,order]of [['far',256,32,212,.55,5],['mid',256,64,2
   for(const phase of ['midday','dusk','night']){const id='bay-'+name+'-'+phase;save(id,atlas(w,h,phase,true));byPhase[phase]=frames(id,w,h);}
   byPhase.dawn=byPhase.dusk;byPhase.morning=byPhase.midday;byPhase.afternoon=byPhase.midday;
   for(const phase of ['dawn','morning','afternoon'])try{unlinkSync(resolve(out,'bay-'+name+'-'+phase+'.png'));}catch(e){if(e.code!=='ENOENT')throw e;}
-  p.ambience.push({id:'bay-'+name,slot:'back',order,lite:'run',still:'first-frame',behaviour:{kind:'phase-strip',frames:{sprites:byPhase.midday,frameMs:320,clock:'water'},byPhase,top,span:[-32768,32768],drift:{pxPerSecond:speed,clock:'water'}}});
+  p.ambience.push({id:'bay-'+name,slot:'back',order,lite:'run',still:'first-frame',behaviour:{kind:'phase-strip',frames:{sprites:byPhase.midday,frameMs:320,clock:'water'},byPhase,top,span:[-4096,4608],drift:{pxPerSecond:speed,clock:'water'}}});
 }
 // Transparent near swells let the existing six-phase sea colour show through, and tile
 // to the visible bottom in both slots. The front is cropped on the same origin.
