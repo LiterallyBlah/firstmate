@@ -373,34 +373,34 @@
     "serpent-0": {
       "path": "serpent-0.png",
       "size": [
-        110,
-        86
+        2048,
+        44
       ],
-      "sha256": "c4286c5279e599307ad35b7d97a0d67385ff0dfa975813140d62e1293dcbf1ed"
+      "sha256": "72e1606fcc8736999ec688b47d44930ff5accc171242947e207bfd0357c83664"
     },
     "serpent-1": {
       "path": "serpent-1.png",
       "size": [
-        110,
-        86
+        2048,
+        44
       ],
-      "sha256": "d0b201a6a99f1b6bcc029da231adff5b1c79dda4dcbf704aa022ea32de07798e"
+      "sha256": "8e80b9db3177a6d6a13d73c1b728cb9d7f8ddf8ba90e0e905825b8d4313bd016"
     },
     "serpent-2": {
       "path": "serpent-2.png",
       "size": [
-        110,
-        86
+        2048,
+        44
       ],
-      "sha256": "c3faff99073682efaa314be88ed22c8f1f9f6458998df22d260e4081ef428719"
+      "sha256": "06a52818ca900fd48b8966eb3fd55e056bb7dba8f22e4f16f05a94872423996e"
     },
     "serpent-3": {
       "path": "serpent-3.png",
       "size": [
-        110,
-        86
+        2048,
+        44
       ],
-      "sha256": "e4cebf96d387983b24fccb1ac7f80fda59ac8b8beebcce3ded21a830afc5d864"
+      "sha256": "5c058cce0e3481bfd62f14a68cc9b505017e8d63ccc2950294b0f27dad4d2643"
     },
     "smoke-0": {
       "path": "smoke-0.png",
@@ -761,6 +761,14 @@
         200
       ],
       "sha256": "56c1be96ce3e615c093f8eecacc10041ccd859ac5845c6be53925ab31091d757"
+    },
+    "serpent-clear": {
+      "path": "serpent-clear.png",
+      "size": [
+        2048,
+        44
+      ],
+      "sha256": "a68e37e4f5e439cd240392ee17a82518b4e403088cb1e77571db5ad88f1f1875"
     }
   },
   "preview": "preview",
@@ -3825,50 +3833,73 @@
     {
       "id": "sky-serpent",
       "slot": "back",
-      "order": 4,
+      "order": 6.1,
       "optional": false,
-      "lite": "freeze",
+      "lite": "hide",
       "still": "hide",
       "behaviour": {
-        "kind": "cycle",
+        "kind": "strip",
         "frames": {
           "sprites": [
             {
-              "image": "serpent-0"
+              "image": "serpent-clear"
             },
             {
-              "image": "serpent-1"
+              "image": "serpent-clear"
             },
             {
-              "image": "serpent-2"
+              "image": "serpent-clear"
             },
             {
-              "image": "serpent-3"
+              "image": "serpent-clear"
             }
           ],
           "frameMs": 600,
           "clock": "swell"
         },
-        "at": [
-          365,
-          165
+        "top": -8,
+        "span": [
+          -1200,
+          1680
         ],
-        "anchor": [
-          55,
-          43
-        ],
-        "opacity": {
-          "curve": [
-            [
-              0.82,
-              0
+        "drift": {
+          "pxPerSecond": 18,
+          "clock": "wind"
+        },
+        "variants": [
+          {
+            "id": "peak-storm",
+            "frames": [
+              {
+                "image": "serpent-0"
+              },
+              {
+                "image": "serpent-1"
+              },
+              {
+                "image": "serpent-2"
+              },
+              {
+                "image": "serpent-3"
+              }
             ],
-            [
-              1,
-              0.95
+            "blend": "over",
+            "opacity": [
+              [
+                0,
+                0
+              ],
+              [
+                0.82,
+                0
+              ],
+              [
+                1,
+                0.95
+              ]
             ]
-          ]
-        }
+          }
+        ]
       }
     },
     {
