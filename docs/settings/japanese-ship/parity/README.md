@@ -39,8 +39,11 @@ The baseline is pinned to `47e305d`, including its original PNG blobs. Both side
 the same 1440×900 viewport, DPR 2, UTC wall clock and fixture fleet. The day capture
 uses the normal fixture; storm/dusk/night use 24 working sailors. Storm is full motion
 at intensity 1.00; day/dusk/night are reduced motion so geometry and lighting are stable.
-The four final screenshots were independently reproduced byte-for-byte after final
-art cleanup. [Expected changes](expected-changes.json) records exact before/after
+The final day, dusk and night screenshots independently reproduced byte-for-byte.
+The full-motion storm repeat reached the same intensity 1.00 but selected a different
+rain/water animation frame during asynchronous fixture refresh; both images and exact
+hashes are retained in [repeat evidence](review/repeat/verified.json).
+[Expected changes](expected-changes.json) records exact before/after
 SHA-256s, differing-pixel counts and the reason for each intentional Sakura change.
 Ship's gate needs no exceptions or baseline updates.
 
@@ -60,6 +63,15 @@ These GIFs are real canvas captures: the departure is sampled every 100 ms, the 
 every 250 ms. Crops/resizing and GIF quantization affect review previews only. Their
 JSON siblings record frame times and original full-canvas hashes, with PNG keyframes
 beside them. The audit reads captured pixels, not a private renderer scene graph.
+
+Revised departure keyframes: [horizontal walk, 112](review/after/sea-dragon-departure-112.png),
+[splash, 132](review/after/sea-dragon-departure-132.png),
+[full breach, 140](review/after/sea-dragon-departure-140.png),
+[lunge, 144](review/after/sea-dragon-departure-144.png),
+[snap, 148](review/after/sea-dragon-departure-148.png),
+[sinking crest, 152](review/after/sea-dragon-departure-152.png),
+[residual ripple, 156](review/after/sea-dragon-departure-156.png).
+The clip includes the approach across the deck before the plank walk.
 
 ## Motion and parity with Ship's deck
 
@@ -86,7 +98,7 @@ was added or changed. The full package uses 26 existing capabilities.
 ## Verification
 
 - Pack lint: 51/51 tests; all declared crops, hashes, dimensions, paths, effect bounds
-  and 24-worker packing checks pass. **51 PNGs, 886,669 bytes**, including the actual-render preview.
+  and 24-worker packing checks pass. **51 PNGs, 886,395 bytes**, including the actual-render preview.
 - Typecheck passes. Full suite passes with one worker: **1,140 passed, 3 skipped** across
   97 files. The first highly parallel run hit timing-sensitive `pr-watch` and
   `update-source` tests; the complete serial run passed without changing those tests.

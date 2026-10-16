@@ -19,6 +19,17 @@ for(const name of Object.keys(reasons)){
   changes.shots[name]={main:hash(a),branch:hash(b),differingPixels:pixels,reason:reasons[name]};
 }
 writeFileSync(join(here,'expected-changes.json'),JSON.stringify(changes,null,2)+'\n');
+// Still comparisons must reproduce exactly. Record the moving storm separately: an
+// asynchronous fleet refresh can select a neighbouring rain/water animation frame.
+const repeated={};
+for(const name of Object.keys(reasons)){
+  const a=readFileSync(join(here,'review/after',name+'.png')),b=readFileSync(join(here,'review/repeat',name+'.png'));
+  const x=decodePng(a),y=decodePng(b);assert.equal(x.width,y.width);assert.equal(x.height,y.height);
+  let differingPixels=0;for(let i=0;i<x.rgba.length;i+=4)if([0,1,2,3].some(c=>x.rgba[i+c]!==y.rgba[i+c]))differingPixels++;
+  const identical=a.equals(b);if(name!=='storm')assert.ok(identical,name+' independently reproduces');
+  repeated[name]={sha256:hash(a),repeatSha256:hash(b),identical,differingPixels,...(name==='storm'?{motion:'full',note:'Both captures reach intensity 1.00; rain/water frame timing can differ across asynchronous fleet refreshes. This is not a Ship gate exception.'}:{})};
+}
+writeFileSync(join(here,'review/repeat/verified.json'),JSON.stringify(repeated,null,2)+'\n');
 const shots=[0,4,8,12,16].map(i=>decodePng(readFileSync(join(here,'review/after/night-motion-'+String(i).padStart(3,'0')+'.png'))));
 // Same public fit arithmetic as the authoring overlay, in screenshot pixels (DPR 2).
 const scale=Math.min(shots[0].width/480,shots[0].height/320)*.94;
