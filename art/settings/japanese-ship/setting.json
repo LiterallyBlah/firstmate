@@ -1,0 +1,1540 @@
+{
+  "format": "firstmate.deck-setting",
+  "formatVersion": 1,
+  "id": "japanese-ship",
+  "name": "Sakura coast",
+  "version": "1.0.0",
+  "requires": [
+    "stage@1",
+    "floor@1",
+    "zones@1",
+    "zone-appearance@1",
+    "attention-carrier@1",
+    "stable-posts@1",
+    "cast@1",
+    "pose-fidgets@1",
+    "rise@1",
+    "sink@1",
+    "phase-tint@1",
+    "bob@1",
+    "sway@1",
+    "cycle@1",
+    "backdrop-cycle@1",
+    "drifters@1",
+    "tile@1",
+    "day-cycle@1",
+    "atmosphere@1"
+  ],
+  "copy": {
+    "pane": "Deck",
+    "tooltip": "Sail a Japanese coastal ship past a sakura island.",
+    "title": "Sakura coast",
+    "noun": "the coastal ship",
+    "starting": "Setting sail...",
+    "aboard": "aboard",
+    "actor": {
+      "one": "sailor",
+      "many": "sailors"
+    },
+    "zones": {
+      "rigging": "tending the rigging",
+      "stern": "waiting by the stern",
+      "bow": "watching the coast",
+      "rest": "resting below deck"
+    }
+  },
+  "images": {
+    "ship": {
+      "path": "ship.png",
+      "size": [
+        480,
+        320
+      ],
+      "sha256": "99fb6369cfa6430117da11e08ae3efb0d7770121767d7526d8a1680f4e02825f"
+    },
+    "coast": {
+      "path": "coast.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "9cfddb5aded4fac975828b8dd991c1c8acfd2c06f4d52ad280866e057cc978cb"
+    },
+    "coast-night": {
+      "path": "coast-night.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "86ea9731b9d116a8e133b315a48bcc8feeb22fac319cde2b021938b0335f7306"
+    },
+    "ripples": {
+      "path": "ripples.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "9a2521f7f513e1cba41bd47400022894ad50786831810087aae80a36b4a7d0cb"
+    },
+    "wake": {
+      "path": "wake.png",
+      "size": [
+        128,
+        36
+      ],
+      "sha256": "2c0cf7a816d9c72f527d07072e4dd859626e7e652bed3262e6a67499776fbd97"
+    },
+    "reply-shark": {
+      "path": "reply-shark.png",
+      "size": [
+        56,
+        44
+      ],
+      "sha256": "ca9dc08091fd6906e3aee890477ba1872268cf8c64f2e85a6ed800fb809db8d5"
+    },
+    "sleep-window": {
+      "path": "sleep-window.png",
+      "size": [
+        14,
+        16
+      ],
+      "sha256": "3544d22798d564e16e7661b40a57afc784d071c302cb7ff9877c6fd58d3ef2bb"
+    },
+    "crew-indigo": {
+      "path": "crew-indigo.png",
+      "size": [
+        384,
+        36
+      ],
+      "sha256": "8d48b9f76ff5620dada337d55010ce9a28abb3e683161cc57af7ab21b2844d69"
+    },
+    "crew-russet": {
+      "path": "crew-russet.png",
+      "size": [
+        384,
+        36
+      ],
+      "sha256": "82fe6d631b97ba1b3e3376e931bf24b73f864b77685985028559003c80f82d92"
+    },
+    "preview": {
+      "path": "preview.png",
+      "size": [
+        384,
+        202
+      ],
+      "sha256": "bc6fff6be9a9ded60fcbe81a05a4ffb8a31fe291db91a05245cfcc481002becb"
+    },
+    "rig-fixed": {
+      "path": "rig-fixed.png",
+      "size": [
+        352,
+        184
+      ],
+      "sha256": "c944b7d74527b47f86376d6cc60c7c3baf372c59ad00d44c8f6284f492621c55"
+    },
+    "masthead": {
+      "path": "masthead.png",
+      "size": [
+        51,
+        37
+      ],
+      "sha256": "40050826163f6c353b57dfb8e6d381ca5eae95cb33e0bab0843b7d301a481ec2"
+    },
+    "sail-billow": {
+      "path": "sail-billow.png",
+      "size": [
+        404,
+        114
+      ],
+      "sha256": "3ecbcce3647b0ffff5d65e55fae230fdfe73db33fdb30762cbcea1c7d78f4929"
+    },
+    "cloud-bank": {
+      "path": "cloud-bank.png",
+      "size": [
+        158,
+        47
+      ],
+      "sha256": "535f4f7bbf215ab37b1b3e8a5e7a63e39177f7e9b18d2caa0c12ed1f7eb500a4"
+    },
+    "cloud-puff": {
+      "path": "cloud-puff.png",
+      "size": [
+        94,
+        22
+      ],
+      "sha256": "3629787a0c66e535b24cf61287dfe1f8e4367db31401e7a004c1501e0920edb7"
+    },
+    "cloud-wisp": {
+      "path": "cloud-wisp.png",
+      "size": [
+        76,
+        22
+      ],
+      "sha256": "be0b0aec9f8660c36be89cd5b6574b5806e874b4b9c30237a822f2bd441dc259"
+    },
+    "coast-front": {
+      "path": "coast-front.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "ad3fa19118a487502b28979620586630c5ea6f6dd43697acde88e56dbd8d8d07"
+    },
+    "coast-night-front": {
+      "path": "coast-night-front.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "116f375f38c2518076c9f39fcd064c37021fe250f536315af674411b0bef9acf"
+    },
+    "wake-motion": {
+      "path": "wake-motion.png",
+      "size": [
+        384,
+        36
+      ],
+      "sha256": "8934bedd29c32c93308724c83415eddd206ce93eca43453002f38ee7489e5f9c"
+    },
+    "reply-shark-motion": {
+      "path": "reply-shark-motion.png",
+      "size": [
+        224,
+        44
+      ],
+      "sha256": "df64d3473e0fe36347e990918b400d287f9c6babe9e470c99772461825b20c7b"
+    }
+  },
+  "preview": "preview",
+  "stage": {
+    "size": [
+      480,
+      320
+    ],
+    "fit": {
+      "top": 0,
+      "bottom": 320,
+      "margin": 0.94
+    },
+    "actorHeight": 42,
+    "motion": {
+      "bob": {
+        "periodS": 7.4,
+        "amplitude": {
+          "channel": "heave"
+        },
+        "clock": "swell"
+      }
+    },
+    "backdrop": {
+      "sprite": {
+        "image": "ship"
+      }
+    },
+    "parts": [
+      {
+        "id": "fixed-rig",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "rig-fixed"
+        },
+        "at": [
+          55,
+          30
+        ],
+        "cutout": [
+          55,
+          30,
+          352,
+          184
+        ]
+      },
+      {
+        "id": "masthead",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "masthead"
+        },
+        "at": [
+          214,
+          30
+        ],
+        "behaviour": {
+          "kind": "sway",
+          "amplitude": {
+            "channel": "heave",
+            "scale": 1.0833333333333335
+          },
+          "periodS": 6.2,
+          "phase": -1,
+          "limit": 1,
+          "clock": "swell"
+        }
+      },
+      {
+        "id": "sail",
+        "optional": false,
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "sail-billow",
+          "rect": [
+            0,
+            0,
+            202,
+            114
+          ]
+        },
+        "at": [
+          145,
+          75
+        ],
+        "behaviour": {
+          "kind": "cycle",
+          "frames": {
+            "sprites": [
+              {
+                "image": "sail-billow",
+                "rect": [
+                  0,
+                  0,
+                  202,
+                  114
+                ]
+              },
+              {
+                "image": "sail-billow",
+                "rect": [
+                  202,
+                  0,
+                  202,
+                  114
+                ]
+              }
+            ],
+            "frameMs": 850,
+            "clock": "sail"
+          },
+          "duty": {
+            "channel": "billow"
+          }
+        }
+      }
+    ],
+    "pieces": [
+      {
+        "id": "hull-front",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            38,
+            247,
+            413,
+            43
+          ]
+        },
+        "at": [
+          38,
+          247
+        ],
+        "baseline": null
+      },
+      {
+        "id": "mast",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            229,
+            194,
+            20,
+            47
+          ]
+        },
+        "at": [
+          229,
+          194
+        ],
+        "baseline": 239
+      },
+      {
+        "id": "mast-ladder",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            245,
+            194,
+            10,
+            39
+          ]
+        },
+        "at": [
+          245,
+          194
+        ],
+        "baseline": 232
+      },
+      {
+        "id": "stern-shelter",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            373,
+            181,
+            89,
+            62
+          ]
+        },
+        "at": [
+          373,
+          181
+        ],
+        "baseline": 228
+      }
+    ],
+    "props": [],
+    "lightStyles": {},
+    "lights": [],
+    "tintByPhase": {
+      "night": "#7184A1"
+    }
+  },
+  "floor": {
+    "areas": [
+      {
+        "id": "deck",
+        "polygon": [
+          [
+            44,
+            224
+          ],
+          [
+            362,
+            224
+          ],
+          [
+            390,
+            229
+          ],
+          [
+            390,
+            243
+          ],
+          [
+            130,
+            244
+          ],
+          [
+            76,
+            237
+          ],
+          [
+            44,
+            229
+          ]
+        ]
+      },
+      {
+        "id": "hold-passage",
+        "polygon": [
+          [
+            159,
+            234
+          ],
+          [
+            165,
+            234
+          ],
+          [
+            165,
+            269
+          ],
+          [
+            159,
+            269
+          ]
+        ],
+        "spill": false
+      },
+      {
+        "id": "hold",
+        "polygon": [
+          [
+            66,
+            250
+          ],
+          [
+            426,
+            250
+          ],
+          [
+            426,
+            270
+          ],
+          [
+            66,
+            270
+          ]
+        ],
+        "spill": false
+      }
+    ],
+    "obstacles": [
+      {
+        "id": "mast-foot",
+        "rect": [
+          231,
+          230,
+          16,
+          10
+        ]
+      },
+      {
+        "id": "ladder-foot",
+        "rect": [
+          247,
+          226,
+          8,
+          7
+        ]
+      }
+    ],
+    "grid": {
+      "cell": 2,
+      "bounds": [
+        38,
+        218,
+        400,
+        56
+      ]
+    },
+    "walkSpeed": 28
+  },
+  "zones": {
+    "byState": {
+      "working": "rigging",
+      "waiting": "stern",
+      "blocked": "bow",
+      "idle": "rest"
+    },
+    "zones": [
+      {
+        "id": "rigging",
+        "posts": [
+          {
+            "id": "rigging-1",
+            "at": [
+              200,
+              233
+            ],
+            "facing": "right"
+          },
+          {
+            "id": "rigging-2",
+            "at": [
+              222,
+              240
+            ],
+            "facing": "right"
+          },
+          {
+            "id": "rigging-3",
+            "at": [
+              270,
+              233
+            ],
+            "facing": "right"
+          },
+          {
+            "id": "rigging-4",
+            "at": [
+              294,
+              233
+            ],
+            "facing": "right"
+          },
+          {
+            "id": "rigging-5",
+            "at": [
+              316,
+              233
+            ],
+            "facing": "right"
+          },
+          {
+            "id": "rigging-6",
+            "at": [
+              338,
+              233
+            ],
+            "facing": "right"
+          }
+        ],
+        "assign": "stable",
+        "overflow": {
+          "kind": "beside",
+          "spacing": [
+            12,
+            3
+          ]
+        }
+      },
+      {
+        "id": "stern",
+        "posts": [
+          {
+            "id": "stern-1",
+            "at": [
+              352,
+              235
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "stern-2",
+            "at": [
+              369,
+              238
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "stern-3",
+            "at": [
+              387,
+              240
+            ],
+            "facing": "front"
+          }
+        ],
+        "assign": "stable",
+        "overflow": {
+          "kind": "beside",
+          "spacing": [
+            12,
+            3
+          ]
+        }
+      },
+      {
+        "id": "bow",
+        "posts": [
+          {
+            "id": "bow-1",
+            "at": [
+              83,
+              230
+            ],
+            "facing": "left"
+          },
+          {
+            "id": "bow-2",
+            "at": [
+              106,
+              234
+            ],
+            "facing": "left"
+          },
+          {
+            "id": "bow-3",
+            "at": [
+              130,
+              235
+            ],
+            "facing": "left"
+          }
+        ],
+        "assign": "stable",
+        "overflow": {
+          "kind": "beside",
+          "spacing": [
+            12,
+            3
+          ]
+        }
+      },
+      {
+        "id": "rest",
+        "posts": [
+          {
+            "id": "rest-1",
+            "at": [
+              86,
+              269
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-2",
+            "at": [
+              124,
+              269
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-3",
+            "at": [
+              162,
+              269
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-4",
+            "at": [
+              200,
+              269
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-5",
+            "at": [
+              238,
+              269
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-6",
+            "at": [
+              276,
+              269
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-7",
+            "at": [
+              314,
+              269
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-8",
+            "at": [
+              352,
+              269
+            ],
+            "facing": "front"
+          },
+          {
+            "id": "rest-9",
+            "at": [
+              390,
+              269
+            ],
+            "facing": "front"
+          }
+        ],
+        "assign": "ordered",
+        "overflow": {
+          "kind": "pack",
+          "areas": [
+            [
+              78,
+              269,
+              328,
+              1
+            ]
+          ],
+          "spacing": [
+            14,
+            1
+          ],
+          "fallback": [
+            12,
+            1
+          ]
+        },
+        "labelFloor": 282,
+        "appearance": {
+          "sprite": {
+            "image": "sleep-window"
+          },
+          "feet": [
+            7,
+            16
+          ],
+          "front": "hull-front"
+        }
+      }
+    ]
+  },
+  "cast": {
+    "lanes": {
+      "indigo": {
+        "stand": {
+          "rect": [
+            8,
+            2,
+            15,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "front-a": {
+          "rect": [
+            40,
+            2,
+            15,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "front-pass": {
+          "rect": [
+            72,
+            2,
+            15,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "front-b": {
+          "rect": [
+            104,
+            2,
+            15,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            138,
+            2,
+            11,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "side-a": {
+          "rect": [
+            168,
+            2,
+            16,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "side-pass": {
+          "rect": [
+            202,
+            2,
+            11,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "side-b": {
+          "rect": [
+            232,
+            2,
+            16,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "pull-a": {
+          "rect": [
+            259,
+            4,
+            25,
+            30
+          ],
+          "feet": [
+            13,
+            30
+          ]
+        },
+        "pull-b": {
+          "rect": [
+            294,
+            4,
+            19,
+            30
+          ],
+          "feet": [
+            10,
+            30
+          ]
+        },
+        "waiting": {
+          "rect": [
+            327,
+            2,
+            17,
+            32
+          ],
+          "feet": [
+            9,
+            32
+          ]
+        },
+        "rest": {
+          "rect": [
+            359,
+            10,
+            18,
+            24
+          ],
+          "feet": [
+            9,
+            24
+          ]
+        }
+      },
+      "russet": {
+        "stand": {
+          "rect": [
+            8,
+            2,
+            15,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "front-a": {
+          "rect": [
+            40,
+            2,
+            15,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "front-pass": {
+          "rect": [
+            72,
+            2,
+            15,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "front-b": {
+          "rect": [
+            104,
+            2,
+            15,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "side-idle": {
+          "rect": [
+            138,
+            2,
+            12,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "side-a": {
+          "rect": [
+            168,
+            2,
+            16,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "side-pass": {
+          "rect": [
+            202,
+            2,
+            12,
+            32
+          ],
+          "feet": [
+            6,
+            32
+          ]
+        },
+        "side-b": {
+          "rect": [
+            232,
+            2,
+            16,
+            32
+          ],
+          "feet": [
+            8,
+            32
+          ]
+        },
+        "pull-a": {
+          "rect": [
+            259,
+            4,
+            26,
+            30
+          ],
+          "feet": [
+            13,
+            30
+          ]
+        },
+        "pull-b": {
+          "rect": [
+            294,
+            4,
+            19,
+            30
+          ],
+          "feet": [
+            10,
+            30
+          ]
+        },
+        "waiting": {
+          "rect": [
+            327,
+            2,
+            17,
+            32
+          ],
+          "feet": [
+            9,
+            32
+          ]
+        },
+        "rest": {
+          "rect": [
+            359,
+            10,
+            18,
+            24
+          ],
+          "feet": [
+            9,
+            24
+          ]
+        }
+      }
+    },
+    "looks": [
+      {
+        "id": "indigo",
+        "image": "crew-indigo",
+        "lane": "indigo",
+        "optional": false
+      },
+      {
+        "id": "russet",
+        "image": "crew-russet",
+        "lane": "russet",
+        "optional": false
+      }
+    ],
+    "roles": {
+      "stand": "stand",
+      "walkFront": [
+        "front-a",
+        "front-pass",
+        "front-b",
+        "stand"
+      ],
+      "walkSide": [
+        "side-a",
+        "side-pass",
+        "side-b",
+        "side-idle"
+      ],
+      "rise": 1,
+      "stepMs": 170,
+      "settled": {
+        "working": {
+          "pose": "pull-a",
+          "mirror": "facing"
+        },
+        "waiting": {
+          "pose": "waiting",
+          "mirror": "none"
+        },
+        "blocked": {
+          "pose": "side-idle",
+          "mirror": "facing"
+        },
+        "idle": {
+          "pose": "rest",
+          "mirror": "none"
+        }
+      }
+    },
+    "fidgets": {
+      "working": {
+        "periodMs": 1600,
+        "seedMs": 1700,
+        "keys": [
+          {
+            "fromMs": 0,
+            "dx": 0,
+            "dy": 0,
+            "pose": "pull-a"
+          },
+          {
+            "fromMs": 800,
+            "dx": 0,
+            "dy": 0,
+            "pose": "pull-b"
+          }
+        ]
+      },
+      "waiting": {
+        "periodMs": 2800,
+        "seedMs": 37,
+        "keys": [
+          {
+            "fromMs": 0,
+            "dx": 0,
+            "dy": 0,
+            "pose": "waiting"
+          },
+          {
+            "fromMs": 2200,
+            "dx": 0,
+            "dy": 0,
+            "pose": "stand"
+          }
+        ]
+      },
+      "blocked": {
+        "periodMs": 4600,
+        "seedMs": 37,
+        "keys": [
+          {
+            "fromMs": 0,
+            "dx": 0,
+            "dy": 0,
+            "pose": "side-idle"
+          },
+          {
+            "fromMs": 3400,
+            "dx": 0,
+            "dy": 0,
+            "pose": "stand"
+          }
+        ]
+      },
+      "idle": null
+    }
+  },
+  "portals": {
+    "entry": {
+      "kind": "rise",
+      "at": [
+        163,
+        235
+      ],
+      "ms": 1200
+    },
+    "exits": {
+      "hold": {
+        "kind": "sink",
+        "at": [
+          163,
+          235
+        ],
+        "ms": 1100
+      }
+    },
+    "byDeparture": {
+      "done": "hold",
+      "failed": "hold",
+      "closed": "hold",
+      "removed": "hold"
+    },
+    "still": {
+      "fadeMs": 350
+    }
+  },
+  "effects": {},
+  "ambience": [
+    {
+      "id": "coast",
+      "slot": "back",
+      "order": 0,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "backdrop-cycle",
+        "size": [
+          600,
+          400
+        ],
+        "phases": {
+          "day": "coast",
+          "night": "coast-night"
+        },
+        "placement": {
+          "horizonRow": 180,
+          "stageRow": 150
+        },
+        "tint": {
+          "to": "#4D647D",
+          "amount": {
+            "channel": "weather"
+          }
+        }
+      }
+    },
+    {
+      "id": "sea-ripples",
+      "slot": "back",
+      "order": 5,
+      "lite": "freeze",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "tile",
+        "frames": {
+          "sprites": [
+            {
+              "image": "ripples"
+            }
+          ],
+          "frameMs": 500,
+          "clock": "water"
+        },
+        "drift": {
+          "pxPerSecond": 3,
+          "clock": "water"
+        },
+        "origin": 214,
+        "bands": [
+          {
+            "slot": "back",
+            "fromRow": 214
+          },
+          {
+            "slot": "front",
+            "fromRow": 290
+          }
+        ]
+      }
+    },
+    {
+      "id": "turning-wake",
+      "slot": "back",
+      "order": 6,
+      "lite": "freeze",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "cycle",
+        "frames": {
+          "sprites": [
+            {
+              "image": "wake"
+            },
+            {
+              "image": "wake-motion",
+              "rect": [
+                128,
+                0,
+                128,
+                36
+              ]
+            },
+            {
+              "image": "wake-motion",
+              "rect": [
+                256,
+                0,
+                128,
+                36
+              ]
+            }
+          ],
+          "frameMs": 240,
+          "clock": "water"
+        },
+        "opacity": {
+          "channel": "wake"
+        },
+        "at": [
+          342,
+          264
+        ],
+        "anchor": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "clouds",
+      "slot": "back",
+      "order": 3,
+      "lite": "freeze",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "drifters",
+        "space": "coast",
+        "clock": "wind",
+        "slots": 3,
+        "margin": 32,
+        "topMin": 6,
+        "lanes": [
+          [
+            78,
+            82
+          ],
+          [
+            96,
+            100
+          ],
+          [
+            124,
+            128
+          ]
+        ],
+        "palette": [
+          "#7EBBED",
+          "#C7DFF0",
+          "#F8EDE0"
+        ],
+        "byPhase": {
+          "day": [
+            "#7EBBED",
+            "#C7DFF0",
+            "#F8EDE0"
+          ],
+          "night": [
+            "#1A3E6C",
+            "#1E4076",
+            "#385890"
+          ]
+        },
+        "sprites": [
+          {
+            "id": "puff",
+            "image": "cloud-puff",
+            "size": [
+              94,
+              22
+            ],
+            "pxPerSecond": 0.45
+          },
+          {
+            "id": "wisp",
+            "image": "cloud-wisp",
+            "size": [
+              76,
+              22
+            ],
+            "pxPerSecond": 0.3
+          },
+          {
+            "id": "bank",
+            "image": "cloud-bank",
+            "size": [
+              158,
+              47
+            ],
+            "pxPerSecond": 0.35
+          }
+        ]
+      }
+    },
+    {
+      "id": "coast-foreground",
+      "slot": "back",
+      "order": 4,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "backdrop-cycle",
+        "size": [
+          600,
+          400
+        ],
+        "phases": {
+          "day": "coast-front",
+          "night": "coast-night-front"
+        },
+        "placement": {
+          "horizonRow": 180,
+          "stageRow": 150
+        },
+        "tint": {
+          "to": "#4D647D",
+          "amount": {
+            "channel": "weather"
+          }
+        }
+      }
+    }
+  ],
+  "dayCycle": {
+    "phases": [
+      {
+        "id": "day",
+        "localMinute": 480
+      },
+      {
+        "id": "night",
+        "localMinute": 1200
+      }
+    ],
+    "fadeMinutes": 90,
+    "night": "night",
+    "fallback": "day"
+  },
+  "atmosphere": {
+    "table": [
+      {
+        "at": 0,
+        "pace": 0.45,
+        "swell": 0.75,
+        "heave": 0.7,
+        "wake": 0.4,
+        "weather": 0,
+        "wind": 0.5,
+        "sail": 0.55,
+        "billow": 0.4
+      },
+      {
+        "at": 0.35,
+        "pace": 1,
+        "swell": 1,
+        "heave": 1,
+        "wake": 0.65,
+        "weather": 0,
+        "wind": 1,
+        "sail": 1,
+        "billow": 0.5
+      },
+      {
+        "at": 1,
+        "pace": 1.8,
+        "swell": 1.2,
+        "heave": 1.6,
+        "wake": 1,
+        "weather": 0.25,
+        "wind": 3,
+        "sail": 2.4,
+        "billow": 0.65
+      }
+    ],
+    "delivered": {
+      "pace": 1,
+      "swell": 1,
+      "heave": 1,
+      "wake": 0.7,
+      "weather": 0,
+      "wind": 1,
+      "sail": 1,
+      "billow": 0.5
+    },
+    "clocks": {
+      "water": "pace",
+      "swell": "swell",
+      "wind": "wind",
+      "sail": "sail"
+    }
+  },
+  "attentionCarrier": {
+    "at": [
+      14,
+      273
+    ],
+    "size": [
+      56,
+      44
+    ],
+    "frames": [
+      {
+        "image": "reply-shark"
+      },
+      {
+        "image": "reply-shark-motion",
+        "rect": [
+          56,
+          0,
+          56,
+          44
+        ]
+      },
+      {
+        "image": "reply-shark-motion",
+        "rect": [
+          112,
+          0,
+          56,
+          44
+        ]
+      },
+      {
+        "image": "reply-shark-motion",
+        "rect": [
+          168,
+          0,
+          56,
+          44
+        ]
+      }
+    ],
+    "frameMs": 450,
+    "loiter": {
+      "amplitude": [
+        2,
+        1
+      ],
+      "periodMs": 5200
+    }
+  },
+  "palette": {
+    "fallbackFill": "#07445B",
+    "veil": "#061423",
+    "staleTint": "#87959D",
+    "staleAlpha": 0.6
+  }
+}

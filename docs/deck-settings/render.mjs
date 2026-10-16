@@ -37,7 +37,12 @@ await build({ entryPoints: [join(root, "server/deck-settings.ts")], outfile: joi
 const server = await import(pathToFileURL(join(generated, "overlay-server.mjs")).href);
 const at = async () => root;
 const answers = {
-  "firstmate.deck.engine": () => server.readDeckEngine(at),
+  "firstmate.deck.engine": async () => {
+    const engine = await server.readDeckEngine(at);
+    // Read-only observer for animation review; the plugin and renderer run unmodified.
+    if (process.env.CHECK_JAPANESE_MOTION !== "1") return engine;
+    return { ...engine, source: engine.source + `\n;const init=PIXI.Application.prototype.init;PIXI.Application.prototype.init=async function(...args){await init.apply(this,args);globalThis.motionReviewApp=this;};` };
+  },
   "firstmate.deck.settings": () => server.listDeckSettings(at),
   "firstmate.deck.setting": (input) => server.readDeckSetting(input.id, at),
 };
@@ -70,14 +75,14 @@ const http = createServer(async (request, response) => {
   }
 });
 await new Promise((done) => http.listen(0, "127.0.0.1", done));
-const browser = await chromium.launch({ channel: "msedge", headless: true });
+const browser = await chromium.launch({ channel: "msedge", headless: true, ...(process.env.CHECK_JAPANESE_LITE === "1" ? { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] } : {}) });
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, reducedMotion: "reduce", timezoneId: "UTC" });
   const view = await context.newPage();
   const errors = [];
   view.on("pageerror", (error) => errors.push(error.message));
   await view.clock.setFixedTime(new Date("2026-10-14T12:00:00Z"));
-  await view.goto(`http://127.0.0.1:${http.address().port}/?tree=branch&theme=dark&working=4&setting=${encodeURIComponent(setting)}${process.env.CHECK_SWITCHER === "1" ? "&persistScene=1" : ""}`);
+  await view.goto(`http://127.0.0.1:${http.address().port}/?tree=branch&theme=dark&working=4&setting=${encodeURIComponent(setting)}${process.env.CHECK_SWITCHER === "1" || process.env.CHECK_JAPANESE === "1" ? "&persistScene=1" : ""}`);
   await view.getByRole("button", { name: "Open Deck", exact: true }).click();
   await view.waitForSelector("canvas[data-firstmate-deck-motion]");
   await view.waitForTimeout(800);
@@ -117,6 +122,18 @@ try {
   if (process.env.CHECK_POLISH === "1") {
     const { checkPolish } = await import("../deck-enrichment/check-polish.mjs");
     await checkPolish(view, manifest);
+  }
+  if (process.env.CHECK_JAPANESE === "1") {
+    const { checkJapaneseShip } = await import("../settings/japanese-ship/check-scene.mjs");
+    await checkJapaneseShip(view, manifest);
+  }
+  if (process.env.CHECK_JAPANESE_LITE === "1") {
+    const { checkJapaneseLite } = await import("../settings/japanese-ship/check-scene.mjs");
+    await checkJapaneseLite(view);
+  }
+  if (process.env.CHECK_JAPANESE_MOTION === "1") {
+    const { checkMotion } = await import("../settings/japanese-ship/check-motion.mjs");
+    await checkMotion(view, manifest);
   }
   if (errors.length !== 0) throw new Error(errors.join("\n"));
   console.log(JSON.stringify({ setting: actual, overlay: drawn, selectionCheck: process.env.CHECK_SELECTION === "1", errors }));
