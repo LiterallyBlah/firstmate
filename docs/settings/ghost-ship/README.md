@@ -1,8 +1,14 @@
 # Ghost ship
 
-Fourth installed Deck setting, `ghost-ship`, displayed as **Ghost ship**. The shipped change is data and PNGs only, under `art/settings/ghost-ship/`. No engine changes or changes to the other three packs. Image payload: **900,752 bytes**, including the picker preview. All 26 required capabilities already exist. The final pack is built on the merged all-pane weather engine fix.
+Fourth installed Deck setting, `ghost-ship`, displayed as **Ghost ship**. The shipped change is data and PNGs only, under `art/settings/ghost-ship/`. No engine changes or changes to the other three packs. Image payload: **902,142 bytes**, including the picker preview. All 26 required capabilities already exist. The final pack is built on the merged all-pane weather engine fix.
 
-The approved broadside galleon has eight spectral crew looks, four crew stations, 24 independent cabin sleeper targets, a mast transit behind the sail, mist arrival, and a bow spar departure into a skeletal kraken. The bottom-right anglerfish uses `carrier-surface@1`. The separate distant kraken, breaching ghost whale and passing spectral ship appear at peak weather. The haunted coast and its lighthouse beam share a 1,000-pixel strip and a constant 1,200-second voyage clock.
+The approved broadside galleon has eight spectral crew looks, four crew stations, 24 independent cabin sleeper targets, a mast transit behind the sail, mist arrival, and a bow spar departure into a skeletal kraken. The bottom-right anglerfish uses `carrier-surface@1`. The separate distant kraken, breaching ghost whale and passing spectral ship appear at peak weather. The haunted coast and its lighthouse beam share a 1,800-pixel strip and a constant 1,200-second voyage clock.
+
+## Review correction: storm seams and calm life
+
+The former 160?42 storm fog reused an isolated mist sprite, exposing its cropped edges across the expanded viewport. The replacement uses a 512?256 low-contrast field with opposite edges blended before quantization. Rough-sea frames use a 384-pixel period with cyclic atlas padding; all three wave layers retain their separate clocks and drift. Uniform overcast attenuation removes stretched edge stripes. [Weather audit](weather-audit.json) checks both axes for every storm frame and verifies that all calm sea pixels are unchanged. Repeat sheets and actual wide, square and tall-narrow renders provide the visual seam check.
+
+Four glowing jellyfish now remain submerged and visible in calm day, night, lite and still, with gentle drift/pulse in moving modes. The coast and attached beam share a 1,800-pixel period, keeping the lighthouse from repeating at common wide sizes while preserving the 20-minute voyage.
 
 ## Review evidence
 
@@ -15,6 +21,7 @@ The approved broadside galleon has eight spectral crew looks, four crew stations
 | Tall and narrow | [Night](review/night-tall-narrow.png), [storm](review/storm-tall-narrow.png) |
 | All phase/shape overlays | [Matrix results](matrix.json); `review/<phase>-<wide|square|tall-narrow>-overlay.png` |
 | Crowded bow | [Before](review/bow-before.png), [24 blocked crew](review/bow-after-24.png) |
+| Calm underwater life | [Day jellyfish](review/jellyfish-calm-day.png), [night jellyfish](review/jellyfish-calm-night.png), [tall day](review/midday-tall-narrow.png) |
 | Sleeping cabins | [24 sleepers](review/cabins-24-close.png), [96 exact focus receipts](crowd-focus.json) |
 
 | Clip | Evidence |
@@ -43,7 +50,7 @@ Ship's deck is the parity reference. Regions are sampled from rendered frames in
 | Floating candles | Four frames with vertical bob | Water life motion |
 | Ravens | Rest/turn/rest cycle on the yard | Perched-bird parity |
 | Bats | Night-only passage frames separated by empty frames | Flyby parity; no stationary bat in daylight |
-| Jellyfish | Alternating wide/narrow pulses below the surface | Additional underwater life; hidden in lite/still |
+| Jellyfish | Eight-frame gentle drift and wide/narrow pulses below the surface | Ambient at every weather level; runs in full/lite and rests submerged in still |
 | Ghost whale | Rise, breach, dive, splash, empty ripple, then blank pause | Explicit clean resting end; hidden in lite/still |
 | Spectral ship | Faded passage across an 800-pixel lane, then blank pause | Passing ship parity; not pinned to the coast |
 | Distant kraken | Separate small surfacing/sinking cycle, ending in a ripple and blank pause | Separate from departure effect; hidden in lite/still |
@@ -70,7 +77,7 @@ Ship's deck is the parity reference. Regions are sampled from rendered frames in
 | 5 | Ladder behind sails | **Pass** — [climb contact sheet](review/lookout-contact.png); transit is flat against mast, with foreground sail depth above the climber |
 | 6 | Lights behind crew | **Pass** — all six authored light rows precede nearby crew; [crowd](review/crowd-working-24.png), [night crew](review/spectral-crew-close.png) |
 | 7 | Crew inside rail at 24 | **Pass** — pack floor/crowd lint, [before bow](review/bow-before.png), [after 24](review/bow-after-24.png); four-state crowd renders and [focus receipts](crowd-focus.json) |
-| 8 | Every pane shape filled | **Pass** — [matrix](matrix.json): six phases plus storm at wide 1440x900, square 1000x1000 and tall-narrow 650x1900; sky, sea and fog continue to pane edges |
+| 8 | Every pane shape filled, no band or seam | **Pass** ? corrected storm [wide](review/storm-wide.png), [square](review/storm-square.png), [tall-narrow](review/storm-tall-narrow.png), inspected at native resolution; [wrap audit](weather-audit.json), [fog repeat](review/storm-fog-wrap.png), [sea repeat](review/storm-water-0-wrap.png). Full six-phase/three-shape [matrix](matrix.json) retained |
 | 9 | Weather fills whole pane | **Pass** — rebased onto PR #98 (`4024114`); [tall storm](review/storm-tall-narrow.png), [wide storm](review/storm-wide.png), [square storm](review/storm-square.png); changed weather pixels in all ten vertical bands per shape |
 | 10 | Scenery-bound life travels | **Pass** — coast and beam have identical 1,200-second scroll; whale/ship/bats are intermittent with blank rests, [night](review/night-spectral-crew.gif), [storm](review/storm-peak-whale-and-ship.gif) |
 | 11 | Spread-out life, safe lite/still | **Pass** — whale left, distant kraken off the stern, angler lower right; jellyfish across the underwater width; set pieces hidden in lite/still, [lite storm](review/lite-storm.png), [reduced storm](review/storm-reduced.png) |
@@ -86,11 +93,11 @@ Ship's deck is the parity reference. Regions are sampled from rendered frames in
 
 ## Validation and reproduction
 
-- Pack lint: **85 passed**. Latest registered payload: 160 PNGs, 900,752 bytes.
+- Pack lint: **85 passed**. Latest registered payload: 158 PNGs, 902,142 bytes.
 - `npm.cmd test -- --maxWorkers=1`: **1,200 passed, 3 skipped**, 101 files. No timing flake occurred.
 - `npm.cmd run typecheck`: passed.
 - Paseo compiler and Hermes: [compile-results.json](compile-results.json), both client/server bundles compile; client growth is zero. The vendor Pixi parser refusal is the existing expected native boundary, not a new failure.
-- Frozen Ship gate: [gate-results.json](gate-results.json), **81/81 pixel-identical**. Its recorded pre-art-commit engine has the same client tree as the final data-only branch; neither the frozen fixture nor expectations were edited.
+- Frozen Ship gate: [gate-results.json](gate-results.json), **81/81 pixel-identical**. Its recorded pre-correction engine has the same client tree as the final data-only branch; neither the frozen fixture nor expectations were edited.
 - Actual RPC loader, compiled client and Edge WebGL: full/lite/still checks, 42 phase/storm/overlay captures, 96 real UI focus clicks, finite departure and peak weather clips. These are fixture tests, not a claim of installation in the captain's live workspace.
 - Weather integration: `4024114` is an ancestor; final branch rebased onto `88b8e1b`, which also contains the timing-test fix.
 
@@ -105,16 +112,17 @@ Remove-Item Env:GHOST_REVIEW
 $env:GHOST_LITE='1'; node docs/settings/ghost-ship/render.mjs
 Remove-Item Env:GHOST_LITE
 node docs/settings/ghost-ship/audit-art.mjs
+node docs/settings/ghost-ship/audit-weather.mjs
 node docs/deck-settings/gate.mjs
 npm.cmd test -- --maxWorkers=1
 ```
 
-The render harness uses the existing `docs/board-list` Playwright/esbuild dependencies. Evidence encoding uses `gifenc` and `omggif` installed only under ignored `.generated/motion-tools/`. Sources, prompts and offline registration stay under this documentation directory. [Production prompts](production-prompts.json) and the [Jolly Roger correction](sources/jolly-roger-prompt.json) record built-in image generation; the original ship's generic rain is reused with provenance, and its overcast is resized/tinted locally.
+The render harness uses the existing `docs/board-list` Playwright/esbuild dependencies. Evidence encoding uses `gifenc` and `omggif` installed only under ignored `.generated/motion-tools/`. Sources, prompts and offline registration stay under this documentation directory. [Production prompts](production-prompts.json) and the [Jolly Roger correction](sources/jolly-roger-prompt.json) record built-in image generation; the original ship's generic rain is reused with provenance. The storm texture correction is recorded in the same prompts file; its wrap registration and uniform overcast fill are reproducible in `build-art.mjs`.
 
 ## Known limits
 
 - Crew alpha is deliberately constant: all ghost/skeleton pixels are partially translucent, with paler green `stage.tintByPhase.night`. Extra **night-only** transparency needs a later engine capability and is not simulated with duplicate crew or stale state.
 - Cabin bodies remain fixed because the existing zone appearance owns their stable hit targets. Animated Zs provide idle life; this is the approved sleeper behavior.
-- Reduced motion deliberately hides the whale, distant kraken, spectral passage, bats and jellyfish. It does not freeze a breaching creature above the surface.
+- Reduced motion deliberately hides the whale, distant kraken, spectral passage, and bats. Submerged jellyfish remain visible at rest. It does not freeze a breaching creature above the surface.
 
 No merge or installation is performed by this change.

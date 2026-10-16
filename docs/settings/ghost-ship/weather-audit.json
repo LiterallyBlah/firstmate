@@ -1,0 +1,262 @@
+{
+  "checks": [
+    {
+      "id": "storm-fog",
+      "frame": 0,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 0,
+          "interiorP95": 0.921875,
+          "interiorMaximum": 1.08203125
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 0.740234375,
+          "interiorMaximum": 0.873046875
+        }
+      ]
+    },
+    {
+      "id": "storm-sky-overcast",
+      "frame": 0,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 0,
+          "interiorP95": 0,
+          "interiorMaximum": 0
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 0,
+          "interiorMaximum": 0
+        }
+      ]
+    },
+    {
+      "id": "storm-water-0",
+      "frame": 0,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 0,
+          "interiorP95": 12.5,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    },
+    {
+      "id": "storm-water-0",
+      "frame": 1,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 8.87890625,
+          "interiorP95": 12.5,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    },
+    {
+      "id": "storm-water-0",
+      "frame": 2,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 7.2265625,
+          "interiorP95": 12.5,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    },
+    {
+      "id": "storm-water-0",
+      "frame": 3,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 7.58984375,
+          "interiorP95": 12.5,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    },
+    {
+      "id": "storm-water-1",
+      "frame": 0,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 8.30859375,
+          "interiorP95": 12.5,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    },
+    {
+      "id": "storm-water-1",
+      "frame": 1,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 9.53125,
+          "interiorP95": 12.5,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    },
+    {
+      "id": "storm-water-1",
+      "frame": 2,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 12.74609375,
+          "interiorP95": 12.26953125,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    },
+    {
+      "id": "storm-water-1",
+      "frame": 3,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 11.3984375,
+          "interiorP95": 12.5,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    },
+    {
+      "id": "storm-water-2",
+      "frame": 0,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 5.5546875,
+          "interiorP95": 12.5,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    },
+    {
+      "id": "storm-water-2",
+      "frame": 1,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 9.43359375,
+          "interiorP95": 12.5,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    },
+    {
+      "id": "storm-water-2",
+      "frame": 2,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 9.5546875,
+          "interiorP95": 12.5,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    },
+    {
+      "id": "storm-water-2",
+      "frame": 3,
+      "axes": [
+        {
+          "axis": "horizontal",
+          "wrapMeanDifference": 13.078125,
+          "interiorP95": 12.26953125,
+          "interiorMaximum": 17.44140625
+        },
+        {
+          "axis": "vertical",
+          "wrapMeanDifference": 0,
+          "interiorP95": 16.94140625,
+          "interiorMaximum": 17.322265625
+        }
+      ]
+    }
+  ],
+  "calmPixelsUnchanged": true,
+  "coastWidth": 1800,
+  "coastPeriodSeconds": 1200,
+  "wideVisibleWorldWidth": 1244.3363728470113,
+  "lighthouseAndBeamExtent": 170,
+  "jellyfish": "four submerged, run in full/lite, rest visible in still"
+}

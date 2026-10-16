@@ -26,5 +26,6 @@ for(let b=0;b<3;b++)for(let k=0;k<4;k++){const id=`water-${b}-0-${k}`,old=decode
 const coast=m.ambience.find(x=>x.id==='coast').behaviour,beam=m.ambience.find(x=>x.id==='lighthouse-beam').behaviour;
 assert.equal(m.images[coast.frames.sprites[0].image].size[0]/coast.drift.pxPerSecond,1200);assert.deepEqual(coast.drift,beam.drift);
 for(const jelly of m.ambience.filter(x=>x.id.startsWith('jellyfish-'))){assert.equal(jelly.lite,'run');assert.equal(jelly.still,'first-frame');}
-writeFileSync(docs+'weather-audit.json',JSON.stringify({checks,calmPixelsUnchanged:true,coastWidth:1800,coastPeriodSeconds:1200,jellyfish:'four submerged, run in full/lite, rest visible in still'},null,2)+'\n');
+const wide=JSON.parse(readFileSync(docs+'matrix.json')).results.find(x=>x.aspect==='wide'&&x.phase==='midday'),visibleWorldWidth=wide.canvas.width/wide.fit.scale;assert.ok(visibleWorldWidth+170<1800,'lighthouse and beam cannot appear twice at standard wide size');
+writeFileSync(docs+'weather-audit.json',JSON.stringify({checks,calmPixelsUnchanged:true,coastWidth:1800,coastPeriodSeconds:1200,wideVisibleWorldWidth:visibleWorldWidth,lighthouseAndBeamExtent:170,jellyfish:'four submerged, run in full/lite, rest visible in still'},null,2)+'\n');
 console.log(JSON.stringify({wrapFrames:checks.length,calmPixelsUnchanged:true}));
