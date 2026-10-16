@@ -7,6 +7,7 @@ import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {decodePng} from '../../../test/png.ts';
 import {nearest} from '../japanese-ship/build-art.mjs';
+import {diagnose} from './diagnose-crowd.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../../..'),out=resolve(here,'review');mkdirSync(out,{recursive:true});
 const manifest=JSON.parse(readFileSync(resolve(root,'art/settings/sky-airship/setting.json')));
 const require=createRequire(resolve(root,'.generated/motion-tools/package.json'));
@@ -31,7 +32,7 @@ export async function review(browser,origin){
  const set=async cards=>{await view.evaluate(cards=>window.changeFleet(f=>{f.cards=cards;f.suggestions=[];}),cards);await refresh();};
  const mixed=['working','working','ready','blocked','idle','idle','idle','idle'].map((s,i)=>card('sailor-'+i,s));
  const shot=async n=>{await view.mouse.move(1,899);writeFileSync(resolve(out,n+'.png'),await canvas.screenshot());};
- const inspect=()=>view.evaluate(()=>{const all=[];const walk=n=>{all.push(n);for(const c of n.children??[])walk(c);};walk(window.motionReviewApp.stage);const tex=n=>n?.texture?`${n.texture.source.uid}:${n.texture.frame.x},${n.texture.frame.y}`:null;return Object.fromEntries(all.filter(n=>n.label).map(n=>[n.label,{x:n.x,y:n.y,alpha:n.alpha,visible:n.visible,texture:tex(n),children:n.children?.slice(0,10).map(c=>({x:c.x,y:c.y,alpha:c.alpha,visible:c.visible,texture:tex(c)}))}]));});
+ const inspect=()=>view.evaluate(()=>{const all=[];const walk=n=>{all.push(n);for(const c of n.children??[])walk(c);};walk(window.motionReviewApp.stage);const tex=n=>n?.texture?`${(n.texture.source??n.texture.baseTexture)?.uid}:${n.texture.frame.x},${n.texture.frame.y}`:null;return Object.fromEntries(all.filter(n=>n.label).map(n=>[n.label,{x:n.x,y:n.y,alpha:n.alpha,visible:n.visible,texture:tex(n),children:n.children?.slice(0,10).map(c=>({x:c.x,y:c.y,alpha:c.alpha,visible:c.visible,texture:tex(c)}))}]));});
  const point=async(x,y)=>{const fit=await view.evaluate(m=>{const r=window.drawOverlay(m);document.querySelector('[data-firstmate-deck-overlay]').remove();return r.fit;},manifest);const b=await canvas.boundingBox();await view.mouse.click(b.x+fit.x+x*fit.scale,b.y+fit.y+y*fit.scale);};
  const panel=view.getByTestId('firstmate-deck-focus'),bubble=view.getByTestId('firstmate-deck-suggestions');
  const close=async()=>{await view.keyboard.press('Escape');await view.clock.runFor(400);await view.waitForTimeout(70);await view.clock.runFor(300);await panel.waitFor({state:'hidden'});await bubble.waitFor({state:'hidden'});};
@@ -43,7 +44,8 @@ export async function review(browser,origin){
  if(!lite){
   await view.getByRole('button',{name:/^Scene:/}).click();await view.getByRole('button',{name:/^Sky pirates, /}).waitFor();await view.getByRole('button',{name:/^Sakura coast, /}).waitFor();await view.getByRole('button',{name:/^Ship's deck, /}).waitFor();await view.keyboard.press('Escape');checks.push('picker lists Sky pirates alongside both existing packs');
   await set(Array.from({length:24},(_,i)=>card('Sleeper '+i,'idle')));await shot('sleepers-24');
-  const focused=[];for(let i=0;i<24;i++){await point(110+i*13,266);await panel.waitFor();await view.waitForTimeout(70);await view.clock.runFor(100);focused.push(await panel.getAttribute('aria-label'));await close();}writeFileSync(resolve(here,'crowd-focus.json'),JSON.stringify(focused,null,2));assert.equal(new Set(focused).size,24);checks.push('24 sleeping windows focus 24 distinct sailors');
+  const geometry=diagnose(manifest),live=await inspect();assert.equal(geometry.overlaps.length,0);
+  const focused=[];for(const f of geometry.resolved){assert.equal(f.centreWinner,f.key);assert.equal(live[f.key].x,f.x);assert.equal(live[f.key].y,f.y);await point(f.x,f.y-8);await panel.waitFor();await view.waitForTimeout(70);await view.clock.runFor(100);const label=await panel.getAttribute('aria-label');assert.ok(label.includes(f.key),`${f.key}: ${label}`);focused.push({key:f.key,box:f.box,x:f.x,y:f.y,label,live:live[f.key]});await close();}writeFileSync(resolve(here,'crowd-focus.json'),JSON.stringify(focused,null,2));assert.equal(new Set(focused.map(f=>f.label)).size,24);checks.push('24 resolved sleeping-window centres focus their exact 24 sailors; zero hit-box overlaps');
   await set(Array.from({length:24},(_,i)=>card('Worker '+i,'working')));await shot('workers-24');checks.push('24 working crew crowd rendered');await set(mixed);
   await view.clock.setSystemTime(new Date('2026-10-16T23:00:00Z'));await view.clock.runFor(61000);await refresh();assert.equal(await canvas.getAttribute('data-firstmate-deck-sky'),'night');await shot('night');
   await view.clock.setSystemTime(new Date('2026-10-17T12:00:00Z'));await view.clock.runFor(61000);await refresh();assert.equal(await canvas.getAttribute('data-firstmate-deck-sky'),'day');checks.push('day/night phase changes');
