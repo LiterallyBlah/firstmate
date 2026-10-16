@@ -394,8 +394,8 @@ export function fitDeck(screen: { width: number; height: number }, deck: { width
  * shark and splash reach in the near sea, so the taller fit keeps the whole of the way off the plank in view in a
  * wide pane, as the hull's own did.
  */
-export function deckBox(stage: Pick<DeckStage, "width" | "height" | "fit">, rigTop: number): { width: number; height: number; top?: number } {
-  return rigTop >= 0 ? { width: stage.width, height: stage.height } : { width: stage.width, height: Math.max(stage.height, stage.fit.bottom), top: stage.fit.top };
+export function deckBox(stage: Pick<DeckStage, "width" | "height" | "fit">, rigTop: number, rocking = false): { width: number; height: number; top?: number } {
+  return rigTop >= 0 && !rocking ? { width: stage.width, height: stage.height } : { width: stage.width, height: Math.max(stage.height, stage.fit.bottom), top: stage.fit.top };
 }
 
 /**
@@ -974,20 +974,21 @@ export async function startDeck(
 
   /** Fits the world to the canvas through the camera's shot, and lays the scenery and veil out over what shows. */
   function fit(): void {
-    const base = fitDeck(app.screen, deckBox(stage, parts.motion?.rock === undefined ? parts.top : -1), app.renderer.resolution, stage.fit.margin);
+    const base = fitDeck(app.screen, deckBox(stage, parts.top, parts.motion?.rock !== undefined), app.renderer.resolution, stage.fit.margin);
     const { scale, x, y } = cameraFit(base, shot, focusLayout(app.screen), app.renderer.resolution, stage.actorHeight);
     veil.visible = shot.amount > 0;
     veil.alpha = FOCUS_VEIL_ALPHA * Math.max(0, Math.min(1, shot.amount));
     // The scenery and the veil are laid out again only when what shows has changed: the shot, or the canvas.
-    const laid = `${scale}:${x}:${y}:${app.screen.width}:${app.screen.height}` + (parts.motion?.rock === undefined ? "" : `:${drawnBob.x}:${drawnBob.y}:${drawnBob.rotation}`);
-    if (laid === drawnLayout) return;
+    const laid = `${scale}:${x}:${y}:${app.screen.width}:${app.screen.height}`;
+    const layoutChanged = laid !== drawnLayout;
+    if (!layoutChanged && parts.motion?.rock === undefined) return;
     drawnLayout = laid;
     world.scale.set(scale);
     world.position.set(x, y);
     drawnFit = { scale, x, y };
     if (scale <= 0) return;
     const visible = visibleWorld(drawnFit, app.screen);
-    scenery.layout(visible);
+    if (layoutChanged) scenery.layout(visible);
     if (parts.motion?.rock !== undefined) {
       // The veil rides the stage too; inverse viewport corners ensure its rotated rectangle still covers the screen.
       const corners = [visible.left, visible.right].flatMap(x => [visible.top, visible.bottom].map(y => worldToStage({ x, y }, drawnBob)));

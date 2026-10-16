@@ -3,6 +3,8 @@ import { stageMotionAt, stageToWorld, worldToStage, rockedBounds } from "./deck-
 import { toCanvas, toDeck } from "./deck-hover";
 import { SettingManifestSchema, capabilitiesUsed, settingProblems, type SettingManifest } from "../shared/deck-setting";
 import { shipManifest } from "../test/ship-pack";
+import { motionPlan } from "./deck-ambient";
+import { deckBox } from "./deck-pixi";
 
 const weather = { clocks: { roll: 2 }, channels: { angle: 2, drift: 1 }, intensity: 1 };
 const rock = { pivot: [200, 100] as [number, number], degrees: { channel: "angle" }, drift: { channel: "drift" }, periodS: 8, clock: "roll" };
@@ -40,6 +42,13 @@ describe("stage-rock@1", () => {
       expect(worldToStage(stageToWorld(p, t), t).y).toBeCloseTo(p.y, 10);
     }
   });
+  it("runs identically on full/lite plans and holds level on either reduced-motion plan", () => {
+    for (const software of [false, true]) for (const reducedMotion of [false, true]) {
+      const plan = motionPlan({ software, reducedMotion, hidden: false });
+      const t = stageMotionAt({ rock }, 0, weather, plan.level !== "still");
+      expect(t.rotation ?? 0).toBeCloseTo(reducedMotion ? 0 : 2 * Math.PI / 180);
+    }
+  });
   it("bounds intermediate angle extrema, not just endpoints", () => {
     const b = rockedBounds({ left: 100, right: 100, top: 1, bottom: 1 }, [0, 0], 5, 2, 3);
     expect(b.right).toBeCloseTo(Math.hypot(100, 1) + 2);
@@ -47,6 +56,11 @@ describe("stage-rock@1", () => {
       const p = stageToWorld({ x: 100, y: 1 }, { x: 2, y: 3, rotation: i / 100 * Math.PI / 180 });
       expect(p.x).toBeLessThanOrEqual(b.right + 1e-10); expect(p.y).toBeLessThanOrEqual(b.bottom + 1e-10);
     }
+  });
+  it("honors the rocked fit even without a tall part, preserving the legacy unopted fit", () => {
+    const stage = { width: 480, height: 320, fit: { top: -14, bottom: 334, margin: 0.94 } };
+    expect(deckBox(stage, 0)).toEqual({ width: 480, height: 320 });
+    expect(deckBox(stage, 0, true)).toEqual({ width: 480, height: 334, top: -14 });
   });
   it("rejects unknown fields, nonfinite values, missing references, unbounded amplitudes and invalid pivots", () => {
     const changes: Array<(m: SettingManifest) => void> = [

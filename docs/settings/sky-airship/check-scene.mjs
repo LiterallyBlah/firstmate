@@ -73,9 +73,31 @@ export async function review(browser,origin){
  await gif('whale-departure',departure,120);const sheet=blank(800*4,departure[0].height*3);for(let i=0;i<12;i++)paste(sheet,departure[i*5],(i%4)*800,Math.floor(i/4)*departure[0].height);writeFileSync(resolve(out,'departure-contact.png'),encode(sheet));checks.push('plank/cloud-puff/whale departure captured');
  await view.emulateMedia({reducedMotion:'reduce'});await set(Array.from({length:12},(_,i)=>card('Storm worker '+i,'working')));await view.emulateMedia({reducedMotion:'no-preference'});await view.clock.runFor(18000);
  assert.ok(Number(await canvas.getAttribute('data-firstmate-deck-weather'))>.95);await shot('storm');let flashSeen=false;const stormFrames=[];
- for(let i=0;i<450;i++){await view.clock.runFor(100);const flashing=await canvas.getAttribute('data-firstmate-deck-flash');if(flashing&&!flashSeen){await shot('storm-lightning');flashSeen=true;}if(i<40)stormFrames.push(await capture());}
+ for(let i=0;i<450;i++){await view.clock.runFor(100);const flashing=await canvas.getAttribute('data-firstmate-deck-flash');if(flashing&&!flashSeen){await shot('storm-lightning');flashSeen=true;}if(i<(manifest.stage.motion?.rock?80:40))stormFrames.push(await capture());}
  assert.ok(flashSeen,'bounded lightning occurs at peak storm');await gif('storm-alive',stormFrames,100);checks.push('peak intensity, rain, serpent and bounded lightning observed');
  await set([]);await view.clock.runFor(22000);assert.ok(Number(await canvas.getAttribute('data-firstmate-deck-weather'))<.05);checks.push('storm eases back to calm');
+ if(manifest.stage.motion?.rock){
+  await gif('rock-storm',stormFrames,100);
+  const calm=[];for(let i=0;i<50;i++){await view.clock.runFor(200);calm.push(await capture());}await gif('rock-calm',calm);
+  checks.push('ten-second calm and eight-second storm whole-stage rocking clips');
+  // Use visible hover labels to find each moving target, then assert the exact focus label after clicking.
+  // No renderer internals: the search is confined to the small swept neighbourhood of its resolved post.
+  await view.emulateMedia({reducedMotion:'reduce'});await set(Array.from({length:24},(_,i)=>card('Sleeper '+i,'idle')));
+  await view.emulateMedia({reducedMotion:'no-preference'});await view.clock.runFor(2100);
+  const geometry=diagnose(manifest),movingClicks=[],label=view.getByTestId('firstmate-deck-label');
+  for(const f of geometry.resolved){
+   const frame=await view.evaluate(m=>{const r=window.drawOverlay(m);document.querySelector('[data-firstmate-deck-overlay]').remove();return r.fit;},manifest),bounds=await canvas.boundingBox();
+   let hit=null;
+   for(const dy of [0,-4,4,-8,8,-12,12]){for(const dx of [0,-4,4,-8,8]){
+    const at={x:bounds.x+frame.x+(f.x+dx)*frame.scale,y:bounds.y+frame.y+(f.y-8+dy)*frame.scale};
+    await view.mouse.move(at.x,at.y);await view.waitForTimeout(20);
+    if(await label.count()&&(await label.innerText()).split('\n')[0]===f.key){hit=at;break;}
+   }if(hit)break;}
+   assert.ok(hit,'moving hover target '+f.key);await view.mouse.click(hit.x,hit.y);await panel.waitFor();
+   assert.ok((await panel.getAttribute('aria-label')).includes(f.key));movingClicks.push({key:f.key,point:hit});await close();
+  }
+  writeFileSync(resolve(here,'crowd-rock-focus.json'),JSON.stringify(movingClicks,null,2));checks.push('24 moving sleeping-window targets hover and focus their exact sailors');
+ }
  await view.emulateMedia({reducedMotion:'reduce'});await set(mixed);const stillEnd=sha(await canvas.screenshot());await view.clock.runFor(4000);assert.equal(sha(await canvas.screenshot()),stillEnd);checks.push('reduced motion returns to calm stable scene');
  assert.deepEqual(errors,[]);assert.equal((await view.evaluate(()=>window.fixtureCalls)).filter(c=>/\.send$|\.steer$|\.respond$/.test(c.name)).length,0);
  writeFileSync(resolve(here,'motion-full.json'),JSON.stringify({mode,checks,regions,distinct,samples,errors},null,2));console.log(JSON.stringify({mode,checks,errors}));
