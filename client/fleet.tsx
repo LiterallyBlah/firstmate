@@ -53,7 +53,7 @@ import { answeredReplies, replyBlockedText } from "./deck-replies";
 import { deckOffered } from "./deck-scene";
 import { agentStatusLabel, agentStatusTone, groupCards, orderedColumns, revealFilesPatch, shortPath } from "./format";
 import { LaunchPanel } from "./launch";
-import { MigrationControl } from "./migration-control";
+import { HeaderActions } from "./header-actions";
 import { useMateSender } from "./mate-send";
 import { ResizeHandle } from "./resize-handle";
 import { clampShare, MIN_SPLIT_WIDTH } from "./resize-layout";
@@ -66,8 +66,6 @@ import { SuggestionStrip } from "./suggestions";
 import { TaskList } from "./task-list";
 import { ItemTagFilter } from "./item-tags";
 import { matchesTags, tagScopeCards } from "../shared/item-tags";
-import { WatchButton } from "./watches";
-import { UpdateButton } from "./update-button";
 import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
 import { focusWebElement } from "./web";
 import { HubLauncher } from "./hub-launcher";
@@ -353,8 +351,6 @@ function FleetViewBody({
       });
   }, [unseen, markSeen, refresh]);
 
-  const openMate = mate === null || navigation === undefined ? null : () => navigation.openAgent({ agentId: mate.id });
-
   /**
    * A suggestion is sent to the first mate at once, through the chat's own
    * path, and the chat comes into view to show it going out. The draft the
@@ -587,25 +583,25 @@ function FleetViewBody({
   }
 
   const header = (
-    <View style={styles.header}>
-      <View style={styles.headerRow}>
-        <Icon name="Ship" size={compact ? 16 : 18} color={theme.colors.foreground} />
-        <Text style={styles.title}>FirstMate</Text>
-        {mate === null ? null : (
-          <Chip theme={theme} text={`First mate · ${agentStatusLabel(mate)}`} color={agentStatusTone(theme, mate)} />
-        )}
-        <View style={styles.spacer} />
-        <MigrationControl
-          theme={theme}
-          compact={compact}
-          mate={mate}
-          onChanged={refresh}
-          onOpenFile={openFile}
-          onOpenAgent={navigation === undefined ? null : (agentId) => navigation.openAgent({ agentId })}
-        />
-        {data === null ? null : (
-          <WatchButton watches={data.watches} theme={theme} onChanged={refresh} onOpenFile={openFile} />
-        )}
+    <View style={[styles.header, { paddingTop: 8, gap: 6 }]} nativeID="firstmate-home-header">
+      <View style={[styles.headerRow, { flexWrap: "nowrap" }]}>
+        <Icon name="Ship" size={16} color={theme.colors.foreground} />
+        <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <Text style={[styles.title, { fontSize: 17 }]}>FirstMate</Text>
+          {mate === null ? null : (
+            <Chip theme={theme} text={agentStatusLabel(mate)} color={agentStatusTone(theme, mate)} />
+          )}
+          {data === null ? null : (
+            <Text style={[styles.meta, { flexShrink: 1 }]} numberOfLines={1}>
+              {[
+                counts.working + " working",
+                counts.blocked + " blocked",
+                counts.queued + " queued",
+                counts.done + " done",
+              ].join(" · ")}
+            </Text>
+          )}
+        </View>
         {home && !compact && mate !== null && data !== null && !values.boardCollapsed ? (
           <Segmented
             theme={theme}
@@ -613,124 +609,36 @@ function FleetViewBody({
             options={[
               {
                 value: "board",
-                label: `Board (${data.cards.length})`,
+                label: "Board (" + data.cards.length + ")",
                 tooltip:
                   watching === null
                     ? "Show crew and backlog tasks."
                     : "Close the conversation and show the crew tasks.",
               },
-              {
-                value: "files",
-                label: "Home files",
-                tooltip: "Browse and edit files in the FirstMate home.",
-              },
+              { value: "files", label: "Home files", tooltip: "Browse and edit files in the FirstMate home." },
             ]}
             onChange={setRightPane}
           />
         ) : null}
-        {home && !compact && mate !== null ? (
-          <>
-            <IconButton
-              icon={values.chatCollapsed ? "PanelLeftOpen" : "PanelLeftClose"}
-              label={values.chatCollapsed ? "Show the chat" : "Hide the chat"}
-              tooltip={
-                values.chatCollapsed
-                  ? "Show the first-mate chat beside the other pane."
-                  : "Hide the first-mate chat to give the other pane more room."
-              }
-              tooltipSide="bottom"
-              tooltipAlign="end"
-              theme={theme}
-              onPress={() =>
-                save({
-                  chatCollapsed: !values.chatCollapsed,
-                  boardCollapsed: false,
-                })
-              }
-            />
-            <IconButton
-              icon={values.boardCollapsed ? "PanelRightOpen" : "PanelRightClose"}
-              label={values.boardCollapsed ? "Show the board" : "Hide the board"}
-              tooltip={
-                values.boardCollapsed
-                  ? `Show ${paneName(pane)} beside the first-mate chat.`
-                  : `Hide the ${paneName(pane)} pane to give the chat more room.`
-              }
-              tooltipSide="bottom"
-              tooltipAlign="end"
-              theme={theme}
-              onPress={() =>
-                save({
-                  boardCollapsed: !values.boardCollapsed,
-                  chatCollapsed: false,
-                })
-              }
-            />
-          </>
-        ) : null}
-        {openMate === null ? null : (
-          <IconButton
-            icon="ExternalLink"
-            label="Open the first mate in Paseo"
-            tooltip="Open the first mate's full conversation in Paseo."
-            tooltipSide="bottom"
-            tooltipAlign="end"
-            theme={theme}
-            onPress={openMate}
-          />
-        )}
-        <View
-          style={{
-            flexDirection: "row",
-            gap: 8,
-            marginLeft: compact ? "auto" : 0,
+        <HeaderActions
+          theme={theme}
+          navigation={navigation}
+          compact={compact}
+          data={data}
+          values={values}
+          paneName={paneName(pane)}
+          sender={mateSender}
+          refreshing={fleet.isFetching}
+          onSave={save}
+          onRefresh={refresh}
+          onOpenFile={openFile}
+          onOpenSettings={openSettings === null ? null : () => openSettings?.("firstmate")}
+          onUpdateSent={() => {
+            if (compact) setTab("chat");
+            else if (values.chatCollapsed) save({ chatCollapsed: false });
           }}
-        >
-          <UpdateButton
-            theme={theme}
-            mateId={mate?.id ?? null}
-            sender={mateSender}
-            onSent={() => {
-              if (compact) setTab("chat");
-              else if (values.chatCollapsed) save({ chatCollapsed: false });
-            }}
-          />
-          <IconButton
-            icon="RefreshCw"
-            label={fleet.isFetching ? "Refreshing" : "Refresh"}
-            tooltip={
-              fleet.isFetching ? "FirstMate status is refreshing." : "Refresh the task board and first mate's status."
-            }
-            tooltipSide="bottom"
-            tooltipAlign="end"
-            theme={theme}
-            disabled={fleet.isFetching}
-            onPress={refresh}
-          />
-          {openSettings === null ? null : (
-            <IconButton
-              icon="Settings"
-              label="FirstMate settings"
-              tooltip="Open FirstMate settings for the home, models and display."
-              tooltipSide="bottom"
-              tooltipAlign="end"
-              theme={theme}
-              onPress={() => openSettings?.("firstmate")}
-            />
-          )}
-        </View>
+        />
       </View>
-      {data === null ? null : (
-        <Text style={styles.meta} numberOfLines={1}>
-          {[
-            `${counts.working} working`,
-            `${counts.blocked} blocked`,
-            `${counts.queued} queued`,
-            `${counts.done} done`,
-            shortPath(data.home, compact ? 28 : 56),
-          ].join(" · ")}
-        </Text>
-      )}
       {shell === undefined ? null : (
         <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} />
       )}
