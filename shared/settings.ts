@@ -18,6 +18,7 @@ export type BoardDensity = (typeof BOARD_DENSITIES)[number];
 
 export const CREW_VIEWS = ["list", "board"] as const;
 export type CrewView = (typeof CREW_VIEWS)[number];
+export type HomePane = "board" | "files" | "deck";
 
 export const displaySettings = defineSettings({
   id: "display",
@@ -25,9 +26,14 @@ export const displaySettings = defineSettings({
   version: 1,
   schema: z.object({
     /** Global setting for the fleet scene; per-project selection is a future resolver concern. */
-    deckSetting: z.string().regex(/^[a-z0-9-]+$/).default(DEFAULT_DECK_SETTING),
+    deckSetting: z
+      .string()
+      .regex(/^[a-z0-9-]+$/)
+      .default(DEFAULT_DECK_SETTING),
     /** Grouped task rows by default; the wide board remains available. */
     crewView: z.enum(CREW_VIEWS).default("list"),
+    /** Home's right pane; Board and List share the board destination and crewView. */
+    homePane: z.enum(["board", "files", "deck"]).default("board"),
     /** Board columns, in the order the captain arranged them. Unknown ids are dropped when read. */
     columnOrder: z.array(z.string()).default([...COLUMN_IDS]),
     /** Columns folded down to a narrow strip. */
