@@ -28,7 +28,7 @@ export function SuggestionBubbles({ suggestions, place, theme, blocked, onReply,
   theme: PluginTheme;
   blocked: string | null;
   onReply: (reply: Suggestion) => void;
-  onRemove?: (suggestion: Suggestion) => Promise<void>;
+  onRemove?: ((suggestion: Suggestion) => Promise<void>) | undefined;
   holdRef: Ref<View>;
   onClose: () => void;
 }) {

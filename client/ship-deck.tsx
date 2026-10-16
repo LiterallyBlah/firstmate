@@ -566,7 +566,7 @@ function DeckView({
           <SuggestionBubbles suggestions={suggestions}
             place={bubblePlacement(hover, bubbleRegion(size, false), { focused: false })}
             theme={theme} blocked={onReply === undefined ? "There is no first mate aboard to send it to." : replyBlocked}
-            onReply={reply} {...(onRemove === undefined ? {} : { onRemove })} holdRef={suggestionPanel} onClose={() => {
+            onReply={reply} onRemove={onRemove} holdRef={suggestionPanel} onClose={() => {
               setSuggestionsOpen(false);
               const trigger: unknown = suggestionTrigger.current;
               if (isFocusTarget(trigger)) trigger.focus({ preventScroll: true });
