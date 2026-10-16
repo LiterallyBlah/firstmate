@@ -2,6 +2,7 @@
  * or SETTING=<id>; OVERLAY=1 adds the authoring overlay. Run compile.mjs first; requires Edge.
  */
 import { createServer } from "node:http";
+import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
@@ -44,7 +45,12 @@ const answers = {
     return { ...engine, source: engine.source + `\n;const init=PIXI.Application.prototype.init;PIXI.Application.prototype.init=async function(...args){await init.apply(this,args);globalThis.motionReviewApp=this;};` };
   },
   "firstmate.deck.settings": () => server.listDeckSettings(at),
-  "firstmate.deck.setting": (input) => server.readDeckSetting(input.id, at),
+  "firstmate.deck.setting": async (input) => {
+    const pack = await server.readDeckSetting(input.id, at);
+    if (process.env.SHARK_REVIEW !== "before") return pack;
+    const { mainRevision } = JSON.parse(await readFile(join(generated, "compiled-inputs.json"), "utf8"));
+    return { ...pack, manifest: JSON.parse(execFileSync("git", ["show", `${mainRevision}:art/settings/${input.id}/setting.json`], { cwd: root, encoding: "utf8" })) };
+  },
 };
 
 const page = `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -64,7 +70,7 @@ const http = createServer(async (request, response) => {
     } else if (path === "/host.js" || path === "/overlay.js" || path === "/bundle/branch.js") {
       response.setHeader("Content-Type", "application/javascript");
       const file = { "/host.js": "gate-host.js", "/overlay.js": "overlay-draw.js", "/bundle/branch.js": "branch.client.js" }[path];
-      response.end(await readFile(join(generated, file)));
+      response.end(await readFile(join(generated, process.env.SHARK_REVIEW === "before" && file === "branch.client.js" ? "main.client.js" : file)));
     } else {
       response.setHeader("Content-Type", "text/html");
       response.end(page);
@@ -118,6 +124,10 @@ try {
   if (process.env.CHECK_ATTENTION === "1") {
     const { checkAttention } = await import("../deck-enrichment/check-attention.mjs");
     await checkAttention(view, manifest);
+  }
+  if (process.env.SHARK_REVIEW) {
+    const { checkSharkSuggestions } = await import("../deck-shark-suggestions/check.mjs");
+    await checkSharkSuggestions(view, manifest, process.env.SHARK_REVIEW);
   }
   if (process.env.CHECK_POLISH === "1") {
     const { checkPolish } = await import("../deck-enrichment/check-polish.mjs");

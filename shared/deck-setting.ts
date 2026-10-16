@@ -492,10 +492,12 @@ const Copy = z.strictObject({
 
 const Images = z.record(Id, z.strictObject({ path: PackPath, size: Size, sha256: z.string().regex(/^[0-9a-f]{64}$/) }));
 
-/** One persistent, engine-selected worker's focus target, independent of the stage's motion. */
+/** One persistent suggestion target, independent of the stage's motion. */
 const AttentionCarrier = z.strictObject({
   at: Point,
   size: Size,
+  /** Top rows containing only the speech marker, hidden when there are no suggestions. */
+  bubbleHeight: Px.nonnegative().optional(),
   frames: z.array(Sprite).min(1),
   frameMs: Ms,
   loiter: z.strictObject({ amplitude: z.tuple([Px.nonnegative(), Px.nonnegative()]), periodMs: Ms }),
@@ -646,6 +648,7 @@ export function settingProblems(manifest: SettingManifest): string[] {
   const carrier = manifest.attentionCarrier;
   if (carrier !== undefined) {
     const [x, y] = carrier.at, [width, height] = carrier.size, [dx, dy] = carrier.loiter.amplitude;
+    if ((carrier.bubbleHeight ?? 0) >= height) problems.push("attentionCarrier bubbleHeight must leave a visible body");
     if (x - dx < 0 || x + width + dx > manifest.stage.size[0] || y - dy < manifest.stage.fit.top || y + height + dy > manifest.stage.fit.bottom)
       problems.push("attentionCarrier and its loiter must stay inside the stage fit");
     for (const sprite of carrier.frames) {

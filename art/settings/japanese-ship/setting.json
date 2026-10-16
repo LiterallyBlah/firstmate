@@ -3,7 +3,7 @@
   "formatVersion": 1,
   "id": "japanese-ship",
   "name": "Sakura coast",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "requires": [
     "stage@1",
     "floor@1",
@@ -1482,9 +1482,10 @@
     }
   },
   "attentionCarrier": {
+    "bubbleHeight": 18,
     "at": [
-      14,
-      273
+      8,
+      164
     ],
     "size": [
       56,

@@ -190,17 +190,20 @@ Author the route and foreground pieces together so the worker stays visible and 
 ## Attention carrier
 
 Optional top-level `attentionCarrier` requires **`attention-carrier@1`**. It describes one independently
-placed focus target: `at` (top left), `size`, nonempty sprite `frames`, positive `frameMs`, and
+placed suggestion target: `at` (top left), `size`, nonempty sprite `frames`, positive `frameMs`, and
 `loiter: { amplitude: [dx,dy], periodMs }`. Amplitudes are nonnegative integer pixels. Every frame must
 match `size`, fit its source image, and the entire target plus loiter must fit the stage's horizontal
 bounds and `stage.fit` vertically. The strict schema validates these rules and all image references.
 
-The engine owns eligibility: live workers in Blocked, with pending permissions, or named by unanswered
-first-mate suggestions. Stale feeds and unreachable remote workers are excluded. One selected identity
-persists across polls; the engine's legend selects among multiple workers and provides keyboard focus.
-Clicking the carrier zooms to that worker and opens the same crew focus panel in place; it never sends a message. Packs cannot
-choose a callback, action, attention condition or text expression. Without this capability, existing
-per-worker suggestion markers and bubbles are retained.
+The carrier opens every first-mate suggestion in file order. Its legend button provides the keyboard
+route to the same list. Picking one uses the board's suggestion handler, including its send gate and
+failure handling. Crew markers, linked reply bubbles and click-to-focus remain independent. Packs cannot
+choose a callback, action, attention condition or text expression.
+
+Optional `bubbleHeight` gives the number of top rows containing only the speech marker. It must be
+nonnegative and smaller than the sprite height. When there are no suggestions those rows are cropped
+away, preserving the body's position; the carrier stays clickable and opens an empty-state bubble.
+If omitted, the complete sprite stays visible. No image is rewritten.
 
 The carrier draws above the foreground, outside stage bob/tint. It hides during ordinary worker focus.
 On full motion its frames cycle and its position follows whole-pixel sines (`x = dx·sin(phase)`,

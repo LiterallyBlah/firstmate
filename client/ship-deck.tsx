@@ -25,11 +25,9 @@
  * the keyboard, Tab reaches the deck, an arrow key or Enter focuses a sailor, and Tab stays inside the panel
  * until Esc. Under reduced motion the camera snaps instead of zooming.
  *
- * **Attention**: a pack with `attention-carrier@1` replaces per-worker reply markers with one independent
- * target for the selected worker. Blocked workers, pending permissions and linked first-mate suggestions
- * qualify; stale workers never do. The legend selects among them and offers keyboard focus. The carrier
- * focuses that worker in place, just like a sailor click. Packs without it retain the suggestion
- * bubbles (`client/deck-replies.ts`); focused cards still offer their suggestions through `onReply`.
+ * **Suggestions**: the shark opens the first mate's full list through the board's send handler.
+ * Sailors keep their own markers, reply bubbles and focus actions. The legend opens the same list
+ * from the keyboard; Escape, an outside click or another shark click closes it.
  *
  * The canvas lives in a childless `View` (`client/deck-mount.ts` explains the escape hatch). A renderer
  * that cannot draw — native, no WebGL, Pixi failing to start — gets a plain message in its place.
@@ -48,8 +46,8 @@ import { labelPlacement, type DeckHover } from "./deck-hover";
 import { browserDeckEngine, mountDeck, type DeckEngine, type DeckMount, type DeckStatus } from "./deck-mount";
 import { answeredReplies, bubblePlacement, repliesByCard, type DeckRegion } from "./deck-replies";
 import { DECK_STATES, deckScene, type DeckSailor, type DeckState } from "./deck-scene";
-import { DeckAskMarker, ReplyBubble, ReplyOptions } from "./reply-bubble";
-import { attentionWorker, needsResponse } from "./deck-attention";
+import { DeckAskMarker, ReplyBubble, ReplyOptions, SuggestionBubbles } from "./reply-bubble";
+import { needsResponse } from "./deck-attention";
 import { webAttributes } from "./web";
 
 
@@ -244,8 +242,7 @@ function DeckView({
 }) {
   const answered = useSyncExternalStore(answeredReplies.subscribe, answeredReplies.version);
   const [carrierMode, setCarrierMode] = useState(false);
-  const usesCarrier = carrierMode && renderFocus !== undefined;
-  const [selectedAttention, setSelectedAttention] = useState<string | null>(null);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const offers = onReply !== undefined;
   // `answered` is the store's version: a pick, or a send that failed, changes what is still waiting.
   const replies = useMemo(
@@ -254,17 +251,8 @@ function DeckView({
   );
   // A reply the file has dropped is forgotten, so one that comes back later is offered again.
   useEffect(() => answeredReplies.keepOnly(suggestions), [suggestions]);
-  const asking = useMemo(() => new Set([...replies.keys(), ...(usesCarrier ? cards.filter(needsResponse).map(card => card.key) : [])]), [replies, usesCarrier, cards]);
-  const scene = useMemo(() => ({ ...deckScene(cards, theme, { feedStale: stale, asking }), attentionKey: selectedAttention }), [cards, theme, stale, asking, selectedAttention]);
-  const attentionKey = attentionWorker(scene, selectedAttention);
-  const attentionKeys = scene.sailors.filter(sailor => sailor.asks).map(sailor => sailor.key).sort();
-  const attentionSailor = scene.sailors.find(sailor => sailor.key === attentionKey);
-  const stepAttention = (delta: number) => {
-    if (attentionKey === null || attentionKeys.length === 0) return;
-    setSelectedAttention(attentionKeys[(attentionKeys.indexOf(attentionKey) + attentionKeys.length + delta) % attentionKeys.length]!);
-  };
-  // Once selected, a new earlier-sorting request must not silently change the shark's worker.
-  useEffect(() => { if (usesCarrier) setSelectedAttention(attentionKey); }, [attentionKey, usesCarrier]);
+  const asking = useMemo(() => new Set([...replies.keys(), ...(carrierMode ? cards.filter(needsResponse).map(card => card.key) : [])]), [replies, cards, carrierMode]);
+  const scene = useMemo(() => ({ ...deckScene(cards, theme, { feedStale: stale, asking }), hasSuggestions: suggestions.length > 0, suggestionsOpen }), [cards, theme, stale, asking, suggestions, suggestionsOpen]);
   // One engine for the view's life, so a new `useRpc` function on a re-render never restarts the canvas.
   const loadEngine = useRpc(loadDeckEngine);
   const loadSetting = useRpc(loadDeckSetting);
@@ -285,6 +273,8 @@ function DeckView({
   const host = useRef<View>(null);
   const panel = useRef<View>(null);
   const bubble = useRef<View>(null);
+  const suggestionPanel = useRef<View>(null);
+  const suggestionTrigger = useRef<View>(null);
   const [hover, setHover] = useState<DeckHover | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   /** The sailor the camera is closed in on, by card key. */
@@ -297,9 +287,6 @@ function DeckView({
   focusedRef.current = focused;
   const focusableRef = useRef(focusable);
   focusableRef.current = focusable;
-  const focusAttention = (key: string) => {
-    if (focusableRef.current && sceneRef.current.sailors.some(sailor => sailor.key === key && sailor.asks && !sailor.stale)) setFocused(key);
-  };
   /** The sailor focused last, so the arrows go on from it after Esc. */
   const lastFocused = useRef<string | null>(null);
 
@@ -309,7 +296,12 @@ function DeckView({
       setStatus(next);
       setCarrierMode(next.kind === "drawing" && next.presentation?.attentionCarrier === true);
     }, setHover, (key, action) => {
-      if (action === "attention") { if (key !== null) focusAttention(key); return; }
+      if (action === "attention") {
+        setFocused(null);
+        setSuggestionsOpen(now => !now);
+        return;
+      }
+      setSuggestionsOpen(false);
       if (focusableRef.current) setFocused((now) => nextFocus(now, key));
     });
     started.focus(focusedRef.current);
@@ -340,7 +332,7 @@ function DeckView({
   }, [focused, open]);
 
   /** The sailors with replies waiting, live: those wearing the marker. */
-  const speakers = useMemo(() => new Set(scene.sailors.filter((sailor) => sailor.asks === true).map((sailor) => sailor.key)), [scene]);
+  const speakers = useMemo(() => new Set(scene.sailors.filter((sailor) => sailor.asks === true && replies.has(sailor.key)).map((sailor) => sailor.key)), [scene, replies]);
 
   /**
    * The hovered sailor whose bubble is up, and where it was: kept `BUBBLE_LINGER_MS` after the pointer leaves the
@@ -363,7 +355,7 @@ function DeckView({
     }, BUBBLE_LINGER_MS);
   }
   useEffect(() => {
-    if (open) {
+    if (open || suggestionsOpen) {
       stopLinger();
       overBubble.current = false;
       setHeld(null);
@@ -375,7 +367,7 @@ function DeckView({
       overBubble.current = false;
       setHeld(null);
     } else letGo();
-  }, [hover, open, speakers]);
+  }, [hover, open, speakers, suggestionsOpen]);
   // Answered while the pointer was on it, the bubble goes without a pointer leave: let go of it for good.
   useEffect(() => {
     if (held === null || speakers.has(held.key)) return;
@@ -439,6 +431,33 @@ function DeckView({
     return () => keys.removeEventListener("keydown", onKey);
   }, [web]);
 
+  // Wait for the carrier's live anchor before taking focus, including keyboard opening.
+  useEffect(() => {
+    if (!suggestionsOpen || !web) return;
+    const node: unknown = suggestionPanel.current;
+    if (isFocusTarget(node)) node.focus({ preventScroll: true });
+  }, [suggestionsOpen, hover?.action, web]);
+  useEffect(() => {
+    if (!suggestionsOpen || !web) return;
+    const doc = (globalThis as { document?: {
+      addEventListener(type: string, listener: (event: { key?: string; target?: unknown; preventDefault(): void }) => void): void;
+      removeEventListener(type: string, listener: (event: { key?: string; target?: unknown; preventDefault(): void }) => void): void;
+    } }).document;
+    const close = (event: { key?: string; target?: unknown; preventDefault(): void }) => {
+      if (event.key !== undefined && event.key !== "Escape") return;
+      if (event.key === undefined && [suggestionPanel.current, suggestionTrigger.current, host.current].some(node => isPanelElement(node) && node.contains(event.target))) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        const trigger: unknown = suggestionTrigger.current;
+        if (isFocusTarget(trigger)) trigger.focus({ preventScroll: true });
+      }
+      setSuggestionsOpen(false);
+    };
+    doc?.addEventListener("keydown", close);
+    doc?.addEventListener("pointerdown", close);
+    return () => { doc?.removeEventListener("keydown", close); doc?.removeEventListener("pointerdown", close); };
+  }, [suggestionsOpen, web]);
+
   useEffect(() => { if (status.kind === "failed") onFailure?.(); }, [status.kind, onFailure]);
 
   const presentation = status.kind === "drawing" ? status.presentation ?? LOADING_DECK : LOADING_DECK;
@@ -446,17 +465,17 @@ function DeckView({
   const { colors } = theme;
   const crew = scene.sailors.length;
   const lost = scene.stale === 0 ? "" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
-  const asked = speakers.size === 0 ? "" : usesCarrier ? `, ${speakers.size} need your response; use Focus below` : `, ${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you to pick`;
+  const asked = speakers.size === 0 ? "" : `, ${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you to pick`;
   const summary = `${DECK_STATES.map((state) => `${scene.counts[state]} ${state}`).join(", ")}${asked}${lost}`;
   const note = deckStatusText(status, presentation);
   // A sailor with replies waiting speaks in its bubble instead of wearing the label.
   const hovered =
-    hover === null || status.kind !== "drawing" || open || (!usesCarrier && speakers.has(hover.key))
+    hover === null || status.kind !== "drawing" || open || suggestionsOpen || replies.has(hover.key)
       ? null
       : (scene.sailors.find((sailor) => sailor.key === hover.key) ?? null);
   const layout = focusLayout(size);
   // While focused, the canvas reports where the focused sailor stands, and only while it has replies waiting.
-  const speaking = status.kind !== "drawing" || usesCarrier ? null : open ? (hover !== null && hover.key === focused ? hover : null) : held;
+  const speaking = status.kind !== "drawing" || suggestionsOpen ? null : open ? (hover !== null && hover.key === focused ? hover : null) : held;
   const speaker = speaking === null || !speakers.has(speaking.key) ? null : (scene.sailors.find((sailor) => sailor.key === speaking.key) ?? null);
   const speakerReplies = speaker === null ? undefined : replies.get(speaker.key);
   const focusedReplies = open && focused !== null && speakers.has(focused) ? replies.get(focused) : undefined;
@@ -536,6 +555,16 @@ function DeckView({
             }}
           />
         )}
+        {!suggestionsOpen || status.kind !== "drawing" || hover?.action !== "attention" ? null : (
+          <SuggestionBubbles suggestions={suggestions}
+            place={bubblePlacement(hover, bubbleRegion(size, false), { focused: false })}
+            theme={theme} blocked={onReply === undefined ? "There is no first mate aboard to send it to." : replyBlocked}
+            onReply={reply} holdRef={suggestionPanel} onClose={() => {
+              setSuggestionsOpen(false);
+              const trigger: unknown = suggestionTrigger.current;
+              if (isFocusTarget(trigger)) trigger.focus({ preventScroll: true });
+            }} />
+        )}
         {hovered === null || hover === null ? null : (
           <SailorLabel sailor={hovered} hover={hover} theme={theme} colour={scene.palette.states[hovered.state]} />
         )}
@@ -558,7 +587,7 @@ function DeckView({
               <Text style={{ color: colors.foreground, fontSize: 12 }}>{`${scene.counts[state]} ${state}`}</Text>
             </View>
           ))}
-          {speakers.size === 0 || usesCarrier ? null : (
+          {speakers.size === 0 ? null : (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <DeckAskMarker accent={scene.palette.ask} />
               <Text
@@ -574,54 +603,24 @@ function DeckView({
             </View>
           )}
         </View>
-        {status.kind === "drawing" && crew > 0 ? (
-          !usesCarrier || attentionSailor === undefined ? (
-            <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
-              {focusable
-                ? `Point at a ${copy.actor.one} to see who it is; click one to focus it and act on it.`
-                : `Point at a ${copy.actor.one} to see who it is and what it is on.`}
-            </Text>
-          ) : (
-            <View
-              testID="firstmate-deck-attention"
-              style={{ flexDirection: "row", alignItems: "center", gap: 4, minWidth: 0 }}
-            >
-              <DeckAskMarker accent={scene.palette.ask} />
-              <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{`${speakers.size} need your response`}</Text>
-              {attentionKeys.length < 2 ? null : (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Previous worker needing a response"
-                  onPress={() => stepAttention(-1)}
-                  style={{ padding: 6 }}
-                >
-                  <Text style={{ color: colors.foreground }}>‹</Text>
-                </Pressable>
-              )}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Focus on ${attentionSailor.caption.title}`}
-                onPress={() => focusAttention(attentionSailor.key)}
-                style={{ flexShrink: 1, minWidth: 0, paddingVertical: 4 }}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={{ color: colors.foreground, textDecorationLine: "underline", fontSize: 12 }}
-                >{`Focus · ${attentionSailor.caption.title}`}</Text>
+        {status.kind !== "drawing" ? null : (
+          <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            {carrierMode ? (
+              <Pressable ref={suggestionTrigger} accessibilityRole="button" accessibilityLabel="Shark suggestions"
+                accessibilityState={{ expanded: suggestionsOpen }}
+                onPress={() => { setFocused(null); setSuggestionsOpen(now => !now); }} style={{ paddingVertical: 6 }}>
+                <Text style={{ color: colors.foreground, textDecorationLine: "underline", fontSize: 14 }}>
+                  {"Suggestions (" + suggestions.length + ")"}
+                </Text>
               </Pressable>
-              {attentionKeys.length < 2 ? null : (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Next worker needing a response"
-                  onPress={() => stepAttention(1)}
-                  style={{ padding: 6 }}
-                >
-                  <Text style={{ color: colors.foreground }}>›</Text>
-                </Pressable>
-              )}
-            </View>
-          )
-        ) : null}
+            ) : null}
+            {crew === 0 ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
+              {focusable
+                ? "Point at a " + copy.actor.one + " to see who it is; click one to focus it and act on it."
+                : "Point at a " + copy.actor.one + " to see who it is and what it is on."}
+            </Text>}
+          </View>
+        )}
       </View>
     </View>
   );
