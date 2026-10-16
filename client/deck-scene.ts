@@ -89,7 +89,7 @@ export interface DeckSailor {
 }
 
 export interface DeckScene {
-  /** The attention carrier's selected worker. Selection and Converse routing belong to the view. */
+  /** The attention carrier's selected worker. Selection and focus routing belong to the view. */
   attentionKey?: string | null;
   palette: DeckPalette;
   sailors: DeckSailor[];

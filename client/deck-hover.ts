@@ -42,7 +42,7 @@ export interface DeckBox {
 /** What the canvas reports while the pointer is over a sailor: its key, and where it is on the canvas. */
 export interface DeckHover {
   key: string;
-  action?: "converse";
+  action?: "attention";
   /** The sailor's middle, across. */
   x: number;
   /** The top of its badge, or of its head while it has none. */

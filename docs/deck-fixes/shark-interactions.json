@@ -1,0 +1,19 @@
+{
+  "checks": [
+    "body focuses local worker in place",
+    "camera pixels match ordinary crew focus",
+    "Escape and Close restore the whole deck",
+    "bubble focuses remote worker in place",
+    "keyboard focuses suggested worker in place",
+    "moving shark focuses selected worker",
+    "same canvas mounted throughout; no navigation or Converse",
+    "insertion preserves selection",
+    "unreachable remote loses its signal",
+    "stale feed cannot focus a shark target",
+    "closed worker loses focus and signal",
+    "removal leaves no clickable ghost",
+    "no messages sent or remote conversation logs fetched",
+    "no browser errors"
+  ],
+  "errors": []
+}
