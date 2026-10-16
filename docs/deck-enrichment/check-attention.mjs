@@ -32,8 +32,9 @@ export async function checkAttention(view, manifest) {
   await view.waitForTimeout(manifest.portals.still.fadeMs);
   const capture=async name=>{await view.mouse.move(5,5);await view.screenshot({path:join(here,`shark-${name}.png`)});};
   const box=await canvas.boundingBox();
-  // Left of the card: the pixels prove that the scene itself zoomed, not just that a panel appeared.
-  const sceneShot=()=>view.screenshot({clip:{...box,width:600}});
+  // Scene interior, left of the card and inside the container's corners/focus outline.
+  // These pixels prove the camera zoomed, not just that a panel appeared.
+  const sceneShot=()=>view.screenshot({clip:{x:box.x+8,y:box.y+8,width:600,height:box.height-16}});
   await capture('still');
   const whole=await sceneShot();
   const click=async(x,y)=>{
@@ -67,7 +68,7 @@ export async function checkAttention(view, manifest) {
   await target.getByRole('button',{name:'Focus on Remote response worker',exact:true}).waitFor();
   await click(32,10);
   await focused('Remote response worker');await capture('remote-focus');await close();
-  for(let i=0;i<2;i++)await target.getByRole('button',{name:'Next worker needing a response',exact:true}).click();
+  await target.getByRole('button',{name:'Next worker needing a response',exact:true}).click();
   const suggested=target.getByRole('button',{name:'Focus on Suggested response worker',exact:true});
   await suggested.focus();await view.keyboard.press('Enter');
   await focused('Suggested response worker');await capture('keyboard-focus');await close();
@@ -77,7 +78,7 @@ export async function checkAttention(view, manifest) {
   await view.waitForTimeout(900);await capture('moving-focus');await close();
   await view.emulateMedia({reducedMotion:'reduce'});
   // An insertion does not steal selection, and an unreachable remote loses its signal.
-  await target.getByRole('button',{name:'Next worker needing a response',exact:true}).click();
+  for(let i=0;i<2;i++)await target.getByRole('button',{name:'Next worker needing a response',exact:true}).click();
   await view.evaluate(()=>window.changeFleet(fleet=>{const c=structuredClone(fleet.cards[0]);c.key='attention-0';c.title='Earlier request';fleet.cards.unshift(c);}));
   await refresh();
   await target.getByRole('button',{name:'Focus on Remote response worker',exact:true}).waitFor();

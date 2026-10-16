@@ -514,7 +514,7 @@ Office was withdrawn after visual review; its files are retained at
   hover and focus. Posts fill in order; packing fits two dozen at regular spacing, with closer overflow and
   a gap round the plank. Active overflow stays upstairs. The linter checks every handle is visible, clear of
   active workers and reachable by the pointer. Its label hangs below the hull when there is room.
-- **The reply shark** (`docs/deck-enrichment/reply-shark-review.md`) uses generic `attention-carrier@1`:
+- **The reply shark** (`docs/deck-fixes/shark-review.md`) uses generic `attention-carrier@1`:
   one generated carrier in the near sea for a selected worker needing the captain. The legend selects among
   blocked workers, pending permissions and linked suggestions, retaining identity across polls. Body, bubble
   and keyboard action zoom to that worker and open its crew focus panel in place, keeping the deck mounted.

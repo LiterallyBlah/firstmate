@@ -1,7 +1,7 @@
 {
-  "base": "compiled main b3d70ec",
-  "branch": "HEAD 88c5d6f",
-  "compiledBranch": "88c5d6f",
+  "base": "compiled main 6704512",
+  "branch": "HEAD 138dd86",
+  "compiledBranch": "138dd86",
   "maskToolbar": false,
   "control": null,
   "scenarios": [
@@ -16,22 +16,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 31306,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            455
+            492,
+            1752
           ],
           "box": [
-            1395,
-            455,
-            1531,
-            1276
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "ac05ea2a90bbd6bf",
-            "01ca0bf89f1a77a8"
+            "01ca0bf89f1a77a8",
+            "7d08c27c17eb3dc5"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -54,22 +54,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 7896,
+          "differingPixels": 2192,
           "firstDifference": [
-            756,
-            228
+            181,
+            876
           ],
           "box": [
-            697,
-            228,
-            764,
-            637
+            181,
+            876,
+            565,
+            887
           ],
           "sha": [
-            "c75172b2cbb8df46",
-            "a34d647cf2185b4e"
+            "a34d647cf2185b4e",
+            "19f60af04a148b95"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -93,22 +93,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 31306,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            455
+            492,
+            1752
           ],
           "box": [
-            1395,
-            455,
-            1531,
-            1276
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "85a2408047a80599",
-            "b59db4bda9d8cc03"
+            "b59db4bda9d8cc03",
+            "66b07dfb30fad243"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -131,22 +131,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 7896,
+          "differingPixels": 2192,
           "firstDifference": [
-            756,
-            228
+            181,
+            876
           ],
           "box": [
-            697,
-            228,
-            764,
-            637
+            181,
+            876,
+            565,
+            887
           ],
           "sha": [
-            "6e66edf391fc7471",
-            "b850389e74a43e84"
+            "b850389e74a43e84",
+            "5be28c16da7249ca"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -169,22 +169,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 7896,
+          "differingPixels": 2192,
           "firstDifference": [
-            756,
-            228
+            181,
+            876
           ],
           "box": [
-            697,
-            228,
-            764,
-            637
+            181,
+            876,
+            565,
+            887
           ],
           "sha": [
-            "f132424015901eea",
-            "18dd4cb175192be8"
+            "18dd4cb175192be8",
+            "a98993f2eefcbe5b"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -208,22 +208,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 26231,
+          "differingPixels": 7435,
           "firstDifference": [
-            1515,
-            455
+            481,
+            1752
           ],
           "box": [
-            1395,
-            455,
-            1531,
-            1276
+            313,
+            1752,
+            1043,
+            1775
           ],
           "sha": [
-            "0680b9e2de3ff580",
-            "5ebbe418901d3c6b"
+            "5ebbe418901d3c6b",
+            "ddabb0f2c3e201b3"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -247,22 +247,22 @@
         {
           "shot": "open",
           "identical": false,
-          "differingPixels": 33641,
+          "differingPixels": 7435,
           "firstDifference": [
-            1515,
-            455
+            481,
+            1752
           ],
           "box": [
-            1395,
-            455,
-            1531,
-            1276
+            313,
+            1752,
+            1043,
+            1775
           ],
           "sha": [
-            "c669e3abfa22fbf0",
-            "1047cfe42321dbbc"
+            "1047cfe42321dbbc",
+            "f306f5f9d7e11f1e"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -283,23 +283,9 @@
       "shots": [
         {
           "shot": "lost",
-          "identical": false,
-          "differingPixels": 7151,
-          "firstDifference": [
-            754,
-            276
-          ],
-          "box": [
-            699,
-            276,
-            761,
-            654
-          ],
-          "sha": [
-            "c92f4c043dd6b849",
-            "da2f8ff21ceff7e3"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "da2f8ff21ceff7e3",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -322,22 +308,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 31794,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            461
+            492,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "3d4cd03605c903f0",
-            "80671b414c55402a"
+            "80671b414c55402a",
+            "92d2ed8a74456967"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -351,22 +337,22 @@
         {
           "shot": "1s",
           "identical": false,
-          "differingPixels": 31983,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            461
+            492,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "4b6930945164c5a8",
-            "2bbca14a32cc43a3"
+            "2bbca14a32cc43a3",
+            "ba86b3bdf06c76ab"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -380,22 +366,22 @@
         {
           "shot": "2.5s",
           "identical": false,
-          "differingPixels": 32011,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            455
+            492,
+            1752
           ],
           "box": [
-            1395,
-            455,
-            1531,
-            1276
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "183f4643b288cec4",
-            "c291d9665570cafc"
+            "c291d9665570cafc",
+            "4b38198bbe9fa74a"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -409,22 +395,22 @@
         {
           "shot": "5s",
           "identical": false,
-          "differingPixels": 32011,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            455
+            492,
+            1752
           ],
           "box": [
-            1395,
-            455,
-            1531,
-            1276
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "d0cc2d27aebc279f",
-            "9000da583e678f63"
+            "9000da583e678f63",
+            "a1b32a41df650bc6"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -438,22 +424,22 @@
         {
           "shot": "10s",
           "identical": false,
-          "differingPixels": 31794,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            461
+            492,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "6a97b1e2f5f81250",
-            "8746206cd5eff88c"
+            "8746206cd5eff88c",
+            "822c2cb78f4375c9"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -467,22 +453,22 @@
         {
           "shot": "25s",
           "identical": false,
-          "differingPixels": 32494,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            461
+            492,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "f656f806f106777a",
-            "0033d7423f204871"
+            "0033d7423f204871",
+            "4c4f2bf1facd9235"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -496,22 +482,22 @@
         {
           "shot": "49s",
           "identical": false,
-          "differingPixels": 32494,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            461
+            492,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "3a1df9b8a74ea59b",
-            "edbf99ca344b60c2"
+            "edbf99ca344b60c2",
+            "328b7a3d6e29e88b"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -525,22 +511,22 @@
         {
           "shot": "73s",
           "identical": false,
-          "differingPixels": 32494,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            461
+            492,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "c7013d6be38c9b4a",
-            "ce99bbb92f7b898a"
+            "ce99bbb92f7b898a",
+            "f4af275cffefb6fc"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -563,22 +549,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 6897,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            230
+            157,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "cd0240d1dc034bc4",
-            "d426ec6f0cc25c4e"
+            "d426ec6f0cc25c4e",
+            "2f71775b71d27842"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -592,22 +578,22 @@
         {
           "shot": "5.4s",
           "identical": false,
-          "differingPixels": 6897,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            230
+            157,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "32fc92c3a859c45d",
-            "f0181747f9bf7b55"
+            "f0181747f9bf7b55",
+            "bef03027bb750478"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -621,22 +607,22 @@
         {
           "shot": "10.4s",
           "identical": false,
-          "differingPixels": 6845,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            233
+            157,
+            876
           ],
           "box": [
-            697,
-            233,
-            764,
-            643
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "d64ef41d32e29c88",
-            "a8e51d6c0092fe7b"
+            "a8e51d6c0092fe7b",
+            "283b9919ce79d867"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -650,22 +636,22 @@
         {
           "shot": "15.4s",
           "identical": false,
-          "differingPixels": 6827,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            230
+            157,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "e208323a3cb27985",
-            "0379712489790ffe"
+            "0379712489790ffe",
+            "e36f043f215b585e"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -679,22 +665,22 @@
         {
           "shot": "20.4s",
           "identical": false,
-          "differingPixels": 6827,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            230
+            157,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "41da9e95eabc22fc",
-            "396d831f82114ffd"
+            "396d831f82114ffd",
+            "db65e96997ee24f3"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -708,22 +694,22 @@
         {
           "shot": "25.4s",
           "identical": false,
-          "differingPixels": 6651,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            228
+            157,
+            876
           ],
           "box": [
-            697,
-            228,
-            764,
-            637
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "8a8615c2a42fa45f",
-            "91be680b23da29c7"
+            "91be680b23da29c7",
+            "3b9019059faa3d6d"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -737,22 +723,22 @@
         {
           "shot": "30.4s",
           "identical": false,
-          "differingPixels": 6884,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            225
+            157,
+            876
           ],
           "box": [
-            697,
-            225,
-            764,
-            635
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "d948c81ffa28b694",
-            "1d9433c51f391459"
+            "1d9433c51f391459",
+            "4b4ce6eb15bbbedf"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -766,22 +752,22 @@
         {
           "shot": "flash-33.5s",
           "identical": false,
-          "differingPixels": 6800,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            233
+            157,
+            876
           ],
           "box": [
-            697,
-            233,
-            764,
-            643
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "2b81891a6823dcde",
-            "c0175c9f5b4580b6"
+            "c0175c9f5b4580b6",
+            "1d3a75148dcf063f"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -795,22 +781,22 @@
         {
           "shot": "flash-33.6s",
           "identical": false,
-          "differingPixels": 6827,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            230
+            157,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "ac793bc7996da98e",
-            "6d6229837a149d64"
+            "6d6229837a149d64",
+            "25d20077e97dab9c"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -824,22 +810,22 @@
         {
           "shot": "35.4s",
           "identical": false,
-          "differingPixels": 6884,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            222
+            157,
+            876
           ],
           "box": [
-            697,
-            222,
-            764,
-            632
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "f3ea116077d6dee1",
-            "94852211d416f2d0"
+            "94852211d416f2d0",
+            "ec73cf74fed51753"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -853,22 +839,22 @@
         {
           "shot": "40.4s",
           "identical": false,
-          "differingPixels": 6787,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            222
+            157,
+            876
           ],
           "box": [
-            697,
-            222,
-            764,
-            632
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "088f39c9951b688f",
-            "6516673d4e572a05"
+            "6516673d4e572a05",
+            "80e2193088063ff3"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -882,22 +868,22 @@
         {
           "shot": "45.4s",
           "identical": false,
-          "differingPixels": 6775,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            225
+            157,
+            876
           ],
           "box": [
-            697,
-            225,
-            764,
-            635
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "fb20d56ea468dfae",
-            "2908fab08f66bcc2"
+            "2908fab08f66bcc2",
+            "7c3f7714f72a8287"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -911,22 +897,22 @@
         {
           "shot": "flash-48.9s",
           "identical": false,
-          "differingPixels": 6826,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            225
+            157,
+            876
           ],
           "box": [
-            697,
-            225,
-            764,
-            635
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "5ca5fa8af805886d",
-            "09f2354cb72a0243"
+            "09f2354cb72a0243",
+            "830116aaa959d89a"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -940,22 +926,22 @@
         {
           "shot": "flash-49.0s",
           "identical": false,
-          "differingPixels": 6775,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            225
+            157,
+            876
           ],
           "box": [
-            697,
-            225,
-            764,
-            635
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "be8f87b662d0de39",
-            "b21aada21c5200b9"
+            "b21aada21c5200b9",
+            "e3e1cb9c9826573a"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -969,22 +955,22 @@
         {
           "shot": "50.4s",
           "identical": false,
-          "differingPixels": 6543,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            228
+            157,
+            876
           ],
           "box": [
-            697,
-            228,
-            764,
-            637
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "5dfa1a56efcfb8e3",
-            "23404ace49db0c21"
+            "23404ace49db0c21",
+            "be49f898fd6f60c0"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -998,22 +984,22 @@
         {
           "shot": "55.4s",
           "identical": false,
-          "differingPixels": 6839,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            230
+            157,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "f9dd5cdb994f666a",
-            "8e6bf9ecb7699e88"
+            "8e6bf9ecb7699e88",
+            "b765c74e238976d0"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1027,22 +1013,22 @@
         {
           "shot": "60.4s",
           "identical": false,
-          "differingPixels": 6839,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            230
+            157,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "0549ceeec58d1f3a",
-            "08921fe377429e5d"
+            "08921fe377429e5d",
+            "8c0dfad4aaf76e5e"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1056,22 +1042,22 @@
         {
           "shot": "65.4s",
           "identical": false,
-          "differingPixels": 6847,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            233
+            157,
+            876
           ],
           "box": [
-            697,
-            233,
-            764,
-            643
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "dd59b51b2a2b9a54",
-            "c26f60357f35b9d7"
+            "c26f60357f35b9d7",
+            "5733e67f9c22da33"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1085,22 +1071,22 @@
         {
           "shot": "70.4s",
           "identical": false,
-          "differingPixels": 6806,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            230
+            157,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "ca13344f97622164",
-            "9491fbf6fb3e4d0a"
+            "9491fbf6fb3e4d0a",
+            "89293fd689d00d3f"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1114,22 +1100,22 @@
         {
           "shot": "75.4s",
           "identical": false,
-          "differingPixels": 6827,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            230
+            157,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "92a803ddd922cd72",
-            "2f01af41ba6c5539"
+            "2f01af41ba6c5539",
+            "e6c09de2add77ec4"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1143,22 +1129,22 @@
         {
           "shot": "80.4s",
           "identical": false,
-          "differingPixels": 6585,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            228
+            157,
+            876
           ],
           "box": [
-            697,
-            228,
-            764,
-            637
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "aad992353cc21468",
-            "fc2d749eea4bb57c"
+            "fc2d749eea4bb57c",
+            "d603382734a363b2"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1172,22 +1158,22 @@
         {
           "shot": "85.4s",
           "identical": false,
-          "differingPixels": 6884,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            225
+            157,
+            876
           ],
           "box": [
-            697,
-            225,
-            764,
-            635
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "c2ce1ae833e62b1c",
-            "35961803fbd5bbd4"
+            "35961803fbd5bbd4",
+            "315057de1ce32193"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1201,22 +1187,22 @@
         {
           "shot": "90.4s",
           "identical": false,
-          "differingPixels": 6884,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            225
+            157,
+            876
           ],
           "box": [
-            697,
-            225,
-            764,
-            635
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "d0e5a86d7bab81c3",
-            "29a0960aab5b61be"
+            "29a0960aab5b61be",
+            "5ed055f34d293c99"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1230,22 +1216,22 @@
         {
           "shot": "95.4s",
           "identical": false,
-          "differingPixels": 6884,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            222
+            157,
+            876
           ],
           "box": [
-            697,
-            222,
-            764,
-            632
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "c5a96646dd5f9d33",
-            "ab6cc2f31eb9a737"
+            "ab6cc2f31eb9a737",
+            "fd8a55b60e7787f1"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1259,22 +1245,22 @@
         {
           "shot": "100.4s",
           "identical": false,
-          "differingPixels": 6826,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            225
+            157,
+            876
           ],
           "box": [
-            697,
-            225,
-            764,
-            635
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "33ea0629b887a57e",
-            "58ed33272682cefc"
+            "58ed33272682cefc",
+            "461d83588ad2a4ee"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1288,22 +1274,22 @@
         {
           "shot": "105.4s",
           "identical": false,
-          "differingPixels": 6814,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            225
+            157,
+            876
           ],
           "box": [
-            697,
-            225,
-            764,
-            635
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "007a287b062ca1cb",
-            "25926f7003d4a6b0"
+            "25926f7003d4a6b0",
+            "78a00eb58c9b8f59"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1317,22 +1303,22 @@
         {
           "shot": "110.4s",
           "identical": false,
-          "differingPixels": 6585,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            228
+            157,
+            876
           ],
           "box": [
-            697,
-            228,
-            764,
-            637
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "e03f73396e22b0ec",
-            "1cbe7118ffdacb8d"
+            "1cbe7118ffdacb8d",
+            "b105ccbc244ba043"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1346,22 +1332,22 @@
         {
           "shot": "115.4s",
           "identical": false,
-          "differingPixels": 6897,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            230
+            157,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "8205514637361563",
-            "ae4090e0b67a7c7b"
+            "ae4090e0b67a7c7b",
+            "ff14dc3b83ea33fa"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1375,22 +1361,22 @@
         {
           "shot": "120.4s",
           "identical": false,
-          "differingPixels": 6904,
+          "differingPixels": 2102,
           "firstDifference": [
-            756,
-            233
+            157,
+            876
           ],
           "box": [
-            697,
-            233,
-            764,
-            643
+            156,
+            876,
+            521,
+            887
           ],
           "sha": [
-            "b184191ef4d9f7f1",
-            "4c3448568d9dfa3a"
+            "4c3448568d9dfa3a",
+            "5109cbd58b236bce"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1413,22 +1399,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 8243,
+          "differingPixels": 2192,
           "firstDifference": [
-            756,
-            230
+            181,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            181,
+            876,
+            565,
+            887
           ],
           "sha": [
-            "1d46434c46608d91",
-            "283f8db9caf4b9ff"
+            "283f8db9caf4b9ff",
+            "6ac596d6e6b45be7"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1442,22 +1428,22 @@
         {
           "shot": "10s",
           "identical": false,
-          "differingPixels": 8243,
+          "differingPixels": 2192,
           "firstDifference": [
-            756,
-            230
+            181,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            181,
+            876,
+            565,
+            887
           ],
           "sha": [
-            "cc2ca47ab74575a3",
-            "e2fdd9066a2a066c"
+            "e2fdd9066a2a066c",
+            "0337e340ae7b4096"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1480,22 +1466,22 @@
         {
           "shot": "aboard",
           "identical": false,
-          "differingPixels": 31794,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            461
+            492,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "3d4cd03605c903f0",
-            "80671b414c55402a"
+            "80671b414c55402a",
+            "92d2ed8a74456967"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1509,22 +1495,22 @@
         {
           "shot": "changed",
           "identical": false,
-          "differingPixels": 31794,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            461
+            444,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "c64b3f00c59e907e",
-            "1803cf9271947ab9"
+            "1803cf9271947ab9",
+            "5026375d210eebc4"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1538,22 +1524,22 @@
         {
           "shot": "walking-1000ms",
           "identical": false,
-          "differingPixels": 32494,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            461
+            444,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "a1ce4d8e5e1a1752",
-            "72fb348d7e91eebe"
+            "72fb348d7e91eebe",
+            "ddd8f3a55af84cd9"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1567,22 +1553,22 @@
         {
           "shot": "walking-2000ms",
           "identical": false,
-          "differingPixels": 32011,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            455
+            444,
+            1752
           ],
           "box": [
-            1395,
-            455,
-            1531,
-            1276
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "dc97cb5f8ca3fccb",
-            "400045995a7ae015"
+            "400045995a7ae015",
+            "1d3f660ccd24c71a"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1596,22 +1582,22 @@
         {
           "shot": "walking-3000ms",
           "identical": false,
-          "differingPixels": 32439,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            444
+            444,
+            1752
           ],
           "box": [
-            1395,
-            444,
-            1531,
-            1264
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "1be84e85ac4d33f2",
-            "b3a76fd4c633fd41"
+            "b3a76fd4c633fd41",
+            "6f8f799b6381233a"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1625,22 +1611,22 @@
         {
           "shot": "walking-5000ms",
           "identical": false,
-          "differingPixels": 31283,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            461
+            444,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "a0d7604e57017dd7",
-            "c215c03f19036d19"
+            "c215c03f19036d19",
+            "9a87385cfef86ec9"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1654,22 +1640,22 @@
         {
           "shot": "walking-8000ms",
           "identical": false,
-          "differingPixels": 32439,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            444
+            444,
+            1752
           ],
           "box": [
-            1395,
-            444,
-            1531,
-            1264
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "4087f6c5b5dea58c",
-            "349170dfeb49c494"
+            "349170dfeb49c494",
+            "26a92c725a7c70ff"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1683,22 +1669,22 @@
         {
           "shot": "arrived",
           "identical": false,
-          "differingPixels": 31983,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            461
+            444,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "793fda04b49d9348",
-            "94a10073cff01b4c"
+            "94a10073cff01b4c",
+            "28de24aa8f6c5268"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1712,22 +1698,22 @@
         {
           "shot": "hatch-200ms",
           "identical": false,
-          "differingPixels": 31816,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            455
+            444,
+            1752
           ],
           "box": [
-            1395,
-            455,
-            1531,
-            1276
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "130e27ca73282a6d",
-            "3303e5524dca10eb"
+            "3303e5524dca10eb",
+            "3d0714e87cd9d5b3"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1741,22 +1727,22 @@
         {
           "shot": "hatch-400ms",
           "identical": false,
-          "differingPixels": 31816,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            455
+            444,
+            1752
           ],
           "box": [
-            1395,
-            455,
-            1531,
-            1276
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "50e84b621d16d676",
-            "c52725fc7d23329a"
+            "c52725fc7d23329a",
+            "b2710cdc3f6e56df"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1770,22 +1756,22 @@
         {
           "shot": "hatch-700ms",
           "identical": false,
-          "differingPixels": 31821,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            449
+            444,
+            1752
           ],
           "box": [
-            1395,
-            449,
-            1531,
-            1270
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "68a55bcad33e5f36",
-            "baaf48593163488a"
+            "baaf48593163488a",
+            "820ba016a3a80969"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1799,22 +1785,22 @@
         {
           "shot": "hatch-1500ms",
           "identical": false,
-          "differingPixels": 31751,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            444
+            444,
+            1752
           ],
           "box": [
-            1395,
-            444,
-            1531,
-            1264
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "75c9f910cd387a6c",
-            "9f0f0b04f95d84cb"
+            "9f0f0b04f95d84cb",
+            "677fd909aee5e3ea"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1828,22 +1814,22 @@
         {
           "shot": "hatch-3000ms",
           "identical": false,
-          "differingPixels": 29519,
+          "differingPixels": 7685,
           "firstDifference": [
-            1515,
-            461
+            444,
+            1752
           ],
           "box": [
-            1395,
-            461,
-            1531,
-            1282
+            313,
+            1752,
+            1045,
+            1775
           ],
           "sha": [
-            "b3b8aeae3738a013",
-            "ca08871a1cacf97a"
+            "ca08871a1cacf97a",
+            "a600bdfdfcf7134c"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1856,23 +1842,9 @@
         },
         {
           "shot": "leaving-300ms",
-          "identical": false,
-          "differingPixels": 30013,
-          "firstDifference": [
-            1515,
-            461
-          ],
-          "box": [
-            1395,
-            461,
-            1531,
-            1282
-          ],
-          "sha": [
-            "6a6e8fed2a04e311",
-            "6964a2b68d33a17a"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "6964a2b68d33a17a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1885,23 +1857,9 @@
         },
         {
           "shot": "leaving-800ms",
-          "identical": false,
-          "differingPixels": 29047,
-          "firstDifference": [
-            1515,
-            461
-          ],
-          "box": [
-            1395,
-            461,
-            1531,
-            1282
-          ],
-          "sha": [
-            "1584e3f9821efaa2",
-            "2dd82e1d5588134a"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "2dd82e1d5588134a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1914,23 +1872,9 @@
         },
         {
           "shot": "leaving-1400ms",
-          "identical": false,
-          "differingPixels": 29692,
-          "firstDifference": [
-            1515,
-            449
-          ],
-          "box": [
-            1395,
-            449,
-            1531,
-            1270
-          ],
-          "sha": [
-            "c70257542b78f67f",
-            "c7bd663c0bba67cc"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c7bd663c0bba67cc",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1943,23 +1887,9 @@
         },
         {
           "shot": "leaving-2000ms",
-          "identical": false,
-          "differingPixels": 28071,
-          "firstDifference": [
-            1515,
-            444
-          ],
-          "box": [
-            1395,
-            444,
-            1531,
-            1230
-          ],
-          "sha": [
-            "b46157c7af8c8d83",
-            "c9aa7f2daac3285e"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c9aa7f2daac3285e",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1972,23 +1902,9 @@
         },
         {
           "shot": "leaving-2400ms",
-          "identical": false,
-          "differingPixels": 29389,
-          "firstDifference": [
-            1515,
-            444
-          ],
-          "box": [
-            1395,
-            444,
-            1531,
-            1264
-          ],
-          "sha": [
-            "d9e3e9752346a6ed",
-            "5306ba11bb52fc84"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "5306ba11bb52fc84",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2001,23 +1917,9 @@
         },
         {
           "shot": "leaving-2700ms",
-          "identical": false,
-          "differingPixels": 30229,
-          "firstDifference": [
-            1515,
-            449
-          ],
-          "box": [
-            1395,
-            449,
-            1531,
-            1270
-          ],
-          "sha": [
-            "ece02483ac0c2aab",
-            "90b0f4531d2f5173"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "90b0f4531d2f5173",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2030,23 +1932,9 @@
         },
         {
           "shot": "leaving-3000ms",
-          "identical": false,
-          "differingPixels": 29254,
-          "firstDifference": [
-            1515,
-            449
-          ],
-          "box": [
-            1395,
-            449,
-            1531,
-            1270
-          ],
-          "sha": [
-            "a92ce7edafc36ca5",
-            "b73c2020aefb4f16"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b73c2020aefb4f16",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2059,23 +1947,9 @@
         },
         {
           "shot": "leaving-3300ms",
-          "identical": false,
-          "differingPixels": 29005,
-          "firstDifference": [
-            1515,
-            455
-          ],
-          "box": [
-            1395,
-            455,
-            1531,
-            1276
-          ],
-          "sha": [
-            "af7a498715c84af6",
-            "3566d661c539fb1a"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "3566d661c539fb1a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2088,23 +1962,9 @@
         },
         {
           "shot": "leaving-3600ms",
-          "identical": false,
-          "differingPixels": 29197,
-          "firstDifference": [
-            1515,
-            455
-          ],
-          "box": [
-            1395,
-            455,
-            1531,
-            1276
-          ],
-          "sha": [
-            "54f1c6601d54f75a",
-            "0b838737e1b5d13d"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "0b838737e1b5d13d",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2117,23 +1977,9 @@
         },
         {
           "shot": "leaving-4000ms",
-          "identical": false,
-          "differingPixels": 29106,
-          "firstDifference": [
-            1515,
-            461
-          ],
-          "box": [
-            1395,
-            461,
-            1531,
-            1282
-          ],
-          "sha": [
-            "06288877aa879231",
-            "fe4e7dd839b88b6a"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "fe4e7dd839b88b6a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2146,23 +1992,9 @@
         },
         {
           "shot": "leaving-4600ms",
-          "identical": false,
-          "differingPixels": 29383,
-          "firstDifference": [
-            1515,
-            467
-          ],
-          "box": [
-            1395,
-            467,
-            1531,
-            1287
-          ],
-          "sha": [
-            "db5bf88c8b9bef33",
-            "bfbdf7fe15dfe55a"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "bfbdf7fe15dfe55a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2175,23 +2007,9 @@
         },
         {
           "shot": "leaving-5400ms",
-          "identical": false,
-          "differingPixels": 29519,
-          "firstDifference": [
-            1515,
-            461
-          ],
-          "box": [
-            1395,
-            461,
-            1531,
-            1282
-          ],
-          "sha": [
-            "422d03a83fa92c01",
-            "ddd5af63627290cf"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "ddd5af63627290cf",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2204,23 +2022,9 @@
         },
         {
           "shot": "leaving-7000ms",
-          "identical": false,
-          "differingPixels": 29655,
-          "firstDifference": [
-            1515,
-            444
-          ],
-          "box": [
-            1395,
-            444,
-            1531,
-            1264
-          ],
-          "sha": [
-            "68bfcb932eb3bee8",
-            "cac990bfcec35b36"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "cac990bfcec35b36",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2233,23 +2037,9 @@
         },
         {
           "shot": "after",
-          "identical": false,
-          "differingPixels": 29519,
-          "firstDifference": [
-            1515,
-            461
-          ],
-          "box": [
-            1395,
-            461,
-            1531,
-            1282
-          ],
-          "sha": [
-            "341c0fe0dbe868b5",
-            "ed7471effd5e0772"
-          ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "ed7471effd5e0772",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2272,22 +2062,22 @@
         {
           "shot": "100ms",
           "identical": false,
-          "differingPixels": 32604,
+          "differingPixels": 7771,
           "firstDifference": [
-            1508,
-            478
+            492,
+            1752
           ],
           "box": [
-            1386,
-            478,
-            1524,
-            1315
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "a191061cdd7fbb57",
-            "64697adea880c914"
+            "64697adea880c914",
+            "636039d18cd9b942"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2301,22 +2091,22 @@
         {
           "shot": "300ms",
           "identical": false,
-          "differingPixels": 54709,
+          "differingPixels": 7771,
           "firstDifference": [
-            1341,
-            912
+            492,
+            1752
           ],
           "box": [
-            1141,
-            912,
-            1369,
-            1677
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "76bea2de7406114f",
-            "2c3bc06c07b25118"
+            "2c3bc06c07b25118",
+            "07f33c49630cd572"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2330,22 +2120,22 @@
         {
           "shot": "1.5s",
           "identical": false,
-          "differingPixels": 53369,
+          "differingPixels": 7771,
           "firstDifference": [
-            1254,
-            1180
+            492,
+            1752
           ],
           "box": [
-            988,
-            1180,
-            1291,
-            1677
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "e8a80ed06a2af17d",
-            "71eaad017f8b6c02"
+            "71eaad017f8b6c02",
+            "32b8a6fdb7a4e7f0"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2359,22 +2149,22 @@
         {
           "shot": "back-out",
           "identical": false,
-          "differingPixels": 32004,
+          "differingPixels": 7771,
           "firstDifference": [
-            1515,
-            449
+            492,
+            1752
           ],
           "box": [
-            1395,
-            449,
-            1531,
-            1270
+            362,
+            1752,
+            1129,
+            1775
           ],
           "sha": [
-            "1c89a7ed03ce7d80",
-            "1e44d230807236ec"
+            "1e44d230807236ec",
+            "788f9d47cc664785"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2396,22 +2186,22 @@
         {
           "shot": "0.4s",
           "identical": false,
-          "differingPixels": 8240,
+          "differingPixels": 2192,
           "firstDifference": [
-            756,
-            230
+            181,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            181,
+            876,
+            565,
+            887
           ],
           "sha": [
-            "a04c86341b11af68",
-            "1b269a5aff92e055"
+            "1b269a5aff92e055",
+            "1a550646432224e8"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2425,22 +2215,22 @@
         {
           "shot": "2s",
           "identical": false,
-          "differingPixels": 8240,
+          "differingPixels": 2192,
           "firstDifference": [
-            756,
-            230
+            181,
+            876
           ],
           "box": [
-            697,
-            230,
-            764,
-            640
+            181,
+            876,
+            565,
+            887
           ],
           "sha": [
-            "5bb3bfd39ee3a9de",
-            "2c062e524cccc4c9"
+            "2c062e524cccc4c9",
+            "b204faa188a8707d"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2454,22 +2244,22 @@
         {
           "shot": "6s",
           "identical": false,
-          "differingPixels": 8413,
+          "differingPixels": 2192,
           "firstDifference": [
-            756,
-            233
+            181,
+            876
           ],
           "box": [
-            697,
-            233,
-            764,
-            643
+            181,
+            876,
+            565,
+            887
           ],
           "sha": [
-            "d5d52e5fb592edcf",
-            "a078e40571514ed1"
+            "a078e40571514ed1",
+            "47513931ab764c10"
           ],
-          "intentional": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged.",
+          "intentional": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2488,5 +2278,5 @@
   "shots": 81,
   "passed": true,
   "identical": false,
-  "intentionalShots": 81
+  "intentionalShots": 66
 }

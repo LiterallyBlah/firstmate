@@ -1,411 +1,336 @@
 {
-  "review": "docs/deck-fixes/ladder-review.md",
-  "base": "compiled main b3d70ec",
+  "review": "docs/deck-fixes/shark-review.md",
+  "base": "compiled main 6704512",
   "shots": {
     "still-noon-dark/open": {
-      "main": "ac05ea2a90bbd6bf",
-      "branch": "01ca0bf89f1a77a8",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "01ca0bf89f1a77a8",
+      "branch": "7d08c27c17eb3dc5",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-noon-light/open": {
-      "main": "c75172b2cbb8df46",
-      "branch": "a34d647cf2185b4e",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "a34d647cf2185b4e",
+      "branch": "19f60af04a148b95",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-night/open": {
-      "main": "85a2408047a80599",
-      "branch": "b59db4bda9d8cc03",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "b59db4bda9d8cc03",
+      "branch": "66b07dfb30fad243",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-dawn/open": {
-      "main": "6e66edf391fc7471",
-      "branch": "b850389e74a43e84",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "b850389e74a43e84",
+      "branch": "5be28c16da7249ca",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-dusk-to-night/open": {
-      "main": "f132424015901eea",
-      "branch": "18dd4cb175192be8",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "18dd4cb175192be8",
+      "branch": "a98993f2eefcbe5b",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-busy/open": {
-      "main": "0680b9e2de3ff580",
-      "branch": "5ebbe418901d3c6b",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "5ebbe418901d3c6b",
+      "branch": "ddabb0f2c3e201b3",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-all-idle/open": {
-      "main": "c669e3abfa22fbf0",
-      "branch": "1047cfe42321dbbc",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "still-feed-lost/lost": {
-      "main": "c92f4c043dd6b849",
-      "branch": "da2f8ff21ceff7e3",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "1047cfe42321dbbc",
+      "branch": "f306f5f9d7e11f1e",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/0.4s": {
-      "main": "3d4cd03605c903f0",
-      "branch": "80671b414c55402a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "80671b414c55402a",
+      "branch": "92d2ed8a74456967",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/1s": {
-      "main": "4b6930945164c5a8",
-      "branch": "2bbca14a32cc43a3",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "2bbca14a32cc43a3",
+      "branch": "ba86b3bdf06c76ab",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/2.5s": {
-      "main": "183f4643b288cec4",
-      "branch": "c291d9665570cafc",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "c291d9665570cafc",
+      "branch": "4b38198bbe9fa74a",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/5s": {
-      "main": "d0cc2d27aebc279f",
-      "branch": "9000da583e678f63",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "9000da583e678f63",
+      "branch": "a1b32a41df650bc6",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/10s": {
-      "main": "6a97b1e2f5f81250",
-      "branch": "8746206cd5eff88c",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "8746206cd5eff88c",
+      "branch": "822c2cb78f4375c9",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/25s": {
-      "main": "f656f806f106777a",
-      "branch": "0033d7423f204871",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "0033d7423f204871",
+      "branch": "4c4f2bf1facd9235",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/49s": {
-      "main": "3a1df9b8a74ea59b",
-      "branch": "edbf99ca344b60c2",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "edbf99ca344b60c2",
+      "branch": "328b7a3d6e29e88b",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/73s": {
-      "main": "c7013d6be38c9b4a",
-      "branch": "ce99bbb92f7b898a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "ce99bbb92f7b898a",
+      "branch": "f4af275cffefb6fc",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/0.4s": {
-      "main": "cd0240d1dc034bc4",
-      "branch": "d426ec6f0cc25c4e",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "d426ec6f0cc25c4e",
+      "branch": "2f71775b71d27842",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/5.4s": {
-      "main": "32fc92c3a859c45d",
-      "branch": "f0181747f9bf7b55",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "f0181747f9bf7b55",
+      "branch": "bef03027bb750478",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/10.4s": {
-      "main": "d64ef41d32e29c88",
-      "branch": "a8e51d6c0092fe7b",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "a8e51d6c0092fe7b",
+      "branch": "283b9919ce79d867",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/15.4s": {
-      "main": "e208323a3cb27985",
-      "branch": "0379712489790ffe",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "0379712489790ffe",
+      "branch": "e36f043f215b585e",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/20.4s": {
-      "main": "41da9e95eabc22fc",
-      "branch": "396d831f82114ffd",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "396d831f82114ffd",
+      "branch": "db65e96997ee24f3",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/25.4s": {
-      "main": "8a8615c2a42fa45f",
-      "branch": "91be680b23da29c7",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "91be680b23da29c7",
+      "branch": "3b9019059faa3d6d",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/30.4s": {
-      "main": "d948c81ffa28b694",
-      "branch": "1d9433c51f391459",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "1d9433c51f391459",
+      "branch": "4b4ce6eb15bbbedf",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/flash-33.5s": {
-      "main": "2b81891a6823dcde",
-      "branch": "c0175c9f5b4580b6",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "c0175c9f5b4580b6",
+      "branch": "1d3a75148dcf063f",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/flash-33.6s": {
-      "main": "ac793bc7996da98e",
-      "branch": "6d6229837a149d64",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "6d6229837a149d64",
+      "branch": "25d20077e97dab9c",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/35.4s": {
-      "main": "f3ea116077d6dee1",
-      "branch": "94852211d416f2d0",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "94852211d416f2d0",
+      "branch": "ec73cf74fed51753",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/40.4s": {
-      "main": "088f39c9951b688f",
-      "branch": "6516673d4e572a05",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "6516673d4e572a05",
+      "branch": "80e2193088063ff3",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/45.4s": {
-      "main": "fb20d56ea468dfae",
-      "branch": "2908fab08f66bcc2",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "2908fab08f66bcc2",
+      "branch": "7c3f7714f72a8287",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/flash-48.9s": {
-      "main": "5ca5fa8af805886d",
-      "branch": "09f2354cb72a0243",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "09f2354cb72a0243",
+      "branch": "830116aaa959d89a",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/flash-49.0s": {
-      "main": "be8f87b662d0de39",
-      "branch": "b21aada21c5200b9",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "b21aada21c5200b9",
+      "branch": "e3e1cb9c9826573a",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/50.4s": {
-      "main": "5dfa1a56efcfb8e3",
-      "branch": "23404ace49db0c21",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "23404ace49db0c21",
+      "branch": "be49f898fd6f60c0",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/55.4s": {
-      "main": "f9dd5cdb994f666a",
-      "branch": "8e6bf9ecb7699e88",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "8e6bf9ecb7699e88",
+      "branch": "b765c74e238976d0",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/60.4s": {
-      "main": "0549ceeec58d1f3a",
-      "branch": "08921fe377429e5d",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "08921fe377429e5d",
+      "branch": "8c0dfad4aaf76e5e",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/65.4s": {
-      "main": "dd59b51b2a2b9a54",
-      "branch": "c26f60357f35b9d7",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "c26f60357f35b9d7",
+      "branch": "5733e67f9c22da33",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/70.4s": {
-      "main": "ca13344f97622164",
-      "branch": "9491fbf6fb3e4d0a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "9491fbf6fb3e4d0a",
+      "branch": "89293fd689d00d3f",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/75.4s": {
-      "main": "92a803ddd922cd72",
-      "branch": "2f01af41ba6c5539",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "2f01af41ba6c5539",
+      "branch": "e6c09de2add77ec4",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/80.4s": {
-      "main": "aad992353cc21468",
-      "branch": "fc2d749eea4bb57c",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "fc2d749eea4bb57c",
+      "branch": "d603382734a363b2",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/85.4s": {
-      "main": "c2ce1ae833e62b1c",
-      "branch": "35961803fbd5bbd4",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "35961803fbd5bbd4",
+      "branch": "315057de1ce32193",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/90.4s": {
-      "main": "d0e5a86d7bab81c3",
-      "branch": "29a0960aab5b61be",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "29a0960aab5b61be",
+      "branch": "5ed055f34d293c99",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/95.4s": {
-      "main": "c5a96646dd5f9d33",
-      "branch": "ab6cc2f31eb9a737",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "ab6cc2f31eb9a737",
+      "branch": "fd8a55b60e7787f1",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/100.4s": {
-      "main": "33ea0629b887a57e",
-      "branch": "58ed33272682cefc",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "58ed33272682cefc",
+      "branch": "461d83588ad2a4ee",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/105.4s": {
-      "main": "007a287b062ca1cb",
-      "branch": "25926f7003d4a6b0",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "25926f7003d4a6b0",
+      "branch": "78a00eb58c9b8f59",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/110.4s": {
-      "main": "e03f73396e22b0ec",
-      "branch": "1cbe7118ffdacb8d",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "1cbe7118ffdacb8d",
+      "branch": "b105ccbc244ba043",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/115.4s": {
-      "main": "8205514637361563",
-      "branch": "ae4090e0b67a7c7b",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "ae4090e0b67a7c7b",
+      "branch": "ff14dc3b83ea33fa",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/120.4s": {
-      "main": "b184191ef4d9f7f1",
-      "branch": "4c3448568d9dfa3a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "4c3448568d9dfa3a",
+      "branch": "5109cbd58b236bce",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-night/0.4s": {
-      "main": "1d46434c46608d91",
-      "branch": "283f8db9caf4b9ff",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "283f8db9caf4b9ff",
+      "branch": "6ac596d6e6b45be7",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-night/10s": {
-      "main": "cc2ca47ab74575a3",
-      "branch": "e2fdd9066a2a066c",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "e2fdd9066a2a066c",
+      "branch": "0337e340ae7b4096",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/aboard": {
-      "main": "3d4cd03605c903f0",
-      "branch": "80671b414c55402a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "80671b414c55402a",
+      "branch": "92d2ed8a74456967",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/changed": {
-      "main": "c64b3f00c59e907e",
-      "branch": "1803cf9271947ab9",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "1803cf9271947ab9",
+      "branch": "5026375d210eebc4",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/walking-1000ms": {
-      "main": "a1ce4d8e5e1a1752",
-      "branch": "72fb348d7e91eebe",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "72fb348d7e91eebe",
+      "branch": "ddd8f3a55af84cd9",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/walking-2000ms": {
-      "main": "dc97cb5f8ca3fccb",
-      "branch": "400045995a7ae015",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "400045995a7ae015",
+      "branch": "1d3f660ccd24c71a",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/walking-3000ms": {
-      "main": "1be84e85ac4d33f2",
-      "branch": "b3a76fd4c633fd41",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "b3a76fd4c633fd41",
+      "branch": "6f8f799b6381233a",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/walking-5000ms": {
-      "main": "a0d7604e57017dd7",
-      "branch": "c215c03f19036d19",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "c215c03f19036d19",
+      "branch": "9a87385cfef86ec9",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/walking-8000ms": {
-      "main": "4087f6c5b5dea58c",
-      "branch": "349170dfeb49c494",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "349170dfeb49c494",
+      "branch": "26a92c725a7c70ff",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/arrived": {
-      "main": "793fda04b49d9348",
-      "branch": "94a10073cff01b4c",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "94a10073cff01b4c",
+      "branch": "28de24aa8f6c5268",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/hatch-200ms": {
-      "main": "130e27ca73282a6d",
-      "branch": "3303e5524dca10eb",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "3303e5524dca10eb",
+      "branch": "3d0714e87cd9d5b3",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/hatch-400ms": {
-      "main": "50e84b621d16d676",
-      "branch": "c52725fc7d23329a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "c52725fc7d23329a",
+      "branch": "b2710cdc3f6e56df",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/hatch-700ms": {
-      "main": "68a55bcad33e5f36",
-      "branch": "baaf48593163488a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "baaf48593163488a",
+      "branch": "820ba016a3a80969",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/hatch-1500ms": {
-      "main": "75c9f910cd387a6c",
-      "branch": "9f0f0b04f95d84cb",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "9f0f0b04f95d84cb",
+      "branch": "677fd909aee5e3ea",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/hatch-3000ms": {
-      "main": "b3b8aeae3738a013",
-      "branch": "ca08871a1cacf97a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-300ms": {
-      "main": "6a6e8fed2a04e311",
-      "branch": "6964a2b68d33a17a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-800ms": {
-      "main": "1584e3f9821efaa2",
-      "branch": "2dd82e1d5588134a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-1400ms": {
-      "main": "c70257542b78f67f",
-      "branch": "c7bd663c0bba67cc",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-2000ms": {
-      "main": "b46157c7af8c8d83",
-      "branch": "c9aa7f2daac3285e",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-2400ms": {
-      "main": "d9e3e9752346a6ed",
-      "branch": "5306ba11bb52fc84",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-2700ms": {
-      "main": "ece02483ac0c2aab",
-      "branch": "90b0f4531d2f5173",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-3000ms": {
-      "main": "a92ce7edafc36ca5",
-      "branch": "b73c2020aefb4f16",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-3300ms": {
-      "main": "af7a498715c84af6",
-      "branch": "3566d661c539fb1a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-3600ms": {
-      "main": "54f1c6601d54f75a",
-      "branch": "0b838737e1b5d13d",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-4000ms": {
-      "main": "06288877aa879231",
-      "branch": "fe4e7dd839b88b6a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-4600ms": {
-      "main": "db5bf88c8b9bef33",
-      "branch": "bfbdf7fe15dfe55a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-5400ms": {
-      "main": "422d03a83fa92c01",
-      "branch": "ddd5af63627290cf",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-7000ms": {
-      "main": "68bfcb932eb3bee8",
-      "branch": "cac990bfcec35b36",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/after": {
-      "main": "341c0fe0dbe868b5",
-      "branch": "ed7471effd5e0772",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "ca08871a1cacf97a",
+      "branch": "a600bdfdfcf7134c",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "focus/100ms": {
-      "main": "a191061cdd7fbb57",
-      "branch": "64697adea880c914",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "64697adea880c914",
+      "branch": "636039d18cd9b942",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "focus/300ms": {
-      "main": "76bea2de7406114f",
-      "branch": "2c3bc06c07b25118",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "2c3bc06c07b25118",
+      "branch": "07f33c49630cd572",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "focus/1.5s": {
-      "main": "e8a80ed06a2af17d",
-      "branch": "71eaad017f8b6c02",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "71eaad017f8b6c02",
+      "branch": "32b8a6fdb7a4e7f0",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "focus/back-out": {
-      "main": "1c89a7ed03ce7d80",
-      "branch": "1e44d230807236ec",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "1e44d230807236ec",
+      "branch": "788f9d47cc664785",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "lite-software-renderer/0.4s": {
-      "main": "a04c86341b11af68",
-      "branch": "1b269a5aff92e055",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "1b269a5aff92e055",
+      "branch": "1a550646432224e8",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "lite-software-renderer/2s": {
-      "main": "5bb3bfd39ee3a9de",
-      "branch": "2c062e524cccc4c9",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "2c062e524cccc4c9",
+      "branch": "b204faa188a8707d",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "lite-software-renderer/6s": {
-      "main": "d5d52e5fb592edcf",
-      "branch": "a078e40571514ed1",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "a078e40571514ed1",
+      "branch": "47513931ab764c10",
+      "reason": "The attention footer now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     }
   }
 }

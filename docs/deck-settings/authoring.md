@@ -198,7 +198,7 @@ bounds and `stage.fit` vertically. The strict schema validates these rules and a
 The engine owns eligibility: live workers in Blocked, with pending permissions, or named by unanswered
 first-mate suggestions. Stale feeds and unreachable remote workers are excluded. One selected identity
 persists across polls; the engine's legend selects among multiple workers and provides keyboard focus.
-Clicking the carrier zooms to that worker and opens the same crew focus panel in place, never sends a message. Packs cannot
+Clicking the carrier zooms to that worker and opens the same crew focus panel in place; it never sends a message. Packs cannot
 choose a callback, action, attention condition or text expression. Without this capability, existing
 per-worker suggestion markers and bubbles are retained.
 
