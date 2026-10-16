@@ -122,7 +122,7 @@ export function HeaderActions({
                     <IconButton
                       theme={theme}
                       icon={values.boardCollapsed ? "PanelRightOpen" : "PanelRightClose"}
-                      label={values.boardCollapsed ? "Show the board" : "Hide the board"}
+                      label={values.boardCollapsed ? "Show the right pane" : "Hide the right pane"}
                       showLabel
                       tooltip={`${values.boardCollapsed ? "Show" : "Hide"} the ${paneName} pane.`}
                       onPress={() =>
