@@ -1,0 +1,10 @@
+{
+  "mode": "lite",
+  "checks": [
+    "reduced-motion pixels stable",
+    "small whale body opens suggestions, not worker focus",
+    "keyboard focus and Escape",
+    "pixel sequences change in balloon, rig, flag, both sails, propeller, smoke, vapour, hull, crew, lamps, firebox, clouds and whale regions; no renderer introspection"
+  ],
+  "errors": []
+}
