@@ -26,3 +26,9 @@ The review reuses `docs/deck-settings/render.mjs` and public canvas attributes, 
 | Pirate voyage | [Before](before/ship-wide-full.png) · [After](after/ship-wide-full.png) | [Before](before/ship-square-full.png) · [After](after/ship-square-full.png) | [Before](before/ship-tall-narrow-full.png) · [After](after/ship-tall-narrow-full.png) |
 
 Generic synthetic-pack tests cover all viewport edges, top-only growth, resize back, nonzero grid origins, identical base/variant alignment through frame changes and drift, waterline preservation, fixed cycle placement, overlay seams and original placement, night art, lite/still policy and missing-image fallback.
+
+`compare.mjs` uses the existing pack-linter PNG decoder to record changed pixel bounds. Aspect captures advance the clock while asynchronous mounting completes, so moving art can land on adjacent initial frames between runs; these captures demonstrate coverage, while the frozen-fixture gate provides the strict pixel-identity check. The Sky pirates full-motion pairs differ only in their formerly dry top region.
+
+The [frozen ship gate](gate-results.json) passes **81/81 pixel-identical**, with no expected-difference exemptions and no page errors. Both complete client bundles [parse under RN 0.81 Hermes](compile-results.json), with no Pixi bundled and no class syntax. Pack lint passes 69/69 checks.
+
+All **54 captures** (before/after × three scenes × three aspects × full/lite/still) complete without page errors. [Full](after/full.json) and [lite](after/lite.json) report storm intensity 1.00; [reduced motion](after/still.json) reports still weather and no flashes. Every lite capture also has no flash. All nine reduced-motion before/after pairs are pixel-identical in [the PNG comparison](pixel-comparison.json). Lite rain keeps its frozen first frame, and full-motion rain fills the previously dry upper area without a seam.
