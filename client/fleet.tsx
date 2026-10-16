@@ -1,5 +1,5 @@
 /**
- * FirstMate Home (chat, board overview, home files and launcher) and its
+ * FirstMate Home (chat, list/board overview, home files and launcher) and its
  * dedicated workspace views. Paseo owns the Deck, Board and Crew tabs.
  *
  * Everything on it comes from one RPC, `firstmate.fleet.load`, polled at the
@@ -41,7 +41,7 @@ import {
   type Fleet,
   type Suggestion,
 } from "../shared/fleet";
-import { displaySettings, type DisplaySettings } from "../shared/settings";
+import { displaySettings, type CrewView, type DisplaySettings } from "../shared/settings";
 import { Board } from "./board";
 import { CrewCard, converseButtonId, watchOpener } from "./card";
 import { FilesView, type FilesRequest } from "./files";
@@ -95,8 +95,8 @@ export function bindSettingsOpener(opener: ((id: string) => void) | null): void 
 const DEFAULT_DISPLAY: DisplaySettings = displaySettings.schema.parse({});
 const SAVE_DELAY_MS = 400;
 
-function paneName(pane: RightPane): string {
-  return pane === "files" ? "Home files" : "Board";
+function paneName(pane: RightPane, crewView: CrewView): string {
+  return pane === "files" ? "Home files" : crewView === "list" ? "List" : "Board";
 }
 
 type FleetSurfaceProps = PluginScreenProps & {
@@ -152,7 +152,7 @@ function FleetViewBody({
   const fleet = useFleet(values.pollSeconds);
   const data = fleet.data ?? null;
   const homeWorkspaceId = homeWorkspace(data);
-  const crewView = view === "crew" ? "list" : "board";
+  const crewView = home ? values.crewView : view === "crew" ? "list" : "board";
   const remoteHosts = useRemotes().data?.hosts ?? [];
   const hostTab = shownHostTab(values.hostTab, remoteHosts);
 
@@ -229,18 +229,25 @@ function FleetViewBody({
     if (values.chatCollapsed) save({ chatCollapsed: false });
   }, [home, params?.chat, display.status]);
 
-  function setTab(next: Tab): void {
-    // As with the wide layout's Crew switch: pressing Crew again goes back to the board.
-    if (next === "board" && tab === "board") setWatching(null);
+  function setTab(next: Tab, keepConversation = false): void {
+    if (next === "board" && tab === "board" && !keepConversation) setWatching(null);
     cachedTab = next;
     setTabState(next);
   }
 
-  function setRightPane(next: RightPane): void {
-    // Choosing Crew while it is already showing is the way back from a watched crewmate to the board.
-    if (next === "board" && pane === "board") setWatching(null);
+  function setRightPane(next: RightPane, keepConversation = false): void {
+    if (next === "board" && pane === "board" && !keepConversation) setWatching(null);
     cachedRightPane = next;
     setRightPaneState(next);
+  }
+
+  /** List and Board are presentations of the same tasks, filters and open conversation. */
+  function selectHomePane(next: CrewView | "files"): void {
+    const changingView = next !== "files" && next !== crewView;
+    if (changingView) save({ crewView: next });
+    const destination = next === "files" ? "files" : "board";
+    if (compact) setTab(destination, changingView);
+    else setRightPane(destination, changingView);
   }
 
   /** Opens a worker's conversation, or closes it (`null`) and gives focus back to the 💬 that opened it. */
@@ -605,19 +612,21 @@ function FleetViewBody({
         {home && !compact && mate !== null && data !== null && !values.boardCollapsed ? (
           <Segmented
             theme={theme}
-            value={pane}
+            value={pane === "files" ? "files" : crewView}
             options={[
               {
+                value: "list",
+                label: "List",
+                tooltip: "Show the tasks as a list grouped by urgency.",
+              },
+              {
                 value: "board",
-                label: "Board (" + data.cards.length + ")",
-                tooltip:
-                  watching === null
-                    ? "Show crew and backlog tasks."
-                    : "Close the conversation and show the crew tasks.",
+                label: "Board",
+                tooltip: "Show the same tasks in status columns.",
               },
               { value: "files", label: "Home files", tooltip: "Browse and edit files in the FirstMate home." },
             ]}
-            onChange={setRightPane}
+            onChange={selectHomePane}
           />
         ) : null}
         <HeaderActions
@@ -626,7 +635,7 @@ function FleetViewBody({
           compact={compact}
           data={data}
           values={values}
-          paneName={paneName(pane)}
+          paneName={paneName(pane, crewView)}
           sender={mateSender}
           refreshing={fleet.isFetching}
           onSave={save}
@@ -766,7 +775,7 @@ function FleetViewBody({
           theme={theme}
           compact={compact}
           docked={docked}
-          backLabel={view === "deck" ? "Deck" : crewView === "list" ? "Crew" : "Board"}
+          backLabel={view === "deck" ? "Deck" : crewView === "list" ? (home ? "List" : "Crew") : "Board"}
           onClose={() => setWatching(null)}
           onOpen={
             navigation === undefined || watchedLocalId === null
@@ -864,23 +873,29 @@ function FleetViewBody({
   }
 
   if (compact) {
-    const tabs: readonly Tab[] = ["chat", "board", "files"];
+    const tabs = [
+      { id: "chat", label: "First mate" },
+      { id: "list", label: "List" },
+      { id: "board", label: "Board" },
+      { id: "files", label: "Files" },
+    ] as const;
+    const selected = shownTab === "board" ? crewView : shownTab;
     return (
       <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         {header}
         {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
         <View style={styles.tabs}>
-          {tabs.map((id) => (
+          {tabs.map(({ id, label }) => (
             <Pressable
               key={id}
               accessibilityRole="tab"
-              accessibilityState={{ selected: shownTab === id }}
-              aria-selected={shownTab === id}
-              style={[styles.tab, shownTab === id ? styles.tabActive : null]}
-              onPress={() => setTab(id)}
+              accessibilityState={{ selected: selected === id }}
+              aria-selected={selected === id}
+              style={[styles.tab, selected === id ? styles.tabActive : null]}
+              onPress={() => (id === "chat" ? setTab("chat") : selectHomePane(id))}
             >
-              <Text style={[styles.tabText, shownTab === id ? styles.tabTextActive : null]} numberOfLines={1}>
-                {id === "chat" ? "First mate" : id === "board" ? `Board (${data.cards.length})` : "Home files"}
+              <Text style={[styles.tabText, selected === id ? styles.tabTextActive : null]} numberOfLines={1}>
+                {label}
               </Text>
             </Pressable>
           ))}
@@ -938,7 +953,7 @@ function FleetViewBody({
           <View style={[styles.rail, { borderLeftWidth: 1 }]}>
             <IconButton
               icon="PanelRightOpen"
-              label="Show the board"
+              label={`Show ${paneName(pane, crewView)}`}
               theme={theme}
               onPress={() => save({ boardCollapsed: false })}
             />
