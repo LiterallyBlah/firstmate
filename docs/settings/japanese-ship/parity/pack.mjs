@@ -41,7 +41,9 @@ export function addParity(pack){
   const rigging=pack.zones.zones.find(z=>z.id==='rigging');
   rigging.posts.unshift({id:'masthead-lookout',at:[252,236],facing:'front',transit:{path:[[251,220],[251,65],[241,65]],speed:24,poses:['climb-a','climb-b'],stepMs:260,settled:'lookout',front:'lookout-perch',needs:['ship','perch']}});
   const rest=pack.zones.zones.find(z=>z.id==='rest');
-  rest.posts=[...Array.from({length:21},(_,i)=>78+i*12),374,386,398].map((x,i)=>({id:'rest-'+(i+1),at:[x,269],facing:'front'}));
+  const restX=[...Array.from({length:21},(_,i)=>78+i*12),374,386,398];
+  const spread=[0,3,6,9,12,15,18,21,23];
+  rest.posts=[...spread,...restX.map((_,i)=>i).filter(i=>!spread.includes(i))].map((index,i)=>({id:'rest-'+(i+1),at:[restX[index],269],facing:'front'}));
   rest.overflow={kind:'pack',areas:[[78,269,252,1],[374,269,42,1]],spacing:[12,1],fallback:[10,1]};
   const exit=structuredClone(ship.portals.exits.plank);
   exit.marks={foot:[350,240],rail:[350,246],tip:[350,274],water:[350,305]};
@@ -53,5 +55,4 @@ export function addParity(pack){
   const style=structuredClone(ship.stage.lightStyles.lantern);Object.assign(style,{glyph:registration.lantern,origin:[4,0],inks:{a:'#161E30',b:'#FFD688',c:'#943E41'},glow:[{at:[0,7],radius:13,colour:'#FFB050',alpha:.12},{at:[0,7],radius:7,colour:'#FFC070',alpha:.2}]});
   pack.stage.lightStyles={chochin:style};
   pack.stage.lights=[[125,218],[332,210],[398,201]].map((at,i)=>({id:'chochin-'+i,style:'chochin',at,row:245,seed:i*2.3,lite:'run',still:'first-frame'}));
-  pack.stage.parts.push({id:'stern-chochin',lite:'run',still:'first-frame',sprite:sprite('chochin'),at:[420,198]});
 }

@@ -6,7 +6,7 @@
         320,
         72
       ],
-      "sha256": "ba1cfcf789d9a7d194818f74df35634869497f08e0d211ddb01904b704a6a079"
+      "sha256": "0f2df1a59b8c5878c092e1247ee515d7b869fd6c5e8e4496c8de10b594b68366"
     },
     "umibozu": {
       "path": "umibozu.png",
@@ -14,7 +14,7 @@
         288,
         80
       ],
-      "sha256": "5211752feda978fbd0c07d327bedcb8139c0a29ea283daeb051ee5e69b9e7001"
+      "sha256": "5ba473d716c4300474db4b52080cd0eb8a5e898046110dd1b3790211e52572c2"
     },
     "plank": {
       "path": "plank.png",
@@ -31,14 +31,6 @@
         24
       ],
       "sha256": "5dea5719e674493b060622a19b9386f5c43e3b33899436c4925460b1bfeb3981"
-    },
-    "chochin": {
-      "path": "chochin.png",
-      "size": [
-        9,
-        16
-      ],
-      "sha256": "9a391246ea08f7982426b2ea7531d1a3d88cd05d4af51ec026f03e354c7553b6"
     },
     "petal": {
       "path": "petal.png",
@@ -271,6 +263,14 @@
         400
       ],
       "sha256": "022b8910fb395443f1db24c876c6bcf858384310237183a58dbe3cdc242a802d"
+    },
+    "preview": {
+      "path": "preview.png",
+      "size": [
+        384,
+        202
+      ],
+      "sha256": "dbb84a9ce12c3e85d7f1c4aaad31193d7028992fe8843b0a4ee75e3ed01835d2"
     }
   },
   "lanes": {

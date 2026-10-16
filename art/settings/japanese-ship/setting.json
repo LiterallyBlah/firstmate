@@ -129,7 +129,7 @@
         384,
         202
       ],
-      "sha256": "bc6fff6be9a9ded60fcbe81a05a4ffb8a31fe291db91a05245cfcc481002becb"
+      "sha256": "dbb84a9ce12c3e85d7f1c4aaad31193d7028992fe8843b0a4ee75e3ed01835d2"
     },
     "rig-fixed": {
       "path": "rig-fixed.png",
@@ -217,7 +217,7 @@
         320,
         72
       ],
-      "sha256": "ba1cfcf789d9a7d194818f74df35634869497f08e0d211ddb01904b704a6a079"
+      "sha256": "0f2df1a59b8c5878c092e1247ee515d7b869fd6c5e8e4496c8de10b594b68366"
     },
     "umibozu": {
       "path": "umibozu.png",
@@ -225,7 +225,7 @@
         288,
         80
       ],
-      "sha256": "5211752feda978fbd0c07d327bedcb8139c0a29ea283daeb051ee5e69b9e7001"
+      "sha256": "5ba473d716c4300474db4b52080cd0eb8a5e898046110dd1b3790211e52572c2"
     },
     "plank": {
       "path": "plank.png",
@@ -242,14 +242,6 @@
         24
       ],
       "sha256": "5dea5719e674493b060622a19b9386f5c43e3b33899436c4925460b1bfeb3981"
-    },
-    "chochin": {
-      "path": "chochin.png",
-      "size": [
-        9,
-        16
-      ],
-      "sha256": "9a391246ea08f7982426b2ea7531d1a3d88cd05d4af51ec026f03e354c7553b6"
     },
     "petal": {
       "path": "petal.png",
@@ -711,18 +703,6 @@
         "at": [
           245,
           184
-        ]
-      },
-      {
-        "id": "stern-chochin",
-        "lite": "run",
-        "still": "first-frame",
-        "sprite": {
-          "image": "chochin"
-        },
-        "at": [
-          420,
-          198
         ]
       }
     ],
@@ -1263,7 +1243,7 @@
           {
             "id": "rest-2",
             "at": [
-              90,
+              114,
               269
             ],
             "facing": "front"
@@ -1271,7 +1251,7 @@
           {
             "id": "rest-3",
             "at": [
-              102,
+              150,
               269
             ],
             "facing": "front"
@@ -1279,7 +1259,7 @@
           {
             "id": "rest-4",
             "at": [
-              114,
+              186,
               269
             ],
             "facing": "front"
@@ -1287,7 +1267,7 @@
           {
             "id": "rest-5",
             "at": [
-              126,
+              222,
               269
             ],
             "facing": "front"
@@ -1295,7 +1275,7 @@
           {
             "id": "rest-6",
             "at": [
-              138,
+              258,
               269
             ],
             "facing": "front"
@@ -1303,7 +1283,7 @@
           {
             "id": "rest-7",
             "at": [
-              150,
+              294,
               269
             ],
             "facing": "front"
@@ -1311,7 +1291,7 @@
           {
             "id": "rest-8",
             "at": [
-              162,
+              374,
               269
             ],
             "facing": "front"
@@ -1319,7 +1299,7 @@
           {
             "id": "rest-9",
             "at": [
-              174,
+              398,
               269
             ],
             "facing": "front"
@@ -1327,7 +1307,7 @@
           {
             "id": "rest-10",
             "at": [
-              186,
+              90,
               269
             ],
             "facing": "front"
@@ -1335,7 +1315,7 @@
           {
             "id": "rest-11",
             "at": [
-              198,
+              102,
               269
             ],
             "facing": "front"
@@ -1343,7 +1323,7 @@
           {
             "id": "rest-12",
             "at": [
-              210,
+              126,
               269
             ],
             "facing": "front"
@@ -1351,7 +1331,7 @@
           {
             "id": "rest-13",
             "at": [
-              222,
+              138,
               269
             ],
             "facing": "front"
@@ -1359,7 +1339,7 @@
           {
             "id": "rest-14",
             "at": [
-              234,
+              162,
               269
             ],
             "facing": "front"
@@ -1367,7 +1347,7 @@
           {
             "id": "rest-15",
             "at": [
-              246,
+              174,
               269
             ],
             "facing": "front"
@@ -1375,7 +1355,7 @@
           {
             "id": "rest-16",
             "at": [
-              258,
+              198,
               269
             ],
             "facing": "front"
@@ -1383,7 +1363,7 @@
           {
             "id": "rest-17",
             "at": [
-              270,
+              210,
               269
             ],
             "facing": "front"
@@ -1391,7 +1371,7 @@
           {
             "id": "rest-18",
             "at": [
-              282,
+              234,
               269
             ],
             "facing": "front"
@@ -1399,7 +1379,7 @@
           {
             "id": "rest-19",
             "at": [
-              294,
+              246,
               269
             ],
             "facing": "front"
@@ -1407,7 +1387,7 @@
           {
             "id": "rest-20",
             "at": [
-              306,
+              270,
               269
             ],
             "facing": "front"
@@ -1415,7 +1395,7 @@
           {
             "id": "rest-21",
             "at": [
-              318,
+              282,
               269
             ],
             "facing": "front"
@@ -1423,7 +1403,7 @@
           {
             "id": "rest-22",
             "at": [
-              374,
+              306,
               269
             ],
             "facing": "front"
@@ -1431,7 +1411,7 @@
           {
             "id": "rest-23",
             "at": [
-              386,
+              318,
               269
             ],
             "facing": "front"
@@ -1439,7 +1419,7 @@
           {
             "id": "rest-24",
             "at": [
-              398,
+              386,
               269
             ],
             "facing": "front"
