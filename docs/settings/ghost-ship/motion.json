@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "still scene pixel stable",
+    "half-submerged anglerfish opens suggestions",
+    "picker includes Ghost ship",
+    "24 idle exact focus clicks",
+    "24 working exact focus clicks",
+    "24 waiting exact focus clicks",
+    "24 blocked exact focus clicks",
+    "full scene changes throughout sampled sequence",
+    "mist arrival and behind-sail climb reach clickable lookout",
+    "plank walk drop and 2000ms skeletal kraken swallow captured",
+    "peak rain fog green lightning whale and spectral passage captured",
+    "reduced storm stable with set-piece creatures hidden"
+  ],
+  "results": [],
+  "errors": []
+}
