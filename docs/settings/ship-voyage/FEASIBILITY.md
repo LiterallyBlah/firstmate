@@ -1,5 +1,8 @@
 # Voyage feasibility, before pack construction
 
+> Historical Stage 1 record. The captain subsequently approved these concepts.
+> `phase-strip@1` landed in PR #94; the completed Stage 2 implementation and evidence are in [the voyage README](README.md).
+
 Read against `b09b3b08b849c369226bcb3b88f522998dc35c61` on 2026-10-16, after
 fetch/rebase onto `origin/main`. This is a source review and art proposal, not a runtime
 prototype. No pack or engine was built. The concepts are in [concepts/](concepts/README.md).

@@ -121,11 +121,11 @@ describe("the settings the daemon serves", () => {
     const settings = await listDeckSettings(async () => root);
     expect(settings.map((setting) => setting.id)).toContain("ship");
     const ship = settings.find((setting) => setting.id === "ship");
-    expect(ship).toMatchObject({ id: "ship", name: "Ship's deck", version: "1.4.2", formatVersion: 1, compatible: true, reason: null, preview: null });
+    expect(ship).toMatchObject({ id: "ship", name: "Ship's deck", version: "2.0.0", formatVersion: 1, compatible: true, reason: null, preview: null });
     // Small enough to send whole: the bundle carries none of it.
     expect(ship!.bytes).toBeGreaterThan(200_000);
     // Eight complete crew sheets and the wider sea field remain well below the engine's 1 MB cap.
-    expect(ship!.bytes).toBeLessThan(550_000);
+    expect(ship!.bytes).toBeLessThan(PACK_BYTES_MAX);
   });
 
   it("is served with no switch set in the daemon's environment, and an old `FIRSTMATE_SHIP_DECK=0` changes nothing", async () => {
@@ -137,7 +137,7 @@ describe("the settings the daemon serves", () => {
     const setting = await readDeckSetting("ship", async () => root);
     expect(setting.manifest).toEqual(shipJson());
     expect(Object.keys(setting.images)).toEqual(settingImageIds(setting.manifest));
-    expect(Object.keys(setting.images)).toHaveLength(84);
+    expect(Object.keys(setting.images)).toHaveLength(Object.keys(shipJson().images).length);
     for (const [id, png] of Object.entries(setting.images)) {
       expect(Buffer.from(png, "base64").equals(readFileSync(join(shipFolder, setting.manifest.images[id]!.path))), id).toBe(true);
     }
@@ -150,7 +150,10 @@ describe("the settings the daemon serves", () => {
 
   it("refuses an image that would leave its pack, or a pack that calls itself something else, and does not keep the failure", async () => {
     const dir = pluginWith({
-      escape: (manifest) => ({ ...manifest, images: { ...manifest.images, deck: { ...manifest.images.deck, path: "../ship/deck.png" } } }),
+      escape: (manifest) => {
+        const image = Object.keys(manifest.images)[0]!;
+        return { ...manifest, images: { ...manifest.images, [image]: { ...manifest.images[image], path: "../ship/escaped.png" } } };
+      },
       named: (manifest) => ({ ...manifest, id: "someone-else" }),
     });
     try {
@@ -189,7 +192,7 @@ describe("the settings the daemon serves", () => {
     const dir = pluginWith({ heavy: (manifest) => manifest });
     try {
       // The atlas, padded past the cap with bytes after its end: still a PNG, too big to send.
-      const atlas = join(dir, SETTINGS_DIR, "heavy", "deck.png");
+      const atlas = join(dir, SETTINGS_DIR, "heavy", Object.values(shipJson().images)[0]!.path);
       writeFileSync(atlas, Buffer.concat([readFileSync(atlas), Buffer.alloc(PACK_BYTES_MAX)]));
       await expect(readDeckSetting("heavy", async () => dir)).rejects.toThrow(`at most ${PACK_BYTES_MAX}`);
     } finally {

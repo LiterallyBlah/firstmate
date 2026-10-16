@@ -2,3 +2,5 @@
 vendor/** -text -diff linguist-vendored
 # The deck's atlas is served byte for byte, as base64.
 art/**/*.png binary
+# Immutable engine-gate inputs, copied from the recorded source git blobs.
+test/fixtures/ship-baseline/** -text

@@ -1,5 +1,8 @@
 # Ship's voyage — concept decision
 
+> Historical Stage 1 record. The captain subsequently approved these concepts.
+> `phase-strip@1` landed in PR #94; the completed Stage 2 implementation and evidence are in [the voyage README](../README.md).
+
 Stage 1 only, 2026-10-16. Six built-in ImageGen concepts of one remastered original
 ship: honey wood, navy bands, bow left, raised stern right, central crow's nest,
 second mast and jib, Jolly Roger, cannons, chest, rope, lanterns and a ship's cat.

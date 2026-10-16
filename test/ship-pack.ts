@@ -10,11 +10,11 @@ import type { PlankMarks } from "./ship-choreography";
 import { SettingManifestSchema, type AmbienceBehaviour, type SettingManifest } from "../shared/deck-setting";
 
 /** The pack's folder. */
-export const SHIP_PACK = fileURLToPath(new URL("../art/settings/ship/", import.meta.url));
+export const SHIP_PACK = fileURLToPath(new URL("./fixtures/ship-baseline/", import.meta.url));
 
 /** A file in the pack, by its path there. */
 export function shipFile(path: string): string {
-  return fileURLToPath(new URL(path, new URL("../art/settings/ship/", import.meta.url)));
+  return fileURLToPath(new URL(path, new URL("./fixtures/ship-baseline/", import.meta.url)));
 }
 
 let manifest: SettingManifest | null = null;
