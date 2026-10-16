@@ -492,7 +492,7 @@ const Copy = z.strictObject({
 
 const Images = z.record(Id, z.strictObject({ path: PackPath, size: Size, sha256: z.string().regex(/^[0-9a-f]{64}$/) }));
 
-/** One persistent, engine-selected worker's Converse target, independent of the stage's motion. */
+/** One persistent, engine-selected worker's focus target, independent of the stage's motion. */
 const AttentionCarrier = z.strictObject({
   at: Point,
   size: Size,

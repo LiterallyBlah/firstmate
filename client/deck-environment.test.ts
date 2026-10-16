@@ -362,7 +362,7 @@ async function start(
     stage?: DeckStage;
     ambience?: DeckAmbience;
     onHover?: (hover: DeckHover | null) => void;
-    onSelect?: (key: string | null, action?: "converse") => void;
+    onSelect?: (key: string | null, action?: "attention") => void;
     attentionCarrier?: SettingManifest["attentionCarrier"];
   },
 ) {
@@ -1002,12 +1002,12 @@ describe("attention carriers in the renderer", () => {
     expect(one(deck.app.stage, "ship").children).not.toContain(carrier);
     for (const key of ["a", "remote:b"]) expect(one(one(deck.app.stage, key), "ask").visible).toBe(false);
     deck.app.canvas.listeners.get("pointermove")?.(at(deck));
-    expect(hovers.at(-1)).toMatchObject({ key: "remote:b", action: "converse" });
+    expect(hovers.at(-1)).toMatchObject({ key: "remote:b", action: "attention" });
     deck.app.canvas.listeners.get("click")?.(at(deck));
     deck.drawing.resize(1200, 600);
     deck.advance(34);
     deck.app.canvas.listeners.get("click")?.(at(deck, 32, 10));
-    expect(selected).toEqual([["remote:b", "converse"], ["remote:b", "converse"]]);
+    expect(selected).toEqual([["remote:b", "attention"], ["remote:b", "attention"]]);
     deck.drawing.focus("a"); deck.advance(34);
     expect(carrier.visible).toBe(false);
     const sprite = carrier.children[0] as FakeSprite;
@@ -1027,7 +1027,7 @@ describe("attention carriers in the renderer", () => {
       expect(carrier.children[0]!.visible).toBe(!missing);
       expect(carrier.children[1]!.visible).toBe(missing);
       deck.app.canvas.listeners.get("click")?.(at(deck, 30, 6));
-      expect(selected).toEqual([["remote:b", "converse"]]);
+      expect(selected).toEqual([["remote:b", "attention"]]);
       const stale = scene(); stale.sailors.forEach(sailor => { sailor.stale = true; });
       deck.drawing.update(stale);
       expect(carrier.visible).toBe(false);

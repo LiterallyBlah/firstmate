@@ -1,0 +1,1083 @@
+{
+  "base": "compiled main 310a5df",
+  "compiledBranch": "fa97e4e",
+  "gatePassed": true,
+  "condensedFooterPreserved": true,
+  "unchangedImages": 84,
+  "unchangedManifest": true,
+  "unchangedCanvasShots": 81,
+  "footer": [
+    12,
+    860,
+    800,
+    890
+  ],
+  "outsideFooter": 0,
+  "shots": [
+    {
+      "name": "still-noon-dark/open",
+      "sha": [
+        "7e943bffe6897098",
+        "1720c380cd1e870e"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "still-noon-light/open",
+      "sha": [
+        "ac359e84506ee009",
+        "7b56fca43f441ee4"
+      ],
+      "differingPixels": 2183,
+      "box": [
+        169,
+        869,
+        549,
+        880
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "still-night/open",
+      "sha": [
+        "cc0b0720b01ff7dc",
+        "e493c1e78c884825"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "still-dawn/open",
+      "sha": [
+        "a5b106f1fcce6f42",
+        "6223f5a51c4c12fc"
+      ],
+      "differingPixels": 2183,
+      "box": [
+        169,
+        869,
+        549,
+        880
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "still-dusk-to-night/open",
+      "sha": [
+        "4d1b5b57eb505b66",
+        "a0f7073e64237148"
+      ],
+      "differingPixels": 2183,
+      "box": [
+        169,
+        869,
+        549,
+        880
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "still-busy/open",
+      "sha": [
+        "36113b85a624501f",
+        "955f4cffc56ebd6a"
+      ],
+      "differingPixels": 7435,
+      "box": [
+        297,
+        1744,
+        1027,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "still-all-idle/open",
+      "sha": [
+        "a954722addfe3cca",
+        "2d010dcf4ecc18ff"
+      ],
+      "differingPixels": 7435,
+      "box": [
+        297,
+        1744,
+        1027,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "still-feed-lost/lost",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-noon/0.4s",
+      "sha": [
+        "2a9fa1f3ac10b920",
+        "66e4327531b32732"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-noon/1s",
+      "sha": [
+        "05086ad43bb13765",
+        "815392f4df8eac0c"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-noon/2.5s",
+      "sha": [
+        "c0ca57dfc29dfdd0",
+        "5654a17e55c17568"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-noon/5s",
+      "sha": [
+        "0ae5fde27498b54f",
+        "46bd2796bdfdf27b"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-noon/10s",
+      "sha": [
+        "03a9d47c29ac9059",
+        "e5ed5ff21ee29d0c"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-noon/25s",
+      "sha": [
+        "e035f665358c008a",
+        "af7119881d593b2d"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-noon/49s",
+      "sha": [
+        "be5544ce06509457",
+        "fc6470003b8fe563"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-noon/73s",
+      "sha": [
+        "ccbfcaee02425de5",
+        "c3861e4b47a10fea"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/0.4s",
+      "sha": [
+        "9c2e9aa4f5790533",
+        "154deb49e67eead8"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/5.4s",
+      "sha": [
+        "b2f4677ab793318e",
+        "50bd288c6e8f9707"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/10.4s",
+      "sha": [
+        "8b64016bbe461665",
+        "0224f0ac5b1be34c"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/15.4s",
+      "sha": [
+        "c749b64c0183bc4a",
+        "23b608a0b1941b61"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/20.4s",
+      "sha": [
+        "657f7b16285b9499",
+        "8d1376b73e31da64"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/25.4s",
+      "sha": [
+        "82dd2ca894e29b31",
+        "a07038a2087dd472"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/30.4s",
+      "sha": [
+        "6f33f0ff71004cb1",
+        "4a88ea09d38e84b9"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/flash-33.5s",
+      "sha": [
+        "46d77a2513dbddc0",
+        "fb385fe3b9d1cb22"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/flash-33.6s",
+      "sha": [
+        "8868579bc4d4e00b",
+        "77dee2fadf0d3f35"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/35.4s",
+      "sha": [
+        "0809de9880dcc820",
+        "d843ea5932084977"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/40.4s",
+      "sha": [
+        "3715c9745ae085e0",
+        "560c05f483860ab9"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/45.4s",
+      "sha": [
+        "fb125684fe6c523e",
+        "87b8b235a83ce880"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/flash-48.9s",
+      "sha": [
+        "37f4675c53134a3b",
+        "c5bece454a51e206"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/flash-49.0s",
+      "sha": [
+        "3eda549867b852e6",
+        "80955e77a1d14ebf"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/50.4s",
+      "sha": [
+        "445c44a0b28bfdf3",
+        "10c9091a82d62f46"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/55.4s",
+      "sha": [
+        "a9302f2a5543fa2a",
+        "ecffe7409a1b8c58"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/60.4s",
+      "sha": [
+        "66ba867d9f07702e",
+        "6f36b9a0e147c608"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/65.4s",
+      "sha": [
+        "64ebc6f4b9d48e31",
+        "0faac004870d9618"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/70.4s",
+      "sha": [
+        "d3a08992b7bad0e3",
+        "7edfeeee1fe38f6b"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/75.4s",
+      "sha": [
+        "004e0aa3ed231e9e",
+        "d3f1598540002f17"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/80.4s",
+      "sha": [
+        "23645eb0135bf931",
+        "b95d93b0fd614e37"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/85.4s",
+      "sha": [
+        "607be4e6516ee82b",
+        "10ebbc1c21662b34"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/90.4s",
+      "sha": [
+        "0d8881d1099e4161",
+        "37d574118793a0bd"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/95.4s",
+      "sha": [
+        "c34cbadd81eed3b0",
+        "23166ac0803a628a"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/100.4s",
+      "sha": [
+        "c459b2cc957d06ec",
+        "41957136dfeb2769"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/105.4s",
+      "sha": [
+        "2fd52f06db9ad8c0",
+        "2fd14bd89314cbbe"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/110.4s",
+      "sha": [
+        "5f4b61dd062546ff",
+        "c020c4d53ba93604"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/115.4s",
+      "sha": [
+        "5622bf4e8d549c55",
+        "9ba7bfa2d0c9b453"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-storm/120.4s",
+      "sha": [
+        "839089bb872e3c00",
+        "4a00f8c0766119cf"
+      ],
+      "differingPixels": 2102,
+      "box": [
+        148,
+        872,
+        513,
+        883
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-night/0.4s",
+      "sha": [
+        "363132a141c8f9b8",
+        "fa2f8e5ce951c047"
+      ],
+      "differingPixels": 2183,
+      "box": [
+        169,
+        869,
+        549,
+        880
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-night/10s",
+      "sha": [
+        "ca2054023d10749c",
+        "906b465f875309c8"
+      ],
+      "differingPixels": 2183,
+      "box": [
+        169,
+        869,
+        549,
+        880
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/aboard",
+      "sha": [
+        "2a9fa1f3ac10b920",
+        "66e4327531b32732"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/changed",
+      "sha": [
+        "e9971cc65daeccfe",
+        "f3406b027f451a5d"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/walking-1000ms",
+      "sha": [
+        "97c4a8bf60b93285",
+        "8081dcd44601c7e3"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/walking-2000ms",
+      "sha": [
+        "9238a7a650dbc4ca",
+        "1fc8528c27c14a63"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/walking-3000ms",
+      "sha": [
+        "5b2c67eac273e457",
+        "5c4377c3535a12ca"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/walking-5000ms",
+      "sha": [
+        "dc57a35e18d8a6cf",
+        "7c6e507891fbace8"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/walking-8000ms",
+      "sha": [
+        "264024859c7753e4",
+        "ad43fe507641d538"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/arrived",
+      "sha": [
+        "1e04e92e7ee11cf7",
+        "741d237aa815277e"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/hatch-200ms",
+      "sha": [
+        "efc4286768ee82fd",
+        "115b28811c102912"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/hatch-400ms",
+      "sha": [
+        "2ae389c351be41e4",
+        "8c16cd81e41bd546"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/hatch-700ms",
+      "sha": [
+        "566b82362d608e12",
+        "17745bcecf7cc01d"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/hatch-1500ms",
+      "sha": [
+        "7326da60b461e3e5",
+        "9d51cbad264eaaba"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/hatch-3000ms",
+      "sha": [
+        "e275a69a80797174",
+        "fd8d1bc14aa67a08"
+      ],
+      "differingPixels": 7685,
+      "box": [
+        297,
+        1744,
+        1029,
+        1767
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-300ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-800ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-1400ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-2000ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-2400ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-2700ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-3000ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-3300ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-3600ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-4000ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-4600ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-5400ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/leaving-7000ms",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "moving-crew/after",
+      "identical": true,
+      "outsideFooter": 0
+    },
+    {
+      "name": "focus/100ms",
+      "sha": [
+        "f1917b8e2e0bf15c",
+        "4ada9fd6ee6924f8"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "focus/300ms",
+      "sha": [
+        "34afce80f1e3bf00",
+        "0a2824ad8a4f56dc"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "focus/1.5s",
+      "sha": [
+        "5c9fbc7404dca37e",
+        "cff71350005f0ecd"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "focus/back-out",
+      "sha": [
+        "108676bf0f3a68bd",
+        "12bd4e47dbcb682f"
+      ],
+      "differingPixels": 7706,
+      "box": [
+        338,
+        1738,
+        1097,
+        1761
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "lite-software-renderer/0.4s",
+      "sha": [
+        "1ed64d5f5ec6794f",
+        "281ff5a5a606561c"
+      ],
+      "differingPixels": 2183,
+      "box": [
+        169,
+        869,
+        549,
+        880
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "lite-software-renderer/2s",
+      "sha": [
+        "ef464645dd1a0f78",
+        "5d690c906d2b36a6"
+      ],
+      "differingPixels": 2183,
+      "box": [
+        169,
+        869,
+        549,
+        880
+      ],
+      "outsideFooter": 0
+    },
+    {
+      "name": "lite-software-renderer/6s",
+      "sha": [
+        "2aaee86adf8d9427",
+        "47a274907ca8e43e"
+      ],
+      "differingPixels": 2183,
+      "box": [
+        169,
+        869,
+        549,
+        880
+      ],
+      "outsideFooter": 0
+    }
+  ]
+}

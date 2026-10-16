@@ -446,7 +446,7 @@ export async function startDeck(
   size: { width: number; height: number },
   environment: DeckMotionEnvironment,
   onHover: (hover: DeckHover | null) => void = function () {},
-  onSelect: (key: string | null, action?: "converse") => void = function () {},
+  onSelect: (key: string | null, action?: "attention") => void = function () {},
 ): Promise<DeckDrawing> {
   const app = new pixi.Application();
   await app.init({
@@ -599,7 +599,7 @@ export async function startDeck(
   attention.label = "attention-carrier";
   const attentionSprite = new pixi.Sprite(textures.attention.find(texture => texture !== null) ?? textures.hull[0]!.texture);
   const attentionFallback = new pixi.Graphics();
-  // Image failure retains an engine-owned bubble in the same target, and the keyboard Converse action.
+  // Image failure retains an engine-owned bubble in the same target, and the keyboard focus action.
   if (carrier !== undefined) {
     const scale = Math.min(1, carrier.size[0] / ASK_SIZE.width, carrier.size[1] / ASK_SIZE.height);
     attentionFallback.scale.set(scale);
@@ -983,7 +983,7 @@ export async function startDeck(
   // A click names the sailor under it, found through the camera as drawn, or nobody; the pane decides what it does.
   function onClick(event: CanvasPointerEvent): void {
     const key = carrierUnder({ x: event.offsetX, y: event.offsetY });
-    if (key !== null) { onSelect(key, "converse"); return; }
+    if (key !== null) { onSelect(key, "attention"); return; }
     const figure = drawnFit.scale <= 0 ? null : sailorAt(drawnFigures, cast, toDeck({ x: event.offsetX, y: event.offsetY }, drawnFit, drawnBob), drawnMarks);
     onSelect(figure?.key ?? null);
   }

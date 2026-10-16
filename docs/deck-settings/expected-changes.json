@@ -1,411 +1,336 @@
 {
-  "review": "docs/deck-fixes/ladder-review.md",
-  "base": "compiled main b3d70ec",
+  "review": "docs/deck-fixes/shark-review.md",
+  "base": "compiled main 310a5df",
   "shots": {
     "still-noon-dark/open": {
-      "main": "ac05ea2a90bbd6bf",
-      "branch": "01ca0bf89f1a77a8",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "7e943bffe6897098",
+      "branch": "1720c380cd1e870e",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-noon-light/open": {
-      "main": "c75172b2cbb8df46",
-      "branch": "a34d647cf2185b4e",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "ac359e84506ee009",
+      "branch": "7b56fca43f441ee4",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-night/open": {
-      "main": "85a2408047a80599",
-      "branch": "b59db4bda9d8cc03",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "cc0b0720b01ff7dc",
+      "branch": "e493c1e78c884825",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-dawn/open": {
-      "main": "6e66edf391fc7471",
-      "branch": "b850389e74a43e84",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "a5b106f1fcce6f42",
+      "branch": "6223f5a51c4c12fc",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-dusk-to-night/open": {
-      "main": "f132424015901eea",
-      "branch": "18dd4cb175192be8",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "4d1b5b57eb505b66",
+      "branch": "a0f7073e64237148",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-busy/open": {
-      "main": "0680b9e2de3ff580",
-      "branch": "5ebbe418901d3c6b",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "36113b85a624501f",
+      "branch": "955f4cffc56ebd6a",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "still-all-idle/open": {
-      "main": "c669e3abfa22fbf0",
-      "branch": "1047cfe42321dbbc",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "still-feed-lost/lost": {
-      "main": "c92f4c043dd6b849",
-      "branch": "da2f8ff21ceff7e3",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "a954722addfe3cca",
+      "branch": "2d010dcf4ecc18ff",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/0.4s": {
-      "main": "3d4cd03605c903f0",
-      "branch": "80671b414c55402a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "2a9fa1f3ac10b920",
+      "branch": "66e4327531b32732",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/1s": {
-      "main": "4b6930945164c5a8",
-      "branch": "2bbca14a32cc43a3",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "05086ad43bb13765",
+      "branch": "815392f4df8eac0c",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/2.5s": {
-      "main": "183f4643b288cec4",
-      "branch": "c291d9665570cafc",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "c0ca57dfc29dfdd0",
+      "branch": "5654a17e55c17568",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/5s": {
-      "main": "d0cc2d27aebc279f",
-      "branch": "9000da583e678f63",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "0ae5fde27498b54f",
+      "branch": "46bd2796bdfdf27b",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/10s": {
-      "main": "6a97b1e2f5f81250",
-      "branch": "8746206cd5eff88c",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "03a9d47c29ac9059",
+      "branch": "e5ed5ff21ee29d0c",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/25s": {
-      "main": "f656f806f106777a",
-      "branch": "0033d7423f204871",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "e035f665358c008a",
+      "branch": "af7119881d593b2d",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/49s": {
-      "main": "3a1df9b8a74ea59b",
-      "branch": "edbf99ca344b60c2",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "be5544ce06509457",
+      "branch": "fc6470003b8fe563",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-noon/73s": {
-      "main": "c7013d6be38c9b4a",
-      "branch": "ce99bbb92f7b898a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "ccbfcaee02425de5",
+      "branch": "c3861e4b47a10fea",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/0.4s": {
-      "main": "cd0240d1dc034bc4",
-      "branch": "d426ec6f0cc25c4e",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "9c2e9aa4f5790533",
+      "branch": "154deb49e67eead8",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/5.4s": {
-      "main": "32fc92c3a859c45d",
-      "branch": "f0181747f9bf7b55",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "b2f4677ab793318e",
+      "branch": "50bd288c6e8f9707",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/10.4s": {
-      "main": "d64ef41d32e29c88",
-      "branch": "a8e51d6c0092fe7b",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "8b64016bbe461665",
+      "branch": "0224f0ac5b1be34c",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/15.4s": {
-      "main": "e208323a3cb27985",
-      "branch": "0379712489790ffe",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "c749b64c0183bc4a",
+      "branch": "23b608a0b1941b61",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/20.4s": {
-      "main": "41da9e95eabc22fc",
-      "branch": "396d831f82114ffd",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "657f7b16285b9499",
+      "branch": "8d1376b73e31da64",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/25.4s": {
-      "main": "8a8615c2a42fa45f",
-      "branch": "91be680b23da29c7",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "82dd2ca894e29b31",
+      "branch": "a07038a2087dd472",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/30.4s": {
-      "main": "d948c81ffa28b694",
-      "branch": "1d9433c51f391459",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "6f33f0ff71004cb1",
+      "branch": "4a88ea09d38e84b9",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/flash-33.5s": {
-      "main": "2b81891a6823dcde",
-      "branch": "c0175c9f5b4580b6",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "46d77a2513dbddc0",
+      "branch": "fb385fe3b9d1cb22",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/flash-33.6s": {
-      "main": "ac793bc7996da98e",
-      "branch": "6d6229837a149d64",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "8868579bc4d4e00b",
+      "branch": "77dee2fadf0d3f35",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/35.4s": {
-      "main": "f3ea116077d6dee1",
-      "branch": "94852211d416f2d0",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "0809de9880dcc820",
+      "branch": "d843ea5932084977",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/40.4s": {
-      "main": "088f39c9951b688f",
-      "branch": "6516673d4e572a05",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "3715c9745ae085e0",
+      "branch": "560c05f483860ab9",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/45.4s": {
-      "main": "fb20d56ea468dfae",
-      "branch": "2908fab08f66bcc2",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "fb125684fe6c523e",
+      "branch": "87b8b235a83ce880",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/flash-48.9s": {
-      "main": "5ca5fa8af805886d",
-      "branch": "09f2354cb72a0243",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "37f4675c53134a3b",
+      "branch": "c5bece454a51e206",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/flash-49.0s": {
-      "main": "be8f87b662d0de39",
-      "branch": "b21aada21c5200b9",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "3eda549867b852e6",
+      "branch": "80955e77a1d14ebf",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/50.4s": {
-      "main": "5dfa1a56efcfb8e3",
-      "branch": "23404ace49db0c21",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "445c44a0b28bfdf3",
+      "branch": "10c9091a82d62f46",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/55.4s": {
-      "main": "f9dd5cdb994f666a",
-      "branch": "8e6bf9ecb7699e88",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "a9302f2a5543fa2a",
+      "branch": "ecffe7409a1b8c58",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/60.4s": {
-      "main": "0549ceeec58d1f3a",
-      "branch": "08921fe377429e5d",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "66ba867d9f07702e",
+      "branch": "6f36b9a0e147c608",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/65.4s": {
-      "main": "dd59b51b2a2b9a54",
-      "branch": "c26f60357f35b9d7",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "64ebc6f4b9d48e31",
+      "branch": "0faac004870d9618",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/70.4s": {
-      "main": "ca13344f97622164",
-      "branch": "9491fbf6fb3e4d0a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "d3a08992b7bad0e3",
+      "branch": "7edfeeee1fe38f6b",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/75.4s": {
-      "main": "92a803ddd922cd72",
-      "branch": "2f01af41ba6c5539",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "004e0aa3ed231e9e",
+      "branch": "d3f1598540002f17",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/80.4s": {
-      "main": "aad992353cc21468",
-      "branch": "fc2d749eea4bb57c",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "23645eb0135bf931",
+      "branch": "b95d93b0fd614e37",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/85.4s": {
-      "main": "c2ce1ae833e62b1c",
-      "branch": "35961803fbd5bbd4",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "607be4e6516ee82b",
+      "branch": "10ebbc1c21662b34",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/90.4s": {
-      "main": "d0e5a86d7bab81c3",
-      "branch": "29a0960aab5b61be",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "0d8881d1099e4161",
+      "branch": "37d574118793a0bd",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/95.4s": {
-      "main": "c5a96646dd5f9d33",
-      "branch": "ab6cc2f31eb9a737",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "c34cbadd81eed3b0",
+      "branch": "23166ac0803a628a",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/100.4s": {
-      "main": "33ea0629b887a57e",
-      "branch": "58ed33272682cefc",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "c459b2cc957d06ec",
+      "branch": "41957136dfeb2769",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/105.4s": {
-      "main": "007a287b062ca1cb",
-      "branch": "25926f7003d4a6b0",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "2fd52f06db9ad8c0",
+      "branch": "2fd14bd89314cbbe",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/110.4s": {
-      "main": "e03f73396e22b0ec",
-      "branch": "1cbe7118ffdacb8d",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "5f4b61dd062546ff",
+      "branch": "c020c4d53ba93604",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/115.4s": {
-      "main": "8205514637361563",
-      "branch": "ae4090e0b67a7c7b",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "5622bf4e8d549c55",
+      "branch": "9ba7bfa2d0c9b453",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-storm/120.4s": {
-      "main": "b184191ef4d9f7f1",
-      "branch": "4c3448568d9dfa3a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "839089bb872e3c00",
+      "branch": "4a00f8c0766119cf",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-night/0.4s": {
-      "main": "1d46434c46608d91",
-      "branch": "283f8db9caf4b9ff",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "363132a141c8f9b8",
+      "branch": "fa2f8e5ce951c047",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-night/10s": {
-      "main": "cc2ca47ab74575a3",
-      "branch": "e2fdd9066a2a066c",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "ca2054023d10749c",
+      "branch": "906b465f875309c8",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/aboard": {
-      "main": "3d4cd03605c903f0",
-      "branch": "80671b414c55402a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "2a9fa1f3ac10b920",
+      "branch": "66e4327531b32732",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/changed": {
-      "main": "c64b3f00c59e907e",
-      "branch": "1803cf9271947ab9",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "e9971cc65daeccfe",
+      "branch": "f3406b027f451a5d",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/walking-1000ms": {
-      "main": "a1ce4d8e5e1a1752",
-      "branch": "72fb348d7e91eebe",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "97c4a8bf60b93285",
+      "branch": "8081dcd44601c7e3",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/walking-2000ms": {
-      "main": "dc97cb5f8ca3fccb",
-      "branch": "400045995a7ae015",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "9238a7a650dbc4ca",
+      "branch": "1fc8528c27c14a63",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/walking-3000ms": {
-      "main": "1be84e85ac4d33f2",
-      "branch": "b3a76fd4c633fd41",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "5b2c67eac273e457",
+      "branch": "5c4377c3535a12ca",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/walking-5000ms": {
-      "main": "a0d7604e57017dd7",
-      "branch": "c215c03f19036d19",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "dc57a35e18d8a6cf",
+      "branch": "7c6e507891fbace8",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/walking-8000ms": {
-      "main": "4087f6c5b5dea58c",
-      "branch": "349170dfeb49c494",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "264024859c7753e4",
+      "branch": "ad43fe507641d538",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/arrived": {
-      "main": "793fda04b49d9348",
-      "branch": "94a10073cff01b4c",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "1e04e92e7ee11cf7",
+      "branch": "741d237aa815277e",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/hatch-200ms": {
-      "main": "130e27ca73282a6d",
-      "branch": "3303e5524dca10eb",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "efc4286768ee82fd",
+      "branch": "115b28811c102912",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/hatch-400ms": {
-      "main": "50e84b621d16d676",
-      "branch": "c52725fc7d23329a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "2ae389c351be41e4",
+      "branch": "8c16cd81e41bd546",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/hatch-700ms": {
-      "main": "68a55bcad33e5f36",
-      "branch": "baaf48593163488a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "566b82362d608e12",
+      "branch": "17745bcecf7cc01d",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/hatch-1500ms": {
-      "main": "75c9f910cd387a6c",
-      "branch": "9f0f0b04f95d84cb",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "7326da60b461e3e5",
+      "branch": "9d51cbad264eaaba",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "moving-crew/hatch-3000ms": {
-      "main": "b3b8aeae3738a013",
-      "branch": "ca08871a1cacf97a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-300ms": {
-      "main": "6a6e8fed2a04e311",
-      "branch": "6964a2b68d33a17a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-800ms": {
-      "main": "1584e3f9821efaa2",
-      "branch": "2dd82e1d5588134a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-1400ms": {
-      "main": "c70257542b78f67f",
-      "branch": "c7bd663c0bba67cc",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-2000ms": {
-      "main": "b46157c7af8c8d83",
-      "branch": "c9aa7f2daac3285e",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-2400ms": {
-      "main": "d9e3e9752346a6ed",
-      "branch": "5306ba11bb52fc84",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-2700ms": {
-      "main": "ece02483ac0c2aab",
-      "branch": "90b0f4531d2f5173",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-3000ms": {
-      "main": "a92ce7edafc36ca5",
-      "branch": "b73c2020aefb4f16",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-3300ms": {
-      "main": "af7a498715c84af6",
-      "branch": "3566d661c539fb1a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-3600ms": {
-      "main": "54f1c6601d54f75a",
-      "branch": "0b838737e1b5d13d",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-4000ms": {
-      "main": "06288877aa879231",
-      "branch": "fe4e7dd839b88b6a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-4600ms": {
-      "main": "db5bf88c8b9bef33",
-      "branch": "bfbdf7fe15dfe55a",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-5400ms": {
-      "main": "422d03a83fa92c01",
-      "branch": "ddd5af63627290cf",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/leaving-7000ms": {
-      "main": "68bfcb932eb3bee8",
-      "branch": "cac990bfcec35b36",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
-    },
-    "moving-crew/after": {
-      "main": "341c0fe0dbe868b5",
-      "branch": "ed7471effd5e0772",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "e275a69a80797174",
+      "branch": "fd8d1bc14aa67a08",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "focus/100ms": {
-      "main": "a191061cdd7fbb57",
-      "branch": "64697adea880c914",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "f1917b8e2e0bf15c",
+      "branch": "4ada9fd6ee6924f8",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "focus/300ms": {
-      "main": "76bea2de7406114f",
-      "branch": "2c3bc06c07b25118",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "34afce80f1e3bf00",
+      "branch": "0a2824ad8a4f56dc",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "focus/1.5s": {
-      "main": "e8a80ed06a2af17d",
-      "branch": "71eaad017f8b6c02",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "5c9fbc7404dca37e",
+      "branch": "cff71350005f0ecd",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "focus/back-out": {
-      "main": "1c89a7ed03ce7d80",
-      "branch": "1e44d230807236ec",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. The unchanged focus camera moves that same ladder difference with the mast. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "108676bf0f3a68bd",
+      "branch": "12bd4e47dbcb682f",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "lite-software-renderer/0.4s": {
-      "main": "a04c86341b11af68",
-      "branch": "1b269a5aff92e055",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "1ed64d5f5ec6794f",
+      "branch": "281ff5a5a606561c",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "lite-software-renderer/2s": {
-      "main": "5bb3bfd39ee3a9de",
-      "branch": "2c062e524cccc4c9",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "ef464645dd1a0f78",
+      "branch": "5d690c906d2b36a6",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     },
     "lite-software-renderer/6s": {
-      "main": "d5d52e5fb592edcf",
-      "branch": "a078e40571514ed1",
-      "reason": "Existing ladder centred vertically on the mast and drawn behind the sail. All changed pixels are confined to the old/new ladder columns. Other ship, crew, sleeping-area and interface pixels are unchanged."
+      "main": "2aaee86adf8d9427",
+      "branch": "47a274907ca8e43e",
+      "reason": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged."
     }
   }
 }

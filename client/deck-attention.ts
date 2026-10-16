@@ -1,4 +1,4 @@
-/** Engine-owned attention and the pack's one independently placed Converse target. No timers or scripts. */
+/** Engine-owned attention and the pack's one independently placed focus target. No timers or scripts. */
 import type { FleetCard } from "../shared/fleet";
 import type { SettingManifest } from "../shared/deck-setting";
 import type { DeckScene } from "./deck-scene";
@@ -31,6 +31,6 @@ export function carrierHit(carrier: AttentionCarrier, at: { x: number; y: number
 }
 
 export function carrierHover(key: string, carrier: AttentionCarrier, at: { x: number; y: number }, fit: DeckFit, size: { width: number; height: number }): DeckHover {
-  return { key, action: "converse", x: fit.x + (at.x + carrier.size[0] / 2) * fit.scale, top: fit.y + at.y * fit.scale,
+  return { key, action: "attention", x: fit.x + (at.x + carrier.size[0] / 2) * fit.scale, top: fit.y + at.y * fit.scale,
     bottom: fit.y + (at.y + carrier.size[1]) * fit.scale, ...size, floor: null };
 }

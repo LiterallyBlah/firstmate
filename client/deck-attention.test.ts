@@ -29,7 +29,7 @@ describe("attention-carrier@1", () => {
       expect(carrierAt(carrier, ms, false)).toEqual({ x: 4, y: 122, frame: 0 });
     }
     expect(carrierHover("remote:host:worker", carrier, { x: 4, y: 122 }, { scale: 2, x: 10, y: 20 }, { width: 800, height: 400 }))
-      .toEqual({ key: "remote:host:worker", action: "converse", x: 82, top: 264, bottom: 360, width: 800, height: 400, floor: null });
+      .toEqual({ key: "remote:host:worker", action: "attention", x: 82, top: 264, bottom: 360, width: 800, height: 400, floor: null });
   });
 
   it("ships four registered 64x48 generated frames, eight colours, binary alpha, a clear border and an identical bubble", () => {
