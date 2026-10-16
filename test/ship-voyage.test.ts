@@ -24,6 +24,22 @@ function alphaOf(id: string): Buffer {
 }
 
 describe("the remastered voyage", () => {
+  it("rests marine visitors invisibly and carries the whale with the voyage", () => {
+    const dolphin = ship.ambience.find(e => e.id === "dolphins")!;
+    const whale = ship.ambience.find(e => e.id === "whale-spout")!;
+    for (const e of [dolphin, whale]) {
+      expect(e.lite).toBe("hide"); expect(e.still).toBe("hide");
+      if (e.behaviour.kind !== "cycle" && e.behaviour.kind !== "strip") throw Error("visitor frames");
+      const frames = e.behaviour.frames.sprites;
+      expect(alphaOf(frames[0]!.image).some(v => v > 0)).toBe(false);
+      expect(alphaOf(frames.at(-1)!.image).some(v => v > 0)).toBe(false);
+      expect(frames.filter(f => !alphaOf(f.image).some(v => v > 0)).length).toBeGreaterThan(frames.length / 2);
+    }
+    if (dolphin.behaviour.kind !== "cycle" || whale.behaviour.kind !== "strip") throw Error("visitor motion");
+    expect(dolphin.behaviour.at[0]).toBeGreaterThan(340);
+    expect(dolphin.behaviour.at[1] - dolphin.behaviour.anchor[1]).toBeGreaterThan(346);
+    expect(whale.behaviour.drift).toEqual({pxPerSecond: 1.7, clock: "voyage"});
+  });
   it("keeps saved selection, eight looks, state routes and finite departure events", () => {
     expect(ship.id).toBe(old.id);
     expect(ship.cast).toEqual(old.cast);

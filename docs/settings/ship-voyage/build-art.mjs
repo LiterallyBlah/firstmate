@@ -64,6 +64,22 @@ for(let f=0;f<4;f++){
  const n=blank(116,88);blit(n,frigate,2+(f%2),2+(f%2));save('navy-chase-'+f,n);
 }
 save('merchant-clear',blank(1536,70));
+// A quiet marine visitor is invisible, never a held tail or back. Two registered leap
+// lanes vary the dolphin's location without introducing runtime/random motion code.
+save('dolphin-submerged',blank(96,40));
+for(let lane=0;lane<2;lane++)for(let f=0;f<4;f++){
+ const a=blank(96,40);blit(a,nearest(read(resolve(out,'dolphin-'+f+'.png')),48,34),lane?38:8,6);save('dolphin-leap-'+lane+'-'+f,a);
+}
+for(let lane=0;lane<2;lane++){
+ const a=blank(96,40),tail=read(resolve(out,'dolphin-3.png'));
+ // Only the bottom contact foam survives the final splash; all dolphin pixels disappear.
+ blit(a,nearest(crop(tail,0,48,64,4),48,3),lane?38:8,37);save('dolphin-splash-'+lane,a);
+}
+save('whale-submerged',blank(2048,47));
+for(let f=0;f<4;f++){const a=blank(2048,47);blit(a,read(resolve(out,'whale-'+f+'.png')),445,0);save('whale-voyage-'+f,a);}
+// The pursuing frigate advances through a long horizon lane instead of staying pinned.
+save('navy-away',blank(1536,88));
+for(let f=0;f<4;f++){const a=blank(1536,88);blit(a,read(resolve(out,'navy-chase-'+f+'.png')),482,0);save('navy-lane-'+f,a);}
 // Register four land regions on common waterlines with transparent open-ocean gaps.
 // Descending source-x order is the order encountered by a leftward-sailing ship.
 const coast=source('coast'),night=source('coast-night'),day=blank(2048,112),dark=blank(2048,112),landmarks=[];
@@ -110,6 +126,8 @@ for(const id of ['rain-clear','rain-0','rain-1','rain-2','rain-3']){
 }
 polishAtmosphere({source,save,read,baseline,clone,pixel,put,blit,fit,tint});
 for(const id of ['moon','sky-stars']){const a=blank(512,2048);blit(a,read(resolve(out,images[id].path)),0,0);save(id,a);}
+// Picker thumbnail is a real reviewed canvas frame, reduced like the other installed packs.
+save('preview',quant(nearest(read(resolve(here,'review/polish-final/day-canvas.png')),384,200),48));
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({sources,images,parts,landmarks,lamp},null,2)+'\n');
 writeFileSync(resolve(here,'review/coast-registration.png'),encode(day));
 writeFileSync(resolve(here,'review/coast-night-registration.png'),encode(dark));
