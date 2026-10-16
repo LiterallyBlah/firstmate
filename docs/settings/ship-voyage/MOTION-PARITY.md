@@ -17,12 +17,12 @@ with runtime screenshots and clips linked from the [evidence index](README.md).
 | Plank | Queued finite departure, splash, shark | Horizontal 100×10 plank projects left from the bow over water. Rail [97,291], tip [25,291], splash [32,380]. Original impact/chomp events, frame timings, queue release and effect art retained. Shark approaches from the right to keep the whole sequence within fit. |
 | Idle hold | Porthole appearance | 24 individually reachable 16-pixel-spaced windows; original porthole sprite and crew marker semantics. Exact-key click checks both still and rocking. |
 | Suggestion shark | Four frames and loiter | Same four frames and target. Real `carrier-surface@1` split at row 36: submerged rows tinted and 35% opaque, animated foreground/background ripple. Independent world-water placement; click/keyboard route preserved. |
-| Sky | Six local-time backdrop phases | Dawn, morning, midday, afternoon, dusk, night retained with brighter daytime palette transfer. Horizon placement scales to fill all space above the sea. |
+| Sky | Six local-time backdrop phases | Six generated gradients registered with fine ordered dithering; no broad palette steps. Same phase anchors and transitions. Horizon placement scales to fill tall panes. |
 | Ship tint | Day-phase tint | Six registered tints, including cooler night sails and warm dusk. Applies to stage and crew. |
 | Stars | Night overlay | Original stars, hidden by overcast; new moon overlay uses the same night blend. |
 | Clouds | Seeded palette drifters and storm variants | Original five cloud shapes, phase palettes, lane drift, wrap and storm transition retained. |
-| Sea | Animated tile, storm variants and fallback | Original seamless tile shared between back/front bands, origin 205 and foreground 346; fills visible bottom at any height. Native hull bottom reaches 350, so water overlaps it. |
-| Foam, wake, spray | Three-frame foam/wake and storm spray | Re-registered across hull 110…590 and stern waterline; original drift, swell clocks and variants retained. Wake remains on trailing right side. |
+| Sea | Animated tile, storm variants and fallback | Six phase-coloured distance/depth backdrops above an independent tiled floor. Azure/turquoise daytime, muted dusk, deep-blue night. Generated whitecaps/sparkles and troughs animate as translucent tiles. Far waves are 128×32 at 4 px/s; near waves 256×128 at the original 10 px/s, both on water clocks. Separate opaque breaking-wave storm variants. Origin 205, foreground 346 and hull contact unchanged. |
+| Foam, wake, spray | Three-frame foam/wake and storm spray | Hull foam and its drift remain unchanged. Original wake silhouettes/timing have brighter foam, still trailing right. Storm spray is 1.5× larger, anchored to the same bow waterline and reaches 95% opacity. |
 | Coastline | Empty horizon | Six 2048×112 phase plates; constant `voyage` clock, +1.7 px/s. Transparent gaps and exact common silhouette. Cove, fort, port and lighthouse pass every ~five minutes. |
 | Port windows / lighthouse lamp | Absent | Emissive pixels appear only in night coastline plate; gradual night-phase crossfade, never activity-controlled. |
 | Lighthouse beam | Absent | Four registered sweep frames at 700 ms on `life`, same `voyage` drift as coast. All non-night frames fully transparent. |
@@ -34,11 +34,11 @@ with runtime screenshots and clips linked from the [evidence index](README.md).
 | Flying gull | Seeded flyby | Original glide/flap art and seeded behavior, expanded sky lanes. |
 | Yard gull | Absent | Perched below the main yard, four-step quiet/wing cycle, 900 ms on `life`. |
 | Cat | Absent | Seated/stretch generated poses, six-step cycle, 700 ms on `life`; rides the deck. |
-| Overcast | Activity-driven overlay | Original opacity/tint curve retained, independent of day-phase voyage. |
+| Overcast | Activity-driven overlay | Generated heavy charcoal/indigo thunderheads fade in from .5 activity to full at .95, including at night. Original moving cloud field remains over the ceiling. |
 | Lightning | Seeded bounded flashes | Original flash behavior retained; observed at peak activity in the real canvas. |
-| Rain | Absent | Four tiled rain frames on `water-drift`, fades in .65…1; screen-filling foreground layer. |
+| Rain | Absent | Four tiled rain frames on `water-drift`, 70 ms frames and 12 px/s drift; fades in .55…1 to 85% opacity. Screen-filling foreground layer. |
 | Serpent | Loom/surface variant | Original four-frame variants and swell timing retained, registered in bow water. |
-| Kraken | Loom/surface variant | Original four-frame variants and swell timing retained, registered in stern water. |
+| Kraken | Loom/surface variant | Four new 90×80 purple kraken poses retain 1,200 ms swell timing and .72 activity onset, reaching full visibility by .96. Head, curling tentacles, suckers and contact foam are distinct from the unchanged bow serpent. |
 
 Full mode animates the ship, voyage and life. Lite keeps crew, low-cost stage parts and the new
 life cycles; inherited heavy sea/cloud layers use their original lite policy, rain freezes,

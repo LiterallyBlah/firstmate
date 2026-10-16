@@ -6,12 +6,13 @@ no renderer, plugin lifecycle, activity semantics or levelling system changes.
 
 The 640×400 stage retains the original eight bandana crew looks. Generated art supplies the
 fully rigged, bow-left ship, cannons, chest, rope, cat, wildlife and coastline. Original crew,
-water, departure, shark and storm art retain their proven anchors and animation roles.
+departure and shark art retain their proven anchors and animation roles. The follow-up
+[atmosphere polish](POLISH.md) replaces the inherited flat sea, stepped skies and small kraken.
 Exact generation prompts and reference roles are in [production-prompts.json](production-prompts.json);
 original outputs are in [sources](sources/). Registration, palette reduction and finite frame
 extraction are reproducible with `node docs/settings/ship-voyage/build-art.mjs`, followed by
 `node docs/settings/ship-voyage/build-pack.mjs`. Neither script is shipped or executed by the pack.
-The installed image payload is **809,482 bytes**, leaving 190,518 bytes below the 1,000,000-byte cap.
+The installed image payload is **956,652 bytes**, leaving 43,348 bytes below the 1,000,000-byte cap.
 
 ## The route
 
@@ -44,6 +45,9 @@ the interaction and lighthouse clips play at their captured timing. Long-route s
 | State | Wide canvas | Tall, narrow canvas |
 | --- | --- | --- |
 | Day | [day](review/day-canvas.png) | [day](review/day-tall-narrow.png) |
+| Dawn | [dawn](review/dawn-wide.png) | [dawn](review/dawn-tall-narrow.png) |
+| Morning | [morning](review/morning-wide.png) | [morning](review/morning-tall-narrow.png) |
+| Afternoon | [afternoon](review/afternoon-wide.png) | [afternoon](review/afternoon-tall-narrow.png) |
 | Dusk | [dusk](review/dusk-wide.png) | [dusk](review/dusk-tall-narrow.png) |
 | Night | [night](review/night-wide.png) | [night](review/night-tall-narrow.png) |
 | Storm | [storm](review/storm-wide.png) | [storm](review/storm-tall-narrow.png) |
@@ -55,7 +59,7 @@ the interaction and lighthouse clips play at their captured timing. Long-route s
 | Continuous voyage | [complete lap, 60×](review/voyage-60x.gif) |
 | Rig, ship rocking and life | [scene alive](review/scene-alive.gif) |
 | Hatch arrival and crow's nest | [arrival and climb](review/hatch-and-lookout.gif) |
-| Projecting plank, splash and shark | [departure](review/plank-shark-departure.gif), [contact sheet](review/departure-contact.png) |
+| Projecting plank, splash and shark | [departure](review/plank-shark-departure.gif), [contact sheet](review/departure-contact-polish.png) |
 | Navy chase and peak storm | [frigate chase](review/frigate-chase.gif), [lightning](review/storm-lightning.png) |
 | Night beacon | [lighthouse sweep](review/lighthouse-night.gif) |
 | Real surface split | [suggestion shark](review/suggestion-shark.gif) |
