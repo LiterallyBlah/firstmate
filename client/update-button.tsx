@@ -1,21 +1,13 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  checkUpdate,
-  UPDATE_REFRESH_MS,
-  type UpdateStatus,
-} from "../shared/update";
+import { checkUpdate, UPDATE_REFRESH_MS, type UpdateStatus } from "../shared/update";
 import type { MateSender } from "./mate-send";
 import { IconButton } from "./ui";
 
 const QUERY_KEY = ["firstmate", "update"] as const;
 export function updateControl(status: UpdateStatus, blocked: string | null) {
-  const enabled =
-    status.state === "available" &&
-    status.token !== undefined &&
-    !status.requested &&
-    blocked === null;
+  const enabled = status.state === "available" && status.token !== undefined && !status.requested && blocked === null;
   const label =
     status.state === "checking"
       ? "Checking FirstMate update"
@@ -29,10 +21,7 @@ export function updateControl(status: UpdateStatus, blocked: string | null) {
   return {
     enabled,
     label,
-    tooltip:
-      enabled || blocked === null
-        ? status.explanation
-        : `${status.explanation} ${blocked}`,
+    tooltip: enabled || blocked === null ? status.explanation : `${status.explanation} ${blocked}`,
     icon:
       status.state === "checking"
         ? "Loader"
@@ -51,11 +40,13 @@ export function UpdateButton({
   mateId,
   sender,
   onSent,
+  showLabel = false,
 }: {
   theme: PluginTheme;
   mateId: string | null;
   sender: MateSender;
   onSent: () => void;
+  showLabel?: boolean;
 }) {
   const check = useRpc(checkUpdate);
   const client = useQueryClient();
@@ -75,8 +66,7 @@ export function UpdateButton({
     : query.isError
       ? {
           state: "unavailable",
-          explanation:
-            "FirstMate's update check could not be reached. The next check will retry.",
+          explanation: "FirstMate's update check could not be reached. The next check will retry.",
         }
       : (query.data ?? {
           state: "checking",
@@ -93,6 +83,7 @@ export function UpdateButton({
   return (
     <IconButton
       theme={theme}
+      showLabel={showLabel}
       icon={control.icon}
       label={control.label}
       tooltip={control.tooltip}
