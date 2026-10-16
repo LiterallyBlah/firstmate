@@ -1,0 +1,31 @@
+{
+  "base": "edda14e1374da215a25ddae873f6d2dacf7a8c46",
+  "settings": [
+    {
+      "id": "ship",
+      "before": [
+        4,
+        122
+      ],
+      "after": [
+        4,
+        122
+      ],
+      "bubbleHeight": 24,
+      "unchangedImages": 84
+    },
+    {
+      "id": "japanese-ship",
+      "before": [
+        14,
+        273
+      ],
+      "after": [
+        8,
+        164
+      ],
+      "bubbleHeight": 18,
+      "unchangedImages": 20
+    }
+  ]
+}
