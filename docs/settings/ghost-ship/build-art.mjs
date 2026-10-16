@@ -33,6 +33,7 @@ const cloth=p=>p[3]>0&&p[1]>p[0]*1.18&&p[1]>p[2]*.94;
 plate('sail-main',[235,96,230,190],cloth,3);
 plate('sail-aft',[480,114,184,150],cloth,3);
 plate('flag-main',[302,30,122,58],()=>true,3);
+const jollyRoger=pal(nearest(source('jolly-roger'),122,58),24);for(let k=0;k<4;k++)save('flag-main-'+k,warp(jollyRoger,k,3));
 plate('flag-aft',[538,50,106,55],()=>true,2);
 plate('rig',[110,105,550,191],p=>p[3]>0&&p[0]>p[2]*1.5&&p[0]>p[1]*1.02,1);
 save('fixed',fixed);
@@ -83,7 +84,7 @@ const deep=blank(96,64);for(let y=0;y<64;y++)for(let x=0;x<96;x++)put(deep,x,y,[
 // Generic rain art is reused, unchanged, from the existing shipped Ship; retain explicit provenance.
 const original=JSON.parse(readFileSync(resolve(here,'../../../art/settings/ship/setting.json')));
 for(const id of ['rain-clear','rain-0','rain-1','rain-2','rain-3','storm-sky-overcast']){const def=original.images[id],b=readFileSync(resolve(here,'../../../art/settings/ship',def.path));save(id,id==='storm-sky-overcast'?tint(nearest(decodePng(b),320,240),[.4,.62,.56]):decodePng(b));sources[id]={reusedFrom:'art/settings/ship/'+def.path,sha256:sha(b),transform:id==='storm-sky-overcast'?'resize; charcoal-green tint':null};}
-const preview=resolve(here,'review/midday-wide.png');if(existsSync(preview))save('preview',pal(nearest(decodePng(readFileSync(preview)),384,216),96,false));else save('preview',pal(nearest(source('stage'),384,216),64));
+save('preview',pal(nearest(source('preview-canvas'),384,216),96,false));
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({sources,images,lanes,parts},null,2)+'\n');
 writeFileSync(resolve(here,'stage-registration.png'),encode(ship));
 console.log(JSON.stringify({images:Object.keys(images).length,bytes:Object.values(images).reduce((s,a)=>s+readFileSync(resolve(out,a.path)).length,0)}));

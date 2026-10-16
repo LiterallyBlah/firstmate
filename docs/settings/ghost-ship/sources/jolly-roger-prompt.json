@@ -1,0 +1,5 @@
+{
+  "tool": "built-in image_gen.imagegen",
+  "prompt": "Edit this exact transparent pixel-art flag sprite. Preserve its shape, torn streaming silhouette, dark mint-green palette, transparent margins, and the small cropped mast/crow's-nest pixels at bottom left. Add ONE clearly legible tiny pale ivory Jolly Roger skull and crossed bones centered on the broad green section near the left third of the streaming flag. The emblem must be contained within the cloth. No other change: no extra pole, no background, no words. Crisp 16-bit pixel-art game sprite on true transparent background. Same wide aspect ratio as input. This is the main flag of a spectral pirate galleon.",
+  "reference": "art/settings/ghost-ship/flag-main-0.png at 68ceb08"
+}
