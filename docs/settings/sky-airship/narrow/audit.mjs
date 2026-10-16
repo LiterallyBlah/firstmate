@@ -38,4 +38,3 @@ const imageBytes=Object.values(after.images).reduce((sum,a)=>sum+statSync(resolv
 assert.ok(imageBytes<=1_000_000);
 writeFileSync(resolve(here,'audit.json'),JSON.stringify({base,unchangedManifestSections:Object.keys(before).filter(k=>!['images','ambience'].includes(k)),unchangedOriginalAmbience:true,unchangedOriginalImages:Object.keys(before.images).filter(id=>!changed.includes(id)).length,changedArtOnlyBelowWorldRow:398,opaqueContinuation:true,registeredJoin:true,imageBytes,imageBudget:1_000_000,imageCount:Object.keys(after.images).length,capabilitiesUnchanged:true,captures},null,2)+'\n');
 console.log(JSON.stringify({imageBytes,captures}));
-
