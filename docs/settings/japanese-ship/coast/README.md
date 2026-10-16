@@ -42,6 +42,13 @@ itself always uses 2.4 px/s. `*-sample-*.png` frames make every landmark reviewa
 geometry, night-only lights, shared drift, open-water berths, exact original spirit
 pixels, wrap gaps and the **977,432 / 1,000,000 byte** raw image budget.
 
+`validation.json` records the final checks: **69 pack checks**, TypeScript, both
+bundles parsing in Hermes with zero bundle growth, **81 pixel-identical frozen Ship
+shots** with no flakes/errors, **192 exact crew clicks**, the actual software WebGL
+keyboard check, and the serial full suite: **101 files, 1,184 passed, 3 skipped,
+zero failures** in 73.49 seconds. No tests were edited. `motion-audit.md` maps each
+moving layer to its clock, world registration and reduced-motion policy.
+
 The applicable ghost-ship section 8 gates are covered as follows:
 
 - Level broadside, plank/deck bounds, ladder, crew variety and lantern depth retain
