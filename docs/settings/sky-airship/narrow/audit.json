@@ -1,0 +1,118 @@
+{
+  "base": "96d59141d78d7c7ed5b3f27e4630a9723e357aef",
+  "unchangedManifestSections": [
+    "format",
+    "formatVersion",
+    "id",
+    "name",
+    "version",
+    "requires",
+    "preview",
+    "copy",
+    "stage",
+    "floor",
+    "zones",
+    "cast",
+    "portals",
+    "effects",
+    "dayCycle",
+    "atmosphere",
+    "attentionCarrier",
+    "palette"
+  ],
+  "unchangedOriginalAmbience": true,
+  "unchangedOriginalImages": 87,
+  "changedArtOnlyBelowWorldRow": 398,
+  "opaqueContinuation": true,
+  "registeredJoin": true,
+  "imageBytes": 966489,
+  "imageBudget": 1000000,
+  "imageCount": 91,
+  "capabilitiesUnchanged": true,
+  "captures": [
+    {
+      "name": "wide-day.png",
+      "beforeSha256": "f40e992f5c270f621153787aee401b6ee45d43b8c510553692b7277dd389c6bf",
+      "afterSha256": "f40e992f5c270f621153787aee401b6ee45d43b8c510553692b7277dd389c6bf",
+      "differingPixels": 0,
+      "firstChangedRow": null
+    },
+    {
+      "name": "wide-night.png",
+      "beforeSha256": "fab9d8e2afbd0e59883da4fb74f360a6f45b9146e3d80b4b7323cb617656b063",
+      "afterSha256": "fab9d8e2afbd0e59883da4fb74f360a6f45b9146e3d80b4b7323cb617656b063",
+      "differingPixels": 0,
+      "firstChangedRow": null
+    },
+    {
+      "name": "wide-storm.png",
+      "beforeSha256": "d8521829374424c69516ebb83eec23acdc22dfb630cf542014915e1d6cd08007",
+      "afterSha256": "d8521829374424c69516ebb83eec23acdc22dfb630cf542014915e1d6cd08007",
+      "differingPixels": 0,
+      "firstChangedRow": null
+    },
+    {
+      "name": "square-day.png",
+      "beforeSha256": "f223cff5919b471bf3305ad1d8100084959fe9d34b081064fc0187a8f142d9b8",
+      "afterSha256": "f223cff5919b471bf3305ad1d8100084959fe9d34b081064fc0187a8f142d9b8",
+      "differingPixels": 0,
+      "firstChangedRow": null
+    },
+    {
+      "name": "square-night.png",
+      "beforeSha256": "b51e3c78debe19624d716ed0f24dfdca4ef4ca45cb35b2a915334cadf00ae9cf",
+      "afterSha256": "b51e3c78debe19624d716ed0f24dfdca4ef4ca45cb35b2a915334cadf00ae9cf",
+      "differingPixels": 0,
+      "firstChangedRow": null
+    },
+    {
+      "name": "square-storm.png",
+      "beforeSha256": "fc22d64216f04fbd117b1acd78e87523ab53d9709ecb28063dcb5bbc60629e22",
+      "afterSha256": "fc22d64216f04fbd117b1acd78e87523ab53d9709ecb28063dcb5bbc60629e22",
+      "differingPixels": 0,
+      "firstChangedRow": null
+    },
+    {
+      "name": "tall-day.png",
+      "beforeSha256": "90c8f104641439f121c9ced01d409a1ea3b3119e17eec08278c1c6e8f180261d",
+      "afterSha256": "c4984270d80c82cab4c6027c3436f566c30c3ced5e25f18adce8d084a151510f",
+      "differingPixels": 171304,
+      "firstChangedRow": 1027
+    },
+    {
+      "name": "tall-night.png",
+      "beforeSha256": "8baac688ec1e0f0e341f74566e7b9a9a562c40226334a3d8ce1a409cb62975a1",
+      "afterSha256": "4eb258169ddca14f5256d622ee04c08d2682a22e3ac710f0f4b88e728d20bd6c",
+      "differingPixels": 171304,
+      "firstChangedRow": 1027
+    },
+    {
+      "name": "tall-storm.png",
+      "beforeSha256": "d923e4327cfae18865597987f8f49634146170af75aaa61da6f6b90efece4a96",
+      "afterSha256": "b00668cece23194f1e5efb51f561b62832ec0fd4a3eb6110234c3313aeb7b5ff",
+      "differingPixels": 171472,
+      "firstChangedRow": 1027
+    },
+    {
+      "name": "very-tall-day.png",
+      "beforeSha256": "98dca2de41cd70c66458c6132936adadfd71cabc968234648f49768d3f89c1cd",
+      "afterSha256": "59debec076f6dc25a21ec57a6adb1317c558e7c4837db41ea333d2eaad6be69b",
+      "differingPixels": 353669,
+      "firstChangedRow": 1159
+    },
+    {
+      "name": "very-tall-night.png",
+      "beforeSha256": "6d47ca4fe8a514c3ec58a5350cae1a1c940ce8a0d818a83a4d84c7738a4fd24b",
+      "afterSha256": "497fe044611045041b74436a9a3ef762a32b5ab0ef7137ab5d8de61511687b7d",
+      "differingPixels": 353669,
+      "firstChangedRow": 1159
+    },
+    {
+      "name": "very-tall-storm.png",
+      "beforeSha256": "c56a3a634f3a5a991a45928e8218ae9e10f0485d7753507829ddc0748aaa3f3b",
+      "afterSha256": "57e5880d9dcf7594b74563094a2293700d5bae8265695c64d72376c86bb7fee1",
+      "differingPixels": 353777,
+      "firstChangedRow": 1159
+    }
+  ]
+}
