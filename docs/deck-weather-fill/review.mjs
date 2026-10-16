@@ -22,7 +22,10 @@ export async function review(browser, origin, mode) {
         await view.clock.pauseAt(noon + 20000);
         await view.getByRole("button", { name: "Open Deck", exact: true }).click();
         const canvas = view.locator("canvas[data-firstmate-deck]");
-        for (let i = 0; i < 200 && !(await canvas.count()); i++) await view.waitForTimeout(50);
+        for (let i = 0; i < 200 && !(await canvas.count()); i++) {
+          await view.clock.runFor(100);
+          await view.waitForTimeout(50);
+        }
         assert.equal(await canvas.count(), 1);
         await view.clock.runFor(18000);
         assert.equal(await canvas.getAttribute("data-firstmate-deck-setting"), setting);

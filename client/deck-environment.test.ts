@@ -457,11 +457,12 @@ describe("viewport weather coverage, independent of setting names", () => {
       { left: 0, right: 32, top: 0, bottom: 24 },
     ]) {
       scenery.layout(visible);
-      scenery.draw(0.15, full, 720, weather);
+      scenery.draw(1.15, full, 720, weather);
       const base = one(front, "weather:front"), heavy = one(front, "weather:front:heavy");
       const tiles = base.children as FakeSprite[];
       expect(heavy.alpha).toBe(0.5);
       expect(base.position.x).toBe(heavy.position.x);
+      expect(base.position.x).toBe(3);
       expect(heavy.children.map((s) => s.position)).toEqual(tiles.map((s) => s.position));
       expect(tiles.every((s) => texturePath(s) === "b")).toBe(true);
       expect(heavy.children.every((s) => texturePath(s) === "a")).toBe(true);
