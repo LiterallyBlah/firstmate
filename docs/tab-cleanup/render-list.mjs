@@ -192,12 +192,14 @@ try {
         await list.waitFor();
       }
       await page.waitForFunction(() => JSON.parse(localStorage.getItem("firstmate-display")).crewView === "list");
+      if (width === 390) await button(page, "Open").click();
       await button(page, "Open Board").click();
       await page.getByTestId("firstmate-board").waitFor();
       assert.equal(await list.count(), 0, "The dedicated Board keeps its own layout");
       await button(page, "FirstMate Home").click();
       if (width === 390) await tab(page, "List").click();
       await list.waitFor();
+      if (width === 390) await button(page, "Open").click();
       await button(page, "Open Crew").click();
       await list.waitFor();
       assert.equal(await tab(page, "List").count(), 0, "Crew keeps its dedicated List destination");

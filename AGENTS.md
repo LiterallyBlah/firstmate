@@ -129,8 +129,10 @@ Home's header keeps the title, mate status and task counts together, with the Li
 and **More** beside them. `client/header-actions.tsx` puts provider migration, watches, pane visibility,
 the full conversation, updates, refresh, settings and the full home path behind More's host modal.
 Migration and Watches open sibling dialogs after More closes, with web focus returning to More.
-Recovery/failing-watch attention colours the More trigger. The workspace shortcuts stay below;
-their capability explanations live in tooltips and the browser dialog rather than a permanent blurb.
+Recovery/failing-watch attention colours the More trigger. Wide layouts keep workspace shortcuts below.
+Compact layouts put them behind **Open**, beside More, in a host Modal; status and counts share one
+quiet row under the title. The existing compact rule (host compact layout or less than 638 points)
+also applies to a narrowed desktop pane. Shortcut capability explanations live in tooltips and the browser dialog.
 
 The sidebar's `fleet` screen is **Home**: one first-mate chat, a List/Board task overview, Home files and a
 launcher. Home uses the saved `crewView`, defaulting to List; the two views share the same cards,
@@ -185,6 +187,10 @@ Paseo owns the new local browser's view/profile and opens it in the home workspa
 no browser ID, URL registry or false cross-device handle. Existing tabs use **Terminal & browser**.
 The client gates duplicate submissions and reports native API failures; a completed terminal request
 does not navigate if Home (or that home workspace's controls) has unmounted.
+`NativeToolButtons.renderButtons` lets the compact launcher contain only its buttons: New shared browser
+is a sibling dialog, opened after the launcher closes, with focus returning to Open on dismissal.
+Terminal state and its pending gate stay mounted when the launcher closes/reopens; successful navigation
+closes the launcher. Rendering or opening either menu never creates a native resource.
 
 The charter's shared-tools section teaches the mate to discover the same terminal by workspace/name
 and the same browser via `browser_list_tabs`, then use the IDs returned by those tools. The terminal
