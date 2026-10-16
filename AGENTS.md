@@ -125,6 +125,13 @@ compile time. This file covers only what is specific to `firstmate`.
 
 ## Home and the workspace tabs (shell phase 1)
 
+Home's header keeps the title, mate status and task counts together, with the Board/Home files switch
+and **More** beside them. `client/header-actions.tsx` puts provider migration, watches, pane visibility,
+the full conversation, updates, refresh, settings and the full home path behind More's host modal.
+Migration and Watches open sibling dialogs after More closes, with web focus returning to More.
+Recovery/failing-watch attention colours the More trigger. The workspace shortcuts stay below;
+their capability explanations live in tooltips and the browser dialog rather than a permanent blurb.
+
 The sidebar's `fleet` screen is **Home**: one first-mate chat, a Board overview, Home files and a
 launcher. Crew (the grouped List) and Deck have canonical workspace destinations; Home no longer
 switches into either. `client/workspace-panels.tsx` registers `firstmate-deck`, `firstmate-board` and

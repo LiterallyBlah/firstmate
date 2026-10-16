@@ -29,10 +29,7 @@ export function HubLauncher({
     <View
       style={{
         gap: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderColor: theme.colors.border,
+        paddingTop: 2,
       }}
     >
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -70,11 +67,11 @@ export function HubLauncher({
           />
         )}
       </View>
-      <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
-        {workspaceId === null
-          ? "Launch a first mate in its home to open the workspace tabs."
-          : "Shared tools live in the workspace. Reopen existing tabs with Terminal & browser; New browser creates a separate tab."}
-      </Text>
+      {workspaceId === null ? (
+        <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
+          Launch a first mate in its home to open the workspace tabs.
+        </Text>
+      ) : null}
     </View>
   );
 }

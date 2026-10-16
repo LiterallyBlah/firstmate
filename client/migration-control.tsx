@@ -3,7 +3,7 @@ import { useRpc } from "@getpaseo/plugin/client";
 import { Modal, useToast } from "@getpaseo/plugin/client/react-native";
 import { SettingsSelect } from "@getpaseo/plugin/client/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Text, View } from "react-native";
 
 import { cancelMigration, migrateMate, migrationTargets, readConfig, type AgentSummary } from "../shared/fleet";
@@ -17,6 +17,8 @@ export function MigrationControl({
   onChanged,
   onOpenAgent,
   onOpenFile,
+  renderTrigger,
+  onOpenChange,
 }: {
   theme: PluginTheme;
   compact: boolean;
@@ -24,13 +26,20 @@ export function MigrationControl({
   onChanged: () => void;
   onOpenAgent: ((agentId: string) => void) | null;
   onOpenFile: (path: string) => void;
+  /** Lets Home put the trigger in More while keeping this dialog outside it. */
+  renderTrigger?: (button: ReactNode, recovering: boolean) => ReactNode;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const read = useRpc(readConfig);
   const list = useRpc(migrationTargets);
   const migrate = useRpc(migrateMate);
   const cancel = useRpc(cancelMigration);
   const toast = useToast();
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
+  function setOpen(value: boolean): void {
+    setOpenState(value);
+    onOpenChange?.(value);
+  }
   const [provider, setProvider] = useState("");
   const [modeId, setModeId] = useState("");
   const [thinkingOptionId, setThinking] = useState("");
@@ -79,33 +88,36 @@ export function MigrationControl({
     }
   }
 
+  const trigger = (
+    <IconButton
+      icon="ArrowRightLeft"
+      label={pending === null ? "Switch provider/model" : "Recover migration"}
+      tooltip={
+        busy
+          ? "The first-mate transfer is in progress."
+          : config.isLoading
+            ? "Loading the first mate's transfer status."
+            : pending !== null
+              ? "Review the saved first-mate transfer and its recovery options."
+              : mate === null
+                ? "Launch or adopt a first mate before switching provider or model."
+                : "Choose a provider or model for a new first mate, carrying over saved records and a handoff."
+      }
+      tooltipSide="bottom"
+      tooltipAlign="end"
+      showLabel={renderTrigger !== undefined || pending !== null}
+      theme={theme}
+      tone={pending === null ? "default" : "danger"}
+      disabled={busy || config.isLoading || (pending === null && mate === null)}
+      onPress={() => {
+        setError(null);
+        setOpen(true);
+      }}
+    />
+  );
   return (
     <>
-      <IconButton
-        icon="ArrowRightLeft"
-        label={pending === null ? "Switch provider/model" : "Recover migration"}
-        tooltip={
-          busy
-            ? "The first-mate transfer is in progress."
-            : config.isLoading
-              ? "Loading the first mate's transfer status."
-              : pending !== null
-                ? "Review the saved first-mate transfer and its recovery options."
-                : mate === null
-                  ? "Launch or adopt a first mate before switching provider or model."
-                  : "Choose a provider or model for a new first mate, carrying over saved records and a handoff."
-        }
-        tooltipSide="bottom"
-        tooltipAlign="end"
-        showLabel={pending !== null}
-        theme={theme}
-        tone={pending === null ? "default" : "danger"}
-        disabled={busy || config.isLoading || (pending === null && mate === null)}
-        onPress={() => {
-          setError(null);
-          setOpen(true);
-        }}
-      />
+      {renderTrigger === undefined ? trigger : renderTrigger(trigger, pending !== null)}
       <Modal
         title={pending === null ? "Transfer the first-mate role" : "Recover first-mate migration"}
         open={open}
