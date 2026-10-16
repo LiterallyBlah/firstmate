@@ -213,6 +213,7 @@ function DeckView({
   captionActions,
   suggestions = NO_SUGGESTIONS,
   onReply,
+  onRemove,
   replyBlocked = null,
   setting = DEFAULT_DECK_SETTING,
   onFailure,
@@ -231,6 +232,8 @@ function DeckView({
   suggestions?: readonly Suggestion[];
   /** Sends a reply the way the strip sends a suggestion. Without it, the deck offers no replies. */
   onReply?: (reply: Suggestion) => void;
+  /** Removes a suggestion through the same file/RPC path as the strip. */
+  onRemove?: (suggestion: Suggestion) => Promise<void>;
   /** Why a reply cannot be sent just now (`replyBlockedText`), or null. */
   replyBlocked?: string | null;
   /** The fleet load is failing: the deck shows the last crew it saw, greyed. */
@@ -563,7 +566,7 @@ function DeckView({
           <SuggestionBubbles suggestions={suggestions}
             place={bubblePlacement(hover, bubbleRegion(size, false), { focused: false })}
             theme={theme} blocked={onReply === undefined ? "There is no first mate aboard to send it to." : replyBlocked}
-            onReply={reply} holdRef={suggestionPanel} onClose={() => {
+            onReply={reply} onRemove={onRemove} holdRef={suggestionPanel} onClose={() => {
               setSuggestionsOpen(false);
               const trigger: unknown = suggestionTrigger.current;
               if (isFocusTarget(trigger)) trigger.focus({ preventScroll: true });
