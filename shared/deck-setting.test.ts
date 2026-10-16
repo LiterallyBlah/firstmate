@@ -29,7 +29,7 @@ describe("a setting manifest", () => {
   it("is whole for the ship: nothing it names is missing, and it needs exactly what it uses", () => {
     expect(settingProblems(shipManifest())).toEqual([]);
     expect(capabilitiesUsed(shipManifest())).toEqual(shipManifest().requires);
-    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["carrier-surface@1", "stable-posts@1", "walk-in@1", "stage-rock@1", "phase-frames@1"]);
+    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["carrier-surface@1", "stable-posts@1", "walk-in@1", "stage-rock@1", "phase-frames@1", "phase-strip@1"]);
   });
 
   it("names every image it draws with once, the backdrop first", () => {

@@ -100,6 +100,8 @@ export interface PixiContainer {
   visible: boolean;
   alpha: number;
   tint: number;
+  blendMode?: string;
+  filters?: unknown[];
   addChild(...children: PixiContainer[]): unknown;
   removeChild(...children: PixiContainer[]): unknown;
   destroy(options?: { children?: boolean }): void;
@@ -156,6 +158,7 @@ export interface PixiApplication {
 
 /** The part of Pixi's namespace the deck uses. */
 export interface PixiModule {
+  readonly AlphaFilter: new (options: { alpha: number }) => { destroy(): void };
   readonly VERSION: string;
   readonly Application: new () => PixiApplication;
   readonly Container: new () => PixiContainer;

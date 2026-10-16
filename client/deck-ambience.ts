@@ -126,6 +126,14 @@ export function compileAmbience(manifest: SettingManifest, has: (image: string) 
         return arrived(behaviour.frames.map((frame) => frame.sprite.image)) ? { ...head, behaviour } : null;
       case "phase-frames":
         return arrived(behaviour.frames.map((frame) => frame.image)) ? { ...head, behaviour } : null;
+      case "phase-strip": {
+        const { sprites } = behaviour.frames;
+        if (!arrived(sprites.map((sprite) => sprite.image))) return null;
+        const size = sizeOf(sprites[0]!);
+        const byPhase = Object.fromEntries(Object.entries(behaviour.byPhase).filter(([, frames]) =>
+          frames.length === sprites.length && frames.every((frame) => sameSize(frame, size)) && arrived(frames.map((frame) => frame.image))));
+        return { ...head, behaviour: { ...behaviour, byPhase } };
+      }
       case "flyby":
         return arrived(Object.values(behaviour.poses).map((sprite) => sprite.image)) ? { ...head, behaviour } : null;
       case "drifters": {

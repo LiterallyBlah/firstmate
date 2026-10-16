@@ -1,0 +1,304 @@
+{
+  "dayCycle": {
+    "phases": [
+      {
+        "id": "dawn",
+        "localMinute": 360
+      },
+      {
+        "id": "day",
+        "localMinute": 720
+      },
+      {
+        "id": "dusk",
+        "localMinute": 1080
+      },
+      {
+        "id": "night",
+        "localMinute": 1260
+      }
+    ],
+    "fadeMinutes": 120,
+    "night": "night",
+    "fallback": "day"
+  },
+  "atmosphere": {
+    "table": [
+      {
+        "at": 0,
+        "pace": 1
+      },
+      {
+        "at": 1,
+        "pace": 1
+      }
+    ],
+    "delivered": {
+      "pace": 1
+    },
+    "clocks": {
+      "voyage": "pace"
+    }
+  },
+  "images": {
+    "phase-test": {
+      "path": "atlas.png",
+      "size": [
+        256,
+        256
+      ],
+      "sha256": "a4a5a4c2ebf18116dd96370907a27162a46bd38c9bb17e0bb220501443fa6728"
+    }
+  },
+  "ambience": [
+    {
+      "id": "test-coast",
+      "slot": "back",
+      "order": 0,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "phase-strip",
+        "span": [
+          -512,
+          1024
+        ],
+        "drift": {
+          "pxPerSecond": 8,
+          "clock": "voyage"
+        },
+        "top": -48,
+        "frames": {
+          "sprites": [
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                48,
+                256,
+                48
+              ]
+            }
+          ],
+          "frameMs": 1000
+        },
+        "byPhase": {
+          "dawn": [
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                0,
+                256,
+                48
+              ]
+            }
+          ],
+          "day": [
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                48,
+                256,
+                48
+              ]
+            }
+          ],
+          "dusk": [
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                96,
+                256,
+                48
+              ]
+            }
+          ],
+          "night": [
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                144,
+                256,
+                48
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "test-beam",
+      "slot": "back",
+      "order": 1,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "phase-strip",
+        "span": [
+          -512,
+          1024
+        ],
+        "drift": {
+          "pxPerSecond": 8,
+          "clock": "voyage"
+        },
+        "top": -55,
+        "frames": {
+          "sprites": [
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            },
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            },
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            }
+          ],
+          "frameMs": 300,
+          "clock": "voyage"
+        },
+        "byPhase": {
+          "dawn": [
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            },
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            },
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            }
+          ],
+          "day": [
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            },
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            },
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            }
+          ],
+          "dusk": [
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            },
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            },
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                192,
+                256,
+                16
+              ]
+            }
+          ],
+          "night": [
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                208,
+                256,
+                16
+              ]
+            },
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                224,
+                256,
+                16
+              ]
+            },
+            {
+              "image": "phase-test",
+              "rect": [
+                0,
+                240,
+                256,
+                16
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
