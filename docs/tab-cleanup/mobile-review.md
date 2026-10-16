@@ -43,7 +43,7 @@ browser dialog returns focus to Open. Pending terminal state survives launcher d
 and successful workspace navigation closes the launcher. Leaving Home still prevents a late terminal
 response from navigating. The server contracts, resource-creation rules and deck implementation are unchanged.
 
-- Full suite: **90 files, 1,075 passed, 3 skipped**. Typecheck, pack lint (36 checks), changed-code
+- Full suite after rebasing onto `6704512`: **90 files, 1,076 passed, 3 skipped**. Typecheck, pack lint (36 checks), changed-code
   formatting and `git diff --check` pass.
 - Actual Paseo 0.11 compiler succeeds for both bundles. The client has **zero `class` tokens** and
   parses with React Native 0.81.5 Hermes using default flags.
