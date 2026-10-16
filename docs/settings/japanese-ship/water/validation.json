@@ -1,44 +1,105 @@
 {
   "date": "2026-10-16",
-  "implementation": "750ea41",
-  "runtimeCompiledAt": "1d58c9d",
+  "implementation": "8b1001f",
+  "runtimeCompiledAt": "0453867",
   "runtimeSourceChangedSinceCompile": false,
-  "packLint": { "command": "npm.cmd run lint:deck-packs", "passed": 69, "failed": 0 },
-  "typecheck": { "command": "npm.cmd run typecheck", "exitCode": 0 },
-  "hermes": { "evidence": "compile-results.json", "main": "parsed", "branch": "parsed", "clientGrowthBytes": 0 },
-  "shipGate": { "evidence": "ship-gate.json", "shots": 81, "pixelIdentical": true, "flakes": 0, "errors": 0 },
+  "packLint": {
+    "command": "npm.cmd run lint:deck-packs",
+    "passed": 69,
+    "failed": 0
+  },
+  "typecheck": {
+    "command": "npm.cmd run typecheck",
+    "exitCode": 0
+  },
+  "hermes": {
+    "evidence": "compile-results.json",
+    "main": "parsed",
+    "branch": "parsed",
+    "clientGrowthBytes": 0
+  },
+  "shipGate": {
+    "evidence": "ship-gate.json",
+    "shots": 81,
+    "pixelIdentical": true,
+    "flakes": 0,
+    "errors": 0
+  },
   "renders": {
     "evidence": "after/results.json",
-    "viewports": [[1440, 900], [650, 1900], [2400, 800]],
-    "phases": ["dawn", "day", "dusk", "night", "storm"],
+    "viewports": [
+      [
+        1440,
+        900
+      ],
+      [
+        650,
+        1900
+      ],
+      [
+        2400,
+        800
+      ]
+    ],
+    "phases": [
+      "dawn",
+      "day",
+      "dusk",
+      "night",
+      "storm"
+    ],
     "overlay": true,
     "errors": 0,
-    "motion": ["full", "lite", "still"],
+    "motion": [
+      "full",
+      "lite",
+      "still"
+    ],
     "stillStable": true,
     "uniqueSeaFrames": 28,
     "seaSamples": 32,
-    "spiritWidePeakOpaquePixels": 7210,
-    "spiritTallPeakOpaquePixels": 2304,
+    "spiritWidePeakOpaquePixels": 6949,
+    "spiritTallPeakOpaquePixels": 2198,
     "spiritFullySubmergesBothSizes": true
   },
-  "crew": { "evidence": "crew.json", "exactTargetClicks": 192, "workersPerState": 24, "states": 4, "phases": 2 },
+  "crew": {
+    "evidence": "crew.json",
+    "exactTargetClicks": 192,
+    "workersPerState": 24,
+    "states": 4,
+    "phases": 2
+  },
   "suite": {
     "command": "npm.cmd test -- --maxWorkers=1",
     "concurrentRenderOrCompileJobs": 0,
-    "exitCode": 1,
-    "passed": 1178,
+    "exitCode": 0,
+    "filesPassed": 101,
+    "passed": 1184,
     "skipped": 3,
-    "failed": 2,
-    "durationSeconds": 195.15,
-    "knownTimingFailures": [
-      { "file": "server/pr-watch.test.ts", "detail": "400 ms budget completed 3 entries rather than 4; line 241" },
-      { "file": "server/update-source.test.ts", "detail": "upstream/ls-remote fixture exceeded 5000 ms; line 202" }
+    "failed": 0,
+    "durationSeconds": 93.03,
+    "testsModified": false
+  },
+  "base": "88b8e1b",
+  "imageBytes": 904476,
+  "anchor": {
+    "evidence": "anchor/results.json",
+    "worldWaterline": [
+      100,
+      178
     ],
-    "isolatedReruns": [
-      { "command": "npm.cmd test -- server/pr-watch.test.ts --maxWorkers=1", "exitCode": 0, "passed": 5, "durationSeconds": 11.54 },
-      { "command": "npm.cmd test -- server/update-source.test.ts --maxWorkers=1", "exitCode": 0, "passed": 5, "durationSeconds": 5.28 }
+    "coastSpace": "stationary world phase strip",
+    "sizes": [
+      "wide",
+      "square",
+      "tall-narrow"
     ],
-    "testsModified": false,
-    "completeSuiteVerification": "PR CI on Linux and Windows"
+    "fullRiseAndSubmerge": true,
+    "hiddenIn": [
+      "lite",
+      "still",
+      "reduced motion"
+    ],
+    "errors": 0
   }
 }
