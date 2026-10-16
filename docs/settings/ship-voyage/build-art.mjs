@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {decodePng} from '../../../test/png.ts';
 import {blank,crop,nearest,quant,encode,paste,bounds} from '../japanese-ship/build-art.mjs';
+import {polishAtmosphere} from './polish-art.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),out=resolve(here,'../../../art/settings/ship'),baseline=resolve(here,'../../../test/fixtures/ship-baseline');
 mkdirSync(out,{recursive:true});
 const images={},sources={},sha=b=>createHash('sha256').update(b).digest('hex');
@@ -107,6 +108,8 @@ save('beam-clear',blank(2048,112));
 for(const id of ['rain-clear','rain-0','rain-1','rain-2','rain-3']){
  const b=readFileSync(resolve(here,'../../../art/settings/sky-airship',id+'.png'));writeFileSync(resolve(out,id+'.png'),b);const a=decodePng(b);images[id]={path:id+'.png',size:[a.width,a.height],sha256:sha(b)};
 }
+polishAtmosphere({source,save,read,baseline,clone,pixel,put,blit,fit,tint});
+for(const id of ['moon','sky-stars']){const a=blank(512,2048);blit(a,read(resolve(out,images[id].path)),0,0);save(id,a);}
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({sources,images,parts,landmarks,lamp},null,2)+'\n');
 writeFileSync(resolve(here,'review/coast-registration.png'),encode(day));
 writeFileSync(resolve(here,'review/coast-night-registration.png'),encode(dark));

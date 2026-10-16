@@ -1,0 +1,20 @@
+{
+  "generator": "Built-in image_gen.imagegen",
+  "images": [
+    {
+      "file": "sources/polish-sky.png",
+      "prompt": "Production pixel-art palette reference atlas, 3 columns by 2 rows, six equal rectangular sky gradient panels, landscape 1536x1024. Panel order dawn, morning, midday, afternoon, dusk, night. Absolutely no scenery, cloud, sun, moon, stars, text, labels, borders or objects. Each panel is ONLY a very smooth vertical sky colour gradient made with fine one-pixel ordered dithering, many gentle closely-spaced colours, no broad horizontal stripes or abrupt changes. Dawn lavender at top to pale peach at bottom; morning cornflower azure to pale warm cyan; midday rich blue at top to light saturated cyan at bottom; afternoon azure to warm pale turquoise; dusk muted indigo to rose and amber near bottom; night deep midnight navy to slightly lighter indigo blue. Refined 1990s adventure-game pixel art. The smooth fine dither is essential.",
+      "transparentBackground": false
+    },
+    {
+      "file": "sources/polish-water.png",
+      "prompt": "Production pixel-art environment texture atlas, 1536x1024 landscape, 2 columns and 2 rows of equal opaque cells. No borders, no labels, no ship, no coastline, no characters. Top-left: bright tropical azure turquoise SEA TEXTURE ONLY, horizontal gently rolling ripples with scattered crisp ivory whitecaps and tiny sun sparkles, fairly uniform lighting, seamlessly repeatable. Top-right: dark deep teal storm SEA TEXTURE ONLY with large curling breaking wave crests, very clear pale ice-blue foam and blown spray, seamlessly repeatable. Bottom-left: heavy dark thunderhead cloud ceiling filling whole cell, roiling charcoal-indigo cumulonimbus, dramatic layered cloud volumes darker above and muted storm teal below, no lightning drawn, no rain. Bottom-right: another frame of the same dark storm sea, wave crests advancing a little. Crisp detailed limited-palette square pixel art like a polished 1990s pirate adventure, readable clusters, no smooth painting or blur.",
+      "transparentBackground": false
+    },
+    {
+      "file": "sources/polish-kraken.png",
+      "prompt": "Production sprite sheet for a polished 1990s pirate pixel-art adventure, four equal cells in ONE horizontal row on TRUE TRANSPARENT background, 1536x1024 canvas. Each cell contains the SAME purple/violet sea kraken viewed SIDE ON, head and many curling tentacles emerging halfway from water, menacing little amber eyes. Wide organic cluster of four distinct tall curled tentacles and a domed octopus head, pale lilac suckers on undersides. Feet/base shared horizontal waterline in each cell. Four subtle animation poses from left to right: tentacles unfurl, curl inward, rise, settle. Leave generous transparent padding between cells; entire creature must fit each cell. A few icy white foam pixels around base only; no full sea or sky or ground. Crisp square pixels, strong silhouette, detailed stepped highlights, no blurry edges, no shadows outside sprite, no labels or letters. Kraken must read as octopus, not a single eel. Native target each sprite 90x76 pixels.",
+      "transparentBackground": true
+    }
+  ]
+}
