@@ -88,7 +88,7 @@ add(ambient('rain','front',10,{kind:'tile',frames:{sprites:Array(4).fill(s('rain
 const whaleSeq=[...Array(16).fill(s('whale-clear')),...seq('whale',6),s('whale-clear')];
 add(ambient('ghost-whale','back',8,{...cycle(whaleSeq,400,'swell'),at:[115,286],anchor:[87,148],opacity:{curve:[[.8,0],[1,1]]}},{lite:'hide',still:'hide'}));
 add(ambient('spectral-passage','back',7.5,{...cycle([...Array(12).fill(s('ship-passage-clear')),...seq('ship-passage',8),s('ship-passage-clear')],950,'swell'),at:[0,174],anchor:[0,0],opacity:{curve:[[.8,0],[1,.85]]}},{lite:'hide',still:'hide'}));
-add(ambient('distant-kraken','back',8.2,{...cycle([...Array(20).fill(s('distant-kraken-clear')),...seq('distant-kraken',8)],350,'swell'),at:[455,275],anchor:[39,59],opacity:{curve:[[.9,0],[1,.8]]}},{lite:'hide',still:'hide'}));
+add(ambient('distant-kraken','back',8.2,{...cycle([...Array(20).fill(s('distant-kraken-clear')),...seq('distant-kraken',8)],350,'swell'),at:[765,286],anchor:[39,55],opacity:{curve:[[.9,0],[1,.8]]}},{lite:'hide',still:'hide'}));
 const batFrames=[...Array(24).fill(s('bat-flight-clear')),...seq('bat-flight',16),...Array(12).fill(s('bat-flight-clear'))];
 add(ambient('night-bats','back',8.5,{kind:'phase-strip',top:40,span:[-2000,2800],frames:{sprites:batFrames,frameMs:140,clock:'swell'},byPhase:Object.fromEntries(phases.map(p=>[p,p==='night'?batFrames:batFrames.map(()=>s('bat-flight-clear'))])),drift:{pxPerSecond:0}},{lite:'hide',still:'hide'}));
 for(const [i,x,y]of [[0,190,255],[1,470,290],[2,640,210]])add(ambient('will-o-wisp-'+i,'back',8,{...cycle(seq('hatch-mist'),700+i*110,'swell'),at:[x,y],anchor:[18,21],opacity:.45},{lite:'hide',still:'hide'}));
@@ -99,6 +99,7 @@ writeFileSync(resolve(out,'setting.json'),JSON.stringify(pack,null,2)+'\n');
 // Only remove orphan PNGs generated into this exact owned pack directory.
 for(const file of readdirSync(out))if(file.endsWith('.png')&&!Object.values(pack.images).some(i=>i.path===file))unlinkSync(resolve(out,file));
 console.log(JSON.stringify({id:pack.id,images:Object.keys(pack.images).length,bytes:Object.values(pack.images).reduce((n,a)=>n+readFileSync(resolve(out,a.path)).length,0)}));
+
 
 
 

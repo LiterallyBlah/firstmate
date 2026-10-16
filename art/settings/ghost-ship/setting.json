@@ -112,7 +112,7 @@
         122,
         58
       ],
-      "sha256": "c8e268ec34d0fcd8199b0c4e111a6f881c008e7ee1ec8123eb86ca385d185953"
+      "sha256": "0ee50471a66293f7bb023357656d80b37d3a05543e5124c2efcdb3081a237c00"
     },
     "flag-main-1": {
       "path": "flag-main-1.png",
@@ -120,7 +120,7 @@
         122,
         58
       ],
-      "sha256": "d359450c8c1b272f400a31396b93f82685badb53addeb8f6fbee41fd110d280e"
+      "sha256": "7637d86db6b6c7ea36824f87da64c00f85879e81d9f70c1ffb1c37cfc0908ee8"
     },
     "flag-main-2": {
       "path": "flag-main-2.png",
@@ -128,7 +128,7 @@
         122,
         58
       ],
-      "sha256": "c8e268ec34d0fcd8199b0c4e111a6f881c008e7ee1ec8123eb86ca385d185953"
+      "sha256": "0ee50471a66293f7bb023357656d80b37d3a05543e5124c2efcdb3081a237c00"
     },
     "flag-main-3": {
       "path": "flag-main-3.png",
@@ -136,7 +136,7 @@
         122,
         58
       ],
-      "sha256": "42dc442a3c8832deca88629ed1363bb2a3287939096c4991d11bf521be81e8bb"
+      "sha256": "9228da00b730160c4e47532105f149ddc8475e0a49ffa0ad36fb0c98b70780d6"
     },
     "flag-aft-0": {
       "path": "flag-aft-0.png",
@@ -1312,7 +1312,7 @@
         384,
         216
       ],
-      "sha256": "d569057e32b4b5305b62f9ae8622dd3cb91d7b1aa84a712718f2bd77b1cda818"
+      "sha256": "a8d157703fae9fb4fd6f3ebf86325e78d1badda8b4f1efbc257104746b8618d7"
     }
   },
   "copy": {
@@ -5563,12 +5563,12 @@
           "clock": "swell"
         },
         "at": [
-          455,
-          275
+          765,
+          286
         ],
         "anchor": [
           39,
-          59
+          55
         ],
         "opacity": {
           "curve": [
