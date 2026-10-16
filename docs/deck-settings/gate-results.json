@@ -1,7 +1,7 @@
 {
-  "base": "compiled main 310a5df",
-  "branch": "HEAD fa97e4e",
-  "compiledBranch": "fa97e4e",
+  "base": "compiled main 87c26d2",
+  "branch": "HEAD b61a32f",
+  "compiledBranch": "b61a32f",
   "maskToolbar": false,
   "control": null,
   "scenarios": [
@@ -15,23 +15,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "7e943bffe6897098",
-            "1720c380cd1e870e"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "1720c380cd1e870e",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -53,23 +39,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 2183,
-          "firstDifference": [
-            169,
-            869
-          ],
-          "box": [
-            169,
-            869,
-            549,
-            880
-          ],
-          "sha": [
-            "ac359e84506ee009",
-            "7b56fca43f441ee4"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "7b56fca43f441ee4",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -92,23 +64,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "cc0b0720b01ff7dc",
-            "e493c1e78c884825"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e493c1e78c884825",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -130,23 +88,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 2183,
-          "firstDifference": [
-            169,
-            869
-          ],
-          "box": [
-            169,
-            869,
-            549,
-            880
-          ],
-          "sha": [
-            "a5b106f1fcce6f42",
-            "6223f5a51c4c12fc"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "6223f5a51c4c12fc",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -168,23 +112,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 2183,
-          "firstDifference": [
-            169,
-            869
-          ],
-          "box": [
-            169,
-            869,
-            549,
-            880
-          ],
-          "sha": [
-            "4d1b5b57eb505b66",
-            "a0f7073e64237148"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "a0f7073e64237148",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -207,23 +137,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 7435,
-          "firstDifference": [
-            465,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1027,
-            1767
-          ],
-          "sha": [
-            "36113b85a624501f",
-            "955f4cffc56ebd6a"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "955f4cffc56ebd6a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -246,23 +162,9 @@
       "shots": [
         {
           "shot": "open",
-          "identical": false,
-          "differingPixels": 7435,
-          "firstDifference": [
-            465,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1027,
-            1767
-          ],
-          "sha": [
-            "a954722addfe3cca",
-            "2d010dcf4ecc18ff"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "2d010dcf4ecc18ff",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -307,23 +209,9 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "2a9fa1f3ac10b920",
-            "66e4327531b32732"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "66e4327531b32732",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -336,23 +224,9 @@
         },
         {
           "shot": "1s",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "05086ad43bb13765",
-            "815392f4df8eac0c"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "815392f4df8eac0c",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -365,23 +239,9 @@
         },
         {
           "shot": "2.5s",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "c0ca57dfc29dfdd0",
-            "5654a17e55c17568"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "5654a17e55c17568",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -394,23 +254,9 @@
         },
         {
           "shot": "5s",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "0ae5fde27498b54f",
-            "46bd2796bdfdf27b"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "46bd2796bdfdf27b",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -423,23 +269,9 @@
         },
         {
           "shot": "10s",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "03a9d47c29ac9059",
-            "e5ed5ff21ee29d0c"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "e5ed5ff21ee29d0c",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -452,23 +284,9 @@
         },
         {
           "shot": "25s",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "e035f665358c008a",
-            "af7119881d593b2d"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "af7119881d593b2d",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -481,23 +299,9 @@
         },
         {
           "shot": "49s",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "be5544ce06509457",
-            "fc6470003b8fe563"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "fc6470003b8fe563",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -510,23 +314,9 @@
         },
         {
           "shot": "73s",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "ccbfcaee02425de5",
-            "c3861e4b47a10fea"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c3861e4b47a10fea",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -548,23 +338,9 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "9c2e9aa4f5790533",
-            "154deb49e67eead8"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "154deb49e67eead8",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -577,23 +353,9 @@
         },
         {
           "shot": "5.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "b2f4677ab793318e",
-            "50bd288c6e8f9707"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "50bd288c6e8f9707",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -606,23 +368,9 @@
         },
         {
           "shot": "10.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "8b64016bbe461665",
-            "0224f0ac5b1be34c"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "0224f0ac5b1be34c",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -635,23 +383,9 @@
         },
         {
           "shot": "15.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "c749b64c0183bc4a",
-            "23b608a0b1941b61"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "23b608a0b1941b61",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -664,23 +398,9 @@
         },
         {
           "shot": "20.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "657f7b16285b9499",
-            "8d1376b73e31da64"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "8d1376b73e31da64",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -693,23 +413,9 @@
         },
         {
           "shot": "25.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "82dd2ca894e29b31",
-            "a07038a2087dd472"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "a07038a2087dd472",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -722,23 +428,9 @@
         },
         {
           "shot": "30.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "6f33f0ff71004cb1",
-            "4a88ea09d38e84b9"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "4a88ea09d38e84b9",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -751,23 +443,9 @@
         },
         {
           "shot": "flash-33.5s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "46d77a2513dbddc0",
-            "fb385fe3b9d1cb22"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "fb385fe3b9d1cb22",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -780,23 +458,9 @@
         },
         {
           "shot": "flash-33.6s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "8868579bc4d4e00b",
-            "77dee2fadf0d3f35"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "77dee2fadf0d3f35",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -809,23 +473,9 @@
         },
         {
           "shot": "35.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "0809de9880dcc820",
-            "d843ea5932084977"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "d843ea5932084977",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -838,23 +488,9 @@
         },
         {
           "shot": "40.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "3715c9745ae085e0",
-            "560c05f483860ab9"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "560c05f483860ab9",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -867,23 +503,9 @@
         },
         {
           "shot": "45.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "fb125684fe6c523e",
-            "87b8b235a83ce880"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "87b8b235a83ce880",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -896,23 +518,9 @@
         },
         {
           "shot": "flash-48.9s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "37f4675c53134a3b",
-            "c5bece454a51e206"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c5bece454a51e206",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -925,23 +533,9 @@
         },
         {
           "shot": "flash-49.0s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "3eda549867b852e6",
-            "80955e77a1d14ebf"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "80955e77a1d14ebf",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -954,23 +548,9 @@
         },
         {
           "shot": "50.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "445c44a0b28bfdf3",
-            "10c9091a82d62f46"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "10c9091a82d62f46",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -983,23 +563,9 @@
         },
         {
           "shot": "55.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "a9302f2a5543fa2a",
-            "ecffe7409a1b8c58"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "ecffe7409a1b8c58",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1012,23 +578,9 @@
         },
         {
           "shot": "60.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "66ba867d9f07702e",
-            "6f36b9a0e147c608"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "6f36b9a0e147c608",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1041,23 +593,9 @@
         },
         {
           "shot": "65.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "64ebc6f4b9d48e31",
-            "0faac004870d9618"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "0faac004870d9618",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1070,23 +608,9 @@
         },
         {
           "shot": "70.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "d3a08992b7bad0e3",
-            "7edfeeee1fe38f6b"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "7edfeeee1fe38f6b",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1099,23 +623,9 @@
         },
         {
           "shot": "75.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "004e0aa3ed231e9e",
-            "d3f1598540002f17"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "d3f1598540002f17",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1128,23 +638,9 @@
         },
         {
           "shot": "80.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "23645eb0135bf931",
-            "b95d93b0fd614e37"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "b95d93b0fd614e37",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1157,23 +653,9 @@
         },
         {
           "shot": "85.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "607be4e6516ee82b",
-            "10ebbc1c21662b34"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "10ebbc1c21662b34",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1186,23 +668,9 @@
         },
         {
           "shot": "90.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "0d8881d1099e4161",
-            "37d574118793a0bd"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "37d574118793a0bd",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1215,23 +683,9 @@
         },
         {
           "shot": "95.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "c34cbadd81eed3b0",
-            "23166ac0803a628a"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "23166ac0803a628a",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1244,23 +698,9 @@
         },
         {
           "shot": "100.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "c459b2cc957d06ec",
-            "41957136dfeb2769"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "41957136dfeb2769",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1273,23 +713,9 @@
         },
         {
           "shot": "105.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "2fd52f06db9ad8c0",
-            "2fd14bd89314cbbe"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "2fd14bd89314cbbe",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1302,23 +728,9 @@
         },
         {
           "shot": "110.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "5f4b61dd062546ff",
-            "c020c4d53ba93604"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "c020c4d53ba93604",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1331,23 +743,9 @@
         },
         {
           "shot": "115.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "5622bf4e8d549c55",
-            "9ba7bfa2d0c9b453"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "9ba7bfa2d0c9b453",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1360,23 +758,9 @@
         },
         {
           "shot": "120.4s",
-          "identical": false,
-          "differingPixels": 2102,
-          "firstDifference": [
-            149,
-            872
-          ],
-          "box": [
-            148,
-            872,
-            513,
-            883
-          ],
-          "sha": [
-            "839089bb872e3c00",
-            "4a00f8c0766119cf"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "4a00f8c0766119cf",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1398,23 +782,9 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": false,
-          "differingPixels": 2183,
-          "firstDifference": [
-            169,
-            869
-          ],
-          "box": [
-            169,
-            869,
-            549,
-            880
-          ],
-          "sha": [
-            "363132a141c8f9b8",
-            "fa2f8e5ce951c047"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "fa2f8e5ce951c047",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1427,23 +797,9 @@
         },
         {
           "shot": "10s",
-          "identical": false,
-          "differingPixels": 2183,
-          "firstDifference": [
-            169,
-            869
-          ],
-          "box": [
-            169,
-            869,
-            549,
-            880
-          ],
-          "sha": [
-            "ca2054023d10749c",
-            "906b465f875309c8"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "906b465f875309c8",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1465,23 +821,9 @@
       "shots": [
         {
           "shot": "aboard",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "2a9fa1f3ac10b920",
-            "66e4327531b32732"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "66e4327531b32732",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1494,23 +836,9 @@
         },
         {
           "shot": "changed",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "e9971cc65daeccfe",
-            "f3406b027f451a5d"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "f3406b027f451a5d",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1523,23 +851,9 @@
         },
         {
           "shot": "walking-1000ms",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "97c4a8bf60b93285",
-            "8081dcd44601c7e3"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "8081dcd44601c7e3",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1552,23 +866,9 @@
         },
         {
           "shot": "walking-2000ms",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "9238a7a650dbc4ca",
-            "1fc8528c27c14a63"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "1fc8528c27c14a63",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1581,23 +881,9 @@
         },
         {
           "shot": "walking-3000ms",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "5b2c67eac273e457",
-            "5c4377c3535a12ca"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "5c4377c3535a12ca",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1610,23 +896,9 @@
         },
         {
           "shot": "walking-5000ms",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "dc57a35e18d8a6cf",
-            "7c6e507891fbace8"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "7c6e507891fbace8",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1639,23 +911,9 @@
         },
         {
           "shot": "walking-8000ms",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "264024859c7753e4",
-            "ad43fe507641d538"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "ad43fe507641d538",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1668,23 +926,9 @@
         },
         {
           "shot": "arrived",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "1e04e92e7ee11cf7",
-            "741d237aa815277e"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "741d237aa815277e",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1697,23 +941,9 @@
         },
         {
           "shot": "hatch-200ms",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "efc4286768ee82fd",
-            "115b28811c102912"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "115b28811c102912",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1726,23 +956,9 @@
         },
         {
           "shot": "hatch-400ms",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "2ae389c351be41e4",
-            "8c16cd81e41bd546"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "8c16cd81e41bd546",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1755,23 +971,9 @@
         },
         {
           "shot": "hatch-700ms",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "566b82362d608e12",
-            "17745bcecf7cc01d"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "17745bcecf7cc01d",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1784,23 +986,9 @@
         },
         {
           "shot": "hatch-1500ms",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "7326da60b461e3e5",
-            "9d51cbad264eaaba"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "9d51cbad264eaaba",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -1813,23 +1001,9 @@
         },
         {
           "shot": "hatch-3000ms",
-          "identical": false,
-          "differingPixels": 7685,
-          "firstDifference": [
-            428,
-            1744
-          ],
-          "box": [
-            297,
-            1744,
-            1029,
-            1767
-          ],
-          "sha": [
-            "e275a69a80797174",
-            "fd8d1bc14aa67a08"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "fd8d1bc14aa67a08",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2061,23 +1235,9 @@
       "shots": [
         {
           "shot": "100ms",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "f1917b8e2e0bf15c",
-            "4ada9fd6ee6924f8"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "4ada9fd6ee6924f8",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2090,23 +1250,9 @@
         },
         {
           "shot": "300ms",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "34afce80f1e3bf00",
-            "0a2824ad8a4f56dc"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "0a2824ad8a4f56dc",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2119,23 +1265,9 @@
         },
         {
           "shot": "1.5s",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "5c9fbc7404dca37e",
-            "cff71350005f0ecd"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "cff71350005f0ecd",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2148,23 +1280,9 @@
         },
         {
           "shot": "back-out",
-          "identical": false,
-          "differingPixels": 7706,
-          "firstDifference": [
-            468,
-            1738
-          ],
-          "box": [
-            338,
-            1738,
-            1097,
-            1761
-          ],
-          "sha": [
-            "108676bf0f3a68bd",
-            "12bd4e47dbcb682f"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "12bd4e47dbcb682f",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2185,23 +1303,9 @@
       "shots": [
         {
           "shot": "0.4s",
-          "identical": false,
-          "differingPixels": 2183,
-          "firstDifference": [
-            169,
-            869
-          ],
-          "box": [
-            169,
-            869,
-            549,
-            880
-          ],
-          "sha": [
-            "1ed64d5f5ec6794f",
-            "281ff5a5a606561c"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "281ff5a5a606561c",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2214,23 +1318,9 @@
         },
         {
           "shot": "2s",
-          "identical": false,
-          "differingPixels": 2183,
-          "firstDifference": [
-            169,
-            869
-          ],
-          "box": [
-            169,
-            869,
-            549,
-            880
-          ],
-          "sha": [
-            "ef464645dd1a0f78",
-            "5d690c906d2b36a6"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "5d690c906d2b36a6",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2243,23 +1333,9 @@
         },
         {
           "shot": "6s",
-          "identical": false,
-          "differingPixels": 2183,
-          "firstDifference": [
-            169,
-            869
-          ],
-          "box": [
-            169,
-            869,
-            549,
-            880
-          ],
-          "sha": [
-            "2aaee86adf8d9427",
-            "47a274907ca8e43e"
-          ],
-          "intentional": "The condensed attention footer from PR #75 is preserved. Its action now says Focus instead of Converse; the selected title and following arrow shift with the shorter label. Every canvas pixel and all other interface pixels are unchanged.",
+          "identical": true,
+          "differingPixels": 0,
+          "sha": "47a274907ca8e43e",
           "canvas": {
             "data-firstmate-deck": "webgl",
             "data-firstmate-deck-setting": "ship",
@@ -2277,6 +1353,6 @@
   "flakes": [],
   "shots": 81,
   "passed": true,
-  "identical": false,
-  "intentionalShots": 66
+  "identical": true,
+  "intentionalShots": 0
 }

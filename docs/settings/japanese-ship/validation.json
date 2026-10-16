@@ -1,0 +1,31 @@
+{
+  "base": "87c26d2",
+  "packRevision": "b61a32f",
+  "tests": {
+    "files": 90,
+    "passed": 1091,
+    "skipped": 3
+  },
+  "packLint": {
+    "files": 3,
+    "passed": 51
+  },
+  "typecheck": "passed",
+  "clientBundle": {
+    "byteIdentical": true,
+    "bytes": 665776,
+    "sha256": "f806919da18337f9404e75604a1e41716524e7131c0513a8a6d28fa744c1f07d",
+    "classTokens": 0
+  },
+  "protectedPathsChanged": [],
+  "rebuild": "build-art.mjs and build-pack.mjs reproduce the committed art, manifest and registration without a diff",
+  "gate": {
+    "shots": 81,
+    "passed": true,
+    "identical": true,
+    "maskToolbar": false,
+    "intentionalShots": 0,
+    "flakes": [],
+    "pageErrors": []
+  }
+}
