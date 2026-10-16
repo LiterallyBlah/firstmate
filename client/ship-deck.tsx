@@ -607,7 +607,7 @@ function DeckView({
                 <Text
                   numberOfLines={1}
                   style={{ color: colors.foreground, textDecorationLine: "underline", fontSize: 12 }}
-                >{`Converse · ${attentionSailor.caption.title}`}</Text>
+                >{`Focus · ${attentionSailor.caption.title}`}</Text>
               </Pressable>
               {attentionKeys.length < 2 ? null : (
                 <Pressable
