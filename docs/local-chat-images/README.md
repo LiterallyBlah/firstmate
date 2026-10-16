@@ -27,5 +27,6 @@ Verified on Windows Edge with 1100×900 and 390×844 web viewports. The complete
 - Focused image tests after final reader hardening: 12 passed.
 - `node docs/local-chat-images/render.mjs`: both viewport sizes, previews/viewers and refusals passed.
 - `node docs/ship-deck-canvas/compile.mjs`: Paseo 0.11 compilation and Hermes parse passed.
+- `node docs/deck-settings/gate.mjs`: all 81 shots pixel-identical to main, no page errors or intentional differences; see `gate-results.json`.
 
 The first unconstrained full-suite run hit timing-sensitive process tests (`pr-watch` and `update-source`) while rendering/compilation ran concurrently. The full single-worker run passed. An initial gate run was stopped after unrelated newly merged deck changes appeared on `origin/main`; the branch was rebased before the final gate.
