@@ -3,7 +3,7 @@
   "formatVersion": 1,
   "id": "japanese-ship",
   "name": "Sakura coast",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "requires": [
     "stage@1",
     "floor@1",
@@ -211,14 +211,6 @@
       ],
       "sha256": "df64d3473e0fe36347e990918b400d287f9c6babe9e470c99772461825b20c7b"
     },
-    "dragon": {
-      "path": "dragon.png",
-      "size": [
-        320,
-        72
-      ],
-      "sha256": "0f2df1a59b8c5878c092e1247ee515d7b869fd6c5e8e4496c8de10b594b68366"
-    },
     "umibozu": {
       "path": "umibozu.png",
       "size": [
@@ -227,13 +219,21 @@
       ],
       "sha256": "5ba473d716c4300474db4b52080cd0eb8a5e898046110dd1b3790211e52572c2"
     },
+    "dragon": {
+      "path": "dragon.png",
+      "size": [
+        736,
+        128
+      ],
+      "sha256": "2a813266d3cbbf359f782c6e814d91f90e3894f0c132d8843dccacc43c64073d"
+    },
     "plank": {
       "path": "plank.png",
       "size": [
-        12,
-        38
+        80,
+        10
       ],
-      "sha256": "4ddf6a0d2910fc37d1c281b66f5fd422e5fe0a5782ae0d8ab059ed6a214e2cf7"
+      "sha256": "9514e80af335f29ca9be76bdd1b08908fc533c2ca80fbc4b481f35ec086d5f64"
     },
     "perch": {
       "path": "perch.png",
@@ -531,6 +531,150 @@
         }
       },
       {
+        "id": "ladder-extension-0",
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            245,
+            202,
+            10,
+            18
+          ]
+        },
+        "at": [
+          245,
+          62
+        ]
+      },
+      {
+        "id": "ladder-extension-1",
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            245,
+            202,
+            10,
+            18
+          ]
+        },
+        "at": [
+          245,
+          80
+        ]
+      },
+      {
+        "id": "ladder-extension-2",
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            245,
+            202,
+            10,
+            18
+          ]
+        },
+        "at": [
+          245,
+          98
+        ]
+      },
+      {
+        "id": "ladder-extension-3",
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            245,
+            202,
+            10,
+            18
+          ]
+        },
+        "at": [
+          245,
+          116
+        ]
+      },
+      {
+        "id": "ladder-extension-4",
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            245,
+            202,
+            10,
+            18
+          ]
+        },
+        "at": [
+          245,
+          134
+        ]
+      },
+      {
+        "id": "ladder-extension-5",
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            245,
+            202,
+            10,
+            18
+          ]
+        },
+        "at": [
+          245,
+          152
+        ]
+      },
+      {
+        "id": "ladder-extension-6",
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            245,
+            202,
+            10,
+            18
+          ]
+        },
+        "at": [
+          245,
+          170
+        ]
+      },
+      {
+        "id": "ladder-extension-7",
+        "lite": "run",
+        "still": "first-frame",
+        "sprite": {
+          "image": "ship",
+          "rect": [
+            245,
+            202,
+            10,
+            18
+          ]
+        },
+        "at": [
+          245,
+          188
+        ]
+      },
+      {
         "id": "sail",
         "optional": false,
         "lite": "run",
@@ -578,132 +722,6 @@
             "channel": "billow"
           }
         }
-      },
-      {
-        "id": "ladder-extension-0",
-        "lite": "run",
-        "still": "first-frame",
-        "sprite": {
-          "image": "ship",
-          "rect": [
-            245,
-            202,
-            10,
-            18
-          ]
-        },
-        "at": [
-          245,
-          76
-        ]
-      },
-      {
-        "id": "ladder-extension-1",
-        "lite": "run",
-        "still": "first-frame",
-        "sprite": {
-          "image": "ship",
-          "rect": [
-            245,
-            202,
-            10,
-            18
-          ]
-        },
-        "at": [
-          245,
-          94
-        ]
-      },
-      {
-        "id": "ladder-extension-2",
-        "lite": "run",
-        "still": "first-frame",
-        "sprite": {
-          "image": "ship",
-          "rect": [
-            245,
-            202,
-            10,
-            18
-          ]
-        },
-        "at": [
-          245,
-          112
-        ]
-      },
-      {
-        "id": "ladder-extension-3",
-        "lite": "run",
-        "still": "first-frame",
-        "sprite": {
-          "image": "ship",
-          "rect": [
-            245,
-            202,
-            10,
-            18
-          ]
-        },
-        "at": [
-          245,
-          130
-        ]
-      },
-      {
-        "id": "ladder-extension-4",
-        "lite": "run",
-        "still": "first-frame",
-        "sprite": {
-          "image": "ship",
-          "rect": [
-            245,
-            202,
-            10,
-            18
-          ]
-        },
-        "at": [
-          245,
-          148
-        ]
-      },
-      {
-        "id": "ladder-extension-5",
-        "lite": "run",
-        "still": "first-frame",
-        "sprite": {
-          "image": "ship",
-          "rect": [
-            245,
-            202,
-            10,
-            18
-          ]
-        },
-        "at": [
-          245,
-          166
-        ]
-      },
-      {
-        "id": "ladder-extension-6",
-        "lite": "run",
-        "still": "first-frame",
-        "sprite": {
-          "image": "ship",
-          "rect": [
-            245,
-            202,
-            10,
-            18
-          ]
-        },
-        "at": [
-          245,
-          184
-        ]
       }
     ],
     "pieces": [
@@ -781,8 +799,8 @@
           "image": "plank"
         },
         "at": [
-          344,
-          240
+          0,
+          246
         ],
         "baseline": {
           "over": "hull-front"
@@ -2705,19 +2723,19 @@
         "kind": "choreography",
         "marks": {
           "foot": [
-            350,
-            240
+            80,
+            234
           ],
           "rail": [
-            350,
-            246
+            70,
+            248
           ],
           "tip": [
-            350,
-            274
+            14,
+            248
           ],
           "water": [
-            350,
+            24,
             305
           ]
         },
@@ -2731,25 +2749,22 @@
         },
         "alternate": {
           "side": [
-            1,
             -1
           ],
           "drift": [
-            0,
-            -3,
-            3
+            0
           ]
         },
         "actor": [
           {
-            "ms": 160,
+            "ms": "walk",
             "to": {
               "mark": "rail"
             },
-            "path": {
-              "arc": 2
+            "path": "line",
+            "pose": {
+              "cycle": "walkSide"
             },
-            "pose": "front-a",
             "layer": {
               "front": "plank"
             },
@@ -2763,7 +2778,7 @@
             },
             "path": "line",
             "pose": {
-              "cycle": "walkFront"
+              "cycle": "walkSide"
             },
             "layer": {
               "front": "plank"
@@ -2788,7 +2803,7 @@
             "moving": false
           },
           {
-            "ms": 420,
+            "ms": 560,
             "event": "impact",
             "to": {
               "mark": "water",
@@ -2824,7 +2839,7 @@
             "moving": false
           },
           {
-            "ms": 500,
+            "ms": 1260,
             "event": "chomp",
             "pose": "stand",
             "reveal": [
@@ -2844,7 +2859,7 @@
             "moving": false
           },
           {
-            "ms": 380,
+            "ms": 1000,
             "pose": "stand",
             "layer": "effects",
             "moving": false,
@@ -2862,7 +2877,7 @@
                   "event": "impact",
                   "plusMs": 0
                 },
-                "ms": 100,
+                "ms": 160,
                 "place": {
                   "mark": "water",
                   "drift": true
@@ -2872,9 +2887,9 @@
                 "frame": "burst",
                 "at": {
                   "event": "impact",
-                  "plusMs": 100
+                  "plusMs": 160
                 },
-                "ms": 140,
+                "ms": 240,
                 "place": {
                   "mark": "water",
                   "drift": true
@@ -2897,60 +2912,100 @@
           {
             "effect": "dragon",
             "order": 1,
-            "mirror": "side",
             "keys": [
               {
-                "frame": "fin",
+                "frame": "crest",
                 "at": {
                   "event": "impact",
-                  "plusMs": 120
+                  "plusMs": 400
                 },
-                "ms": 560,
+                "ms": 250,
                 "place": {
                   "mark": "water",
-                  "drift": true,
                   "alignX": "mouth"
-                },
-                "approach": {
-                  "px": 26
                 }
               },
               {
-                "frame": "surface",
+                "frame": "rise",
                 "at": {
                   "event": "impact",
-                  "plusMs": 680
+                  "plusMs": 650
                 },
-                "ms": 160,
+                "ms": 300,
                 "place": {
                   "mark": "water",
-                  "drift": true,
                   "alignX": "mouth"
                 }
               },
               {
-                "frame": "chomp",
+                "frame": "breach",
                 "at": {
-                  "event": "chomp",
-                  "plusMs": 0
+                  "event": "impact",
+                  "plusMs": 950
                 },
-                "ms": 180,
+                "ms": 300,
                 "place": {
                   "mark": "water",
-                  "drift": true,
                   "alignX": "mouth"
                 }
               },
               {
-                "frame": "submerge",
+                "frame": "lunge",
                 "at": {
-                  "event": "chomp",
-                  "plusMs": 180
+                  "event": "impact",
+                  "plusMs": 1250
+                },
+                "ms": 150,
+                "place": {
+                  "mark": "water",
+                  "alignX": "mouth"
+                }
+              },
+              {
+                "frame": "open",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 1400
                 },
                 "ms": 200,
                 "place": {
                   "mark": "water",
-                  "drift": true,
+                  "alignX": "mouth"
+                }
+              },
+              {
+                "frame": "snap",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 1600
+                },
+                "ms": 400,
+                "place": {
+                  "mark": "water",
+                  "alignX": "mouth"
+                }
+              },
+              {
+                "frame": "sink",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 2000
+                },
+                "ms": 400,
+                "place": {
+                  "mark": "water",
+                  "alignX": "mouth"
+                }
+              },
+              {
+                "frame": "ripple",
+                "at": {
+                  "event": "impact",
+                  "plusMs": 2400
+                },
+                "ms": 600,
+                "place": {
+                  "mark": "water",
                   "alignX": "mouth"
                 }
               }
@@ -2972,54 +3027,90 @@
   "effects": {
     "dragon": {
       "size": [
-        80,
-        72
+        92,
+        128
       ],
       "points": {
         "anchor": [
-          40,
-          66
+          46,
+          120
         ],
         "mouth": [
-          62,
-          28
+          24,
+          110
         ]
       },
       "frames": {
-        "fin": {
+        "crest": {
           "image": "dragon",
           "rect": [
             0,
             0,
-            80,
-            72
+            92,
+            128
           ]
         },
-        "surface": {
+        "rise": {
           "image": "dragon",
           "rect": [
-            80,
+            92,
             0,
-            80,
-            72
+            92,
+            128
           ]
         },
-        "chomp": {
+        "breach": {
           "image": "dragon",
           "rect": [
-            160,
+            184,
             0,
-            80,
-            72
+            92,
+            128
           ]
         },
-        "submerge": {
+        "lunge": {
           "image": "dragon",
           "rect": [
-            240,
+            276,
             0,
-            80,
-            72
+            92,
+            128
+          ]
+        },
+        "open": {
+          "image": "dragon",
+          "rect": [
+            368,
+            0,
+            92,
+            128
+          ]
+        },
+        "snap": {
+          "image": "dragon",
+          "rect": [
+            460,
+            0,
+            92,
+            128
+          ]
+        },
+        "sink": {
+          "image": "dragon",
+          "rect": [
+            552,
+            0,
+            92,
+            128
+          ]
+        },
+        "ripple": {
+          "image": "dragon",
+          "rect": [
+            644,
+            0,
+            92,
+            128
           ]
         }
       }

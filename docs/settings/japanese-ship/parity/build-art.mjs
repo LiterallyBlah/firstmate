@@ -13,8 +13,8 @@ const source=name=>{const b=readFileSync(resolve(here,'sources',name+'.png'));re
 function save(name,a){const b=encode(a);writeFileSync(resolve(out,name+'.png'),b);registration.images[name]={path:name+'.png',size:[a.width,a.height],sha256:sha(b)};return a;}
 function cell(a,x,y,cols,rows){const x0=Math.round(x*a.width/cols),x1=Math.round((x+1)*a.width/cols),y0=Math.round(y*a.height/rows),y1=Math.round((y+1)*a.height/rows);return crop(a,x0,y0,x1-x0,y1-y0);}
 function fit(a,w,h,colours=24){const cut=crop(a,...bounds(a));return quant(nearest(cut,w,h),colours);}
-const dragon=source('sea-dragon'),spirit=source('umibozu');
-for(const [name,a,w,h]of [['dragon',dragon,80,72],['umibozu',spirit,72,80]]){
+const spirit=source('umibozu');
+for(const [name,a,w,h]of [['umibozu',spirit,72,80]]){
   // Shared source-cell registration keeps emergence heights, never independently stretches each pose.
   const cells=Array.from({length:4},(_,i)=>cell(a,i,0,4,1));
   const boxes=cells.map(bounds),top=Math.min(...boxes.map(b=>b[1])),bottom=Math.max(...boxes.map(b=>b[1]+b[3]));
@@ -24,12 +24,32 @@ for(const [name,a,w,h]of [['dragon',dragon,80,72],['umibozu',spirit,72,80]]){
   for(let i=0;i<4;i++)paste(strip,quant(nearest(crop(cells[i],left,top,right-left,bottom-top),fw,fh),24),i*w+Math.floor((w-fw)/2),h-fh);
   save(name,strip);
 }
+// The generated atlas has an unequal row gutter. Register each silhouette at one scale
+// and one waterline, preserving the deliberately different emergence heights.
+const dragon=source('sea-dragon-breach');
+const dragonCells=Array.from({length:8},(_,i)=>{
+  const a=crop(dragon,(i%4)*384,i<4?0:620,384,i<4?620:404);
+  return crop(a,...bounds(a));
+});
+const dragonScale=Math.min(92/Math.max(...dragonCells.map(a=>a.width)),128/Math.max(...dragonCells.map(a=>a.height)));
+const dragonStrip=blank(92*8,128);
+for(const [i,a]of dragonCells.entries()){
+  const b=quant(nearest(a,Math.round(a.width*dragonScale),Math.round(a.height*dragonScale)),24);
+  // The generation faces right in the first three cells; registration makes all poses left-facing.
+  if(i<3)for(let y=0;y<b.height;y++)for(let x=0;x<Math.floor(b.width/2);x++){
+    const l=(y*b.width+x)*4,r=(y*b.width+b.width-1-x)*4,tmp=Buffer.from(b.rgba.subarray(l,l+4));
+    b.rgba.copyWithin(l,r,r+4);b.rgba.set(tmp,r);
+  }
+  paste(dragonStrip,b,i*92+Math.floor((92-b.width)/2),128-b.height);
+}
+save('dragon',dragonStrip);
 const accessories=source('accessories');
 const dimensions=[['plank',12,38],['perch',30,24],['chochin',9,16],['petal',6,5],['crane-up',32,24],['crane-mid',32,24],['crane-down',32,24],['moon',24,24],['splash-impact',48,32],['splash-burst',48,32],['lightning-a',24,48],['lightning-b',24,48]];
 for(const [i,[name,w,h]]of dimensions.entries()){
   const a=fit(cell(accessories,i%4,Math.floor(i/4),4,3),w,h,name==='petal'?3:16);
   save(name,a);
 }
+save('plank',fit(source('bow-plank'),80,10,16));
 // A lantern is generated art registered into the engine's flickering pixel-glyph vocabulary.
 const lamp=quant(read('chochin'),3,[[22,30,48],[255,214,136],[148,62,65]]);
 registration.lantern=Array.from({length:lamp.height},(_,y)=>Array.from({length:lamp.width},(_,x)=>{const i=(y*lamp.width+x)*4;return lamp.rgba[i+3]===0?'.':lamp.rgba[i]===22?'a':lamp.rgba[i]===255?'b':'c';}).join(''));

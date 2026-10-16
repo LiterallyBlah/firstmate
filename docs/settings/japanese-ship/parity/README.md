@@ -10,7 +10,9 @@ All prompts required crisp enlarged low-resolution pixel art, restrained navy/te
 
 | Source | Prompt content and registration |
 | --- | --- |
-| sea-dragon.png | Four equal side-view cells: emerging crest, rising open mouth, closed-jaw swallow, submerging crest; Japanese teal sea dragon with ivory horns/whiskers; no gore. Common source bounding region retains relative emergence height. Four 80×72 frames. |
+| sea-dragon.png | Superseded four-pose source retained for provenance; no longer used by the build. |
+| sea-dragon-breach.png | Replacement eight-pose atlas: crest, half rise, full breach, downward lunge, open jaws at waterline, snap, sink, residual ripple. One shared scale and waterline; first three source cells flipped to face left. Eight 92×128 frames. Exact prompt in [revision prompts](revision-prompts.md). |
+| bow-plank.png | Horizontal cedar board with an exposed top surface and right-side fasteners; registered to 80×10. Replaces the upright board. |
 | umibozu.png | Four equal cells of a giant rounded black-blue sea spirit with tiny pale eyes, emerging to shoulders and settling; no mouth/horns/tentacles. Four 72×80 frames. |
 | accessories.png | 4×3 atlas: cedar plank, masthead perch, chochin, petal; three crane wing poses and crescent moon; two splashes and two lightning poses. Each asset separately cropped and registered. |
 | climbers.png | 6×3 atlas: six consistent indigo/russet/moss/plum/ochre/teal sailors, two back-view climbing poses and one lookout pose; no ladder in sprite. Frames appended to each crew lane. |
@@ -63,8 +65,8 @@ beside them. The audit reads captured pixels, not a private renderer scene graph
 
 | Element | Ship's deck | Sakura coast now | Still static / limitation |
 | --- | --- | --- | --- |
-| Departure | Plank walk, fall, splash, shark sequence | Same finite choreography, new sea dragon; every departure reason; right-side water at [350,305] | Discrete four-frame eater; no skeletal animation. Hold remains the unchanged rising arrival. |
-| Lookout | Reversible mast access and settled lookout pose | Visible ladder route from [252,236] to [241,65], two climb poses and lookout pose for all six looks | Ladder and perch themselves are fixed; lookout's settled body is static. |
+| Departure | Plank walk, fall, splash, shark sequence | Horizontal bow plank: foot [80,234], rail [70,248], tip [14,248], water [24,305]. Side-walk, 560 ms fall, visible 400 ms splash, eight-pose 92×128 dragon; 2 s breach/snap/sink plus 600 ms ripple. Every departure reason. | Discrete registered poses, no skeletal animation. Plank fixed. Hold remains the unchanged rising arrival. Dragon stays in x=0–92, clear of the suggestion shark at x≈100. |
+| Lookout | Reversible mast access and settled lookout pose | Ladder behind the sail, visible above/below its yards; route [252,236] to [241,65]. Two climb poses and lookout pose for all six looks. Transit stays in the clickable foreground depth layer. | Ladder and perch themselves are fixed; lookout's settled body is static. |
 | Storm | Overcast, rough water, spray, lightning, serpent/kraken variants | Overcast and rain/spray grow with busyness, capped lightning, four-frame umibozu emergence variant at peak | Coast/island geometry is static; approved base water still uses scrolling ripple pixels, not new rough-water frame art. |
 | Day | Dawn, morning, midday, afternoon, dusk, night | Same six phase times and 90-minute crossfades; generated dusk palette registered to unchanged coastal geometry; phase tints | No moving sun; morning/afternoon are restrained palette changes. |
 | Night sky | Static star texture fading with night's share | Two independently timed bright/dim star fields and crescent moon | Moon shape is static. This layer reveals when the night backdrop takes over at 21:00, then is covered by dawn's crossfade; no new day-gated animation capability. |
@@ -84,7 +86,7 @@ was added or changed. The full package uses 26 existing capabilities.
 ## Verification
 
 - Pack lint: 51/51 tests; all declared crops, hashes, dimensions, paths, effect bounds
-  and 24-worker packing checks pass. **51 PNGs, 869,086 bytes**, including the actual-render preview.
+  and 24-worker packing checks pass. **51 PNGs, 886,669 bytes**, including the actual-render preview.
 - Typecheck passes. Full suite passes with one worker: **1,140 passed, 3 skipped** across
   97 files. The first highly parallel run hit timing-sensitive `pr-watch` and
   `update-source` tests; the complete serial run passed without changing those tests.
