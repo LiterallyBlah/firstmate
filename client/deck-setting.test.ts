@@ -28,6 +28,14 @@ describe("global deck selection", () => {
     expect(resolveDeckSetting({ deckSetting: "studio" }, scope, undefined)).toEqual({ id: null, notice: null });
   });
 
+  it("falls back to ship when a saved office choice has been withdrawn", () => {
+    const display = { deckSetting: "office" };
+    expect(resolveDeckSetting(display, scope, [pack("ship")])).toEqual({
+      id: "ship", notice: 'The setting "office" is not installed. Showing the default setting.',
+    });
+    expect(display.deckSetting).toBe("office");
+  });
+
   it("reads all pane words and zone descriptions from a pack with arbitrary ids", () => {
     const manifest = structuredClone(shipManifest());
     manifest.id = "studio";
