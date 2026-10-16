@@ -1,0 +1,112 @@
+{
+  "referenceRevision": "b09b3b08b849c369226bcb3b88f522998dc35c61",
+  "generator": "Built-in image_gen.imagegen; no CLI/API fallback",
+  "date": "2026-10-16",
+  "scope": "Concepts/source review only; no pack, engine or runtime validation",
+  "images": [
+    {
+      "file": "01-treasure-cove-day.png",
+      "width": 1586,
+      "height": 992,
+      "bytes": 2356590,
+      "sha256": "90098e843ac3768c96ece43b9b637a418ab879432f27a2f8c1ad748e8fa14931",
+      "pngChecks": "signature, chunk CRCs, IDAT inflate, IEND"
+    },
+    {
+      "file": "02-port-town-dusk.png",
+      "width": 1586,
+      "height": 992,
+      "bytes": 2507418,
+      "sha256": "a49047c04b7d04395e880af334f4523e165041b1d95611eb81a7401589e1437e",
+      "pngChecks": "signature, chunk CRCs, IDAT inflate, IEND"
+    },
+    {
+      "file": "03-open-sea-life.png",
+      "width": 1586,
+      "height": 992,
+      "bytes": 2287583,
+      "sha256": "9ad7d241226f97c926bebdc1d9a481054ebc1d081a81afa52cb33520bbf1706d",
+      "pngChecks": "signature, chunk CRCs, IDAT inflate, IEND"
+    },
+    {
+      "file": "04-lighthouse-night.png",
+      "width": 1584,
+      "height": 993,
+      "bytes": 2357929,
+      "sha256": "4dc78813b083ef3ae27df628b3fc7e29dfb261ce0e700392121dfa62435d4f85",
+      "pngChecks": "signature, chunk CRCs, IDAT inflate, IEND"
+    },
+    {
+      "file": "05-storm-navy-chase.png",
+      "width": 1586,
+      "height": 992,
+      "bytes": 2949833,
+      "sha256": "8591b77e24b97001c6b5b881cc908ef551306df1e795558473fe834bb412ac33",
+      "pngChecks": "signature, chunk CRCs, IDAT inflate, IEND"
+    },
+    {
+      "file": "06-voyage-panorama-loop.png",
+      "width": 2164,
+      "height": 727,
+      "bytes": 2152822,
+      "sha256": "4fceb6318f3470fc69326477ddac1c28326a89db173183b9e12d3b184243d39b",
+      "pngChecks": "signature, chunk CRCs, IDAT inflate, IEND"
+    }
+  ],
+  "packs": [
+    {
+      "id": "ship",
+      "stage": [
+        426,
+        161
+      ],
+      "fit": {
+        "top": -80,
+        "bottom": 171,
+        "margin": 0.96
+      },
+      "images": 84,
+      "imageBytes": 488670
+    },
+    {
+      "id": "japanese-ship",
+      "stage": [
+        480,
+        320
+      ],
+      "fit": {
+        "top": 0,
+        "bottom": 320,
+        "margin": 0.94
+      },
+      "images": 51,
+      "imageBytes": 886395
+    },
+    {
+      "id": "sky-airship",
+      "stage": [
+        488,
+        320
+      ],
+      "fit": {
+        "top": -14,
+        "bottom": 334,
+        "margin": 0.94
+      },
+      "images": 91,
+      "imageBytes": 966489
+    }
+  ],
+  "conceptBytes": 14612175,
+  "review": {
+    "shipIdentity": "Same bow-left, honey/navy hull, twin mast plus jib, lookout, deck furniture, hatch and plank across five images.",
+    "composition": "Level hero broadside; distant scenery and vessel; continuous panorama with open-water ends.",
+    "productionFollowups": [
+      "Register native pixel grids and animated parts; concepts are higher-resolution source art.",
+      "Enforce actual carrier-surface crop/tint; illustrated shark belly is more exposed than target runtime split.",
+      "Reserve rock sweep clearance at flag and bow; verify depth and 24-worker crowd paths.",
+      "Author and verify exact panorama seam; reference strip is not a seamless runtime asset."
+    ],
+    "runtimeGateRun": false
+  }
+}
