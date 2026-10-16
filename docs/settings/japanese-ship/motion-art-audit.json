@@ -1,0 +1,79 @@
+{
+  "approved": "815bcca39e91f9775d2ee975ce7286da71225fc6",
+  "rigFrameZero": "pixel-identical",
+  "shipImage": "unchanged",
+  "cloudPatchBoxes": [
+    [
+      7,
+      39,
+      158,
+      47
+    ],
+    [
+      224,
+      79,
+      94,
+      22
+    ],
+    [
+      375,
+      32,
+      76,
+      22
+    ]
+  ],
+  "cloudPatchPixels": 7198,
+  "cloudPalette": [
+    [
+      126,
+      187,
+      237
+    ],
+    [
+      199,
+      223,
+      240
+    ],
+    [
+      248,
+      237,
+      224
+    ]
+  ],
+  "notes": [
+    "Generated billow registered to the original 48-colour sail; fixed spar attachment rows.",
+    "Original cloud sprites detached; generated clean-sky pixels used only under cloud footprints.",
+    "Island, mountains, water and original hull retained; no engine changes.",
+    "Wake/shark cycles are whole-pixel registrations of existing generated art, frame zero unchanged."
+  ],
+  "unchangedImages": {
+    "ship": "99fb6369cfa6430117da11e08ae3efb0d7770121767d7526d8a1680f4e02825f",
+    "crew-indigo": "8d48b9f76ff5620dada337d55010ce9a28abb3e683161cc57af7ab21b2844d69",
+    "crew-russet": "82fe6d631b97ba1b3e3376e931bf24b73f864b77685985028559003c80f82d92",
+    "sleep-window": "3544d22798d564e16e7661b40a57afc784d071c302cb7ff9877c6fd58d3ef2bb",
+    "ripples": "9a2521f7f513e1cba41bd47400022894ad50786831810087aae80a36b4a7d0cb",
+    "wake": "2c0cf7a816d9c72f527d07072e4dd859626e7e652bed3262e6a67499776fbd97",
+    "reply-shark": "ca9dc08091fd6906e3aee890477ba1872268cf8c64f2e85a6ed800fb809db8d5"
+  },
+  "unchangedManifestFields": [
+    "copy",
+    "floor",
+    "zones",
+    "portals",
+    "dayCycle",
+    "palette"
+  ],
+  "coastChanges": {
+    "coast": {
+      "changedPixels": 3591,
+      "outsideCloudBoxes": 0
+    },
+    "coast-night": {
+      "changedPixels": 3596,
+      "outsideCloudBoxes": 0
+    }
+  },
+  "protectedPathsChanged": [],
+  "imageCount": 20,
+  "imageBytes": 361159
+}

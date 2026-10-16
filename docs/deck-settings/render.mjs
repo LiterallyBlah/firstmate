@@ -37,7 +37,12 @@ await build({ entryPoints: [join(root, "server/deck-settings.ts")], outfile: joi
 const server = await import(pathToFileURL(join(generated, "overlay-server.mjs")).href);
 const at = async () => root;
 const answers = {
-  "firstmate.deck.engine": () => server.readDeckEngine(at),
+  "firstmate.deck.engine": async () => {
+    const engine = await server.readDeckEngine(at);
+    // Read-only observer for animation review; the plugin and renderer run unmodified.
+    if (process.env.CHECK_JAPANESE_MOTION !== "1") return engine;
+    return { ...engine, source: engine.source + `\n;const init=PIXI.Application.prototype.init;PIXI.Application.prototype.init=async function(...args){await init.apply(this,args);globalThis.motionReviewApp=this;};` };
+  },
   "firstmate.deck.settings": () => server.listDeckSettings(at),
   "firstmate.deck.setting": (input) => server.readDeckSetting(input.id, at),
 };
@@ -125,6 +130,10 @@ try {
   if (process.env.CHECK_JAPANESE_LITE === "1") {
     const { checkJapaneseLite } = await import("../settings/japanese-ship/check-scene.mjs");
     await checkJapaneseLite(view);
+  }
+  if (process.env.CHECK_JAPANESE_MOTION === "1") {
+    const { checkMotion } = await import("../settings/japanese-ship/check-motion.mjs");
+    await checkMotion(view, manifest);
   }
   if (errors.length !== 0) throw new Error(errors.join("\n"));
   console.log(JSON.stringify({ setting: actual, overlay: drawn, selectionCheck: process.env.CHECK_SELECTION === "1", errors }));

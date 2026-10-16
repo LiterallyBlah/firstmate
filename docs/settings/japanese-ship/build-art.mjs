@@ -23,6 +23,8 @@ function palette(a,limit){
 }
 function quant(a,limit,fixedPalette){const colours=fixedPalette??palette(a,limit),memo=new Map();for(let i=0;i<a.rgba.length;i+=4){if(a.rgba[i+3]<224){a.rgba.fill(0,i,i+4);continue;}const key=a.rgba[i]*65536+a.rgba[i+1]*256+a.rgba[i+2];let colour=memo.get(key);if(!colour){let best=Infinity;for(const c of colours){const d=(a.rgba[i]-c[0])**2*.3+(a.rgba[i+1]-c[1])**2*.59+(a.rgba[i+2]-c[2])**2*.11;if(d<best){best=d;colour=c;}}memo.set(key,colour);}a.rgba.set([...colour,255],i);}return a;}
 export function encode(a){const raw=Buffer.alloc((a.width*4+1)*a.height);for(let y=0;y<a.height;y++)raw.set(a.rgba.subarray(y*a.width*4,(y+1)*a.width*4),y*(a.width*4+1)+1);const chunk=(type,data)=>{const head=Buffer.alloc(8),tail=Buffer.alloc(4);head.writeUInt32BE(data.length);head.write(type,4,'latin1');tail.writeUInt32BE(crc32(Buffer.concat([head.subarray(4),data]))>>>0);return Buffer.concat([head,data,tail]);};const header=Buffer.alloc(13);header.writeUInt32BE(a.width);header.writeUInt32BE(a.height,4);header.set([8,6,0,0,0],8);return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',header),chunk('sRGB',Buffer.from([0])),chunk('IDAT',deflateSync(raw,{level:9})),chunk('IEND',Buffer.alloc(0))]);}
+export {quant,paste,bounds};
+export function buildArt(){
 const images={},lanes={},sources={};
 function source(name){const bytes=readFileSync(resolve(here,'sources',name+'.png'));sources[name]={sha256:createHash('sha256').update(bytes).digest('hex')};return decodePng(bytes);}
 function save(name,a){const bytes=encode(a);writeFileSync(resolve(out,name+'.png'),bytes);images[name]={path:name+'.png',size:[a.width,a.height],sha256:createHash('sha256').update(bytes).digest('hex')};return a;}
@@ -49,3 +51,5 @@ const preview=resolve(here,'review/day-canvas.png');
 if(existsSync(preview))save('preview',nearest(decodePng(readFileSync(preview)),384,202));
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({sources,images,lanes},null,2)+'\n');
 console.log(JSON.stringify({images:Object.keys(images),bytes:Object.values(images).reduce((n,a)=>n+readFileSync(resolve(out,a.path)).length,0)}));
+}
+if(process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url))buildArt();
