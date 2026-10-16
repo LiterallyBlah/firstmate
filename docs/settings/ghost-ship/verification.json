@@ -1,0 +1,49 @@
+{
+  "localFullSuite": {
+    "command": "npm.cmd test -- --maxWorkers=1",
+    "files": 101,
+    "passed": 1200,
+    "skipped": 3,
+    "failures": 0
+  },
+  "typecheck": "passed",
+  "packLint": {
+    "passed": 85,
+    "failures": 0
+  },
+  "frozenGate": {
+    "shots": 81,
+    "identical": 81,
+    "recordedClientTree": "ff7e28db7315e188b0ca36831cddb224632daf50",
+    "currentClientTree": "ff7e28db7315e188b0ca36831cddb224632daf50",
+    "note": "Client tree identical; final changes contain only Ghost ship data/art and documentation."
+  },
+  "weatherFix": "4024114",
+  "rebasedMain": "88b8e1bdbd9db16025bd89c025d3a60cb58342f0",
+  "captures": {
+    "matrix": 21,
+    "overlays": 21,
+    "exactFocusClicks": 96,
+    "motionModes": [
+      "full",
+      "lite",
+      "still"
+    ]
+  },
+  "knownLimit": "Baked constant crew alpha, night RGB tint only.",
+  "reviewCorrection": {
+    "artCommit": "0efb0be",
+    "payloadBytes": 902142,
+    "stormShapes": [
+      "wide",
+      "square",
+      "tall-narrow"
+    ],
+    "visualReview": "No rectangular fog grid or hard wave tile blocks in the three real-pane renders.",
+    "wrapFrames": 14,
+    "calmSeaPixelsUnchanged": true,
+    "jellyfish": "four submerged at rest; eight drift/pulse frames in full and lite",
+    "coastPeriodPixels": 1800,
+    "coastPeriodSeconds": 1200
+  }
+}

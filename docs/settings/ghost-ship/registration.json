@@ -1,0 +1,2264 @@
+{
+  "sources": {
+    "stage": {
+      "sha256": "aef2d47a52b6e7981aec49d3c99ac4ad5d76e49b81206a79b3996710c3c937fb"
+    },
+    "jolly-roger": {
+      "sha256": "ae85dcdd784c3860a6e68b518636f4ce6b78c36186c3fc6aea0aead91fc1a9e2"
+    },
+    "crew": {
+      "sha256": "c8277d81167268f2e864888d653b955ca8e2dd7654d7a20e9743fdb3a8b10169"
+    },
+    "skies-framed": {
+      "sha256": "2ec6da230e3955a8b0e705a227db6e32425e5e8ba8885cf007fd97a16a3ab7ce"
+    },
+    "coast": {
+      "sha256": "e0a5d123ec29cc3cfff4a41ad6c3da421832b3dd6db3426dba5b446d5e235045"
+    },
+    "water": {
+      "sha256": "41d43fabe2c7f7d6023f986fc1f0729ae49db1b8ba32007a8944a671098fa2b1"
+    },
+    "storm-textures": {
+      "sha256": "df749ea1778a899046737d3ec1b9c925f58a407e602d455fb1c8372808aca976"
+    },
+    "ambience": {
+      "sha256": "9d03620c10a3d7e2123b80e848fdf25aa79f56ba40e9e2395114e22b7795ecf4"
+    },
+    "anglerfish": {
+      "sha256": "9725c767427b03a9c22b5eb70805dd472385f08083dad610de73e268e4d2ae94"
+    },
+    "kraken": {
+      "sha256": "f7710346e79cda6eecbae10c3531ca61a7abac696ca8da32b5bdebda86f0fba6"
+    },
+    "whale": {
+      "sha256": "7620184ed325cf9431143f02d43b0159c830c8c22db8eb5e7e257413f23cff66"
+    },
+    "underwater": {
+      "sha256": "8a0612a40a3180d1ce65227c25be4cdf6bfceaef7e5a0cf445738120b0ccdf20"
+    },
+    "rain-clear": {
+      "reusedFrom": "art/settings/ship/rain-clear.png",
+      "sha256": "550a7e24934a43814a398ee72c84f6b30320667c1231967f57cbeb5eb2341798",
+      "transform": null
+    },
+    "rain-0": {
+      "reusedFrom": "art/settings/ship/rain-0.png",
+      "sha256": "5e00ba56d634e9361b3a2ce77d24ec34b86ec3e8de5ca92f57fbddd03d436911",
+      "transform": null
+    },
+    "rain-1": {
+      "reusedFrom": "art/settings/ship/rain-1.png",
+      "sha256": "86b8ee47e1a1eb5bc622ac41b0cd010a81ef6fd07885733bb66e480f23159b39",
+      "transform": null
+    },
+    "rain-2": {
+      "reusedFrom": "art/settings/ship/rain-2.png",
+      "sha256": "6d2e2bb7244e5a966f08f68bab5df0bff89867a35c3f421ad88a5d8a06e0ba9f",
+      "transform": null
+    },
+    "rain-3": {
+      "reusedFrom": "art/settings/ship/rain-3.png",
+      "sha256": "be75c06a3e5eacc9dfdc0c165979cd4c09354283bd23ee4efd54d9c0ef52d345",
+      "transform": null
+    },
+    "preview-canvas": {
+      "sha256": "a437e1f17d63b985be97f13c3174cc1d9e079f01bb1ec1ff0b3aefa94b66f4cd"
+    }
+  },
+  "images": {
+    "ship": {
+      "path": "ship.png",
+      "size": [
+        800,
+        520
+      ],
+      "sha256": "82e6179de0411426bc91eb965d3e635ead64b4b325527fb23d1b445aa3b31d2f"
+    },
+    "sail-main-0": {
+      "path": "sail-main-0.png",
+      "size": [
+        230,
+        190
+      ],
+      "sha256": "5071503e5420f23d383fbf444bf6672dfb2166778cddb9dc37dd7d1a09338210"
+    },
+    "sail-main-1": {
+      "path": "sail-main-1.png",
+      "size": [
+        230,
+        190
+      ],
+      "sha256": "51e16952cacb7696f0f5471e72a967e282866d4f3d2f5bd49d3b73be3cc30e18"
+    },
+    "sail-main-2": {
+      "path": "sail-main-2.png",
+      "size": [
+        230,
+        190
+      ],
+      "sha256": "5071503e5420f23d383fbf444bf6672dfb2166778cddb9dc37dd7d1a09338210"
+    },
+    "sail-main-3": {
+      "path": "sail-main-3.png",
+      "size": [
+        230,
+        190
+      ],
+      "sha256": "7b2279279f75dba3e88a2ed3cee70e2bb869dd75d654db057f89fba21dca501a"
+    },
+    "sail-aft-0": {
+      "path": "sail-aft-0.png",
+      "size": [
+        184,
+        150
+      ],
+      "sha256": "dd8c24cddb1c6c37fd706ad137454012889afdfbebada228f45a62ee4b846055"
+    },
+    "sail-aft-1": {
+      "path": "sail-aft-1.png",
+      "size": [
+        184,
+        150
+      ],
+      "sha256": "178ebaa1c99a122304c3c9cf0bf40077e4c9e5aad2a1033fbfe3e8f953d3beef"
+    },
+    "sail-aft-2": {
+      "path": "sail-aft-2.png",
+      "size": [
+        184,
+        150
+      ],
+      "sha256": "dd8c24cddb1c6c37fd706ad137454012889afdfbebada228f45a62ee4b846055"
+    },
+    "sail-aft-3": {
+      "path": "sail-aft-3.png",
+      "size": [
+        184,
+        150
+      ],
+      "sha256": "c6a1819fc94c7ff3288d1a2c0a59a9f55199d5704e0db50a1c72bd25fdaa2811"
+    },
+    "flag-main-0": {
+      "path": "flag-main-0.png",
+      "size": [
+        122,
+        58
+      ],
+      "sha256": "0ee50471a66293f7bb023357656d80b37d3a05543e5124c2efcdb3081a237c00"
+    },
+    "flag-main-1": {
+      "path": "flag-main-1.png",
+      "size": [
+        122,
+        58
+      ],
+      "sha256": "7637d86db6b6c7ea36824f87da64c00f85879e81d9f70c1ffb1c37cfc0908ee8"
+    },
+    "flag-main-2": {
+      "path": "flag-main-2.png",
+      "size": [
+        122,
+        58
+      ],
+      "sha256": "0ee50471a66293f7bb023357656d80b37d3a05543e5124c2efcdb3081a237c00"
+    },
+    "flag-main-3": {
+      "path": "flag-main-3.png",
+      "size": [
+        122,
+        58
+      ],
+      "sha256": "9228da00b730160c4e47532105f149ddc8475e0a49ffa0ad36fb0c98b70780d6"
+    },
+    "flag-aft-0": {
+      "path": "flag-aft-0.png",
+      "size": [
+        106,
+        55
+      ],
+      "sha256": "4b60de36630e725e34cc09f89116f157a92506f98558f2dd5f4011ec6fae2f8c"
+    },
+    "flag-aft-1": {
+      "path": "flag-aft-1.png",
+      "size": [
+        106,
+        55
+      ],
+      "sha256": "b1aa34df948e04c1639d9a8207b57cc947a2c7ad8ec1d5ecd2a9147314b22ae1"
+    },
+    "flag-aft-2": {
+      "path": "flag-aft-2.png",
+      "size": [
+        106,
+        55
+      ],
+      "sha256": "4b60de36630e725e34cc09f89116f157a92506f98558f2dd5f4011ec6fae2f8c"
+    },
+    "flag-aft-3": {
+      "path": "flag-aft-3.png",
+      "size": [
+        106,
+        55
+      ],
+      "sha256": "b980f3ec2f10b68bae8154dd503bf0ff651a51867a07afd32864cdd46c7a489c"
+    },
+    "rig-0": {
+      "path": "rig-0.png",
+      "size": [
+        550,
+        191
+      ],
+      "sha256": "ad0ea9b41f5595015e4ea008c1c997d68c9f4266cd3d98901899d29b0753116e"
+    },
+    "rig-1": {
+      "path": "rig-1.png",
+      "size": [
+        550,
+        191
+      ],
+      "sha256": "d455c235146c156fb85e327def270d1caa346613c3a0b7e9edfe1bd4e41f4974"
+    },
+    "rig-2": {
+      "path": "rig-2.png",
+      "size": [
+        550,
+        191
+      ],
+      "sha256": "ad0ea9b41f5595015e4ea008c1c997d68c9f4266cd3d98901899d29b0753116e"
+    },
+    "rig-3": {
+      "path": "rig-3.png",
+      "size": [
+        550,
+        191
+      ],
+      "sha256": "074467722388d5794cf85ca1a8ab89934edd496205bfff46b0aa643c8af680fe"
+    },
+    "fixed": {
+      "path": "fixed.png",
+      "size": [
+        800,
+        520
+      ],
+      "sha256": "e31c7d034da7ff584f3d9ee876a15b2e7278716aab8cc6ba2a06faf5f2ec95c9"
+    },
+    "sail-screen": {
+      "path": "sail-screen.png",
+      "size": [
+        28,
+        174
+      ],
+      "sha256": "00c603fce58638679e228ceafd99160168423311bb4603b15d1c643b2371502e"
+    },
+    "seam-0": {
+      "path": "seam-0.png",
+      "size": [
+        800,
+        520
+      ],
+      "sha256": "c2c2ef07a330a0b87a4ec93c577612b499c480b264339908f1f44897e7993d63"
+    },
+    "seam-1": {
+      "path": "seam-1.png",
+      "size": [
+        800,
+        520
+      ],
+      "sha256": "1efc76f9e195f6e22835b23af1944fb3a3d2adf4cc896187ba4b4a263ea16938"
+    },
+    "seam-2": {
+      "path": "seam-2.png",
+      "size": [
+        800,
+        520
+      ],
+      "sha256": "efd16083475935bc21bbaa8497e4015991690458dce534e10ab62baeacb306e1"
+    },
+    "seam-3": {
+      "path": "seam-3.png",
+      "size": [
+        800,
+        520
+      ],
+      "sha256": "ac17797993031319f54d806555273742cc69c9d9385513f8ac82cbd01aa3f1bd"
+    },
+    "crew-0": {
+      "path": "crew-0.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "e37260b7ca7b858c8282c6c0c6b456d8e4b860633c1071f72315b6046b002b19"
+    },
+    "crew-1": {
+      "path": "crew-1.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "e7633f4d93036cf35943ca4fecd88d2b96cc7895596bd1d5d3e030f4c1efcbfb"
+    },
+    "crew-2": {
+      "path": "crew-2.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "dc2cd4212ac5a9d7374773229346ed36f13ed5548ca5433d4c79a36f8bc36d14"
+    },
+    "crew-3": {
+      "path": "crew-3.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "7b276d8f042476932906ac72c49057f458410dfb633ce8b975d8bf4083ab5820"
+    },
+    "crew-4": {
+      "path": "crew-4.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "5b3a1822b92b1a3f9b79b3cff8947e137cac3ab795e8d4867f9249ced4d78661"
+    },
+    "crew-5": {
+      "path": "crew-5.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "e42bc70040b9066f729e22d9a08489d24201bea1a1af4abbfbc81b0cb05049bc"
+    },
+    "crew-6": {
+      "path": "crew-6.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "72270624c9376f9d75055276de5e9e43050f0ee08ee56835f4dd7567b5788304"
+    },
+    "crew-7": {
+      "path": "crew-7.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "3ba7542a3f5a0b7b1a8d3ff7d59c6c9b023e6b82b27cb70740b6d207fee8eb6b"
+    },
+    "sky-dawn": {
+      "path": "sky-dawn.png",
+      "size": [
+        320,
+        240
+      ],
+      "sha256": "dcaa6441f255ecb8550d893cef2c6445e0914845bbe171ad834c6396e50dce99"
+    },
+    "sky-morning": {
+      "path": "sky-morning.png",
+      "size": [
+        320,
+        240
+      ],
+      "sha256": "916f224fd1ebc56862332408446167d8e7a2094be21c2e459ad0f8215bd8f737"
+    },
+    "sky-midday": {
+      "path": "sky-midday.png",
+      "size": [
+        320,
+        240
+      ],
+      "sha256": "6b8a50b6e96f4bd5e434a8e3fe50f37e95dc3279755d3cd13d2af1f3d7a23431"
+    },
+    "sky-afternoon": {
+      "path": "sky-afternoon.png",
+      "size": [
+        320,
+        240
+      ],
+      "sha256": "aefd855dc73adef02ce23b7d0df027dd347a87f14613e12aebfc7fb4d878f15b"
+    },
+    "sky-dusk": {
+      "path": "sky-dusk.png",
+      "size": [
+        320,
+        240
+      ],
+      "sha256": "6068cd63865913735a9b28e463c45f11917f8848a24f8e128280a6eb6d723600"
+    },
+    "sky-night": {
+      "path": "sky-night.png",
+      "size": [
+        320,
+        240
+      ],
+      "sha256": "2c67caca2a55cf098dba62cecac53ef637c28ae6958bb8c23d51021cdb387028"
+    },
+    "coast-dawn": {
+      "path": "coast-dawn.png",
+      "size": [
+        1800,
+        168
+      ],
+      "sha256": "74521be77ba8c4455eaba3616495ddf315b1162ca01fc2681addbf2863706a63"
+    },
+    "coast-morning": {
+      "path": "coast-morning.png",
+      "size": [
+        1800,
+        168
+      ],
+      "sha256": "1716e815d3f2cbee24da9d530c9deb5275fcd2b027128915317921c25ed17d7a"
+    },
+    "coast-midday": {
+      "path": "coast-midday.png",
+      "size": [
+        1800,
+        168
+      ],
+      "sha256": "84f8c9d8c36ed38c62467350e2b2264ed845b9933defdbbfb06f3e55ba7d14f4"
+    },
+    "coast-afternoon": {
+      "path": "coast-afternoon.png",
+      "size": [
+        1800,
+        168
+      ],
+      "sha256": "c7a189596ee7df78529f02b3fee016bf1d2b1107a494c8984206cd5dc3223daa"
+    },
+    "coast-dusk": {
+      "path": "coast-dusk.png",
+      "size": [
+        1800,
+        168
+      ],
+      "sha256": "e6aca110315792f5f7a366ba3fb353cd29c0237d8687cece5f1ceb03f61d73e5"
+    },
+    "coast-night": {
+      "path": "coast-night.png",
+      "size": [
+        1800,
+        168
+      ],
+      "sha256": "786bc3a20afb30de4e1b3c5ac5e4858c1a7ba9029ecf415e02c90602ec11526e"
+    },
+    "water-0-0-0": {
+      "path": "water-0-0-0.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "89a64906cf1279ed3e4fed6c5749cee2c62840d895e245034417ee317694bc40"
+    },
+    "water-0-0-1": {
+      "path": "water-0-0-1.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "cdffd6364a064282734d4d25d66f21733049fd15f2bfdd4ac9ac731a7d3d9e2e"
+    },
+    "water-0-0-2": {
+      "path": "water-0-0-2.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "aa0fea29e309eed7d4c4c976675960c63b5dc6c9db9fe64825490802249a262f"
+    },
+    "water-0-0-3": {
+      "path": "water-0-0-3.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "585e2ef69c02b8ec4c62b90b2407936ab47376918c4683c3524be19e827404dc"
+    },
+    "water-1-0-0": {
+      "path": "water-1-0-0.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "181014a3988928cd499c9239cf67bd58b6974728f532abb21e530298f6b23ada"
+    },
+    "water-1-0-1": {
+      "path": "water-1-0-1.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "94c7aea6c09e99fc54e77368d532f129942d48741ac8ad0a9abe53ef835785f8"
+    },
+    "water-1-0-2": {
+      "path": "water-1-0-2.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "93f04cabeb7cae80803a4902602ba43f2848c326c3bfe234fc79fbf44156ac26"
+    },
+    "water-1-0-3": {
+      "path": "water-1-0-3.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "f509b107ece99c72eb55eb610d9c21732c0ffc4ea48701a9a153fced366a7933"
+    },
+    "water-2-0-0": {
+      "path": "water-2-0-0.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "c14213ec6cdbda646f7b3c7a926398fc88971be0d01d03c92c272004c6dfc5d8"
+    },
+    "water-2-0-1": {
+      "path": "water-2-0-1.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "d0350f5aca926c54c4d30db10614d2bc26b1e7d8d3dc6a1cb2a1f5763e6e399e"
+    },
+    "water-2-0-2": {
+      "path": "water-2-0-2.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "41a3b164e9291d6f8b85d044cec63954a5ac10b49aa165038a1b4b02e9220e10"
+    },
+    "water-2-0-3": {
+      "path": "water-2-0-3.png",
+      "size": [
+        384,
+        64
+      ],
+      "sha256": "7565781965d54fc505dc1cfc9551dd4fe542cd2d956453ce8690696ed17c1cdd"
+    },
+    "storm-water-0": {
+      "path": "storm-water-0.png",
+      "size": [
+        393,
+        64
+      ],
+      "sha256": "5cae69fb90b1e89a36a3da2f054ce18f76c64dde9e0e8c84c1ebc2d7d12ddb49"
+    },
+    "storm-water-1": {
+      "path": "storm-water-1.png",
+      "size": [
+        393,
+        64
+      ],
+      "sha256": "2935abab961dac85fd79f664ed6f0d6bdbc9281ac2c2aca4732f0fd3363b008f"
+    },
+    "storm-water-2": {
+      "path": "storm-water-2.png",
+      "size": [
+        393,
+        64
+      ],
+      "sha256": "279f982b338ac1c4de11e7aa0aa6fe4669fc3324299be52ff2606c6ab165a0f4"
+    },
+    "storm-fog": {
+      "path": "storm-fog.png",
+      "size": [
+        512,
+        256
+      ],
+      "sha256": "bf335100de6e3a3efc1cc992d289e7ffc55003d1d1dabb082e9383d40d260a88"
+    },
+    "storm-fog-clear": {
+      "path": "storm-fog-clear.png",
+      "size": [
+        512,
+        256
+      ],
+      "sha256": "d1440650da8bb3c2b60783c23f07b1b0694a365df77483d050d1e9fafaa389b0"
+    },
+    "cloud-wisp": {
+      "path": "cloud-wisp.png",
+      "size": [
+        40,
+        12
+      ],
+      "sha256": "2b0ecd3466334422f4e55e2e84463132c49541beb9e61d73b860c428043f7be6"
+    },
+    "cloud-bank": {
+      "path": "cloud-bank.png",
+      "size": [
+        52,
+        28
+      ],
+      "sha256": "f61d69d5bc8fedb385b25c4b1a33e3a30a5386727cc6de7cfc1dc5b82c00a743"
+    },
+    "raven-rest": {
+      "path": "raven-rest.png",
+      "size": [
+        16,
+        18
+      ],
+      "sha256": "0d04b3f15497211d77cc722c208d970529ae19e37b8e43540917488f18df48ec"
+    },
+    "raven-turn": {
+      "path": "raven-turn.png",
+      "size": [
+        24,
+        18
+      ],
+      "sha256": "f733e221f749080fc6a339222969850351d8e9db1e283340a3a28753b84ba907"
+    },
+    "bat-up": {
+      "path": "bat-up.png",
+      "size": [
+        20,
+        16
+      ],
+      "sha256": "7119368979822208c44b00ae0b35e4a362629567b47aeab003f1573f42348bc8"
+    },
+    "bat-down": {
+      "path": "bat-down.png",
+      "size": [
+        20,
+        16
+      ],
+      "sha256": "410337ad3fae2ab619e0758374812f110e4a177b0563eff2de10fb0cfe356f23"
+    },
+    "jelly-wide": {
+      "path": "jelly-wide.png",
+      "size": [
+        28,
+        42
+      ],
+      "sha256": "26117d227c27dbe73250441fed071bd680598d681ad073c703ea9e90183257c2"
+    },
+    "jelly-narrow": {
+      "path": "jelly-narrow.png",
+      "size": [
+        28,
+        42
+      ],
+      "sha256": "7f1c8456ba4151ddb13c716a0acdaf41186a747df116c366625f3fba99860f63"
+    },
+    "sleeper": {
+      "path": "sleeper.png",
+      "size": [
+        18,
+        12
+      ],
+      "sha256": "562b23b2f144f18353e8fb0a06de9a5683799b802459127d5eca8b978187fb4c"
+    },
+    "spectral-ship": {
+      "path": "spectral-ship.png",
+      "size": [
+        140,
+        100
+      ],
+      "sha256": "ff36bbdabaecdac9b356817dc88793c6f87b49e31846508ea6f3d28e1c8a48a0"
+    },
+    "lightning": {
+      "path": "lightning.png",
+      "size": [
+        70,
+        160
+      ],
+      "sha256": "a3fe282186e7e1fa141a2a475e3c1b374779aac19d56d718b3c1bf7aa49c1ab0"
+    },
+    "ripple": {
+      "path": "ripple.png",
+      "size": [
+        90,
+        24
+      ],
+      "sha256": "3b84a7a185a770c293a765e10cc581f709d5f84e1eb4a408bd67847490e5ea45"
+    },
+    "jelly-drift-0": {
+      "path": "jelly-drift-0.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "d31987feb88df7a2a42ab801ac2533756c408b20e5734e275cb3dddc128f3ee6"
+    },
+    "jelly-drift-1": {
+      "path": "jelly-drift-1.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "892f36c4b0a9a8e2e70c65cef160d21cac56b572b73d82aac2eb11bf76705d20"
+    },
+    "jelly-drift-2": {
+      "path": "jelly-drift-2.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "f7ebf55d3ee3b6614af8c946f19f70aec4893b24138d2427ed1afb3f9fbc0897"
+    },
+    "jelly-drift-3": {
+      "path": "jelly-drift-3.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "f162537a84666c72dd5f56659047eea16378d4399506e7031654ed7d7bac5095"
+    },
+    "jelly-drift-4": {
+      "path": "jelly-drift-4.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "e4ad85e926c852bb174875f9e5198aa43fabb2972ebdf9f24a3e011b29419f5e"
+    },
+    "jelly-drift-5": {
+      "path": "jelly-drift-5.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "be511395a0f896674ffe2647639855973ec2f4da6761e4bb86fcbe7943cd707d"
+    },
+    "jelly-drift-6": {
+      "path": "jelly-drift-6.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "95b3155403d04aa6c02d999e4599a014dad07fcfa9d7db67bf0169db98217153"
+    },
+    "jelly-drift-7": {
+      "path": "jelly-drift-7.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "4f61460c1c32711545b19542d302ced3ae980828980f1683b92eea2aa3fc3ea0"
+    },
+    "fog-0": {
+      "path": "fog-0.png",
+      "size": [
+        160,
+        42
+      ],
+      "sha256": "8200f48fae2e42b16410cf35e428ae6b2fe98b28cc1d2ead8b8a9f84d4ef0bae"
+    },
+    "night-fog-0": {
+      "path": "night-fog-0.png",
+      "size": [
+        160,
+        42
+      ],
+      "sha256": "935a2fdfef03065daaae74676ef3acd3ac6886089ad8844a5c9eaeaaae65c101"
+    },
+    "fog-1": {
+      "path": "fog-1.png",
+      "size": [
+        160,
+        42
+      ],
+      "sha256": "0c712f537f3bafe40d2cf455e80877a135b1da1e738e9a1a3040da2be7869af2"
+    },
+    "night-fog-1": {
+      "path": "night-fog-1.png",
+      "size": [
+        160,
+        42
+      ],
+      "sha256": "3905aef68184cb3f313ed5658f9a63f0c1ea9499a83aa2982c7ff754a1e021f1"
+    },
+    "fog-2": {
+      "path": "fog-2.png",
+      "size": [
+        160,
+        42
+      ],
+      "sha256": "8200f48fae2e42b16410cf35e428ae6b2fe98b28cc1d2ead8b8a9f84d4ef0bae"
+    },
+    "night-fog-2": {
+      "path": "night-fog-2.png",
+      "size": [
+        160,
+        42
+      ],
+      "sha256": "935a2fdfef03065daaae74676ef3acd3ac6886089ad8844a5c9eaeaaae65c101"
+    },
+    "fog-3": {
+      "path": "fog-3.png",
+      "size": [
+        160,
+        42
+      ],
+      "sha256": "99ea81ee0dd6e834f0c0df83c715489c45c4172e230f5c92e552533e13cd836c"
+    },
+    "night-fog-3": {
+      "path": "night-fog-3.png",
+      "size": [
+        160,
+        42
+      ],
+      "sha256": "71a1a175f0a95e8556423e607cb7309734eec62b03e8308c3c3d3e1ab6dc89d9"
+    },
+    "hatch-mist-0": {
+      "path": "hatch-mist-0.png",
+      "size": [
+        36,
+        42
+      ],
+      "sha256": "9074ee4bbe6b994d8aa0ad7de677ec93040de9187d931feb90c5573a0c09b58b"
+    },
+    "hatch-mist-1": {
+      "path": "hatch-mist-1.png",
+      "size": [
+        36,
+        42
+      ],
+      "sha256": "0bb665e7b476cb570c9f44252599b26fd228573ff2f5214f91ec4b57c32893dc"
+    },
+    "hatch-mist-2": {
+      "path": "hatch-mist-2.png",
+      "size": [
+        36,
+        42
+      ],
+      "sha256": "f9a2281bdf3917c9261dfc1e47ea3dea52abadee7a5489bbbac9bcfec3df3403"
+    },
+    "hatch-mist-3": {
+      "path": "hatch-mist-3.png",
+      "size": [
+        36,
+        42
+      ],
+      "sha256": "e9f2204ac77711c36689214081469b0e9d46a11a7a8fbca223627e12dfd3af4d"
+    },
+    "candle-0": {
+      "path": "candle-0.png",
+      "size": [
+        20,
+        28
+      ],
+      "sha256": "2ed641a9e84800d8b17a2313c1cd2f5549d3adc9d8a464ffdf535828bc8c547d"
+    },
+    "candle-1": {
+      "path": "candle-1.png",
+      "size": [
+        20,
+        28
+      ],
+      "sha256": "769e3cd3383ee6a22712808a1170e4fa47e49b5b25597322602ef893af90e49e"
+    },
+    "candle-2": {
+      "path": "candle-2.png",
+      "size": [
+        20,
+        28
+      ],
+      "sha256": "c6799bdaa49ace7153a86780544eeea7c65bbbe26305bddf83f2e2c11a6de8d2"
+    },
+    "candle-3": {
+      "path": "candle-3.png",
+      "size": [
+        20,
+        28
+      ],
+      "sha256": "237a219278ebdf87e92482b02f54ff240c7197d622c01d790b25172043bedd69"
+    },
+    "bat-flight-0": {
+      "path": "bat-flight-0.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "b9136d64b7a64d55b0f393078729cbc3790a2e5abd3a0c465ef554252d6aff6d"
+    },
+    "bat-flight-1": {
+      "path": "bat-flight-1.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "4fc82f0640f6b498502668d926bcddf4222dfde56a2bfa0b834cf1396124138d"
+    },
+    "bat-flight-2": {
+      "path": "bat-flight-2.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "1f8ae668626a8b8b60979a2b0932ef722a7bc0973c15be079289932e6aa41e66"
+    },
+    "bat-flight-3": {
+      "path": "bat-flight-3.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "d48a5332e757af829db3cbd718cfb77cb6b316ad9db00ac35574e4089d82b838"
+    },
+    "bat-flight-4": {
+      "path": "bat-flight-4.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "b1466bcdb69a5206efa5e668f15b1cb28a08083c46e1c5ccff0de172249da2e2"
+    },
+    "bat-flight-5": {
+      "path": "bat-flight-5.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "861e9cbe11b84c00a3f7732cb492c11ddbe8b40be290e01fae6609e93d0c4df8"
+    },
+    "bat-flight-6": {
+      "path": "bat-flight-6.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "071492a491b3c073a51821c33bf1b3476ccf8a8b36a8a68648e9a84f59ae4961"
+    },
+    "bat-flight-7": {
+      "path": "bat-flight-7.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "45014ac2836c8f6dc0bf68341390340d95433d149b06f05e000fe18f97b69f3a"
+    },
+    "bat-flight-8": {
+      "path": "bat-flight-8.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "dcd7327734d644ad94df56d1acd1d3bffb9f9b4501828077ef29ab467948c26f"
+    },
+    "bat-flight-9": {
+      "path": "bat-flight-9.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "5c63b277dfa876883878e891369b640544f81ec681a87e25416703b07c1cc7f3"
+    },
+    "bat-flight-10": {
+      "path": "bat-flight-10.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "fc62b438a6112446bf447cce039fdd09d6ed7a5668e1cc2d5dc953d413a1ba9c"
+    },
+    "bat-flight-11": {
+      "path": "bat-flight-11.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "5c072b1aa17a5f3f576ebaa0a94b4bb2de9dfb32356b7f14f65d0e3b3803e9e5"
+    },
+    "bat-flight-12": {
+      "path": "bat-flight-12.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "d67f2058b70b2d29e2db1a2cb087db0bb988bbdd557e7eed1ee0db840ee9dd62"
+    },
+    "bat-flight-13": {
+      "path": "bat-flight-13.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "9fe96ffd6c502b3c212a644809c087abba90783deaf355e23a31d696d14414e0"
+    },
+    "bat-flight-14": {
+      "path": "bat-flight-14.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "50610ee74ee76c8899b524c4d4632a0eba845f4ae6dcd57e7998696e0ae0edbd"
+    },
+    "bat-flight-15": {
+      "path": "bat-flight-15.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "d5ed9bbda2b16a995e97c7cfc0fa8a42532c98d588ffd013f3342ba5516b0fbe"
+    },
+    "bat-flight-clear": {
+      "path": "bat-flight-clear.png",
+      "size": [
+        960,
+        80
+      ],
+      "sha256": "307017400e9b8ad8b8beeec5a81b36fb1a53f6f40f7b9aec0c9191c591e2fc2a"
+    },
+    "ship-passage-0": {
+      "path": "ship-passage-0.png",
+      "size": [
+        800,
+        110
+      ],
+      "sha256": "361be9a927b85d5ee82524be57cdedaf4b71fdd373b518b19053c7c8c18f2187"
+    },
+    "ship-passage-1": {
+      "path": "ship-passage-1.png",
+      "size": [
+        800,
+        110
+      ],
+      "sha256": "57689d130d078861b7e49b81d1b6be2d2f45c93d44b56cb17d1bc628b8e17073"
+    },
+    "ship-passage-2": {
+      "path": "ship-passage-2.png",
+      "size": [
+        800,
+        110
+      ],
+      "sha256": "6584b896991877b023b6807df7951e60d75aa3c0fbb4f5c4d8358f6c84d25012"
+    },
+    "ship-passage-3": {
+      "path": "ship-passage-3.png",
+      "size": [
+        800,
+        110
+      ],
+      "sha256": "b543eda117cc91c850c03c1d01fe8ec4daeb6a4e74445d2448417f7e116f2566"
+    },
+    "ship-passage-4": {
+      "path": "ship-passage-4.png",
+      "size": [
+        800,
+        110
+      ],
+      "sha256": "c2c53f2a15143df299c940381bd46cdcf2e7c45244bd71eb945657b69f3e0dc2"
+    },
+    "ship-passage-5": {
+      "path": "ship-passage-5.png",
+      "size": [
+        800,
+        110
+      ],
+      "sha256": "9afd4511fb396f118f288ed28e9afc60b5cf161acedc4fa296e052a9783dfe55"
+    },
+    "ship-passage-6": {
+      "path": "ship-passage-6.png",
+      "size": [
+        800,
+        110
+      ],
+      "sha256": "79b841c071923c5d7988d9c58a8459f5134b9c34513e351208dd00c6d7d69854"
+    },
+    "ship-passage-7": {
+      "path": "ship-passage-7.png",
+      "size": [
+        800,
+        110
+      ],
+      "sha256": "a92e5edc719d15581d3a4bb1d0ac14857a57bfb61df58a3679e8e6e80f6699a3"
+    },
+    "ship-passage-clear": {
+      "path": "ship-passage-clear.png",
+      "size": [
+        800,
+        110
+      ],
+      "sha256": "135030e481ed6b4829ebb6269cc3a61e4c18ef5e85d7e9de915ff3c7814639f5"
+    },
+    "beam-0": {
+      "path": "beam-0.png",
+      "size": [
+        1800,
+        24
+      ],
+      "sha256": "b5e5cc16f48cfeb7d54440dd5fc9d443e1470f4acf744d0258af8828d23cddb5"
+    },
+    "beam-1": {
+      "path": "beam-1.png",
+      "size": [
+        1800,
+        24
+      ],
+      "sha256": "0d1f2540f730f7ab5c259602242d821ed05da558b39db379b4a95b3abe6584fc"
+    },
+    "beam-2": {
+      "path": "beam-2.png",
+      "size": [
+        1800,
+        24
+      ],
+      "sha256": "01fb0f78956227f44d670cc2f6fb35a76848c55ce813b12fd076b6d08ed94e3e"
+    },
+    "beam-3": {
+      "path": "beam-3.png",
+      "size": [
+        1800,
+        24
+      ],
+      "sha256": "5e12449ea7c12fe956df0eeb5c72564961070b076a3f7fb26f45e1038ddf34e8"
+    },
+    "beam-clear": {
+      "path": "beam-clear.png",
+      "size": [
+        1800,
+        24
+      ],
+      "sha256": "06067859720c165bae25c26f7cd1e3c64cdc6f7c76b9a018c904237dc6d94a10"
+    },
+    "angler-0": {
+      "path": "angler-0.png",
+      "size": [
+        64,
+        56
+      ],
+      "sha256": "2b0fd31ec302712879718534d18ba7623c92266799e4c30c036ee3e6fb416f52"
+    },
+    "angler-1": {
+      "path": "angler-1.png",
+      "size": [
+        64,
+        56
+      ],
+      "sha256": "2b08f042a471c33f0b223c2b4ea919826a61649665b2879993577b3afeb0a2c2"
+    },
+    "angler-2": {
+      "path": "angler-2.png",
+      "size": [
+        64,
+        56
+      ],
+      "sha256": "3121b012754517a96679a19468fc6402adab63c50175c9667c2dd83355118f95"
+    },
+    "angler-3": {
+      "path": "angler-3.png",
+      "size": [
+        64,
+        56
+      ],
+      "sha256": "37f06f1a20788925d0c716bcc993778ed7b40f78fe77763b8f74203bcb87a615"
+    },
+    "kraken-0": {
+      "path": "kraken-0.png",
+      "size": [
+        156,
+        132
+      ],
+      "sha256": "7c0cb98fe77fa41c244cc6ab85208150b6b4a94cafb443124f267145ead41135"
+    },
+    "distant-kraken-0": {
+      "path": "distant-kraken-0.png",
+      "size": [
+        78,
+        66
+      ],
+      "sha256": "af708fc3d635fa7c4e13e00b8715ee6fa10f5058fdd17dbc685370dc5853e87c"
+    },
+    "kraken-1": {
+      "path": "kraken-1.png",
+      "size": [
+        156,
+        132
+      ],
+      "sha256": "569ebd4db0fa6c5a6b2d16ec53dc44e10244ed7b9a772eb74495139102e233fe"
+    },
+    "distant-kraken-1": {
+      "path": "distant-kraken-1.png",
+      "size": [
+        78,
+        66
+      ],
+      "sha256": "d72b15a95871d20ef2a07e63e50cb38cb9235854310e2373f56582fd91105be3"
+    },
+    "kraken-2": {
+      "path": "kraken-2.png",
+      "size": [
+        156,
+        132
+      ],
+      "sha256": "dd34bdb296852adf6c31be8880760092af511af8e7bbfbe789c41613187f8908"
+    },
+    "distant-kraken-2": {
+      "path": "distant-kraken-2.png",
+      "size": [
+        78,
+        66
+      ],
+      "sha256": "344df8dfd92065e6a66cfefbf6fc43486e4be16808959e15e8a8b3e5ae35835e"
+    },
+    "kraken-3": {
+      "path": "kraken-3.png",
+      "size": [
+        156,
+        132
+      ],
+      "sha256": "0626a98a344d30839cb7fa090962712d7c15526cd65e23aed5f1251af8cf77bb"
+    },
+    "distant-kraken-3": {
+      "path": "distant-kraken-3.png",
+      "size": [
+        78,
+        66
+      ],
+      "sha256": "dfa395c2c03326ce5eac485193994d3be7346f6c7b78e37f5416b6f5c2b69821"
+    },
+    "kraken-4": {
+      "path": "kraken-4.png",
+      "size": [
+        156,
+        132
+      ],
+      "sha256": "c2f0aa40876a59e612c0113a8f477af85c9b9b9214e80bee20eb381bbdb67d2d"
+    },
+    "distant-kraken-4": {
+      "path": "distant-kraken-4.png",
+      "size": [
+        78,
+        66
+      ],
+      "sha256": "73abed26da6cafafaf23ca7a0691f09a4054d2c7628ce9823aae3b7380e81bf4"
+    },
+    "kraken-5": {
+      "path": "kraken-5.png",
+      "size": [
+        156,
+        132
+      ],
+      "sha256": "77f34f4b598cd394c687926b9b36589922da8174a0b850275f57c2680742e2f6"
+    },
+    "distant-kraken-5": {
+      "path": "distant-kraken-5.png",
+      "size": [
+        78,
+        66
+      ],
+      "sha256": "5166c63596aaeedb79364d8271016d1572716159d2e857a7cab484934df1dede"
+    },
+    "kraken-6": {
+      "path": "kraken-6.png",
+      "size": [
+        156,
+        132
+      ],
+      "sha256": "8a59594b62113d9622c53cf3b6d356153664842e3459facecc991f3309e1e5d6"
+    },
+    "distant-kraken-6": {
+      "path": "distant-kraken-6.png",
+      "size": [
+        78,
+        66
+      ],
+      "sha256": "2fd44588fba97cb3246bd2d22501b6a5977cb11812785d252bc011e9a21e88bf"
+    },
+    "kraken-7": {
+      "path": "kraken-7.png",
+      "size": [
+        156,
+        132
+      ],
+      "sha256": "012765204e71698c7c7fee81da139287acc2790df28b307a8d0c93cc6e607cb6"
+    },
+    "distant-kraken-7": {
+      "path": "distant-kraken-7.png",
+      "size": [
+        78,
+        66
+      ],
+      "sha256": "a953ed8d6dd15439eaab65f06106e56aa031f5dc4e374ee9de91c6be02120c64"
+    },
+    "whale-0": {
+      "path": "whale-0.png",
+      "size": [
+        174,
+        162
+      ],
+      "sha256": "83cbb10e0adcdd7687f282fcbe198ac1b0217586581ab871d7a71427ccd0a0ef"
+    },
+    "whale-1": {
+      "path": "whale-1.png",
+      "size": [
+        174,
+        162
+      ],
+      "sha256": "931fa4ed066cbb71ef5e5c6a9157f7bc7d0635098b0cc996e7a2ad80a24a1141"
+    },
+    "whale-2": {
+      "path": "whale-2.png",
+      "size": [
+        174,
+        162
+      ],
+      "sha256": "e9eebb917814bea06813a6efe8eb1571fbb9620cad337c6cbc0030632ffcd92e"
+    },
+    "whale-3": {
+      "path": "whale-3.png",
+      "size": [
+        174,
+        162
+      ],
+      "sha256": "0670712a928191a71503de40a81138129121dbb8ad845908395a68ff9e71de27"
+    },
+    "whale-4": {
+      "path": "whale-4.png",
+      "size": [
+        174,
+        162
+      ],
+      "sha256": "7fef1471e9853e2782cc1c5c371c6570b0e62b47caa03bff825d6d88bc1b75d0"
+    },
+    "whale-5": {
+      "path": "whale-5.png",
+      "size": [
+        174,
+        162
+      ],
+      "sha256": "b80efd9c1cccf8eb14802fbb3d82d73be4a7fca528ceef15c3886f511ce2e250"
+    },
+    "fog-clear": {
+      "path": "fog-clear.png",
+      "size": [
+        160,
+        42
+      ],
+      "sha256": "90520c03f58c63bf564244f8f46e6ca1864aca2acf36c3c13a6d74cd9481ad52"
+    },
+    "distant-kraken-clear": {
+      "path": "distant-kraken-clear.png",
+      "size": [
+        78,
+        66
+      ],
+      "sha256": "e5ac0486869902eb236a19fd894804113789233db4d7886787051239196bf886"
+    },
+    "whale-clear": {
+      "path": "whale-clear.png",
+      "size": [
+        174,
+        162
+      ],
+      "sha256": "cded7c417d3af98616768a74db0ae6063b28e3214e9eaaf7a8b60fc6d4b5e786"
+    },
+    "kraken-clear": {
+      "path": "kraken-clear.png",
+      "size": [
+        156,
+        132
+      ],
+      "sha256": "8775d91d480061e33bd62ebe82acd5f1dedbe52e943539a0cdd726832b0a52b2"
+    },
+    "ship-clear": {
+      "path": "ship-clear.png",
+      "size": [
+        140,
+        100
+      ],
+      "sha256": "c38a97cc0c514378ed5ef65e18ac4c8e3c5fc00d6a5cfb272659e0eab6ea9002"
+    },
+    "bat-clear": {
+      "path": "bat-clear.png",
+      "size": [
+        20,
+        16
+      ],
+      "sha256": "9117c65347b38d43cc236fbdb7ca0291c1deeb4de48d6cca1b6e24f1e1164cba"
+    },
+    "underwater": {
+      "path": "underwater.png",
+      "size": [
+        520,
+        100
+      ],
+      "sha256": "875ac7b297d9afe5c95da32b78340aed72c78646b208a2197ac5b62caef3b2df"
+    },
+    "deep-water": {
+      "path": "deep-water.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "c3465595bcad194a3324deef412473ae8d53c40f8d1b69111b152a2442cb1fa3"
+    },
+    "rain-clear": {
+      "path": "rain-clear.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "5f2a44a2e2ad29ee5b3120640f29fad51e6405d93d65b15c17713a97b8230506"
+    },
+    "rain-0": {
+      "path": "rain-0.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "1d67dd58bc780a3056ef03255f80acb9d6fdf27252078360f34ac64a03bf4010"
+    },
+    "rain-1": {
+      "path": "rain-1.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "b012cbadf7b6640e7ae56c9873de8ae738bc73770133c86084c661977812cf39"
+    },
+    "rain-2": {
+      "path": "rain-2.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "12983f516d94ac402fbab2740025ac160741382c8a385a2ee685f8fc9da6cb91"
+    },
+    "rain-3": {
+      "path": "rain-3.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "092f46387208185f187569ac9c300cbaa51507487732d9e8411769eb2739d2cd"
+    },
+    "storm-sky-overcast": {
+      "path": "storm-sky-overcast.png",
+      "size": [
+        320,
+        240
+      ],
+      "sha256": "43cc3ce788acc773941c1f537bcc47a202dc490ea806405f48b5769dc705d98a"
+    },
+    "preview": {
+      "path": "preview.png",
+      "size": [
+        384,
+        216
+      ],
+      "sha256": "a8d157703fae9fb4fd6f3ebf86325e78d1badda8b4f1efbc257104746b8618d7"
+    }
+  },
+  "lanes": {
+    "ghost-0": {
+      "stand": {
+        "rect": [
+          0,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-a": {
+        "rect": [
+          24,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-b": {
+        "rect": [
+          48,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-a": {
+        "rect": [
+          72,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-b": {
+        "rect": [
+          96,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "wait": {
+        "rect": [
+          120,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "climb": {
+        "rect": [
+          144,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "fall": {
+        "rect": [
+          168,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      }
+    },
+    "ghost-1": {
+      "stand": {
+        "rect": [
+          0,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-a": {
+        "rect": [
+          24,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-b": {
+        "rect": [
+          48,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-a": {
+        "rect": [
+          72,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-b": {
+        "rect": [
+          96,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "wait": {
+        "rect": [
+          120,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "climb": {
+        "rect": [
+          144,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "fall": {
+        "rect": [
+          168,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      }
+    },
+    "ghost-2": {
+      "stand": {
+        "rect": [
+          0,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-a": {
+        "rect": [
+          24,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-b": {
+        "rect": [
+          48,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-a": {
+        "rect": [
+          72,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-b": {
+        "rect": [
+          96,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "wait": {
+        "rect": [
+          120,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "climb": {
+        "rect": [
+          144,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "fall": {
+        "rect": [
+          168,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      }
+    },
+    "ghost-3": {
+      "stand": {
+        "rect": [
+          0,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-a": {
+        "rect": [
+          24,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-b": {
+        "rect": [
+          48,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-a": {
+        "rect": [
+          72,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-b": {
+        "rect": [
+          96,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "wait": {
+        "rect": [
+          120,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "climb": {
+        "rect": [
+          144,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "fall": {
+        "rect": [
+          168,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      }
+    },
+    "ghost-4": {
+      "stand": {
+        "rect": [
+          0,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-a": {
+        "rect": [
+          24,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-b": {
+        "rect": [
+          48,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-a": {
+        "rect": [
+          72,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-b": {
+        "rect": [
+          96,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "wait": {
+        "rect": [
+          120,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "climb": {
+        "rect": [
+          144,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "fall": {
+        "rect": [
+          168,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      }
+    },
+    "ghost-5": {
+      "stand": {
+        "rect": [
+          0,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-a": {
+        "rect": [
+          24,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-b": {
+        "rect": [
+          48,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-a": {
+        "rect": [
+          72,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-b": {
+        "rect": [
+          96,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "wait": {
+        "rect": [
+          120,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "climb": {
+        "rect": [
+          144,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "fall": {
+        "rect": [
+          168,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      }
+    },
+    "ghost-6": {
+      "stand": {
+        "rect": [
+          0,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-a": {
+        "rect": [
+          24,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-b": {
+        "rect": [
+          48,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-a": {
+        "rect": [
+          72,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-b": {
+        "rect": [
+          96,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "wait": {
+        "rect": [
+          120,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "climb": {
+        "rect": [
+          144,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "fall": {
+        "rect": [
+          168,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      }
+    },
+    "ghost-7": {
+      "stand": {
+        "rect": [
+          0,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-a": {
+        "rect": [
+          24,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "walk-b": {
+        "rect": [
+          48,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-a": {
+        "rect": [
+          72,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "haul-b": {
+        "rect": [
+          96,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "wait": {
+        "rect": [
+          120,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "climb": {
+        "rect": [
+          144,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      },
+      "fall": {
+        "rect": [
+          168,
+          0,
+          24,
+          28
+        ],
+        "feet": [
+          12,
+          27
+        ]
+      }
+    }
+  },
+  "parts": {
+    "sail-main": [
+      235,
+      96,
+      230,
+      190
+    ],
+    "sail-aft": [
+      480,
+      114,
+      184,
+      150
+    ],
+    "flag-main": [
+      302,
+      30,
+      122,
+      58
+    ],
+    "flag-aft": [
+      538,
+      50,
+      106,
+      55
+    ],
+    "rig": [
+      110,
+      105,
+      550,
+      191
+    ]
+  }
+}

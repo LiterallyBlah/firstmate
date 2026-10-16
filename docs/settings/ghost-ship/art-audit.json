@@ -1,0 +1,144 @@
+{
+  "bytes": 902142,
+  "crew": [
+    {
+      "look": "ghost-0",
+      "visibleAlphas": [
+        37,
+        73,
+        110,
+        147,
+        184
+      ]
+    },
+    {
+      "look": "ghost-1",
+      "visibleAlphas": [
+        37,
+        73,
+        110,
+        147,
+        184
+      ]
+    },
+    {
+      "look": "ghost-2",
+      "visibleAlphas": [
+        37,
+        73,
+        110,
+        147,
+        184
+      ]
+    },
+    {
+      "look": "ghost-3",
+      "visibleAlphas": [
+        37,
+        73,
+        110,
+        147,
+        184
+      ]
+    },
+    {
+      "look": "ghost-4",
+      "visibleAlphas": [
+        37,
+        73,
+        110,
+        147,
+        184
+      ]
+    },
+    {
+      "look": "ghost-5",
+      "visibleAlphas": [
+        37,
+        73,
+        110,
+        147,
+        184
+      ]
+    },
+    {
+      "look": "ghost-6",
+      "visibleAlphas": [
+        37,
+        73,
+        110,
+        147,
+        184
+      ]
+    },
+    {
+      "look": "ghost-7",
+      "visibleAlphas": [
+        37,
+        73,
+        110,
+        147,
+        184
+      ]
+    }
+  ],
+  "cycles": [
+    {
+      "id": "sail-main",
+      "distinct": 3
+    },
+    {
+      "id": "sail-aft",
+      "distinct": 3
+    },
+    {
+      "id": "flag-main",
+      "distinct": 3
+    },
+    {
+      "id": "flag-aft",
+      "distinct": 3
+    },
+    {
+      "id": "rig",
+      "distinct": 3
+    },
+    {
+      "id": "seam",
+      "distinct": 4
+    },
+    {
+      "id": "hatch-mist",
+      "distinct": 4
+    },
+    {
+      "id": "candle",
+      "distinct": 4
+    },
+    {
+      "id": "fog",
+      "distinct": 3
+    },
+    {
+      "id": "night-fog",
+      "distinct": 3
+    },
+    {
+      "id": "angler",
+      "distinct": 4
+    }
+  ],
+  "depth": {
+    "mast": 641,
+    "climber": 642.0298,
+    "sail": 643
+  },
+  "coastPeriodSeconds": 1200,
+  "waterline": {
+    "carrierRow": 39,
+    "departureKrakenRow": 110,
+    "whaleRow": 148
+  },
+  "phaseOpacity": "baked constant spectral alpha; night RGB tint only",
+  "nightTint": "#C8FFE0"
+}
