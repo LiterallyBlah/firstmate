@@ -1,7 +1,7 @@
 {
   "base": "e5c7f75",
-  "packRevision": "ad16c93",
-  "compiledRevision": "ad16c93",
+  "packRevision": "3a7647e",
+  "compiledRevision": "3a7647e",
   "tests": {
     "files": 93,
     "passed": 1101,
@@ -19,7 +19,6 @@
     "classTokens": 0
   },
   "protectedPathsChanged": [],
-  "broadsideAudit": "broadside-audit.json",
   "gate": {
     "shots": 81,
     "passed": true,
@@ -27,6 +26,12 @@
     "maskToolbar": false,
     "intentionalShots": 0,
     "flakes": [],
-    "pageErrors": []
-  }
+    "pageErrors": [],
+    "baselinesRegenerated": false,
+    "compiledBranch": "3a7647e"
+  },
+  "motionAudit": "motion-review.md",
+  "motionFull": "motion-full.json",
+  "motionLite": "motion-lite.json",
+  "motionArtAudit": "motion-art-audit.json"
 }
