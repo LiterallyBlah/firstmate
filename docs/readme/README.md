@@ -1,4 +1,4 @@
-# README screenshots
+# README screenshots and clips
 
 These are synthetic UI fixtures, not screenshots of an installed plugin or a live fleet.
 No daemon connection, plugin installation or reload was used to make them.
@@ -45,3 +45,41 @@ chat. The review checked for real project/task/backlog content, agent identifier
 addresses, personal filesystem paths, email addresses, unrelated pull-request URLs and private work.
 None appears in the published images. Only the invented Demo app tasks, generic suggestion text,
 standard interface labels and ship artwork are shown.
+
+## Looping feature clips
+
+The clips use the same invented Demo app fleet, captured at source revision `3efb59e` with
+Playwright and headless Edge. Temporary adapters of the existing
+[Deck settings harness](../deck-settings/render.mjs) and
+[native chat harness](../native-chat-format/render.mjs) render the current compiled plugin.
+The latter uses Paseo's actual native timeline components from the local source checkout;
+it is a component fixture, not a recording of the installed desktop shell.
+
+| Clip | Dimensions | Duration | Capture rate | File size |
+| --- | --- | --- | --- | --- |
+| [Sakura alive](sakura-alive.webp) | 800 × 453 | 5 s | 12 fps | 697,200 bytes |
+| [Shark suggestions](shark-suggestions.webp) | 900 × 660 | 8 s | 6 fps | 444,034 bytes |
+| [Scene picker](scene-picker.webp) | 900 × 660 | 8 s | 6 fps | 638,040 bytes |
+| [Sailor focus](sailor-focus.webp) | 900 × 660 | 6 s | 6 fps | 511,126 bytes |
+| [Native watch note](native-watch.webp) | 900 × 510 | 6 s | 4 fps | 15,374 bytes |
+| [Chat image viewer](image-viewer.webp) | 900 × 700 | 6 s | 4 fps | 76,810 bytes |
+
+The hero is cropped to the canvas. Its fixture changes one worker's state so the crew walks to
+another station, and accelerates the local clock through the evening to show the real day/night
+blend. The other clips use real pointer/keyboard interactions: open the shark's suggestions and send
+one, switch scenes in both directions, focus a sailor and press Escape, reveal and fold a watch's
+original text, and open and close an image preview. The shark send was checked against the fixture
+RPC and appears as a user message; no assistant response was fabricated. All captures reported zero
+browser page errors.
+
+Sharp/libwebp encodes looping animated WebP, with quality 65 for the hero and 78 for the others.
+Unchanged frames are coalesced while preserving their display time. The six clips total 2,382,584
+bytes; with the eight stills, all README media totals 3,126,326 bytes. Source frames, temporary
+adapters and review contact sheets stay in ignored `.generated/`; only final media is committed.
+The obsolete upstream demo was removed.
+
+Every one of the **171 encoded frames** was decoded from the final WebP files and visually inspected
+in numbered contact sheets before commit. Captured visible text was also scanned for private data.
+The review included the expanded watch envelope, suggestion prompts, task panels, image content and
+chat after sending. The same privacy checks listed above passed for every frame: only synthetic
+content and standard interface labels appear, with no displayed agent identifiers or private data.

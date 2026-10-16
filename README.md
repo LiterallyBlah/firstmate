@@ -13,10 +13,11 @@ and task views. The original MIT copyright and license are preserved. Earlier fo
 [Kun Chen's firstmate](https://github.com/kunchenguid/firstmate) and
 [ABorakati/paseo-firstmate](https://github.com/ABorakati/paseo-firstmate).
 
-![FirstMate Home with a synthetic conversation beside the Deck view](docs/readme/home-deck.webp)
+![Sakura coast comes alive: a billowing sail, moving crew and swimming shark, fading into night](docs/readme/sakura-alive.webp)
 
-*All screenshots below and above use synthetic fixture data. They render the current components;
-they are not captures of a live fleet. [Screenshot sources and privacy review](docs/readme/README.md).*
+*Sakura coast, with time accelerated to show the evening transition. All screenshots and looping clips
+use synthetic fixture data and current components, not a live fleet.
+[Media sources and privacy review](docs/readme/README.md).*
 
 ## Install this fork
 
@@ -86,6 +87,18 @@ saves one choice for the whole fleet, also available in settings.
   Ship's deck grows stormier as the fleet gets busy. Reduced motion keeps the scene calm, and hidden
   canvases pause.
 
+Click the shark, choose a suggestion, and the prompt arrives in Home chat:
+
+![Clicking the shark opens suggestion bubbles; choosing Review next steps sends its prompt](docs/readme/shark-suggestions.webp)
+
+Switch scenes with the fleet-wide picker:
+
+![The Scene picker switches from Ship's deck to Sakura coast and back](docs/readme/scene-picker.webp)
+
+Click a sailor to bring its task into focus; Escape returns to the whole crew:
+
+![Clicking a sailor zooms the camera and opens its synthetic task panel](docs/readme/sailor-focus.webp)
+
 Deck needs a web renderer with WebGL. Home can show it in a narrow browser pane; native mobile clients
 show an availability explanation. The standalone Deck tab has its own wide-layout requirement.
 See [Sakura coast](docs/settings/japanese-ship/README.md),
@@ -93,6 +106,8 @@ See [Sakura coast](docs/settings/japanese-ship/README.md),
 [scene-pack authoring guide](docs/deck-settings/authoring.md).
 
 ## Home and workspace tabs
+
+![FirstMate Home with a synthetic conversation beside the Deck view](docs/readme/home-deck.webp)
 
 **Home** keeps the first-mate conversation beside **List**, **Board**, **Home files** or **Deck**.
 Compact layouts switch between these and **First mate**. The divider and view choices are saved.
@@ -161,12 +176,16 @@ Image references in replies can open inline previews and an enlarged viewer. Loc
 from the home or a registered local workspace, with path checks and a 10 MiB cap. Remote workspace
 images are not fetched through this local route.
 
+![A synthetic ship image preview opens in the chat's enlarged viewer and closes again](docs/readme/image-viewer.webp)
+
 Workspace file links identify their destination and offer **Open workspace**; select the file in
 Paseo's explorer. [File-link behavior](docs/workspace-file-links/README.md).
 
 In **Paseo's native chat**, complete FirstMate watch and board notes become compact summaries with
 **Show original** to reveal their text. Ordinary conversation and Paseo's own system notes retain
 native formatting; the stored transcript is unchanged.
+
+![A folded watch note in Paseo's native chat expands with Show original, then folds again](docs/readme/native-watch.webp)
 
 [Chat capabilities](docs/chat-parity/README.md) · [Local image previews](docs/local-chat-images/README.md) ·
 [Native note formatting](docs/native-chat-format/README.md)
