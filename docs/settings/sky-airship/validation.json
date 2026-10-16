@@ -1,6 +1,6 @@
 {
-  "imageCount": 80,
-  "imageBytes": 383606,
+  "imageCount": 89,
+  "imageBytes": 861653,
   "imageBudget": 1000000,
   "requiredCapabilities": [
     "stage@1",
@@ -38,7 +38,9 @@
   "suite": {
     "files": 97,
     "passed": 1155,
-    "skipped": 3
+    "skipped": 3,
+    "workers": 1,
+    "note": "Initial concurrent run hit the existing pr-watch 400 ms wall-clock budget test; isolated full rerun passed without source changes."
   },
   "shipGate": {
     "shots": 81,
@@ -48,8 +50,9 @@
   },
   "hermes": "both compiled plugin bundles parsed; vendor Pixi excluded from bundles",
   "packageDryRun": {
-    "packFiles": 81,
+    "packFiles": 90,
     "docsFiles": 0
   },
-  "scope": "Only new pack and its docs; both installed packs and engine source unchanged"
+  "scope": "Only new pack and its docs; both installed packs and engine source unchanged",
+  "cloudAudit": "cloud-preservation.json"
 }

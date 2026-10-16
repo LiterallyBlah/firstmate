@@ -289,29 +289,53 @@
       ],
       "sha256": "5883254ec29c0a703470ba3909289a2c8f46243acaa11a759441955421780cbf"
     },
-    "cloud-bank": {
-      "path": "cloud-bank.png",
+    "sky-puff": {
+      "path": "sky-puff.png",
       "size": [
-        128,
-        48
+        52,
+        34
       ],
-      "sha256": "e2f564257f489add6f4bef4acdc775d47798626d058d235391e03d698934fcf8"
+      "sha256": "01a59b15518c34c50cbec3f496ea9182f67e122efda2ab1bc2ea8d611df16895"
     },
-    "cloud-puff": {
-      "path": "cloud-puff.png",
+    "sky-bank": {
+      "path": "sky-bank.png",
       "size": [
-        64,
-        38
+        116,
+        42
       ],
-      "sha256": "2581bd4e8f4d8653c116c5a6e38671bbf78e5aaabe72ef5c6bff9f3b76ee36fc"
+      "sha256": "9ef5b14193b04514bb6f82327ea4f3e23bce73cd5d0121ed2a459577045e6d94"
     },
-    "cloud-wisp": {
-      "path": "cloud-wisp.png",
+    "sky-tower": {
+      "path": "sky-tower.png",
       "size": [
-        96,
-        24
+        65,
+        92
       ],
-      "sha256": "41268e6e047fce5cb1a7e7b88adb92de5e681d2fa380f5deb32bdc416db739c3"
+      "sha256": "d16b8d62b1cb760e906d5be957a943611c04ab9deed28b227e240218753c8ae9"
+    },
+    "sky-feather": {
+      "path": "sky-feather.png",
+      "size": [
+        120,
+        32
+      ],
+      "sha256": "85f30830d626e37c306a4d36faaad7da0a11706cd657b7714edf43a8896d874f"
+    },
+    "sky-curl": {
+      "path": "sky-curl.png",
+      "size": [
+        85,
+        52
+      ],
+      "sha256": "b7b69c0ffbcf829d73f88e8878c07810d499e349ca17fd9fcbb8e03daac8d180"
+    },
+    "sky-anvil": {
+      "path": "sky-anvil.png",
+      "size": [
+        130,
+        64
+      ],
+      "sha256": "de9946dd3b8256563fca3baa2b8d872eabc2fdacc9065616fb9f7c6afdc918c0"
     },
     "sleep-window": {
       "path": "sleep-window.png",
@@ -537,37 +561,53 @@
       ],
       "sha256": "8a73635550c8d04a1d9e7ebd119a05e537b124cbe146b806e1be164b4504c0f9"
     },
-    "cloud-sea-0": {
-      "path": "cloud-sea-0.png",
+    "sea-far": {
+      "path": "sea-far.png",
       "size": [
-        160,
-        48
+        1920,
+        210
       ],
-      "sha256": "662aa8f92533fb7aaca6e19883eadeaeeee57064539eeb111640f27e169205e3"
+      "sha256": "22a71dd6f82d31e1c0afcb2c9ef029bfdb554477a8bbea48783c9150a2717a90"
     },
-    "cloud-sea-1": {
-      "path": "cloud-sea-1.png",
+    "sea-far-storm": {
+      "path": "sea-far-storm.png",
       "size": [
-        160,
-        48
+        1920,
+        210
       ],
-      "sha256": "190b484eb9a07cb0655baa72c89ccba7c33426ce060002e996557bade064df80"
+      "sha256": "88be601f0e911166515ea81b558de0bce9b75dbada909c31f0c060ca15eb52f0"
     },
-    "cloud-sea-2": {
-      "path": "cloud-sea-2.png",
+    "sea-mid": {
+      "path": "sea-mid.png",
       "size": [
-        160,
-        48
+        1664,
+        148
       ],
-      "sha256": "892bd51101de93f75178288f0d606ce349e8a91d9a64069303fcc0243715e1e3"
+      "sha256": "58f1b0b1e131fa9baa69275f617ad9f58b6d77fff3956e3be058f8bff337aee5"
     },
-    "cloud-sea-3": {
-      "path": "cloud-sea-3.png",
+    "sea-mid-storm": {
+      "path": "sea-mid-storm.png",
       "size": [
-        160,
-        48
+        1664,
+        148
       ],
-      "sha256": "ca7d39259f25f1fe7e6483bcb446f1876c896b27aed97666d6353e402a44638e"
+      "sha256": "6e73f7c86080f29870fa4f6ca0b5260e336475fd175f1d38b925bfe9afbf5b99"
+    },
+    "sea-near": {
+      "path": "sea-near.png",
+      "size": [
+        1408,
+        160
+      ],
+      "sha256": "715f58d141198b2d5c55bfa2c2e5dfcb4c423ae35511f98bfce7b127f5f8c458"
+    },
+    "sea-near-storm": {
+      "path": "sea-near-storm.png",
+      "size": [
+        1408,
+        160
+      ],
+      "sha256": "7a09e375022b31b0bc6e9d4b0869b36f503d18218986ce6a56dc74ad0b0f25ee"
     },
     "mist-0": {
       "path": "mist-0.png",
@@ -600,6 +640,38 @@
         18
       ],
       "sha256": "a0602e276ad80c8065da03b3db39f07a94d4f8339fa1e9b567083bfd381e237b"
+    },
+    "mist-storm-0": {
+      "path": "mist-storm-0.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "c1bb1d5ddac2720059a724ffc77afa96bb3a4f0239837bb55da533b75620733d"
+    },
+    "mist-storm-1": {
+      "path": "mist-storm-1.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "5fcb5ab3124311ecd7d18d272c16c3e82097664d9a2ec808515676342ed39e5d"
+    },
+    "mist-storm-2": {
+      "path": "mist-storm-2.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "c1bb1d5ddac2720059a724ffc77afa96bb3a4f0239837bb55da533b75620733d"
+    },
+    "mist-storm-3": {
+      "path": "mist-storm-3.png",
+      "size": [
+        160,
+        18
+      ],
+      "sha256": "5fcb5ab3124311ecd7d18d272c16c3e82097664d9a2ec808515676342ed39e5d"
     },
     "thunderhead": {
       "path": "thunderhead.png",
@@ -671,7 +743,7 @@
         384,
         200
       ],
-      "sha256": "a75c2aa1aa622fb666b90fbe627d353dba1d168bbb545462565f69ddb98e6a71"
+      "sha256": "56c1be96ce3e615c093f8eecacc10041ccd859ac5845c6be53925ab31091d757"
     }
   },
   "preview": "preview",
@@ -2762,24 +2834,20 @@
         "space": "sky",
         "clock": "wind",
         "slots": 3,
-        "margin": 40,
-        "topMin": 5,
+        "margin": 70,
+        "topMin": 3,
         "lanes": [
           [
-            36,
-            48
+            25,
+            40
           ],
           [
-            80,
-            100
+            70,
+            90
           ],
           [
-            145,
-            165
-          ],
-          [
-            185,
-            200
+            115,
+            135
           ]
         ],
         "palette": [
@@ -2789,9 +2857,9 @@
         ],
         "byPhase": {
           "dawn": [
-            "#A58AA6",
-            "#E7B1B9",
-            "#FFE2BC"
+            "#A18BAA",
+            "#E6B7C6",
+            "#FFE6CC"
           ],
           "day": [
             "#6E8FC2",
@@ -2799,9 +2867,9 @@
             "#FFF1D6"
           ],
           "dusk": [
-            "#695D8F",
-            "#B48CA5",
-            "#E7B7B8"
+            "#8A789D",
+            "#DBB38C",
+            "#FFE1A0"
           ],
           "night": [
             "#203052",
@@ -2811,139 +2879,420 @@
         },
         "sprites": [
           {
-            "id": "cloud-bank",
-            "image": "cloud-bank",
+            "id": "sky-puff",
+            "image": "sky-puff",
             "size": [
-              128,
-              48
+              52,
+              34
+            ],
+            "pxPerSecond": 0.45,
+            "variants": [
+              {
+                "id": "sky-puff-storm",
+                "frames": [
+                  {
+                    "image": "sky-puff"
+                  }
+                ],
+                "blend": "crossfade",
+                "opacity": [
+                  [
+                    0.4,
+                    0
+                  ],
+                  [
+                    0.9,
+                    1
+                  ]
+                ],
+                "palette": [
+                  "#6E8FC2",
+                  "#B9CCEB",
+                  "#FFF1D6"
+                ],
+                "byPhase": {
+                  "dawn": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "day": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "dusk": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "night": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "sky-bank",
+            "image": "sky-bank",
+            "size": [
+              116,
+              42
+            ],
+            "pxPerSecond": 0.65,
+            "variants": [
+              {
+                "id": "sky-bank-storm",
+                "frames": [
+                  {
+                    "image": "sky-bank"
+                  }
+                ],
+                "blend": "crossfade",
+                "opacity": [
+                  [
+                    0.4,
+                    0
+                  ],
+                  [
+                    0.9,
+                    1
+                  ]
+                ],
+                "palette": [
+                  "#6E8FC2",
+                  "#B9CCEB",
+                  "#FFF1D6"
+                ],
+                "byPhase": {
+                  "dawn": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "day": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "dusk": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "night": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "sky-anvil",
+            "image": "sky-anvil",
+            "size": [
+              130,
+              64
+            ],
+            "pxPerSecond": 0.8,
+            "variants": [
+              {
+                "id": "sky-anvil-storm",
+                "frames": [
+                  {
+                    "image": "sky-anvil"
+                  }
+                ],
+                "blend": "crossfade",
+                "opacity": [
+                  [
+                    0.4,
+                    0
+                  ],
+                  [
+                    0.9,
+                    1
+                  ]
+                ],
+                "palette": [
+                  "#6E8FC2",
+                  "#B9CCEB",
+                  "#FFF1D6"
+                ],
+                "byPhase": {
+                  "dawn": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "day": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "dusk": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "night": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "high-wisps",
+      "slot": "back",
+      "order": 3.1,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "drifters",
+        "space": "sky",
+        "clock": "wind",
+        "slots": 3,
+        "margin": 70,
+        "topMin": 3,
+        "lanes": [
+          [
+            155,
+            170
+          ],
+          [
+            175,
+            190
+          ]
+        ],
+        "palette": [
+          "#6E8FC2",
+          "#B9CCEB",
+          "#FFF1D6"
+        ],
+        "byPhase": {
+          "dawn": [
+            "#A18BAA",
+            "#E6B7C6",
+            "#FFE6CC"
+          ],
+          "day": [
+            "#6E8FC2",
+            "#B9CCEB",
+            "#FFF1D6"
+          ],
+          "dusk": [
+            "#8A789D",
+            "#DBB38C",
+            "#FFE1A0"
+          ],
+          "night": [
+            "#203052",
+            "#3F5788",
+            "#778DB9"
+          ]
+        },
+        "sprites": [
+          {
+            "id": "sky-feather",
+            "image": "sky-feather",
+            "size": [
+              120,
+              32
+            ],
+            "pxPerSecond": 0.32,
+            "variants": [
+              {
+                "id": "sky-feather-storm",
+                "frames": [
+                  {
+                    "image": "sky-feather"
+                  }
+                ],
+                "blend": "crossfade",
+                "opacity": [
+                  [
+                    0.4,
+                    0
+                  ],
+                  [
+                    0.9,
+                    1
+                  ]
+                ],
+                "palette": [
+                  "#6E8FC2",
+                  "#B9CCEB",
+                  "#FFF1D6"
+                ],
+                "byPhase": {
+                  "dawn": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "day": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "dusk": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "night": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "sky-curl",
+            "image": "sky-curl",
+            "size": [
+              85,
+              52
+            ],
+            "pxPerSecond": 0.4,
+            "variants": [
+              {
+                "id": "sky-curl-storm",
+                "frames": [
+                  {
+                    "image": "sky-curl"
+                  }
+                ],
+                "blend": "crossfade",
+                "opacity": [
+                  [
+                    0.4,
+                    0
+                  ],
+                  [
+                    0.9,
+                    1
+                  ]
+                ],
+                "palette": [
+                  "#6E8FC2",
+                  "#B9CCEB",
+                  "#FFF1D6"
+                ],
+                "byPhase": {
+                  "dawn": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "day": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "dusk": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ],
+                  "night": [
+                    "#222C47",
+                    "#46536C",
+                    "#75819C"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "cumulus-towers",
+      "slot": "back",
+      "order": 4.8,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "drifters",
+        "space": "sky",
+        "clock": "wind",
+        "slots": 3,
+        "margin": 70,
+        "topMin": 3,
+        "lanes": [
+          [
+            -35,
+            -20
+          ],
+          [
+            -10,
+            0
+          ]
+        ],
+        "palette": [
+          "#6E8FC2",
+          "#B9CCEB",
+          "#FFF1D6"
+        ],
+        "byPhase": {
+          "dawn": [
+            "#A18BAA",
+            "#E6B7C6",
+            "#FFE6CC"
+          ],
+          "day": [
+            "#6E8FC2",
+            "#B9CCEB",
+            "#FFF1D6"
+          ],
+          "dusk": [
+            "#8A789D",
+            "#DBB38C",
+            "#FFE1A0"
+          ],
+          "night": [
+            "#203052",
+            "#3F5788",
+            "#778DB9"
+          ]
+        },
+        "sprites": [
+          {
+            "id": "sky-tower",
+            "image": "sky-tower",
+            "size": [
+              65,
+              92
             ],
             "pxPerSecond": 0.5,
             "variants": [
               {
-                "id": "cloud-bank-storm",
+                "id": "sky-tower-storm",
                 "frames": [
                   {
-                    "image": "cloud-bank"
+                    "image": "sky-tower"
                   }
                 ],
                 "blend": "crossfade",
                 "opacity": [
                   [
-                    0.5,
-                    0
-                  ],
-                  [
-                    0.9,
-                    1
-                  ]
-                ],
-                "palette": [
-                  "#6E8FC2",
-                  "#B9CCEB",
-                  "#FFF1D6"
-                ],
-                "byPhase": {
-                  "dawn": [
-                    "#222C47",
-                    "#46536C",
-                    "#75819C"
-                  ],
-                  "day": [
-                    "#222C47",
-                    "#46536C",
-                    "#75819C"
-                  ],
-                  "dusk": [
-                    "#222C47",
-                    "#46536C",
-                    "#75819C"
-                  ],
-                  "night": [
-                    "#222C47",
-                    "#46536C",
-                    "#75819C"
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "id": "cloud-puff",
-            "image": "cloud-puff",
-            "size": [
-              64,
-              38
-            ],
-            "pxPerSecond": 0.85,
-            "variants": [
-              {
-                "id": "cloud-puff-storm",
-                "frames": [
-                  {
-                    "image": "cloud-puff"
-                  }
-                ],
-                "blend": "crossfade",
-                "opacity": [
-                  [
-                    0.5,
-                    0
-                  ],
-                  [
-                    0.9,
-                    1
-                  ]
-                ],
-                "palette": [
-                  "#6E8FC2",
-                  "#B9CCEB",
-                  "#FFF1D6"
-                ],
-                "byPhase": {
-                  "dawn": [
-                    "#222C47",
-                    "#46536C",
-                    "#75819C"
-                  ],
-                  "day": [
-                    "#222C47",
-                    "#46536C",
-                    "#75819C"
-                  ],
-                  "dusk": [
-                    "#222C47",
-                    "#46536C",
-                    "#75819C"
-                  ],
-                  "night": [
-                    "#222C47",
-                    "#46536C",
-                    "#75819C"
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "id": "cloud-wisp",
-            "image": "cloud-wisp",
-            "size": [
-              96,
-              24
-            ],
-            "pxPerSecond": 1.1,
-            "variants": [
-              {
-                "id": "cloud-wisp-storm",
-                "frames": [
-                  {
-                    "image": "cloud-wisp"
-                  }
-                ],
-                "blend": "crossfade",
-                "opacity": [
-                  [
-                    0.5,
+                    0.4,
                     0
                   ],
                   [
@@ -3081,45 +3430,151 @@
       }
     },
     {
-      "id": "cloud-sea",
+      "id": "sea-far",
       "slot": "back",
       "order": 5,
       "optional": false,
       "lite": "run",
       "still": "first-frame",
       "behaviour": {
-        "kind": "tile",
+        "kind": "strip",
         "frames": {
           "sprites": [
             {
-              "image": "cloud-sea-0"
-            },
-            {
-              "image": "cloud-sea-1"
-            },
-            {
-              "image": "cloud-sea-2"
-            },
-            {
-              "image": "cloud-sea-3"
+              "image": "sea-far"
             }
           ],
-          "frameMs": 350,
+          "frameMs": 1000,
           "clock": "cloud"
         },
+        "top": 177,
+        "span": [
+          -100,
+          580
+        ],
         "drift": {
-          "pxPerSecond": 5,
+          "pxPerSecond": 0.65,
           "clock": "wind"
         },
-        "origin": 290,
-        "bands": [
+        "variants": [
           {
-            "slot": "back",
-            "fromRow": 290
-          },
+            "id": "sea-far-storm",
+            "frames": [
+              {
+                "image": "sea-far-storm"
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                0.95,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sea-mid",
+      "slot": "back",
+      "order": 6,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "strip",
+        "frames": {
+          "sprites": [
+            {
+              "image": "sea-mid"
+            }
+          ],
+          "frameMs": 1000,
+          "clock": "cloud"
+        },
+        "top": 215,
+        "span": [
+          -100,
+          580
+        ],
+        "drift": {
+          "pxPerSecond": 1.8,
+          "clock": "wind"
+        },
+        "variants": [
           {
-            "slot": "front",
-            "fromRow": 297
+            "id": "sea-mid-storm",
+            "frames": [
+              {
+                "image": "sea-mid-storm"
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                0.95,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sea-near",
+      "slot": "front",
+      "order": 5,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "strip",
+        "frames": {
+          "sprites": [
+            {
+              "image": "sea-near"
+            }
+          ],
+          "frameMs": 1000,
+          "clock": "cloud"
+        },
+        "top": 286,
+        "span": [
+          -100,
+          580
+        ],
+        "drift": {
+          "pxPerSecond": 3.8,
+          "clock": "wind"
+        },
+        "variants": [
+          {
+            "id": "sea-near-storm",
+            "frames": [
+              {
+                "image": "sea-near-storm"
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                0.95,
+                1
+              ]
+            ]
           }
         ]
       }
@@ -3151,15 +3606,45 @@
           "frameMs": 450,
           "clock": "cloud"
         },
-        "top": 291,
+        "top": 301,
         "span": [
-          0,
-          480
+          -100,
+          580
         ],
         "drift": {
           "pxPerSecond": 3,
           "clock": "cloud"
-        }
+        },
+        "variants": [
+          {
+            "id": "storm-mist",
+            "frames": [
+              {
+                "image": "mist-storm-0"
+              },
+              {
+                "image": "mist-storm-1"
+              },
+              {
+                "image": "mist-storm-2"
+              },
+              {
+                "image": "mist-storm-3"
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                0.95,
+                1
+              ]
+            ]
+          }
+        ]
       }
     },
     {

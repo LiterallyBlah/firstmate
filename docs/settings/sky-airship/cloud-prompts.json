@@ -1,0 +1,22 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-10-16",
+  "prompts": [
+    {
+      "id": "cloud-banks",
+      "file": "sources/cloud-banks.png",
+      "prompt": "Create a production pixel-art CLOUD LAYER ATLAS for a whimsical storybook sky-pirate airship game, matching warm painterly pixel art at a 480x320 logical stage. NO ship, characters, islands, text or labels. Transparent background. Three horizontal panoramic cloud-sea banks, one per equal-height row in a 1536x1024 image, each bank fills its full row width edge-to-edge and is horizontally seamless at its left and right boundary. Clearly separate rows with transparent space above each silhouette; no cloud pixels cross row boundaries. Top row: far cloud sea, many very small soft pale lavender/blue billows, low undulating horizon, airy hazy highlights. Middle row: middle-distance cloud bank with varied medium rounded rolling cumulus, occasional taller towers, graceful asymmetric composition, cool blue-lavender shadows and ivory softly sunlit tops. Bottom row: foreground cloud bank with much larger lush rounded billows, noticeably bigger shapes, bright warm ivory tops, layered blue-violet shaded undersides, volume and atmospheric depth, only two or three broad irregular high crests not repeated scallops. All banks have an irregular top silhouette with transparent sky above and are fully cloud-filled opaque below that silhouette to their row's bottom; NO isolated floating puffs. Delicate clustered pixel shading and stepped soft edges, subtle restrained dithering, clean intentional pixels and an elegant limited palette, no black outlines, no checkerboard, no gradients or blur. Their left/right edges should meet continuously at identical cloud height and compatible colours when scrolled. Source art for three independent moving cloud-sea strips. Allocate each bank within its own 512x? style panoramic band at high resolution, equal thirds vertically. Cloud silhouettes occupy the bottom two thirds of each row; top third transparent. Rich depth and charm, not flat repetitive bands."
+    },
+    {
+      "id": "cloud-banks-storm",
+      "file": "sources/cloud-banks-storm.png",
+      "reference": "sources/cloud-banks.png",
+      "prompt": "Edit the supplied cloud-sea atlas into a HEAVY STORM version. Preserve EXACTLY the layout, geometry, silhouettes, three horizontal bank rows, pixel-art technique, and transparency of every cloud bank. Change ONLY the cloud colours and lighting: heavy slate blue and charcoal violet undersides, muted steel-blue middles, dim cold pewter lit tops. Every bank, INCLUDING the foreground billows along the bottom, must turn storm-dark consistently. No white or cream cloud remnants. No flat uniform dark band; retain all the soft volumetric rounded billows and rich layered shadow modeling. No extra clouds, ship, island, rain, lightning or text. Same atlas dimensions and exactly same shape registration as the input. Transparent background, preserve alpha."
+    },
+    {
+      "id": "cloud-shapes",
+      "file": "sources/cloud-shapes.png",
+      "prompt": "Production PIXEL ART sprite atlas for a whimsical storybook sky-pirate airship above a cloud ocean. TRANSPARENT background, no text or grids. Six distinct isolated sky cloud sprites arranged in a strict 3 columns by 2 rows grid, each sprite completely inside its own cell with generous transparent margins. Top left: a small soft round cumulus puff. Top middle: a long broken stratocumulus bank with asymmetric lobes. Top right: a tall cumulus tower with a narrow base, varied rounded volumes. Bottom left: a long thin feathered cirrus wisp, sweeping gently upward. Bottom middle: a delicate pair of curling high-altitude wisps. Bottom right: a broader flattened anvil/cloud mountain with small accompanying puffs. Every shape different, no repeated silhouette. Warm ivory sunlit tops, pale blue body, cool lavender shadow undersides; well modeled volume in simple clusters, stepped soft pixel edges, no black outline, no blurred gradients. These will be registered as 40-130 pixel wide sprites with three palette slots for changing dawn pink, sunset gold and moonlit blue; design clear large readable shading clusters rather than noisy texture. Charming sophisticated game art, Ghibli-like clouds in native retro pixel-art language. No ship, island, bird, characters, landscape or any other objects. 1536x1024 atlas."
+    }
+  ]
+}

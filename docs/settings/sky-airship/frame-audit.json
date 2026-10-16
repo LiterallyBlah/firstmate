@@ -125,13 +125,40 @@
       355
     ]
   },
-  "cloud-sea": {
-    "uniqueFrames": 4,
-    "changedPixelsFromFirst": [
-      0,
-      694,
-      822,
-      721
-    ]
+  "sea-far": {
+    "size": [
+      1920,
+      210
+    ],
+    "baseDrift": 0.65,
+    "dayLuminance": 180,
+    "stormLuminance": 74,
+    "alphaIdentical": true,
+    "loopAndContinuationEdgesIdentical": true,
+    "motion": "independent strip drift, static texture per weather state"
+  },
+  "sea-mid": {
+    "size": [
+      1664,
+      148
+    ],
+    "baseDrift": 1.8,
+    "dayLuminance": 191,
+    "stormLuminance": 88,
+    "alphaIdentical": true,
+    "loopAndContinuationEdgesIdentical": true,
+    "motion": "independent strip drift, static texture per weather state"
+  },
+  "sea-near": {
+    "size": [
+      1408,
+      160
+    ],
+    "baseDrift": 3.8,
+    "dayLuminance": 191,
+    "stormLuminance": 84,
+    "alphaIdentical": true,
+    "loopAndContinuationEdgesIdentical": true,
+    "motion": "independent strip drift, static texture per weather state"
   }
 }

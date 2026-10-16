@@ -1,5 +1,5 @@
 /** Offline registration and finite animation of generated source art. No runtime code. */
-import {readFileSync,writeFileSync,mkdirSync,existsSync} from 'node:fs';
+import {readFileSync,writeFileSync,mkdirSync,existsSync,unlinkSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
@@ -67,7 +67,13 @@ const a=source('atlas');
 const boxes=[[0,80,460,260],[475,110,260,220],[765,180,420,130],[1200,20,330,330],[60,380,300,270],[435,400,310,250],[775,395,385,260],[1200,350,330,310],...Array.from({length:4},(_,i)=>[i*384,675,384,349])];
 const bits=boxes.map(b=>crop(a,...b));
 const cloudPalette=[[110,143,194],[185,204,235],[255,241,214]];
-for(const [i,n,w,h]of [[0,'cloud-bank',128,48],[1,'cloud-puff',64,38],[2,'cloud-wisp',96,24]])save(n,quant(fit(bits[i],w,h),3,cloudPalette));
+// New generated cloud shapes: exact three-slot palettes let the engine recolour every phase.
+const skyShapes=source('cloud-shapes');
+for(const [n,rect,w,h]of [
+ ['sky-puff',[0,220,400,270],52,34],['sky-bank',[425,180,635,310],116,42],
+ ['sky-tower',[1080,30,440,460],65,92],['sky-feather',[0,590,540,340],120,32],
+ ['sky-curl',[580,575,390,390],85,52],['sky-anvil',[970,630,560,330],130,64]
+])save(n,quant(fit(crop(skyShapes,...rect),w,h),3,cloudPalette));
 save('sleep-window',fit(bits[7],14,16,16));
 for(const [i,n,w,h]of [[4,'gull-up',24,20],[5,'gull-down',24,20],[6,'distant-airship',48,30]])save(n,fit(bits[i],w,h));
 frames('serpent',bits.slice(8).map(b=>fit(b,110,86,24)));
@@ -78,9 +84,30 @@ frames('carrier',whales.slice(0,4).map(b=>fit(b,56,44,20)));
 // A shared cell scale for departure preserves the rise in the generated pose heights.
 frames('whale',whales.slice(4,8).map(b=>{const body=quant(nearest(clean(b),96,80),24);return body;}));
 frames('puff',whales.slice(8,12).map(b=>fit(b,64,48,8)));
-// Cloud sea and mist are generated cloud pixels, tiled/animated independently of the backdrop.
-const sea=quant(fit(bits[0],160,48,16),3,cloudPalette);frames('cloud-sea',[0,1,2,3].map(f=>{const b=clone(sea);for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++)put(b,x,y,pixel(sea,(x+Math.round(Math.sin(y/9+f*Math.PI/2)*2)+sea.width)%sea.width,y));return b;}));
+// Three long banks, independently scrolled by the engine, with registered generated storm art.
+// No vertical tiling: the mid bank fills below the visible stage; foreground billows overlap it.
+const banks=source('cloud-banks'),stormBanks=source('cloud-banks-storm');
+for(const [name,rect,w,h,colours]of [
+ ['sea-far',[0,160,1536,154],960,96,12],
+ ['sea-mid',[0,390,1536,237],832,148,16],
+ ['sea-near',[0,648,1536,352],704,160,20]
+]){
+ const day=quant(nearest(clean(crop(banks,...rect)),w,h),colours);
+ const stormRect=name==='sea-far'?[0,160,1536,152]:rect;
+ const storm=quant(nearest(clean(crop(stormBanks,...stormRect)),w,h),colours);
+ // Use the day silhouette for both: generated storm lighting cannot reveal white slivers on a crossfade.
+ for(let i=0;i<day.rgba.length;i+=4){if(!day.rgba[i+3])storm.rgba.fill(0,i,i+4);else if(!storm.rgba[i+3])storm.rgba.set([84,100,129,255],i);}
+ // The far bank is the continuous sea foundation. Extend its opaque textured foot
+ // below the camera, so transparent valleys in the other banks never reveal the old backdrop sea.
+ const foundation=a=>{if(name!=='sea-far')return a;const b=blank(w,210);paste(b,a,0,0);for(let y=h;y<b.height;y++){const t=(y-h)%48,sy=h-1-(t<24?t:47-t);for(let x=0;x<w;x++)put(b,x,y,pixel(a,x,sy));}return b;};
+ // A reflected continuation makes both joins pixel-continuous without a blend seam.
+ // Each original panorama is already wider than the stage; the continuation doubles its repeat period.
+ const loop=a=>{const b=blank(a.width*2,a.height);for(let y=0;y<a.height;y++)for(let x=0;x<b.width;x++)put(b,x,y,pixel(a,x<a.width?x:b.width-1-x,y));return b;};
+ save(name,loop(foundation(day)));save(name+'-storm',loop(foundation(storm)));
+}
 const mist=quant(fit(bits[2],160,16,8),3,cloudPalette);frames('mist',[0,1,2,3].map(f=>{const b=blank(160,18);paste(b,mist,0,f%2);return b;}));
+frames('mist-storm',[0,1,2,3].map(f=>{const b=blank(160,18),a=clone(mist);for(let i=0;i<a.rgba.length;i+=4)if(a.rgba[i+3]){a.rgba[i]=Math.round(a.rgba[i]*.36);a.rgba[i+1]=Math.round(a.rgba[i+1]*.4);a.rgba[i+2]=Math.round(a.rgba[i+2]*.5);}paste(b,a,0,f%2);return b;}));
+for(const old of ['cloud-bank','cloud-puff','cloud-wisp',...Array.from({length:4},(_,i)=>'cloud-sea-'+i)])if(existsSync(resolve(out,old+'.png')))unlinkSync(resolve(out,old+'.png'));
 const weather=source('weather');
 save('thunderhead',fit(crop(weather,0,75,1045,405),180,64,12));
 save('lightning-0',fit(crop(weather,1050,0,480,515),70,105,5));

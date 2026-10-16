@@ -20,8 +20,8 @@ nearest-neighbour sampling. No Pixi internals or texture metadata are inspected.
 | Arrival | Hatch rise | 1.4-second rise through the deck hatch |
 | Departure | Plank, splash, shark swallow | Plank, fall, four cloud-puff frames and four sky-whale breach/swallow/sink poses |
 | Attention carrier | Four swim frames, loiter, half-submerged surface ripple | Four small whale poses, two-pixel horizontal/one-pixel vertical loiter, mist arcs at the tinted cloud line |
-| Sea / foam | Cycling and drifting tiles/strips | Four-frame cloud sea at 5 px/s base wind drift; separate mist strip at 3 px/s cloud pace |
-| Clouds | Seeded, independently drifting cloud field | Three shapes and four lanes, different speeds; storm palette variants and day-phase colours |
+| Sea / foam | Cycling and drifting tiles/strips | Three wide volumetric banks: far/mid/near drift at 0.65/1.8/3.8 px/s on the wind clock; independent mist at 3 px/s on cloud pace. All three banks and mist crossfade to registered storm art together |
+| Clouds | Seeded, independently drifting cloud field | Six varied shapes: small puff, broken bank, tall tower, feather, curl and anvil. Separate high-wisp and sea-tower fields; dawn pink, dusk gold and moonlit blue phase palettes; storm palette variants |
 | Birds / passing ship | Seeded flybys | Flapping gulls and a distant airship flyby, disabled at night |
 | Day cycle | Backdrop phase crossfade and tint | Pink-gold dawn, blue day, amber dusk and night with stars/moon; phase tint and lantern light |
 | Busy fleet | Faster environmental clocks | Faster clouds, cloth, smoke, propeller and increasing heave as work builds |
@@ -35,6 +35,13 @@ This uses the approved Ship's deck motion model without adding engine behavior.
 The fixed hull detail, wheel, figurehead and rails move with the hull, but have no
 independent articulation. The thunderhead's one-frame shape is static while its
 intensity opacity changes; drifting dark clouds and rain supply storm movement.
+The new sea-bank textures are **static within each bank**: their independent
+horizontal drift provides parallax, rather than cyclically deforming the billows.
+Their storm variants use the same day silhouette so no pale base slivers remain
+at peak weather. The far bank continues beyond the camera's bottom; there is no
+vertical tiling or bottom row of leftover white puffs. Bank periods are 1920,
+1664 and 1408 pixels, longer than the stage and offset by different speeds.
+See the [cloud revision](cloud-review.md) for source registration and preservation.
 
 ## Evidence and limits
 
