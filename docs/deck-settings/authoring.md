@@ -80,7 +80,8 @@ the fit, clear of active workers and other foreground pieces. The pack linter ch
 
 ## The installed examples
 
-The ship and office are installed under `art/settings/`, each with only a manifest and its PNGs.
+The ship is installed under `art/settings/`, with only a manifest and its PNGs.
+Office was withdrawn after visual review to `docs/settings/office/withdrawn-pack/` and is not shipped or selectable.
 The office's [art contract, historical draft and review](../settings/office/README.md) specify its commissioned
 assets and layout. `stable-posts@1` and `pose-fidgets@1` are supported as of step 9a. Stable assignment
 hashes agent identity to a preferred post; collisions choose the nearest free post to that preference,
@@ -90,8 +91,8 @@ their settled role. Every lane must define every named fidget pose.
 
 `walk-in@1` is supported as of step 9b, `phase-tint@1` as of step 9c and `phase-frames@1` as of step 9d.
 Keep choreography finite; do not add hooks to work around a missing behavior. The office's commissioned
-art is recorded under `docs/settings/office/art/` and copied unchanged into its installed pack. The historical
-draft cannot be selected; `art/settings/office/setting.json` is the complete manifest the engine serves.
+art is recorded under `docs/settings/office/art/`; the complete withdrawn manifest and PNGs remain in
+`docs/settings/office/withdrawn-pack/` for reference. Neither that pack nor the historical draft can be selected.
 
 A third built-in setting follows the same process: commission its own registered sprites, author a format-1
 manifest using this catalogue, compute hashes and derived geometry offline, and add its folder under
