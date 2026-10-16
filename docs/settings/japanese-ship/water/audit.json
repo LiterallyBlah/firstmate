@@ -1,6 +1,6 @@
 {
   "baseline": "b1458b4",
-  "imageBytes": 991511,
+  "imageBytes": 992029,
   "preservedImages": [
     "ship",
     "coast",
@@ -63,7 +63,8 @@
     "atmosphere",
     "turning-wake",
     "moon",
-    "umibozu"
+    "rain-spray",
+    "overcast"
   ],
   "skySectors": [
     420,
@@ -74,5 +75,10 @@
     437
   ],
   "twinkle": "nonempty distinct frames",
-  "nearCoverage": "tile to visible bottom; back/front share origin and clock"
+  "nearCoverage": "tile to visible bottom; back/front share origin and clock",
+  "umibozu": {
+    "before": "element opacity 0..0.85 times rise-variant crossfade; about 0.153 opacity at intensity 0.9",
+    "after": "one opaque rise/settle/submerge cycle; full strength above 0.780001; no stable crew intensity in reveal interval",
+    "frames": 15
+  }
 }

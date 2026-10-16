@@ -523,6 +523,14 @@
         400
       ],
       "sha256": "5b679d823ef1fd8e44aa6c147c7ca4ff456ed4aa03e631294328c5f9dd28490c"
+    },
+    "umibozu-sink": {
+      "path": "umibozu-sink.png",
+      "size": [
+        216,
+        80
+      ],
+      "sha256": "885b115de548a738dcae480554b05cd396815fcac9e254e1a848431425bbd4eb"
     }
   },
   "preview": "preview",
@@ -3741,7 +3749,7 @@
             {
               "image": "umibozu",
               "rect": [
-                0,
+                144,
                 0,
                 72,
                 80
@@ -3749,6 +3757,87 @@
             },
             {
               "image": "umibozu",
+              "rect": [
+                144,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu",
+              "rect": [
+                216,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu",
+              "rect": [
+                72,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu",
+              "rect": [
+                0,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
+              "rect": [
+                0,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
+              "rect": [
+                72,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
+              "rect": [
+                144,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
+              "rect": [
+                144,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
+              "rect": [
+                72,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
               "rect": [
                 0,
                 0,
@@ -3768,14 +3857,32 @@
             {
               "image": "umibozu",
               "rect": [
+                72,
                 0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu",
+              "rect": [
+                216,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu",
+              "rect": [
+                144,
                 0,
                 72,
                 80
               ]
             }
           ],
-          "frameMs": 1300,
+          "frameMs": 500,
           "clock": "swell"
         },
         "at": [
@@ -3793,65 +3900,11 @@
               0
             ],
             [
-              1,
-              0.85
+              0.780001,
+              1
             ]
           ]
-        },
-        "variants": [
-          {
-            "id": "umibozu-rises",
-            "frames": [
-              {
-                "image": "umibozu",
-                "rect": [
-                  0,
-                  0,
-                  72,
-                  80
-                ]
-              },
-              {
-                "image": "umibozu",
-                "rect": [
-                  72,
-                  0,
-                  72,
-                  80
-                ]
-              },
-              {
-                "image": "umibozu",
-                "rect": [
-                  144,
-                  0,
-                  72,
-                  80
-                ]
-              },
-              {
-                "image": "umibozu",
-                "rect": [
-                  216,
-                  0,
-                  72,
-                  80
-                ]
-              }
-            ],
-            "blend": "crossfade",
-            "opacity": [
-              [
-                0.84,
-                0
-              ],
-              [
-                1,
-                1
-              ]
-            ]
-          }
-        ]
+        }
       }
     },
     {
