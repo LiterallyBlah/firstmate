@@ -22,6 +22,17 @@ function bounds(a,threshold=100){let x0=a.width,y0=a.height,x1=-1,y1=-1;for(let 
 function fit(a,w,h,n=24){a=crop(a,...bounds(a));const s=Math.min(w/a.width,h/a.height),b=pal(nearest(a,Math.max(1,Math.round(a.width*s)),Math.max(1,Math.round(a.height*s))),n),c=blank(w,h);paste(c,b,Math.floor((w-b.width)/2),h-b.height);return c;}
 function tint(a,mul,alpha=1){a=clone(a);for(let i=0;i<a.rgba.length;i+=4){for(let c=0;c<3;c++)a.rgba[i+c]=Math.min(255,Math.round(a.rgba[i+c]*mul[c]));a.rgba[i+3]=Math.round(a.rgba[i+3]*alpha);}return a;}
 const warp=(a,k,amp=2)=>{const b=blank(a.width,a.height);for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++)put(b,x+Math.round(Math.sin(y/a.height*Math.PI)*Math.sin(k*Math.PI/2)*amp),y,pixel(a,x,y));return b;};
+// Register opposite edges with a broad cosine blend before quantization. Both axes wrap,
+// including the corners; never tile an isolated mist sprite with cropped opaque edges.
+function periodic(a){
+ for(const axis of [0,1]){const b=clone(a),n=axis?a.height:a.width,across=axis?a.width:a.height,margin=Math.floor(n*.18);
+  for(let d=0;d<margin;d++){const w=(1+Math.cos(Math.PI*d/margin))*.25;for(let q=0;q<across;q++){
+   const p=[...pixel(b,axis?q:d,axis?d:q)],r=[...pixel(b,axis?q:n-1-d,axis?n-1-d:q)];
+   put(a,axis?q:d,axis?d:q,p.map((v,c)=>Math.round(v*(1-w)+r[c]*w)));
+   put(a,axis?q:n-1-d,axis?n-1-d:q,r.map((v,c)=>Math.round(v*(1-w)+p[c]*w)));
+  }}
+ }return a;
+}
 const phases=['dawn','morning','midday','afternoon','dusk','night'];
 // Add sixteen logical rows to the working deck; keep the approved hull and mast proportions elsewhere.
 const raw=pal(nearest(source('stage'),760,428),64,false),ship=blank(800,520);
@@ -45,16 +56,27 @@ for(let k=0;k<4;k++)save('seam-'+k,tint(seam,[1,1,1],[.18,.45,.7,.4][k]));
 const crew=cells(source('crew'),8,8),poses=['stand','walk-a','walk-b','haul-a','haul-b','wait','climb','fall'];
 for(let row=0;row<8;row++){const atlas=blank(24*8,28),lane={};for(let col=0;col<8;col++){const a=fit(crew[row*8+col],22,25,24);for(let i=3;i<a.rgba.length;i+=4)a.rgba[i]=Math.round(a.rgba[i]*.72);paste(atlas,a,col*24+1,2);lane[poses[col]]={rect:[col*24,0,24,28],feet:[12,27]};}save('crew-'+row,atlas);lanes['ghost-'+row]=lane;}
 const sky=cells(source('skies-framed'),3,2);phases.forEach((p,i)=>save('sky-'+p,pal(nearest(sky[i],320,240),24,false)));
-const coast0=source('coast'),coast=fit(coast0,800,168,40),coastPlate=blank(1000,168);paste(coastPlate,coast,100,0);
+const coast0=source('coast'),coast=fit(coast0,800,168,40),coastPlate=blank(1800,168);paste(coastPlate,coast,100,0);
 const coastTints=[[1.12,1.04,1.1],[1.15,1.2,1.18],[1.1,1.18,1.17],[1.12,1.1,1.05],[.94,.86,1],[.75,1,.95]];
 phases.forEach((p,i)=>{const a=tint(coastPlate,coastTints[i]);for(let j=0;j<a.rgba.length;j+=4)if(a.rgba[j+1]>a.rgba[j]*1.65&&a.rgba[j+1]>70){const gain=p==='night'?1.9:p==='dusk'?1.2:.45;for(let c=0;c<3;c++)a.rgba[j+c]=Math.min(255,Math.round(a.rgba[j+c]*gain));}save('coast-'+p,pal(a,48));});
 const water=cells(source('water'),2,3);
-for(let band=0;band<3;band++)for(let storm=0;storm<2;storm++){const a=pal(nearest(water[band*2+storm],192,64),32,false);for(let k=0;k<4;k++){const b=blank(192,64);for(let y=0;y<64;y++)for(let x=0;x<192;x++)put(b,x,y,pixel(a,(x+k*3+Math.round(Math.sin((y+k*8)/64*Math.PI*2)*2)+192)%192,y));save('water-'+band+'-'+storm+'-'+k,b);}}
+// Calm pixels are unchanged: duplicate their existing period into the wider storm frame.
+for(let band=0;band<3;band++){const a=pal(nearest(water[band*2],192,64),32,false);for(let k=0;k<4;k++){const b=blank(384,64);for(let y=0;y<64;y++)for(let x=0;x<384;x++)put(b,x,y,pixel(a,(x+k*3+Math.round(Math.sin((y+k*8)/64*Math.PI*2)*2)+192)%192,y));save('water-'+band+'-0-'+k,b);}}
+const weather=source('storm-textures'),rough=crop(weather,0,528,weather.width,weather.height-528);
+for(let band=0;band<3;band++){
+ const a=pal(periodic(nearest(rough,384,64)),24,false),atlas=blank(393,64);
+ for(let y=0;y<64;y++)for(let x=0;x<393;x++)put(atlas,x,y,pixel(a,(x+band*89)%384,y));
+ save('storm-water-'+band,atlas);
+}
+const fog=periodic(nearest(crop(weather,0,0,weather.width,500),512,256));
+for(let y=0;y<fog.height;y++)for(let x=0;x<fog.width;x++){const p=pixel(fog,x,y),v=(p[0]+p[1]+p[2])/3;put(fog,x,y,[76,116,105,Math.round((24+Math.min(100,v)*.7)/4)*4]);}
+save('storm-fog',fog);save('storm-fog-clear',blank(512,256));
 const ambience=cells(source('ambience'),4,4);
 const sprites=[['cloud-wisp',0,40,12],['cloud-bank',1,52,28],['fog',2,160,42],['hatch-mist',3,36,42],['raven-rest',4,16,18],['raven-turn',5,24,18],['bat-up',6,20,16],['bat-down',7,20,16],['jelly-wide',8,28,42],['jelly-narrow',9,28,42],['candle',10,20,28],['spectral-ship',11,140,100],['lightning',12,70,160],['ripple',13,90,24],['beam',14,170,22],['sleeper',15,18,12]];
 const cutSprites={};for(const [id,i,w,h]of sprites)cutSprites[id]=fit(ambience[i],w,h,24);
 for(const id of ['cloud-wisp','cloud-bank']){const a=cutSprites[id];quant(a,3,[[64,84,100],[110,140,150],[190,212,208]]);save(id,a);}
 for(const id of ['raven-rest','raven-turn','bat-up','bat-down','jelly-wide','jelly-narrow','sleeper','spectral-ship','lightning','ripple'])save(id,id==='sleeper'?tint(cutSprites[id],[1,1,1],.72):cutSprites[id]);
+for(let k=0;k<8;k++){const a=blank(44,50);paste(a,cutSprites[Math.floor(k/2)%2?'jelly-narrow':'jelly-wide'],8+Math.round(Math.sin(k*Math.PI/4)*3),4+Math.round(Math.cos(k*Math.PI/4)*2));save('jelly-drift-'+k,a);}
 for(const id of ['fog','hatch-mist','candle'])for(let k=0;k<4;k++){
  const a=warp(cutSprites[id],k,id==='fog'?5:2);
  if(id==='candle'){const moving=blank(a.width,a.height);for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++)put(moving,x,y+[0,1,2,1][k],pixel(a,x,y));save(id+'-'+k,moving);}
@@ -63,7 +85,7 @@ for(const id of ['fog','hatch-mist','candle'])for(let k=0;k<4;k++){
 }
 for(let k=0;k<16;k++){const a=blank(960,80);paste(a,cutSprites[k%2?'bat-up':'bat-down'],20+k*58,24+Math.round(Math.sin(k*.6)*10));save('bat-flight-'+k,a);}save('bat-flight-clear',blank(960,80));
 for(let k=0;k<8;k++){const a=blank(800,110);paste(a,tint(cutSprites['spectral-ship'],[1,1,1],Math.sin((k+1)/9*Math.PI)*.7),k*80,4);save('ship-passage-'+k,a);}save('ship-passage-clear',blank(800,110));
-for(let k=0;k<4;k++){const a=blank(1000,24);paste(a,tint(cutSprites.beam,[1,1,1],[.15,.6,1,.5][k]),820,1);save('beam-'+k,a);}save('beam-clear',blank(1000,24));
+for(let k=0;k<4;k++){const a=blank(1800,24);paste(a,tint(cutSprites.beam,[1,1,1],[.15,.6,1,.5][k]),820,1);save('beam-'+k,a);}save('beam-clear',blank(1800,24));
 // The full-body carrier is split by the existing renderer, with its own surface-clock ripple.
 cells(source('anglerfish'),2,2).forEach((a,i)=>save('angler-'+i,pal(nearest(a,64,56),32)));
 const kraken=cells(source('kraken'),4,2);kraken.forEach((a,i)=>{
@@ -83,7 +105,10 @@ save('underwater',pal(nearest(source('underwater'),520,100),24));
 const deep=blank(96,64);for(let y=0;y<64;y++)for(let x=0;x<96;x++)put(deep,x,y,[4,29,39,255]);save('deep-water',deep);
 // Generic rain art is reused, unchanged, from the existing shipped Ship; retain explicit provenance.
 const original=JSON.parse(readFileSync(resolve(here,'../../../art/settings/ship/setting.json')));
-for(const id of ['rain-clear','rain-0','rain-1','rain-2','rain-3','storm-sky-overcast']){const def=original.images[id],b=readFileSync(resolve(here,'../../../art/settings/ship',def.path));save(id,id==='storm-sky-overcast'?tint(nearest(decodePng(b),320,240),[.4,.62,.56]):decodePng(b));sources[id]={reusedFrom:'art/settings/ship/'+def.path,sha256:sha(b),transform:id==='storm-sky-overcast'?'resize; charcoal-green tint':null};}
+for(const id of ['rain-clear','rain-0','rain-1','rain-2','rain-3']){const def=original.images[id],b=readFileSync(resolve(here,'../../../art/settings/ship',def.path));save(id,decodePng(b));sources[id]={reusedFrom:'art/settings/ship/'+def.path,sha256:sha(b),transform:null};}
+// Flat overcast attenuation extends to arbitrary panes without stretched edge stripes.
+// Cloud detail comes from the seamless drifting fog and existing cloud field above it.
+const overcast=blank(320,240);for(let y=0;y<240;y++)for(let x=0;x<320;x++)put(overcast,x,y,[12,30,34,255]);save('storm-sky-overcast',overcast);
 save('preview',pal(nearest(source('preview-canvas'),384,216),96,false));
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({sources,images,lanes,parts},null,2)+'\n');
 writeFileSync(resolve(here,'stage-registration.png'),encode(ship));
