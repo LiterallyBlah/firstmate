@@ -13,7 +13,7 @@ const sprite=image=>({image});
 const posts=(prefix,points,facing='front')=>points.map((at,i)=>({id:prefix+'-'+(i+1),at,facing}));
 const zone=(id,points,facing='front')=>({id,posts:posts(id,points,facing),assign:'stable',overflow:{kind:'beside',spacing:[12,3]}});
 const pack={
-  format:'firstmate.deck-setting',formatVersion:1,id:'japanese-ship',name:'Sakura coast',version:'1.0.1',requires:[],
+  format:'firstmate.deck-setting',formatVersion:1,id:'japanese-ship',name:'Sakura coast',version:'1.0.2',requires:[],
   copy:{pane:'Deck',tooltip:'Sail a Japanese coastal ship past a sakura island.',title:'Sakura coast',noun:'the coastal ship',starting:'Setting sail...',aboard:'aboard',actor:{one:'sailor',many:'sailors'},zones:{rigging:'tending the rigging',stern:'waiting by the stern',bow:'watching the coast',rest:'resting below deck'}},
   images,...(images.preview?{preview:'preview'}:{}),
   stage:{size:[480,320],fit:{top:0,bottom:320,margin:.94},actorHeight:42,
@@ -50,7 +50,7 @@ const pack={
   ],
   dayCycle:{phases:[{id:'day',localMinute:480},{id:'night',localMinute:1200}],fadeMinutes:90,night:'night',fallback:'day'},
   atmosphere:{table:[{at:0,pace:.45,swell:.75,heave:.7,wake:.4,weather:0,wind:.5,sail:.55,billow:.4},{at:.35,pace:1,swell:1,heave:1,wake:.65,weather:0,wind:1,sail:1,billow:.5},{at:1,pace:1.8,swell:1.2,heave:1.6,wake:1,weather:.25,wind:3,sail:2.4,billow:.65}],delivered:{pace:1,swell:1,heave:1,wake:.7,weather:0,wind:1,sail:1,billow:.5},clocks:{water:'pace',swell:'swell',wind:'wind',sail:'sail'}},
-  attentionCarrier:{bubbleHeight:18,at:[8,164],size:[56,44],frames:[sprite('reply-shark'),{image:'reply-shark-motion',rect:[56,0,56,44]},{image:'reply-shark-motion',rect:[112,0,56,44]},{image:'reply-shark-motion',rect:[168,0,56,44]}],frameMs:450,loiter:{amplitude:[2,1],periodMs:5200}},
+  attentionCarrier:{bubbleHeight:18,at:[100,274],surface:{"row":29,"submergedTint":"#12637C","submergedAlpha":0.22,"ripple":{"colour":"#B1DCE2","shade":"#4195AE","periodMs":1800,"clock":"water"}},size:[56,44],frames:[sprite('reply-shark'),{image:'reply-shark-motion',rect:[56,0,56,44]},{image:'reply-shark-motion',rect:[112,0,56,44]},{image:'reply-shark-motion',rect:[168,0,56,44]}],frameMs:450,loiter:{amplitude:[2,1],periodMs:5200}},
   palette:{fallbackFill:'#07445B',veil:'#061423',staleTint:'#87959D',staleAlpha:.6}
 };
 // Preserve the approved settled poses in still/stale mode; glance/shift only on the live cast clock.

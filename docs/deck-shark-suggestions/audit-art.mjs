@@ -12,7 +12,7 @@ for (const id of ['ship', 'japanese-ship']) {
   const file = `art/settings/${id}/setting.json`;
   const before = JSON.parse(execFileSync('git', ['show', `${mainRevision}:${file}`], { cwd: root, encoding: 'utf8' }));
   const after = JSON.parse(readFileSync(resolve(root, file), 'utf8'));
-  const changes = { id, before: before.attentionCarrier.at, after: after.attentionCarrier.at, bubbleHeight: after.attentionCarrier.bubbleHeight, unchangedImages: 0 };
+  const changes = { id, before: before.attentionCarrier.at, after: after.attentionCarrier.at, bubbleHeight: after.attentionCarrier.bubbleHeight, surface: after.attentionCarrier.surface ?? null, unchangedImages: 0 };
   for (const image of Object.values(after.images)) {
     const hash = createHash('sha256').update(readFileSync(resolve(root, `art/settings/${id}/${image.path}`))).digest('hex');
     assert.equal(hash, image.sha256);
@@ -20,7 +20,11 @@ for (const id of ['ship', 'japanese-ship']) {
   }
   after.version = before.version;
   delete after.attentionCarrier.bubbleHeight;
-  if (id === 'japanese-ship') after.attentionCarrier.at = before.attentionCarrier.at;
+  if (id === 'japanese-ship') {
+    after.attentionCarrier.at = before.attentionCarrier.at;
+    delete after.attentionCarrier.surface;
+    after.requires = after.requires.filter(capability => capability !== 'carrier-surface@1');
+  }
   assert.deepEqual(after, before, `${id}: all other pack data and image hashes are identical`);
   audit.settings.push(changes);
 }

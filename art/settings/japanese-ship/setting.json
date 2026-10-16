@@ -3,13 +3,14 @@
   "formatVersion": 1,
   "id": "japanese-ship",
   "name": "Sakura coast",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "requires": [
     "stage@1",
     "floor@1",
     "zones@1",
     "zone-appearance@1",
     "attention-carrier@1",
+    "carrier-surface@1",
     "stable-posts@1",
     "cast@1",
     "pose-fidgets@1",
@@ -1484,8 +1485,8 @@
   "attentionCarrier": {
     "bubbleHeight": 18,
     "at": [
-      8,
-      164
+      100,
+      274
     ],
     "size": [
       56,
@@ -1530,6 +1531,17 @@
         1
       ],
       "periodMs": 5200
+    },
+    "surface": {
+      "row": 29,
+      "submergedTint": "#12637C",
+      "submergedAlpha": 0.22,
+      "ripple": {
+        "colour": "#B1DCE2",
+        "shade": "#4195AE",
+        "periodMs": 1800,
+        "clock": "water"
+      }
     }
   },
   "palette": {

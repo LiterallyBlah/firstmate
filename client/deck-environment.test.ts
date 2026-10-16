@@ -997,7 +997,7 @@ describe("attention carriers in the renderer", () => {
     const deck = await start(environment, { now, extras, scene: scene(), attentionCarrier, onSelect: (key, action) => selected.push([key, action]), onHover: hover => hovers.push(hover) });
     const carrier = one(deck.app.stage, "attention-carrier");
     const frames = new Set<string>();
-    for (let i = 0; i < 120; i++) { deck.advance(34); frames.add(texturePath(carrier.children[0]!)); }
+    for (let i = 0; i < 120; i++) { deck.advance(34); frames.add(texturePath(one(carrier, "carrier-above-surface"))); }
     expect(frames.size).toBe(4);
     expect(one(deck.app.stage, "ship").children).not.toContain(carrier);
     for (const key of ["a", "remote:b"]) expect(one(one(deck.app.stage, key), "ask").visible).toBe(true);
@@ -1010,7 +1010,7 @@ describe("attention carriers in the renderer", () => {
     expect(selected).toEqual([["suggestions", "attention"], ["suggestions", "attention"]]);
     deck.drawing.focus("a"); deck.advance(34);
     expect(carrier.visible).toBe(false);
-    const sprite = carrier.children[0] as FakeSprite;
+    const sprite = one(carrier, "carrier-above-surface") as FakeSprite;
     deck.drawing.destroy();
     expect(sprite.texture.destroyed && sprite.texture.source.destroyed).toBe(true);
     expect(deck.app.canvas.listeners.size).toBe(0);
@@ -1024,8 +1024,8 @@ describe("attention carriers in the renderer", () => {
       const carrier = one(deck.app.stage, "attention-carrier");
       expect(deck.pending()).toBe(0);
       expect(carrier.position).toMatchObject({ x: 4, y: 122 });
-      expect(carrier.children[0]!.visible).toBe(!missing);
-      expect(carrier.children[1]!.visible).toBe(missing);
+      expect(one(carrier, "carrier-above-surface").visible).toBe(!missing);
+      expect(one(carrier, "carrier-fallback").visible).toBe(missing);
       deck.app.canvas.listeners.get("click")?.(at(deck, 30, 6));
       expect(selected).toEqual([["suggestions", "attention"]]);
       const stale = scene(); stale.sailors.forEach(sailor => { sailor.stale = true; });
@@ -1036,7 +1036,7 @@ describe("attention carriers in the renderer", () => {
       deck.drawing.update(scene()); expect(carrier.visible).toBe(true);
       deck.drawing.update(crewScene([])); expect(carrier.visible).toBe(true);
       if (!missing) {
-        const sprite = carrier.children[0] as FakeSprite;
+        const sprite = one(carrier, "carrier-above-surface") as FakeSprite;
         expect(sprite.position.y).toBe(attentionCarrier.bubbleHeight);
         expect(sprite.texture.frame.height).toBe(attentionCarrier.size[1] - attentionCarrier.bubbleHeight!);
       }
@@ -1049,7 +1049,7 @@ describe("attention carriers in the renderer", () => {
       frames: attentionCarrier.frames.map(sprite => ({ ...sprite, rect: [0, 0, 8, 6] as [number, number, number, number] })) };
     const deck = await start(environment, { now, scene: scene(), attentionCarrier: carrier, reducedMotion: true,
       without: carrier.frames.map(sprite => sprite.image) });
-    const root = one(deck.app.stage, "attention-carrier"), fallback = root.children[1]!;
+    const root = one(deck.app.stage, "attention-carrier"), fallback = one(root, "carrier-fallback");
     expect(root.position).toMatchObject({ x: 110, y: 40 });
     expect(fallback.visible).toBe(true);
     expect(fallback.position.x).toBeGreaterThanOrEqual(0);

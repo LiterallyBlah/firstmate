@@ -12,6 +12,7 @@
         122
       ],
       "bubbleHeight": 24,
+      "surface": null,
       "unchangedImages": 84
     },
     {
@@ -21,10 +22,21 @@
         273
       ],
       "after": [
-        8,
-        164
+        100,
+        274
       ],
       "bubbleHeight": 18,
+      "surface": {
+        "row": 29,
+        "submergedTint": "#12637C",
+        "submergedAlpha": 0.22,
+        "ripple": {
+          "colour": "#B1DCE2",
+          "shade": "#4195AE",
+          "periodMs": 1800,
+          "clock": "water"
+        }
+      },
       "unchangedImages": 20
     }
   ]

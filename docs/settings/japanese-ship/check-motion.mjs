@@ -46,7 +46,7 @@ export async function checkMotion(view,manifest){
     const tex=n=>n?.texture?`${n.texture.source.uid}:${n.texture.frame.x},${n.texture.frame.y},${n.texture.frame.width},${n.texture.frame.height}`:null;
     return {sail:tex(get('sail')),mastX:get('masthead').x,bob:get('ship').y,
       clouds:get('clouds').children.map(c=>[c.x,c.y]),wake:tex(get('turning-wake')),
-      shark:{frame:tex(get('attention-carrier').children[0]),x:get('attention-carrier').x,y:get('attention-carrier').y},
+      shark:{frame:tex(get('carrier-above-surface')),x:get('attention-carrier').x,y:get('attention-carrier').y},
       crew:['motion-0','motion-1','motion-2'].map(id=>tex(get(id)?.children[1])),
       doze:all.filter(n=>n.label==='doze').map(n=>[n.visible,n.x,n.y,n.alpha])};
   });
