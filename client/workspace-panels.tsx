@@ -4,7 +4,7 @@ import { FLEET_SCREEN_ID } from "./screen";
 import { FLEET_PANELS, type FleetShell, type FleetView } from "./shell";
 
 /** Capabilities stay bound to this installation/host, including when several hosts are open. */
-export function registerFleetViews(client: PluginClientContext): void {
+export function registerFleetViews(client: PluginClientContext): FleetShell {
   const shell: FleetShell = {
     openView(view, workspaceId) {
       client.openPanel(FLEET_PANELS[view].id, {
@@ -27,7 +27,8 @@ export function registerFleetViews(client: PluginClientContext): void {
     title: "FirstMate",
     Component: Home,
   });
-  for (const view of Object.keys(FLEET_PANELS) as FleetView[]) {
+  // A callback parameter keeps each restored panel's view distinct under Hermes.
+  (Object.keys(FLEET_PANELS) as FleetView[]).forEach((view) => {
     function Panel(props: PluginWorkspacePanelProps) {
       return <FleetSurface {...props} params={{}} view={view} shell={shell} />;
     }
@@ -37,5 +38,6 @@ export function registerFleetViews(client: PluginClientContext): void {
       locations: ["workspace"],
       Component: Panel,
     });
-  }
+  });
+  return shell;
 }

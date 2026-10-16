@@ -27,6 +27,7 @@ import { CrewCard } from "./card";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet";
 import { groupCards } from "./format";
 import { IconButton, errorText } from "./ui";
+import { homeWorkspace, type FleetShell } from "./shell";
 
 type Navigation = PluginWorkspacePanelProps["navigation"];
 
@@ -36,6 +37,7 @@ function PanelBody({
   navigation,
   match,
   place,
+  shell,
 }: {
   theme: PluginTheme;
   compact: boolean;
@@ -44,6 +46,7 @@ function PanelBody({
   match: { agentId: string | null; workspaceId: string | null };
   /** How the note to the first mate names this place: "the workspace …", "the agent …". */
   place: string;
+  shell: FleetShell;
 }) {
   const display = useSettings(displaySettings);
   const fleet = useFleet(display.status === "ready" ? display.values.pollSeconds : 5);
@@ -108,15 +111,29 @@ function PanelBody({
   else if (isMate) {
     const groups = groupCards(data.cards);
     summary = `This is the first mate. ${groups.get("working")?.length ?? 0} working, ${groups.get("blocked")?.length ?? 0} blocked, ${groups.get("queued")?.length ?? 0} queued.`;
-  } else if (data.homeGuests?.some(guest => guest.id === match.agentId)) {
-    summary = "This is a guest chat in the FirstMate home, not the configured first mate. Discuss and read here; only the current first mate changes records or directs the crew. Older sessions may retain their former instructions.";
+  } else if (data.homeGuests?.some((guest) => guest.id === match.agentId)) {
+    summary =
+      "This is a guest chat in the FirstMate home, not the configured first mate. Discuss and read here; only the current first mate changes records or directs the crew. Older sessions may retain their former instructions.";
   } else if (cards.length === 0) summary = "No FirstMate worker is running here.";
   else summary = cards.length === 1 ? "A FirstMate worker." : `${cards.length} FirstMate workers.`;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets>
-      <Text style={styles.title}>FirstMate</Text>
+      <Text style={styles.title}>FirstMate here</Text>
       <Text style={styles.muted}>{summary}</Text>
+      {isMate ? null : (
+        <IconButton
+          theme={theme}
+          icon="MessageSquare"
+          label="Open chat"
+          showLabel
+          onPress={() => {
+            const destination = homeWorkspace(data) ?? match.workspaceId;
+            if (destination !== null) shell.openView("chat", destination);
+            else shell.openHome();
+          }}
+        />
+      )}
       {cards.map((card) => {
         const agentId = card.agent?.id ?? null;
         return (
@@ -168,11 +185,18 @@ function PanelBody({
   );
 }
 
-export function WorkspacePanel({ theme, layout, workspaceId, navigation }: PluginWorkspacePanelProps) {
+export function WorkspacePanel({
+  theme,
+  layout,
+  workspaceId,
+  navigation,
+  shell,
+}: PluginWorkspacePanelProps & { shell: FleetShell }) {
   const workspace = useWorkspace(workspaceId, (value) => ({ name: value.name, directory: value.directory }));
   return (
     <PanelBody
       theme={theme}
+      shell={shell}
       compact={layout.compact}
       navigation={navigation}
       match={{ agentId: null, workspaceId }}
@@ -181,11 +205,19 @@ export function WorkspacePanel({ theme, layout, workspaceId, navigation }: Plugi
   );
 }
 
-export function AgentPanel({ theme, layout, agentId, workspaceId, navigation }: PluginAgentPanelProps) {
+export function AgentPanel({
+  theme,
+  layout,
+  agentId,
+  workspaceId,
+  navigation,
+  shell,
+}: PluginAgentPanelProps & { shell: FleetShell }) {
   const title = useAgent(agentId, (value) => value.title);
   return (
     <PanelBody
       theme={theme}
+      shell={shell}
       compact={layout.compact}
       navigation={navigation}
       match={{ agentId, workspaceId }}

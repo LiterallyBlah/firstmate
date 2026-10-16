@@ -23,4 +23,6 @@ it("only a visible first-mate chat can clear attention", () => {
   expect(chatIsVisible("home", true, "board", false)).toBe(false);
   expect(chatIsVisible("home", true, "files", false)).toBe(false);
   expect(chatIsVisible("home", true, "chat", true)).toBe(true);
+  expect(chatIsVisible("chat", true, "board", true)).toBe(true);
+  expect(chatIsVisible("chat", false, "files", true)).toBe(true);
 });
