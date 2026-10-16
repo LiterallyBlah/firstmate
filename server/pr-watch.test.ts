@@ -227,24 +227,62 @@ describe("pr-watch", () => {
   });
 
   it("stays inside its time budget on a slow backlog, and reaches what it skipped on the next run", async () => {
-    const { answer, run, state, home } = await setup();
+    const { run, state, home } = await setup();
     const urls = [1, 2, 3, 4, 5, 6].map((n) => `https://github.com/someone/lib/pull/${n}`);
     await writeFile(join(home, "data", "backlog.md"), `## In flight\n${urls.map((url) => `- [ ] x ${url}`).join("\n")}\n`, "utf8");
     const budgetMs = 400;
-    await answer(Object.fromEntries(urls.map((url) => [url, pull({ delayMs: budgetMs * 2 })])));
-    const budget = { FIRSTMATE_PR_WATCH_BUDGET_MS: String(budgetMs) };
+    // Preload only this child: the seeded watch, filesystem and runner stay real. The clock
+    // advances when a pending gh response completes, not while the OS schedules processes.
+    // Microtasks let all workers start before any response, without waiting for a particular
+    // number of workers (a concurrency regression must fail assertions, not hang the fixture).
+    const preload = join(home, "budget-clock.cjs");
+    const trace = join(home, "budget-trace.json");
+    await writeFile(preload, `
+const fs = require("node:fs");
+const childProcess = require("node:child_process");
+const started = Number(process.env.FAKE_STARTED);
+let now = started;
+let active = 0;
+const events = [];
+Date.now = () => now;
+childProcess.execFile = (_command, args, _options, callback) => {
+  // setup() wraps gh in Node on Windows; normalize only that executable prefix.
+  if (args[0] === process.env.FAKE_GH_SCRIPT) args = args.slice(1);
+  if (args[0] === "api") {
+    queueMicrotask(() => callback(null, "me", ""));
+    return;
+  }
+  if (args[0] !== "pr" || args[1] !== "view") throw new Error("Unexpected gh call");
+  events.push({ url: args[2], at: now, active: ++active });
+  queueMicrotask(() => {
+    now = started + ${budgetMs * 2};
+    active--;
+    callback(null, ${JSON.stringify(JSON.stringify(pull()))}, "");
+  });
+};
+require("node:module").syncBuiltinESMExports();
+process.on("exit", () => fs.writeFileSync(${JSON.stringify(trace)}, JSON.stringify(events)));
+`, "utf8");
+    const budget = {
+      FIRSTMATE_PR_WATCH_BUDGET_MS: String(budgetMs),
+      NODE_OPTIONS: `--require ${JSON.stringify(preload)}`,
+      FAKE_STARTED: "1000",
+    };
+    const calls = async () => JSON.parse(await readFile(trace, "utf8")) as Array<{ url: string; at: number; active: number }>;
     const saved = async () => JSON.parse(await readFile(join(state, "prs.json"), "utf8")).prs as Record<string, { seen?: boolean }>;
 
     const first = await run(undefined, budget);
     expect(first).toMatchObject({ code: 0, stdout: "" });
     // Four at a time, and none started after the budget: the last two wait for the next run.
     expect(Object.keys(await saved()).sort()).toEqual(urls.slice(0, 4));
+    expect(await calls()).toEqual(urls.slice(0, 4).map((url, i) => ({ url, at: 1000, active: i + 1 })));
 
-    await run(undefined, budget);
+    expect(await run(undefined, { ...budget, FAKE_STARTED: "2000" })).toMatchObject({ code: 0, stdout: "" });
+    expect(await calls()).toEqual([urls[4], urls[5], urls[0], urls[1]].map((url, i) => ({ url, at: 2000, active: i + 1 })));
     const after = await saved();
     expect(Object.keys(after).sort()).toEqual(urls);
     expect(Object.values(after).every((entry) => entry.seen === true)).toBe(true);
-  });
+  }, 30_000);
 
   it("mentions a pull request gh keeps failing on once, and fails the run when gh can read none", async () => {
     const { answer, run } = await setup();
