@@ -1,556 +1,229 @@
 # FirstMate
 
-A [Paseo](https://paseo.sh) plugin: talk to one agent, ship with a crew.
+**One conversation to coordinate a crew of coding agents in [Paseo](https://paseo.sh).**
 
-This repository is a personal copy of [FirstMate by Gustavo Ambrozio](https://github.com/gpambrozio/paseo-plugins/tree/main/firstmate),
-imported on 7 October 2026 at version **0.3.1** ([commit 129ec61](https://github.com/LiterallyBlah/firstmate/commit/129ec61)),
-with changes made since. The original MIT license applies to this copy; see [License](#license).
+FirstMate gives a lead agent a persistent home, a charter and a view of its crew. Describe the work;
+the first mate prepares briefs, starts workers in separate git worktrees, follows their progress and
+brings back results and decisions. Workers remain ordinary Paseo agents, with their own conversations.
 
-You talk to a single agent — the **first mate** — and it runs the crew for you. Every task goes to a
-**worker**: its own Paseo agent, in its own git worktree, so parallel work on one repository never
-collides. The first mate writes each worker's instructions, supervises it to the end, and brings you
-finished pull requests, investigation findings, and only the decisions that are really yours. You are
-the captain.
+This fork has diverged substantially from **[FirstMate by Gustavo Ambrozio](https://github.com/gpambrozio/paseo-plugins/tree/main/firstmate)**,
+imported on **7 October 2026 at version 0.3.1** ([import commit](https://github.com/LiterallyBlah/firstmate/commit/129ec61)).
+It now includes animated Deck scenes, workspace tabs, remote crew, managed watches and expanded chat
+and task views. The original MIT copyright and license are preserved. Earlier foundations include
+[Kun Chen's firstmate](https://github.com/kunchenguid/firstmate) and
+[ABorakati/paseo-firstmate](https://github.com/ABorakati/paseo-firstmate).
 
-A **FirstMate** panel in the sidebar puts the conversation with the first mate beside a board of its
-crew — Queued, Working, Blocked, Parked, Done, Failed, Idle and Ready — with each worker's last word on
-what it is doing and a link to its pull request. A worker that ended its turn waiting on a gate, a run or
-another worker stays in Working, marked "waiting"; one that has finished waits in Ready for the first
-mate; Idle is for a worker that stopped without saying why, or stalled. The sidebar row shows how many
-workers are working, ready or idle.
+![FirstMate Home with a synthetic conversation beside the Deck view](docs/readme/home-deck.webp)
 
-![A 30-second loop of FirstMate at work, zooming in on each step: one message to the first mate asks
-for a dark mode toggle and a speed-conversion fix in a small web app; two cards appear in Queued and
-move to Working, each worker in its own worktree; one worker is watched live, its commands and edits
-scrolling past; each card reaches Done with "Captain's call: land branch …" beside the first mate's
-report; the message "land both" sends them to main, and the first mate's Bearings report, with both
-cards marked landed, closes it out.](docs/demo.webp)
+*All screenshots below and above use synthetic fixture data. They render the current components;
+they are not captures of a live fleet. [Screenshot sources and privacy review](docs/readme/README.md).*
 
-This is a Paseo-native take on [firstmate](https://github.com/kunchenguid/firstmate) by Kun Chen, by
-way of [ABorakati/paseo-firstmate](https://github.com/ABorakati/paseo-firstmate). Where those run the
-crew in terminal sessions and supervise it with shell scripts, this one uses nothing but Paseo: the
-workers are ordinary Paseo agents you can open, read and type into like any other, in worktrees Paseo
-manages, and Paseo itself tells the first mate when a worker finishes, fails or asks for permission.
-There is nothing else to install.
+## Install this fork
 
-## Changes in this copy
+Requires **Paseo 0.11 or newer** on the daemon and app, a configured agent provider, Git, and the
+`paseo` CLI on the daemon machine. Enable **Agent tools** when FirstMate prompts: the first mate
+needs Paseo's agent tools to create workspaces and manage workers. An already-running mate needs to
+resume or reload its session after the tool set changes.
 
-Since the import, this copy has added:
+Install from this repository:
 
-- **Windows support:** desktop and npm CLI launchers run without a shell, and Node watches run
-  without Unix executable bits, with process-tree cleanup. `pr-watch` avoids the Windows console
-  startup delays that caused timeouts ([PR #4](https://github.com/LiterallyBlah/firstmate/pull/4)).
-- **Saved remote hosts:** desktop host profiles sync to the daemon, and `tools/remote.mjs` supports
-  remote orchestration, briefs from files, redacted CLI errors, permission details and host clock
-  measurements. `remote-watch` reports each finished turn and new permission once, including sessions
-  the first mate follows ([PR #1](https://github.com/LiterallyBlah/firstmate/pull/1),
-  [PR #2](https://github.com/LiterallyBlah/firstmate/pull/2)).
-- **Remote work on the board:** remote workers share the crew columns, with host tabs, Converse,
-  Steer, Interrupt and End, permission details and card times corrected for measured clock skew.
-  Followed sessions are marked separately and cannot be ended from the board
-  ([PR #3](https://github.com/LiterallyBlah/firstmate/pull/3)).
-- **Clearer crew states:** finished workers wait in **Ready** for the first mate; workers waiting
-  on an external job stay in **Working**, while stalled workers remain **Idle**
-  ([PR #5](https://github.com/LiterallyBlah/firstmate/pull/5)).
-- **Calmer crew views:** cards show a glance before expanding, with Comfortable or Compact spacing.
-  A grouped **List** is now the default, with Done collapsed to a count; **Board** keeps full-height
-  columns and shows the three latest Done cards first. Suggestions use a slim strip and Watches
-  open from the header ([PR #6](https://github.com/LiterallyBlah/firstmate/pull/6),
-  [PR #7](https://github.com/LiterallyBlah/firstmate/pull/7)).
+```sh
+paseo plugin install git:LiterallyBlah/firstmate
+```
 
-See [CHANGELOG.md](CHANGELOG.md) for details and the retained upstream history.
+On Windows PowerShell, use `paseo.cmd` in place of `paseo`. The npm package
+`@gpambrozio/paseo-firstmate` is the upstream release; it does not install this fork.
+
+For a local checkout instead:
+
+```sh
+git clone https://github.com/LiterallyBlah/firstmate.git
+cd firstmate
+npm ci
+npm run typecheck
+paseo plugin install .
+```
+
+Use `npm.cmd` on Windows. After changing a local installation, `paseo plugin reload firstmate`
+loads the new code. This fork includes Windows CLI launchers and Node-based watch support.
+
+## Start a voyage
+
+1. Open **FirstMate** in the sidebar. Choose a model and **Launch the first mate**, or adopt an
+   existing agent. Launch in the configured home to enable the workspace shortcuts.
+2. Describe a project and its delivery rules: “Use the demo repository. Prepare pull requests for
+   review; ask before merging.” The first mate keeps project rules and working records in its home.
+3. Give it a bounded task: “Add search to the sample catalogue and check keyboard navigation.”
+   Follow the workers in List, Board or Deck, and answer decisions in chat.
+4. Review the result and decide what happens next. The charter tells the first mate to ask before
+   merging unless a project's standing instructions already permit it.
+
+Use **Bearings** for the current decisions, completed work and next steps; **Ahoy** for a catch-up.
+`/fm <message>`, `/bearings` and `/ahoy` also work from Paseo composers. The first mate owns dispatch
+through Paseo's tools; the plugin supplies the interface and records. Its charter guides a model,
+so the chosen model and the project's instructions matter.
+
+## Deck: the crew as a scene
+
+The Deck turns live workers into sailors on a pixel-art ship. **Ship's deck** is the default;
+**Sakura coast** sails past a blossom-covered island. The **Scene** picker in Home and the Deck tab
+saves one choice for the whole fleet, also available in settings.
+
+| Ship's deck · day | Sakura coast · day |
+| --- | --- |
+| ![Ship's deck in daylight, with crew badges and the suggestion shark](docs/readme/ship-day.webp) | ![Sakura coast in daylight, with a cedar ship beside the island](docs/readme/sakura-day.webp) |
+| **Ship's deck · night** | **Sakura coast · night and suggestions** |
+| ![Ship's deck beneath a starry night sky](docs/readme/ship-night.webp) | ![The shark's speech bubbles offer three synthetic suggestions on Sakura coast at night](docs/readme/sakura-suggestions.webp) |
+
+- **Read the crew at a glance.** Badges distinguish working, waiting, blocked and idle sailors.
+  Crew walk between stations as their state changes; resting crew settle below deck.
+- **Click a sailor to focus.** The camera moves in and opens its task panel, including Converse.
+  Keyboard focus and Escape provide another way in and back out.
+- **Ask the shark.** Click it, or use **Suggestions** in the legend, to open the first mate's
+  suggestions as speech bubbles. Selecting one sends that prompt and returns to Home chat.
+  Sailors also carry reply markers for suggestions linked to their own tasks.
+- **Watch the scene change.** Local time drives day and night. Sails, water, clouds and crew animate;
+  Ship's deck grows stormier as the fleet gets busy. Reduced motion keeps the scene calm, and hidden
+  canvases pause.
+
+Deck needs a web renderer with WebGL. Home can show it in a narrow browser pane; native mobile clients
+show an availability explanation. The standalone Deck tab has its own wide-layout requirement.
+See [Sakura coast](docs/settings/japanese-ship/README.md),
+[shark interactions](docs/deck-shark-suggestions/README.md) and the
+[scene-pack authoring guide](docs/deck-settings/authoring.md).
 
 ## Home and workspace tabs
 
-The FirstMate sidebar entry is your Home: chat, a board overview, Home files and shortcuts.
-**Open Deck**, **Open Board** and **Open Crew** open dedicated tabs in the first mate's home workspace,
-beside Paseo's native tabs. Crew is the grouped task list; Deck uses your selected scene setting.
-Return with **FirstMate Home**. Paseo controls closing, ordering and arranging the tabs.
-
-**Shared terminal** reuses the home workspace's terminal named **FirstMate shared**, or creates it
-with the daemon's default shell. Select that terminal in the workspace that opens. The first mate
-can find the same terminal by name and use Paseo's terminal tools. If several have that name, choose
-and rename them in Paseo; FirstMate will not guess. Creation never runs on reload or tab restoration.
-
-**New browser** asks for an HTTP(S) URL and creates a native tab in the desktop app. The first mate
-can discover the same page through Paseo's browser tools when those tools and the desktop automation
-connection are available. It does not create a browser shared across devices; localhost is the
-desktop running the browser.
-
-**Terminal & browser** opens the home workspace so you can select an existing native tab. Use this
-shortcut to return to an existing browser: **New browser** always creates another. These native panes are not embedded in FirstMate.
-Paseo's current plugin API cannot focus an existing terminal/browser by ID, and its browser opener
-creates a new browser without returning its ID. Exact shared-tab reuse is deferred to a future
-upstream API change. No Paseo fork is needed for these workspace panels and shortcuts.
-
-Launch a first mate in its home before using the shortcuts. A fleet panel opened from another
-workspace links back to the FirstMate workspace instead of showing fleet work under that workspace.
-On phones, Crew and Board work as workspace panels; Deck explains its wide-web/desktop requirement.
-The shared-tools instructions reach an untouched charter on reload; edited charters use the usual
-comparison/update flow, and a running first mate needs to reread its charter.
-
-## Switching the first mate's provider or model
-
-Open **Switch provider/model** in the FirstMate header, choose an available target model and its
-permission and thinking settings, then **Transfer role** once the mate is idle with no pending
-permissions. Permission settings start at the target provider's default; the old settings are never
-copied between providers.
-
-This creates a new session in the same home and transfers the first-mate role. Standing orders,
-backlog and records stay in place. A saved handoff carries the opening (8,000 characters), the latest
-200 projected conversation entries (20,000 characters) and a local crew snapshot (4,000 characters).
-It is an excerpt, not native conversation or provider state; older context, attachments and private
-reasoning stay in the old conversation. **Previous conversation** opens that history, and saved
-handoffs remain in `data/handoffs/` in Files.
-
-Existing workers keep running. Paseo's archive cascades to children in the same workspace, so
-migration refuses while such children exist, leaving all sessions intact. Detach those children in
-Paseo first or keep the current mate. This check includes persisted children on unregistered
-providers; migration and cancellation refuse archival if the complete inventory cannot be read.
-Crew in separate workspaces survives; earlier local workers'
-native finish notifications still address the old mate, so the replacement checks them on its
-heartbeat. Saved remote ownership stays unchanged.
-
-Failed handovers show **Recover migration** with the saved source and replacement IDs. Watches and
-board crew notes wait in their queues. Recovery reuses the prepared replacement and refreshes the
-handoff if the source worked again. **Keep old mate** cancels only before retirement; once the source
-is archived, continue recovery. The plugin prompts the replacement only after retirement is verified.
-Concurrent changes through FirstMate are serialized. Paseo does not expose an atomic idle-check and
-archive operation, so changes made outside the plugin can still race that last check.
-
-See [migration verification and screenshots](docs/provider-migration/README.md).
-
-## What you need
-
-- Paseo **0.11 or newer**, on the daemon and on the device running the app.
-- **Paseo's agent tools turned on.** They are how the first mate starts its workers and hears back from
-  them, and Paseo ships with them off. The panel says so and turns them on with one press; it is the
-  *Agent tools* switch in the FirstMate settings too.
-- A capable model for the first mate. It spends its day reading records and deciding who does what,
-  and a small model gets the tools wrong. Claude Sonnet or better, or a comparable Codex model, works.
-- The `paseo` command on the daemon machine, which a Paseo install puts there. It is used to find the
-  plugin's own files, to interrupt a worker from the board, and to name the first mate's project in
-  Paseo's sidebar.
-
-## Install
-
-This personal copy includes Windows fixes. Install it from your local checkout with
-`paseo plugin install "C:/path/to/firstmate"`; the npm command below installs the upstream release.
-After editing the checkout, use `paseo plugin reload firstmate`.
-
-On Windows, FirstMate uses the desktop Paseo launcher or an npm CLI entry point without a command
-shell. Scheduled watches use Node (`#!/usr/bin/env node` or `#!node`); the built-in PR watch is
-supported. Custom Unix shell watches need to be rewritten or wrapped in a Node watch on Windows.
-
-```bash
-paseo plugin install npm:@gpambrozio/paseo-firstmate
-```
-
-To hack on it, clone the repository and run `paseo plugin install "$PWD"` from this folder after
-`npm install` and `npm run typecheck`. Everything the plugin writes into the first mate's home — its
-charter, the records it starts with, the home's icon — is in `templates/`, as the files it becomes;
-`paseo plugin reload firstmate` puts a change to work.
-
-## Getting started
-
-1. Open **FirstMate** in the sidebar, pick the first mate's model, and press **Launch the first mate**.
-   If you already started an agent for the job, adopt it from the list below the button instead.
-2. Tell it about a project: "the web app is at ~/code/web — ship through pull requests". It keeps a
-   registry, so you only say this once.
-3. Ask for work: "fix the flaky login test and add dark mode". Two workers appear on the board, each in
-   its own worktree. Minutes later:
-
-   > PR ready for review, captain: https://github.com/you/web/pull/42 (fix the flaky login test - risk: low - CI green)
-
-4. "Merge it." The first mate never merges without your word, unless you have told it a project may.
-
-## Talking to the first mate
-
-- The chat in the panel — Enter sends and Shift+Enter starts a new line, as in Paseo — or open the
-  first mate in Paseo for the whole session, every tool call and its output. The chat follows new
-  messages while you are at the bottom; scroll up to read, and the round button at the bottom brings
-  you back. A file in the home that the first mate names in a reply is a link that opens it in the
-  Files view.
-- **How full its memory is** — the ring at the end of the chat's buttons shows how much of the first
-  mate's context window is used, the way Paseo's own chat does: amber from 70%, red past 90%. Hover
-  over it, or tap it on a phone, for the share and the token counts.
-  **Compact** has it summarise its conversation to free room, as `/compact` does in Paseo. **Restart**
-  starts a new first mate from scratch, with the same model and settings, after asking you. Both wait
-  until the first mate is between turns. On a restart its records carry over, the old conversation stays in
-  Paseo's history, and workers already running keep going — the new first mate checks on them
-  regularly, since Paseo tells only the agent that started a worker when it finishes.
-- **Questions it asks you** — which option, whether to go ahead, a plan to approve — appear in the
-  chat as a form you answer there, the same as in the first mate's own tab.
-- **`/fm <message>`** in any composer sends the message to the first mate, from wherever you are.
-- **`/bearings`** — where everything stands, in four sections: what needs your call, what landed,
-  what is under way, and what is next. `/bearings file` also writes it to a dated report in the first
-  mate's home; `/bearings include PRs` checks the live pull requests too.
-- **`/ahoy`** — what happened since you last spoke, then every open decision, one at a time, with a
-  recommendation.
-- *Bearings* and *Ahoy* are also buttons above the chat, and *FirstMate: bearings* is in ⌘K.
-- **Suggestions** — when the first mate has an idea of what you will want next ("Land web#42", "Review
-  loop on web#42"), it shows as a button in a slim row above the crew, on wide screens and phones.
-  Extra suggestions open under **More**. Pressing one sends that request to the first mate right
-  away, just as if you had typed it and pressed Send, and brings the chat into view so you see it go
-  out; anything you were typing stays in the message box. A suggestion too long to show whole gets a
-  chevron that opens the full request, to read or copy, without sending it. The trash button
-  beside a suggestion takes it off the list without sending it. With no suggestions the row is hidden.
-
-![After the voyage: the first mate's Bearings report in the chat — Captain's Call: nothing needs your
-action; Recently Landed: the knots fix and the dark mode toggle, both landed on main; Underway and
-Charted Next: nothing — beside the board, where both cards sit in Done marked "landed".](docs/landed.png)
-
-## The crew: List and Board
-
-**List** is the default. Each task occupies a full-width row with a state icon, one-line title,
-project and host tags, time since it moved, and its most pressing status. Hover for the full title,
-or press the row for the same details and actions as a board card. Tasks appear in **Needs you**
-(blocked, permissions, Ready and failed), **Working** (including waits), **Queued**, **Idle / stalled**
-(including parked work), then **Done**. Empty groups disappear. Done starts as **30 done · Show**
-and expands in place; the whole list shares one scroll container.
-
-The header's **List / Board** switch is remembered with the layout. Both views work in the phone's
-**Crew** tab. Suggestions sit above either view; watches open from the header.
-
-Items can carry several plain **tags**, such as **Frontend** and **Dashboard**. Open an item to add
-or remove tags; the same chips and editor appear in List and Board, including queued and completed
-items. Each item allows up to 12 tags of 40 characters. Tags ignore case when matching; commas and
-parentheses are reserved for backlog metadata. The **Filter tags** row requires every selected tag,
-intersects the current host tab, and remembers the selection across view changes and reloads.
-**Clear tag filters** restores all items on that host.
-The choices start at two rows; **Show more / Show less** reveals the rest. The selected count and
-Clear control stay visible even when selected chips are outside those rows. Choices and counts exclude
-Done while List's completed tasks are hidden or Board's Done column is folded; showing completed
-work restores its tags. Saved selections stay removable when the visible work or host changes.
-
-Optional backlog metadata `(tags: Frontend, Dashboard)` is also read. Board edits are durable
-additions/removals in `data/item-tags.json`; they never rewrite the agent-owned backlog, its title,
-unknown metadata or status. Tags follow a task's id, project and host through section moves and
-worker replacement. A worker without a task id keeps tags by its own host and agent id. Agent labels
-and workflow columns retain their existing meanings. [Isolated screenshots and checks](docs/item-tags/README.md)
-cover both layouts, widths and themes.
-
-![Default List at 2866×1694, with the chat taking 45% of the panel and 45 sample tasks.](docs/board-list/after-list-wide.png)
-
-![The FirstMate panel mid-voyage: the first mate's chat on the left explaining the two workers it sent
-off; on the right the board, with "Add a dark mode toggle to the header" in Working, its card open on
-Watch, Steer, Interrupt, Relaunch and End, and "Fix knots-to-km/h conversion and add a test" in Done,
-reading "Done: ready in branch fm/fix-knots-kmh" and "Captain's call: land branch
-fm/fix-knots-kmh".](docs/board.png)
-
-Each card is a worker, a backlog item, or both. At rest it shows only what you need at a glance: the
-title, the worker's state, its project and host as small tags, when it last moved, and one line of
-its latest status — a permission it waits on, an error, your call it waits for, or its own status line,
-whichever matters most — and a **💬**.
-
-**💬 Converse** opens the worker's conversation in a drawer beside the list or board (over it, where the
-pane is too narrow; the whole Crew tab on a phone), with the chat with the first mate still on the left.
-You see what it was told and what it said — **YOU** marks your own messages, tool calls fold into one
-line, and **Activity** shows every command, file and thought — and you reply in the box at its foot:
-Enter sends, Shift+Enter is a new line. A question or permission it is waiting on is answered right
-there. The first mate hears what you said and what the worker answered, in one note per conversation
-once it goes quiet for two minutes, not one per message. **Esc** or ✕ puts you back where you were.
-**⋯** holds its details and Interrupt, Relaunch and End; **↗** opens it in Paseo, for what only Paseo has —
-the model and mode, the worktree's files, terminals. What you type in Paseo's own tab is not relayed to
-the first mate.
-
-Items **without a worker** also have 💬. They open a saved discussion with the first mate about that
-item; opening it sends nothing, and discussing it does not request dispatch. When the idea is ready,
-choose **Start work… → Request dispatch** to ask the first mate to carry the discussion into a brief
-and launch a crewmate. **Work requested** means the request was sent, not that dispatch is complete.
-Once a worker appears, **Worker | Item discussion** keeps both conversations available. Drafts stay
-with their recipient, and the saved discussion survives reloads and a change of first mate.
-
-Press the card itself for the rest — task id, kind, mode, model, the full status line, the pull request —
-and its actions:
-
-- **Steer** — a word straight to the worker, without opening its conversation. It counts as coming from
-  you, and the first mate is told what you said and what the worker answered.
-- **Interrupt** — stops the worker's current turn.
-- **Relaunch** — asks the first mate for a fresh worker in the same worktree, with your note. The work
-  on disk carries over; the conversation does not.
-- **End** — archives the worker. Its workspace and worktree are left exactly as they are.
-
-![An earlier version of the conversation view, then called Watch: the chat with the first mate stays on the left; in the board's place, the worker's
-card with its actions beside its live transcript — the brief it was given, then Read, Edit and Shell
-rows for each step (npm test among them), its notes between them, and a spinner on the step under
-way.](docs/watch.png)
-
-A column with nobody in it is hidden. In **Board**, wide screens show one row of full-height columns,
-scrolling sideways when needed. Headers and count pills keep their width. Columns fold to a strip
-and move with the arrows in their headers; on phones they stack in one scrolling view. The split between
-chat and board drags. The layout is remembered, including where a hidden column goes when it fills
-again. Board's Done column shows its three most recent cards, with **Show all** for the rest.
-
-[Before-and-after desktop and phone renders, and the reproducible harness](docs/board-list/README.md).
-
-Opening the panel counts as looking at the first mate: when it has finished a turn, its workspace in
-Paseo's sidebar turns to done, as it would if you had opened the first mate itself. One waiting on
-your permission stays flagged until you answer.
-
-A worker's workspace and session also get a **FirstMate** tab showing its card, with a box for telling
-the first mate something about it.
-
-## The first mate's home
-
-FirstMate chat's workspace file links show the target host, workspace, relative
-filename and optional line selection. **Open workspace** uses Paseo's supported
-navigation; select the file manually in its explorer. Author links with exact
-IDs in the title:
-
-```markdown
-[Report](<reports/report%20one.md#L12> "firstmate:serverId=SERVER_ID&workspaceId=WORKSPACE_ID")
-[Backlog](<data/backlog.md> "firstmate:home")
-```
-
-Unannotated relative references are never guessed against the mate's home.
-Absolute paths resolve only when one known workspace on one host contains them;
-ambiguity, offline inventories and missing targets explain the problem.
-File existence is not checked. See the [complete convention and routing evidence](docs/workspace-file-links/README.md).
-
-The **Files** view — next to the crew board, or its own tab on a phone — shows everything in the home
-and opens any text file for editing, with a preview for Markdown. Cmd/Ctrl+S saves on a desktop. The
-first mate writes these files too, so a save never silently replaces its newer version: you are told
-it changed, and choose to load theirs or overwrite it with yours.
-
-The first mate lives in a directory of its own — by default inside Paseo's plugin data, or anywhere you
-choose in the settings. It writes there and nowhere else; your projects are read-only to it, and every
-change is a worker's job.
-
-In Paseo's sidebar the first mate's project and workspace are called **FirstMate** rather than after
-the folder, and the project shows FirstMate's ship, from `icon.svg` in the home — Paseo picks up a
-project's icon from its folder. Rename either, replace the file, or upload an icon in the project's
-settings, and your choice is kept.
-
-- `AGENTS.md` — its charter: how it takes requests, briefs and supervises workers, and talks to you.
-  Written from `data/charter.md` every time the plugin starts or the first mate is launched, so do not
-  edit it here.
-- `data/charter.md` — **the charter itself, yours to change.** It starts as FirstMate's own charter, and
-  while you leave it alone, a new version of the plugin brings its improvements. Once you edit it, your
-  version is kept; if FirstMate's charter changes after that, the board tells you, **Compare** opens the
-  new one beside yours (`data/charter.new.md`) and **Done** marks yours up to date. Saving it in the panel
-  rewrites `AGENTS.md` at once; the first mate reads it at its next session, or when you ask it to re-read
-  its charter. The note at the top lists the `{{placeholders}}` filled in for you, notes between `<!--`
-  and `-->` are left out, and an empty file goes back to FirstMate's charter.
-- `data/captain.md` — **your standing orders.** Anything you write here outranks the charter (except
-  its hard rules: it never writes to a project, never merges without your word, never throws away
-  unlanded work). Never overwritten.
-- `data/opening.md` — **the first thing a new first mate is told**, when you launch it and when you
-  restart it. Change the words, the language, or what it should do before anything else; keep asking
-  it to read `AGENTS.md` and take the helm, which is what makes it a first mate. Notes between `<!--`
-  and `-->` are left out, a restart adds a note of its own after yours about the first mate before, and
-  an empty file means FirstMate's own wording. Never overwritten.
-- `data/projects.md` — the project registry, and how each one ships:
-  - `direct-PR` — the worker opens a pull request ready for review;
-  - `reviewed-PR` — the worker also reviews its own diff, runs the full test suite and waits for CI;
-  - `local-only` — no remote; the worker leaves a clean branch, and the first mate lands it when you say.
-  - `+yolo` after the mode lets the first mate merge green work on that project without asking.
-- `data/backlog.md` — every task, in flight, queued and done. The board reads it.
-- `data/suggestions.md` — what the first mate thinks you will want next, one per line as
-  `- <label> :: <what to send>`. The first mate keeps it up to date; the board turns it into buttons.
-- `data/<task>/brief.md`, `data/<task>/report.md` — each worker's instructions, and an investigation's
-  findings.
-- `watches/` — scripts FirstMate runs on a schedule; see below.
-
-Because all of it is on disk, a restart is a non-event: the first mate reads its records, checks them
-against the live crew, and carries on.
-
-## Remote hosts in this personal copy
-
-This copy follows all hosts saved in Paseo desktop. The app synchronizes connection profiles every
-ten seconds while open, and the plugin retains them in the local daemon to work independently of
-the app. On the first successful desktop sync, it enables Paseo's **Keep running after quit** setting
-once. You can change that setting later; FirstMate will respect the change. Atlas must stay awake,
-and each remote daemon must be running and reachable from Atlas. SSH authentication uses Atlas's
-own keys/configuration.
-
-The first mate uses `node tools/remote.mjs hosts` to discover remote hosts, projects, workspaces,
-providers and workers, then routes CLI orchestration commands through that helper. Remote workers
-use their remote repositories and models and get a stable owner label. `remote-watch` reports each
-finished turn once, briefly (status, status line and final message), and each pending permission with
-what it asks, to the local first mate. When you ask the first mate to steer one of your own sessions
-on a remote host, it lists that session in `data/remote-follow.json` and the watch reports it too.
-Following only reads the session and never labels or changes it. `data/remote-access.md` contains the full
-agent instructions and command examples. The helper reports the remote CLI's own error messages
-(with credentials and connection links removed), takes multi-line briefs from a file in the home
-with `--prompt-file`, and adds each pending permission's latest tool calls. Remote times are shown as
-the host reports them. Each remote run measures the host's clock against Atlas's, and the helper warns
-while it is off by three minutes or more. Paseo 0.11's CLI cannot read files on a remote host, so remote
-workers return reports in their final reply or push them.
-
-Remote work is on the board with the local crew. A backlog item that names its host —
-`(host: …)`, or `(on-host: …)`, by serverId, label or both — is matched to its worker on that host
-by the agent id it records or the worker's `firstmate.task` label, and filed by the worker's live
-status and last status line, refreshed about once a minute; a worker with no item gets a card of its
-own. Each card names its host. **💬** shows the worker's recent activity, read from the host every
-ten seconds, and replies to it from the box at its foot; **Steer**, **Interrupt** and **End** go to the worker through the same bridge, and are off
-while its host is unreachable. **Relaunch** is off for remote workers: ask the first mate, which writes
-the new brief there. A session the first mate only follows — one of your own, listed in
-`data/remote-follow.json` — is marked as followed and never offered End. A card spells out each
-permission its worker is waiting on, where the host says, with its latest tool calls. Times on a remote
-card are corrected for the host's measured clock skew, and a host whose clock is three minutes or more
-off says so in its health. The sidebar badge counts remote workers too,
-followed sessions aside.
-
-With remote hosts saved, tabs above the columns filter the board: **All**, **This machine**, then one
-per host with an online or unreachable mark and its working and needs-attention counts. A host's tab
-shows a compact, expandable health line at the top, including its worker count and any clock warning.
-**All** shows health in the tabs, without a second list of workers. The
-board remembers the tab.
-
-Passwords and relay pairing data remain in `plugin-data/firstmate/remotes.json`, outside the mate's
-home and this repository. Only public status is copied into `data/remote-hosts.json`. Removing a
-host in Paseo removes its bridge access on the next sync, but leaves its workers running.
-
-Automatic discovery and the one-time background setting use private Paseo 0.11 desktop storage/IPC
-formats because the public plugin API doesn't export connection credentials. Unsupported saved
-formats are reported and the last valid configuration is retained. Mobile clients do not export
-their saved hosts. Remote commands that may change state are never automatically retried after
-an uncertain failure: inspect before retrying.
-
-## Watches
-
-**Add watch** and **Configure** expose routing fields: **Run in**, **New-session reasoning** and
-**Notify first mate**. Existing scripts keep the current-session path and its reasoning. **Use Board
-review defaults** creates an opt-in, read-only inspection every ten minutes in a separate session at
-Medium, on the current mate's provider/model. Only actionable findings or failures wake the current
-mate; no-change results remain in **Reports**. The main mate alone changes shared records and manages
-crew. Isolated inspection requires the provider's advertised `read-only` mode and the current model's
-supported thinking options; unavailable options are refused. There is no provider/model override.
-
-The home tool `node tools/watch.mjs create|configure --file request.json` takes the same explicit
-fields as the UI. Scripts stay editable in Files; managed inspection briefs and schedules are edited
-in Configure. Definitions, input evidence, results and pending delivery survive reload/handover outside
-the home. Disabling or editing a watch affects future runs; an existing inspection finishes with its
-captured settings. See [the routing design and validation](docs/watch-routing/README.md) for schemas,
-failure handling, retained evidence and reproducible screenshots.
-
-A **watch** is a small script in the home's `watches/` folder that FirstMate runs on a schedule, while
-Paseo is running. When it prints nothing, nothing happens; when it prints something, all of it reaches
-the first mate as one note, as soon as it is between turns — several at once arrive together, and the
-chat shows them as one line naming the watches. FirstMate adds nothing to what a watch prints, so it
-reaches the first mate as the script's own words: since the script is yours, what it says to do the
-first mate takes as your instruction. A watch that passes on text from someone else — a pull request
-comment, a web page — has to mark it as quoted, and the first mate treats what is marked that way as
-news, not orders. `pr-watch` does, and says so.
-
-FirstMate comes with **`pr-watch`**, which checks every five minutes on the pull requests in the
-backlog — yours and those to other people's projects — and tells the first mate when one is merged or
-closed, gets a review or a comment from someone else, or its checks go red or green. So a pull request
-you merge on GitHub is cleaned up within minutes, and a maintainer's review reaches the worker without
-you passing it on. It needs the `gh` command, logged in, and Node, on the machine Paseo runs on.
-This personal copy also includes **`remote-watch`**, which reports remote host and worker changes
-every minute without an app connection.
-
-A small **Watches** icon in the panel header opens the watch list on wide screens and phones. It
-shows a badge and warning colour only when a watch is failing, invalid or switched off. The list shows each
-watch with its schedule, when it last ran and what came of it, and what it last said (press it to read
-it all). Its switch turns a watch off or on without touching the script, and a watch's name opens the
-script in the Files view. A watch that fails is reported
-to the first mate once, and shown in Watches until it works again.
-
-To write your own, put a script in `watches/` with its schedule in a comment near the top,
-crontab style, in the daemon machine's local time. Make it executable on Unix:
+**Home** keeps the first-mate conversation beside **List**, **Board**, **Home files** or **Deck**.
+Compact layouts switch between these and **First mate**. The divider and view choices are saved.
+**More** holds watches, provider transfer, layout controls, updates, refresh and settings.
+
+The shortcuts open dedicated **Deck**, **Board**, **Crew** (the grouped List) and **Chat** tabs in the
+home workspace. Paseo handles tab order, splits and closing. Chat and Home share the same mate,
+draft and attachments; **Full conversation** opens its native Paseo session.
+
+**Shared terminal** reuses a terminal named **FirstMate shared**, or creates one when none exists.
+The shortcut opens its workspace; select the terminal there. **New browser** asks for an HTTP(S) URL
+and creates a native desktop browser tab. **Terminal & browser** returns to the workspace to select
+an existing tab. Browser sharing with an agent requires Paseo's browser tools and a connected desktop
+automation host; it is local to that desktop. Opening Home or restoring tabs creates neither resource.
+
+**Home files** browses and edits the first mate's records, with Markdown previews and changed-file
+checks on save. Keep standing instructions in `data/captain.md`, the opening in `data/opening.md`, and
+charter customizations in `data/charter.md`; the generated `AGENTS.md` is rewritten by the plugin.
+An edited charter is preserved, with a comparison offered when the shipped charter changes.
+
+[Workspace behavior](docs/shell-phase1/README.md) · [Inline Deck](docs/home-deck/README.md) ·
+[Chat tabs](docs/chat-tabs/README.md)
+
+## List, Board, suggestions and tags
+
+![Home's List pane with synthetic tasks grouped by attention, working, queued and completed states](docs/readme/home-list.webp)
+
+**List** is the default: attention items first, then working, queued, idle/stalled and completed work.
+Done starts collapsed to a count. **Board** shows the same tasks in state columns that can be folded
+and reordered. Expand a task for details and actions; choose Comfortable or Compact card spacing.
+
+![The standalone Board with synthetic queued, working, blocked and done cards and tag chips](docs/readme/board.webp)
+
+A worker that finishes waits in **Ready** for the first mate; **Done** follows the backlog's completed
+record. A worker waiting on an external run can remain **Working**, marked “waiting”. Missing feeds
+and stalled workers are shown explicitly.
+
+**Suggestions** opens the first mate's proposed next requests. Inspect the full prompt, send it, or
+remove it. **Tags** adds another way to organize tasks; filtering requires all selected tags and
+combines with the **Machines** filter when remote hosts are present. List and Board share these controls.
+
+[Task tags](docs/item-tags/README.md) · [List and Board design](docs/board-list/README.md)
+
+## Converse with a worker
+
+The conversation button on a task opens **Converse** beside or over the task view. Read the worker's
+messages, expand tool activity, send a steer, and answer local questions or permission requests.
+**Activity** exposes more detail; the task menu includes Interrupt, Relaunch and End where supported.
+The first mate receives board exchanges in a quiet-period batch rather than a new note for every line.
+A steer joins the active turn or restarts it, depending on the provider.
+
+An item without a worker opens a discussion with the existing first mate. **Start work** is a separate
+request to dispatch; opening or discussing the item does not start a worker.
+[Item discussions and Converse](docs/converse-universal/README.md).
+
+## Chat, images and native notes
+
+![The Chat workspace tab with an invented conversation and an inline ship image preview](docs/readme/chat.webp)
+
+Home chat and the Chat tab support earlier history, copy controls, questions, permissions, a context
+meter, **Compact** and **Restart**. Web clients can attach files and images by picker, paste or drop;
+native mobile clients use text in this composer. Sent-image history is cached in the browser profile,
+so it does not automatically follow to another device.
+
+Image references in replies can open inline previews and an enlarged viewer. Local images are read
+from the home or a registered local workspace, with path checks and a 10 MiB cap. Remote workspace
+images are not fetched through this local route.
+
+Workspace file links identify their destination and offer **Open workspace**; select the file in
+Paseo's explorer. [File-link behavior](docs/workspace-file-links/README.md).
+
+In **Paseo's native chat**, complete FirstMate watch and board notes become compact summaries with
+**Show original** to reveal their text. Ordinary conversation and Paseo's own system notes retain
+native formatting; the stored transcript is unchanged.
+
+[Chat capabilities](docs/chat-parity/README.md) · [Local image previews](docs/local-chat-images/README.md) ·
+[Native note formatting](docs/native-chat-format/README.md)
+
+## Watches and managed inspections
+
+Open **More → Watches** for schedules, enable switches, last output and failures. Built-in
+**pr-watch** tracks changes to backlog pull requests through an authenticated `gh` CLI;
+**remote-watch** reports remote completions and permission requests. Script watches run on the
+daemon's local clock. Silent runs do not prompt a model; output waits for the first mate between turns.
+Missed schedule minutes are not replayed while Paseo is stopped or the machine is asleep.
+
+Managed watches add a saved inspection brief and explicit routing: use the **current first-mate
+session**, or a **new isolated inspection session** with a supported reasoning level. New inspections
+use the current mate's provider/model in read-only mode and return evidence; the first mate remains
+responsible for action. Choose actionable-only notifications, every result, or retained reports only.
+Failures still escalate. The optional **Board review** preset can retain quiet results without waking
+the mate; isolated inspections themselves use model calls.
+
+[Writing script watches](templates/watches/README.md) · [Managed routing and reports](docs/watch-routing/README.md)
+
+## Remote hosts
+
+Saved Paseo desktop hosts sync to the daemon so the first mate can coordinate remote crew through
+the home helper. Local and remote tasks share List, Board and Deck. **Machines** narrows the view
+and exposes connection health; unavailable hosts retain their last known state.
+
+Remote Converse reads the worker's text log and supports Steer, Interrupt and End for owned crew
+when reachable. Remote permissions are handled on the host, and remote Relaunch goes through the
+first mate. Followed sessions are marked separately and cannot be ended from the board.
+The [remote access guide](templates/data/remote-access.md) describes setup, commands and limitations.
+
+## Settings, handovers and updates
+
+**Settings → Plugins → FirstMate** controls the home, default crew model/mode, agent tools, refresh
+interval, card spacing and Deck setting. Home's **More → Switch provider/model** transfers the
+first-mate role to a new session with a saved handoff and the same records. The handoff is an excerpt,
+not a transfer of provider memory. Checks protect workers from same-workspace archive cascades;
+failed transfers expose recovery controls. [Provider handover details](docs/provider-migration/README.md).
+
+The update control under **More** checks the installed source. When a verified update is available,
+pressing it sends an installation request to the first mate; the control itself does not install or
+reload. It follows the configured fork/source, and reports unavailable when it cannot verify it.
+[Update behavior](docs/firstmate-update/README.md).
+
+## Development
 
 ```sh
-#!/bin/sh
-# schedule: 0 9 * * 1-5
+npm ci
+npm run typecheck
+npm test -- --maxWorkers=1
+npm run lint:deck-packs
 ```
 
-`watches/README.md` in the home has the details: the schedule syntax, and what a script is given to find
-the home, the backlog, and a folder of its own to remember what it has already reported. Until you edit
-`pr-watch`, a new version of FirstMate replaces it; once you have, yours is kept, and Watches says when
-FirstMate's has changed. The first mate adds or changes a watch only when you say so.
-
-## Deck settings: ship and office
-
-Open **Deck** from FirstMate Home, then use **Scene** in the Deck toolbar to choose **Ship's deck**
-(the default), **The office**, or another installed compatible scene. This is a global choice for the
-whole fleet, saved across sessions. The same choice is available in Settings > Plugins > FirstMate > Deck setting.
-The choice applies to the whole fleet. Both use the same scene engine, crew states, badges, interactions,
-focus controls and motion rules; each setting is a JSON manifest plus PNGs in `art/settings/`.
-
-The office places working colleagues at stable desks, waiting colleagues by the printer, blocked colleagues
-at the help desk and idle colleagues in the break area. New colleagues walk in from the lift; departures use
-finite door and confetti effects. The city and room colours follow the local day, and the wall clock shows
-the hour. Reduced motion stays calm, with the clock on its first frame. The office art was commissioned
-separately; its contract and provenance are in `docs/settings/office/`.
-
-To author another built-in setting, follow [the pack authoring guide](docs/deck-settings/authoring.md).
-The format and behaviour catalogue are closed and versioned; packs contain no code or expressions.
-
-A ship's-deck view of the crew: one sailor per live crewmate on the deck of a pixel-art ship, drawn by PixiJS on a WebGL canvas, standing where its card's column puts it. **Working** sailors
-haul at the stations amidships. **Waiting** (Ready, or waiting on a job) stand by the helm.
-**Blocked** (Blocked, Failed) are in the bow, and **idle** (Idle, Parked) go off watch: they walk to a
-rest area on the foredeck by the hatch (and, past six, at the foot of the quarterdeck stairs) and doze there,
-so the working deck shows only the crew at work. Pointing at a sleeper labels it below the deck's rail, where
-the label covers no one. Each crewmate wears one of eight looks, chosen by its agent, so the same crewmate always looks the same. When a
-crewmate's state changes, its mark changes at once and the sailor walks to its new place; a new crewmate
-climbs up through the hatch and one that leaves climbs back down. The ship sails: it bobs on a gently
-shimmering sea, its sail billows, the masthead sways, the lanterns flicker and a gull
-crosses now and then. If the board's feed is lost, the
-crew greys where it last stood rather than turning idle. The deck is depth-layered: a sailor behind the
-mast or a bollard is hidden by it. It draws at most 30 frames a second, nothing while the window is
-hidden, and holds still if the system asks for reduced motion. It reads the same cards as the
-board and polls nothing of its own. The art is generated and cleaned up by script (`docs/ship-deck-art/README.md`).
-
-**Click a sailor to work from the deck.** The camera zooms in on it, the rest of the deck dims, and a small
-panel beside it shows that crewmate's card: its state, project and host, its status line and anything waiting
-on you, and the card's own buttons — Converse, Steer, Interrupt, Relaunch, End — which do exactly what they do on
-the board, End's confirmation included. Esc, the panel's ✕, or a click anywhere else on the deck pulls the
-camera back out. From the keyboard, Tab to the deck and press an arrow key or Enter; Tab then stays in the
-panel until Esc. Under reduced motion the camera snaps instead of zooming. Converse takes you to the Crew pane, with the
-worker's conversation open.
-
-The header's Crew/Files switch has **Deck** in the desktop app's wide layout; there is nothing to turn on.
-On a phone or a narrow window it is not offered, and a display without WebGL gets a plain sentence instead
-of the canvas. The `FIRSTMATE_SHIP_DECK` switch it was first released behind is gone; the daemon ignores it.
-
-To check it in the desktop app once the plugin is installed, open FirstMate and press **Deck**. The caption
-should read "Drawn with WebGL · N on deck", with N matching the live crew. In DevTools, the canvas carries
-`data-firstmate-deck="webgl"` and `data-firstmate-deck-motion="full"` (`still` under reduced motion,
-`lite` on a software renderer). `docs/ship-deck-canvas/README.md`, `docs/ship-deck-motion/README.md`,
-`docs/ship-deck-tweaks/README.md` and `docs/ship-deck-default/README.md` have the full list, and what was
-proven before install.
-
-## Settings
-
-**Settings › Plugins › FirstMate** — or the gear in the panel's header, or *FirstMate settings* in ⌘K.
-
-- **First mate** — which agent it is, and *Release* to forget it (the agent keeps running).
-- **Home directory** — where the first mate lives. It can be moved only while no first mate is aboard.
-- **Crew model and mode** — what every worker runs, unless you tell the first mate otherwise for a
-  task. "Let the first mate choose" gives workers its own model.
-- **Agent tools** — Paseo's switch, described above.
-- **Refresh every** — how often the board polls.
-- **Card spacing** — Comfortable, the default, or Compact to fit more cards on the screen. A card
-  shows the same few things either way.
-
-## Limitations
-
-- **Nothing is merged or thrown away without you.** Workers push their own branches and open pull
-  requests, but merging needs your word (or `+yolo` on that project), and a worker's worktree is only
-  cleaned up after its work has landed.
-- **A worker you prompt by hand** in its own tab is not watched by anyone until the first mate next
-  reviews the fleet (it keeps a half-hourly check while work is under way). Reply from its 💬 on the
-  board instead, and the first mate hears about it.
-- **The first mate's model, thinking and mode** are changed from its own tab in Paseo, not from the
-  board.
-- **Attachments** — images, files — go to the first mate from its own tab, not from the panel's chat.
-- **Converse shows a worker's latest activity**, not its whole history; a long-running worker's earlier
-  work is in its own session in Paseo.
-- It does not reproduce firstmate's second mates, relay to X and Discord, away mode, or the
-  `no-mistakes` pipeline (`reviewed-PR` stands in for the last).
-- **Watches run only while Paseo does**, and a run missed while the daemon machine was asleep is not
-  made up. After the plugin is reloaded, what a watch prints waits until any agent works or the panel
-  is opened.
-- The panel has not yet been checked on a phone.
-- **The ship deck** is desktop only (the wide layout, with WebGL), and one ship for every host. Its sailors are generated art cleaned up by script, with no real walk cycle or back view,
-  and they still want a pixel artist's polish. Its motion has been seen in a browser, not yet inside the
-  Paseo desktop app.
-- **The receipt journal** (`FIRSTMATE_RECEIPT_JOURNAL=1` in the daemon's environment, off by default)
-  records what the plugin sends and writes from the day it is switched on, nothing before. It cannot see
-  Paseo's own finish notes to the first mate, so those stay marked uncertain.
+Use `npm.cmd` on Windows. Tests use temporary Paseo homes. UI fixtures and art review records live
+under `docs/`, outside the npm package's file list. [AGENTS.md](AGENTS.md) maps the implementation and
+its constraints; [CHANGELOG.md](CHANGELOG.md) preserves the change history, including upstream entries.
 
 ## License
 
