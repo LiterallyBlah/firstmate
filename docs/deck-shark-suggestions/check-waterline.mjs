@@ -10,6 +10,9 @@ export async function checkWaterline(view, manifest) {
   await view.setViewportSize({ width: 900, height: 900 });
   await view.clock.install({ time: noon });
   await view.reload(); await view.clock.pauseAt(noon + 20000);
+  for (let i = 0; i < 50 && !(await view.getByRole('button', { name: 'Open Deck', exact: true }).isEnabled()); i++) {
+    await view.clock.runFor(100); await view.waitForTimeout(50);
+  }
   await view.getByRole('button', { name: 'Open Deck', exact: true }).click();
   const canvas = view.locator('canvas[data-firstmate-deck]');
   for (let i = 0; i < 100 && !(await canvas.count()); i++) {

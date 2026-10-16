@@ -26,7 +26,8 @@ no generated or edited art is needed. Ship's deck has no surface setting and kee
 Waterline close-ups: [day](review/waterline-day-close.png), [night](review/waterline-night-close.png).
 Moving frames: [one](review/waterline-moving-0.png), [two](review/waterline-moving-5.png),
 [three](review/waterline-moving-10.png). [Runtime motion assertions](review/waterline-full-checks.json)
-verify crop registration, attachment, swim/ripple changes and reduced-motion freezing.
+verify crop registration, attachment, swim/ripple changes and reduced-motion freezing;
+[software-renderer assertions](review/waterline-lite-checks.json) verify the lite policy.
 
 | View | Before | After | Open bubbles |
 | --- | --- | --- | --- |
@@ -88,6 +89,9 @@ node docs/deck-settings/render.mjs '?setting=ship'
 Remove-Item Env:SHARK_REVIEW
 $env:WATERLINE_REVIEW='1'
 node docs/deck-settings/render.mjs '?setting=japanese-ship'
+$env:WATERLINE_LITE='1'
+node docs/deck-settings/render.mjs '?setting=japanese-ship'
+Remove-Item Env:WATERLINE_LITE
 Remove-Item Env:WATERLINE_REVIEW
 $env:SAVE='1'
 node docs/deck-settings/gate.mjs
