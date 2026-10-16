@@ -31,7 +31,7 @@ assert.equal(spirit.lite,'hide');assert.equal(spirit.still,'hide');
 const coast=after.ambience.find(e=>e.id==='coast-foreground').behaviour;
 assert.equal(coast.kind,'phase-strip');assert.equal(coast.top,-30);assert.equal(coast.drift.pxPerSecond,0);
 for(const id of ['coast-front','coast-night-front','coast-dawn-front','coast-morning-front','coast-afternoon-front','coast-dusk-front']){
- const original=decodePng(execFileSync('git',['show','500ac77:'+folder+id+'.png'],{cwd:root})),fixed=decodePng(readFileSync(resolve(root,folder,id+'.png')));
+ const original=decodePng(execFileSync('git',['show','b1458b4:'+folder+id+'.png'],{cwd:root})),fixed=decodePng(readFileSync(resolve(root,folder,id+'.png')));
  for(let y=0;y<=245;y++)assert.deepEqual(fixed.rgba.subarray(y*fixed.width*4,(y*fixed.width+600)*4),original.rgba.subarray(y*600*4,(y+1)*600*4),'approved island pixels '+id);
 }
 assert.equal(spirit.behaviour.variants,undefined);assert.equal(spirit.behaviour.opacity.curve.at(-1)[1],1);
@@ -41,5 +41,5 @@ const stableAlphas=Array.from({length:25},(_,i)=>curveAt(spirit.behaviour.opacit
 assert.ok(stableAlphas.every(a=>a===0||a===1),'no attainable stationary crew intensity leaves a translucent body');
 assert.deepEqual(spirit.behaviour.frames.sprites[0],{image:'umibozu',rect:[144,0,72,80]},'full cycle keeps risen pose');
 for(const image of ['umibozu','umibozu-sink']){const a=decodePng(readFileSync(resolve(root,folder,image+'.png')));assert.ok(a.rgba.every((v,i)=>i%4!==3||v===0||v===255),'body art has binary alpha');}
-const result={baseline:'b1458b4',imageBytes,preservedImages:preserved,unchanged:['stage','cast','floor','zones','portals','effects','attentionCarrier','dayCycle','atmosphere','turning-wake','moon','rain-spray','overcast'],skySectors:sectors,twinkle:'nonempty distinct frames',nearCoverage:'tile to visible bottom; back/front share origin and clock',umibozu:{before:'element opacity 0..0.85 times rise-variant crossfade',oldBodyAlphaAt90Percent:oldBodyAlpha,after:'one opaque rise/settle/submerge cycle; full strength above 0.780001; no stable crew intensity in reveal interval',stableAlphas,frames:spirit.behaviour.frames.sprites.length}};
+const result={baseline:'b1458b4',imageBytes,preservedImages:preserved,unchanged:['stage','cast','floor','zones','portals','effects','attentionCarrier','dayCycle','atmosphere','turning-wake','moon','rain-spray','overcast'],skySectors:sectors,twinkle:'nonempty distinct frames',nearCoverage:'tile to visible bottom; back/front share origin and clock',umibozu:{before:'element opacity 0..0.85 times rise-variant crossfade',oldBodyAlphaAt90Percent:oldBodyAlpha,after:'one opaque rise/settle/submerge cycle; full strength above 0.780001; no stable crew intensity in reveal interval',stableAlphas,frames:spirit.behaviour.frames.sprites.length,worldWaterline:spirit.behaviour.at,coastSpace:'stationary world phase strip',hidden:['lite','still','reduced motion']}};
 writeFileSync(resolve(here,'audit.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));

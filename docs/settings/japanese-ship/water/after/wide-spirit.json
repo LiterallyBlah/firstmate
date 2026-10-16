@@ -2,15 +2,15 @@
   "samples": [
     {
       "ms": 0,
-      "opaqueBodyPixels": 1306
+      "opaqueBodyPixels": 1123
     },
     {
       "ms": 250,
-      "opaqueBodyPixels": 382
+      "opaqueBodyPixels": 357
     },
     {
       "ms": 500,
-      "opaqueBodyPixels": 392
+      "opaqueBodyPixels": 357
     },
     {
       "ms": 750,
@@ -26,91 +26,91 @@
     },
     {
       "ms": 1500,
-      "opaqueBodyPixels": 392
+      "opaqueBodyPixels": 374
     },
     {
       "ms": 1750,
-      "opaqueBodyPixels": 392
+      "opaqueBodyPixels": 376
     },
     {
       "ms": 2000,
-      "opaqueBodyPixels": 1316
+      "opaqueBodyPixels": 1188
     },
     {
       "ms": 2250,
-      "opaqueBodyPixels": 1330
+      "opaqueBodyPixels": 1180
     },
     {
       "ms": 2500,
-      "opaqueBodyPixels": 2904
+      "opaqueBodyPixels": 2660
     },
     {
       "ms": 2750,
-      "opaqueBodyPixels": 4680
+      "opaqueBodyPixels": 4380
     },
     {
       "ms": 3000,
-      "opaqueBodyPixels": 4692
+      "opaqueBodyPixels": 4422
     },
     {
       "ms": 3250,
-      "opaqueBodyPixels": 5506
+      "opaqueBodyPixels": 5228
     },
     {
       "ms": 3500,
-      "opaqueBodyPixels": 5470
+      "opaqueBodyPixels": 5215
     },
     {
       "ms": 3750,
-      "opaqueBodyPixels": 7156
+      "opaqueBodyPixels": 6923
     },
     {
       "ms": 4000,
-      "opaqueBodyPixels": 7147
+      "opaqueBodyPixels": 6925
     },
     {
       "ms": 4250,
-      "opaqueBodyPixels": 7210
+      "opaqueBodyPixels": 6949
     },
     {
       "ms": 4500,
-      "opaqueBodyPixels": 7136
+      "opaqueBodyPixels": 6909
     },
     {
       "ms": 4750,
-      "opaqueBodyPixels": 7207
+      "opaqueBodyPixels": 6938
     },
     {
       "ms": 5000,
-      "opaqueBodyPixels": 5514
+      "opaqueBodyPixels": 5232
     },
     {
       "ms": 5250,
-      "opaqueBodyPixels": 4672
+      "opaqueBodyPixels": 4415
     },
     {
       "ms": 5500,
-      "opaqueBodyPixels": 4696
+      "opaqueBodyPixels": 4415
     },
     {
       "ms": 5750,
-      "opaqueBodyPixels": 2880
+      "opaqueBodyPixels": 2652
     },
     {
       "ms": 6000,
-      "opaqueBodyPixels": 2897
+      "opaqueBodyPixels": 2646
     },
     {
       "ms": 6250,
-      "opaqueBodyPixels": 1290
+      "opaqueBodyPixels": 1125
     },
     {
       "ms": 6500,
-      "opaqueBodyPixels": 383
+      "opaqueBodyPixels": 371
     },
     {
       "ms": 6750,
-      "opaqueBodyPixels": 392
+      "opaqueBodyPixels": 371
     },
     {
       "ms": 7000,
@@ -121,6 +121,6 @@
       "opaqueBodyPixels": 0
     }
   ],
-  "peakOpaqueBodyPixels": 7210,
+  "peakOpaqueBodyPixels": 6949,
   "observer": "real canvas PNGs; exact opaque sprite colours"
 }
