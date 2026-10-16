@@ -18,6 +18,9 @@
     "water": {
       "sha256": "41d43fabe2c7f7d6023f986fc1f0729ae49db1b8ba32007a8944a671098fa2b1"
     },
+    "storm-textures": {
+      "sha256": "df749ea1778a899046737d3ec1b9c925f58a407e602d455fb1c8372808aca976"
+    },
     "ambience": {
       "sha256": "9d03620c10a3d7e2123b80e848fdf25aa79f56ba40e9e2395114e22b7795ecf4"
     },
@@ -57,11 +60,6 @@
       "reusedFrom": "art/settings/ship/rain-3.png",
       "sha256": "be75c06a3e5eacc9dfdc0c165979cd4c09354283bd23ee4efd54d9c0ef52d345",
       "transform": null
-    },
-    "storm-sky-overcast": {
-      "reusedFrom": "art/settings/ship/legacy-storm-sky-overcast.png",
-      "sha256": "742f9fd2393d0bcad73aa900f7fcc6bfca83c82cc044e9bb78a9922ad9b9e3c9",
-      "transform": "resize; charcoal-green tint"
     },
     "preview-canvas": {
       "sha256": "a437e1f17d63b985be97f13c3174cc1d9e079f01bb1ec1ff0b3aefa94b66f4cd"
@@ -399,242 +397,186 @@
     "coast-dawn": {
       "path": "coast-dawn.png",
       "size": [
-        1000,
+        1800,
         168
       ],
-      "sha256": "4c82a0fc9038dd514a1033a687121b4caef23dcf05461d4e44a388f3cda89318"
+      "sha256": "74521be77ba8c4455eaba3616495ddf315b1162ca01fc2681addbf2863706a63"
     },
     "coast-morning": {
       "path": "coast-morning.png",
       "size": [
-        1000,
+        1800,
         168
       ],
-      "sha256": "5ee452101e3c8dd3b904f6894295e8d7d32ad55bec664b2e6d2c1ce33dbade0a"
+      "sha256": "1716e815d3f2cbee24da9d530c9deb5275fcd2b027128915317921c25ed17d7a"
     },
     "coast-midday": {
       "path": "coast-midday.png",
       "size": [
-        1000,
+        1800,
         168
       ],
-      "sha256": "395864921819442a81d10e743870b9d1887cee80981d0d6be3cf59e5d2a76b93"
+      "sha256": "84f8c9d8c36ed38c62467350e2b2264ed845b9933defdbbfb06f3e55ba7d14f4"
     },
     "coast-afternoon": {
       "path": "coast-afternoon.png",
       "size": [
-        1000,
+        1800,
         168
       ],
-      "sha256": "36ce0bac1412c92c55b662854f699a55f89ca59e9b0e87fa4788fcac84942369"
+      "sha256": "c7a189596ee7df78529f02b3fee016bf1d2b1107a494c8984206cd5dc3223daa"
     },
     "coast-dusk": {
       "path": "coast-dusk.png",
       "size": [
-        1000,
+        1800,
         168
       ],
-      "sha256": "b3adeb7d9c6df6d1416ddcc635c3a389e2a742110e045bc7923eebf3fb37cede"
+      "sha256": "e6aca110315792f5f7a366ba3fb353cd29c0237d8687cece5f1ceb03f61d73e5"
     },
     "coast-night": {
       "path": "coast-night.png",
       "size": [
-        1000,
+        1800,
         168
       ],
-      "sha256": "9e9c2b7f87dc06fdb2caa0fc6498ba2dec4c466b620345440ea7705c85723e5c"
+      "sha256": "786bc3a20afb30de4e1b3c5ac5e4858c1a7ba9029ecf415e02c90602ec11526e"
     },
     "water-0-0-0": {
       "path": "water-0-0-0.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "c424fff3152fec9f6123b190723ff768eaff0f1b9cc8bcb5d0c37f60a0aa86f8"
+      "sha256": "89a64906cf1279ed3e4fed6c5749cee2c62840d895e245034417ee317694bc40"
     },
     "water-0-0-1": {
       "path": "water-0-0-1.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "76158c244faad97e85e4e4f69872cd21dacb8019819b5df4313620e7aefaa6c1"
+      "sha256": "cdffd6364a064282734d4d25d66f21733049fd15f2bfdd4ac9ac731a7d3d9e2e"
     },
     "water-0-0-2": {
       "path": "water-0-0-2.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "7fe2735c38aa1a8eeee673476866d79a814929b0a111f37a58d30d1f92289945"
+      "sha256": "aa0fea29e309eed7d4c4c976675960c63b5dc6c9db9fe64825490802249a262f"
     },
     "water-0-0-3": {
       "path": "water-0-0-3.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "2c1160153476c2a375d1fb261a35c165b756dc7c89038dc1f10edc5fb3cc42a5"
-    },
-    "water-0-1-0": {
-      "path": "water-0-1-0.png",
-      "size": [
-        192,
-        64
-      ],
-      "sha256": "8f4eac5725f8ac8fe4fcb7a3c8550683d3492a5bc5fc1547a34e134053dc646b"
-    },
-    "water-0-1-1": {
-      "path": "water-0-1-1.png",
-      "size": [
-        192,
-        64
-      ],
-      "sha256": "be0c6767d9195cdbc5ef942f649aceef64a2a1f43c60dad3192102339c2d3e43"
-    },
-    "water-0-1-2": {
-      "path": "water-0-1-2.png",
-      "size": [
-        192,
-        64
-      ],
-      "sha256": "3e6e6265f5a0908e18047f2ae49861775e548bcab3b2e7220f2b463d254593de"
-    },
-    "water-0-1-3": {
-      "path": "water-0-1-3.png",
-      "size": [
-        192,
-        64
-      ],
-      "sha256": "d4462cc477c7a22b2892ecefa05f9fc34a9854b7692f1ad626bdc301e1f122cf"
+      "sha256": "585e2ef69c02b8ec4c62b90b2407936ab47376918c4683c3524be19e827404dc"
     },
     "water-1-0-0": {
       "path": "water-1-0-0.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "2e60169046a1fde7ea23a735a50ee6899f399a01e4ea4fe17771d839b7b31216"
+      "sha256": "181014a3988928cd499c9239cf67bd58b6974728f532abb21e530298f6b23ada"
     },
     "water-1-0-1": {
       "path": "water-1-0-1.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "4795bf28e032a29f53df05f20244aa6af0ea4f5332f56c1bf55329c0c2d50c64"
+      "sha256": "94c7aea6c09e99fc54e77368d532f129942d48741ac8ad0a9abe53ef835785f8"
     },
     "water-1-0-2": {
       "path": "water-1-0-2.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "66afd1df76c4df0b2a397e044925e3cea232a8ba698502956bec6771bb12bdc2"
+      "sha256": "93f04cabeb7cae80803a4902602ba43f2848c326c3bfe234fc79fbf44156ac26"
     },
     "water-1-0-3": {
       "path": "water-1-0-3.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "60718a20b2f6066fd239d8791a67e15ab46da0ab38346a41127f7a612fb7af1b"
-    },
-    "water-1-1-0": {
-      "path": "water-1-1-0.png",
-      "size": [
-        192,
-        64
-      ],
-      "sha256": "5ea3f71edb5215f28194e2449f54b050ea39177c119afb06d115578a0d9763f6"
-    },
-    "water-1-1-1": {
-      "path": "water-1-1-1.png",
-      "size": [
-        192,
-        64
-      ],
-      "sha256": "3b3ee6b64c83ec36b9430ea5ebe9264d7803d49584e3599925e19af4fd2037ef"
-    },
-    "water-1-1-2": {
-      "path": "water-1-1-2.png",
-      "size": [
-        192,
-        64
-      ],
-      "sha256": "95e8e63764c9a855b1101e90c8e9b0054fc9dd204239bd520f48ecf7cb54e421"
-    },
-    "water-1-1-3": {
-      "path": "water-1-1-3.png",
-      "size": [
-        192,
-        64
-      ],
-      "sha256": "fb45493417e29b05805679254c44b15b2991b2382c66b09bd8985d0225182271"
+      "sha256": "f509b107ece99c72eb55eb610d9c21732c0ffc4ea48701a9a153fced366a7933"
     },
     "water-2-0-0": {
       "path": "water-2-0-0.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "947107fa9e9f173fcb80854e2699617c5cbc59b33289fde4b17194def3f3f613"
+      "sha256": "c14213ec6cdbda646f7b3c7a926398fc88971be0d01d03c92c272004c6dfc5d8"
     },
     "water-2-0-1": {
       "path": "water-2-0-1.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "5fe46383d7894e28a354b7c84c3ce8b1367724c34545fd041e72f8c200e2706b"
+      "sha256": "d0350f5aca926c54c4d30db10614d2bc26b1e7d8d3dc6a1cb2a1f5763e6e399e"
     },
     "water-2-0-2": {
       "path": "water-2-0-2.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "bd9575a6d5604c611db9b0dc470526aae77732597731fce4cb31b1af8afee5e9"
+      "sha256": "41a3b164e9291d6f8b85d044cec63954a5ac10b49aa165038a1b4b02e9220e10"
     },
     "water-2-0-3": {
       "path": "water-2-0-3.png",
       "size": [
-        192,
+        384,
         64
       ],
-      "sha256": "45ef30b313a8123b94a453d6fed03d3340c2d9373925d348e5a6e85e5bd3ee1d"
+      "sha256": "7565781965d54fc505dc1cfc9551dd4fe542cd2d956453ce8690696ed17c1cdd"
     },
-    "water-2-1-0": {
-      "path": "water-2-1-0.png",
+    "storm-water-0": {
+      "path": "storm-water-0.png",
       "size": [
-        192,
+        393,
         64
       ],
-      "sha256": "5104d4dba6ab55ce22e40c344992a05c9d3e5bedfae60b04135e7d3fc15fbfb4"
+      "sha256": "5cae69fb90b1e89a36a3da2f054ce18f76c64dde9e0e8c84c1ebc2d7d12ddb49"
     },
-    "water-2-1-1": {
-      "path": "water-2-1-1.png",
+    "storm-water-1": {
+      "path": "storm-water-1.png",
       "size": [
-        192,
+        393,
         64
       ],
-      "sha256": "552b2b493224b1fb7a3ecde557e7457b55d7d2a447697d86d8c86655b7130f8c"
+      "sha256": "2935abab961dac85fd79f664ed6f0d6bdbc9281ac2c2aca4732f0fd3363b008f"
     },
-    "water-2-1-2": {
-      "path": "water-2-1-2.png",
+    "storm-water-2": {
+      "path": "storm-water-2.png",
       "size": [
-        192,
+        393,
         64
       ],
-      "sha256": "9fd132589b063f9084c9bde7d3e4c113368a33648c09a0d5e0031a19da04ef2f"
+      "sha256": "279f982b338ac1c4de11e7aa0aa6fe4669fc3324299be52ff2606c6ab165a0f4"
     },
-    "water-2-1-3": {
-      "path": "water-2-1-3.png",
+    "storm-fog": {
+      "path": "storm-fog.png",
       "size": [
-        192,
-        64
+        512,
+        256
       ],
-      "sha256": "7a53569cc9932a7af80cd7571655bdfd21fddeccd1d41c24e1cb0f148fa8c623"
+      "sha256": "bf335100de6e3a3efc1cc992d289e7ffc55003d1d1dabb082e9383d40d260a88"
+    },
+    "storm-fog-clear": {
+      "path": "storm-fog-clear.png",
+      "size": [
+        512,
+        256
+      ],
+      "sha256": "d1440650da8bb3c2b60783c23f07b1b0694a365df77483d050d1e9fafaa389b0"
     },
     "cloud-wisp": {
       "path": "cloud-wisp.png",
@@ -731,6 +673,70 @@
         24
       ],
       "sha256": "3b84a7a185a770c293a765e10cc581f709d5f84e1eb4a408bd67847490e5ea45"
+    },
+    "jelly-drift-0": {
+      "path": "jelly-drift-0.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "d31987feb88df7a2a42ab801ac2533756c408b20e5734e275cb3dddc128f3ee6"
+    },
+    "jelly-drift-1": {
+      "path": "jelly-drift-1.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "892f36c4b0a9a8e2e70c65cef160d21cac56b572b73d82aac2eb11bf76705d20"
+    },
+    "jelly-drift-2": {
+      "path": "jelly-drift-2.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "f7ebf55d3ee3b6614af8c946f19f70aec4893b24138d2427ed1afb3f9fbc0897"
+    },
+    "jelly-drift-3": {
+      "path": "jelly-drift-3.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "f162537a84666c72dd5f56659047eea16378d4399506e7031654ed7d7bac5095"
+    },
+    "jelly-drift-4": {
+      "path": "jelly-drift-4.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "e4ad85e926c852bb174875f9e5198aa43fabb2972ebdf9f24a3e011b29419f5e"
+    },
+    "jelly-drift-5": {
+      "path": "jelly-drift-5.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "be511395a0f896674ffe2647639855973ec2f4da6761e4bb86fcbe7943cd707d"
+    },
+    "jelly-drift-6": {
+      "path": "jelly-drift-6.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "95b3155403d04aa6c02d999e4599a014dad07fcfa9d7db67bf0169db98217153"
+    },
+    "jelly-drift-7": {
+      "path": "jelly-drift-7.png",
+      "size": [
+        44,
+        50
+      ],
+      "sha256": "4f61460c1c32711545b19542d302ced3ae980828980f1683b92eea2aa3fc3ea0"
     },
     "fog-0": {
       "path": "fog-0.png",
@@ -1071,42 +1077,42 @@
     "beam-0": {
       "path": "beam-0.png",
       "size": [
-        1000,
+        1800,
         24
       ],
-      "sha256": "5d8dd4bd0bc9b5390928c910ce3e316d4efe25467020f0a3c61b6b99a8bd41f7"
+      "sha256": "b5e5cc16f48cfeb7d54440dd5fc9d443e1470f4acf744d0258af8828d23cddb5"
     },
     "beam-1": {
       "path": "beam-1.png",
       "size": [
-        1000,
+        1800,
         24
       ],
-      "sha256": "1beafc0590c6fad99fef6a67081bcc4af1c7b26b732dea2c8daf04609d8befd8"
+      "sha256": "0d1f2540f730f7ab5c259602242d821ed05da558b39db379b4a95b3abe6584fc"
     },
     "beam-2": {
       "path": "beam-2.png",
       "size": [
-        1000,
+        1800,
         24
       ],
-      "sha256": "8c6ab2dcc2537b18fd6afb7e43976edd269e25ceeef398d85a0af5bf1902d7d9"
+      "sha256": "01fb0f78956227f44d670cc2f6fb35a76848c55ce813b12fd076b6d08ed94e3e"
     },
     "beam-3": {
       "path": "beam-3.png",
       "size": [
-        1000,
+        1800,
         24
       ],
-      "sha256": "2b6a52801dd77cb6923999fb0ba05c52f69b58217c78731fdda73ab73b51b2e1"
+      "sha256": "5e12449ea7c12fe956df0eeb5c72564961070b076a3f7fb26f45e1038ddf34e8"
     },
     "beam-clear": {
       "path": "beam-clear.png",
       "size": [
-        1000,
+        1800,
         24
       ],
-      "sha256": "2777265ca0df1b04aaca866cecc4238741be8cb150091e3b1d564bb0b839351a"
+      "sha256": "06067859720c165bae25c26f7cd1e3c64cdc6f7c76b9a018c904237dc6d94a10"
     },
     "angler-0": {
       "path": "angler-0.png",
@@ -1426,7 +1432,7 @@
         320,
         240
       ],
-      "sha256": "4d4638adfb2e053da32639a8ac6cb9308668402a438b967e8ad50223cafba772"
+      "sha256": "43cc3ce788acc773941c1f537bcc47a202dc490ea806405f48b5769dc705d98a"
     },
     "preview": {
       "path": "preview.png",
