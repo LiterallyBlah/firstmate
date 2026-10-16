@@ -1,0 +1,47 @@
+{
+  "base": "b1458b4f99a00a366ba008e8bdccab7b4aca7ac1",
+  "images": [
+    {
+      "file": "01-midday.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2752704,
+      "sha256": "a8c80dd3fed8e2ca0d3a6aa0adca87ea8ce63ef3cbcf9b08c60f655edb7e68c2"
+    },
+    {
+      "file": "02-night.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3002475,
+      "sha256": "b6da7e8958915a6b9009729a1e4916697bebaf056e7e00152d6e6a560f8a5702"
+    },
+    {
+      "file": "03-storm-peak.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3831811,
+      "sha256": "0d3086d34c1a4273bc71308d420950e435c7fb9b7d01d739ea045ab2f73c0f2b"
+    },
+    {
+      "file": "04-plank-kraken.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3399444,
+      "sha256": "1e5b7dd60822a21c4a46592702c8040833816c68f1ccf11eeaf09d19e049d178"
+    },
+    {
+      "file": "05-anglerfish.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2389634,
+      "sha256": "ebb36aa6a9d49bb9812931212346a4d2fd93886cc95332d250e92a11c8002fd7"
+    },
+    {
+      "file": "06-haunted-islands.png",
+      "width": 2172,
+      "height": 724,
+      "bytes": 3029212,
+      "sha256": "d055359e84c980758fa2271059aa8c951aabe6a31c8bbbfaa4cf376696fad783"
+    }
+  ]
+}
