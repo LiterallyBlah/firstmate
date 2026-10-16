@@ -29,6 +29,8 @@ import { lookupIn, recentCandidates } from "./file-links";
 import { useFollowEnd } from "./follow-end";
 import { isSendKey, type WebKeyPressEvent } from "./keys";
 import { MateControls } from "./mate-controls";
+import { ChatImage } from "./chat-image";
+import { MessageCopy } from "./message-copy";
 import { useMateSender } from "./mate-send";
 import { Markdown } from "./markdown";
 import { PermissionCard, usePendingRequests } from "./permission-card";
@@ -38,7 +40,7 @@ import { IconButton, JumpToEnd, MONOSPACE, Spinner, errorText } from "./ui";
 import { useKeyboardOverlap } from "./keyboard";
 import { useAgentTimeline } from "./use-timeline";
 import { useWorkspaceFileLink } from "./workspace-file-link";
-import { canAttachFiles, pickFiles, receiveFiles, type OfferedFile } from "./web";
+import { cacheSentImages, canAttachFiles, pickFiles, receiveFiles, type OfferedFile } from "./web";
 
 /** A run of tool calls shows this many before folding the rest behind a count. */
 const TOOL_RUN_VISIBLE = 2;
@@ -118,6 +120,7 @@ export function MateChat({
   navigation?: PluginScreenProps["navigation"];
 }) {
   const toast = useToast();
+  useEffect(cacheSentImages, []);
   const workspaceLinks = useWorkspaceFileLink(theme, navigation);
   /** Shared with the surface's suggestion buttons: one message on its way at a time — see `./mate-send`. */
   const { sending, send, command: sendMateCommand } = useMateSender(mate.id);
@@ -374,6 +377,11 @@ export function MateChat({
               </Text>
             )}
             {images.length > 0 ? <SentImages images={images} theme={theme} /> : null}
+            {row.text === ATTACHMENTS_ONLY ? null : (
+              <View style={{ alignItems: "flex-end" }}>
+                <MessageCopy text={row.text} theme={theme} />
+              </View>
+            )}
           </View>
         );
       }
@@ -387,7 +395,11 @@ export function MateChat({
               files={files}
               onOpenFile={onOpenFile}
               workspaceAware
+              chatTools
             />
+            <View style={{ alignItems: "flex-start" }}>
+              <MessageCopy text={row.text} theme={theme} />
+            </View>
           </View>
         );
       case "error":
@@ -411,6 +423,22 @@ export function MateChat({
       {workspaceLinks.dialog}
       <View style={styles.transcript}>
         <ScrollView {...follow.scrollProps} style={styles.scroller} contentContainerStyle={styles.transcriptBody}>
+          {timeline.hasOlder ? (
+            <IconButton
+              theme={theme}
+              icon="History"
+              label={timeline.loadingOlder ? "Loading earlier messages…" : "Load earlier messages"}
+              showLabel
+              disabled={timeline.loadingOlder}
+              onPress={() =>
+                timeline.loadOlder((prefix, hasOlder) => {
+                  // A page containing only hidden reasoning adds no height. Do not leave
+                  // an anchor waiting to mistake the next live reply for prepended rows.
+                  if (!hasOlder || transcriptRows(prefix).length > 0) follow.preserveOnPrepend();
+                })
+              }
+            />
+          ) : null}
           {timeline.error === null ? null : <Text style={styles.error}>{timeline.error}</Text>}
           {groups.length === 0 && pending.length === 0 ? (
             <Text style={styles.hint}>
@@ -447,6 +475,16 @@ export function MateChat({
       <SafeAreaView style={styles.composerFrame}>
         <View style={styles.composer}>
           <View style={styles.quick}>
+            {navigation === undefined ? null : (
+              <IconButton
+                theme={theme}
+                icon="ExternalLink"
+                label="Full conversation"
+                tooltip="Open Paseo's full chat for activity, interrupt, history and native composer tools."
+                showLabel={!compact}
+                onPress={() => navigation.openAgent({ agentId: mate.id })}
+              />
+            )}
             <IconButton
               icon="Compass"
               label="Bearings"
@@ -546,18 +584,14 @@ export function MateChat({
   );
 }
 
-/** A sent image's width in the transcript; its height follows its shape, within these bounds. */
-const SENT_IMAGE_WIDTH = 220;
-const SENT_IMAGE_HEIGHT = { min: 48, max: 280, unknown: 150 };
-
-/** The images a captain's message carried, under its words. */
+/** Images carried by the captain's message, shared by Home and Chat. */
 function SentImages({ images, theme }: { images: readonly ImagePart[]; theme: PluginTheme }) {
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginVertical: 3 }}>
       {images.map((image, index) => (
-        <SentImage
+        <ChatImage
           key={index}
-          image={image}
+          uri={`data:${image.mimeType};base64,${image.data}`}
           theme={theme}
           label={images.length === 1 ? "Image you sent" : `Image ${index + 1} of ${images.length} you sent`}
         />
@@ -565,46 +599,6 @@ function SentImages({ images, theme }: { images: readonly ImagePart[]; theme: Pl
     </View>
   );
 }
-
-/** One sent image, whole: its box takes the image's shape once its size is known. */
-function SentImage({ image, theme, label }: { image: ImagePart; theme: PluginTheme; label: string }) {
-  const uri = `data:${image.mimeType};base64,${image.data}`;
-  const [height, setHeight] = useState(SENT_IMAGE_HEIGHT.unknown);
-  useEffect(() => {
-    let alive = true;
-    Image.getSize(
-      uri,
-      (width, natural) => {
-        if (!alive || width <= 0 || natural <= 0) return;
-        setHeight(
-          Math.min(SENT_IMAGE_HEIGHT.max, Math.max(SENT_IMAGE_HEIGHT.min, (SENT_IMAGE_WIDTH * natural) / width)),
-        );
-      },
-      // An image the renderer cannot decode keeps the default box.
-      () => {},
-    );
-    return () => {
-      alive = false;
-    };
-  }, [uri]);
-  return (
-    <Image
-      source={{ uri }}
-      style={{
-        width: SENT_IMAGE_WIDTH,
-        maxWidth: "100%",
-        height,
-        borderRadius: 6,
-        backgroundColor: theme.colors.surface1,
-      }}
-      resizeMode="contain"
-      accessibilityRole="image"
-      accessibilityLabel={label}
-      accessibilityIgnoresInvertColors
-    />
-  );
-}
-
 /** One attachment waiting to go: a thumbnail for an image, an icon for a file; its name, size and a remove button. */
 function AttachmentChip({
   attachment,
