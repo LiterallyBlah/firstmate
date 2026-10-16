@@ -52,7 +52,6 @@ const TOOL_RUN_VISIBLE = 2;
 const INPUT_HEIGHT = 120;
 const INPUT_HEIGHT_COMPACT = 80;
 
-
 type Group = { key: string; row: TranscriptRow } | { key: string; tools: Extract<TranscriptRow, { kind: "tool" }>[] };
 
 /** Consecutive tool rows become one group, so a supervision pass is a line, not a page. */
@@ -81,7 +80,12 @@ function groupRows(rows: readonly TranscriptRow[]): Group[] {
 function useHomeFileLinks(rows: readonly TranscriptRow[]) {
   const find = useRpc(findHomeFiles);
   const candidates = useMemo(
-    () => recentCandidates(rows.flatMap((row) => (row.kind === "mate" ? [row.text] : [])), MAX_FILE_CANDIDATES, { workspaceAware: true }),
+    () =>
+      recentCandidates(
+        rows.flatMap((row) => (row.kind === "mate" ? [row.text] : [])),
+        MAX_FILE_CANDIDATES,
+        { workspaceAware: true },
+      ),
     [rows],
   );
   const found = useQuery({
@@ -299,8 +303,9 @@ export function MateChat({
    * its attachments ahead of any attached since.
    */
   function sendDraft(): void {
-    const text = draft;
-    const attached = attachments;
+    // Another open chat can clear or edit the stores before this render catches up.
+    const text = drafts.get(mate.id);
+    const attached = pendingAttachments.get(mate.id);
     if (!hasContent(text, attached) || sending) return;
     // Through the stores only: this chat may be gone by the time the send fails, and the one on screen follows them.
     const sent = send(captainMessage(text, attached), () => {
@@ -375,7 +380,14 @@ export function MateChat({
       case "mate":
         return (
           <View key={row.key} style={styles.mate}>
-            <Markdown source={row.text} theme={theme} onOpenLink={workspaceLinks.open} files={files} onOpenFile={onOpenFile} workspaceAware />
+            <Markdown
+              source={row.text}
+              theme={theme}
+              onOpenLink={workspaceLinks.open}
+              files={files}
+              onOpenFile={onOpenFile}
+              workspaceAware
+            />
           </View>
         );
       case "error":
@@ -401,7 +413,9 @@ export function MateChat({
         <ScrollView {...follow.scrollProps} style={styles.scroller} contentContainerStyle={styles.transcriptBody}>
           {timeline.error === null ? null : <Text style={styles.error}>{timeline.error}</Text>}
           {groups.length === 0 && pending.length === 0 ? (
-            <Text style={styles.hint}>{timeline.loading ? "Loading the conversation…" : "Nothing said yet. Ask below."}</Text>
+            <Text style={styles.hint}>
+              {timeline.loading ? "Loading the conversation…" : "Nothing said yet. Ask below."}
+            </Text>
           ) : (
             groups.map(renderGroup)
           )}
@@ -562,7 +576,9 @@ function SentImage({ image, theme, label }: { image: ImagePart; theme: PluginThe
       uri,
       (width, natural) => {
         if (!alive || width <= 0 || natural <= 0) return;
-        setHeight(Math.min(SENT_IMAGE_HEIGHT.max, Math.max(SENT_IMAGE_HEIGHT.min, (SENT_IMAGE_WIDTH * natural) / width)));
+        setHeight(
+          Math.min(SENT_IMAGE_HEIGHT.max, Math.max(SENT_IMAGE_HEIGHT.min, (SENT_IMAGE_WIDTH * natural) / width)),
+        );
       },
       // An image the renderer cannot decode keeps the default box.
       () => {},
@@ -574,7 +590,13 @@ function SentImage({ image, theme, label }: { image: ImagePart; theme: PluginThe
   return (
     <Image
       source={{ uri }}
-      style={{ width: SENT_IMAGE_WIDTH, maxWidth: "100%", height, borderRadius: 6, backgroundColor: theme.colors.surface1 }}
+      style={{
+        width: SENT_IMAGE_WIDTH,
+        maxWidth: "100%",
+        height,
+        borderRadius: 6,
+        backgroundColor: theme.colors.surface1,
+      }}
       resizeMode="contain"
       accessibilityRole="image"
       accessibilityLabel={label}
