@@ -636,7 +636,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     // The stage is made in the constructor, the renderer by init.
     expect(new pixi.Application().stage).toBeInstanceOf(pixi.Container);
     const container = methods(pixi.Container);
-    for (const name of ["addChild", "removeChild", "destroy", "label", "position", "scale", "zIndex", "sortableChildren", "visible", "alpha", "tint"]) {
+    for (const name of ["addChild", "removeChild", "destroy", "label", "position", "scale", "rotation", "zIndex", "sortableChildren", "visible", "alpha", "tint"]) {
       expect(container.has(name), name).toBe(true);
     }
     const graphics = methods(pixi.Graphics);

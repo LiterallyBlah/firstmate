@@ -17,7 +17,7 @@ or capabilities as incompatible, with a reason. The pane falls back to ship and 
 | --- | --- |
 | Layout and workers | `stage`, `floor`, `zones`, `zone-appearance`, `post-transit`, `stable-posts`, `cast`, `pose-fidgets` |
 | Portals and effects | `rise`, `walk-in`, `sink`, `choreography` |
-| Stage motion and light | `phase-tint`, `bob`, `sway`, `cycle`, `flicker` |
+| Stage motion and light | `phase-tint`, `bob`, `stage-rock`, `sway`, `cycle`, `flicker` |
 | Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `strip`, `variants` |
 | Time and activity | `phase-frames`, `day-cycle`, `atmosphere` |
 
@@ -126,6 +126,45 @@ card reverses again continuously. First mount and reduced motion place actors di
 without portal effects. Turning reduced motion on discards entry effects and snaps present actors to posts;
 an actor removed at that moment fades at its current position. Lite uses the same walk on its existing
 lower frame budget, and hidden scenes retain their paused simulation clock.
+
+## Whole-stage rocking
+
+`stage-rock@1` adds optional `stage.motion.rock`, alongside or without `bob`:
+
+```json
+{ "pivot": [240, 220], "degrees": { "curve": [[0, 0.4], [1, 1.2]] },
+  "drift": { "curve": [[0, 0.3], [1, 1]] }, "periodS": 8, "clock": "swell" }
+```
+
+`pivot` is an integer point inside the stage's fit. `degrees` is the maximum angle each way;
+optional `drift` is pixels each way. Both accept a fixed number, an atmosphere channel (with optional
+scale), or an intensity curve. Every possible value, including delivered channel values, must stay
+within 0–5 degrees and 0–16 pixels. All fields are strict and finite; the period is positive.
+The optional clock names an existing atmosphere clock; omission uses the simulation clock.
+Rotation and drift follow the same sine, starting level. Bob remains an independent vertical offset.
+Rotation and sideways drift are continuous rather than rounded, avoiding visible angular steps.
+
+The ship and everything aboard share one rigid transform: the stage backdrop (hull), parts, props,
+depth pieces, lights, crew bodies, badges, ground marks, reply markers, spotlight and focus veil.
+The camera follows the transformed worker; pointer coordinates use the exact inverse transform.
+Text labels and reply bubbles remain upright UI, with their anchor following the transformed worker.
+The world stays level: sky/backdrop-cycle, far clouds, sea/cloud tiles and every other ambience layer,
+the independent attention carrier, and the separate portal-effects slot (including actors once their
+departure explicitly enters that slot). Those describe the surrounding world, not objects aboard.
+Portal effects retain their authored world coordinates; moving an effect with the ship would need a
+separate capability. Ordinary floor/piece-layer departures continue to rock until that transition.
+
+Full and lite run this motion like bob, on the existing 30/12 fps simulation and atmosphere clocks.
+Busyness changes the supplied amplitude/pace channels without resetting phase. Still/reduced motion
+holds the stage level with zero drift and bob, including when enabled mid-motion. Hidden panes pause
+the same clock. There are no added timers or pack-specific engine branches.
+
+For opted-in packs, the camera always honors the authored vertical `stage.fit`, even without a tall
+part. Fit horizontally remains 0 through `stage.size[0]`. Leave room for the full sweep: pack lint checks
+all nontransparent furniture pixels (including alternatives), lights and glows, crew routes/poses and
+24-worker crowds with reply markers. It bounds all intermediate rotation extrema plus maximum drift
+and rounded bob, conservatively allowing their peaks together. World effects keep their existing checks.
+Packs without `rock` keep their existing fit, motion and pixels.
 
 ## Phase tint
 

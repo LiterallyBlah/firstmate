@@ -76,6 +76,7 @@ class FakeContainer {
   label = "";
   position = new FakePoint();
   scale = new FakePoint(1, 1);
+  rotation = 0;
   zIndex = 0;
   sortableChildren = false;
   visible = true;
@@ -364,6 +365,7 @@ async function start(
     onHover?: (hover: DeckHover | null) => void;
     onSelect?: (key: string | null, action?: "attention") => void;
     attentionCarrier?: SettingManifest["attentionCarrier"];
+    stageMotion?: SettingManifest["stage"]["motion"];
   },
 ) {
   const w = world(options);
@@ -371,6 +373,7 @@ async function start(
   // The pack's images by id, as the mount hands them over: the atlas, the ambience's, and whatever of the extras arrived.
   const atlas = { atlas: true };
   const { images, masks, ambience, parts } = packImages(options, art, atlas);
+  if (options.stageMotion !== undefined) parts.motion = options.stageMotion;
   // These renderer tests isolate floor motion and explicit tint fixtures. The shipped raised station/night
   // palette are covered by post-transit tests and the real compiled-browser polish checks and visual gate.
   const floorStage = compileStage(shipManifest(), (id) => images.has(id));
@@ -1125,6 +1128,47 @@ describe("settled zone handles in the renderer", () => {
     click(deck, at);
     expect(selected).toEqual(["rest", null]);
     deck.drawing.destroy();
+  });
+});
+
+describe("whole-stage rocking", () => {
+  it("shares its transform with all aboard, focus, veil and hit targets, leaves the world level, and pauses on existing signals", async () => {
+    const selected: Array<string | null> = [], hovers: Array<DeckHover | null> = [];
+    const scene = crewScene([["rock-worker", "working"], ["rock-rest", "idle"]]);
+    scene.sailors[0]!.asks = true;
+    const deck = await start(environment, { now: new Date(2026, 9, 14, 12), extras, scene,
+      stageMotion: { rock: { pivot: [200, 100], degrees: 2, drift: 2, periodS: 8 } },
+      attentionCarrier: shipManifest().attentionCarrier, onSelect: key => selected.push(key), onHover: h => hovers.push(h) });
+    deck.advance(16);
+    for (let i = 0; i < 60; i++) deck.advance(34);
+    const ship = one(deck.app.stage, "ship"), spot = one(deck.app.stage, "spot"), veil = one(deck.app.stage, "veil");
+    expect(ship.rotation).toBeGreaterThan(0.03);
+    expect(spot.rotation).toBe(ship.rotation); expect(veil.rotation).toBe(ship.rotation);
+    expect(spot.position).toEqual(ship.position); expect(veil.position).toEqual(ship.position);
+    // The existing fixture tree checks the actual renderer's grouping, not a second drawing implementation.
+    for (const label of ["rock-worker", "rock-rest", "piece:near"]) expect(byLabel(ship, label)).toHaveLength(1);
+    expect(one(deck.app.stage, "overboard").rotation).toBe(0);
+    expect(one(deck.app.stage, "attention-carrier").rotation).toBe(0);
+    const point = () => {
+      const worker = one(deck.app.stage, "rock-worker"), world = one(deck.app.stage, "world");
+      return toCanvas({ x: worker.position.x, y: worker.position.y - 8 },
+        { x: world.position.x, y: world.position.y, scale: world.scale.x }, { x: ship.position.x, y: ship.position.y, rotation: ship.rotation });
+    };
+    const click = () => { const p = point(); deck.app.canvas.listeners.get("click")?.({ offsetX: p.x, offsetY: p.y }); };
+    const p = point(); deck.app.canvas.listeners.get("pointermove")?.({ offsetX: p.x, offsetY: p.y });
+    expect(hovers.at(-1)?.key).toBe("rock-worker"); click();
+    deck.drawing.focus("rock-worker"); for (let i = 0; i < 20; i++) deck.advance(34);
+    expect(byLabel(spot, "rock-worker")).toHaveLength(1);
+    click(); deck.drawing.resize(1100, 600); deck.advance(34); click();
+    expect(selected).toEqual(["rock-worker", "rock-worker", "rock-worker"]);
+    expect(hovers.at(-1)?.key).toBe("rock-worker");
+    const angle = ship.rotation;
+    deck.state.hidden = true; deck.signal(); deck.advance(2000);
+    expect(ship.rotation).toBe(angle); expect(deck.pending()).toBe(0);
+    deck.state.hidden = false; deck.state.reducedMotion = true; deck.signal();
+    expect(ship.rotation).toBe(0); expect(ship.position).toMatchObject({ x: 0, y: 0 });
+    expect(spot.rotation).toBe(0); expect(veil.rotation).toBe(0); expect(deck.pending()).toBe(0);
+    deck.drawing.destroy(); expect(deck.timers.every(t => t.stopped)).toBe(true);
   });
 });
 
