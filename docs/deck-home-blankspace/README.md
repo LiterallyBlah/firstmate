@@ -24,3 +24,4 @@ Install root and `docs/board-list` dependencies with `npm.cmd ci`. Run `node doc
 - `npm.cmd test -- --maxWorkers=2`: 93 files passed; 1,103 tests passed, three skipped. The initial default-concurrency run hit a 5s timeout in the unrelated Git-source fixture; the full rerun passed.
 - `node docs/deck-scene-switcher-everywhere/render.mjs`: all eight surface/theme cases passed, covering picker selection, shared saved setting, reload, external update, bounds and errors.
 - `node docs/ship-deck-canvas/compile.mjs`: both bundles parsed under React Native 0.81.5 Hermes; no class syntax or bundled Pixi. [Compiler evidence](compile-results.json).
+- `node docs/deck-settings/gate.mjs`: all 81 shots pixel-identical to compiled main `3082862`, without toolbar masking or expected-change exemptions. [Gate evidence](gate-results.json).
