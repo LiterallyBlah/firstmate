@@ -1,0 +1,14 @@
+[
+  {
+    "setting": "japanese-ship",
+    "before": "a86f85a276b29e1fcbdde406e4ca10b721dcb7930d7a5af5983e309bda6ef189",
+    "after": "a86f85a276b29e1fcbdde406e4ca10b721dcb7930d7a5af5983e309bda6ef189",
+    "identical": true
+  },
+  {
+    "setting": "sky-airship",
+    "before": "b5526edd6fc930c4cd85dd2f04c42d8289c6318192977f5c76697fa0b357765d",
+    "after": "b5526edd6fc930c4cd85dd2f04c42d8289c6318192977f5c76697fa0b357765d",
+    "identical": true
+  }
+]
