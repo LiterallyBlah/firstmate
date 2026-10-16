@@ -4,7 +4,7 @@ export function addParity(pack){
   const registration=JSON.parse(readFileSync(new URL('./registration.json',import.meta.url)));
   const ship=JSON.parse(readFileSync(new URL('../../../../art/settings/ship/setting.json',import.meta.url)));
   const sprite=image=>({image}),frame=(image,x,w,h)=>({image,rect:[x,0,w,h]});
-  pack.version='1.1.0';Object.assign(pack.images,registration.images);
+  pack.version='1.1.1';Object.assign(pack.images,registration.images);
   pack.cast.lanes=registration.lanes;
   pack.cast.looks=Object.keys(registration.lanes).map(id=>({id,image:'crew-'+id,lane:id,optional:false}));
   pack.dayCycle=structuredClone(ship.dayCycle);
@@ -35,9 +35,10 @@ export function addParity(pack){
   pack.ambience.push({id:'umibozu',slot:'back',order:6.5,lite:'freeze',still:'hide',behaviour:{kind:'cycle',frames:{sprites:frames.map(()=>frames[0]),frameMs:1300,clock:'swell'},at:[58,163],anchor:[36,78],opacity:{curve:[[.78,0],[1,.85]]},variants:[{id:'umibozu-rises',frames,blend:'crossfade',opacity:[[.84,0],[1,1]]}]}});
   pack.ambience.push({id:'rain-spray',slot:'front',order:11,lite:'freeze',still:'hide',behaviour:{kind:'tile',frames:{sprites:[sprite('clear-weather'),sprite('clear-weather')],frameMs:180,clock:'wind'},drift:{pxPerSecond:12,clock:'wind'},origin:0,bands:[{slot:'front',fromRow:0}],variants:[{id:'storm-rain',frames:[sprite('rain-0'),sprite('rain-1')],blend:'over',opacity:[[.55,0],[1,.55]]}]}});
   pack.atmosphere.table[2].weather=.55;
-  pack.stage.pieces.push({id:'plank',sprite:sprite('plank'),at:[344,240],baseline:{over:'hull-front'}},{id:'lookout-perch',sprite:sprite('perch'),at:[226,54],baseline:241});
-  // Ladder rungs run in front of the cream sail; original sail/rig pixels and motion remain intact.
-  for(let i=0;i<7;i++)pack.stage.parts.push({id:'ladder-extension-'+i,lite:'run',still:'first-frame',sprite:{image:'ship',rect:[245,202,10,18]},at:[245,76+i*18]});
+  pack.stage.pieces.push({id:'plank',sprite:sprite('plank'),at:[0,246],baseline:{over:'hull-front'}},{id:'lookout-perch',sprite:sprite('perch'),at:[226,54],baseline:241});
+  // Parts are ordered: the sail occludes the mast ladder, leaving its ends visible.
+  const ladder=Array.from({length:8},(_,i)=>({id:'ladder-extension-'+i,lite:'run',still:'first-frame',sprite:{image:'ship',rect:[245,202,10,18]},at:[245,62+i*18]}));
+  pack.stage.parts.splice(pack.stage.parts.findIndex(p=>p.id==='sail'),0,...ladder);
   const rigging=pack.zones.zones.find(z=>z.id==='rigging');
   rigging.posts.unshift({id:'masthead-lookout',at:[252,236],facing:'front',transit:{path:[[251,220],[251,65],[241,65]],speed:24,poses:['climb-a','climb-b'],stepMs:260,settled:'lookout',front:'lookout-perch',needs:['ship','perch']}});
   const rest=pack.zones.zones.find(z=>z.id==='rest');
@@ -46,12 +47,22 @@ export function addParity(pack){
   rest.posts=[...spread,...restX.map((_,i)=>i).filter(i=>!spread.includes(i))].map((index,i)=>({id:'rest-'+(i+1),at:[restX[index],269],facing:'front'}));
   rest.overflow={kind:'pack',areas:[[78,269,252,1],[374,269,42,1]],spacing:[12,1],fallback:[10,1]};
   const exit=structuredClone(ship.portals.exits.plank);
-  exit.marks={foot:[350,240],rail:[350,246],tip:[350,274],water:[350,305]};
+  exit.marks={foot:[80,234],rail:[70,248],tip:[14,248],water:[24,305]};
+  exit.alternate={side:[-1],drift:[0]};
   const poses={'front-walk-a':'front-a','front-walk-b':'front-b','front-idle':'stand'};
   for(const segment of exit.actor)if(typeof segment.pose==='string')segment.pose=poses[segment.pose]??segment.pose;
-  exit.effects[1].effect='dragon';exit.effects[1].keys[0].approach.px=26;
+  exit.actor[0].ms='walk';exit.actor[0].pose={cycle:'walkSide'};exit.actor[0].path='line';
+  exit.actor[1].pose={cycle:'walkSide'};
+  exit.actor[3].ms=560;
+  exit.actor[6].ms=1260; // Swimmer remains until the jaws snap at impact + 1600 ms.
+  exit.actor[7].ms=1000;
+  exit.effects[0].keys[0].ms=160;exit.effects[0].keys[1].at.plusMs=160;exit.effects[0].keys[1].ms=240;
+  // Eight distinct poses: 2 s breach/snap/sink, followed by a 0.6 s residual ripple.
+  const dragonFrames=['crest','rise','breach','lunge','open','snap','sink','ripple'];
+  const starts=[400,650,950,1250,1400,1600,2000,2400],durations=[250,300,300,150,200,400,400,600];
+  exit.effects[1]={effect:'dragon',order:1,keys:dragonFrames.map((frame,i)=>({frame,at:{event:'impact',plusMs:starts[i]},ms:durations[i],place:{mark:'water',alignX:'mouth'}}))};
   pack.portals.exits={plank:exit};pack.portals.byDeparture={done:'plank',failed:'plank',closed:'plank',removed:'plank'};
-  pack.effects={dragon:{size:[80,72],points:{anchor:[40,66],mouth:[62,28]},frames:Object.fromEntries(['fin','surface','chomp','submerge'].map((k,i)=>[k,frame('dragon',i*80,80,72)]))},splash:{size:[48,32],points:{anchor:[24,27]},frames:{impact:sprite('splash-impact'),burst:sprite('splash-burst')}}};
+  pack.effects={dragon:{size:[92,128],points:{anchor:[46,120],mouth:[24,110]},frames:Object.fromEntries(dragonFrames.map((k,i)=>[k,frame('dragon',i*92,92,128)]))},splash:{size:[48,32],points:{anchor:[24,27]},frames:{impact:sprite('splash-impact'),burst:sprite('splash-burst')}}};
   const style=structuredClone(ship.stage.lightStyles.lantern);Object.assign(style,{glyph:registration.lantern,origin:[4,0],inks:{a:'#161E30',b:'#FFD688',c:'#943E41'},glow:[{at:[0,7],radius:13,colour:'#FFB050',alpha:.12},{at:[0,7],radius:7,colour:'#FFC070',alpha:.2}]});
   pack.stage.lightStyles={chochin:style};
   pack.stage.lights=[[125,218],[332,210],[398,201]].map((at,i)=>({id:'chochin-'+i,style:'chochin',at,row:245,seed:i*2.3,lite:'run',still:'first-frame'}));

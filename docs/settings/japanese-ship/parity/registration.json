@@ -1,13 +1,5 @@
 {
   "images": {
-    "dragon": {
-      "path": "dragon.png",
-      "size": [
-        320,
-        72
-      ],
-      "sha256": "0f2df1a59b8c5878c092e1247ee515d7b869fd6c5e8e4496c8de10b594b68366"
-    },
     "umibozu": {
       "path": "umibozu.png",
       "size": [
@@ -16,13 +8,21 @@
       ],
       "sha256": "5ba473d716c4300474db4b52080cd0eb8a5e898046110dd1b3790211e52572c2"
     },
+    "dragon": {
+      "path": "dragon.png",
+      "size": [
+        736,
+        128
+      ],
+      "sha256": "2a813266d3cbbf359f782c6e814d91f90e3894f0c132d8843dccacc43c64073d"
+    },
     "plank": {
       "path": "plank.png",
       "size": [
-        12,
-        38
+        80,
+        10
       ],
-      "sha256": "4ddf6a0d2910fc37d1c281b66f5fd422e5fe0a5782ae0d8ab059ed6a214e2cf7"
+      "sha256": "9514e80af335f29ca9be76bdd1b08908fc533c2ca80fbc4b481f35ec086d5f64"
     },
     "perch": {
       "path": "perch.png",
@@ -1368,9 +1368,10 @@
     }
   },
   "sources": {
-    "sea-dragon": "c26db225583b514327ddded0aeea670864e94f91696509365bfc77599fab8cab",
     "umibozu": "9663a71bd0827a8635a5764d5709cd3f128141dc0b1f97ab97ec170362bce107",
+    "sea-dragon-breach": "bd1a3459fdf7f07b1113a9dde03e7fc4e7594e21b1f21a726c0991718c6720ca",
     "accessories": "2394ab2db4c6e469ad6e9519302ee97eb561108aba0c2241d76732d4e72b1fb0",
+    "bow-plank": "c8f5cec9e2a281aa766cff08162218a13b631ba62cbc23f28ddf3d5529781815",
     "climbers": "f58d1af4ec3559eb28d1d9d02e82c49754496209240f891907f9dbd3cd4ae0aa",
     "crew-variety": "baa74c8c8b24b862d7072bd5bec8ee4636f8cb292f162fcab43b0bf05a06d681",
     "weather": "b0db395dcc2f0193cf996a38dae13676162246873b1f6f714afb208414808553",

@@ -8,7 +8,7 @@ import {decodePng} from '../../../../test/png.ts';
 import {blank,encode} from '../build-art.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../../../..');
 const hash=b=>createHash('sha256').update(b).digest('hex');
-const reasons={day:'Lookout/perch/ladder, three chochin, six crew looks, plank, petals and spaced sleepers; approved hull, island, sail, rig and carrier retained.',dusk:'Six-phase dusk palette and phase tint replace the old two-phase interpolation; new stage furniture and crew.',night:'Night moon and two star twinkle fields; paper lanterns; lookout and six crew looks. Approved night coast retained.',storm:'Overcast, rain/spray and peak umibozu alongside approved sail/rig/water motion; a 24-worker crowd.'};
+const reasons={day:'Lookout/perch with ladder behind sail, three chochin, six crew looks, horizontal bow plank, petals and spaced sleepers; approved hull, island, sail, rig and carrier retained.',dusk:'Six-phase dusk palette and phase tint replace the old two-phase interpolation; horizontal bow plank and ladder occluded by sail; new furniture and crew.',night:'Night moon and two star twinkle fields; paper lanterns; lookout, hidden middle ladder, horizontal bow plank and six crew looks. Approved night coast retained.',storm:'Overcast, rain/spray and peak umibozu alongside approved sail/rig/water motion; a 24-worker crowd, horizontal bow plank and ladder behind sail.'};
 const changes={base:'47e305d',shots:{}};
 for(const name of Object.keys(reasons)){
   const a=readFileSync(join(here,'review/before',name+'.png')),b=readFileSync(join(here,'review/after',name+'.png'));

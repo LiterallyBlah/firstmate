@@ -83,9 +83,9 @@ export async function checkParity(view,manifest){
     }
     // The preserved shark remains independent of crew focus, including an empty suggestion list.
     await point(130,305);await view.getByTestId('firstmate-deck-suggestions').waitFor();assert.equal(await panel.count(),0);await view.keyboard.press('Escape');
-    // One stern worker has a short, unambiguous walk to the plank before the dragon sequence.
+    // Include the deck approach, horizontal bow walk, fall, splash, full breach and final ripple.
     await set([card('Departure sailor','ready')]);await view.emulateMedia({reducedMotion:'no-preference'});
-    await set([card('Departure sailor','done')],100);await clip('sea-dragon-departure',100,100,[280,190,190,130]);
+    await set([card('Departure sailor','done')],100);await clip('sea-dragon-departure',180,100,[0,170,170,150]);
     // Start on the floor, then change to rigging so the mast ascent is visible instead of first-mount snapping.
     await view.emulateMedia({reducedMotion:'reduce'});
     const climbing=Array.from({length:7},(_,i)=>card('climber-'+i,'ready'));await set(climbing);
