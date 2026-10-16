@@ -49,7 +49,12 @@ const answers = {
     const pack = await server.readDeckSetting(input.id, at);
     if (process.env.SHARK_REVIEW !== "before") return pack;
     const { mainRevision } = JSON.parse(await readFile(join(generated, "compiled-inputs.json"), "utf8"));
-    return { ...pack, manifest: JSON.parse(execFileSync("git", ["show", `${mainRevision}:art/settings/${input.id}/setting.json`], { cwd: root, encoding: "utf8" })) };
+    const manifest = JSON.parse(execFileSync("git", ["show", `${mainRevision}:art/settings/${input.id}/setting.json`], { cwd: root, encoding: "utf8" }));
+    // Art revisions need the baseline PNGs as well as its manifest. Ordinary shark-only review
+    // retains its existing lightweight path; parity review serves each pinned original blob.
+    const images = process.env.SAKURA_PARITY === "before" ? Object.fromEntries(Object.entries(manifest.images).map(([id, image]) => [id,
+      execFileSync("git", ["show", `${mainRevision}:art/settings/${input.id}/${image.path}`], { cwd: root, maxBuffer: 2_000_000 }).toString("base64")])) : pack.images;
+    return { manifest, images };
   },
 };
 
@@ -125,7 +130,7 @@ try {
     const { checkAttention } = await import("../deck-enrichment/check-attention.mjs");
     await checkAttention(view, manifest);
   }
-  if (process.env.SHARK_REVIEW) {
+  if (process.env.SHARK_REVIEW && !process.env.SAKURA_PARITY) {
     const { checkSharkSuggestions } = await import("../deck-shark-suggestions/check.mjs");
     await checkSharkSuggestions(view, manifest, process.env.SHARK_REVIEW);
   }
@@ -148,6 +153,14 @@ try {
   if (process.env.CHECK_JAPANESE_MOTION === "1") {
     const { checkMotion } = await import("../settings/japanese-ship/check-motion.mjs");
     await checkMotion(view, manifest);
+  }
+  if (process.env.SAKURA_PARITY) {
+    const { checkParity } = await import("../settings/japanese-ship/parity/check.mjs");
+    await checkParity(view, manifest);
+  }
+  if (process.env.SAKURA_TRANSIT === "1") {
+    const { checkTransit } = await import("../settings/japanese-ship/parity/transit.mjs");
+    await checkTransit(view, manifest);
   }
   if (errors.length !== 0) throw new Error(errors.join("\n"));
   console.log(JSON.stringify({ setting: actual, overlay: drawn, selectionCheck: process.env.CHECK_SELECTION === "1", errors }));

@@ -1,0 +1,18 @@
+{
+  "id": "lookout-probe-2",
+  "samples": [
+    {
+      "x": 251,
+      "y": 161
+    },
+    {
+      "x": 251,
+      "y": 122
+    },
+    {
+      "x": 251,
+      "y": 89
+    }
+  ],
+  "checked": "hover and click at three moving ladder heights; no renderer observer"
+}

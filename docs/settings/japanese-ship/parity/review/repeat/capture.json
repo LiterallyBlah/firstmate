@@ -1,0 +1,7 @@
+{
+  "phase": "repeat",
+  "setting": "japanese-ship",
+  "movingMode": "full",
+  "stormLevel": "1.00",
+  "observer": "canvas PNGs and public DOM attributes only"
+}
