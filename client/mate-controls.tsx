@@ -11,23 +11,24 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
 import { Modal, useToast } from "@getpaseo/plugin/client/react-native";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Text, View } from "react-native";
 
 import { compactMate, restartMate } from "../shared/fleet";
 import { ContextMeter } from "./context-meter";
 import { IconButton, errorText } from "./ui";
+import { focusWebElement } from "./web";
 
 export function MateControls({
   theme,
-  compact,
+  onOpenConversation,
   usedTokens,
   maxTokens,
   running,
   onChanged,
 }: {
   theme: PluginTheme;
-  compact: boolean;
+  onOpenConversation?: (() => void) | undefined;
   usedTokens: number | null | undefined;
   maxTokens: number | null | undefined;
   /** A turn is in flight: neither a compact nor a restart may cut into it, and the daemon refuses both. */
@@ -40,10 +41,16 @@ export function MateControls({
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const triggerId = useId();
+  function closeConfirmation(open: boolean): void {
+    setConfirming(open);
+    if (!open) focusWebElement(triggerId);
+  }
 
   const styles = useMemo(
     () => ({
-      // `marginLeft: auto` pushes the group to the row's end, and to the end of a line of its own when it wraps.
+      // Keep context and session actions together at the end of the single toolbar row.
       group: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6, marginLeft: "auto" as const },
       text: { color: theme.colors.foreground, fontSize: 14, lineHeight: 20 },
       muted: { color: theme.colors.foregroundMuted, fontSize: 13, lineHeight: 19 },
@@ -67,26 +74,58 @@ export function MateControls({
     <View style={styles.group}>
       <ContextMeter theme={theme} used={usedTokens} max={maxTokens} />
       <IconButton
-        icon="Shrink"
-        label="Compact"
-        tooltip="Condense context in the current first-mate session."
-        tooltipAlign="end"
-        showLabel={!compact}
+        icon="Ellipsis"
+        label="Session actions"
         theme={theme}
-        disabled={busy || running}
-        onPress={() => run(() => compactNow({}), "The first mate is compacting its context.")}
-      />
-      <IconButton
-        icon="RotateCcw"
-        label="Restart"
-        tooltip="Start a fresh first mate from saved records. The prior conversation stays in Paseo history."
+        nativeID={triggerId}
+        tooltip="Full conversation, Compact and Restart."
         tooltipAlign="end"
-        showLabel={!compact}
-        theme={theme}
-        disabled={busy || running}
-        onPress={() => setConfirming(true)}
+        onPress={() => setMenu(true)}
       />
-      <Modal title="Restart the first mate?" open={confirming} onOpenChange={setConfirming}>
+      <Modal title="Session actions" open={menu} onOpenChange={setMenu}>
+        <Modal.Content>
+          {onOpenConversation === undefined ? null : (
+            <IconButton
+              theme={theme}
+              icon="ExternalLink"
+              label="Full conversation"
+              showLabel
+              tooltip="Open Paseo's full chat for activity, interrupt, history and native composer tools."
+              onPress={() => {
+                setMenu(false);
+                onOpenConversation();
+              }}
+            />
+          )}
+          <IconButton
+            icon="Shrink"
+            label="Compact"
+            tooltip="Condense context in the current first-mate session."
+            tooltipAlign="end"
+            showLabel
+            theme={theme}
+            disabled={busy || running}
+            onPress={() => {
+              setMenu(false);
+              run(() => compactNow({}), "The first mate is compacting its context.");
+            }}
+          />
+          <IconButton
+            icon="RotateCcw"
+            label="Restart"
+            tooltip="Start a fresh first mate from saved records. The prior conversation stays in Paseo history."
+            tooltipAlign="end"
+            showLabel
+            theme={theme}
+            disabled={busy || running}
+            onPress={() => {
+              setMenu(false);
+              setConfirming(true);
+            }}
+          />
+        </Modal.Content>
+      </Modal>
+      <Modal title="Restart the first mate?" open={confirming} onOpenChange={closeConfirmation}>
         <Modal.Content>
           <Text style={styles.text}>
             A new first mate starts from scratch, with the same model and settings. This conversation ends; it stays
@@ -98,7 +137,7 @@ export function MateControls({
             the agent that started a worker when it finishes.
           </Text>
           <View style={styles.actions}>
-            <IconButton icon="X" label="Cancel" showLabel theme={theme} onPress={() => setConfirming(false)} />
+            <IconButton icon="X" label="Cancel" showLabel theme={theme} onPress={() => closeConfirmation(false)} />
             <IconButton
               icon="RotateCcw"
               label="Restart"
@@ -107,7 +146,7 @@ export function MateControls({
               theme={theme}
               disabled={busy || running}
               onPress={() => {
-                setConfirming(false);
+                closeConfirmation(false);
                 run(() => restartNow({}), "The first mate is starting afresh.");
               }}
             />
