@@ -1,4 +1,5 @@
 import { open, realpath } from "node:fs/promises";
+import { constants } from "node:fs";
 import { extname } from "node:path";
 import { ChatImageRequestSchema, MAX_CHAT_IMAGE_BYTES, imageExtension, type ChatImageRequest, type ChatImageResult } from "../shared/chat-images";
 import { readFirstmateConfig, resolveHome } from "./config";
@@ -27,7 +28,7 @@ export function imageContentType(path: string, bytes: Buffer): string | null {
     // SVG is served only as an Image data URL, never as markup or navigation.
     // Refuse entities/DTDs and non-text data; accept XML declarations/comments before the root.
     if (!/[\u0000\ufffd]/.test(text) && !/<!DOCTYPE|<!ENTITY/i.test(text) &&
-        /^\uFEFF?\s*(?:<\?xml\s[^?]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg(?:\s|>)/.test(text)) return "image/svg+xml";
+        /^\uFEFF?\s*(?:<\?xml\s[^?]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg(?:\s|\/?>)/.test(text)) return "image/svg+xml";
   }
   return null;
 }
@@ -61,7 +62,8 @@ export async function loadChatImage(paseo: Pick<PaseoApi, "workspaces">, input: 
     if (!isInside(await realpath(root), absolute)) return unavailable("path");
   } catch { return unavailable("path"); }
   try {
-    const handle = await open(absolute, "r");
+    // A disguised FIFO must not block the plugin. Refuse a final symlink swapped after realpath too.
+    const handle = await open(absolute, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0) | (constants.O_NOFOLLOW ?? 0));
     try {
       const info = await handle.stat();
       if (!info.isFile()) return unavailable("not-image");
