@@ -15,6 +15,13 @@ callbacks cannot focus a removed, stale, or no-longer-asking worker. The legend
 retains selection across polls and falls back when the selected worker disappears.
 Packs without a carrier retain their existing suggestion markers and replies.
 
+Rebased onto `310a5df` (PR #75). Its condensed footer is retained: location flavour
+stays in tooltips and accessibility hints, counts share the wrapping row, and the
+response carousel stays inline. Its landed footer tests are retained. The decoded-pixel
+audit also checks that footer markup and styles match main exactly after accounting
+for the action label and handler. The focus accessibility test now checks that inline
+action instead of the generic hint it replaces.
+
 No manifest, image, position, palette, animation, floor, camera geometry or pack
 capability changes. The ladder fix and below-deck sleepers are retained. The only
 intentional difference in the standard gate is the footer's action text and the
@@ -44,13 +51,13 @@ this review supersedes that navigation behaviour.
 Self-review covers callback removal, focus routing, current-state guards, preserved
 selection, native/no-card behaviour, the closed pack contract, and the unchanged
 rendering paths. Typecheck, all 1,076 tests in 90 files (three existing skips), and
-all 36 pack-lint checks pass. Runtime revision `138dd86` compiles against main
-`6704512`: the client is 302 bytes smaller, the server is unchanged, and Hermes
+all 36 pack-lint checks pass. Runtime revision `fa97e4e` compiles against main
+`310a5df`: the client is 302 bytes smaller, the server is unchanged, and Hermes
 parses the client with no `class`, bundled Pixi or embedded PNGs. See
 [compiler evidence](shark-compile.json).
 
-The first 81-shot capture has 15 identical frames and 66 footer-only differences.
-All five comparison sheets were reviewed: [still/daylight](shark-gate-footer-01.png),
+The regenerated 81-shot capture against the condensed footer has 15 identical frames and 66 footer-only differences.
+All five comparison sheets were reviewed and include the compact counts row and inline carousel: [still/daylight](shark-gate-footer-01.png),
 [storm I](shark-gate-footer-02.png), [storm II/night](shark-gate-footer-03.png),
 [crew/focus](shark-gate-footer-04.png), and [lite](shark-gate-footer-05.png).
 Main is on the left, the branch on the right. Both exact PNG hashes for each
@@ -67,6 +74,6 @@ Reproduce with `node docs/deck-fixes/check-shark-pixels.mjs` after the full gate
 The independent full gate rerun passed all 81 frames with default re-render checks:
 15 identical, 66 exact reviewed footer changes, matching canvas metadata, zero
 flakes and zero browser errors. `../deck-settings/gate-results.json` records the
-final run. The decoded-pixel audit passes against that run too. Runtime and pack
-inputs remain at `138dd86`; the evidence commit changes documentation and the
-browser harness only. The PR is handed back after final Windows and Ubuntu CI pass.
+final run. The decoded-pixel audit passes against that run too. Compilation and
+the gate use runtime revision `fa97e4e` against main `310a5df`. The PR is handed
+back after final Windows and Ubuntu CI pass.

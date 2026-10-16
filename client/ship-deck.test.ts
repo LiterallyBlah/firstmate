@@ -1085,7 +1085,8 @@ describe("the ship deck view", () => {
 
     it("tells the pointer and the keyboard how to focus one", async () => {
       const { root } = await mounted();
-      expect(text(root)).toContain("Point at a sailor to see who it is; click one to focus it and act on it.");
+      expect(root.root.findByProps({ accessibilityLabel: "Focus on Task b1" })).toBeDefined();
+      expect(text(root)).not.toContain("Point at a sailor");
       const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
       expect(canvasHost.props.accessibilityLabel).toBe("Ship deck: 2 working, 2 waiting, 2 blocked, 2 idle, 1 need your response; use Focus below. Arrow keys focus a sailor.");
       expect(canvasHost.props.focusable).toBe(true);
