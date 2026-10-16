@@ -102,6 +102,10 @@ try {
     const { checkSwitcher } = await import("../deck-scene-switcher/check.mjs");
     await checkSwitcher(view);
   }
+  if (process.env.CHECK_OFFICE_WITHDRAWAL === "1") {
+    const { checkOffice } = await import("../deck-fixes/check-office.mjs");
+    await checkOffice(view);
+  }
   if (process.env.CHECK_IDLE === "1") {
     const { checkIdle } = await import("../deck-enrichment/check-idle.mjs");
     await checkIdle(view, manifest);

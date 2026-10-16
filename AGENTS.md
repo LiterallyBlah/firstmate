@@ -400,8 +400,9 @@ starts.
 
 The Deck is a **scene engine** that knows workers, states, places, portals, layers, behaviours, the day and
 intensity, drawing a **setting pack** that knows what those look like and where they are. The nine-step migration
-is recorded in `docs/deck-settings/README.md`. The two built-in packs are `art/settings/ship/` and
-`art/settings/office/`; the office pack required no engine changes when installed.
+is recorded in `docs/deck-settings/README.md`. The released pack is `art/settings/ship/`.
+Office was withdrawn after visual review; its files are retained at
+`docs/settings/office/withdrawn-pack/`, outside the picker, RPC discovery and npm package.
 
 - **A pack is pure data**: `setting.json`, format `firstmate.deck-setting` 1 (`shared/deck-setting.ts`), and the
   PNGs it names, nothing else. **No pack code, ever**, and **no expressions**: numbers, ids, sprites, fixed path

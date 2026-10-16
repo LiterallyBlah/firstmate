@@ -1,0 +1,6 @@
+{
+  "checks": [
+    "Office absent from the real scene picker",
+    "saved Office selection falls back to one Ship canvas with a notice"
+  ]
+}
