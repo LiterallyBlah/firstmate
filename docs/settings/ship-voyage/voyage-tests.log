@@ -4,6 +4,6 @@
 
  Test Files  1 passed (1)
       Tests  4 passed (4)
-   Start at  20:27:14
-   Duration  4.64s (tests 93%, transform 4%, import 3%)
+   Start at  20:53:27
+   Duration  609ms (transform 43%, import 29%, tests 25%, setup 2%, worker 1%)
 

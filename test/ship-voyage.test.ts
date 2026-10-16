@@ -11,7 +11,17 @@ import { shipManifest } from "./ship-pack";
 const folder = new URL("../art/settings/ship/", import.meta.url);
 const ship = SettingManifestSchema.parse(JSON.parse(readFileSync(new URL("setting.json", folder), "utf8")));
 const old = shipManifest();
-const pixels = (id: string) => decodePng(readFileSync(new URL(ship.images[id]!.path, folder)));
+const silhouettes = new Map<string, Buffer>();
+function alphaOf(id: string): Buffer {
+  let alpha = silhouettes.get(id);
+  if (alpha === undefined) {
+    const pixels = decodePng(readFileSync(new URL(ship.images[id]!.path, folder)));
+    alpha = Buffer.alloc(pixels.width * pixels.height);
+    for (let i = 0; i < alpha.length; i++) alpha[i] = pixels.rgba[i * 4 + 3]!;
+    silhouettes.set(id, alpha);
+  }
+  return alpha;
+}
 
 describe("the remastered voyage", () => {
   it("keeps saved selection, eight looks, state routes and finite departure events", () => {
@@ -44,14 +54,12 @@ describe("the remastered voyage", () => {
     const coast = ship.ambience.find(e => e.id === "voyage-coast")!.behaviour;
     const beam = ship.ambience.find(e => e.id === "lighthouse-beam")!.behaviour;
     if (coast.kind !== "phase-strip" || beam.kind !== "phase-strip") throw Error("phase strips required");
-    const day = pixels(coast.frames.sprites[0]!.image);
-    const silhouette = day.rgba.filter((_, i) => i % 4 === 3);
+    const silhouette = alphaOf(coast.frames.sprites[0]!.image);
     for (const sprites of Object.values(coast.byPhase)) {
-      const phase = pixels(sprites[0]!.image);
-      expect(phase.rgba.filter((_, i) => i % 4 === 3)).toEqual(silhouette);
+      expect(alphaOf(sprites[0]!.image).equals(silhouette), sprites[0]!.image).toBe(true);
     }
     for (const [phase, sprites] of Object.entries(beam.byPhase)) {
-      const alpha = sprites.map(s => pixels(s.image).rgba.filter((_, i) => i % 4 === 3));
+      const alpha = sprites.map(s => alphaOf(s.image));
       expect(alpha.some(a => a.some(v => v > 0))).toBe(phase === "night");
     }
     expect(new Set(beam.byPhase.night!.map(s => ship.images[s.image]!.sha256)).size).toBe(4);
