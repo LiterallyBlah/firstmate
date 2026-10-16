@@ -111,6 +111,7 @@ export function FleetSurface(props: FleetSurfaceProps) {
 
 function FleetViewBody({
   theme,
+  host,
   layout,
   navigation,
   params,
@@ -764,6 +765,7 @@ function FleetViewBody({
   const chat = (
     <MateChat
       key={mate.id}
+      imageContext={{ serverId: host?.id, home: data.home }}
       mate={mate}
       theme={theme}
       compact={compact}

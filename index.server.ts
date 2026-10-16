@@ -20,6 +20,8 @@ import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
 import { listDeckSettings, readDeckEngine, readDeckSetting } from "./server/deck-settings";
 import { listDeckSettings as listDeckSettingsRpc, loadDeckEngine, loadDeckSetting } from "./shared/deck-rpc";
 import { findFiles, listDirectory, readTextFile, requireHome, writeTextFile } from "./server/files";
+import { loadChatImage } from "./server/chat-images";
+import { readChatImage } from "./shared/chat-images";
 import { CHARTER_FILE, NEW_CHARTER_FILE, acknowledgeCharter, writeNewCharter } from "./server/charter-file";
 import { isHomeReady, prepareHome, removeSuggestion } from "./server/home";
 import {
@@ -249,6 +251,7 @@ export default function contribute(server: PluginServerContext) {
     return { home: root, ...(await listDirectory(root, path)) };
   });
   server.handle(readHomeFile, async ({ path }) => readTextFile(await home(), path));
+  server.handle(readChatImage, (input, { paseo }) => loadChatImage(paseo, input));
   server.handle(findHomeFiles, async ({ paths }) => ({ files: await findFiles(await home(), paths) }));
   server.handle(writeHomeFile, async (input) => {
     const written = await writeTextFile(await home(), input, { origin: () => newAction("files.save", "captain") });

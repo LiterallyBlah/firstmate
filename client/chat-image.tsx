@@ -5,10 +5,12 @@ import { Image, Pressable, ScrollView, Text, View, useWindowDimensions } from "r
 import { IconButton } from "./ui";
 
 /** A whole thumbnail and a bounded, scrollable viewer; used for sent and assistant images. */
-export function ChatImage({ uri, label, theme }: { uri: string; label: string; theme: PluginTheme }) {
+export function ChatImage({ uri, label, theme, viewerOnly = false, onClose }: {
+  uri: string; label: string; theme: PluginTheme; viewerOnly?: boolean | undefined; onClose?: (() => void) | undefined;
+}) {
   const [size, setSize] = useState({ width: 220, height: 150 });
   const [failed, setFailed] = useState(false);
-  const [opened, setOpened] = useState(false);
+  const [opened, setOpened] = useState(viewerOnly);
   const [zoom, setZoom] = useState(1);
   const [width, setWidth] = useState(280);
   const window = useWindowDimensions();
@@ -32,7 +34,7 @@ export function ChatImage({ uri, label, theme }: { uri: string; label: string; t
   const fit = Math.min(width / size.width, height / size.height, 1);
   return (
     <View style={{ maxWidth: "100%", alignSelf: "flex-start" }}>
-      {failed ? (
+      {viewerOnly ? null : failed ? (
         <Text style={{ color: theme.colors.foregroundMuted }}>Image unavailable: {label}</Text>
       ) : (
         <Pressable
@@ -60,8 +62,9 @@ export function ChatImage({ uri, label, theme }: { uri: string; label: string; t
           />
         </Pressable>
       )}
-      <Modal title={label} open={opened} onOpenChange={setOpened}>
+      <Modal title={label} open={opened} onOpenChange={value => { setOpened(value); if (!value) onClose?.(); }}>
         <Modal.Content scrollable={false}>
+          {failed ? <Text style={{ color: theme.colors.foregroundMuted }}>Image unavailable: {label}</Text> : null}
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
             <IconButton
               theme={theme}
