@@ -37,7 +37,7 @@ plate('flag-aft',[538,50,106,55],()=>true,2);
 plate('rig',[110,105,550,191],p=>p[3]>0&&p[0]>p[2]*1.5&&p[0]>p[1]*1.02,1);
 save('fixed',fixed);
 // Opaque cloth at the transit crossing is a foreground depth piece; its ladder never paints over cloth.
-save('sail-screen',crop(ship,304,115,23,150));
+save('sail-screen',crop(ship,308,96,28,174));
 const seam=blank(800,520);for(let y=338;y<465;y++)for(let x=25;x<780;x++){const p=pixel(ship,x,y);if(p[1]>p[0]*1.8&&p[1]>90&&p[2]>50)put(seam,x,y,p);}
 for(let k=0;k<4;k++)save('seam-'+k,tint(seam,[1,1,1],[.18,.45,.7,.4][k]));
 // Uniform pose cells keep hit geometry stable across eight genuinely different silhouettes.
@@ -87,6 +87,7 @@ const preview=resolve(here,'review/midday-wide.png');if(existsSync(preview))save
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({sources,images,lanes,parts},null,2)+'\n');
 writeFileSync(resolve(here,'stage-registration.png'),encode(ship));
 console.log(JSON.stringify({images:Object.keys(images).length,bytes:Object.values(images).reduce((s,a)=>s+readFileSync(resolve(out,a.path)).length,0)}));
+
 
 
 
