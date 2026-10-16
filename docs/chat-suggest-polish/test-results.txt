@@ -1,0 +1,15 @@
+
+> @gpambrozio/paseo-firstmate@0.4.0 test
+> vitest run --passWithNoTests --maxWorkers=2
+
+
+ RUN  v5.0.3 C:/Users/micha/.paseo/worktrees/23z5sbxl/chat-suggest-polish
+
+
+ Test Files  97 passed (97)
+      Tests  1155 passed | 3 skipped (1158)
+   Start at  18:01:03
+   Duration  62.94s (tests 76%, import 17%, transform 4%, setup 1%, worker 1%)
+
+    Isolate  97 workers spawned · ~278ms startup each (spawn + environment, per file)
+             at least ~13.22s faster with isolate: false — reuses workers across files instead of one per file
