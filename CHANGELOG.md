@@ -153,6 +153,9 @@ Git repository or local directory; it is marked private to prevent accidental np
 
 ### Fixed
 
+- **The deck ladder sits against the mast, behind the sail.** Its climb follows the mast's vertical axis;
+  the below-deck sleeping crew and the rest of the ship's art stay unchanged.
+
 - **An image you send the first mate now shows in the chat.** A screenshot attached, pasted or dropped
   used to vanish from the conversation once sent — the first mate got it, but your message showed its
   words alone, or "(attachments)". It now shows under your words, sized to its shape, as in Paseo's own
