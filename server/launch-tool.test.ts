@@ -122,6 +122,7 @@ describe("launch contract and assembly", () => {
     expect(result.createAgent.initialPrompt).toBe(value); expect(await readFile(path, "utf8")).toBe(value);
     expect(result.brief.fileSha256).toBe(digest(value)); expect(result.brief.payloadSha256).toBe(digest(value.replace(/\r\n/g, "\n").trim()));
     expect(result.brief.fileSha256).not.toBe(digest(value.slice(0, -1)));
+    expect(result.brief.payloadSha256).not.toBe(digest(value.replace(/\r\n/g, "\n").trim().slice(0, -1)));
   });
   it.each([Buffer.from("# Status line\n__MISSING__"), Buffer.from("# Status line\n\0"), Buffer.from([0xff, 0xfe]), Buffer.from("No status heading")])("refuses invalid brief %#", async value => {
     await writeFile(join(home, "data/task/brief.md"), value);
@@ -133,6 +134,11 @@ describe("launch contract and assembly", () => {
     expect(result.createAgent.initialPrompt).toContain("Intent {{spec}}"); expect(result.createAgent.initialPrompt).toContain("Custom rules"); expect(await entries()).toEqual([]);
     await writeFile(join(home, "data/task/brief.md"), "# Status line\n" + "x".repeat(28000));
     expect(await prepare(request({ host: "remote", brief: { file: "data/task/brief.md" } }))).toMatchObject({ code: "brief-too-large" });
+  });
+  it("keeps an origin-qualified base in the arguments without doubling the brief's remote prefix", async () => {
+    const result = await prepare(request({ baseBranch: "origin/main" }), ["--dry-run"]);
+    expect(result.createWorkspace.baseBranch).toBe("origin/main");
+    expect(result.createAgent.initialPrompt).toContain("`origin/main`"); expect(result.createAgent.initialPrompt).not.toContain("origin/origin/");
   });
   it("refuses escaping file paths and symlinks before effects", async () => {
     await mkdir(join(scratch, "outside")); await writeFile(join(scratch, "outside/spec.md"), "spec");
@@ -313,6 +319,12 @@ describe("remote queue and uncertainty", () => {
     await remoteFixture("timeout"); expect(await prepare(request({ host: "remote" }))).toMatchObject({ state: "unresolved" });
     expect((await prepare(request({ host: "remote", backlog: { existing: "adopt" } }))).code).toBe("attempt-open");
     expect((await calls()).filter(args => args[0] === "run")).toHaveLength(1);
+  });
+  it("has a remote scout return its report through the bridge, not write the local home", async () => {
+    await remoteFixture(); const result = await prepare(request({ host: "remote", kind: "scout" }));
+    expect(result.state).toBe("recorded");
+    const brief = await readFile(join(home, "data/task/brief.md"), "utf8");
+    expect(brief).toContain("Return the full report in the final reply"); expect(brief).not.toContain(home);
   });
   it.each(["explicit-found", "explicit-empty"])("reconciles an explicit CLI error (%s) before choosing a state", async behavior => {
     await remoteFixture(behavior); const result = await prepare(request({ host: "remote" }));

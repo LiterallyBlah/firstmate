@@ -231,12 +231,14 @@ async function briefFor(request) {
   else {
     const source = request.brief.assemble;
     const content = async value => typeof value === "string" ? value : utf8(await read(value.file));
-    const delivery = request.kind === "scout" ? `Write data/${request.id}/report.md in the first mate's home at ${config.home}: findings, evidence and recommendations. Never open a pull request.`
+    const delivery = request.kind === "scout" ? request.host === "local"
+      ? `Write data/${request.id}/report.md in the first mate's home at ${config.home}: findings, evidence and recommendations. Never open a pull request.`
+      : `Return the full report in the final reply for the first mate to save as data/${request.id}/report.md: findings, evidence and recommendations. The local home is not available on this host. Never open a pull request.`
       : request.mode === "local-only" ? `Leave a clean branch fm/${request.id}; no push or pull request. Report done: ready in branch fm/${request.id}.`
       : request.mode === "direct-PR" ? "Push the task branch and open a pull request ready for review, not a draft. Report done: PR <full URL>."
       : request.mode === "reviewed-PR" ? "Review the whole diff, run the full test suite, push the task branch and open a pull request ready for review. Wait for green CI. Report done: PR <full URL> checks green."
       : request.mode;
-    const rules = source.rules === null ? fill(config.parts.rules, { id: request.id, baseBranch: request.baseBranch, delivery }) : utf8(await read(typeof source.rules === "string" ? source.rules : source.rules.file));
+    const rules = source.rules === null ? fill(config.parts.rules, { id: request.id, baseBranch: request.baseBranch.replace(/^origin\//, ""), delivery }) : utf8(await read(typeof source.rules === "string" ? source.rules : source.rules.file));
     bytes = Buffer.from(fill(config.parts.template, { intro: config.parts.intro, intent: await content(source.intent), spec: await content(source.spec), rules, done: delivery, status: config.parts.status }));
   }
   const value = utf8(bytes);
@@ -388,6 +390,7 @@ async function reconcile(record, explicitError = false) {
     let partialEffects = "unknown: workspace listing failed";
     try { partialEffects = rows(await query(record, ["workspace", "ls"])).map(item => ({ workspaceId: item.workspaceId, cwd: item.cwd, name: item.name })); } catch { /* Report unknown. */ }
     record = await update(record, { state: "failed", partialEffects, partialEffectsNote: "Inspect this workspace listing for a leftover worktree; no cleanup was performed." });
+    return { ok: false, ...record, next: "Explicit remote CLI error and no matching worker observed. Inspect partial effects before deliberately preparing a new attempt; no automatic retry was performed." };
   }
   return { ok: false, ...record, next: uncertainty };
 }
