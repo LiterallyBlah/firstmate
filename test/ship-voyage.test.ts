@@ -42,7 +42,9 @@ describe("the remastered voyage", () => {
   });
   it("keeps saved selection, eight looks, state routes and finite departure events", () => {
     expect(ship.id).toBe(old.id);
-    expect(ship.cast).toEqual(old.cast);
+    const { scale, ...cast } = ship.cast;
+    expect(cast).toEqual(old.cast);
+    expect(scale).toBe(1.25);
     expect(ship.zones.byState).toEqual(old.zones.byState);
     expect(ship.portals.byDeparture).toEqual(old.portals.byDeparture);
     expect(ship.effects).toEqual(old.effects);

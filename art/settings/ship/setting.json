@@ -32,7 +32,8 @@
     "phase-strip@1",
     "variants@1",
     "day-cycle@1",
-    "atmosphere@1"
+    "atmosphere@1",
+    "cast-scale@1"
   ],
   "images": {
     "clouds-cumulus": {
@@ -1336,7 +1337,7 @@
       "bottom": 400,
       "margin": 0.94
     },
-    "actorHeight": 44,
+    "actorHeight": 54,
     "backdrop": {
       "sprite": {
         "image": "ship"
@@ -1897,7 +1898,11 @@
         "id": "bow",
         "polygon": [
           [
-            150,
+            164,
+            278
+          ],
+          [
+            198,
             268
           ],
           [
@@ -1909,12 +1914,12 @@
             288
           ],
           [
-            170,
+            176,
             288
           ],
           [
-            150,
-            280
+            164,
+            282
           ]
         ]
       },
@@ -2176,7 +2181,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            18,
+            22,
             10
           ]
         }
@@ -2187,7 +2192,7 @@
           {
             "id": "helm-0",
             "at": [
-              545,
+              541,
               264
             ],
             "facing": "front"
@@ -2195,7 +2200,7 @@
           {
             "id": "helm-1",
             "at": [
-              561,
+              563,
               264
             ],
             "facing": "front"
@@ -2203,7 +2208,7 @@
           {
             "id": "helm-2",
             "at": [
-              577,
+              585,
               264
             ],
             "facing": "front"
@@ -2213,7 +2218,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            18,
+            22,
             10
           ]
         }
@@ -2224,8 +2229,8 @@
           {
             "id": "bow-0",
             "at": [
-              154,
-              274
+              168,
+              280
             ],
             "facing": "left"
           },
@@ -2250,7 +2255,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            18,
+            22,
             10
           ]
         }
@@ -4374,7 +4379,8 @@
       "periodMs": 4200,
       "inMs": 2200,
       "seedMs": 53
-    }
+    },
+    "scale": 1.25
   },
   "portals": {
     "entry": {
@@ -4390,8 +4396,8 @@
         "kind": "choreography",
         "marks": {
           "foot": [
-            154,
-            278
+            168,
+            280
           ],
           "rail": [
             97,
@@ -4484,7 +4490,7 @@
             "moving": true
           },
           {
-            "ms": 140,
+            "ms": 210,
             "pose": "front-idle",
             "reveal": [
               1,
@@ -4494,7 +4500,7 @@
             "moving": false
           },
           {
-            "ms": 200,
+            "ms": 300,
             "pose": "front-idle",
             "reveal": [
               0,
@@ -4506,7 +4512,7 @@
             "moving": false
           },
           {
-            "ms": 500,
+            "ms": 750,
             "event": "chomp",
             "pose": "front-idle",
             "reveal": [
@@ -4526,7 +4532,7 @@
             "moving": false
           },
           {
-            "ms": 380,
+            "ms": 570,
             "pose": "front-idle",
             "layer": "effects",
             "moving": false,
@@ -4544,7 +4550,7 @@
                   "event": "impact",
                   "plusMs": 0
                 },
-                "ms": 100,
+                "ms": 150,
                 "place": {
                   "mark": "water",
                   "drift": true
@@ -4554,9 +4560,9 @@
                 "frame": "burst",
                 "at": {
                   "event": "impact",
-                  "plusMs": 100
+                  "plusMs": 150
                 },
-                "ms": 140,
+                "ms": 210,
                 "place": {
                   "mark": "water",
                   "drift": true
@@ -4566,9 +4572,9 @@
                 "frame": "burst",
                 "at": {
                   "event": "chomp",
-                  "plusMs": 180
+                  "plusMs": 270
                 },
-                "ms": 140,
+                "ms": 210,
                 "place": {
                   "mark": "water",
                   "drift": true
@@ -4585,9 +4591,9 @@
                 "frame": "fin",
                 "at": {
                   "event": "impact",
-                  "plusMs": 120
+                  "plusMs": 180
                 },
-                "ms": 560,
+                "ms": 840,
                 "place": {
                   "mark": "water",
                   "drift": true,
@@ -4601,9 +4607,9 @@
                 "frame": "surface",
                 "at": {
                   "event": "impact",
-                  "plusMs": 680
+                  "plusMs": 1020
                 },
-                "ms": 160,
+                "ms": 240,
                 "place": {
                   "mark": "water",
                   "drift": true,
@@ -4616,7 +4622,7 @@
                   "event": "chomp",
                   "plusMs": 0
                 },
-                "ms": 180,
+                "ms": 270,
                 "place": {
                   "mark": "water",
                   "drift": true,
@@ -4627,9 +4633,9 @@
                 "frame": "submerge",
                 "at": {
                   "event": "chomp",
-                  "plusMs": 180
+                  "plusMs": 270
                 },
-                "ms": 200,
+                "ms": 300,
                 "place": {
                   "mark": "water",
                   "drift": true,

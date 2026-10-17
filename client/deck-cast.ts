@@ -26,6 +26,8 @@ export interface Standing {
 type Fidget = NonNullable<SettingManifest["cast"]["fidgets"][ActivityState]>;
 
 export interface DeckCast {
+  /** Uniform size on stage; atlas frames and cropped row counts remain unscaled. */
+  scale: number;
   /** Each lane's poses, by id. */
   lanes: ReadonlyMap<string, ReadonlyMap<string, Standing>>;
   /** The looks, in the order identities hash into: each one's image and lane, and whether it must draw. */
@@ -51,6 +53,7 @@ export function compileCast(manifest: SettingManifest): DeckCast {
   const looks = cast.looks.map((look) => ({ id: look.id, image: look.image, lane: look.lane, optional: look.optional !== false }));
   const first = lanes.get(looks[0]!.lane)!;
   return {
+    scale: cast.scale ?? 1,
     lanes,
     looks,
     stand: cast.roles.stand,

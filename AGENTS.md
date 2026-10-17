@@ -451,6 +451,11 @@ Office was withdrawn after visual review; its files are retained at
   The existing wall-clock refresh also applies in still mode, without restoring weather variants or animation.
   `zone-appearance@1` adds a settled zone's fixed sprite, feet anchor and foreground piece. The engine keeps
   identity, state and badges; sprite bounds/depth drive hit testing and focus. Cast motion resumes while walking.
+  `cast-scale@1` adds optional `cast.scale` (1–3, default 1): nearest-neighbour enlargement around the feet.
+  Atlas rectangles, crop rows and choreography reveals remain in source pixels; body drawing, breathing,
+  badges and hit bounds apply the scale together. Zone appearances remain registered to their hull openings.
+  Keep `stage.actorHeight` equal to the enlarged body plus its badge for focus, and review posts/overflow,
+  routes, eaters and 24-worker clicks when changing scale. The frozen Ship fixture and Sakura remain unscaled.
   Only explicit packing areas with visible handles can use non-spill floor; ordinary overflow stays out.
   `post-transit@1` gives a post an authored reversible access path from navigable floor to a raised station,
   with speed, moving/settled poses and piece-relative depth (`client/deck-post-transit.ts`). Only its primary

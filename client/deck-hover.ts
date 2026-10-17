@@ -16,7 +16,7 @@
  */
 import type { DeckCast } from "./deck-cast";
 import { ASK_GAP, ASK_SIZE, BADGE_GAP, BADGE_SIZE } from "./deck-badges";
-import { figureStanding, type Figure } from "./deck-crew";
+import { figureScale, figureStanding, type Figure } from "./deck-crew";
 import { depthOf } from "./deck-scene";
 import { stageToWorld, worldToStage, type StageTransform } from "./deck-stage-motion";
 
@@ -60,7 +60,7 @@ export interface DeckHover {
 /** Where a sailor's badge goes: its top, in deck pixels from the feet's row, for a sprite drawn at `figure`. */
 export function badgeTop(figure: Figure, cast: DeckCast): number {
   const frame = figureStanding(cast, figure);
-  return figure.y - frame.feet[1] - BADGE_GAP - BADGE_SIZE.height;
+  return figure.y - frame.feet[1] * figureScale(cast, figure) - BADGE_GAP - BADGE_SIZE.height;
 }
 
 /** Whether a figure shows its badge: once it is out of the hatch, and until it leaves the crew. */
@@ -145,13 +145,14 @@ export function askMarks(figures: readonly Figure[], cast: DeckCast): Map<string
  */
 export function figureBox(figure: Figure, cast: DeckCast, mark?: AskMark): DeckBox | null {
   const frame = figureStanding(cast, figure);
-  const [, , width, height] = frame.frame;
-  const rows = Math.round(height * figure.reveal);
+  const scale = figureScale(cast, figure);
+  const width = frame.frame[2] * scale, height = frame.frame[3] * scale;
+  const rows = Math.round(frame.frame[3] * figure.reveal) * scale;
   if (rows <= 0) return null;
   // Mirrored, the sprite turns about its feet.
-  const left = figure.x - (figure.flip ? width - frame.feet[0] : frame.feet[0]);
+  const left = figure.x - (figure.flip ? width - frame.feet[0] * scale : frame.feet[0] * scale);
   if (rows < height) return { left, top: figure.y - rows, right: left + width, bottom: figure.y };
-  const top = figure.y - frame.feet[1];
+  const top = figure.y - frame.feet[1] * scale;
   const box = {
     left: Math.min(left, figure.x - 4),
     top: badgeTop(figure, cast),

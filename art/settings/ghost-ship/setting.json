@@ -30,7 +30,8 @@
     "phase-strip@1",
     "variants@1",
     "day-cycle@1",
-    "atmosphere@1"
+    "atmosphere@1",
+    "cast-scale@1"
   ],
   "preview": "preview",
   "images": {
@@ -1327,7 +1328,7 @@
       "bottom": 600,
       "margin": 0.94
     },
-    "actorHeight": 38,
+    "actorHeight": 66,
     "motion": {
       "bob": {
         "periodS": 6,
@@ -2200,7 +2201,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            25,
+            28,
             11
           ]
         }
@@ -2211,7 +2212,7 @@
           {
             "id": "helm-0",
             "at": [
-              710,
+              702,
               257
             ],
             "facing": "front"
@@ -2219,7 +2220,7 @@
           {
             "id": "helm-1",
             "at": [
-              740,
+              730,
               257
             ],
             "facing": "front"
@@ -2229,7 +2230,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            25,
+            28,
             11
           ]
         }
@@ -2240,15 +2241,15 @@
           {
             "id": "bow-0",
             "at": [
-              248,
-              312
+              284,
+              326
             ],
             "facing": "left"
           },
           {
             "id": "bow-1",
             "at": [
-              272,
+              312,
               326
             ],
             "facing": "left"
@@ -2258,7 +2259,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            25,
+            28,
             11
           ]
         }
@@ -3566,7 +3567,8 @@
       "periodMs": 3200,
       "inMs": 1800,
       "seedMs": 97
-    }
+    },
+    "scale": 2
   },
   "portals": {
     "entry": {
