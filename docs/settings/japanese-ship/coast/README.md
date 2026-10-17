@@ -35,7 +35,7 @@ scene sea. This conceals the original atlas's boxed foam with the same sea,
 day-phase colours and weather that surround the body. No replacement water patch,
 foam art or viewport-relative placement is used. Both pieces share the original
 voyage drift, swell clock, staggered poses and visibility rules. `surface.mjs`
-applies this registration when rebuilding the coast; the PNGs remain unchanged.
+applies this registration through `../polish.mjs`; the PNGs remain unchanged.
 The coast registration audit checks every pixel of each 72-pixel berth against
 the island mask. The body reaches full strength above the storm threshold; lite,
 still and reduced motion hide it. These are scenery-bound strips, not viewport
