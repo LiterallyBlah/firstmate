@@ -1,4 +1,4 @@
-# Ship's deck voyage
+# Pirate voyage
 
 The approved [concepts](concepts/README.md) are now the installed `ship` pack, version 2.0.0.
 The saved setting id and default selection are unchanged. Production is manifest data and PNGs;
@@ -6,12 +6,16 @@ no renderer, plugin lifecycle, activity semantics or levelling system changes.
 
 The 640×400 stage retains the original eight bandana crew looks. Generated art supplies the
 fully rigged, bow-left ship, cannons, chest, rope, cat, wildlife and coastline. Original crew,
-water, departure, shark and storm art retain their proven anchors and animation roles.
+departure and shark art retain their proven anchors and animation roles. The follow-up
+[polish](POLISH.md) replaces the flat sea, stepped skies and small kraken, insets crew onto
+the planks, gives marine visitors submerged rest states, and restores the picker thumbnail.
 Exact generation prompts and reference roles are in [production-prompts.json](production-prompts.json);
-original outputs are in [sources](sources/). Registration, palette reduction and finite frame
+original outputs are in [sources](sources/). `sources/preview-canvas.png` freezes the real
+daytime canvas thumbnail (384 by 200 pixels, 48 colours), independently of later review captures.
+Registration, palette reduction and finite frame
 extraction are reproducible with `node docs/settings/ship-voyage/build-art.mjs`, followed by
 `node docs/settings/ship-voyage/build-pack.mjs`. Neither script is shipped or executed by the pack.
-The installed image payload is **809,482 bytes**, leaving 190,518 bytes below the 1,000,000-byte cap.
+The installed image payload is **984,461 bytes**, leaving 15,539 bytes below the 1,000,000-byte cap.
 
 ## The route
 
@@ -34,6 +38,8 @@ the ship rocks around its waterline. Hidden panes pause the voyage under the nor
 All canvas evidence uses the compiled plugin, real setting RPC reader and WebGL renderer through
 the repository's host fixture. The fleet is synthetic; this is not an installed Paseo session.
 Run `node docs/settings/ship-voyage/review.mjs`; set `VOYAGE_LITE=1` for the software-renderer pass.
+`node docs/settings/ship-voyage/visitors.mjs` checks marine motion, rest modes and pane resumption.
+Set `SHARK_REVIEW=before SAKURA_PARITY=before` for the bow comparison from compiled main.
 `node docs/settings/ship-voyage/night.mjs` repeats the focused night/moon/port/beacon captures.
 The review harness uses `gifenc` from `.generated/motion-tools` (install with
 `npm.cmd install --prefix .generated/motion-tools gifenc`). GIFs are screenshot sequences, not
@@ -43,24 +49,30 @@ the interaction and lighthouse clips play at their captured timing. Long-route s
 
 | State | Wide canvas | Tall, narrow canvas |
 | --- | --- | --- |
-| Day | [day](review/day-canvas.png) | [day](review/day-tall-narrow.png) |
-| Dusk | [dusk](review/dusk-wide.png) | [dusk](review/dusk-tall-narrow.png) |
-| Night | [night](review/night-wide.png) | [night](review/night-tall-narrow.png) |
-| Storm | [storm](review/storm-wide.png) | [storm](review/storm-tall-narrow.png) |
-| Port at night | [lit waterfront](review/port-night-wide.png) | ? |
-| Lighthouse | [night beacon](review/lighthouse-night-wide.png) | [night beacon](review/lighthouse-night-tall-narrow.png) |
+| Day | [day](review/polish-final/day-canvas.png) | [day](review/polish-final/day-tall-narrow.png) |
+| Dawn | [dawn](review/polish-final/dawn-wide.png) | [dawn](review/polish-final/dawn-tall-narrow.png) |
+| Morning | [morning](review/polish-final/morning-wide.png) | [morning](review/polish-final/morning-tall-narrow.png) |
+| Afternoon | [afternoon](review/polish-final/afternoon-wide.png) | [afternoon](review/polish-final/afternoon-tall-narrow.png) |
+| Dusk | [dusk](review/polish-final/dusk-wide.png) | [dusk](review/polish-final/dusk-tall-narrow.png) |
+| Night | [night](review/polish-final/night-wide.png) | [night](review/polish-final/night-tall-narrow.png) |
+| Storm | [storm](review/polish-final/storm-wide.png) | [storm](review/polish-final/storm-tall-narrow.png) |
+| Port at night | [lit waterfront](review/polish-final/port-night-wide.png) | ? |
+| Lighthouse | [night beacon](review/polish-final/lighthouse-night-wide.png) | [night beacon](review/polish-final/lighthouse-night-tall-narrow.png) |
 
 | Motion / interaction | Evidence |
 | --- | --- |
-| Continuous voyage | [complete lap, 60×](review/voyage-60x.gif) |
-| Rig, ship rocking and life | [scene alive](review/scene-alive.gif) |
-| Hatch arrival and crow's nest | [arrival and climb](review/hatch-and-lookout.gif) |
-| Projecting plank, splash and shark | [departure](review/plank-shark-departure.gif), [contact sheet](review/departure-contact.png) |
-| Navy chase and peak storm | [frigate chase](review/frigate-chase.gif), [lightning](review/storm-lightning.png) |
-| Night beacon | [lighthouse sweep](review/lighthouse-night.gif) |
-| Real surface split | [suggestion shark](review/suggestion-shark.gif) |
-| Geometry and depth | [floor overlay](review/floor-overlay.png) |
-| Crowds | [24 resting crew](review/sleepers-24.png), [24 working crew](review/workers-24.png), [24 exact focus labels](crowd-focus.json), [24 moving targets](crowd-rock-focus.json) |
+| Continuous voyage | [complete lap, 60×](review/polish-final/voyage-60x.gif) |
+| Rig, ship rocking and life | [scene alive](review/polish-final/scene-alive.gif) |
+| Hatch arrival and crow's nest | [arrival and climb](review/polish-final/hatch-and-lookout.gif) |
+| Projecting plank, splash and shark | [departure](review/polish-final/plank-shark-departure.gif), [contact sheet](review/polish-final/departure-contact-polish.png) |
+| Navy chase and peak storm | [frigate chase](review/polish-final/frigate-chase.gif), [lightning](review/polish-final/storm-lightning.png) |
+| Night beacon | [lighthouse sweep](review/polish-final/lighthouse-night.gif) |
+| Real surface split | [suggestion shark](review/polish-final/suggestion-shark.gif) |
+| Marine life | [distribution](review/polish-final/marine-distribution.png), [dolphin leaps, real time](review/polish-final/dolphin-leaps.gif), [whale passage, 5x](review/polish-final/whale-passage-5x.gif), [reduced](review/polish-final/visitors-reduced.png), [lite](review/polish-final/visitors-lite.png) |
+| Bow clearance | [before](review/polish-final/bow-before.png), [after](review/polish-final/bow-after.png) |
+| Picker | [name and thumbnail](review/polish-final/picker.png) |
+| Geometry and depth | [floor overlay](review/polish-final/floor-overlay.png) |
+| Crowds | [24 resting crew](review/polish-final/sleepers-24.png), [24 working](review/polish-final/crew-24-working.png), [24 waiting](review/polish-final/crew-24-waiting.png), [24 blocked](review/polish-final/crew-24-blocked.png), [96 state clicks](crowd-all-states.json), [24 exact focus labels](crowd-focus.json), [24 moving targets](crowd-rock-focus.json) |
 
 The [motion and parity audit](MOTION-PARITY.md) maps every original and new element to its behavior,
 clock and fallback. [Full](motion-full.json) and [lite](lite.json) reports record assertions and

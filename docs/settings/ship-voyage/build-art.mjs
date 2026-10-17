@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {decodePng} from '../../../test/png.ts';
 import {blank,crop,nearest,quant,encode,paste,bounds} from '../japanese-ship/build-art.mjs';
+import {polishAtmosphere} from './polish-art.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),out=resolve(here,'../../../art/settings/ship'),baseline=resolve(here,'../../../test/fixtures/ship-baseline');
 mkdirSync(out,{recursive:true});
 const images={},sources={},sha=b=>createHash('sha256').update(b).digest('hex');
@@ -63,6 +64,22 @@ for(let f=0;f<4;f++){
  const n=blank(116,88);blit(n,frigate,2+(f%2),2+(f%2));save('navy-chase-'+f,n);
 }
 save('merchant-clear',blank(1536,70));
+// A quiet marine visitor is invisible, never a held tail or back. Two registered leap
+// lanes vary the dolphin's location without introducing runtime/random motion code.
+save('dolphin-submerged',blank(96,40));
+for(let lane=0;lane<2;lane++)for(let f=0;f<4;f++){
+ const a=blank(96,40);blit(a,nearest(read(resolve(out,'dolphin-'+f+'.png')),48,34),lane?38:8,6);save('dolphin-leap-'+lane+'-'+f,a);
+}
+for(let lane=0;lane<2;lane++){
+ const a=blank(96,40),tail=read(resolve(out,'dolphin-3.png'));
+ // Only the bottom contact foam survives the final splash; all dolphin pixels disappear.
+ blit(a,nearest(crop(tail,0,48,64,4),48,3),lane?38:8,37);save('dolphin-splash-'+lane,a);
+}
+save('whale-submerged',blank(2048,47));
+for(let f=0;f<4;f++){const a=blank(2048,47);blit(a,read(resolve(out,'whale-'+f+'.png')),445,0);save('whale-voyage-'+f,a);}
+// The pursuing frigate advances through a long horizon lane instead of staying pinned.
+save('navy-away',blank(1536,88));
+for(let f=0;f<4;f++){const a=blank(1536,88);blit(a,read(resolve(out,'navy-chase-'+f+'.png')),482,0);save('navy-lane-'+f,a);}
 // Register four land regions on common waterlines with transparent open-ocean gaps.
 // Descending source-x order is the order encountered by a leftward-sailing ship.
 const coast=source('coast'),night=source('coast-night'),day=blank(2048,112),dark=blank(2048,112),landmarks=[];
@@ -107,6 +124,11 @@ save('beam-clear',blank(2048,112));
 for(const id of ['rain-clear','rain-0','rain-1','rain-2','rain-3']){
  const b=readFileSync(resolve(here,'../../../art/settings/sky-airship',id+'.png'));writeFileSync(resolve(out,id+'.png'),b);const a=decodePng(b);images[id]={path:id+'.png',size:[a.width,a.height],sha256:sha(b)};
 }
+polishAtmosphere({source,save,read,baseline,clone,pixel,put,blit,fit,tint});
+for(const id of ['moon','sky-stars']){const a=blank(512,2048);blit(a,read(resolve(out,images[id].path)),0,0);save(id,a);}
+// Frozen thumbnail of the reviewed daytime canvas (384x200, 48 colours).
+// Keep this source independent of regenerated review evidence.
+save('preview',source('preview-canvas'));
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({sources,images,parts,landmarks,lamp},null,2)+'\n');
 writeFileSync(resolve(here,'review/coast-registration.png'),encode(day));
 writeFileSync(resolve(here,'review/coast-night-registration.png'),encode(dark));
