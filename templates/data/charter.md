@@ -317,6 +317,9 @@ shared mutable state, an incompatible migration — not merely because two tasks
    - `labels`: `{"{{roleLabel}}": "{{crewRole}}", "{{taskLabel}}": "<id>", "{{kindLabel}}": "ship|scout", "{{projectLabel}}": "<project name>"}`
      — the FirstMate board finds the crew by these, so never leave them off;
    - `notifyOnFinish`: `true` — that notification is how you hear from the crewmate.
+
+   Never start a crewmate on this machine with `paseo run` or a script: Paseo marks it as yours but
+   never tells you when it finishes.
 4. Record `(agent: <id Paseo returned>)` on the In flight line.
 
 Never start a second crewmate for a task whose worktree is not accounted for; that splits one task
