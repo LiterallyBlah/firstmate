@@ -61,6 +61,7 @@ import { cloudColours, cloudField, cloudX, hexColour, variantPalette, type Drift
 import { flashAt, flashSalt, underCloud } from "./deck-flash";
 import { phaseFrameAt } from "./deck-phase-frames";
 import { phaseStripSets, phaseStripWeights } from "./deck-phase-strip";
+import { precipLayer } from "./deck-precip-view";
 import { depthWashAt, depthWashAlpha } from "./deck-depth-wash";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
 import { backdropPlacement, dayBlend, dominantPhase, NO_DAY, scrollOffset, type DayBlend, type Placement } from "./deck-sky";
@@ -91,7 +92,7 @@ export interface Scenery {
   /** Whether a tile is drawn from its art, not filled flat. */
   readonly generated: boolean;
   /** Covers `visible`; cheap when it has not grown. */
-  layout(visible: VisibleWorld): void;
+  layout(visible: VisibleWorld, pane?: { width: number; height: number }): void;
   /**
    * Draws it at `seconds` on the scene clock and `minute` of the local day, in `weather` (the art's own timing at
    * `seconds` when not given); the day phase whose backdrop shows most, or null without a backdrop.
@@ -331,6 +332,12 @@ function ambienceLayers(
     return layer;
   };
   const tiles = elementsOf(ambience, "tile").map((element) => placedLayer(element.id, tileLayer(pixi, element, cut, ambience.sizes, phases)));
+  const precipitation = elementsOf(ambience, "precip").map((element) => {
+    const layer = precipLayer(pixi, element, ambience.sceneId ?? "", seed,
+      (sprite) => spriteTexture(cut, sprite, ambience.sizes), ambience.sizes);
+    views.set(element.id, own(element, [layer.container]));
+    return layer;
+  });
   const water: WaterLayer[] = [
     ...tiles,
     ...elementsOf(ambience, "strip").map((element) => placedLayer(element.id, stripLayer(pixi, element, cut, ambience.sizes))),
@@ -351,7 +358,8 @@ function ambienceLayers(
     back: inSlot("back"),
     front: inSlot("front"),
     generated: tiles.length > 0,
-    layout(visible: VisibleWorld) {
+    layout(visible: VisibleWorld, pane = { width: visible.right - visible.left, height: visible.bottom - visible.top }) {
+      for (const layer of precipitation) layer.layout(visible, pane);
       for (const layer of water) layer.layout(visible);
       for (const layer of backdrops.values()) {
         const { behaviour } = layer.element;
@@ -437,6 +445,7 @@ function ambienceLayers(
         sprite.scale.set(place.scale);
       }
       for (const layer of water) layer.draw(seconds, plan, weather, blend);
+      for (const layer of precipitation) layer.draw(seconds, plan, intensity);
       for (const { element, frames, sprite } of phaseFrames) {
         const motion = elementMotion(element, plan);
         sprite.visible = motion !== "hide";

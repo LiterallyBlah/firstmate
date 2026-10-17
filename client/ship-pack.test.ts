@@ -50,6 +50,8 @@ function imagesOf(behaviour: AmbienceBehaviour): string[] {
       return [behaviour.image];
     case "flash":
       return behaviour.frames.map((frame) => frame.sprite.image);
+    case "precip":
+      return [...behaviour.drops.map((drop) => drop.sprite.image), ...(behaviour.splashes?.frames.map((frame) => frame.image) ?? [])];
     case "phase-frames":
       return behaviour.frames.map((frame) => frame.image);
     case "phase-strip":

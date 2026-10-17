@@ -7,18 +7,7 @@ const pack = new URL("../art/settings/ghost-ship/", import.meta.url);
 const read = (id: string) => decodePng(readFileSync(fileURLToPath(new URL(`${id}.png`, pack))));
 
 describe("Ghost ship's registered motion", () => {
-  it("moves every rain pixel downward through all four transitions, including the loop", () => {
-    const frames = Array.from({ length: 4 }, (_, i) => read(`rain-${i}`));
-    for (const [index, from] of frames.entries()) {
-      const to = frames[(index + 1) % frames.length]!;
-      expect(to.rgba, `transition ${index} moves`).not.toEqual(from.rgba);
-      for (let y = 0; y < from.height; y++) {
-        const source = from.rgba.subarray(y * from.width * 4, (y + 1) * from.width * 4);
-        const row = (y + 8) % from.height;
-        expect(to.rgba.subarray(row * to.width * 4, (row + 1) * to.width * 4), `transition ${index}, row ${y}`).toEqual(source);
-      }
-    }
-  });
+  // Particle rain's art registration and downward travel are checked for every scene in deck-rain.test.ts.
 
   it("keeps the right half of the crow's nest on the fixed mast, outside every flutter frame", () => {
     const fixed = read("fixed");

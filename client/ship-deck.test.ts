@@ -641,6 +641,7 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
     }
     const graphics = methods(pixi.Graphics);
     for (const name of ["clear", "rect", "circle", "ellipse", "fill", "stroke", "addChild", "destroy", "tint"]) expect(graphics.has(name), name).toBe(true);
+    for (const name of ["cacheAsTexture", "updateCacheTexture"]) expect(methods(pixi.Container).has(name), name).toBe(true);
     const sprite = methods(pixi.Sprite);
     for (const name of ["anchor", "texture", "tint", "position", "scale", "label", "destroy"]) expect(sprite.has(name), name).toBe(true);
     for (const name of ["scaleMode", "destroy"]) expect(methods(pixi.ImageSource).has(name), name).toBe(true);

@@ -39,6 +39,8 @@ export interface AmbientElement<K extends Kind = Kind> {
 }
 
 export interface DeckAmbience {
+  /** Scene salt for precipitation; optional for older synthetic scenery fixtures. */
+  sceneId?: string;
   /** The elements drawn, back to front within each slot. */
   elements: readonly AmbientElement[];
   /** The tiles with nothing to draw them with, filled flat with `fallbackFill` across their bands, in the same order. */
@@ -124,6 +126,15 @@ export function compileAmbience(manifest: SettingManifest, has: (image: string) 
         return arrived([behaviour.image]) ? { ...head, behaviour } : null;
       case "flash":
         return arrived(behaviour.frames.map((frame) => frame.sprite.image)) ? { ...head, behaviour } : null;
+      case "precip": {
+        const drops = behaviour.drops.filter((drop) => arrived([drop.sprite.image]));
+        const ids = new Set(drops.map((drop) => drop.id));
+        const kinds = behaviour.kinds.map((kind) => ({ ...kind, drops: kind.drops.filter((id) => ids.has(id)) }));
+        if (kinds.some((kind) => ["far", "mid", "near"].some((depth) => !drops.some((drop) => kind.drops.includes(drop.id) && drop.depth === depth)))) return null;
+        const { splashes, ...base } = behaviour;
+        return { ...head, behaviour: { ...base, drops, kinds,
+          ...(splashes !== undefined && arrived(splashes.frames.map((sprite) => sprite.image)) ? { splashes } : {}) } };
+      }
       case "phase-frames":
         return arrived(behaviour.frames.map((frame) => frame.image)) ? { ...head, behaviour } : null;
       case "phase-strip": {
@@ -193,6 +204,7 @@ export function compileAmbience(manifest: SettingManifest, has: (image: string) 
   ).map((element) => ({ id: element.id, place: element.id, slot: element.slot, order: element.order, lite: element.lite, still: element.still, behaviour: element.behaviour as Behaviour<"tile"> }));
   const order = Object.keys(manifest.images);
   return {
+    sceneId: manifest.id,
     elements,
     flats,
     fallbackFill: Number.parseInt(manifest.palette.fallbackFill.slice(1), 16),
