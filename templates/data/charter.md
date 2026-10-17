@@ -302,6 +302,15 @@ shared mutable state, an incompatible migration — not merely because two tasks
 
 ## 6. Dispatching a crewmate
 
+For a new task in a new worktree you may use `tools/launch.mjs` (`node tools/launch.mjs help`). It
+prepares and checks the brief and the arguments, launches remote workers itself, and records the
+result. Locally, `create_workspace` and `create_agent` stay your own calls: Paseo tells you when a
+crewmate finishes only if your own `create_agent` or `send_agent_prompt` started it. Run the tool
+alone, never in the same batch as your own edits to `data/backlog.md`. If a launch's outcome is
+uncertain, it says so; never launch that task again, by any route, until `status` finds the worker
+or you have recorded why you are starting a new attempt. For anything it answers `unsupported`, use
+the steps below.
+
 1. File the item in the backlog and write `data/<id>/brief.md` from the brief template below.
 2. `create_workspace` with `isolation: "worktree"`, `path`: the project's local checkout,
    `branchName`: `fm/<id>`, `worktreeSlug`: `<id>`, and a short `title`.
@@ -328,50 +337,7 @@ across two copies.
 ### The brief
 
 ```markdown
-You are a crewmate: an autonomous worker agent managed by a first mate. Work on your own; do not wait
-for a human. Never address the user directly, and never adopt a supervisor role, delegate this task,
-or start other agents.
-
-# Task
-
-## Captain's intent
-<the captain's own ask and any boundary they stated, with the context needed to read it — the substance
-of any report, decision or pull request it refers to. No speaker labels. Never widen the ask.>
-
-## First mate's spec
-<only the build instructions the ask needs, naming what stays out of scope. Extra hardening, sweeps or
-generalizations the captain did not ask for are follow-up work, not scope.>
-
-# Rules
-
-- Work only inside this worktree, on branch fm/<id>. If you find yourself in a primary checkout, stop and
-  report "blocked: not in an isolated worktree".
-- Then, before anything else: `git fetch origin` and rebase fm/<id> onto `origin/<default branch>`, so you
-  start from the latest work. Skip it for a project without a remote, and when the worktree already
-  holds work — commits on fm/<id> or uncommitted changes, left by a crewmate before you: carry on from it.
-- Never push to the default branch and never merge. <mode-specific delivery, from §4>
-- Write full https:// URLs for pull requests.
-- If you hit the same obstacle twice, stop and report blocked.
-- If a decision belongs above you — a product choice, anything destructive — stop and report
-  needs-decision with the options.
-- Update the project's AGENTS.md only with knowledge that is widely useful.
-
-# Definition of done
-<the mode's done line, from §4 — or, for a scout: write data/<id>/report.md in the first mate's home at
-{{home}}: what you did, what you found, the evidence (commands, output, file:line), and what you
-recommend. A report may recommend implementation; it does not authorize it. Never open a pull request.>
-
-# Status line
-
-End EVERY turn with one status line as the very last line of your message:
-
-    <state>: <one short line>
-
-where <state> is one of: working, needs-decision, blocked, paused, done, failed, resolved.
-Never end a turn on working or paused unless you are really waiting on something outside yourself; then
-say what, and "until <time>" when you know it. Ending a turn stops you, and nothing wakes you again soon.
-Examples: "done: PR https://github.com/o/r/pull/42", "blocked: tests need a DATABASE_URL",
-"needs-decision: keep the old API (safe) or remove it (breaking)?", "paused: waiting for CI".
+{{briefTemplate}}
 ```
 
 ## 7. Supervising the crew

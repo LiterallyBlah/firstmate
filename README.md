@@ -232,6 +232,16 @@ when reachable. Remote permissions are handled on the host, and remote Relaunch 
 first mate. Followed sessions are marked separately and cannot be ended from the board.
 The [remote access guide](templates/data/remote-access.md) describes setup, commands and limitations.
 
+For new tasks in new worktrees, the first mate can optionally use
+`node tools/launch.mjs help`. It validates and assembles a brief, emits arguments
+for the first mate's own local MCP calls, or launches remotely through the existing
+helper, then records the worker. Uncertain launches are never retried automatically.
+Backlog writes retain a recovery line but remain best-effort; simultaneous edits
+can be lost between compare and rename. The helper also renders editable art,
+landing, deployment and reviewer messages without sending them.
+See the [launch helper guide](docs/launch-tool.md) for commands, recovery and checks
+that remain unknown on remote hosts.
+
 ## Settings, handovers and updates
 
 **Settings → Plugins → FirstMate** controls the home, default crew model/mode, agent tools, refresh
