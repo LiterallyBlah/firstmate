@@ -3,9 +3,9 @@
  * folders, capped, and refused when this engine cannot draw them — with no switch: the Deck is a standard part of the
  * screen, and the fleet load carries nothing for it. What is in a pack is `test/deck-settings.test.ts`'s.
  */
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -50,16 +50,25 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const shipFolder = join(root, SETTINGS_DIR, "ship");
 const shipJson = () => JSON.parse(readFileSync(join(shipFolder, SETTING_MANIFEST), "utf8")) as Record<string, unknown> & { images: Record<string, { path: string }> };
 
-/** A plugin folder of its own holding a copy of the ship's pack as `id`, its manifest changed by `change`. */
+/** Rejection fixtures need only manifests: invalid headers and paths fail before any image reads. */
 function pluginWith(packs: Record<string, (manifest: ReturnType<typeof shipJson>) => unknown>): string {
   const dir = mkdtempSync(join(tmpdir(), "firstmate-deck-settings-"));
   for (const [id, change] of Object.entries(packs)) {
     const folder = join(dir, SETTINGS_DIR, id);
     mkdirSync(folder, { recursive: true });
-    cpSync(shipFolder, folder, { recursive: true });
     writeFileSync(join(folder, SETTING_MANIFEST), JSON.stringify(change({ ...shipJson(), id })));
   }
   return dir;
+}
+
+let shipImageFiles: Array<{ path: string; bytes: Buffer }> | undefined;
+
+/** Successful reads need the declared images; cache source bytes to avoid recursive copies and repeated Windows I/O. */
+function writeShipImages(folder: string): NonNullable<typeof shipImageFiles> {
+  shipImageFiles ??= Object.values(shipJson().images).map(({ path }) => ({ path, bytes: readFileSync(join(shipFolder, path)) }));
+  for (const parent of new Set(shipImageFiles.map(({ path }) => dirname(path)))) mkdirSync(join(folder, parent), { recursive: true });
+  for (const { path, bytes } of shipImageFiles) writeFileSync(join(folder, path), bytes);
+  return shipImageFiles;
 }
 
 describe("the deck without a switch", () => {
@@ -166,6 +175,7 @@ describe("the settings the daemon serves", () => {
         ["named", false],
       ]);
       // Mended on disk, the next read finds it: a failure is not kept.
+      writeShipImages(join(dir, SETTINGS_DIR, "named"));
       writeFileSync(join(dir, SETTINGS_DIR, "named", SETTING_MANIFEST), JSON.stringify({ ...shipJson(), id: "named" }));
       await expect(readDeckSetting("named", async () => dir)).resolves.toHaveProperty("manifest.id", "named");
     } finally {
@@ -193,10 +203,10 @@ describe("the settings the daemon serves", () => {
     const dir = pluginWith({ heavy: (manifest) => manifest });
     try {
       const folder = join(dir, SETTINGS_DIR, "heavy");
-      const files = Object.values(shipJson().images).map((image) => join(folder, image.path));
-      const originalBytes = files.reduce((sum, file) => sum + readFileSync(file).length, 0);
+      const files = writeShipImages(folder);
+      const originalBytes = files.reduce((sum, file) => sum + file.bytes.length, 0);
       const atlas = files[0]!;
-      writeFileSync(atlas, Buffer.concat([readFileSync(atlas), Buffer.alloc(bytes - originalBytes)]));
+      writeFileSync(join(folder, atlas.path), Buffer.concat([atlas.bytes, Buffer.alloc(bytes - originalBytes)]));
       if (bytes > PACK_BYTES_MAX) {
         await expect(readDeckSetting("heavy", async () => dir)).rejects.toThrow(`serves ${bytes} bytes of images; at most ${PACK_BYTES_MAX}`);
         expect((await listDeckSettings(async () => dir))[0]).toMatchObject({ compatible: false });
