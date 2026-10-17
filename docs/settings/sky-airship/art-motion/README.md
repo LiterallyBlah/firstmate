@@ -48,8 +48,17 @@ wrapper uses the established host and public diagnostics without Pixi observers.
 
 The existing `strip@1` capability supplies both horizontal drift and intensity variants. A transparent base and a peak-storm variant keep the serpent invisible through intensity 0.82, fading to 0.95 at peak. Both lite and still policies are `hide`; reduced motion selects still. No flyby, engine change or new timer is involved.
 
-The four existing coils are cropped above their painted bounds and proportionally reduced to 78 by 44 pixels, then spaced once per 2,048-pixel strip. They swim right, toward the head, at 59.4 world pixels per second at peak. The existing swell clock drives their undulation. The route occupies rows -8 through 36 above the balloon, with a long off-screen interval between passes. Back-slot order 6.1 puts it ahead of the distant cloud banks while the ship, crew and rigging remain in front. The suggestion whale stays far below at the cloud-line surface.
+The current pack replaces the four coiled sprites with eight right-facing dragon flight frames.
+The head stays fixed within each frame while a body wave travels toward the tail. The frames
+hold for 180 ms on the swell clock (about 138 ms at peak); drift is 24 px/s on wind,
+or 79.2 world pixels per second at peak. The 160-pixel-wide dragon appears once per
+2,048-pixel strip. Top -8, span [-1200, 1680], back-slot order 6.1 and storm gating
+are unchanged, keeping the route above the balloon and the suggestion whale below.
 
-`serpent.mjs` builds these strips from the saved originals. `serpent-verify.mjs` checks the production functions for storm gating, hidden lite/still behavior, travel direction and repeat wrap; see `serpent-policy.json`. `serpent-render.mjs` captures the crossing with the same established render host.
+The supplied PNGs are shipped byte-for-byte. `strip@1` has no per-effect scale field;
+nearest-neighbour sampling follows the scene's camera scale. The old `serpent.mjs`
+script and earlier policy/render records describe the retired coiled art.
+Current wide/tall flight clips and before/after stills are uncommitted, in
+`C:/Users/micha/.paseo/plugin-data/firstmate/home/data/sky-dragon-flight/evidence/`.
 
 `serpent-lite-render.mjs` also captures wide/tall software-renderer views at intensity 1, asserts the public canvas motion mode is lite, and records zero browser errors. Reduced-motion captures show no frozen serpent.

@@ -372,38 +372,6 @@
       ],
       "sha256": "d21f48ca87ea73c8e99905ea17911ee32ae94c652de1b8baccf0bacaf7723cf0"
     },
-    "serpent-0": {
-      "path": "serpent-0.png",
-      "size": [
-        2048,
-        44
-      ],
-      "sha256": "72e1606fcc8736999ec688b47d44930ff5accc171242947e207bfd0357c83664"
-    },
-    "serpent-1": {
-      "path": "serpent-1.png",
-      "size": [
-        2048,
-        44
-      ],
-      "sha256": "8e80b9db3177a6d6a13d73c1b728cb9d7f8ddf8ba90e0e905825b8d4313bd016"
-    },
-    "serpent-2": {
-      "path": "serpent-2.png",
-      "size": [
-        2048,
-        44
-      ],
-      "sha256": "06a52818ca900fd48b8966eb3fd55e056bb7dba8f22e4f16f05a94872423996e"
-    },
-    "serpent-3": {
-      "path": "serpent-3.png",
-      "size": [
-        2048,
-        44
-      ],
-      "sha256": "5c058cce0e3481bfd62f14a68cc9b505017e8d63ccc2950294b0f27dad4d2643"
-    },
     "smoke-0": {
       "path": "smoke-0.png",
       "size": [
@@ -764,14 +732,6 @@
       ],
       "sha256": "c70455ac23c90cee74015007559df0cc736ba1a1e671e0f1031552681f37767d"
     },
-    "serpent-clear": {
-      "path": "serpent-clear.png",
-      "size": [
-        2048,
-        44
-      ],
-      "sha256": "a68e37e4f5e439cd240392ee17a82518b4e403088cb1e77571db5ad88f1f1875"
-    },
     "voyage-far-dawn": {
       "path": "voyage-far-dawn.png",
       "size": [
@@ -1043,6 +1003,78 @@
         36
       ],
       "sha256": "10cca543ccee7abcece412ec888370e3d01345be4ccfa0958ef69929ad464543"
+    },
+    "dragon-0": {
+      "path": "dragon-0.png",
+      "size": [
+        2048,
+        44
+      ],
+      "sha256": "03f7f7fc1bf401dde1a69239c616124ff4d32c0e6ba29b2eefe136f3f17aa15f"
+    },
+    "dragon-1": {
+      "path": "dragon-1.png",
+      "size": [
+        2048,
+        44
+      ],
+      "sha256": "a662c4f16477bcb4b2298de7aea9e45b7a1753b133a9bbb79ea56f5c1a15a50e"
+    },
+    "dragon-2": {
+      "path": "dragon-2.png",
+      "size": [
+        2048,
+        44
+      ],
+      "sha256": "52ce1d5b873a59d6181bf087937ba155d69534dcf8c3e2e0f437383e970df481"
+    },
+    "dragon-3": {
+      "path": "dragon-3.png",
+      "size": [
+        2048,
+        44
+      ],
+      "sha256": "5f56c685a2231e070f577131c109019e592338af240466d9f7cc0d5934211807"
+    },
+    "dragon-4": {
+      "path": "dragon-4.png",
+      "size": [
+        2048,
+        44
+      ],
+      "sha256": "b1518d65b348444b9f15662afb53ecf3045e2a9ca0de07b99d8cb45b044e3c21"
+    },
+    "dragon-5": {
+      "path": "dragon-5.png",
+      "size": [
+        2048,
+        44
+      ],
+      "sha256": "3dfb0cb92a73b552d821bff755c776495c987d5ef5df456b0427d89e2d7c687f"
+    },
+    "dragon-6": {
+      "path": "dragon-6.png",
+      "size": [
+        2048,
+        44
+      ],
+      "sha256": "3ddb5daf19a9bac144fda50c87ce000333cbe1c76f7a85044d18a92430ff9155"
+    },
+    "dragon-7": {
+      "path": "dragon-7.png",
+      "size": [
+        2048,
+        44
+      ],
+      "sha256": "eca84abce5ce406569683cd7ce3ea169b2c8313ca0726afbe308c84e09833c5b"
+    },
+    "dragon-clear": {
+      "path": "dragon-clear.png",
+      "size": [
+        2048,
+        44
+      ],
+      "sha256": "a68e37e4f5e439cd240392ee17a82518b4e403088cb1e77571db5ad88f1f1875"
     }
   },
   "preview": "preview",
@@ -4153,19 +4185,31 @@
         "frames": {
           "sprites": [
             {
-              "image": "serpent-clear"
+              "image": "dragon-clear"
             },
             {
-              "image": "serpent-clear"
+              "image": "dragon-clear"
             },
             {
-              "image": "serpent-clear"
+              "image": "dragon-clear"
             },
             {
-              "image": "serpent-clear"
+              "image": "dragon-clear"
+            },
+            {
+              "image": "dragon-clear"
+            },
+            {
+              "image": "dragon-clear"
+            },
+            {
+              "image": "dragon-clear"
+            },
+            {
+              "image": "dragon-clear"
             }
           ],
-          "frameMs": 600,
+          "frameMs": 180,
           "clock": "swell"
         },
         "top": -8,
@@ -4174,7 +4218,7 @@
           1680
         ],
         "drift": {
-          "pxPerSecond": 18,
+          "pxPerSecond": 24,
           "clock": "wind"
         },
         "variants": [
@@ -4182,16 +4226,28 @@
             "id": "peak-storm",
             "frames": [
               {
-                "image": "serpent-0"
+                "image": "dragon-0"
               },
               {
-                "image": "serpent-1"
+                "image": "dragon-1"
               },
               {
-                "image": "serpent-2"
+                "image": "dragon-2"
               },
               {
-                "image": "serpent-3"
+                "image": "dragon-3"
+              },
+              {
+                "image": "dragon-4"
+              },
+              {
+                "image": "dragon-5"
+              },
+              {
+                "image": "dragon-6"
+              },
+              {
+                "image": "dragon-7"
               }
             ],
             "blend": "over",

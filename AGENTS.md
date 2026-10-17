@@ -521,6 +521,11 @@ Office was withdrawn after visual review; its files are retained at
   as data and commissioned art, after its generic capabilities landed in separate reviews. Per-project selection
   and external pack installation remain deferred. The code-drawn plank/wake remain retired.
 
+Sky pirates' peak-storm `sky-serpent` uses the eight `dragon-0..7.png` flight frames,
+a transparent base, 180 ms on the swell clock and rightward 24 px/s on wind. Its 2,048-pixel
+strip stays above the airship at top -8 and hides in lite/still modes. `strip@1` draws at
+native art size; it has no per-effect scale. Flight evidence is kept outside the repository.
+
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
 
 - Pirate voyage and Sakura coast rain uses four frames of existing streak pixels, reflected to lean

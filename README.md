@@ -88,7 +88,7 @@ saves one choice for the whole fleet, also available in settings.
   Sailors also carry reply markers for suggestions linked to their own tasks.
 - **Watch the scene change.** Local time drives day and night. Sails, water, clouds and crew animate;
   Ship's deck grows stormier as the fleet gets busy. Reduced motion keeps the scene calm, and hidden
-  canvases pause.
+  canvases pause. Sky pirates adds a rightward dragon flight through the open sky at peak storm.
   Pirate voyage and Sakura coast rain advances downward in a seamless loop as storms build.
 
 Click the shark, choose a suggestion, and the prompt arrives in Home chat:
