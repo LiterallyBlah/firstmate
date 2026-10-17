@@ -126,7 +126,8 @@ export class AttentionObserver {
     if (event.agent.id === config.mateAgentId.trim()) return "lead";
     // Hooks omit labels. Refresh only the emitting session to include predecessor-owned and hand-started crew.
     const found = await context.paseo.agents.ref(event.agent.id).refresh();
-    return found?.agent?.labels[CREW_LABELS.role] === CREW_LABELS.crewRole ? "crew" : null;
+    if (!found?.agent) throw new Error("Observation could not resolve the emitting session");
+    return found.agent.labels[CREW_LABELS.role] === CREW_LABELS.crewRole ? "crew" : null;
   }
   private hook<Name extends "agent.turn_started" | "agent.permission_requested" | "agent.permission_resolved" | "agent.turn_ended">(
     name: Name, event: PluginLifecycleEvents[Name], context: Context,

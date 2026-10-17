@@ -30,7 +30,7 @@ function harness(enabled = true, append?: (path: string, line: string) => Promis
   let now = 1000;
   const readConfig = vi.fn(async () => config());
   const send = vi.fn(async () => {});
-  const refresh = vi.fn(async () => ({ agent: { labels: { "firstmate.role": "crew" } } }));
+  const refresh = vi.fn<() => Promise<{ agent: { labels: Record<string, string> } } | null>>(async () => ({ agent: { labels: { "firstmate.role": "crew" } } }));
   const refetch = vi.fn(async () => ({ gap: false, reset: false, staleCursor: false, error: null,
     entries: [{ turnId: "turn", item: tool() }] }));
   const paseo = { agents: { ref: () => ({ refresh, send, timeline: { refetch } }) } } as unknown as PaseoApi;
@@ -104,6 +104,15 @@ describe("detached attention observation", () => {
     await h.observer.settled();
     expect(h.events.some(event => event.kind === "worker-ended")).toBe(false);
     expect(attentionReport(h.events).leadTurns[0]).toMatchObject({ durationMs: null, outcome: "failed" });
+  });
+
+  it("records an archive-race lookup miss as a gap instead of silently excluding a possible worker", async () => {
+    const h = harness(); h.refresh.mockResolvedValue(null);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    h.emit("agent.turn_ended", end());
+    h.setTime(2000); h.emit("agent.turn_ended", end("mate"));
+    await h.observer.settled();
+    expect(h.events.find(event => event.kind === "gap")?.reason).toBe("recording-failed");
   });
 
   it("reuses the turn timeline for targeted actions, deduplicates calls and never reads another timeline", async () => {
