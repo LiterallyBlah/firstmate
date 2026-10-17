@@ -1,8 +1,22 @@
 # Sakura coast
 
-The current pack's [parity review](parity/README.md) adds the sea-dragon plank departure,
+The layered turquoise sea now uses 24 registered poses per loop, with the six
+approved originals retained every fourth pose. The 1920 ms water-clock loop,
+scroll speeds, depth and colours are unchanged. See [water](water/README.md).
+
+The storm umibozu now emerges through the scene's own sea. Its existing atlas is
+split into an upper body and a submerged piece covered by the opaque sea backdrop,
+removing the boxed baked-in foam without new art. Both pieces retain their world
+registration and coast drift; see [the coast registration](coast/README.md).
+
+The cast now uses eight distinct looks: kasa, cook, elder, rigger, fisher, padded,
+moss and ochre. The six commissioned sheets share the original indigo lane's
+15 pose rectangles and feet anchors. Unused indigo, russet, plum and teal images
+are retired; see [crew registration](crew-variety/register.mjs).
+
+The earlier [parity review](parity/README.md) added the sea-dragon plank departure,
 masthead lookout, umibozu storm, six-phase day, night sky, chochin, cranes, petals and
-six crew looks. Its captures and verification supersede the historical counts and
+six crew looks. Those captures predate the polish above and supersede the historical counts and
 two-phase-day limitations recorded below.
 
 A Japanese coastal merchant ship rounds a rocky island covered in pink and ivory

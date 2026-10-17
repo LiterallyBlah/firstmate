@@ -70,6 +70,8 @@ The Deck turns live workers into sailors on a pixel-art ship. **Pirate voyage** 
 **Sakura coast**, **Sky pirates** and **Ghost ship** offer other voyages. Pirate voyage and Ghost ship
 use larger crew to match Sakura's crew-to-ship proportions; Sky pirates has a smaller increase.
 Sky pirates has eight crew looks, including an aviator, engineer, navigator, rigger, cook and quartermaster.
+**Sakura coast** sails past a blossom-covered island, with smoother layered water and its storm spirit rising through the scene's own sea.
+Its eight crew looks mix straw hats, an apron, a grey topknot, a ponytail, headcloths and padded shoulders.
 The **Scene** picker in Home and the Deck tab
 saves one choice for the whole fleet, also available in settings.
 
