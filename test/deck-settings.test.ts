@@ -144,6 +144,10 @@ describe.each(packs)("the %s pack", (id) => {
     }
     for (const element of manifest.ambience) if (element.behaviour.kind === "flyby") for (const sprite of Object.values(element.behaviour.poses)) inside(sprite, element.id);
     for (const element of manifest.ambience) if (element.behaviour.kind === "phase-frames") for (const sprite of element.behaviour.frames) inside(sprite, element.id);
+    for (const element of manifest.ambience) if (element.behaviour.kind === "precip") {
+      for (const drop of element.behaviour.drops) inside(drop.sprite, element.id);
+      for (const sprite of element.behaviour.splashes?.frames ?? []) inside(sprite, element.id);
+    }
   });
 
   it("plays every animation's frames at one size, and lays every variant over its element frame for frame", () => {

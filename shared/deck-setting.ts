@@ -53,6 +53,7 @@ export const ENGINE_CAPABILITIES = [
   "backdrop-cycle@1",
   "overlay@1",
   "flash@1",
+  "precip@1",
   "drifters@1",
   "flyby@1",
   "tile@1",
@@ -392,6 +393,27 @@ const Flash = z.strictObject({
   opacity: Opacity.refine((points) => points.every((point) => point[1] <= 0.6), "flash opacity is at most 0.6"),
   perMinute: Curve,
 });
+/** `precip@1`: independent seeded drops across the viewport; ranges are numbers, never expressions. */
+const Range = (min: number, max: number) => z.tuple([z.number().min(min).max(max), z.number().min(min).max(max)])
+  .refine(([low, high]) => low <= high, "a range must increase");
+const Precip = z.strictObject({
+  kind: z.literal("precip"),
+  opacity: Opacity,
+  /** Degrees from downward, positive with rightward wind. */
+  wind: z.strictObject({ angle: z.number().min(-60).max(60), jitter: z.number().min(0).max(10), gust: z.number().min(0).max(15), periodS: z.number().min(4).max(120) })
+    .refine((wind) => Math.abs(wind.angle) + wind.jitter + wind.gust <= 75, "precipitation must fall downward"),
+  /** Kinds blend over fleet intensity. Density is drops per million pane CSS pixels. */
+  kinds: z.array(z.strictObject({
+    id: Id, at: z.number().min(0).max(1), density: z.number().min(0).max(1000),
+    speed: Range(1, 1000), length: Range(1, 128), opacity: Range(0, 1), depth: Range(0.1, 1.5),
+    drops: z.array(Id).min(1).max(32),
+  })).min(1).max(8).refine((kinds) => kinds.every((kind, i) => i === 0 || kind.at > kinds[i - 1]!.at), "precipitation kinds must rise in intensity"),
+  /** The authored angle lets the engine align an already slanted sprite with the wind. */
+  drops: z.array(z.strictObject({ id: Id, sprite: Sprite, angle: z.number().min(-75).max(75),
+    anchor: Point, length: z.number().positive().max(128), depth: z.enum(["far", "mid", "near"]) })).min(1).max(64),
+  /** Splashes appear when a drop crosses an authored stage row, without shortening its fall. */
+  splashes: z.strictObject({ frames: z.array(Sprite).min(1).max(16), frameMs: z.number().min(16).max(250), rows: Range(-4096, 4096), chance: z.number().min(0).max(1), scale: Range(0.2, 2) }).optional(),
+});
 /**
  * `drifters@1`: a seeded field of sprites, one a lane above a backdrop's horizon, drifting right in whole pixels on a
  * clock and wrapped wholly off screen, each in `slots` colours recoloured by the day.
@@ -470,7 +492,7 @@ const AmbienceElement = z.strictObject({
   ...ElementBase,
   slot: z.enum(["back", "front"]),
   order: z.number(),
-  behaviour: z.discriminatedUnion("kind", [BackdropCycle, Overlay, Flash, Drifters, Flyby, Tile, Strip, PhaseStrip, AmbientCycle, PhaseFrames]),
+  behaviour: z.discriminatedUnion("kind", [BackdropCycle, Overlay, Flash, Precip, Drifters, Flyby, Tile, Strip, PhaseStrip, AmbientCycle, PhaseFrames]),
 });
 
 const DayCycle = z.strictObject({
@@ -596,6 +618,8 @@ function ambienceSprites(behaviour: AmbienceBehaviour): Array<z.infer<typeof Spr
       return [{ image: behaviour.image }];
     case "flash":
       return behaviour.frames.map((frame) => frame.sprite);
+    case "precip":
+      return [...behaviour.drops.map((drop) => drop.sprite), ...(behaviour.splashes?.frames ?? [])];
     case "phase-frames":
       return behaviour.frames;
     case "phase-strip":
@@ -670,6 +694,7 @@ export function settingProblems(manifest: SettingManifest): string[] {
   const problems: string[] = [];
   // One emitter keeps the engine's interval cap global. More need a shared scheduler capability first.
   if (manifest.ambience.filter((element) => element.behaviour.kind === "flash").length > 1) problems.push("a setting supports at most one flash element");
+  if (manifest.ambience.filter((element) => element.behaviour.kind === "precip").length > 1) problems.push("a setting supports at most one precip element (1500 particles total)");
   const missing = (what: string, id: string, where: string) => problems.push(`${where} names ${what} "${id}", which the setting does not have`);
   const unique = (what: string, ids: readonly string[]) => {
     const seen = new Set<string>();
@@ -832,6 +857,25 @@ export function settingProblems(manifest: SettingManifest): string[] {
   const elementOf = (id: string) => manifest.ambience.find((element) => element.id === id)?.behaviour;
   for (const element of manifest.ambience) {
     const behaviour = element.behaviour;
+    if (behaviour.kind === "precip") {
+      unique(`${element.id} kinds`, behaviour.kinds.map((kind) => kind.id));
+      unique(`${element.id} drops`, behaviour.drops.map((drop) => drop.id));
+      for (const kind of behaviour.kinds) for (const drop of kind.drops)
+        if (!behaviour.drops.some((entry) => entry.id === drop)) missing("precip drop", drop, `${element.id} ${kind.id}`);
+      for (const kind of behaviour.kinds) for (const depth of ["far", "mid", "near"])
+        if (!behaviour.drops.some((drop) => kind.drops.includes(drop.id) && drop.depth === depth)) problems.push(`${element.id} ${kind.id} needs ${depth} drops`);
+      for (const drop of behaviour.drops) {
+        const size = drop.sprite.rect?.slice(2) ?? manifest.images[drop.sprite.image]?.size;
+        if (size !== undefined && (drop.anchor[0] < 0 || drop.anchor[1] < 0 || drop.anchor[0] >= size[0]! || drop.anchor[1] >= size[1]!)) problems.push(`${element.id} drop anchor leaves its sprite`);
+      }
+      for (const sprite of ambienceSprites(behaviour)) {
+        const image = manifest.images[sprite.image];
+        if (image !== undefined && sprite.rect !== undefined) {
+          const [x, y, w, h] = sprite.rect;
+          if (x < 0 || y < 0 || x + w > image.size[0] || y + h > image.size[1]) problems.push(`${element.id} precip crop leaves its image`);
+        }
+      }
+    }
     if ((behaviour.kind === "overlay" || behaviour.kind === "drifters") && elementOf(behaviour.space)?.kind !== "backdrop-cycle") missing("backdrop", behaviour.space, element.id);
     if (behaviour.kind === "flash" && elementOf(behaviour.under)?.kind !== "drifters") missing("drifting field", behaviour.under, element.id);
     if (behaviour.kind === "overlay") for (const other of behaviour.hiddenBy ?? []) if (elementOf(other)?.kind !== "overlay") missing("overlay", other, element.id);

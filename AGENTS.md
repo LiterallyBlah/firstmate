@@ -63,6 +63,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/deck-ambience.ts`     | A setting's ambience compiled from its pack: which elements are drawn — each left out on its own when its images did not arrive, with what is drawn in it or under it, a fallback only in its source's place (and named for it), a tile with neither filled flat, variants and drifters a sprite at a time — and how each moves on a lite or still deck (`elementMotion`). Pure, per pack. |
 | `client/deck-variants.ts`     | The weather layers' arithmetic: curves over intensity, how an element shares its place with its variants, which frame of a looping set shows. Pure. |
 | `client/deck-flash.ts`        | Moments of weather (`flash@1`, the ship's lightning): seeded flashes at a rate from data, capped; where one stands under a drifter. Pure. |
+| `client/deck-precip.ts`, `client/deck-precip-view.ts` | `precip@1`: seeded individual rain drops across the pane, kind interpolation, gusts and optional splashes; three depth layers and a shared 1,500-particle cap. Lite freezes and caches the field; still hides it. |
 | `client/deck-ambient.ts`      | The motion plan, and when and where a flyby flies (`flybysAt`), as a function of the clock. Pure. |
 | `client/deck-sky.ts`          | The pack's day by the local time (`dayBlend`), a backdrop's place behind the stage (`backdropPlacement`), and a strip's scroll. Pure. |
 | `client/deck-environment.ts`  | The scenery drawn with Pixi: every element of the setting's ambience — backdrop cycles, overlays, flashes, drifters, flybys, tiles, strips, cycles — in its slot in the pack's order, each under its variants; a tile with no art filled flat. |
@@ -552,10 +553,17 @@ native art size; it has no per-effect scale. Flight evidence is kept outside the
 
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
 
-- Pirate voyage and Sakura coast rain uses four frames of existing streak pixels, reflected to lean
-  with the rightward drift, repeating a 32-row field eight rows downward per frame. The wrap from
-  frame 3 to 0 must fall by the same amount; `test/deck-rain.test.ts` guards this and full-pane bands.
-  Rain opacity curves, clocks and viewport tiling remain pack/engine-owned as before.
+- All four shipped scenes use `precip@1` rain, with 36 authored streaks per atlas, registered by their
+  falling tips, visible lengths and baked angles. Kinds blend density, speed, length, opacity and depth
+  ranges over the existing weather intensity. A scene/session seed supplies independent drops, with
+  three depth strata (far/mid/near in a 3:2:1 mix), small angle jitter and gentle gusts. Drops move down
+  along their displayed streak. The field fills the pane, including negative sky rows, on resize and focus.
+  One emitter per pack and one slot per 1,000 pane CSS pixels, capped at 1,500 including optional splashes,
+  bound the work. All three depths draw last in the front slot, over hulls, sails and foreground water.
+  Rain and peak are calibrated against the old tiles; drizzle keeps a sparse population. Lite holds
+  a seeded field cached as a texture; still/reduced motion draws no rain.
+  Legacy tile/strip weather stays supported, and the frozen 81-shot fixture is unchanged. See
+  `docs/deck-rain-particles/README.md`; `test/deck-rain.test.ts` checks the shipped art and thresholds.
 
 - **State and movement are separate.** The scene says what each sailor is doing (`DeckSailor` has no
   position). `applyCrew` sets the new state at once, so the mark under the feet and the legend change on

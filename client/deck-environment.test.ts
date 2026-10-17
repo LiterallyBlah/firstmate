@@ -34,6 +34,7 @@ import { shipCast, shipElement, shipManifest, shipStage, shipViews, shipWater } 
 import { standing } from "./deck-cast";
 import { compileStage, type DeckStage } from "./deck-stage";
 import { phaseStripFixture } from "../test/phase-strip-fixture";
+import { precipManifest } from "../test/precip-fixture";
 
 // The ship's cast, under the names its constants had in the deck's code.
 const BREATH_ROWS = shipCast().breath!.rows;
@@ -74,6 +75,10 @@ class FakePoint {
   }
 }
 class FakeContainer {
+  cacheChanges: unknown[] = [];
+  cacheUpdates = 0;
+  cacheAsTexture(options: unknown): void { this.cacheChanges.push(options); }
+  updateCacheTexture(): void { this.cacheUpdates++; }
   label = "";
   position = new FakePoint();
   scale = new FakePoint(1, 1);
@@ -217,6 +222,8 @@ const elementImages = (id: string) =>
           return [behaviour.image];
         case "flash":
           return behaviour.frames.map((frame) => frame.sprite.image);
+        case "precip":
+          return [...behaviour.drops.map((drop) => drop.sprite.image), ...(behaviour.splashes?.frames.map((frame) => frame.image) ?? [])];
         case "phase-frames":
           return behaviour.frames.map((frame) => frame.image);
         case "phase-strip":
@@ -523,6 +530,50 @@ describe("viewport weather coverage, independent of setting names", () => {
     missing.scenery.layout({ left: -20, right: 50, top: -100, bottom: 100 });
     expect((one(missing.front, "weather:front") as FakeGraphics).shapes[0]!.slice(0, 5)).toEqual(["rect", -28, -100, 86, 208]);
     missing.scenery.destroy();
+  });
+});
+
+describe("precipitation in the scenery renderer", () => {
+  it("pools three depths, freezes and caches lite, resizes and releases its atlas textures", () => {
+    const manifest = precipManifest();
+    manifest.ambience = [manifest.ambience.at(-1)!];
+    const scenery = createScenery(pixi, shipStage(), {
+      ambience: compileAmbience(manifest, () => true), atmosphere: compileAtmosphere(manifest), masks: new Map(), images: new Map([["rain-test", { image: "test-rain" }]]),
+    }, 42);
+    const front = scenery.front as unknown as FakeContainer;
+    const rain = one(front, "test-rain");
+    const full = { level: "full", animate: true, fps: 30, ambient: true } as const;
+    const weather = { clocks: {}, channels: {}, intensity: 1 };
+    const visible = { left: -200, right: 800, top: -300, bottom: 300 };
+    scenery.layout(visible, { width: 3840, height: 2160 });
+    scenery.draw(0, full, 720, weather);
+    expect(rain.children.map((layer) => layer.children.length)).toEqual([750, 500, 250]);
+    const drop = one(rain, "test-rain:drop:0") as FakeSprite;
+    const texture = drop.texture;
+    const first = { ...drop.position };
+    scenery.draw(0.033, full, 720, weather);
+    expect(drop.position.y).toBeGreaterThan(first.y);
+    const lite = { ...full, level: "lite" } as const;
+    scenery.draw(2, lite, 720, weather);
+    const held = { ...drop.position };
+    for (let i = 0; i < 30; i++) scenery.draw(3 + i, lite, 720, weather);
+    expect({ ...drop.position }).toEqual(held);
+    expect(rain.cacheChanges).toEqual([{ resolution: 1, antialias: false, scaleMode: "nearest" }]);
+    expect(rain.cacheUpdates).toBe(0);
+    scenery.draw(34, lite, 720, { ...weather, intensity: .75 });
+    expect(rain.alpha).toBeLessThan(1);
+    expect({ ...drop.position }).toEqual(held);
+    expect(rain.cacheUpdates).toBe(0);
+    scenery.layout(visible, { width: 640, height: 480 });
+    scenery.draw(40, lite, 720, weather);
+    expect(rain.children.reduce((sum, layer) => sum + layer.children.length, 0)).toBe(308);
+    expect(rain.cacheUpdates).toBe(1);
+    scenery.draw(41, { ...full, level: "still" }, 720, { ...weather, intensity: null });
+    expect(rain.visible).toBe(false);
+    expect(rain.cacheChanges.at(-1)).toBe(false);
+    scenery.destroy();
+    expect(texture.destroyed).toBe(true);
+    expect(texture.source.destroyed).toBe(true);
   });
 });
 

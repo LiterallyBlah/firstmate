@@ -16,6 +16,7 @@
     "day-cycle@1",
     "drifters@1",
     "flash@1",
+    "precip@1",
     "flicker@1",
     "floor@1",
     "flyby@1",
@@ -684,46 +685,6 @@
       ],
       "sha256": "4c71b3e181b491e2a321bad23ae6a6de8e1dc638fe928f38f5e7ef8d4c15c8a2"
     },
-    "rain-clear": {
-      "path": "rain-clear.png",
-      "size": [
-        96,
-        64
-      ],
-      "sha256": "550a7e24934a43814a398ee72c84f6b30320667c1231967f57cbeb5eb2341798"
-    },
-    "rain-0": {
-      "path": "rain-0.png",
-      "size": [
-        96,
-        64
-      ],
-      "sha256": "22b78b44e56acfb3126565eb195d25e589ff49581eb1740e7df32756b0f72820"
-    },
-    "rain-1": {
-      "path": "rain-1.png",
-      "size": [
-        96,
-        64
-      ],
-      "sha256": "37bf5c2f16411d87d0694d476237b351b3287ccceb4399cfdf5f566e1f5b2f47"
-    },
-    "rain-2": {
-      "path": "rain-2.png",
-      "size": [
-        96,
-        64
-      ],
-      "sha256": "e702f4124a198b13a28a6980bbe205d8f5d187b8483d68dfebb4be3a5078f0d3"
-    },
-    "rain-3": {
-      "path": "rain-3.png",
-      "size": [
-        96,
-        64
-      ],
-      "sha256": "c60347ff9f99655172a9b45fac4b09c580b9f934aa08227c8554c62366deffca"
-    },
     "preview": {
       "path": "preview.png",
       "size": [
@@ -1075,6 +1036,14 @@
         44
       ],
       "sha256": "a68e37e4f5e439cd240392ee17a82518b4e403088cb1e77571db5ad88f1f1875"
+    },
+    "rain-drops": {
+      "path": "rain-drops.png",
+      "size": [
+        256,
+        360
+      ],
+      "sha256": "f9261017ca0f17be6eb164f3127b0df30e3a43d345e8ef924e54f55c1bdff0af"
     }
   },
   "preview": "preview",
@@ -4107,68 +4076,818 @@
       "lite": "freeze",
       "still": "hide",
       "behaviour": {
-        "kind": "tile",
-        "frames": {
-          "sprites": [
-            {
-              "image": "rain-0"
-            },
-            {
-              "image": "rain-1"
-            },
-            {
-              "image": "rain-2"
-            },
-            {
-              "image": "rain-3"
-            }
+        "kind": "precip",
+        "opacity": [
+          [
+            0.6,
+            0
           ],
-          "frameMs": 90,
-          "clock": "wind"
+          [
+            0.8,
+            0.75
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "wind": {
+          "angle": 37.5,
+          "jitter": 1.2,
+          "gust": 3,
+          "periodS": 11
         },
-        "drift": {
-          "pxPerSecond": 8,
-          "clock": "wind"
-        },
-        "origin": 0,
-        "bands": [
+        "kinds": [
           {
-            "slot": "front",
-            "fromRow": 0
+            "id": "drizzle",
+            "at": 0.6666666666666666,
+            "density": 45,
+            "speed": [
+              143,
+              210
+            ],
+            "length": [
+              10,
+              14
+            ],
+            "opacity": [
+              0.55,
+              0.8
+            ],
+            "depth": [
+              0.45,
+              1.15
+            ],
+            "drops": [
+              "drizzle-far-1",
+              "drizzle-far-2",
+              "drizzle-far-3",
+              "drizzle-far-4",
+              "drizzle-mid-1",
+              "drizzle-mid-2",
+              "drizzle-mid-3",
+              "drizzle-mid-4",
+              "drizzle-near-1",
+              "drizzle-near-2",
+              "drizzle-near-3",
+              "drizzle-near-4"
+            ]
+          },
+          {
+            "id": "rain",
+            "at": 0.8333333333333334,
+            "density": 850,
+            "speed": [
+              171,
+              252
+            ],
+            "length": [
+              18,
+              24
+            ],
+            "opacity": [
+              0.85,
+              1
+            ],
+            "depth": [
+              0.45,
+              1.15
+            ],
+            "drops": [
+              "rain-far-1",
+              "rain-far-2",
+              "rain-far-3",
+              "rain-far-4",
+              "rain-mid-1",
+              "rain-mid-2",
+              "rain-mid-3",
+              "rain-mid-4",
+              "rain-near-1",
+              "rain-near-2",
+              "rain-near-3",
+              "rain-near-4"
+            ]
+          },
+          {
+            "id": "downpour",
+            "at": 1,
+            "density": 1000,
+            "speed": [
+              190,
+              280
+            ],
+            "length": [
+              27,
+              36
+            ],
+            "opacity": [
+              0.9,
+              1
+            ],
+            "depth": [
+              0.45,
+              1.15
+            ],
+            "drops": [
+              "downpour-far-1",
+              "downpour-far-2",
+              "downpour-far-3",
+              "downpour-far-4",
+              "downpour-mid-1",
+              "downpour-mid-2",
+              "downpour-mid-3",
+              "downpour-mid-4",
+              "downpour-near-1",
+              "downpour-near-2",
+              "downpour-near-3",
+              "downpour-near-4"
+            ]
           }
         ],
-        "variants": [
+        "drops": [
           {
-            "id": "clear-weather",
-            "frames": [
-              {
-                "image": "rain-clear"
-              },
-              {
-                "image": "rain-clear"
-              },
-              {
-                "image": "rain-clear"
-              },
-              {
-                "image": "rain-clear"
-              }
-            ],
-            "blend": "crossfade",
-            "opacity": [
-              [
+            "id": "drizzle-far-1",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
                 0,
-                1
-              ],
-              [
-                0.6,
-                1
-              ],
-              [
-                1,
-                0.5
+                0,
+                64,
+                40
               ]
-            ]
+            },
+            "angle": 34,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 4,
+            "depth": "far"
+          },
+          {
+            "id": "drizzle-far-2",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                64,
+                0,
+                64,
+                40
+              ]
+            },
+            "angle": 38,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 5,
+            "depth": "far"
+          },
+          {
+            "id": "drizzle-far-3",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                128,
+                0,
+                64,
+                40
+              ]
+            },
+            "angle": 42,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 6,
+            "depth": "far"
+          },
+          {
+            "id": "drizzle-far-4",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                192,
+                0,
+                64,
+                40
+              ]
+            },
+            "angle": 36,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 5,
+            "depth": "far"
+          },
+          {
+            "id": "drizzle-mid-1",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                0,
+                40,
+                64,
+                40
+              ]
+            },
+            "angle": 34,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 7,
+            "depth": "mid"
+          },
+          {
+            "id": "drizzle-mid-2",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                64,
+                40,
+                64,
+                40
+              ]
+            },
+            "angle": 38,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 8,
+            "depth": "mid"
+          },
+          {
+            "id": "drizzle-mid-3",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                128,
+                40,
+                64,
+                40
+              ]
+            },
+            "angle": 42,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 9,
+            "depth": "mid"
+          },
+          {
+            "id": "drizzle-mid-4",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                192,
+                40,
+                64,
+                40
+              ]
+            },
+            "angle": 36,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 8,
+            "depth": "mid"
+          },
+          {
+            "id": "drizzle-near-1",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                0,
+                80,
+                64,
+                40
+              ]
+            },
+            "angle": 34,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 10,
+            "depth": "near"
+          },
+          {
+            "id": "drizzle-near-2",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                64,
+                80,
+                64,
+                40
+              ]
+            },
+            "angle": 38,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 12,
+            "depth": "near"
+          },
+          {
+            "id": "drizzle-near-3",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                128,
+                80,
+                64,
+                40
+              ]
+            },
+            "angle": 42,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 14,
+            "depth": "near"
+          },
+          {
+            "id": "drizzle-near-4",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                192,
+                80,
+                64,
+                40
+              ]
+            },
+            "angle": 36,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 11,
+            "depth": "near"
+          },
+          {
+            "id": "rain-far-1",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                0,
+                120,
+                64,
+                40
+              ]
+            },
+            "angle": 34,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 7,
+            "depth": "far"
+          },
+          {
+            "id": "rain-far-2",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                64,
+                120,
+                64,
+                40
+              ]
+            },
+            "angle": 38,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 8,
+            "depth": "far"
+          },
+          {
+            "id": "rain-far-3",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                128,
+                120,
+                64,
+                40
+              ]
+            },
+            "angle": 42,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 10,
+            "depth": "far"
+          },
+          {
+            "id": "rain-far-4",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                192,
+                120,
+                64,
+                40
+              ]
+            },
+            "angle": 36,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 9,
+            "depth": "far"
+          },
+          {
+            "id": "rain-mid-1",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                0,
+                160,
+                64,
+                40
+              ]
+            },
+            "angle": 34,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 12,
+            "depth": "mid"
+          },
+          {
+            "id": "rain-mid-2",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                64,
+                160,
+                64,
+                40
+              ]
+            },
+            "angle": 38,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 14,
+            "depth": "mid"
+          },
+          {
+            "id": "rain-mid-3",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                128,
+                160,
+                64,
+                40
+              ]
+            },
+            "angle": 42,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 16,
+            "depth": "mid"
+          },
+          {
+            "id": "rain-mid-4",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                192,
+                160,
+                64,
+                40
+              ]
+            },
+            "angle": 36,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 13,
+            "depth": "mid"
+          },
+          {
+            "id": "rain-near-1",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                0,
+                200,
+                64,
+                40
+              ]
+            },
+            "angle": 34,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 18,
+            "depth": "near"
+          },
+          {
+            "id": "rain-near-2",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                64,
+                200,
+                64,
+                40
+              ]
+            },
+            "angle": 38,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 21,
+            "depth": "near"
+          },
+          {
+            "id": "rain-near-3",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                128,
+                200,
+                64,
+                40
+              ]
+            },
+            "angle": 42,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 24,
+            "depth": "near"
+          },
+          {
+            "id": "rain-near-4",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                192,
+                200,
+                64,
+                40
+              ]
+            },
+            "angle": 36,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 20,
+            "depth": "near"
+          },
+          {
+            "id": "downpour-far-1",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                0,
+                240,
+                64,
+                40
+              ]
+            },
+            "angle": 34,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 10,
+            "depth": "far"
+          },
+          {
+            "id": "downpour-far-2",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                64,
+                240,
+                64,
+                40
+              ]
+            },
+            "angle": 38,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 12,
+            "depth": "far"
+          },
+          {
+            "id": "downpour-far-3",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                128,
+                240,
+                64,
+                40
+              ]
+            },
+            "angle": 42,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 14,
+            "depth": "far"
+          },
+          {
+            "id": "downpour-far-4",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                192,
+                240,
+                64,
+                40
+              ]
+            },
+            "angle": 36,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 11,
+            "depth": "far"
+          },
+          {
+            "id": "downpour-mid-1",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                0,
+                280,
+                64,
+                40
+              ]
+            },
+            "angle": 34,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 18,
+            "depth": "mid"
+          },
+          {
+            "id": "downpour-mid-2",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                64,
+                280,
+                64,
+                40
+              ]
+            },
+            "angle": 38,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 21,
+            "depth": "mid"
+          },
+          {
+            "id": "downpour-mid-3",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                128,
+                280,
+                64,
+                40
+              ]
+            },
+            "angle": 42,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 24,
+            "depth": "mid"
+          },
+          {
+            "id": "downpour-mid-4",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                192,
+                280,
+                64,
+                40
+              ]
+            },
+            "angle": 36,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 20,
+            "depth": "mid"
+          },
+          {
+            "id": "downpour-near-1",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                0,
+                320,
+                64,
+                40
+              ]
+            },
+            "angle": 34,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 28,
+            "depth": "near"
+          },
+          {
+            "id": "downpour-near-2",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                64,
+                320,
+                64,
+                40
+              ]
+            },
+            "angle": 38,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 32,
+            "depth": "near"
+          },
+          {
+            "id": "downpour-near-3",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                128,
+                320,
+                64,
+                40
+              ]
+            },
+            "angle": 42,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 36,
+            "depth": "near"
+          },
+          {
+            "id": "downpour-near-4",
+            "sprite": {
+              "image": "rain-drops",
+              "rect": [
+                192,
+                320,
+                64,
+                40
+              ]
+            },
+            "angle": 36,
+            "anchor": [
+              32,
+              36
+            ],
+            "length": 30,
+            "depth": "near"
           }
         ]
       }

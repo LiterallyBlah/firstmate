@@ -102,6 +102,8 @@ export interface PixiContainer {
   tint: number;
   blendMode?: string;
   filters?: unknown[];
+  cacheAsTexture?(options: boolean | { resolution: number; antialias: boolean; scaleMode: "nearest" }): void;
+  updateCacheTexture?(): void;
   addChild(...children: PixiContainer[]): unknown;
   removeChild(...children: PixiContainer[]): unknown;
   destroy(options?: { children?: boolean }): void;
@@ -992,7 +994,7 @@ export async function startDeck(
     drawnFit = { scale, x, y };
     if (scale <= 0) return;
     const visible = visibleWorld(drawnFit, app.screen);
-    if (layoutChanged) scenery.layout(visible);
+    if (layoutChanged) scenery.layout(visible, app.screen);
     if (parts.motion?.rock !== undefined) {
       // The veil rides the stage too; inverse viewport corners ensure its rotated rectangle still covers the screen.
       const corners = [visible.left, visible.right].flatMap(x => [visible.top, visible.bottom].map(y => worldToStage({ x, y }, drawnBob)));

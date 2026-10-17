@@ -50,6 +50,34 @@ and gap. Recheck the floor margins, crowded posts, climb, hatch, plank/eater, re
 shape. Integer factors preserve an even source-pixel grid; fractional factors retain nearest sampling and
 share the pane's existing fractional fit, so device pixel widths can alternate without interpolation blur.
 
+## Particle rain (`precip@1`)
+
+An ambience element with `behaviour.kind: "precip"` draws independent rain across the complete pane.
+Add `precip@1` to `requires`. One emitter is allowed per pack, with an engine cap of 1,500 particles
+including splashes and one slot per 1,000 CSS pixels on smaller panes. This capability does not implement snow.
+
+- `opacity` is the existing intensity/opacity curve. Keep its first zero point at the intended onset.
+- `wind` has a central `angle` in degrees from downward (positive right), `jitter`, `gust`, and
+  `periodS`. The engine preserves each sprite's angular deviation from the atlas mean, applies
+  the wind/gust delta and aligns travel to the displayed angle. Angles remain within 75° of downward.
+- `kinds` are ordered by increasing `at` intensity. Each has `id`, `density` (drops per million
+  pane CSS pixels, at most 1,000), `speed` (stage pixels/second), `length` (visible stage pixels), `opacity`,
+  `depth` (speed/length multiplier range), and `drops` (sprite ids). Ranges contain two numbers.
+  Numeric fields blend between adjacent kinds; each kind must have far, mid and near art.
+- `drops` declare `id`, `sprite`, baked `angle`, `anchor` (falling tip inside the rectangle), visible
+  `length`, and `depth` (`far`, `mid`, `near`). Transparent padding does not count toward length.
+  Textures use nearest sampling. The engine draws far/mid/near in a 3:2:1 mix with independent seeds.
+  All depths inherit the element's slot and order. Use the last `front` order to keep near streaks
+  in front of hulls, sails, water, mist and other scenery. Check both wide and tall peak storms against
+  the old rain; multiplying low atlas alpha, kind opacity and weather opacity can make storms disappear.
+- Optional `splashes` declare `frames`, `frameMs`, `rows` (stage y range), `chance`, and `scale`
+  range. A drop crossing its sampled row can start one finite splash; it continues falling.
+  Splashes reserve at most a tenth of the same particle budget, and are absent in lite/still.
+
+Use `lite: "freeze"` and `still: "hide"` for the shipped rain policy. Reduced motion passes null
+intensity and always suppresses precipitation. See `docs/deck-rain-particles/README.md` for review
+and performance reproduction. The old `tile@1` and `strip@1` weather behaviours remain available.
+
 ## Build and check
 
 1. Commission new art separately. Agree the stage dimensions, actor scale, feet anchors, floor polygons,
