@@ -263,6 +263,11 @@ reload. It follows the configured fork/source, and reports unavailable when it c
 
 ## Development
 
+Optional record recall is supplied as `tools/recall.mjs` for approved slice 1 testing. It catalogs
+existing home records and dated backlog history, with adoption pending a separate frozen-probe
+trial. Home preparation supplies the helper and guide without running it or creating snapshots.
+[Recall scope, privacy and validation](docs/recall-slice1.md).
+
 Attention timing can be observed without changing notifications or using a model. Set the daemon
 environment setting `FIRSTMATE_ATTENTION_OBSERVE=1` when starting the plugin (off by default).
 It appends metadata to the configured home's `data/metrics/attention.jsonl` for 14 days from that
