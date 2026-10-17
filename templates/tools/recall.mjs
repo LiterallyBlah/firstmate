@@ -105,7 +105,7 @@ async function collect() {
     if (source) for (const unit of units(source.text, "entries")) add(source, unit, kind);
   }
   for (const entry of await entries("data")) {
-    if (!entry.isFile() || excludedFile.test(entry.name) || !/^(?:status|handoff|handover)(?:[-.]|$).*\.md$/.test(entry.name)) continue;
+    if (!entry.isFile() || excludedFile.test(entry.name) || !/^(?:status|handoff|handover)(?:[-.].*)?\.md$/.test(entry.name)) continue;
     const source = await file(`data/${entry.name}`);
     for (const unit of units(source.text, "sections")) add(source, unit, "handoff");
   }
@@ -150,7 +150,7 @@ async function records() {
     for (const entry of await entries(`data/${dir.name}`)) {
       if (!entry.isFile() || entry.name.startsWith(".") || !entry.name.endsWith(".md") || excludedFile.test(entry.name)) continue;
       const source = await file(`data/${dir.name}/${entry.name}`);
-      const kind = dir.name === "handoffs" || /^(?:status|handoff)(?:[-.]|$)/.test(entry.name) ? "handoff"
+      const kind = dir.name === "handoffs" || /^(?:status|handoff|handover)(?:[-.]|$)/.test(entry.name) ? "handoff"
         : /^brief(?:[-.]|$)/.test(entry.name) ? "brief" : /^report(?:[-.]|$)/.test(entry.name) ? "report" : "task-doc";
       const task = dir.name === "handoffs" ? null : dir.name;
       const explicitProject = fields(source.text).project ?? null, inferred = task ? taskProjects.get(task) : null;

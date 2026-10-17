@@ -27,8 +27,8 @@ Sources are heading sections of Markdown directly in `data/<task>/`, dated entri
 `data/learnings.md`, entries of `data/captain.md`, handoff/status-report sections, item-thread
 messages paired with their separate reply files, and item lines from existing dated backlog
 snapshots. Thread delivery is recorded evidence, not proof that a message was answered.
-Handoff/status sections include root `data/status-*.md`, `handoff-*.md` and `handover-*.md`
-records; other root documents are excluded. Dated headings and top-level bullet entries are
+Handoff/status sections include root `data/status.md`, `status-*.md`, `handoff.md`, `handoff-*.md`,
+`handover.md` and `handover-*.md` records; other root documents are excluded. Dated headings and top-level bullet entries are
 separate learning/policy units, with continuation lines kept in the entry.
 Task and project metadata come from task directories, thread keys, explicit `(project: ...)`
 fields and dated backlog lines. Unknown metadata stays null.

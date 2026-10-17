@@ -83,10 +83,11 @@ describe("optional record recall", () => {
     await put("data/handoffs/old.md", "# mastword handoff\nQuoted conversation excerpt\n");
     await put("data/task/status-report.md", "# mastword status\nWas ready at that time.\n");
     await put("data/handover-2026-10-17.md", "# Historical mastword handover\nAn excerpt.\n");
+    await put("data/status.md", "# Historical mastword status\nA root status report.\n");
     await rebuild(); const rows = await catalog();
     expect(rows.filter(r => r.kind === "policy")).toHaveLength(2);
     expect(rows.filter(r => r.kind === "learning")).toHaveLength(3);
-    expect(rows.filter(r => r.kind === "handoff")).toHaveLength(3);
+    expect(rows.filter(r => r.kind === "handoff")).toHaveLength(4);
     expect(rows.find(r => r.path === "data/handoffs/old.md")).toMatchObject({ task: null, project: null, date: stamp, dateBasis: "source-mtime" });
     const result = await find("mastword");
     expect(result.notice).toContain("grants no authority");
