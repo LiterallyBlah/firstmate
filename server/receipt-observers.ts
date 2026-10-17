@@ -2,9 +2,9 @@
  * What the receipt journal sees rather than does: the first mate's own Paseo tool calls in each turn it ends,
  * a crewmate of the first mate ending a turn — whose finish note Paseo may or may not have sent, and which the
  * plugin can never read — and, on request, a page of a timeline through the SDK cursor. Nothing here sends,
- * steers or writes anything but receipts, and all of it is idle while the journal is off.
+ * steers or writes anything but receipts. The optional detached attention callback has its own opt-in.
  */
-import type { PluginLifecycleRegistration } from "@getpaseo/plugin/server";
+import type { PluginLifecycleEvents, PluginHookContext, PluginLifecycleRegistration } from "@getpaseo/plugin/server";
 import type { z } from "zod";
 
 import { CREW_LABELS, type FirstmateConfig } from "../shared/fleet";
@@ -15,17 +15,22 @@ import { canonical } from "./submissions";
 
 /** Paseo's agent tools whose calls change the crew, the schedules or a permission: the first mate's actions. */
 const MATE_ACTION = /(?:^|__|[.:/])(create_agent|send_agent_prompt|archive_agent|cancel_agent|kill_agent|update_agent|set_agent_mode|respond_to_permission|create_workspace|archive_workspace|create_heartbeat|delete_heartbeat|create_schedule|update_schedule|delete_schedule|pause_schedule|resume_schedule|run_schedule_once)$/;
+export const isMateAction = (name: string) => MATE_ACTION.test(name);
 
 export function mateActions(timeline: readonly TimelineItem[]): Array<{ callId: string; name: string; status: string; detailSha256: string }> {
   return timeline.flatMap((item) =>
-    item.type === "tool_call" && MATE_ACTION.test(item.name)
+    item.type === "tool_call" && isMateAction(item.name)
       ? [{ callId: item.callId, name: item.name, status: item.status, detailSha256: sha256(canonical(item.detail ?? null)) }]
       : [],
   ).slice(0, 500);
 }
 
-export function registerReceiptObservers(server: PluginLifecycleRegistration, readConfig: () => Promise<FirstmateConfig>): () => void {
-  return server.on("agent.turn_ended", async (event) => {
+export function registerReceiptObservers(server: PluginLifecycleRegistration, readConfig: () => Promise<FirstmateConfig>,
+  observe?: (event: PluginLifecycleEvents["agent.turn_ended"], context: PluginHookContext) => void,
+): () => void {
+  return server.on("agent.turn_ended", async (event, context) => {
+    // The optional metadata observer queues work and returns; receipt/delivery semantics stay unchanged.
+    try { observe?.(event, context); } catch { console.error("[firstmate] attention observer could not queue a turn"); }
     const journal = receiptJournal();
     if (journal === null) return;
     try {

@@ -29,6 +29,7 @@
     "registry": "https://registry.npmjs.org"
   },
   "scripts": {
+    "report:attention": "node --experimental-strip-types server/attention-report.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "lint:deck-packs": "vitest run shared/deck-setting.test.ts test/deck-settings.test.ts test/office-draft.test.ts"
