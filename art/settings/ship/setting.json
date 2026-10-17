@@ -1121,7 +1121,7 @@
         96,
         64
       ],
-      "sha256": "5e00ba56d634e9361b3a2ce77d24ec34b86ec3e8de5ca92f57fbddd03d436911"
+      "sha256": "22b78b44e56acfb3126565eb195d25e589ff49581eb1740e7df32756b0f72820"
     },
     "rain-1": {
       "path": "rain-1.png",
@@ -1129,7 +1129,7 @@
         96,
         64
       ],
-      "sha256": "86b8ee47e1a1eb5bc622ac41b0cd010a81ef6fd07885733bb66e480f23159b39"
+      "sha256": "37bf5c2f16411d87d0694d476237b351b3287ccceb4399cfdf5f566e1f5b2f47"
     },
     "rain-2": {
       "path": "rain-2.png",
@@ -1137,7 +1137,7 @@
         96,
         64
       ],
-      "sha256": "6d2e2bb7244e5a966f08f68bab5df0bff89867a35c3f421ad88a5d8a06e0ba9f"
+      "sha256": "e702f4124a198b13a28a6980bbe205d8f5d187b8483d68dfebb4be3a5078f0d3"
     },
     "rain-3": {
       "path": "rain-3.png",
@@ -1145,7 +1145,7 @@
         96,
         64
       ],
-      "sha256": "be75c06a3e5eacc9dfdc0c165979cd4c09354283bd23ee4efd54d9c0ef52d345"
+      "sha256": "c60347ff9f99655172a9b45fac4b09c580b9f934aa08227c8554c62366deffca"
     },
     "sea-depth-dawn": {
       "path": "sea-depth-dawn.png",

@@ -331,7 +331,7 @@
         96,
         64
       ],
-      "sha256": "09add1b8ccbeccd04f2dde319309a44b05b11d4f8b6553ee95a608c7acce0035"
+      "sha256": "ec69a63aa8a13be62e507831d2e88929c7d005e25f2bfc6b74403d72445570a1"
     },
     "rain-1": {
       "path": "rain-1.png",
@@ -339,7 +339,7 @@
         96,
         64
       ],
-      "sha256": "b2c821e18462df6ba1ea323a327c22bed3228b0b67a1e3d654f4a833be1c43e1"
+      "sha256": "0b4b1172e5c96daf8cc6f776017b947ecc972bc37678eb3efe705f7c30f5d5a2"
     },
     "clear-weather": {
       "path": "clear-weather.png",
@@ -548,6 +548,22 @@
         1280
       ],
       "sha256": "894559be38a3e33cb48c0abc8de23889d82bd4d38451483f647cb1abadeb037d"
+    },
+    "rain-2": {
+      "path": "rain-2.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "61c07506976cbd505953231f32822712ae77fcf3e90bc500cf658dceed817f6b"
+    },
+    "rain-3": {
+      "path": "rain-3.png",
+      "size": [
+        96,
+        64
+      ],
+      "sha256": "716ecf3cb75f3080372da1a92543b6d5a9ac6ed4bebe02dcdcbb8aafc1bf4d11"
     }
   },
   "preview": "preview",
@@ -4108,9 +4124,15 @@
             },
             {
               "image": "clear-weather"
+            },
+            {
+              "image": "clear-weather"
+            },
+            {
+              "image": "clear-weather"
             }
           ],
-          "frameMs": 180,
+          "frameMs": 90,
           "clock": "wind"
         },
         "drift": {
@@ -4133,6 +4155,12 @@
               },
               {
                 "image": "rain-1"
+              },
+              {
+                "image": "rain-2"
+              },
+              {
+                "image": "rain-3"
               }
             ],
             "blend": "over",

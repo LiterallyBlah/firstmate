@@ -516,6 +516,11 @@ Office was withdrawn after visual review; its files are retained at
 
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
 
+- Pirate voyage and Sakura coast rain uses four frames of existing streak pixels, reflected to lean
+  with the rightward drift, repeating a 32-row field eight rows downward per frame. The wrap from
+  frame 3 to 0 must fall by the same amount; `test/deck-rain.test.ts` guards this and full-pane bands.
+  Rain opacity curves, clocks and viewport tiling remain pack/engine-owned as before.
+
 - **State and movement are separate.** The scene says what each sailor is doing (`DeckSailor` has no
   position). `applyCrew` sets the new state at once, so the mark under the feet and the legend change on
   the poll; the sprite then walks to the state's anchor at 32 px a second, re-planning from wherever it
