@@ -147,6 +147,7 @@ export function CrewCard({
   replies = null,
   onConverse = null,
   conversing = false,
+  onSteer,
 }: {
   card: FleetCard;
   theme: PluginTheme;
@@ -168,6 +169,8 @@ export function CrewCard({
   onConverse?: (() => void) | null;
   /** This card's conversation is the one open in the drawer: its 💬 is lit. */
   conversing?: boolean;
+  /** Deck opens its conversation composer; other surfaces keep their inline steer. */
+  onSteer?: () => void;
 }) {
   const steer = useRpc(steerCrew);
   const interrupt = useRpc(interruptCrew);
@@ -602,7 +605,7 @@ export function CrewCard({
                 showLabel
                 theme={theme}
                 disabled={busy || !remote.online}
-                onPress={() => setDraft({ kind: "steer", text: "" })}
+                onPress={onSteer ?? (() => setDraft({ kind: "steer", text: "" }))}
               />
             )}
             <IconButton
@@ -692,7 +695,7 @@ export function CrewCard({
               showLabel
               theme={theme}
               disabled={busy}
-              onPress={() => setDraft({ kind: "steer", text: "" })}
+              onPress={onSteer ?? (() => setDraft({ kind: "steer", text: "" }))}
             />
           )}
           <IconButton

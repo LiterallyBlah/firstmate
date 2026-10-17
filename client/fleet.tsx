@@ -65,7 +65,7 @@ import { TaskList } from "./task-list";
 import { TaskToolbar } from "./task-toolbar";
 import { matchesTags, tagScopeCards } from "../shared/item-tags";
 import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
-import { focusWebElement } from "./web";
+import { focusWebElement, webAttributes } from "./web";
 import { HubLauncher } from "./hub-launcher";
 import { chatIsVisible, FLEET_PANELS, homeWorkspace, type FleetShell, type FleetView } from "./shell";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
@@ -165,7 +165,7 @@ function FleetViewBody({
   const pane: RightPane = rightPane;
   /** The drawer sits beside the list or board, rather than over it, on a wide pane with room for both. */
   const onDeck = view === "deck" || (home && (compact ? shownTab : pane) === "deck");
-  const docked = !onDeck && !compact && drawerDocks(paneWidth);
+  const docked = !compact && drawerDocks(paneWidth);
 
   useEffect(() => {
     if (!home || display.status !== "ready") return;
@@ -816,7 +816,7 @@ function FleetViewBody({
   // The list or board stays mounted under a drawer that covers it, so closing the drawer finds it scrolled where it was.
   const conversation =
     watching === null || watchedTarget === null ? null : (
-      <View style={docked ? { width: DRAWER_WIDTH, flexShrink: 0 } : { flex: 1, minWidth: 0 }}>
+      <View style={docked ? { width: DRAWER_WIDTH, flexShrink: 0 } : onDeck ? { position: "absolute", inset: 0, zIndex: 2, backgroundColor: theme.colors.surface0 } : { flex: 1, minWidth: 0 }}>
         <ConverseDrawer
           key={watching}
           watchKey={watching}
@@ -832,6 +832,7 @@ function FleetViewBody({
               : () => navigation.openAgent({ agentId: watchedLocalId })
           }
           onChanged={refresh}
+          serverId={host?.id}
         />
       </View>
     );
@@ -844,6 +845,7 @@ function FleetViewBody({
 
   const deckScene = (
     <SelectedDeckView
+      conversationOpen={watching !== null}
       captionActions={home ? <DeckSceneSwitcher theme={theme} compact={compact || paneWidth < 638} /> : null}
       setting={values.deckSetting}
       cards={data.cards}
@@ -869,7 +871,8 @@ function FleetViewBody({
           presentation="focus"
           onClose={close}
           replies={replies}
-          // Converse replaces the scene until the drawer closes.
+          // Both actions open the same worker composer, keeping this scene mounted.
+          onSteer={() => setWatching(converseKey(card))}
           opener={watchOpener(card, (key) => {
             setWatching(key);
           })}
@@ -878,7 +881,18 @@ function FleetViewBody({
       )}
     />
   );
-  const inlineDeck = watching !== null ? conversation : deckScene;
+  const inlineDeck = (
+    <View style={{ flex: 1, minHeight: 0, flexDirection: "row" }}>
+      <View
+        aria-hidden={covered}
+        // A covered canvas keeps its dimensions, scene and focus; it cannot receive pointer or keyboard input.
+        {...webAttributes({ inert: covered ? "" : null })}
+        pointerEvents={covered ? "none" : "auto"}
+        style={{ flex: 1, minWidth: 0 }}
+      >{deckScene}</View>
+      {conversation}
+    </View>
+  );
 
   if (!home) {
     return (
@@ -910,14 +924,12 @@ function FleetViewBody({
         <View style={{ flex: 1, minHeight: 0 }} onLayout={(event) => setPaneWidth(event.nativeEvent.layout.width)}>
           {view !== "deck" ? (
             crew
-          ) : watching !== null ? (
-            conversation
           ) : !deck ? (
             <Text style={styles.loading}>
               Deck needs a wide web or desktop window. Open Crew or Board from FirstMate Home on this device.
             </Text>
           ) : (
-            deckScene
+            inlineDeck
           )}
         </View>
       </View>
