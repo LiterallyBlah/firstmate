@@ -15,6 +15,11 @@ The render cadence and whole-pixel scroll were steady; the large pose transition
 caused the visible stepping. The new holds are about 178 ms and 44 ms respectively.
 No engine timing or pixel-snapping change was needed.
 
+Run `node docs/settings/japanese-ship/polish.mjs` to register the commissioned
+water and crew sheets and the spirit split into the current manifest. It preserves
+later changes such as the downward rain frames; historical rebuild scripts below
+start from their older pinned revisions.
+
 The storm spirit now uses the scene's sea surface; see [coast](../coast/README.md).
 Current review evidence is kept outside git in
 `C:\Users\micha\.paseo\plugin-data\firstmate\home\data\sakura-water-smooth\evidence\`.

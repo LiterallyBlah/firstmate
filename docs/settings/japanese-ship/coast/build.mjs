@@ -7,9 +7,6 @@ import {createHash} from 'node:crypto';
 import {blank,crop,nearest,quant,paste,bounds} from '../build-art.mjs';
 import {indexed} from '../water/anchor/register.mjs';
 import {decodePng} from '../../../../test/png.ts';
-import {splitSpiritSurface} from './surface.mjs';
-import {registerCrewVariety} from '../crew-variety/register.mjs';
-import {registerWaterInbetweens} from '../water/inbetweens.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../../../..'),out=resolve(root,'art/settings/japanese-ship'),baseline='bae5478';
 const p=JSON.parse(execFileSync('git',['show',baseline+':art/settings/japanese-ship/setting.json'],{cwd:root}));
 const sha=b=>createHash('sha256').update(b).digest('hex'),read=id=>decodePng(execFileSync('git',['show',baseline+':art/settings/japanese-ship/'+id+'.png'],{cwd:root,maxBuffer:3e6}));
@@ -75,10 +72,7 @@ original.behaviour={kind:'strip',top:100,span,frames:{sprites:poses.map(()=>empt
 for(const row of p.atmosphere.table)row['voyage-pace']=1;p.atmosphere.delivered['voyage-pace']=1;p.atmosphere.clocks.voyage='voyage-pace';
 const removed=['coast-front','coast-dawn-front','coast-morning-front','coast-afternoon-front','coast-dusk-front','coast-night-front','coast-storm-shade','umibozu','umibozu-sink'];
 for(const id of removed){delete p.images[id];try{unlinkSync(resolve(out,id+'.png'));}catch(e){if(e.code!=='ENOENT')throw e;}}
-splitSpiritSurface(p);
-registerCrewVariety(p,out);
-registerWaterInbetweens(p,out);
-p.version='1.2.1';writeFileSync(resolve(out,'setting.json'),JSON.stringify(p,null,2)+'\n');
+p.version='1.2.0';writeFileSync(resolve(out,'setting.json'),JSON.stringify(p,null,2)+'\n');
 const imageBytes=Object.values(p.images).reduce((n,i)=>n+readFileSync(resolve(out,i.path)).length,0);
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({baseline,width,height,top,speed,lapSeconds:width/speed,berths,landmarks,imageBytes,sources:Object.fromEntries(['landmarks','landmarks-night','snow-peak'].map(n=>[n,sha(readFileSync(resolve(here,'sources',n+'.png')))])),removed},null,2)+'\n');
 console.log(JSON.stringify({imageBytes,landmarks}));
