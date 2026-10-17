@@ -594,6 +594,40 @@ describe("phase strips in the shared strip renderer", () => {
   });
 });
 
+describe("world-depth tile colour", () => {
+  it("shares one gradient across front/back bands, follows day in still mode, and covers resized panes", () => {
+    const manifest = structuredClone(shipManifest());
+    const tile = manifest.ambience.find((element) => element.id === "sea")!;
+    if (tile.behaviour.kind !== "tile") throw new Error("sea must be tiled");
+    tile.behaviour.depthWash = { rows: [500, 1200], byPhase: Object.fromEntries(manifest.dayCycle!.phases.map(({ id }) =>
+      [id, { colour: id === "night" ? "#173B44" : "#36696B", alpha: [.34, .14] }])), opacity: { channel: "wind" } };
+    manifest.ambience = [tile];
+    const ambience = compileAmbience(manifest, () => true), atmosphere = compileAtmosphere(manifest);
+    const scenery = createScenery(pixi, shipStage(), { ...sceneryArt({}), ambience, atmosphere });
+    const still = { level: "still", animate: false, fps: 0, ambient: false } as const;
+    scenery.layout({ left: -50, right: 900, top: -300, bottom: 1700 });
+    scenery.draw(0, still, 720);
+    const back = one(scenery.back as unknown as FakeContainer, "sea:back:depth-wash") as FakeGraphics;
+    const front = one(scenery.front as unknown as FakeContainer, "sea:front:depth-wash") as FakeGraphics;
+    expect(front.visible).toBe(true);
+    expect(front.alpha).toBeGreaterThan(0);
+    const row = (g: FakeGraphics) => g.shapes.find((shape) => shape[2] === 700)!;
+    expect(row(back)).toEqual(row(front));
+    expect(row(front).at(-1)).toMatchObject({ color: 0x36696b });
+    const shapes = front.shapes;
+    scenery.draw(20, still, 720);
+    expect(front.shapes).toBe(shapes);
+    scenery.draw(20, still, 1260);
+    expect(row(front).at(-1)).toMatchObject({ color: 0x173b44 });
+    scenery.layout({ left: -200, right: 1100, top: -600, bottom: 2200 });
+    scenery.draw(20, still, 1260);
+    expect(row(front)[1]).toBeLessThanOrEqual(-200);
+    const last = front.shapes.at(-1)!;
+    expect(Number(last[2]) + Number(last[4])).toBeGreaterThanOrEqual(2200);
+    scenery.destroy();
+  });
+});
+
 describe("wall-clock frame layers", () => {
   const definition = (): SettingManifest => ({
     ...shipManifest(), dayCycle: undefined,

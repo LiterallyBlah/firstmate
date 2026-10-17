@@ -43,6 +43,7 @@ export const ENGINE_CAPABILITIES = [
   "sink@1",
   "choreography@1",
   "phase-tint@1",
+  "depth-wash@1",
   "bob@1",
   "stage-rock@1",
   "sway@1",
@@ -440,6 +441,12 @@ const Tile = z.strictObject({
   origin: Px,
   bands: z.array(z.strictObject({ slot: z.enum(["back", "front"]), fromRow: Px })).min(1),
   variants: Variants,
+  /** Colour blended over an opaque tile, following day phases and easing between world-depth rows. */
+  depthWash: z.strictObject({
+    rows: z.tuple([Px, Px]).refine(([from, to]) => to > from, "depth wash must descend"),
+    byPhase: z.record(Id, z.strictObject({ colour: Hex, alpha: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]) })),
+    opacity: Level.optional(),
+  }).optional(),
 });
 /** `strip@1`: frames repeated sideways within a span from a row, drifting, cut into crops a frame. */
 const Strip = z.strictObject({ kind: z.literal("strip"), frames: Frames, top: Px, span: z.tuple([Px, Px]), drift: Drift, variants: Variants });
@@ -632,6 +639,7 @@ export function capabilitiesUsed(manifest: SettingManifest): string[] {
   for (const part of manifest.stage.parts) if (part.behaviour !== undefined) used.add(`${part.behaviour.kind}@1`);
   if (manifest.stage.lights.length > 0) used.add("flicker@1");
   for (const element of manifest.ambience) used.add(`${element.behaviour.kind}@1`);
+  if (manifest.ambience.some(({ behaviour }) => behaviour.kind === "tile" && behaviour.depthWash !== undefined)) used.add("depth-wash@1");
   const hasVariants = [
     ...manifest.stage.parts.map((part) => (part.behaviour?.kind === "cycle" ? part.behaviour.variants : undefined)),
     ...manifest.ambience.flatMap((element) => {
@@ -865,6 +873,11 @@ export function settingProblems(manifest: SettingManifest): string[] {
       for (const phase of Object.keys(behaviour.byPhase)) phaseRefs.push([phase, element.id]);
       for (const sprite of behaviour.sprites) for (const variant of sprite.variants ?? []) for (const phase of Object.keys(variant.byPhase ?? {})) phaseRefs.push([phase, element.id]);
     }
+    if (behaviour.kind === "tile" && behaviour.depthWash !== undefined) {
+      for (const phase of Object.keys(behaviour.depthWash.byPhase)) phaseRefs.push([phase, element.id]);
+      if (manifest.dayCycle === undefined) problems.push(`${element.id} depth-wash needs dayCycle`);
+      for (const phase of phases) if (behaviour.depthWash.byPhase[phase] === undefined) problems.push(`${element.id} depth-wash needs phase "${phase}"`);
+    }
   }
   for (const [phase, where] of phaseRefs) if (!phases.has(phase)) missing("day phase", phase, where);
 
@@ -917,6 +930,7 @@ export function settingProblems(manifest: SettingManifest): string[] {
     if (behaviour.kind === "drifters") clockRefs.push([behaviour.clock, element.id]);
     if (behaviour.kind === "cycle") levelRefs.push([behaviour.opacity, element.id], [behaviour.duty, element.id]);
     if (behaviour.kind === "backdrop-cycle") levelRefs.push([behaviour.tint?.amount, element.id]);
+    if (behaviour.kind === "tile") levelRefs.push([behaviour.depthWash?.opacity, element.id]);
   }
   for (const [clock, where] of clockRefs) if (clock !== undefined && !clocks.has(clock)) missing("clock", clock, where);
   for (const [level, where] of levelRefs) if (level !== undefined && typeof level === "object" && "channel" in level && !channels.has(level.channel)) missing("channel", level.channel, where);

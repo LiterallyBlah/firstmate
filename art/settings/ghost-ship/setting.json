@@ -18,6 +18,7 @@
     "rise@1",
     "choreography@1",
     "phase-tint@1",
+    "depth-wash@1",
     "bob@1",
     "stage-rock@1",
     "cycle@1",
@@ -3748,7 +3749,8 @@
         "swell": 0.7,
         "heave": 1,
         "mood": 0,
-        "voyage": 1
+        "voyage": 1,
+        "sea-light": 1
       },
       {
         "at": 0.4,
@@ -3758,7 +3760,8 @@
         "swell": 1,
         "heave": 2,
         "mood": 0.05,
-        "voyage": 1
+        "voyage": 1,
+        "sea-light": 0.7
       },
       {
         "at": 1,
@@ -3768,7 +3771,8 @@
         "swell": 1.3,
         "heave": 3,
         "mood": 0.72,
-        "voyage": 1
+        "voyage": 1,
+        "sea-light": 0.25
       }
     ],
     "delivered": {
@@ -3778,7 +3782,8 @@
       "swell": 0.7,
       "heave": 1,
       "mood": 0,
-      "voyage": 1
+      "voyage": 1,
+      "sea-light": 1
     },
     "clocks": {
       "wind": "wind",
@@ -4345,7 +4350,60 @@
               ]
             ]
           }
-        ]
+        ],
+        "depthWash": {
+          "rows": [
+            448,
+            1250
+          ],
+          "byPhase": {
+            "dawn": {
+              "colour": "#586A70",
+              "alpha": [
+                0.24,
+                0.08
+              ]
+            },
+            "morning": {
+              "colour": "#466D72",
+              "alpha": [
+                0.3,
+                0.12
+              ]
+            },
+            "midday": {
+              "colour": "#36696B",
+              "alpha": [
+                0.34,
+                0.14
+              ]
+            },
+            "afternoon": {
+              "colour": "#606C60",
+              "alpha": [
+                0.28,
+                0.1
+              ]
+            },
+            "dusk": {
+              "colour": "#4C4C6A",
+              "alpha": [
+                0.2,
+                0.06
+              ]
+            },
+            "night": {
+              "colour": "#173B44",
+              "alpha": [
+                0.12,
+                0.02
+              ]
+            }
+          },
+          "opacity": {
+            "channel": "sea-light"
+          }
+        }
       }
     },
     {

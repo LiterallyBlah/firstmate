@@ -80,6 +80,14 @@ const seaFrames=(image,count=16,height=64)=>Array.from({length:count},(_,i)=>({i
 const deepFrames=image=>Array.from({length:4},(_,i)=>({image,rect:[i*768,0,768,512]}));
 // Both bands share the exact origin, frame and drift: no boundary at the hull.
 add(ambient('sea-surface','back',2.5,{kind:'tile',frames:{sprites:deepFrames('sea-deep'),frameMs:800,clock:'sea'},origin:265,bands:[{slot:'back',fromRow:265},{slot:'front',fromRow:448}],drift:{pxPerSecond:.6,clock:'sea'},variants:[{id:'rough-deep',frames:deepFrames('sea-storm-deep'),blend:'crossfade',opacity:[[.25,0],[1,1]]}]}));
+pack.ambience.at(-1).behaviour.depthWash={rows:[448,1250],byPhase:{
+ dawn:{colour:'#586A70',alpha:[.24,.08]},morning:{colour:'#466D72',alpha:[.30,.12]},
+ midday:{colour:'#36696B',alpha:[.34,.14]},afternoon:{colour:'#606C60',alpha:[.28,.10]},
+ dusk:{colour:'#4C4C6A',alpha:[.20,.06]},night:{colour:'#173B44',alpha:[.12,.02]}
+},opacity:{channel:'sea-light'}};
+// Delivered values also apply in reduced motion; intensity curves are hidden there.
+for(const row of pack.atmosphere.table)row['sea-light']=1-.75*row.at;
+pack.atmosphere.delivered['sea-light']=1;
 for(const [id,slot,order,top,speed]of [['far','back',5,265,.4],['mid','back',6,326,.75],['near','front',3,428,1]])
  add(ambient(id+'-sea',slot,order,{kind:'strip',frames:{sprites:seaFrames('sea-'+id),frameMs:200,clock:'sea'},top,span:[-4000,4800],drift:{pxPerSecond:speed,clock:'sea'},variants:[{id:'rough-'+id,frames:seaFrames('sea-storm-'+id),blend:'crossfade',opacity:[[.25,0],[1,1]]}]}));
 for(const [i,x,y]of [[0,220,456],[1,440,452],[2,650,454]])add(ambient('candle-'+i,'front',4,{...cycle(seq('candle'),380+i*70,'swell'),at:[x,y],anchor:[10,20]}));

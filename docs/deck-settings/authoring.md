@@ -18,7 +18,7 @@ or capabilities as incompatible, with a reason. The pane falls back to ship and 
 | Layout and workers | `stage`, `floor`, `zones`, `zone-appearance`, `post-transit`, `stable-posts`, `cast`, `cast-scale`, `pose-fidgets` |
 | Portals and effects | `rise`, `walk-in`, `sink`, `choreography` |
 | Stage motion and light | `phase-tint`, `bob`, `stage-rock`, `sway`, `cycle`, `flicker` |
-| Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `strip`, `phase-strip`, `variants` |
+| Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `depth-wash`, `strip`, `phase-strip`, `variants` |
 | Time and activity | `phase-frames`, `day-cycle`, `atmosphere` |
 
 Each entry is spelled `<name>@1` in `requires`. The schema and `settingProblems` define all parameters
@@ -215,6 +215,16 @@ and phase tint; this behaviour adds no timer and reads neither simulation clocks
 load or the element falls back under the usual ambience rules. Ambience keeps its own colours, outside stage tint.
 
 ## Phase strips
+
+An opaque `tile` may opt into `depth-wash@1` with `depthWash`. Its `rows: [from, to]` are increasing
+world rows, shared by every band, independent of tile origin or height. `byPhase` must define every
+day-cycle phase as `{colour: "#RRGGBB", alpha: [surface, deep]}`; both alphas are in 0–1. The colour
+and alphas follow the same eased day blend as the sky. Alpha eases between the two rows and stays
+constant outside them. This is a colour blend over existing pixels, not replacement texture art.
+The optional `opacity` is a normal atmosphere level. Use a channel with a delivered calm value when
+the wash must remain visible under reduced motion: intensity curves are zero on a still deck.
+The wash sits over the tile and its variants but below later elements, so a transparent wave strip
+can blend into a matching surface tone. Omitted `depthWash` leaves the original draw path unchanged.
 
 `phase-strip@1` adds a day-aware strip, without changing `strip@1` or opting any existing pack in:
 

@@ -91,7 +91,8 @@ saves one choice for the whole fleet, also available in settings.
   canvases pause.
   Pirate voyage and Sakura coast rain advances downward in a seamless loop as storms build.
   Ghost ship keeps its haunted sea at the surface, with a half-submerged anglerfish, falling storm
-  rain and a crow's nest that moves rigidly with the mast.
+  rain and a crow's nest that moves rigidly with the mast. Its sea follows daylight and darkens
+  gradually below the near waves.
 
 Click the shark, choose a suggestion, and the prompt arrives in Home chat:
 

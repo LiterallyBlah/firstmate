@@ -12,12 +12,23 @@ The deep surface uses one tile origin at row 265 for both the background and the
 the deep field's four 768×512 frames run at 800 ms. A separate sea clock speeds these by 1.25 at peak storm,
 giving the artist's 2.56-second storm loop without accelerating rain or carrier motion again. Calm
 drift is 0.4/0.75/1.0/0.6 pixels per second for far/middle/near/deep. The inherited whole-pixel scroll
-and renderer remain unchanged. Still/reduced motion holds frame zero.
+remain unchanged. Still/reduced motion holds frame zero.
 
 Native tall-pane review found the first deep field's 96-row repeating motif and faint joins every
 384 columns. The artist replaced it with broad, sparse swells in larger cells. The revised day,
 night and storm captures have no visible tile boxes or seams. There is no transparent gap or
 separate flat fill at the hull. The eight delivered atlases have not been edited.
+
+The first review missed a daylight tonal boundary below the near waves. `stage.tintByPhase` colours
+the ship and crew, not ambient water; the deep tile therefore kept the same dark RGB at midday.
+The near art already has a transparent tail, but it exposed that dark field too quickly. The small,
+opt-in `depth-wash@1` tile extension now blends a phase-specific colour over the deep surface, easing
+from a matching surface tone at row 448 to a darker tone at row 1250. Both bands use world rows, so
+the gradient never restarts at a tile edge. The existing transparent wave tail blends into the
+lightened surface. A delivered `sea-light` channel keeps this active in still mode and reduces it
+in storms. No water pixels were generated, repainted or altered. Other packs do not opt into it.
+The follow-up dawn/midday/dusk/night renders at square and tall-narrow, plus tall storm, are in
+`depth-v4/` alongside the wider six-phase matrix and sea detail crops.
 
 The old water was the same noisy texture shifted roughly three pixels per frame, then reset by
 roughly nine pixels at its four-frame loop. That stepped motion opposed its slow horizontal drift.
@@ -52,8 +63,10 @@ The final payload is **971,510 image bytes**, leaving **28,490 bytes** below the
 including the updated picker preview. It is recorded in `final/weather-audit.json`.
 All generated captures and logs stay under `.local/` before copying to the review folder.
 
-Local validation: pack lint 85/85; typecheck passed; full suite 1,226 passed and 3 skipped across
-104 files with `--testTimeout=30000 --maxWorkers=2` to accommodate host load. Hermes parsed both
+Local validation: pack lint 86/86; typecheck passed; full suite 1,233 passed and 3 skipped across
+106 files with `--testTimeout=30000 --maxWorkers=2` to accommodate host load. An initial run hit an
+unrelated Windows file-rename `EPERM`; the full rerun with a shorter worktree-local temp path passed.
+Hermes parsed both
 client bundles; the frozen Ship gate and visual results are recorded alongside the evidence.
 The phase/shape matrix produced 42 scene/overlay captures. Full/lite/still checks and 96 exact crew
 focus clicks passed. Frame zero of the basket/flag composite is pixel-identical to the original,
