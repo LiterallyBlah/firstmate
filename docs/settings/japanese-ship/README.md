@@ -1,5 +1,15 @@
 # Sakura coast
 
+The storm umibozu now emerges through the scene's own sea. Its existing atlas is
+split into an upper body and a submerged piece covered by the opaque sea backdrop,
+removing the boxed baked-in foam without new art. Both pieces retain their world
+registration and coast drift; see [the coast registration](coast/README.md).
+
+The cast now uses eight distinct looks: kasa, cook, elder, rigger, fisher, padded,
+moss and ochre. The six commissioned sheets share the original indigo lane's
+15 pose rectangles and feet anchors. Unused indigo, russet, plum and teal images
+are retired; see [crew registration](crew-variety/register.mjs).
+
 The current pack's [parity review](parity/README.md) adds the sea-dragon plank departure,
 masthead lookout, umibozu storm, six-phase day, night sky, chochin, cranes, petals and
 six crew looks. Its captures and verification supersede the historical counts and

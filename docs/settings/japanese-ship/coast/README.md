@@ -4,6 +4,12 @@ Stacked on PR #99, `bae5478`. Only Sakura pack data, PNGs and offline authoring/
 change. The parent water, stars, moon, opaque umibozu poses, ship, crew and departures
 remain intact. No engine, Ship's deck or Sky pirates changes.
 
+The subsequent crew-variety registration replaces the six-look cast with kasa,
+cook, elder, rigger, fisher, padded, moss and ochre. Pose geometry, feet, roles and
+fidgets remain unchanged. Its six new sheets were commissioned separately; four
+unreferenced old sheets are removed. Historical evidence and counts below describe
+the original voyage revision.
+
 The 2,880-pixel coast drifts right at 2.4 world pixels/second: a **20-minute lap**,
 opposite the ship's left-facing bow. It passes cherry-blossom isles and a torii in
 the shallows, a hill pagoda, a fishing village with moored boats, a complete snowy
@@ -21,7 +27,14 @@ three-frame light strip, behind the ship and crew.
 
 The umibozu shares the coast's drift and 2,880-pixel period, at three open-water
 berths separated by 960 pixels. Each retains all 15 approved opaque rise/settle
-poses, offset by five poses from its neighbour, with a world waterline at y=178.
+poses, offset by five poses from its neighbour. The source strip stays at world
+y=100, but now splits at source row 60 (world y=160): `umibozu` draws the upper
+body above the sea; `umibozu-submerged` draws the lower 20 rows beneath the opaque
+scene sea. This conceals the original atlas's boxed foam with the same sea,
+day-phase colours and weather that surround the body. No replacement water patch,
+foam art or viewport-relative placement is used. Both pieces share the original
+voyage drift, swell clock, staggered poses and visibility rules. `surface.mjs`
+applies this registration when rebuilding the coast; the PNGs remain unchanged.
 The coast registration audit checks every pixel of each 72-pixel berth against
 the island mask. The body reaches full strength above the storm threshold; lite,
 still and reduced motion hide it. These are scenery-bound strips, not viewport

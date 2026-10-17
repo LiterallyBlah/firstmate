@@ -371,6 +371,17 @@ calls to the old ones exactly, and `receipts.test.ts` a prepared home byte for b
 
 ## The ship deck is a WebGL canvas
 
+Sakura's storm spirit uses two registered strips from the same unchanged atlas:
+`umibozu` above the sea and `umibozu-submerged` beneath its opaque backdrop.
+They split at world row 160 (source row 60), keeping source top 100, voyage drift,
+swell frames and visibility identical. The scene sea covers the baked-in foam;
+never add a separate water patch or move the spirit with the viewport. The coast
+authoring helper is `docs/settings/japanese-ship/coast/surface.mjs`.
+Sakura's cast is kasa, cook, elder, rigger, fisher, padded, moss and ochre. The six
+new sheets share the indigo lane's 15 poses and feet; keep that lane even though
+the indigo image is retired. `docs/settings/japanese-ship/crew-variety/register.mjs`
+registers the sheets and removes retired images only when no pack content uses them.
+
 A standard part of the screen (`docs/ship-deck-canvas/README.md`, `docs/ship-deck-motion/README.md`,
 `docs/ship-deck-environment/README.md`, `docs/ship-deck-tweaks/README.md` and
 `docs/ship-deck-default/README.md` have the evidence). The wide layout's Crew/Files switch has **Deck** in a
