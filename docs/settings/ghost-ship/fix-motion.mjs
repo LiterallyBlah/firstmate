@@ -4,6 +4,7 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import {decodePng} from '../../../test/png.ts';
 import {blank} from '../japanese-ship/build-art.mjs';
 import {indexed} from './indexed-png.mjs';
@@ -45,9 +46,13 @@ for(let frame=0;frame<4;frame++){
 // Same registration as PR #101: four eight-row downward steps in a 32-row field.
 // Reflect the existing streaks to slant with the positive horizontal wind drift.
 // The 3 -> 0 transition advances exactly the same distance as the other steps.
-const sourceManifest=JSON.parse(readFileSync(resolve(root,'art/settings/ship/setting.json')));
-const sourcePath=resolve(root,'art/settings/ship',sourceManifest.images['rain-0'].path);
-const sourceBytes=readFileSync(sourcePath),original=decodePng(sourceBytes);
+// Pin the original streak plate: Ship's current rain was independently re-registered in PR #105.
+// Reading that new sequence here would reflect its already corrected slope a second time.
+const sourceRevision='df3469c2023013297838e5355e9aef340f91b49a';
+const sourcePath='art/settings/ship/rain-0.png';
+const sourceBytes=execFileSync('git',['show',sourceRevision+':'+sourcePath],{cwd:root});
+assert.equal(sha(sourceBytes),'5e00ba56d634e9361b3a2ce77d24ec34b86ec3e8de5ca92f57fbddd03d436911');
+const original=decodePng(sourceBytes);
 assert.equal(original.width,96);assert.equal(original.height,64);
 for(let frame=0;frame<4;frame++){
  const image=blank(96,64);
@@ -56,7 +61,7 @@ for(let frame=0;frame<4;frame++){
   image.rgba.set(original.rgba.subarray(from,from+4),(y*96+x)*4);
  }
  const id='rain-'+frame;save(id,image);
- registration.sources[id]={reusedFrom:'art/settings/ship/'+sourceManifest.images['rain-0'].path,
+ registration.sources[id]={reusedFrom:sourcePath,revision:sourceRevision,
   sha256:sha(sourceBytes),transform:{reflectX:true,periodRows:32,downRows:frame*8}};
 }
 registration.sources['rigid-crows-nest']={reusedFrom:'flag-main-0',rect:[0,28,22,30],to:'fixed',at:[flagX,flagY+28]};

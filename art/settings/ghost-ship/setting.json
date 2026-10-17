@@ -13,6 +13,7 @@
     "attention-carrier@1",
     "carrier-surface@1",
     "cast@1",
+    "cast-scale@1",
     "pose-fidgets@1",
     "rise@1",
     "choreography@1",
@@ -30,8 +31,7 @@
     "phase-strip@1",
     "variants@1",
     "day-cycle@1",
-    "atmosphere@1",
-    "cast-scale@1"
+    "atmosphere@1"
   ],
   "preview": "preview",
   "images": {
@@ -1097,7 +1097,7 @@
         384,
         216
       ],
-      "sha256": "43c6d0031a526ec7207b2395f241a4f791afc9e886618357d2c76f7fa3278748"
+      "sha256": "362f8e394977c512289fcd02cf7690c6540037268311dad550d5d69e567d0fdc"
     },
     "sea-far": {
       "path": "sea-far.png",
@@ -1127,9 +1127,9 @@
       "path": "sea-deep.png",
       "size": [
         3072,
-        96
+        512
       ],
-      "sha256": "156c7f8539e5df25f00672e5a1bffc4b0323183fba7912059a6bed5bbab8beba"
+      "sha256": "15b9573bd5cb1d982fdc8eb441509669db94533a2fa909105029ed43debe1191"
     },
     "sea-storm-far": {
       "path": "sea-storm-far.png",
@@ -1159,9 +1159,9 @@
       "path": "sea-storm-deep.png",
       "size": [
         3072,
-        96
+        512
       ],
-      "sha256": "4ce38642b1c144997fc210432aa16554d548b0f50d9a66b99c2e51d2c6acc77b"
+      "sha256": "c588ca64de4458db3b9c8d2679eb2c478f9da2200995c06c6f0f8febe496c83b"
     }
   },
   "copy": {
@@ -4242,17 +4242,8 @@
               "rect": [
                 0,
                 0,
-                384,
-                96
-              ]
-            },
-            {
-              "image": "sea-deep",
-              "rect": [
-                384,
-                0,
-                384,
-                96
+                768,
+                512
               ]
             },
             {
@@ -4260,17 +4251,8 @@
               "rect": [
                 768,
                 0,
-                384,
-                96
-              ]
-            },
-            {
-              "image": "sea-deep",
-              "rect": [
-                1152,
-                0,
-                384,
-                96
+                768,
+                512
               ]
             },
             {
@@ -4278,17 +4260,8 @@
               "rect": [
                 1536,
                 0,
-                384,
-                96
-              ]
-            },
-            {
-              "image": "sea-deep",
-              "rect": [
-                1920,
-                0,
-                384,
-                96
+                768,
+                512
               ]
             },
             {
@@ -4296,21 +4269,12 @@
               "rect": [
                 2304,
                 0,
-                384,
-                96
-              ]
-            },
-            {
-              "image": "sea-deep",
-              "rect": [
-                2688,
-                0,
-                384,
-                96
+                768,
+                512
               ]
             }
           ],
-          "frameMs": 400,
+          "frameMs": 800,
           "clock": "sea"
         },
         "origin": 265,
@@ -4337,17 +4301,8 @@
                 "rect": [
                   0,
                   0,
-                  384,
-                  96
-                ]
-              },
-              {
-                "image": "sea-storm-deep",
-                "rect": [
-                  384,
-                  0,
-                  384,
-                  96
+                  768,
+                  512
                 ]
               },
               {
@@ -4355,17 +4310,8 @@
                 "rect": [
                   768,
                   0,
-                  384,
-                  96
-                ]
-              },
-              {
-                "image": "sea-storm-deep",
-                "rect": [
-                  1152,
-                  0,
-                  384,
-                  96
+                  768,
+                  512
                 ]
               },
               {
@@ -4373,17 +4319,8 @@
                 "rect": [
                   1536,
                   0,
-                  384,
-                  96
-                ]
-              },
-              {
-                "image": "sea-storm-deep",
-                "rect": [
-                  1920,
-                  0,
-                  384,
-                  96
+                  768,
+                  512
                 ]
               },
               {
@@ -4391,17 +4328,8 @@
                 "rect": [
                   2304,
                   0,
-                  384,
-                  96
-                ]
-              },
-              {
-                "image": "sea-storm-deep",
-                "rect": [
-                  2688,
-                  0,
-                  384,
-                  96
+                  768,
+                  512
                 ]
               }
             ],

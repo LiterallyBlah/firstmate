@@ -89,12 +89,9 @@ saves one choice for the whole fleet, also available in settings.
 - **Watch the scene change.** Local time drives day and night. Sails, water, clouds and crew animate;
   Ship's deck grows stormier as the fleet gets busy. Reduced motion keeps the scene calm, and hidden
   canvases pause.
-<<<<<<< HEAD
   Pirate voyage and Sakura coast rain advances downward in a seamless loop as storms build.
-=======
   Ghost ship keeps its haunted sea at the surface, with a half-submerged anglerfish, falling storm
   rain and a crow's nest that moves rigidly with the mast.
->>>>>>> b4b430d (Remove Ghost cutaway, register sea art and correct rain and mast motion)
 
 Click the shark, choose a suggestion, and the prompt arrives in Home chat:
 

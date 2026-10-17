@@ -16,7 +16,7 @@ const base={optional:false,lite:'run',still:'first-frame'};
 const cycle=(sprites,frameMs=400,clock='wind')=>({kind:'cycle',frames:{sprites,frameMs,clock}});
 const ambient=(id,slot,order,behaviour,extra={})=>({id,slot,order,...base,behaviour,...extra});
 const post=(id,at,facing='front')=>({id,at,facing});
-const zone=(id,points,facing)=>({id,posts:points.map((at,i)=>post(id+'-'+i,at,facing)),assign:'ordered',overflow:{kind:'beside',spacing:[25,11]}});
+const zone=(id,points,facing)=>({id,posts:points.map((at,i)=>post(id+'-'+i,at,facing)),assign:'ordered',overflow:{kind:'beside',spacing:[28,11]}});
 const partList=[{id:'fixed',...base,sprite:s('fixed'),at:[0,0],cutout:[0,0,800,520]}];
 for(const [id,[x,y]]of Object.entries(parts))partList.push({id,...base,sprite:s(id+'-0'),at:[x,y],behaviour:cycle(seq(id),id.startsWith('flag')?200:750,'wind')});
 partList.push({id:'seam-light',...base,sprite:s('seam-0'),at:[0,0],behaviour:{...cycle(seq('seam'),1500,'swell'),opacity:{curve:[[0,.45],[1,1]]}}});
@@ -27,7 +27,7 @@ const lantern={glyph:['..a..','.aaa.','abbba','abbba','abbba','aaaaa'],origin:[2
 const sleepers=[];for(const x0 of [282,372,466,560])for(const y of [374,398])for(let c=0;c<3;c++)sleepers.push([x0+c*22,y]);
 const pack={format:'firstmate.deck-setting',formatVersion:1,id:'ghost-ship',name:'Ghost ship',version:'1.0.0',requires:[],preview:'preview',images,
 copy:{pane:'Deck',tooltip:'Sail haunted waters aboard a spectral pirate galleon.',title:'Ghost ship',noun:'the ghost ship',starting:'Gathering the ghosts\u2026',aboard:'aboard',actor:{one:'ghost pirate',many:'ghost pirates'},zones:{rigging:'hauling the ghostly rigging',helm:'waiting at the wheel',bow:'watching from the figurehead',rest:'sleeping in the cabins'}},
-stage:{size:[800,520],fit:{top:-8,bottom:520,margin:.94},actorHeight:38,
+stage:{size:[800,520],fit:{top:-8,bottom:520,margin:.94},actorHeight:66,
 motion:{bob:{periodS:6,amplitude:{channel:'heave'},clock:'swell'},rock:{pivot:[400,340],degrees:{curve:[[0,.25],[1,.8]]},drift:{curve:[[0,.2],[1,.8]]},periodS:8,clock:'swell'}},
 tintByPhase:{dawn:'#CABACA',morning:'#CFDCD8',midday:'#CDDCD5',afternoon:'#D5CFBF',dusk:'#A4A2C4',night:'#C8FFE0'},
 backdrop:{sprite:s('ship')},parts:partList,pieces:[
@@ -48,7 +48,7 @@ floor:{areas:[
 obstacles:[{id:'capstan',rect:[370,312,32,17]}],grid:{cell:2,bounds:[180,246,580,158]},walkSpeed:40},
 zones:{byState:{working:'rigging',waiting:'helm',blocked:'bow',idle:'rest'},zones:[
 zone('rigging',[[298,326],[346,326],[424,326],[454,326],[486,326],[522,326]],'right'),
-zone('helm',[[710,257],[740,257]],'front'),zone('bow',[[248,312],[272,326]],'left'),
+zone('helm',[[702,257],[730,257]],'front'),zone('bow',[[284,326],[312,326]],'left'),
 {id:'rest',posts:sleepers.map((at,i)=>post('rest-'+i,at)),assign:'ordered',overflow:{kind:'pack',areas:[...new Set(sleepers.map(p=>p[0]))].flatMap(x=>[[x,374,1,1],[x,398,1,1]]),spacing:[22,24],fallback:[22,24]},appearance:{sprite:s('sleeper'),feet:[9,12],front:'hull-front'},labelFloor:428}]},
 cast:{lanes,looks:Array.from({length:8},(_,i)=>({id:'ghost-'+i,image:'crew-'+i,lane:'ghost-'+i,optional:false})),roles:{stand:'stand',walkFront:['stand','walk-a','stand','walk-b'],walkSide:['walk-a','stand','walk-b','wait'],rise:1,stepMs:180,settled:{working:{pose:'haul-a',mirror:'facing'},waiting:{pose:'wait',mirror:'none'},blocked:{pose:'stand',mirror:'facing'},idle:{pose:'wait',mirror:'none'}}},
 fidgets:{working:{periodMs:1200,seedMs:719,keys:[{fromMs:0,dx:0,dy:0,pose:'haul-a'},{fromMs:600,dx:0,dy:1,pose:'haul-b'}]},waiting:{periodMs:3900,seedMs:137,keys:[{fromMs:0,dx:0,dy:0,pose:'wait'},{fromMs:3100,dx:0,dy:1,pose:'stand'}]},blocked:{periodMs:4500,seedMs:173,keys:[{fromMs:0,dx:0,dy:0,pose:'stand'},{fromMs:3500,dx:1,dy:0,pose:'wait'}]},idle:null},breath:{state:'waiting',rows:12,periodMs:3200,inMs:1800,seedMs:97}},
@@ -77,8 +77,9 @@ add(ambient('coast','back',4,{kind:'phase-strip',top:103,span:[-4000,4800],frame
 add(ambient('lighthouse-beam','back',4.1,{kind:'phase-strip',top:116,span:[-4000,4800],frames:{sprites:seq('beam'),frameMs:700,clock:'swell'},byPhase:Object.fromEntries(phases.map(p=>[p,p==='night'||p==='dusk'?seq('beam'):Array(4).fill(s('beam-clear'))])),drift:{pxPerSecond:1800/1200,clock:'voyage'}}));
 // Eight columns per commissioned atlas; rows hold successive animation frames.
 const seaFrames=(image,count=16,height=64)=>Array.from({length:count},(_,i)=>({image,rect:[(i%8)*384,Math.floor(i/8)*height,384,height]}));
+const deepFrames=image=>Array.from({length:4},(_,i)=>({image,rect:[i*768,0,768,512]}));
 // Both bands share the exact origin, frame and drift: no boundary at the hull.
-add(ambient('sea-surface','back',2.5,{kind:'tile',frames:{sprites:seaFrames('sea-deep',8,96),frameMs:400,clock:'sea'},origin:265,bands:[{slot:'back',fromRow:265},{slot:'front',fromRow:448}],drift:{pxPerSecond:.6,clock:'sea'},variants:[{id:'rough-deep',frames:seaFrames('sea-storm-deep',8,96),blend:'crossfade',opacity:[[.25,0],[1,1]]}]}));
+add(ambient('sea-surface','back',2.5,{kind:'tile',frames:{sprites:deepFrames('sea-deep'),frameMs:800,clock:'sea'},origin:265,bands:[{slot:'back',fromRow:265},{slot:'front',fromRow:448}],drift:{pxPerSecond:.6,clock:'sea'},variants:[{id:'rough-deep',frames:deepFrames('sea-storm-deep'),blend:'crossfade',opacity:[[.25,0],[1,1]]}]}));
 for(const [id,slot,order,top,speed]of [['far','back',5,265,.4],['mid','back',6,326,.75],['near','front',3,428,1]])
  add(ambient(id+'-sea',slot,order,{kind:'strip',frames:{sprites:seaFrames('sea-'+id),frameMs:200,clock:'sea'},top,span:[-4000,4800],drift:{pxPerSecond:speed,clock:'sea'},variants:[{id:'rough-'+id,frames:seaFrames('sea-storm-'+id),blend:'crossfade',opacity:[[.25,0],[1,1]]}]}));
 for(const [i,x,y]of [[0,220,456],[1,440,452],[2,650,454]])add(ambient('candle-'+i,'front',4,{...cycle(seq('candle'),380+i*70,'swell'),at:[x,y],anchor:[10,20]}));
@@ -94,6 +95,8 @@ add(ambient('distant-kraken','back',8.2,{...cycle([...Array(20).fill(s('distant-
 const batFrames=[...Array(24).fill(s('bat-flight-clear')),...seq('bat-flight',16),...Array(12).fill(s('bat-flight-clear'))];
 add(ambient('night-bats','back',8.5,{kind:'phase-strip',top:40,span:[-2000,2800],frames:{sprites:batFrames,frameMs:140,clock:'swell'},byPhase:Object.fromEntries(phases.map(p=>[p,p==='night'?batFrames:batFrames.map(()=>s('bat-flight-clear'))])),drift:{pxPerSecond:0}},{lite:'hide',still:'hide'}));
 for(const [i,x,y]of [[0,190,255],[1,470,290],[2,640,210]])add(ambient('will-o-wisp-'+i,'back',8,{...cycle(seq('hatch-mist'),700+i*110,'swell'),at:[x,y],anchor:[18,21],opacity:.45},{lite:'hide',still:'hide'}));
+// Preserve the crew enlargement shipped in PR #106 when rebuilding this pack.
+pack.cast.scale=2;
 pack.requires=capabilitiesUsed(pack);
 const used=new Set(settingImageIds(pack));pack.images=Object.fromEntries(Object.entries(images).filter(([id])=>used.has(id)));
 SettingManifestSchema.parse(pack);

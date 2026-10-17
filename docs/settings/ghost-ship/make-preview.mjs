@@ -7,7 +7,7 @@ import {decodePng} from '../../../test/png.ts';
 import {crop,nearest,quant} from '../japanese-ship/build-art.mjs';
 import {indexed} from './indexed-png.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../../..'),dir=resolve(root,'art/settings/ghost-ship');
-const sourcePath=resolve(root,process.argv[2]??'.local/ghost-ship-fixes/integrated/midday-wide.png');
+const sourcePath=resolve(root,process.argv[2]??'.local/ghost-ship-fixes/final/midday-wide.png');
 const sourceBytes=readFileSync(sourcePath),source=decodePng(sourceBytes);
 const width=Math.min(source.width,Math.floor(source.height*16/9)),height=Math.min(source.height,Math.floor(source.width*9/16));
 const image=quant(nearest(crop(source,Math.floor((source.width-width)/2),Math.floor((source.height-height)/2),width,height),384,216),64);

@@ -10,12 +10,13 @@ const out=resolve(root,process.env.GHOST_EVIDENCE??'.local/ghost-ship-fixes/inte
 const m=JSON.parse(readFileSync(resolve(dir,'setting.json'))),checks=[];
 const diff=(a,b)=>{let sum=0;for(let i=0;i<a.rgba.length;i++)sum+=Math.abs(a.rgba[i]-b.rgba[i]);return sum/a.rgba.length;};
 for(const id of ['sea-far','sea-mid','sea-near','sea-deep','sea-storm-far','sea-storm-mid','sea-storm-near','sea-storm-deep']){
- const source=decodePng(readFileSync(resolve(dir,m.images[id].path))),height=id.endsWith('deep')?96:64,count=id.endsWith('deep')?8:16;
- assert.equal(source.width,384*8);assert.equal(source.height,height*count/8);
- const frames=Array.from({length:count},(_,i)=>crop(source,i%8*384,Math.floor(i/8)*height,384,height));
+ const deep=id.endsWith('deep'),width=deep?768:384,height=deep?512:64,count=deep?4:16,columns=deep?4:8;
+ const source=decodePng(readFileSync(resolve(dir,m.images[id].path)));
+ assert.equal(source.width,width*columns);assert.equal(source.height,height*count/columns);
+ const frames=Array.from({length:count},(_,i)=>crop(source,i%columns*width,Math.floor(i/columns)*height,width,height));
  const changes=frames.map((a,i)=>diff(a,frames[(i+1)%count]));
  // A small loop delta cannot certify invisible spatial tiling; record either problem.
- checks.push({id,count,cell:[384,height],stepMeanRgbaDifferences:changes,loopDifference:changes.at(-1),largestOrdinaryStep:Math.max(...changes.slice(0,-1))});
+ checks.push({id,count,cell:[width,height],stepMeanRgbaDifferences:changes,loopDifference:changes.at(-1),largestOrdinaryStep:Math.max(...changes.slice(0,-1))});
 }
 const surface=m.ambience.find(e=>e.id==='sea-surface').behaviour;
 assert.deepEqual(surface.bands,[{slot:'back',fromRow:265},{slot:'front',fromRow:448}]);assert.equal(surface.origin,265);
