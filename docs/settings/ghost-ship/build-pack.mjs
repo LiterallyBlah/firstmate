@@ -3,12 +3,14 @@ import {readFileSync,writeFileSync,mkdirSync,readdirSync,unlinkSync} from 'node:
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
+import {waterImages} from './water-art.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../../..'),out=resolve(root,'art/settings/ghost-ship');
 const require=createRequire(resolve(root,'docs/board-list/package.json'));
 mkdirSync(resolve(here,'.generated'),{recursive:true});
 await require('esbuild').build({entryPoints:[resolve(root,'shared/deck-setting.ts')],outfile:resolve(here,'.generated/schema.mjs'),bundle:true,platform:'node',format:'esm',logLevel:'silent'});
 const {SettingManifestSchema,capabilitiesUsed,settingImageIds}=await import('./.generated/schema.mjs');
 const {images,lanes,parts}=JSON.parse(readFileSync(resolve(here,'registration.json')));
+Object.assign(images,waterImages(out));
 const s=image=>({image}),seq=(n,count=4)=>Array.from({length:count},(_,i)=>s(n+'-'+i));
 const base={optional:false,lite:'run',still:'first-frame'};
 const cycle=(sprites,frameMs=400,clock='wind')=>({kind:'cycle',frames:{sprites,frameMs,clock}});
@@ -25,7 +27,7 @@ const lantern={glyph:['..a..','.aaa.','abbba','abbba','abbba','aaaaa'],origin:[2
 const sleepers=[];for(const x0 of [282,372,466,560])for(const y of [374,398])for(let c=0;c<3;c++)sleepers.push([x0+c*22,y]);
 const pack={format:'firstmate.deck-setting',formatVersion:1,id:'ghost-ship',name:'Ghost ship',version:'1.0.0',requires:[],preview:'preview',images,
 copy:{pane:'Deck',tooltip:'Sail haunted waters aboard a spectral pirate galleon.',title:'Ghost ship',noun:'the ghost ship',starting:'Gathering the ghosts\u2026',aboard:'aboard',actor:{one:'ghost pirate',many:'ghost pirates'},zones:{rigging:'hauling the ghostly rigging',helm:'waiting at the wheel',bow:'watching from the figurehead',rest:'sleeping in the cabins'}},
-stage:{size:[800,520],fit:{top:-8,bottom:600,margin:.94},actorHeight:38,
+stage:{size:[800,520],fit:{top:-8,bottom:520,margin:.94},actorHeight:38,
 motion:{bob:{periodS:6,amplitude:{channel:'heave'},clock:'swell'},rock:{pivot:[400,340],degrees:{curve:[[0,.25],[1,.8]]},drift:{curve:[[0,.2],[1,.8]]},periodS:8,clock:'swell'}},
 tintByPhase:{dawn:'#CABACA',morning:'#CFDCD8',midday:'#CDDCD5',afternoon:'#D5CFBF',dusk:'#A4A2C4',night:'#C8FFE0'},
 backdrop:{sprite:s('ship')},parts:partList,pieces:[
@@ -53,7 +55,7 @@ fidgets:{working:{periodMs:1200,seedMs:719,keys:[{fromMs:0,dx:0,dy:0,pose:'haul-
 portals:{entry:{kind:'rise',at:[570,329],ms:1200},exits:{},byDeparture:{done:'plank',failed:'plank',closed:'plank',removed:'plank'},still:{fadeMs:600}},
 effects:{kraken:{size:[156,132],points:{anchor:[78,110],mouth:[78,83]},frames:Object.fromEntries(Array.from({length:8},(_,i)=>['pose-'+i,s('kraken-'+i)]))}},
 dayCycle:{phases:phases.map((id,i)=>({id,localMinute:[330,480,720,960,1110,1260][i]})),fadeMinutes:90,night:'night',fallback:'midday'},
-atmosphere:{table:[{at:0,wind:.6,water:.7,swell:.7,heave:1,mood:0,voyage:1},{at:.4,wind:1.2,water:1,swell:1,heave:2,mood:.05,voyage:1},{at:1,wind:2.5,water:1.8,swell:1.3,heave:3,mood:.72,voyage:1}],delivered:{wind:.6,water:.7,swell:.7,heave:1,mood:0,voyage:1},clocks:{wind:'wind',water:'water',swell:'swell',voyage:'voyage'}},
+atmosphere:{table:[{at:0,wind:.6,water:.7,sea:1,swell:.7,heave:1,mood:0,voyage:1},{at:.4,wind:1.2,water:1,sea:1.1,swell:1,heave:2,mood:.05,voyage:1},{at:1,wind:2.5,water:1.8,sea:1.25,swell:1.3,heave:3,mood:.72,voyage:1}],delivered:{wind:.6,water:.7,sea:1,swell:.7,heave:1,mood:0,voyage:1},clocks:{wind:'wind',water:'water',sea:'sea',swell:'swell',voyage:'voyage'}},
 attentionCarrier:{at:[700,459],size:[64,56],bubbleHeight:12,frames:seq('angler'),frameMs:320,loiter:{amplitude:[3,1],periodMs:5000},surface:{row:39,submergedTint:'#297D83',submergedAlpha:.5,ripple:{colour:'#81F2C5',shade:'#196B70',periodMs:1800,clock:'water'}}},
 ambience:[],palette:{fallbackFill:'#041D27',veil:'#081522',staleTint:'#809B99',staleAlpha:.5}};
 pack.zones.zones[0].posts[0].transit={path:[[298,290],[298,82]],speed:28,poses:['climb','haul-a'],stepMs:250,settled:'wait',front:'mast',needs:['ship','sail-screen']};
@@ -73,12 +75,12 @@ add(ambient('clouds','back',3,{kind:'drifters',space:'sky',clock:'wind',slots:3,
 add(ambient('lightning','back',2,{kind:'flash',frames:[{sprite:s('lightning'),ms:120,alpha:1},{sprite:s('lightning'),ms:160,alpha:.45}],size:[70,160],anchor:[35,0],under:'clouds',opacity:[[.7,0],[1,.6]],perMinute:[[.7,0],[1,6]]},{lite:'hide',still:'hide'}));
 add(ambient('coast','back',4,{kind:'phase-strip',top:103,span:[-4000,4800],frames:{sprites:[s('coast-midday')],frameMs:1000},byPhase:Object.fromEntries(phases.map(p=>[p,[s(p==='night'||p==='dusk'?'coast-night':'coast-midday')]])),drift:{pxPerSecond:1800/1200,clock:'voyage'}}));
 add(ambient('lighthouse-beam','back',4.1,{kind:'phase-strip',top:116,span:[-4000,4800],frames:{sprites:seq('beam'),frameMs:700,clock:'swell'},byPhase:Object.fromEntries(phases.map(p=>[p,p==='night'||p==='dusk'?seq('beam'):Array(4).fill(s('beam-clear'))])),drift:{pxPerSecond:1800/1200,clock:'voyage'}}));
-add(ambient('far-sea','back',5,{kind:'tile',frames:{sprites:seq('water-0-0'),frameMs:450,clock:'water'},origin:265,bands:[{slot:'back',fromRow:265}],drift:{pxPerSecond:1,clock:'water'},variants:[{id:'rough-far',frames:Array.from({length:4},(_,k)=>({image:'storm-water-0',rect:[k*3,0,384,64]})),blend:'crossfade',opacity:[[.25,0],[1,1]]}]}));
-add(ambient('mid-sea','back',6,{kind:'strip',frames:{sprites:seq('water-1-0'),frameMs:350,clock:'water'},top:326,span:[-4000,4800],drift:{pxPerSecond:2,clock:'water'},variants:[{id:'rough-mid',frames:Array.from({length:4},(_,k)=>({image:'storm-water-1',rect:[k*3,0,384,64]})),blend:'crossfade',opacity:[[.3,0],[1,1]]}]}));
-add(ambient('deep-water','front',1,{kind:'tile',frames:{sprites:[s('deep-water')],frameMs:1000},origin:450,bands:[{slot:'front',fromRow:450}],drift:{pxPerSecond:0}}));
-add(ambient('underwater-wreck','front',2,{...cycle([s('underwater')],1000),at:[140,490],anchor:[0,0]}));
-add(ambient('near-sea','front',3,{kind:'strip',frames:{sprites:seq('water-2-0'),frameMs:300,clock:'water'},top:436,span:[-4000,4800],drift:{pxPerSecond:3.5,clock:'water'},variants:[{id:'rough-near',frames:Array.from({length:4},(_,k)=>({image:'storm-water-2',rect:[k*3,0,384,64]})),blend:'crossfade',opacity:[[.25,0],[1,1]]}]}));
-for(const [i,x,y]of [[0,170,510],[1,350,530],[2,545,515],[3,640,545]])add(ambient('jellyfish-'+i,'front',4,{...cycle(seq('jelly-drift',8),600+i*80,'swell'),at:[x,y],anchor:[22,4]}));
+// Eight columns per commissioned atlas; rows hold successive animation frames.
+const seaFrames=(image,count=16,height=64)=>Array.from({length:count},(_,i)=>({image,rect:[(i%8)*384,Math.floor(i/8)*height,384,height]}));
+// Both bands share the exact origin, frame and drift: no boundary at the hull.
+add(ambient('sea-surface','back',2.5,{kind:'tile',frames:{sprites:seaFrames('sea-deep',8,96),frameMs:400,clock:'sea'},origin:265,bands:[{slot:'back',fromRow:265},{slot:'front',fromRow:448}],drift:{pxPerSecond:.6,clock:'sea'},variants:[{id:'rough-deep',frames:seaFrames('sea-storm-deep',8,96),blend:'crossfade',opacity:[[.25,0],[1,1]]}]}));
+for(const [id,slot,order,top,speed]of [['far','back',5,265,.4],['mid','back',6,326,.75],['near','front',3,428,1]])
+ add(ambient(id+'-sea',slot,order,{kind:'strip',frames:{sprites:seaFrames('sea-'+id),frameMs:200,clock:'sea'},top,span:[-4000,4800],drift:{pxPerSecond:speed,clock:'sea'},variants:[{id:'rough-'+id,frames:seaFrames('sea-storm-'+id),blend:'crossfade',opacity:[[.25,0],[1,1]]}]}));
 for(const [i,x,y]of [[0,220,456],[1,440,452],[2,650,454]])add(ambient('candle-'+i,'front',4,{...cycle(seq('candle'),380+i*70,'swell'),at:[x,y],anchor:[10,20]}));
 for(const [i,top,speed]of [[0,235,1.1],[1,435,2.2]])add(ambient('mist-'+i,i?'front':'back',i?5:7,{kind:'phase-strip',frames:{sprites:seq('fog'),frameMs:650,clock:'wind'},byPhase:Object.fromEntries(phases.map(p=>[p,p==='night'?seq('night-fog'):seq('fog')])),top,span:[-4000,4800],drift:{pxPerSecond:speed,clock:'wind'}}));
 add(ambient('storm-fog','front',9,{kind:'tile',frames:{sprites:Array(4).fill(s('rain-clear')),frameMs:750,clock:'wind'},origin:0,bands:[{slot:'front',fromRow:0}],drift:{pxPerSecond:.8,clock:'wind'},variants:[{id:'fog-thick',frames:Array(4).fill(s('storm-fog')),blend:'over',opacity:[[.35,0],[1,.35]]}]},{still:'hide'}));

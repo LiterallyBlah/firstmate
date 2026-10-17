@@ -1,5 +1,10 @@
 # Ghost ship
 
+The original commissioning record below is historical. The captain subsequently rejected the underwater
+cutaway and old water motion. The current correction and its external evidence are documented in
+[Surface and motion corrections](fixes.md); the historical cutaway/jellyfish acceptance claims below
+do not apply to the current pack.
+
 Fourth installed Deck setting, `ghost-ship`, displayed as **Ghost ship**. The shipped change is data and PNGs only, under `art/settings/ghost-ship/`. No engine changes or changes to the other three packs. Image payload: **902,142 bytes**, including the picker preview. All 26 required capabilities already exist. The final pack is built on the merged all-pane weather engine fix.
 
 The approved broadside galleon has eight spectral crew looks, four crew stations, 24 independent cabin sleeper targets, a mast transit behind the sail, mist arrival, and a bow spar departure into a skeletal kraken. The bottom-right anglerfish uses `carrier-surface@1`. The separate distant kraken, breaching ghost whale and passing spectral ship appear at peak weather. The haunted coast and its lighthouse beam share a 1,800-pixel strip and a constant 1,200-second voyage clock.
