@@ -15,7 +15,7 @@ or capabilities as incompatible, with a reason. The pane falls back to ship and 
 
 | Capability group | Version 1 vocabulary |
 | --- | --- |
-| Layout and workers | `stage`, `floor`, `zones`, `zone-appearance`, `post-transit`, `stable-posts`, `cast`, `pose-fidgets` |
+| Layout and workers | `stage`, `floor`, `zones`, `zone-appearance`, `post-transit`, `stable-posts`, `cast`, `cast-scale`, `pose-fidgets` |
 | Portals and effects | `rise`, `walk-in`, `sink`, `choreography` |
 | Stage motion and light | `phase-tint`, `bob`, `stage-rock`, `sway`, `cycle`, `flicker` |
 | Atmosphere layers | `backdrop-cycle`, `overlay`, `flash`, `drifters`, `flyby`, `tile`, `strip`, `phase-strip`, `variants` |
@@ -40,6 +40,15 @@ portals still use the cast. Geometry, depth, focus and hit testing follow the ac
 A failed optional image leaves a clickable badge/mark. Explicit `pack` overflow areas for such a zone
 may include non-spill floor; ordinary overflow still cannot enter it. Keep every handle in sight and in
 the fit, clear of active workers and other foreground pieces. The pack linter checks this at 24 workers.
+
+`cast-scale@1` adds optional `cast.scale`, a uniform factor from 1 to 3 (default 1), sampled nearest-neighbour.
+It scales walking, working, climbing and departing bodies about their feet, including split breathing poses.
+Atlas rectangles, feet anchors and cropped reveal rows stay in source pixels; drawing and interaction bounds
+apply the factor together. Badges retain their size and sit above the enlarged head. Zone appearances are
+stage furniture and keep their native size. Set `stage.actorHeight` to the enlarged body height plus the badge
+and gap. Recheck the floor margins, crowded posts, climb, hatch, plank/eater, replies and focus at every pane
+shape. Integer factors preserve an even source-pixel grid; fractional factors retain nearest sampling and
+share the pane's existing fractional fit, so device pixel widths can alternate without interpolation blur.
 
 ## Build and check
 

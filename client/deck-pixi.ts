@@ -55,7 +55,7 @@ import { availableLooks, laneOf, standing, type DeckCast } from "./deck-cast";
 import type { MotionPlan } from "./deck-ambient";
 import { clockOf, crewIntensity, deliveredWeather, levelAt, openingAtmosphere, shade, stepAtmosphere, weatherOf, type DeckAtmosphere } from "./deck-atmosphere";
 import { ASK_PAPER, ASK_SIZE, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
-import { applyCrew, createCrew, crewFigures, fading, figureStanding, portalEffects, stepCrew, stepDepartures, type Figure } from "./deck-crew";
+import { applyCrew, createCrew, crewFigures, fading, figureScale, figureStanding, portalEffects, stepCrew, stepDepartures, type Figure } from "./deck-crew";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
 import { askMarks, badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type AskMark, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
@@ -708,6 +708,7 @@ export async function startDeck(
       present.add(figure.key);
       const sprites = sailorSprites(figure);
       const posed = figureStanding(cast, figure);
+      const scale = figureScale(cast, figure);
       const height = posed.frame[3];
       const rows = Math.round(height * figure.reveal);
       sprites.root.visible = rows > 0;
@@ -729,13 +730,13 @@ export async function startDeck(
         // An out-breath: the body below the shoulders where it stands, the head and shoulders settled over it.
         // Both are placed by their top edge, in whole pixels: a fractional anchor could round the body a
         // device pixel away from where the whole sailor stands.
-        const top = figure.y - figure.row - feetY;
+        const top = figure.y - figure.row - feetY * scale;
         sprites.sprite.texture = textures.rows(figure.look, figure.pose, breathRows, height - breathRows);
         sprites.sprite.anchor.set(feetX / width, 0);
-        sprites.sprite.position.set(0, top + breathRows);
+        sprites.sprite.position.set(0, top + breathRows * scale);
         sprites.upper.texture = textures.rows(figure.look, figure.pose, 0, breathRows);
         sprites.upper.anchor.set(feetX / width, 0);
-        sprites.upper.position.set(0, top + figure.sink);
+        sprites.upper.position.set(0, top + figure.sink * scale);
       } else {
         sprites.sprite.texture = textures.pose(figure.look, figure.pose);
         stand(sprites.sprite, posed);
@@ -744,7 +745,7 @@ export async function startDeck(
       const bodyTint = figure.stale ? stage.palette.staleTint : 0xffffff;
       const tint = figure.layer === "effects" || drawnTint === 0xffffff ? bodyTint : shade(bodyTint, drawnTint);
       for (const part of [sprites.sprite, sprites.upper]) {
-        part.scale.set(figure.flip ? -1 : 1, 1);
+        part.scale.set(figure.flip ? -scale : scale, scale);
         part.tint = tint;
         part.alpha = (figure.stale ? stage.palette.staleAlpha : 1) * figure.alpha;
       }

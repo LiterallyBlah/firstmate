@@ -294,8 +294,9 @@ describe.each(packs)("the %s pack", (id) => {
         ...(manifest.portals.entry.kind === "walk-in" ? [manifest.portals.entry.from] : []),
         ...manifest.zones.zones.flatMap(z => z.posts.flatMap(p => p.transit?.path ?? []))];
       for (const at of routes) for (const poses of Object.values(manifest.cast.lanes)) for (const pose of Object.values(poses)) {
-        const reach = Math.max(pose.feet[0], pose.rect[2] - pose.feet[0]);
-        fits({ left: at[0] - reach - dx, right: at[0] + reach + dx, top: at[1] - pose.feet[1] - BADGE_SIZE.height - 3 - dy, bottom: at[1] + pose.rect[3] - pose.feet[1] + dy }, "crew route");
+        const scale = cast.scale;
+        const reach = Math.max(pose.feet[0], pose.rect[2] - pose.feet[0]) * scale;
+        fits({ left: at[0] - reach - dx, right: at[0] + reach + dx, top: at[1] - pose.feet[1] * scale - BADGE_SIZE.height - 3 - dy, bottom: at[1] + (pose.rect[3] - pose.feet[1]) * scale + dy }, "crew route");
       }
     });
 

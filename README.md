@@ -66,8 +66,11 @@ so the chosen model and the project's instructions matter.
 
 ## Deck: the crew as a scene
 
-The Deck turns live workers into sailors on a pixel-art ship. **Ship's deck** is the default;
-**Sakura coast** sails past a blossom-covered island. The **Scene** picker in Home and the Deck tab
+The Deck turns live workers into sailors on a pixel-art ship. **Pirate voyage** is the default;
+**Sakura coast**, **Sky pirates** and **Ghost ship** offer other voyages. Pirate voyage and Ghost ship
+use larger crew to match Sakura's crew-to-ship proportions; Sky pirates has a smaller increase.
+Sky pirates has eight crew looks, including an aviator, engineer, navigator, rigger, cook and quartermaster.
+The **Scene** picker in Home and the Deck tab
 saves one choice for the whole fleet, also available in settings.
 
 | Ship's deck · day | Sakura coast · day |

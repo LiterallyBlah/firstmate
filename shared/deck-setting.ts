@@ -36,6 +36,7 @@ export const ENGINE_CAPABILITIES = [
   "carrier-surface@1",
   "stable-posts@1",
   "cast@1",
+  "cast-scale@1",
   "pose-fidgets@1",
   "rise@1",
   "walk-in@1",
@@ -258,6 +259,8 @@ const Fidget = z.strictObject({
 });
 const Settled = z.strictObject({ pose: Id, mirror: z.enum(["facing", "seed", "none"]) });
 const Cast = z.strictObject({
+  /** Uniform nearest-neighbour size of cast sprites; source rectangles/crop rows stay in atlas pixels. */
+  scale: z.number().min(1).max(3).optional(),
   /** Pose frames, by lane and pose id. Every look is drawn with its lane's frames. */
   lanes: z.record(Id, z.record(Id, Standing)),
   /** The looks, in the order identities hash into; an `optional: false` look must draw. */
@@ -614,6 +617,7 @@ export function settingImageIds(manifest: SettingManifest): string[] {
 /** The capabilities a manifest uses: what its `requires` must say. */
 export function capabilitiesUsed(manifest: SettingManifest): string[] {
   const used = new Set<string>(["stage@1", "floor@1", "zones@1", "cast@1"]);
+  if (manifest.cast.scale !== undefined) used.add("cast-scale@1");
   if (manifest.zones.zones.some((zone) => zone.appearance !== undefined)) used.add("zone-appearance@1");
   if (manifest.zones.zones.some((zone) => zone.posts.some((post) => post.transit !== undefined))) used.add("post-transit@1");
   if (manifest.attentionCarrier !== undefined) used.add("attention-carrier@1");

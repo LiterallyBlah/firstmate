@@ -32,7 +32,8 @@
     "tile@1",
     "variants@1",
     "zone-appearance@1",
-    "zones@1"
+    "zones@1",
+    "cast-scale@1"
   ],
   "images": {
     "ship": {
@@ -994,6 +995,54 @@
         180
       ],
       "sha256": "6b81baf3253a2efc5ce825f02e05a3ee23cd7e3fef3455fcd9fe2ee29dd8b3de"
+    },
+    "crew-aviator": {
+      "path": "crew-aviator.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "586cc169e05ac052662e6c1bdc4e51d63d17810d1fc31d67f0a1df6a7bdbb522"
+    },
+    "crew-engineer": {
+      "path": "crew-engineer.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "2b5dd83300246858e008c897dae1c3a38691770c492648b497a4193fa50b267b"
+    },
+    "crew-navigator": {
+      "path": "crew-navigator.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "d2808ff05d036a220c56a96d03db37d7be3ab1f230d992b0c533c2451283ed27"
+    },
+    "crew-rigger": {
+      "path": "crew-rigger.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "bfaf15066d3f910a767baf4b3e2b99d766f18d2e7e512dfbbd7fde267136b4ef"
+    },
+    "crew-cook": {
+      "path": "crew-cook.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "8878bacdcf1bf0d799e0b36c6e16afe7a84e574fb77e0dc5b14357dbbd8c9d35"
+    },
+    "crew-quartermaster": {
+      "path": "crew-quartermaster.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "10cca543ccee7abcece412ec888370e3d01345be4ccfa0958ef69929ad464543"
     }
   },
   "preview": "preview",
@@ -1025,7 +1074,7 @@
       "bottom": 334,
       "margin": 0.94
     },
-    "actorHeight": 42,
+    "actorHeight": 46,
     "motion": {
       "bob": {
         "periodS": 5.6,
@@ -2670,6 +2719,42 @@
         "image": "crew-russet",
         "lane": "russet",
         "optional": false
+      },
+      {
+        "id": "aviator",
+        "image": "crew-aviator",
+        "lane": "navy",
+        "optional": false
+      },
+      {
+        "id": "engineer",
+        "image": "crew-engineer",
+        "lane": "navy",
+        "optional": false
+      },
+      {
+        "id": "navigator",
+        "image": "crew-navigator",
+        "lane": "navy",
+        "optional": false
+      },
+      {
+        "id": "rigger",
+        "image": "crew-rigger",
+        "lane": "navy",
+        "optional": false
+      },
+      {
+        "id": "cook",
+        "image": "crew-cook",
+        "lane": "navy",
+        "optional": false
+      },
+      {
+        "id": "quartermaster",
+        "image": "crew-quartermaster",
+        "lane": "navy",
+        "optional": false
       }
     ],
     "roles": {
@@ -2770,7 +2855,8 @@
       "periodMs": 3000,
       "inMs": 1600,
       "seedMs": 31
-    }
+    },
+    "scale": 1.125
   },
   "portals": {
     "entry": {
@@ -2864,7 +2950,7 @@
             "moving": true
           },
           {
-            "ms": 180,
+            "ms": 270,
             "pose": "fall",
             "reveal": [
               1,
@@ -2874,7 +2960,7 @@
             "moving": false
           },
           {
-            "ms": 550,
+            "ms": 825,
             "to": {
               "mark": "mouth"
             },
@@ -2889,7 +2975,7 @@
             "event": "swallow"
           },
           {
-            "ms": 450,
+            "ms": 675,
             "pose": "fall",
             "layer": "effects",
             "moving": false,
@@ -2905,9 +2991,9 @@
                 "frame": "surface",
                 "at": {
                   "event": "impact",
-                  "plusMs": 80
+                  "plusMs": 120
                 },
-                "ms": 220,
+                "ms": 330,
                 "place": {
                   "mark": "cloud",
                   "alignX": "mouth"
@@ -2917,9 +3003,9 @@
                 "frame": "rise",
                 "at": {
                   "event": "impact",
-                  "plusMs": 300
+                  "plusMs": 450
                 },
-                "ms": 250,
+                "ms": 375,
                 "place": {
                   "mark": "cloud",
                   "alignX": "mouth"
@@ -2929,9 +3015,9 @@
                 "frame": "swallow",
                 "at": {
                   "event": "impact",
-                  "plusMs": 550
+                  "plusMs": 825
                 },
-                "ms": 380,
+                "ms": 570,
                 "place": {
                   "mark": "cloud",
                   "alignX": "mouth"
@@ -2941,9 +3027,9 @@
                 "frame": "sink",
                 "at": {
                   "event": "impact",
-                  "plusMs": 930
+                  "plusMs": 1395
                 },
-                "ms": 250,
+                "ms": 375,
                 "place": {
                   "mark": "cloud",
                   "alignX": "mouth"
@@ -2961,7 +3047,7 @@
                   "event": "impact",
                   "plusMs": 0
                 },
-                "ms": 160,
+                "ms": 240,
                 "place": {
                   "mark": "cloud"
                 }
@@ -2970,9 +3056,9 @@
                 "frame": "burst",
                 "at": {
                   "event": "impact",
-                  "plusMs": 160
+                  "plusMs": 240
                 },
-                "ms": 160,
+                "ms": 240,
                 "place": {
                   "mark": "cloud"
                 }
@@ -2981,9 +3067,9 @@
                 "frame": "ring",
                 "at": {
                   "event": "impact",
-                  "plusMs": 320
+                  "plusMs": 480
                 },
-                "ms": 160,
+                "ms": 240,
                 "place": {
                   "mark": "cloud"
                 }
@@ -2992,9 +3078,9 @@
                 "frame": "mist",
                 "at": {
                   "event": "impact",
-                  "plusMs": 480
+                  "plusMs": 720
                 },
-                "ms": 160,
+                "ms": 240,
                 "place": {
                   "mark": "cloud"
                 }

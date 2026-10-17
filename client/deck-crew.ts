@@ -514,6 +514,11 @@ export function figureStanding(cast: DeckCast, figure: Figure) {
   return figure.appearance ?? standing(cast, figure.lane, figure.pose);
 }
 
+/** Window/hammock handles belong to the stage furniture, not the walking cast. */
+export function figureScale(cast: DeckCast, figure: Figure): number {
+  return figure.appearance === undefined ? cast.scale : 1;
+}
+
 /** The crew as the renderer draws it now. `still` drops the idle motion (reduced motion). */
 export function crewFigures(crew: Crew, nowMs: number, options: { still: boolean }): Figure[] {
   const figures: Figure[] = [];
