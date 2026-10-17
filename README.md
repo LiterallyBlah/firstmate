@@ -221,6 +221,11 @@ the mate; isolated inspections themselves use model calls.
 
 [Writing script watches](templates/watches/README.md) · [Managed routing and reports](docs/watch-routing/README.md)
 
+The opt-in `launch-metrics.mjs` template silently measures new local and remote crew every 15 minutes
+and preserves dated backlog snapshots. It is shipped without automatic installation. Its
+[installation and report instructions](templates/watches/README.md#launch-metricsmjs-opt-in) cover
+the 14-day manual baseline, comparison periods, and unknowns where Paseo does not expose evidence.
+
 ## Remote hosts
 
 Saved Paseo desktop hosts sync to the daemon so the first mate can coordinate remote crew through

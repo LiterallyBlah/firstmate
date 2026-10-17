@@ -40,6 +40,7 @@ export const TEMPLATES = {
   watchesReadme: "watches/README.md",
   watchPr: "watches/pr-watch",
   watchRemote: "watches/remote-watch",
+  watchLaunchMetrics: "watches/launch-metrics.mjs",
   crewModeChosen: "parts/crew-mode-chosen.md",
   crewModeOpen: "parts/crew-mode-open.md",
   crewProviderChosen: "parts/crew-provider-chosen.md",

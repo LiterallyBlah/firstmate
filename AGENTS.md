@@ -1008,6 +1008,18 @@ status line, and `(hold: …)` for anything waiting on the captain, which the ca
 
 ## Watches run on the plugin's own clock
 
+`templates/watches/launch-metrics.mjs` is an opt-in template, registered in `TEMPLATES` but deliberately
+absent from `BUILT_IN_WATCHES`: installation into a home is a separate approved step. It runs silently
+every 15 minutes, baselines each host on its first successful listing, appends versioned launch
+observations to `data/metrics/launches.jsonl`, and snapshots changed backlog bytes under
+`recall/backlog/`. Its `--report` mode is read-only and groups explicit periods by locality. The lead
+lookup mirrors `dataPath`/`role.mjs` current-before-legacy config precedence and verifies the home;
+unreadable identity stays unknown. CLI-unexposed branches and remote receipt causes/retry counts also
+stay unknown. Do not infer them from a requested branch or count workspace dispatches as worker
+retries. `server/launch-metrics.test.ts` exercises public CLI projections, baseline/deduplication,
+config precedence, snapshots, local/remote observations and reports. See the watch README for the
+schema, installation and recovery limits. No existing watch or daemon lifecycle changes for this.
+
 A watch is an executable script in the home's `watches/` folder that declares a crontab schedule in a
 comment near its top (`server/watch-files.ts` says exactly which files count, and `templates/watches/README.md`
 is the captain's documentation, env vars included). `WatchRunner` (`server/watches.ts`) ticks on every
