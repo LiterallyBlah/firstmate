@@ -14,12 +14,13 @@ describe("precip@1 pack contract", () => {
     expect(compiled.elements.some((element) => element.id === "test-rain")).toBe(false);
     expect(compiled.elements.some((element) => element.id === "sky")).toBe(true);
   });
-  it.each(["range", "duplicate-kind", "drop-ref", "crop", "wind", "expression", "many-emitters", "capability"])("rejects %s", (problem) => {
+  it.each(["range", "density", "duplicate-kind", "drop-ref", "crop", "wind", "expression", "many-emitters", "capability"])("rejects %s", (problem) => {
     const manifest = precipManifest();
     const element = manifest.ambience.at(-1)!;
     const rain = element.behaviour;
     if (rain.kind !== "precip") throw new Error("fixture");
     if (problem === "range") rain.kinds[0]!.speed = [200, 50];
+    if (problem === "density") rain.kinds[0]!.density = 1001;
     if (problem === "duplicate-kind") rain.kinds[1]!.id = rain.kinds[0]!.id;
     if (problem === "drop-ref") rain.kinds[0]!.drops = ["missing"];
     if (problem === "crop") rain.drops[0]!.sprite.rect = [95, 0, 6, 10];

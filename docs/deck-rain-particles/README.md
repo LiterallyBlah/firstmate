@@ -8,8 +8,9 @@ The original tile and strip renderers and frozen Ship fixture remain supported u
 Pirate voyage has cool blue-grey rain; Sakura coast has finer silver rain; Sky pirates has faster,
 strongly diagonal blue-lavender rain; Ghost ship has slower green-white rain drifting left.
 The original onset intensities are 0.55, 0.55, 0.60 and 0.50 respectively. Their peak opacity curves
-also retain the previous values. Only rain entries, their images and the required capability changed
-in the packs; the Ghost ship and Sakura water work is retained.
+are calibrated against the old tiles so ordinary rain reads clearly and downpour is heavier. Only rain
+entries, their images and the required capability changed in the packs; the Ghost ship and Sakura water
+work is retained.
 
 Each fall samples its own position, speed, length, opacity and angle jitter. Kind ranges interpolate
 with smoothstep over fleet intensity; position integrates velocity without seeking an animation.
@@ -17,7 +18,7 @@ Gentle gusts combine two slow waves. Far/mid/near drops occupy three drawing lay
 The authored tip, visible length and angle register each padded atlas cell. Rotation applies only
 the difference from the authored angle, and velocity follows the resulting downward streak.
 
-The pool scales with pane CSS area, one slot per 6,000 pixels and at most 600, including optional
+The pool scales with pane CSS area, one slot per 1,000 pixels and at most 1,500, including optional
 splashes. DPR and camera zoom cannot increase that cap. A resize covers the entire visible world,
 including negative sky rows. One emitter per pack prevents multiple emitters bypassing the cap.
 Lite holds a deterministic peak field at time zero and caches it as one texture, refreshed on layout
@@ -25,6 +26,12 @@ changes; live intensity changes only the parent's opacity, just as the old first
 Still and reduced motion suppress rain. Hidden panes retain the existing paused deck clock.
 Optional splash frames appear on authored stage rows when drops cross them; the four atlases do not
 provide splashes. Missing splash art omits splashes; a missing drop depth omits that rain element.
+
+All three depths draw in the last front scenery slot, over the ship, sails and water. Far drops retain
+enough size to stay legible. Ghost ship uses stronger per-drop and weather opacity with its unchanged
+atlas. Drizzle stays sparse through intensity 2/3, rain reaches its authored density at 5/6 and downpour
+at 1. Matched tile/particle comparisons use the first attainable intensity above onset (three working
+crew plus waiting crew), 5/6 and 1, at both wide and tall pane sizes.
 
 ## Reproduce the checks
 
@@ -38,11 +45,16 @@ node docs/ship-deck-canvas/compile.mjs
 node docs/deck-settings/gate.mjs
 node docs/deck-rain-particles/render.mjs
 node docs/deck-rain-particles/bench.mjs
+$env:RAIN_COMPARE='1'; node docs/deck-rain-particles/render.mjs
 ```
 
 The render scripts use the repository's compiled-plugin/RPC harness, Edge and a fixed session clock.
 They record drizzle/rain/downpour at four/five/six working crew in wide and tall panes: 24 stills and
-four-second, 10 fps clips. `RAIN_SMOKE=1` captures one downpour still. The encoder uses Playwright's
+four-second, 10 fps clips. `RAIN_COMPARE=1` captures 24 matched pairs and an HTML comparison index;
+the old rain entries and PNGs come from pinned `origin/main`, on the same engine and scene with the
+same weather and clock. Metadata records visible drop bounds and their front/depth containers.
+`RAIN_STILLS=1` skips clips. `RAIN_SMOKE=1` captures one still, optionally using `SETTING`,
+`RAIN_KIND=rain` and `RAIN_ASPECT=tall`. The encoder uses Playwright's
 FFmpeg in `.local/browsers/ffmpeg-*/`, or `FFMPEG` can name another executable.
 
 The benchmark isolates each scene's rain at 3840×2160 on the same engine and scale. It alternates

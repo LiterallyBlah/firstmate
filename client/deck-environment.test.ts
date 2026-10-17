@@ -547,7 +547,7 @@ describe("precipitation in the scenery renderer", () => {
     const visible = { left: -200, right: 800, top: -300, bottom: 300 };
     scenery.layout(visible, { width: 3840, height: 2160 });
     scenery.draw(0, full, 720, weather);
-    expect(rain.children.map((layer) => layer.children.length)).toEqual([300, 200, 100]);
+    expect(rain.children.map((layer) => layer.children.length)).toEqual([750, 500, 250]);
     const drop = one(rain, "test-rain:drop:0") as FakeSprite;
     const texture = drop.texture;
     const first = { ...drop.position };
@@ -566,7 +566,7 @@ describe("precipitation in the scenery renderer", () => {
     expect(rain.cacheUpdates).toBe(0);
     scenery.layout(visible, { width: 640, height: 480 });
     scenery.draw(40, lite, 720, weather);
-    expect(rain.children.reduce((sum, layer) => sum + layer.children.length, 0)).toBe(52);
+    expect(rain.children.reduce((sum, layer) => sum + layer.children.length, 0)).toBe(308);
     expect(rain.cacheUpdates).toBe(1);
     scenery.draw(41, { ...full, level: "still" }, 720, { ...weather, intensity: null });
     expect(rain.visible).toBe(false);

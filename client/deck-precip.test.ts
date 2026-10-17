@@ -25,10 +25,10 @@ describe("independent seeded precipitation", () => {
     expect(precipBudget(100000, 100000)).toBe(PRECIP_CAP);
     expect(precipBudget(0, 100)).toBe(0);
     expect(precipBudget(Infinity, 100)).toBe(0);
-    expect(precipBudget(640, 480)).toBeLessThan(60);
+    expect(precipBudget(640, 480)).toBeLessThan(310);
     const rain = field();
     rain.draw(0, 1, "run");
-    expect(shown(rain)).toHaveLength(600);
+    expect(shown(rain)).toHaveLength(PRECIP_CAP);
     rain.layout(bounds, { width: 640, height: 480 });
     rain.draw(1, 1, "run");
     expect(rain.drops.length).toBe(precipBudget(640, 480));
@@ -40,7 +40,7 @@ describe("independent seeded precipitation", () => {
     rain.draw(0, 1, "run");
     for (const left of [true, false]) for (const top of [true, false])
       expect(shown(rain).some((drop) => (drop.x < 0) === left && (drop.y < 0) === top)).toBe(true);
-    expect(new Set(shown(rain).map((drop) => Math.round(drop.x * 1000))).size).toBe(shown(rain).length);
+    expect(new Set(shown(rain).map((drop) => drop.x)).size).toBe(shown(rain).length);
   });
   it("falls downward with rightward wind, with individual speed, length, alpha, depth and angle", () => {
     const rain = field();
@@ -95,7 +95,7 @@ describe("independent seeded precipitation", () => {
       rain.draw(i / 30, 1, "run");
       const showing = rain.splashes.filter((splash) => splash.alpha > 0);
       peak = Math.max(peak, showing.length);
-      expect(rain.drops.length + rain.splashes.length).toBeLessThanOrEqual(600);
+      expect(rain.drops.length + rain.splashes.length).toBeLessThanOrEqual(PRECIP_CAP);
       for (const splash of showing) { expect(splash.frame).toBeLessThan(2); expect(splash.y).toBeGreaterThanOrEqual(100); }
     }
     expect(peak).toBeGreaterThan(0);

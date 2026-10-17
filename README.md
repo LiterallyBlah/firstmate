@@ -92,7 +92,8 @@ saves one choice for the whole fleet, also available in settings.
   Ship's deck grows stormier as the fleet gets busy. Reduced motion keeps the scene calm, and hidden
   canvases pause. Sky pirates adds a rightward dragon flight through the open sky at peak storm.
   Each scene has its own particle rain: scattered drops at several depths, from drizzle to downpour
-  as the fleet gets busy, with gently shifting wind. Lite mode freezes the rain; reduced motion hides it.
+  as the fleet gets busy, with gently shifting wind and storm streaks over the hull, sails and water.
+  Lite mode freezes the rain; reduced motion hides it.
   Ghost ship keeps its haunted sea at the surface, with a half-submerged anglerfish, falling storm
   rain and a crow's nest that moves rigidly with the mast. Its sea follows daylight and darkens
   gradually below the near waves.

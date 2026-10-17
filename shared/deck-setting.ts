@@ -404,7 +404,7 @@ const Precip = z.strictObject({
     .refine((wind) => Math.abs(wind.angle) + wind.jitter + wind.gust <= 75, "precipitation must fall downward"),
   /** Kinds blend over fleet intensity. Density is drops per million pane CSS pixels. */
   kinds: z.array(z.strictObject({
-    id: Id, at: z.number().min(0).max(1), density: z.number().min(0).max(200),
+    id: Id, at: z.number().min(0).max(1), density: z.number().min(0).max(1000),
     speed: Range(1, 1000), length: Range(1, 128), opacity: Range(0, 1), depth: Range(0.1, 1.5),
     drops: z.array(Id).min(1).max(32),
   })).min(1).max(8).refine((kinds) => kinds.every((kind, i) => i === 0 || kind.at > kinds[i - 1]!.at), "precipitation kinds must rise in intensity"),
@@ -694,7 +694,7 @@ export function settingProblems(manifest: SettingManifest): string[] {
   const problems: string[] = [];
   // One emitter keeps the engine's interval cap global. More need a shared scheduler capability first.
   if (manifest.ambience.filter((element) => element.behaviour.kind === "flash").length > 1) problems.push("a setting supports at most one flash element");
-  if (manifest.ambience.filter((element) => element.behaviour.kind === "precip").length > 1) problems.push("a setting supports at most one precip element (600 particles total)");
+  if (manifest.ambience.filter((element) => element.behaviour.kind === "precip").length > 1) problems.push("a setting supports at most one precip element (1500 particles total)");
   const missing = (what: string, id: string, where: string) => problems.push(`${where} names ${what} "${id}", which the setting does not have`);
   const unique = (what: string, ids: readonly string[]) => {
     const seen = new Set<string>();

@@ -10,11 +10,11 @@ import { opacityAt } from "./deck-variants";
 
 export type Precip = Behaviour<"precip">;
 type Kind = Precip["kinds"][number];
-export const PRECIP_CAP = 600;
-/** One slot per 6000 CSS pixels, at most 600 even on a 4K pane; DPR does not multiply the work. */
+export const PRECIP_CAP = 1500;
+/** One slot per 1000 CSS pixels, at most 1500 even on a 4K pane; DPR does not multiply the work. */
 export function precipBudget(width: number, height: number): number {
   const area = width * height;
-  return Number.isFinite(area) && width > 0 && height > 0 ? Math.min(PRECIP_CAP, Math.ceil(area / 6000)) : 0;
+  return Number.isFinite(area) && width > 0 && height > 0 ? Math.min(PRECIP_CAP, Math.ceil(area / 1000)) : 0;
 }
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 const range = (r: readonly [number, number], t: number) => mix(r[0], r[1], t);

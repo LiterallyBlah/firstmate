@@ -10,6 +10,9 @@ describe.each([["ship", .55], ["japanese-ship", .55], ["sky-airship", .6], ["gho
     const root = new URL(`../art/settings/${id}/`, import.meta.url);
     const pack = SettingManifestSchema.parse(JSON.parse(readFileSync(new URL("setting.json", root), "utf8")));
     const rain = pack.ambience.find((element) => element.behaviour.kind === "precip")!;
+    // Every depth, including near rain, stays ahead of the hull and all front water/fog layers.
+    expect(rain.slot).toBe("front");
+    expect(rain.order).toBeGreaterThan(Math.max(...pack.ambience.filter((element) => element !== rain && element.slot === "front").map((element) => element.order)));
     expect([rain.lite, rain.still]).toEqual(["freeze", "hide"]);
     expect(pack.requires).toContain("precip@1");
     expect(Object.keys(pack.images).filter((key) => /^rain-[0-3]$/.test(key))).toEqual([]);
@@ -38,5 +41,25 @@ describe.each([["ship", .55], ["japanese-ship", .55], ["sky-airship", .6], ["gho
       expect(Math.sign(drop.x - before[i]!.x)).toBe(Math.sign(definition.wind.angle));
       expect((drop.x - before[i]!.x) / (drop.y - before[i]!.y)).toBeCloseTo(Math.tan(drop.angle * Math.PI / 180));
     });
+  });
+  it.each([[1574, 735], [694, 1275]])("keeps rain visible across sky, ship and foreground at %sx%s", (width, height) => {
+    const pack = SettingManifestSchema.parse(JSON.parse(readFileSync(new URL(`../art/settings/${id}/setting.json`, import.meta.url), "utf8")));
+    const definition = pack.ambience.find((element) => element.behaviour.kind === "precip")!.behaviour;
+    if (definition.kind !== "precip") throw new Error("particle rain");
+    const bounds = { left: -width / 6, right: width / 6, top: -height / 6, bottom: height / 6 };
+    const exposure = (intensity: number) => {
+      const field = createPrecip(definition, id, 123);
+      field.layout(bounds, { width, height });
+      for (let frame = 0; frame <= 600; frame++) field.draw(frame / 30, intensity, "run");
+      const visible = field.drops.filter(drop => drop.alpha > .1 && drop.x >= bounds.left && drop.x <= bounds.right && drop.y >= bounds.top && drop.y <= bounds.bottom);
+      return { field, visible, ink: visible.reduce((sum, drop) => sum + drop.alpha * drop.length, 0) };
+    };
+    const drizzle = exposure(2 / 3), rain = exposure(5 / 6), peak = exposure(1);
+    expect(rain.ink).toBeGreaterThan(drizzle.ink * 3);
+    expect(peak.ink).toBeGreaterThan(rain.ink * 1.5);
+    for (let band = 0; band < 3; band++) {
+      const near = peak.visible.filter(drop => definition.drops[drop.sprite]!.depth === "near" && Math.min(2, Math.floor((drop.y - bounds.top) / (bounds.bottom - bounds.top) * 3)) === band);
+      expect(near.length).toBeGreaterThanOrEqual(3);
+    }
   });
 });

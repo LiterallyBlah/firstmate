@@ -15,7 +15,7 @@ export const precipFixture: Precip = {
   kinds: [
     { id: "drizzle", at: 0.55, density: 24, speed: [60, 95], length: [4, 8], opacity: [0.25, 0.5], depth: [0.4, 1], drops: ["far", "mid", "near"] },
     { id: "rain", at: 0.78, density: 48, speed: [95, 150], length: [8, 15], opacity: [0.4, 0.8], depth: [0.4, 1.2], drops: ["far", "mid", "near"] },
-    { id: "downpour", at: 1, density: 90, speed: [160, 260], length: [13, 24], opacity: [0.6, 1], depth: [0.45, 1.4], drops: ["far", "mid", "near"] },
+    { id: "downpour", at: 1, density: 300, speed: [160, 260], length: [13, 24], opacity: [0.6, 1], depth: [0.45, 1.4], drops: ["far", "mid", "near"] },
   ],
 };
 export const rainTile = readFileSync(new URL("./fixtures/precip/rain-tile.png", import.meta.url));
