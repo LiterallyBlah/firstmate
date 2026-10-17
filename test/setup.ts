@@ -8,6 +8,7 @@ import { afterAll } from "vitest";
 // Never let tests inherit the daemon's opt-in flag or restore its live home.
 const home = mkdtempSync(join(tmpdir(), "firstmate-tests-"));
 process.env.FIRSTMATE_RECEIPT_JOURNAL = "0";
+process.env.FIRSTMATE_ATTENTION_OBSERVE = "0";
 process.env.PASEO_HOME = home;
 
 // Receipt-specific tests may opt in and use their own temporary homes. Everyone

@@ -158,6 +158,7 @@ export class RemoteService {
   constructor(
     private readonly execute = runPaseo,
     private readonly taskQueries: (host: RemoteHost) => Promise<string[]> = async () => [],
+    private readonly observedPoll?: (snapshot: RemoteSnapshot) => void,
   ) { this.ready = this.load(); }
   private async load() {
     await mkdir(pluginDir(), { recursive: true });
@@ -376,6 +377,7 @@ export class RemoteService {
         if (index >= 0 && this.hosts.includes(host)) this.snapshot.hosts[index] = { ...next, clockSkew: this.snapshot.hosts[index]!.clockSkew ?? null };
       });
       await this.publish();
+      try { this.observedPoll?.(this.snapshot); } catch { console.error("[firstmate] attention observer could not queue a remote poll"); }
     } finally { this.polling = false; }
   }
   /**

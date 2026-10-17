@@ -252,6 +252,22 @@ reload. It follows the configured fork/source, and reports unavailable when it c
 
 ## Development
 
+Attention timing can be observed without changing notifications or using a model. Set the daemon
+environment setting `FIRSTMATE_ATTENTION_OBSERVE=1` when starting the plugin (off by default).
+It appends metadata to the configured home's `data/metrics/attention.jsonl` for 14 days from that
+log's first observation, including across restarts. It never writes `launches.jsonl`.
+
+Generate the read-only JSON report from the plugin checkout, with Node 24 or newer:
+
+```sh
+npm run report:attention -- /absolute/path/to/home/data/metrics/attention.jsonl
+```
+
+The report separates permission waits, fleet-state residence, later lead-turn associations and
+bounds on explicitly targeted lead actions. Missing evidence stays unpaired. Remote observations
+carry polling and clock-skew uncertainty; a cancelled turn's preceding event is an association,
+not a cause. [Observation coverage and limitations](docs/attention-observation.md).
+
 ```sh
 npm ci
 npm run typecheck

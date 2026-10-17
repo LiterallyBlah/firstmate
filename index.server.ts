@@ -15,6 +15,7 @@ import {
 import { registerCrewSeen } from "./server/crew-seen";
 import { pageTimeline, registerReceiptObservers } from "./server/receipt-observers";
 import { newAction, receiptJournal } from "./server/receipts";
+import { AttentionObserver } from "./server/attention";
 import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
 import { listDeckSettings, readDeckEngine, readDeckSetting } from "./server/deck-settings";
@@ -95,6 +96,7 @@ export default function contribute(server: PluginServerContext) {
   server.handle(requestUpdate, ({ token }, { paseo }) => updates.request(token, (text, beforeSend) => askMate(paseo, { text }, beforeSend)));
   migrateLegacyFiles();
   const reports = new ReportCache();
+  const attention = new AttentionObserver(readFirstmateConfig);
   const steers = new CaptainSteers();
   // The scripts in the home's watches/ folder, run on their schedules; see server/watches.ts.
   const watches = startWatches(server, readFirstmateConfig, async (paseo, config) => {
@@ -106,6 +108,7 @@ export default function contribute(server: PluginServerContext) {
   // The backlog names the tasks whose remote worker the poll should look up by label; see server/remote-cards.ts.
   const remotes = new RemoteService(undefined, async (host) =>
     remoteTaskQueries(await readBacklog(resolveHome(await readFirstmateConfig())), host, (await remotes.read()).localServerId),
+    snapshot => attention.catalog(snapshot),
   );
   remotes.start();
   server.handle(readRemotes, () => remotes.read());
@@ -129,6 +132,8 @@ export default function contribute(server: PluginServerContext) {
   });
 
   server.handle(loadFleetRpc, async (_input, { paseo }) => {
+    attention.remember(paseo);
+    const attentionSampleStart = Date.now();
     watches.remember(paseo);
     void flushMateNotes(paseo).catch((error: unknown) => console.error("[firstmate] crew notes await delivery:", error));
     const fleet = await loadFleet(
@@ -141,6 +146,7 @@ export default function contribute(server: PluginServerContext) {
     // A first mate launched before the plugin named its home gets its name the first time the board looks.
     const workspaceId = fleet.mate?.workspaceId ?? null;
     if (workspaceId !== null && fleet.mateInHome) nameHomeOnce(paseo, workspaceId, fleet.home);
+    attention.fleet(fleet, attentionSampleStart);
     return fleet;
   });
   server.handle(enableAgentTools, async (_input, { paseo }) => {
@@ -287,7 +293,9 @@ export default function contribute(server: PluginServerContext) {
   // A crewmate whose finish the first mate has been told about leaves Paseo's "Ready to review"; see server/crew-seen.ts.
   const unregisterCrewSeen = registerCrewSeen(server, readFirstmateConfig);
   // The first mate's tool calls and its crew's turn ends, for the receipt journal; idle while it is off.
-  const unregisterReceipts = registerReceiptObservers(server, readFirstmateConfig);
+  const unregisterReceipts = registerReceiptObservers(server, readFirstmateConfig, attention.ended);
+  const unregisterAttention = attention.register(server, (paseo, config) =>
+    loadFleet(paseo, config, reports, async () => [], () => remotes.read()));
 
   // A charter change reaches a home already in use on the next reload, rather
   // than waiting for the next launch. Only a home a launch has prepared: this
@@ -300,6 +308,7 @@ export default function contribute(server: PluginServerContext) {
     unregisterRelay();
     unregisterCrewSeen();
     unregisterReceipts();
+    unregisterAttention();
     watches.stop();
     remotes.stop();
   };
