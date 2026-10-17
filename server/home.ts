@@ -48,6 +48,7 @@ import { seedWatches } from "./watch-files";
 import { remoteQueue } from "./remotes";
 import { paseoHome } from "./data-dir";
 import { newAction, observedWrite, type RecordOrigin } from "./receipts";
+import { renderLaunchTool } from "./launch-tool";
 
 /** The home's records: written from their templates when missing, and the captain's or the first mate's after. */
 const RECORDS: readonly TemplatePath[] = [
@@ -60,6 +61,10 @@ const RECORDS: readonly TemplatePath[] = [
   TEMPLATES.icon,
   TEMPLATES.remoteHosts,
   TEMPLATES.remoteFollow,
+  TEMPLATES.artReady,
+  TEMPLATES.land,
+  TEMPLATES.deployGo,
+  TEMPLATES.panelReviewer,
 ];
 
 async function exists(path: string): Promise<boolean> {
@@ -97,6 +102,7 @@ export async function prepareHome(home: string, config: FirstmateConfig, origin:
   await mkdir(join(home, "data"), { recursive: true });
   await mkdir(join(home, "projects"), { recursive: true });
   await mkdir(join(home, "tools"), { recursive: true });
+  await mkdir(join(home, "data", "templates"), { recursive: true });
   const charter = await syncCharter(home, undefined, origin);
   await homeWrite(home, TEMPLATES.agents, origin,
     await renderCharter({ home, crewProvider: config.crewProvider, crewModeId: config.crewModeId }, charter.template));
@@ -112,6 +118,7 @@ export async function prepareHome(home: string, config: FirstmateConfig, origin:
     paseoHomeJson: JSON.stringify(paseoHome()), homeJson: JSON.stringify(home),
     configSchemaJson: JSON.stringify(z.toJSONSchema(FirstmateConfigSchema, { io: "input" })),
   }));
+  await homeWrite(home, TEMPLATES.launchHelper, origin, await renderLaunchTool(home));
   await seedWatches(home, origin);
 }
 

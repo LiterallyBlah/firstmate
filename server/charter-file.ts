@@ -25,6 +25,7 @@ import { join } from "node:path";
 
 import { TEMPLATES, fill, readTemplate, withoutNotes } from "./templates";
 import { newAction, observedWrite, type RecordOrigin } from "./receipts";
+import { pluginCharterTemplate } from "./charter";
 
 /** A write of the charter's copies, for the receipt journal's record ledger; just the write while it is off. */
 function charterWrite(home: string, path: string, origin: RecordOrigin, content: string): Promise<void> {
@@ -49,7 +50,7 @@ export interface PluginCharter {
 }
 
 async function pluginTemplates(): Promise<PluginCharter> {
-  const [charter, charterNew] = await Promise.all([readTemplate(TEMPLATES.charter), readTemplate(TEMPLATES.charterNew)]);
+  const [charter, charterNew] = await Promise.all([pluginCharterTemplate(), readTemplate(TEMPLATES.charterNew)]);
   return { charter, charterNew };
 }
 

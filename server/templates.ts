@@ -71,6 +71,16 @@ export const TEMPLATES = {
   boardReviewBrief: "messages/board-review-brief.md",
   watchHelper: "tools/watch.mjs",
   roleHelper: "tools/role.mjs",
+  launchHelper: "tools/launch.mjs",
+  briefIntro: "parts/brief-intro.md",
+  briefRules: "parts/brief-rules.md",
+  briefStatus: "parts/brief-status.md",
+  briefTemplate: "parts/brief-template.md",
+  briefGuide: "parts/brief-guide.md",
+  artReady: "data/templates/art-ready.md",
+  land: "data/templates/land.md",
+  deployGo: "data/templates/deploy-go.md",
+  panelReviewer: "data/templates/panel-reviewer.md",
 } as const;
 
 export type TemplatePath = (typeof TEMPLATES)[keyof typeof TEMPLATES];

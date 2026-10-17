@@ -15,7 +15,8 @@ import {
   type PluginCharter,
 } from "./charter-file";
 import { prepareHome } from "./home";
-import { TEMPLATES, fill, readTemplate } from "./templates";
+import { fill } from "./templates";
+import { pluginCharterTemplate } from "./charter";
 
 const tempDirs: string[] = [];
 afterEach(async () => {
@@ -138,11 +139,12 @@ describe("prepareHome and the charter", () => {
     expect(agents).toMatch(/^<!-- Written by the Paseo FirstMate plugin from data\/charter\.md/);
     expect(agents).toContain(`Your home is \`${home}\``);
     expect(agents).not.toContain("firstmate-charter");
-    expect(fingerprint(await read(home, CHARTER_FILE))).toBe(fingerprint(await readTemplate(TEMPLATES.charter)));
+    expect(fingerprint(await read(home, CHARTER_FILE))).toBe(fingerprint(await pluginCharterTemplate()));
+    expect(await read(home, CHARTER_FILE)).not.toContain("{{briefTemplate}}");
     // Pinned so a charter change is deliberate: every untouched home follows it, and every edited one is
     // offered it as charter.new.md. e0b749cb695c5df6 was the charter as it moved into templates/.
-    // Local crew must use MCP dispatch so Paseo arms their finish notifications.
-    expect(fingerprint(await readTemplate(TEMPLATES.charter))).toBe("e083616c5514e9d0");
+    // Optional launch helper; shared brief parts are expanded before fingerprinting the editable copy.
+    expect(fingerprint(await pluginCharterTemplate())).toBe("742f63705002c74c");
 
     await editCopy(home, "# My first mate\n\n<!-- a note to myself -->\nYour home is {{home}}; keep it tidy.");
     await prepareHome(home, FirstmateConfigSchema.parse({}));

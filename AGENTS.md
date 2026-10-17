@@ -900,6 +900,19 @@ drop out of the first mate's view. Agents get `PASEO_CLI`, `PASEO_HOME` and thei
 
 ## The templates
 
+`templates/tools/launch.mjs` is the optional new-task helper, rendered by
+`server/launch-tool.ts` during `prepareHome`. The first mate still creates local
+workspaces/agents through its own MCP calls; the helper launches remote work only
+when explicitly invoked by the current role, through the existing `remote.mjs`.
+It never retries, archives or relabels. Attempt records are under
+`data/<id>/launches/`; `status` is read-only and watches abandoned labels for late
+workers. Backlog writes are best-effort and retain the exact recovery line: a
+concurrent write between compare and rename can still be overwritten undetected.
+`parts/brief-*.md` supply both the charter's brief and assembled briefs; message
+templates under `data/templates/` are seeded once and remain editable. Local
+branch/ancestry checks use read-only Git on Paseo's reported workspace; unsupported
+remote checks stay unknown. See `docs/launch-tool.md` and `server/launch-tool.test.ts`.
+
 **No text the plugin writes into the home, or says to the first mate, lives in code.** `templates/`
 holds, in three places:
 

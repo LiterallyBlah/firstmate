@@ -63,6 +63,14 @@ function paseoCli(): Promise<string | null> {
   return cliLookup;
 }
 
+/** A home helper needs the native launch tuple, never a serialized copy of daemon credentials. */
+export async function homeCliLaunch() {
+  const cli = await paseoCli();
+  // An unavailable optional helper must not prevent preparing the first mate's home.
+  try { return cli === null ? null : await paseoLaunch(cli, [], {}); }
+  catch { return null; }
+}
+
 async function spawnCli(cli: string, args: string[], timeoutMs: number, env = process.env, signal?: AbortSignal): Promise<CliResult> {
   const launch = await paseoLaunch(cli, args, env);
   return new Promise((resolve, reject) => {

@@ -23,6 +23,7 @@
 import { CREW_LABELS } from "../shared/fleet";
 import { SHARED_TERMINAL_NAME } from "../shared/native-tools";
 import { TEMPLATES, fill, readTemplate, withoutNotes, type TemplatePath } from "./templates";
+import { briefParts } from "./launch-tool";
 
 export interface CharterValues {
   /** Absolute path of the first mate's home. */
@@ -35,7 +36,17 @@ export interface CharterValues {
 
 /** The plugin's own charter, as the home's copy starts: notes left out, placeholders unfilled. */
 export async function pluginCharter(): Promise<string> {
-  return withoutNotes(await readTemplate(TEMPLATES.charter));
+  return withoutNotes(await pluginCharterTemplate());
+}
+
+/** Expand shared brief parts BEFORE fingerprinting/copying, so edited charters keep their own words. */
+export async function pluginCharterTemplate(): Promise<string> {
+  const brief = await briefParts();
+  const briefTemplate = await part(TEMPLATES.briefGuide, {
+    intro: brief.intro, status: brief.status,
+    rules: fill(brief.rules, { id: "<id>", baseBranch: "<default branch>", delivery: "<mode-specific delivery, from §4>" }),
+  });
+  return fill(await readTemplate(TEMPLATES.charter), { briefTemplate });
 }
 
 /** A part from `templates/parts/`, notes left out and its own placeholders filled. */
