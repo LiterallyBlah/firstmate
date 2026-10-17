@@ -1,0 +1,15 @@
+
+> @gpambrozio/paseo-firstmate@0.4.0 lint:deck-packs
+> vitest run shared/deck-setting.test.ts test/deck-settings.test.ts test/office-draft.test.ts --maxWorkers=1 --testTimeout=20000
+
+
+ RUN  v5.0.3 C:/Users/micha/.paseo/worktrees/23z5sbxl/sky-crew-edge
+
+
+ Test Files  3 passed (3)
+      Tests  69 passed (69)
+   Start at  22:09:55
+   Duration  13.06s (tests 84%, transform 8%, import 7%, setup 1%)
+
+    Isolate  3 workers spawned · ~1.90s startup each (spawn + environment, per file)
+             at least ~3.81s faster with isolate: false — reuses workers across files instead of one per file

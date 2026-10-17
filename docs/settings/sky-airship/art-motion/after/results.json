@@ -1,0 +1,37 @@
+{
+  "results": [
+    {
+      "aspect": "wide",
+      "level": "low",
+      "count": 4,
+      "intensity": 0.67,
+      "frames": 64,
+      "frameMs": 40
+    },
+    {
+      "aspect": "wide",
+      "level": "high",
+      "count": 6,
+      "intensity": 1,
+      "frames": 64,
+      "frameMs": 40
+    },
+    {
+      "aspect": "tall",
+      "level": "low",
+      "count": 4,
+      "intensity": 0.67,
+      "frames": 64,
+      "frameMs": 40
+    },
+    {
+      "aspect": "tall",
+      "level": "high",
+      "count": 6,
+      "intensity": 1,
+      "frames": 64,
+      "frameMs": 40
+    }
+  ],
+  "errors": []
+}

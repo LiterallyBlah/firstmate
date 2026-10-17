@@ -1,0 +1,19 @@
+{
+  "results": [
+    {
+      "aspect": "wide",
+      "intensity": 1,
+      "frames": 240,
+      "frameMs": 160,
+      "seconds": 38.4
+    },
+    {
+      "aspect": "tall",
+      "intensity": 1,
+      "frames": 240,
+      "frameMs": 160,
+      "seconds": 38.4
+    }
+  ],
+  "errors": []
+}

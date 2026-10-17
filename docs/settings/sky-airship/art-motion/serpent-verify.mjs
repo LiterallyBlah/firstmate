@@ -1,0 +1,9 @@
+import assert from 'node:assert/strict';import fs from 'node:fs';import {createRequire} from 'node:module';import {resolve} from 'node:path';import {pathToFileURL} from 'node:url';
+const req=createRequire(resolve('docs/board-list/package.json')),outfile=resolve('.generated/serpent-engine.mjs');
+await req('esbuild').build({stdin:{contents:"export {elementMotion} from './client/deck-ambience';export {variantBlend} from './client/deck-variants';export {foamSegments} from './client/deck-environment';",resolveDir:process.cwd()},outfile,bundle:true,platform:'node',format:'esm',logLevel:'silent'});
+const {elementMotion,variantBlend,foamSegments}=await import(pathToFileURL(outfile));const m=JSON.parse(fs.readFileSync('art/settings/sky-airship/setting.json')),e=m.ambience.find(e=>e.id==='sky-serpent');
+assert.equal(e.behaviour.kind,'strip');assert.equal(e.slot,'back');for(const level of ['lite','still'])assert.equal(elementMotion(e,{level}),'hide');assert.equal(elementMotion(e,{level:'full'}),'run');
+for(const intensity of [null,0,.5,.82])assert.equal(variantBlend(e.behaviour.variants,intensity).layers[0],0);assert.equal(variantBlend(e.behaviour.variants,1).layers[0],.95);
+// A marked source pixel moves right exactly with the strip offset, including repeat wrap.
+const positions=[];for(const lap of [900,1000,1100,1200,1300,1400,1500,1600]){const segments=foamSegments({left:-1200,right:1680},2048,lap),xs=segments.filter(s=>1024>=s.from&&1024<s.from+s.width).map(s=>s.x+1024-s.from);positions.push({lap,xs});assert.ok(xs.includes(lap-1024));}
+fs.writeFileSync('docs/settings/sky-airship/art-motion/serpent-policy.json',JSON.stringify({hidden:['lite','still','reduced motion (still)','intensity <= 0.82','null intensity'],peakOpacity:.95,route:{top:-8,bottom:36,slot:'back',order:6.1,bodyWidth:78,repeat:2048,peakPixelsPerSecond:59.4},positions},null,2)+'\n');console.log('Storm gate, lite/still hiding, rightward travel and wrap passed');

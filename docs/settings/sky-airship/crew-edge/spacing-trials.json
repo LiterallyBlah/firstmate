@@ -1,0 +1,2294 @@
+[
+  {
+    "name": "bow-spaced",
+    "posts": [
+      {
+        "id": "bow-0",
+        "at": [
+          112,
+          226
+        ],
+        "facing": "left"
+      },
+      {
+        "id": "bow-1",
+        "at": [
+          144,
+          232
+        ],
+        "facing": "left"
+      },
+      {
+        "id": "bow-2",
+        "at": [
+          176,
+          224
+        ],
+        "facing": "left"
+      }
+    ],
+    "overflow": {
+      "kind": "beside",
+      "spacing": [
+        28,
+        39
+      ]
+    },
+    "state": "blocked",
+    "resolved": [
+      {
+        "key": "Crew 0",
+        "x": 112,
+        "y": 226,
+        "box": {
+          "left": 98,
+          "top": 187,
+          "right": 126,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 1",
+        "x": 144,
+        "y": 232,
+        "box": {
+          "left": 130,
+          "top": 193,
+          "right": 158,
+          "bottom": 232
+        }
+      },
+      {
+        "key": "Crew 10",
+        "x": 176,
+        "y": 224,
+        "box": {
+          "left": 162,
+          "top": 185,
+          "right": 190,
+          "bottom": 224
+        }
+      },
+      {
+        "key": "Crew 11",
+        "x": 204,
+        "y": 226,
+        "box": {
+          "left": 190,
+          "top": 187,
+          "right": 218,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 12",
+        "x": 232,
+        "y": 232,
+        "box": {
+          "left": 218,
+          "top": 193,
+          "right": 246,
+          "bottom": 232
+        }
+      },
+      {
+        "key": "Crew 13",
+        "x": 260,
+        "y": 232,
+        "box": {
+          "left": 246,
+          "top": 193,
+          "right": 274,
+          "bottom": 232
+        }
+      },
+      {
+        "key": "Crew 14",
+        "x": 288,
+        "y": 232,
+        "box": {
+          "left": 274,
+          "top": 193,
+          "right": 302,
+          "bottom": 232
+        }
+      },
+      {
+        "key": "Crew 15",
+        "x": 316,
+        "y": 232,
+        "box": {
+          "left": 302,
+          "top": 193,
+          "right": 330,
+          "bottom": 232
+        }
+      },
+      {
+        "key": "Crew 16",
+        "x": 344,
+        "y": 224,
+        "box": {
+          "left": 330,
+          "top": 185,
+          "right": 358,
+          "bottom": 224
+        }
+      },
+      {
+        "key": "Crew 17",
+        "x": 372,
+        "y": 226,
+        "box": {
+          "left": 358,
+          "top": 187,
+          "right": 386,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 18",
+        "x": 400,
+        "y": 207,
+        "box": {
+          "left": 386,
+          "top": 168,
+          "right": 414,
+          "bottom": 207
+        }
+      },
+      {
+        "key": "Crew 19",
+        "x": 176,
+        "y": 224,
+        "box": {
+          "left": 162,
+          "top": 185,
+          "right": 190,
+          "bottom": 224
+        }
+      },
+      {
+        "key": "Crew 2",
+        "x": 112,
+        "y": 226,
+        "box": {
+          "left": 98,
+          "top": 187,
+          "right": 126,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 20",
+        "x": 144,
+        "y": 232,
+        "box": {
+          "left": 130,
+          "top": 193,
+          "right": 158,
+          "bottom": 232
+        }
+      },
+      {
+        "key": "Crew 21",
+        "x": 176,
+        "y": 224,
+        "box": {
+          "left": 162,
+          "top": 185,
+          "right": 190,
+          "bottom": 224
+        }
+      },
+      {
+        "key": "Crew 22",
+        "x": 112,
+        "y": 226,
+        "box": {
+          "left": 98,
+          "top": 187,
+          "right": 126,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 23",
+        "x": 144,
+        "y": 232,
+        "box": {
+          "left": 130,
+          "top": 193,
+          "right": 158,
+          "bottom": 232
+        }
+      },
+      {
+        "key": "Crew 3",
+        "x": 176,
+        "y": 224,
+        "box": {
+          "left": 162,
+          "top": 185,
+          "right": 190,
+          "bottom": 224
+        }
+      },
+      {
+        "key": "Crew 4",
+        "x": 112,
+        "y": 226,
+        "box": {
+          "left": 98,
+          "top": 187,
+          "right": 126,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 5",
+        "x": 144,
+        "y": 232,
+        "box": {
+          "left": 130,
+          "top": 193,
+          "right": 158,
+          "bottom": 232
+        }
+      },
+      {
+        "key": "Crew 6",
+        "x": 176,
+        "y": 224,
+        "box": {
+          "left": 162,
+          "top": 185,
+          "right": 190,
+          "bottom": 224
+        }
+      },
+      {
+        "key": "Crew 7",
+        "x": 112,
+        "y": 226,
+        "box": {
+          "left": 98,
+          "top": 187,
+          "right": 126,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 8",
+        "x": 144,
+        "y": 232,
+        "box": {
+          "left": 130,
+          "top": 193,
+          "right": 158,
+          "bottom": 232
+        }
+      },
+      {
+        "key": "Crew 9",
+        "x": 176,
+        "y": 224,
+        "box": {
+          "left": 162,
+          "top": 185,
+          "right": 190,
+          "bottom": 224
+        }
+      }
+    ],
+    "overlaps": [
+      [
+        {
+          "key": "Crew 0",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 2",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 0",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 22",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 0",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 4",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 0",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 7",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 1",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        },
+        {
+          "key": "Crew 20",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 1",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        },
+        {
+          "key": "Crew 23",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 1",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        },
+        {
+          "key": "Crew 5",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 1",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        },
+        {
+          "key": "Crew 8",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 10",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 19",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 10",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 21",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 10",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 3",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 10",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 6",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 10",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 9",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 19",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 21",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 19",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 3",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 19",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 6",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 19",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 9",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 2",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 22",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 2",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 4",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 2",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 7",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 20",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        },
+        {
+          "key": "Crew 23",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 20",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        },
+        {
+          "key": "Crew 5",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 20",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        },
+        {
+          "key": "Crew 8",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 21",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 3",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 21",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 6",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 21",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 9",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 22",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 4",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 22",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 7",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 23",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        },
+        {
+          "key": "Crew 5",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 23",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        },
+        {
+          "key": "Crew 8",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 3",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 6",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 3",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 9",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 4",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 7",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 5",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        },
+        {
+          "key": "Crew 8",
+          "x": 144,
+          "y": 232,
+          "box": {
+            "left": 130,
+            "top": 193,
+            "right": 158,
+            "bottom": 232
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 6",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        },
+        {
+          "key": "Crew 9",
+          "x": 176,
+          "y": 224,
+          "box": {
+            "left": 162,
+            "top": 185,
+            "right": 190,
+            "bottom": 224
+          }
+        }
+      ]
+    ],
+    "uniquePositions": 11
+  },
+  {
+    "name": "full-interior-spread",
+    "posts": [
+      {
+        "id": "bow-0",
+        "at": [
+          112,
+          226
+        ],
+        "facing": "left"
+      },
+      {
+        "id": "bow-1",
+        "at": [
+          304,
+          234
+        ],
+        "facing": "left"
+      },
+      {
+        "id": "bow-2",
+        "at": [
+          416,
+          205
+        ],
+        "facing": "left"
+      }
+    ],
+    "overflow": {
+      "kind": "beside",
+      "spacing": [
+        28,
+        39
+      ]
+    },
+    "state": "blocked",
+    "resolved": [
+      {
+        "key": "Crew 0",
+        "x": 112,
+        "y": 226,
+        "box": {
+          "left": 98,
+          "top": 187,
+          "right": 126,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 1",
+        "x": 304,
+        "y": 234,
+        "box": {
+          "left": 290,
+          "top": 195,
+          "right": 318,
+          "bottom": 234
+        }
+      },
+      {
+        "key": "Crew 10",
+        "x": 416,
+        "y": 205,
+        "box": {
+          "left": 402,
+          "top": 166,
+          "right": 430,
+          "bottom": 205
+        }
+      },
+      {
+        "key": "Crew 11",
+        "x": 140,
+        "y": 226,
+        "box": {
+          "left": 126,
+          "top": 187,
+          "right": 154,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 12",
+        "x": 276,
+        "y": 234,
+        "box": {
+          "left": 262,
+          "top": 195,
+          "right": 290,
+          "bottom": 234
+        }
+      },
+      {
+        "key": "Crew 13",
+        "x": 388,
+        "y": 205,
+        "box": {
+          "left": 374,
+          "top": 166,
+          "right": 402,
+          "bottom": 205
+        }
+      },
+      {
+        "key": "Crew 14",
+        "x": 168,
+        "y": 226,
+        "box": {
+          "left": 154,
+          "top": 187,
+          "right": 182,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 15",
+        "x": 332,
+        "y": 234,
+        "box": {
+          "left": 318,
+          "top": 195,
+          "right": 346,
+          "bottom": 234
+        }
+      },
+      {
+        "key": "Crew 16",
+        "x": 360,
+        "y": 221,
+        "box": {
+          "left": 346,
+          "top": 182,
+          "right": 374,
+          "bottom": 221
+        }
+      },
+      {
+        "key": "Crew 17",
+        "x": 196,
+        "y": 226,
+        "box": {
+          "left": 182,
+          "top": 187,
+          "right": 210,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 18",
+        "x": 248,
+        "y": 234,
+        "box": {
+          "left": 234,
+          "top": 195,
+          "right": 262,
+          "bottom": 234
+        }
+      },
+      {
+        "key": "Crew 19",
+        "x": 416,
+        "y": 205,
+        "box": {
+          "left": 402,
+          "top": 166,
+          "right": 430,
+          "bottom": 205
+        }
+      },
+      {
+        "key": "Crew 2",
+        "x": 112,
+        "y": 226,
+        "box": {
+          "left": 98,
+          "top": 187,
+          "right": 126,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 20",
+        "x": 304,
+        "y": 234,
+        "box": {
+          "left": 290,
+          "top": 195,
+          "right": 318,
+          "bottom": 234
+        }
+      },
+      {
+        "key": "Crew 21",
+        "x": 416,
+        "y": 205,
+        "box": {
+          "left": 402,
+          "top": 166,
+          "right": 430,
+          "bottom": 205
+        }
+      },
+      {
+        "key": "Crew 22",
+        "x": 112,
+        "y": 226,
+        "box": {
+          "left": 98,
+          "top": 187,
+          "right": 126,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 23",
+        "x": 304,
+        "y": 234,
+        "box": {
+          "left": 290,
+          "top": 195,
+          "right": 318,
+          "bottom": 234
+        }
+      },
+      {
+        "key": "Crew 3",
+        "x": 416,
+        "y": 205,
+        "box": {
+          "left": 402,
+          "top": 166,
+          "right": 430,
+          "bottom": 205
+        }
+      },
+      {
+        "key": "Crew 4",
+        "x": 112,
+        "y": 226,
+        "box": {
+          "left": 98,
+          "top": 187,
+          "right": 126,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 5",
+        "x": 304,
+        "y": 234,
+        "box": {
+          "left": 290,
+          "top": 195,
+          "right": 318,
+          "bottom": 234
+        }
+      },
+      {
+        "key": "Crew 6",
+        "x": 416,
+        "y": 205,
+        "box": {
+          "left": 402,
+          "top": 166,
+          "right": 430,
+          "bottom": 205
+        }
+      },
+      {
+        "key": "Crew 7",
+        "x": 112,
+        "y": 226,
+        "box": {
+          "left": 98,
+          "top": 187,
+          "right": 126,
+          "bottom": 226
+        }
+      },
+      {
+        "key": "Crew 8",
+        "x": 304,
+        "y": 234,
+        "box": {
+          "left": 290,
+          "top": 195,
+          "right": 318,
+          "bottom": 234
+        }
+      },
+      {
+        "key": "Crew 9",
+        "x": 416,
+        "y": 205,
+        "box": {
+          "left": 402,
+          "top": 166,
+          "right": 430,
+          "bottom": 205
+        }
+      }
+    ],
+    "overlaps": [
+      [
+        {
+          "key": "Crew 0",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 2",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 0",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 22",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 0",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 4",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 0",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 7",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 1",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        },
+        {
+          "key": "Crew 20",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 1",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        },
+        {
+          "key": "Crew 23",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 1",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        },
+        {
+          "key": "Crew 5",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 1",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        },
+        {
+          "key": "Crew 8",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 10",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 19",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 10",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 21",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 10",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 3",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 10",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 6",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 10",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 9",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 19",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 21",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 19",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 3",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 19",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 6",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 19",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 9",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 2",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 22",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 2",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 4",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 2",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 7",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 20",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        },
+        {
+          "key": "Crew 23",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 20",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        },
+        {
+          "key": "Crew 5",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 20",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        },
+        {
+          "key": "Crew 8",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 21",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 3",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 21",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 6",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 21",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 9",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 22",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 4",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 22",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 7",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 23",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        },
+        {
+          "key": "Crew 5",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 23",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        },
+        {
+          "key": "Crew 8",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 3",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 6",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 3",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 9",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 4",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        },
+        {
+          "key": "Crew 7",
+          "x": 112,
+          "y": 226,
+          "box": {
+            "left": 98,
+            "top": 187,
+            "right": 126,
+            "bottom": 226
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 5",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        },
+        {
+          "key": "Crew 8",
+          "x": 304,
+          "y": 234,
+          "box": {
+            "left": 290,
+            "top": 195,
+            "right": 318,
+            "bottom": 234
+          }
+        }
+      ],
+      [
+        {
+          "key": "Crew 6",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        },
+        {
+          "key": "Crew 9",
+          "x": 416,
+          "y": 205,
+          "box": {
+            "left": 402,
+            "top": 166,
+            "right": 430,
+            "bottom": 205
+          }
+        }
+      ]
+    ],
+    "uniquePositions": 11
+  }
+]
