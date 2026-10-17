@@ -125,7 +125,7 @@ describe("the settings the daemon serves", () => {
     expect(ship?.preview).toMatch(/^iVBORw0KGgo/);
     // Small enough to send whole: the bundle carries none of it.
     expect(ship!.bytes).toBeGreaterThan(200_000);
-    // Eight complete crew sheets and the wider sea field remain well below the engine's 1 MB cap.
+    // Crew sheets and the wider sea field remain below the engine's image budget.
     expect(ship!.bytes).toBeLessThan(PACK_BYTES_MAX);
   });
 
@@ -189,13 +189,22 @@ describe("the settings the daemon serves", () => {
     }
   });
 
-  it("refuses a pack that would serve more than it may", async () => {
+  it.each([PACK_BYTES_MAX - 1, PACK_BYTES_MAX, PACK_BYTES_MAX + 1])("enforces the exact image budget at %i bytes", async (bytes) => {
     const dir = pluginWith({ heavy: (manifest) => manifest });
     try {
-      // The atlas, padded past the cap with bytes after its end: still a PNG, too big to send.
-      const atlas = join(dir, SETTINGS_DIR, "heavy", Object.values(shipJson().images)[0]!.path);
-      writeFileSync(atlas, Buffer.concat([readFileSync(atlas), Buffer.alloc(PACK_BYTES_MAX)]));
-      await expect(readDeckSetting("heavy", async () => dir)).rejects.toThrow(`at most ${PACK_BYTES_MAX}`);
+      const folder = join(dir, SETTINGS_DIR, "heavy");
+      const files = Object.values(shipJson().images).map((image) => join(folder, image.path));
+      const originalBytes = files.reduce((sum, file) => sum + readFileSync(file).length, 0);
+      const atlas = files[0]!;
+      writeFileSync(atlas, Buffer.concat([readFileSync(atlas), Buffer.alloc(bytes - originalBytes)]));
+      if (bytes > PACK_BYTES_MAX) {
+        await expect(readDeckSetting("heavy", async () => dir)).rejects.toThrow(`serves ${bytes} bytes of images; at most ${PACK_BYTES_MAX}`);
+        expect((await listDeckSettings(async () => dir))[0]).toMatchObject({ compatible: false });
+      } else {
+        const pack = await readDeckSetting("heavy", async () => dir);
+        expect(Object.values(pack.images).reduce((sum, image) => sum + Buffer.from(image, "base64").length, 0)).toBe(bytes);
+        expect((await listDeckSettings(async () => dir))[0]).toMatchObject({ compatible: true, bytes });
+      }
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

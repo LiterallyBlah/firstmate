@@ -17,6 +17,7 @@ import { describe, expect, it } from "vitest";
 
 import { ENGINE_FORMAT_VERSION, SettingManifestSchema, capabilitiesUsed, settingImageIds, type SettingManifest } from "../shared/deck-setting";
 import { PACK_BYTES_MAX, SETTING_MANIFEST, SETTINGS_DIR } from "../server/deck-settings";
+import { packBudgetWarning } from "./deck-pack-budget";
 import { areaAt, clearLine, findPath, inRects, walkable, type Point } from "../client/deck-geometry";
 import { compileStage, type ZoneAppearance } from "../client/deck-stage";
 import { pieceDepths } from "../client/deck-parts";
@@ -115,6 +116,8 @@ describe.each(packs)("the %s pack", (id) => {
 
   it("is small enough to send whole", () => {
     const bytes = Object.values(manifest.images).reduce((sum, declared) => sum + statSync(join(folder, declared.path)).size, 0);
+    const warning = packBudgetWarning(id, bytes);
+    if (warning !== null) console.warn(warning);
     expect(bytes).toBeLessThanOrEqual(PACK_BYTES_MAX);
   });
 
