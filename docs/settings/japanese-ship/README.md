@@ -1,5 +1,9 @@
 # Sakura coast
 
+The layered turquoise sea now uses 24 registered poses per loop, with the six
+approved originals retained every fourth pose. The 1920 ms water-clock loop,
+scroll speeds, depth and colours are unchanged. See [water](water/README.md).
+
 The storm umibozu now emerges through the scene's own sea. Its existing atlas is
 split into an upper body and a submerged piece covered by the opaque sea backdrop,
 removing the boxed baked-in foam without new art. Both pieces retain their world

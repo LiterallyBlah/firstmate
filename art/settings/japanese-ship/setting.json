@@ -366,68 +366,68 @@
       "sha256": "e78d72c555e32895387cb2b0137fa0d838f3b962e3e668d9ff3a0d45d6c7cd72"
     },
     "bay-far-midday": {
-      "path": "bay-far-midday.png",
+      "path": "bay-far-midday-ib.png",
       "size": [
-        1536,
-        32
+        1024,
+        192
       ],
-      "sha256": "6dc7c0e7bd9932f79a384af4dcbbd21fb6993c577b50d00822dd3b463d8ac20a"
+      "sha256": "708ce8448e80a234d5082ea647abdedf91fdd2159bc6e43f78f4fcbf94b69c7d"
     },
     "bay-far-dusk": {
-      "path": "bay-far-dusk.png",
+      "path": "bay-far-dusk-ib.png",
       "size": [
-        1536,
-        32
+        1024,
+        192
       ],
-      "sha256": "9e7f746ffc9d33a3716d8901fd430d7d32e73563e25bae4e690d91317e494cea"
+      "sha256": "33ace1c251ba321a7266d3626c995c00851661c6f5708205d80619eb6f3620d6"
     },
     "bay-far-night": {
-      "path": "bay-far-night.png",
+      "path": "bay-far-night-ib.png",
       "size": [
-        1536,
-        32
+        1024,
+        192
       ],
-      "sha256": "221b8a77fba024c906b8ea90f00e3a03c9f8b5d9691232b9a61a6f7e0074f9c6"
+      "sha256": "b04cb4ce39ddb391290a12501e1365d1f85f492b59fe1c7d02b000a0a193d045"
     },
     "bay-mid-midday": {
-      "path": "bay-mid-midday.png",
+      "path": "bay-mid-midday-ib.png",
       "size": [
-        1536,
-        64
+        1024,
+        384
       ],
-      "sha256": "fe9baacb8a0fee88f631ac35013cea45e87980efaedda5db307d9b5eecfd8a0f"
+      "sha256": "4b67afc37c222c7e4d0700171cd42d412603ec1baa303ed044ca327c02ea4c01"
     },
     "bay-mid-dusk": {
-      "path": "bay-mid-dusk.png",
+      "path": "bay-mid-dusk-ib.png",
       "size": [
-        1536,
-        64
+        1024,
+        384
       ],
-      "sha256": "671bca918875365aa7d3f3196c37b1e6cd81e8bda46007b304309971a761fc9d"
+      "sha256": "8b46491fa2dd72d63d96cf77c92cfe920dc49d2c705144837e20bb1fc19417ec"
     },
     "bay-mid-night": {
-      "path": "bay-mid-night.png",
+      "path": "bay-mid-night-ib.png",
       "size": [
-        1536,
-        64
+        1024,
+        384
       ],
-      "sha256": "ee66c5f0bc20b3b768e46f0ea2b6ca999c2bfd113c6218e4a0e9d20d1266c1e2"
+      "sha256": "23b79aa705d3eb3d8585f9c2e729e2d13989ecf477e5b2f9556306fff78fe7a7"
     },
     "bay-near": {
-      "path": "bay-near.png",
+      "path": "bay-near-ib.png",
       "size": [
-        2304,
-        96
+        1536,
+        576
       ],
-      "sha256": "f1b53f512bc701c96bbe96483bc0588a89512363e798fe4e0b96989d54e45f45"
+      "sha256": "98c89f24b9c15274d6fd2a091e6e37bc482de9bd6a1b5c7eb5462de304919b8e"
     },
     "bay-near-storm": {
-      "path": "bay-near-storm.png",
+      "path": "bay-near-storm-ib.png",
       "size": [
-        2304,
-        96
+        1536,
+        576
       ],
-      "sha256": "f58fa2f4149e3fc1ceb7dc410f129d92f0b2b16420fd13fca0d07ba0dffe1040"
+      "sha256": "8e5a50236ff8946932cb32ed9cc9a7f2b9cd078a87bbe744d2b86ea4b7e65461"
     },
     "bay-stars": {
       "path": "bay-stars.png",
@@ -4022,8 +4022,8 @@
             {
               "image": "bay-far-midday",
               "rect": [
-                1024,
                 0,
+                32,
                 256,
                 32
               ]
@@ -4031,14 +4031,176 @@
             {
               "image": "bay-far-midday",
               "rect": [
-                1280,
+                256,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
                 0,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                160,
                 256,
                 32
               ]
             }
           ],
-          "frameMs": 320,
+          "frameMs": 80,
           "clock": "water"
         },
         "byPhase": {
@@ -4082,8 +4244,8 @@
             {
               "image": "bay-far-midday",
               "rect": [
-                1024,
                 0,
+                32,
                 256,
                 32
               ]
@@ -4091,8 +4253,170 @@
             {
               "image": "bay-far-midday",
               "rect": [
-                1280,
+                256,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
                 0,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                160,
                 256,
                 32
               ]
@@ -4138,8 +4462,8 @@
             {
               "image": "bay-far-dusk",
               "rect": [
-                1024,
                 0,
+                32,
                 256,
                 32
               ]
@@ -4147,8 +4471,170 @@
             {
               "image": "bay-far-dusk",
               "rect": [
-                1280,
+                256,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
                 0,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                0,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                0,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                0,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                160,
                 256,
                 32
               ]
@@ -4194,8 +4680,8 @@
             {
               "image": "bay-far-night",
               "rect": [
-                1024,
                 0,
+                32,
                 256,
                 32
               ]
@@ -4203,8 +4689,170 @@
             {
               "image": "bay-far-night",
               "rect": [
-                1280,
+                256,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                512,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                768,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
                 0,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                256,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                512,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                768,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                0,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                256,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                512,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                768,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                0,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                256,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                512,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                768,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                0,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                256,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                512,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                768,
+                160,
                 256,
                 32
               ]
@@ -4250,8 +4898,8 @@
             {
               "image": "bay-far-dusk",
               "rect": [
-                1024,
                 0,
+                32,
                 256,
                 32
               ]
@@ -4259,8 +4907,170 @@
             {
               "image": "bay-far-dusk",
               "rect": [
-                1280,
+                256,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
                 0,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                0,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                0,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                0,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                160,
                 256,
                 32
               ]
@@ -4306,8 +5116,8 @@
             {
               "image": "bay-far-midday",
               "rect": [
-                1024,
                 0,
+                32,
                 256,
                 32
               ]
@@ -4315,8 +5125,170 @@
             {
               "image": "bay-far-midday",
               "rect": [
-                1280,
+                256,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
                 0,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                160,
                 256,
                 32
               ]
@@ -4362,8 +5334,8 @@
             {
               "image": "bay-far-midday",
               "rect": [
-                1024,
                 0,
+                32,
                 256,
                 32
               ]
@@ -4371,8 +5343,170 @@
             {
               "image": "bay-far-midday",
               "rect": [
-                1280,
+                256,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                32,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
                 0,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                64,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                96,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                128,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                160,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                160,
                 256,
                 32
               ]
@@ -4439,8 +5573,8 @@
             {
               "image": "bay-mid-midday",
               "rect": [
-                1024,
                 0,
+                64,
                 256,
                 64
               ]
@@ -4448,14 +5582,176 @@
             {
               "image": "bay-mid-midday",
               "rect": [
-                1280,
+                256,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
                 0,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                320,
                 256,
                 64
               ]
             }
           ],
-          "frameMs": 320,
+          "frameMs": 80,
           "clock": "water"
         },
         "byPhase": {
@@ -4499,8 +5795,8 @@
             {
               "image": "bay-mid-midday",
               "rect": [
-                1024,
                 0,
+                64,
                 256,
                 64
               ]
@@ -4508,8 +5804,170 @@
             {
               "image": "bay-mid-midday",
               "rect": [
-                1280,
+                256,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
                 0,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                320,
                 256,
                 64
               ]
@@ -4555,8 +6013,8 @@
             {
               "image": "bay-mid-dusk",
               "rect": [
-                1024,
                 0,
+                64,
                 256,
                 64
               ]
@@ -4564,8 +6022,170 @@
             {
               "image": "bay-mid-dusk",
               "rect": [
-                1280,
+                256,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
                 0,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                0,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                0,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                0,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                320,
                 256,
                 64
               ]
@@ -4611,8 +6231,8 @@
             {
               "image": "bay-mid-night",
               "rect": [
-                1024,
                 0,
+                64,
                 256,
                 64
               ]
@@ -4620,8 +6240,170 @@
             {
               "image": "bay-mid-night",
               "rect": [
-                1280,
+                256,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                512,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                768,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
                 0,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                256,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                512,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                768,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                0,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                256,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                512,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                768,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                0,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                256,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                512,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                768,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                0,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                256,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                512,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                768,
+                320,
                 256,
                 64
               ]
@@ -4667,8 +6449,8 @@
             {
               "image": "bay-mid-dusk",
               "rect": [
-                1024,
                 0,
+                64,
                 256,
                 64
               ]
@@ -4676,8 +6458,170 @@
             {
               "image": "bay-mid-dusk",
               "rect": [
-                1280,
+                256,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
                 0,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                0,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                0,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                0,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                320,
                 256,
                 64
               ]
@@ -4723,8 +6667,8 @@
             {
               "image": "bay-mid-midday",
               "rect": [
-                1024,
                 0,
+                64,
                 256,
                 64
               ]
@@ -4732,8 +6676,170 @@
             {
               "image": "bay-mid-midday",
               "rect": [
-                1280,
+                256,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
                 0,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                320,
                 256,
                 64
               ]
@@ -4779,8 +6885,8 @@
             {
               "image": "bay-mid-midday",
               "rect": [
-                1024,
                 0,
+                64,
                 256,
                 64
               ]
@@ -4788,8 +6894,170 @@
             {
               "image": "bay-mid-midday",
               "rect": [
-                1280,
+                256,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                64,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
                 0,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                128,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                192,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                256,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                320,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                320,
                 256,
                 64
               ]
@@ -4856,8 +7124,8 @@
             {
               "image": "bay-near",
               "rect": [
-                1536,
                 0,
+                96,
                 384,
                 96
               ]
@@ -4865,14 +7133,176 @@
             {
               "image": "bay-near",
               "rect": [
-                1920,
+                384,
+                96,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                768,
+                96,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                1152,
+                96,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
                 0,
+                192,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                384,
+                192,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                768,
+                192,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                1152,
+                192,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                0,
+                288,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                384,
+                288,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                768,
+                288,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                1152,
+                288,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                0,
+                384,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                384,
+                384,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                768,
+                384,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                1152,
+                384,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                0,
+                480,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                384,
+                480,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                768,
+                480,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                1152,
+                480,
                 384,
                 96
               ]
             }
           ],
-          "frameMs": 320,
+          "frameMs": 80,
           "clock": "water"
         },
         "drift": {
@@ -4933,8 +7363,8 @@
               {
                 "image": "bay-near-storm",
                 "rect": [
-                  1536,
                   0,
+                  96,
                   384,
                   96
                 ]
@@ -4942,8 +7372,170 @@
               {
                 "image": "bay-near-storm",
                 "rect": [
-                  1920,
+                  384,
+                  96,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  768,
+                  96,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  1152,
+                  96,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
                   0,
+                  192,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  384,
+                  192,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  768,
+                  192,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  1152,
+                  192,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  0,
+                  288,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  384,
+                  288,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  768,
+                  288,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  1152,
+                  288,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  0,
+                  384,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  384,
+                  384,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  768,
+                  384,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  1152,
+                  384,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  0,
+                  480,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  384,
+                  480,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  768,
+                  480,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  1152,
+                  480,
                   384,
                   96
                 ]

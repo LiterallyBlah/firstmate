@@ -1,5 +1,25 @@
 # Sakura bay, stars and storm spirit
 
+## Current water polish
+
+The commissioned `-ib` atlases replace the six-pose sheets with 24 poses in a
+4-by-6 row-major layout. Each hold is 80 ms on the existing water clock, preserving
+the 1920 ms loop. All six original poses are byte-identical at indices 0, 4, 8,
+12, 16 and 20. The layer geometry, drift, phase palettes, alpha and storm blend
+are unchanged. `inbetweens.mjs` registers the new files; the superseded sheets
+are removed from the pack. The regression fixture hashes the original poses and
+checks every adjacent transition, including the wrap, changes under 15% of pixels.
+
+At 1x the original 320 ms poses held about 711 ms in calm and 178 ms in a storm.
+The render cadence and whole-pixel scroll were steady; the large pose transitions
+caused the visible stepping. The new holds are about 178 ms and 44 ms respectively.
+No engine timing or pixel-snapping change was needed.
+
+The storm spirit now uses the scene's sea surface; see [coast](../coast/README.md).
+Current review evidence is kept outside git in
+`C:\Users\micha\.paseo\plugin-data\firstmate\home\data\sakura-water-smooth\evidence\`.
+The remaining sections document the earlier water rebuild and its historical checks.
+
 This revision changes only the Sakura pack and its offline authoring/evidence files.
 Ship's deck, Sky pirates, the renderer, and the runtime contracts are unchanged.
 

@@ -377,6 +377,10 @@ They split at world row 160 (source row 60), keeping source top 100, voyage drif
 swell frames and visibility identical. The scene sea covers the baked-in foam;
 never add a separate water patch or move the spirit with the viewport. The coast
 authoring helper is `docs/settings/japanese-ship/coast/surface.mjs`.
+Sakura's water uses eight `-ib` atlases: 24 row-major poses in a 4-by-6 grid,
+80 ms per pose on the unchanged water clock (1920 ms per loop). Original poses
+remain at indices 0, 4, 8, 12, 16 and 20; geometry, scroll and palettes stay fixed.
+`water/inbetweens.mjs` registers those atlases and removes the superseded sheets.
 Sakura's cast is kasa, cook, elder, rigger, fisher, padded, moss and ochre. The six
 new sheets share the indigo lane's 15 poses and feet; keep that lane even though
 the indigo image is retired. `docs/settings/japanese-ship/crew-variety/register.mjs`

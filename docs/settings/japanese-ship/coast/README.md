@@ -8,7 +8,8 @@ The subsequent crew-variety registration replaces the six-look cast with kasa,
 cook, elder, rigger, fisher, padded, moss and ochre. Pose geometry, feet, roles and
 fidgets remain unchanged. Its six new sheets were commissioned separately; four
 unreferenced old sheets are removed. Historical evidence and counts below describe
-the original voyage revision.
+the original voyage revision. The later water registration uses 24 poses at 80 ms
+on the same 1920 ms loop; see [water](../water/README.md).
 
 The 2,880-pixel coast drifts right at 2.4 world pixels/second: a **20-minute lap**,
 opposite the ship's left-facing bow. It passes cherry-blossom isles and a torii in
