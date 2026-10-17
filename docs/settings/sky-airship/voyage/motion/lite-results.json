@@ -1,0 +1,29 @@
+{
+  "results": [
+    {
+      "aspect": "wide",
+      "seconds": 12,
+      "motion": "lite",
+      "frames": 12,
+      "frameMs": 1000
+    },
+    {
+      "aspect": "wide",
+      "resizeRoundTripMs": 909,
+      "note": "includes two screenshots and one second of simulated frames; smoke test, not a benchmark"
+    },
+    {
+      "aspect": "tall",
+      "seconds": 12,
+      "motion": "lite",
+      "frames": 12,
+      "frameMs": 1000
+    },
+    {
+      "aspect": "tall",
+      "resizeRoundTripMs": 877,
+      "note": "includes two screenshots and one second of simulated frames; smoke test, not a benchmark"
+    }
+  ],
+  "errors": []
+}

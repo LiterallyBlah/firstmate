@@ -1,0 +1,62 @@
+{
+  "base": "9d4093d56773cf89475a386d99993b73b33f2f73",
+  "preservedCrewAndPortals": true,
+  "preservedRainWhalesSerpent": true,
+  "losslessCloudBanks": [
+    "sea-far",
+    "sea-far-storm",
+    "sea-mid",
+    "sea-mid-storm",
+    "sea-near",
+    "sea-near-storm"
+  ],
+  "bytes": 938701,
+  "laps": [
+    {
+      "id": "voyage-far",
+      "period": 1024,
+      "pxPerSecond": 0.8533333333333334,
+      "lapSeconds": 1200,
+      "top": -50,
+      "span": [
+        -4096,
+        4576
+      ]
+    },
+    {
+      "id": "voyage-middle",
+      "period": 1536,
+      "pxPerSecond": 1.28,
+      "lapSeconds": 1200,
+      "top": -86,
+      "span": [
+        -4096,
+        4576
+      ]
+    },
+    {
+      "id": "voyage-near",
+      "period": 2048,
+      "pxPerSecond": 1.7066666666666668,
+      "lapSeconds": 1200,
+      "top": -64,
+      "span": [
+        -4096,
+        4576
+      ]
+    },
+    {
+      "id": "voyage-cascade",
+      "period": 2048,
+      "pxPerSecond": 1.7066666666666668,
+      "lapSeconds": 1200,
+      "top": -64,
+      "span": [
+        -4096,
+        4576
+      ]
+    }
+  ],
+  "nightOnlyLightPixels": 44,
+  "waterfallRegistration": true
+}

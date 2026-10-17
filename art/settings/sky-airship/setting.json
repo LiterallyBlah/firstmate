@@ -5,33 +5,34 @@
   "name": "Sky pirates",
   "version": "1.1.0",
   "requires": [
-    "stage@1",
-    "floor@1",
-    "zones@1",
-    "zone-appearance@1",
-    "post-transit@1",
+    "atmosphere@1",
     "attention-carrier@1",
-    "carrier-surface@1",
-    "stable-posts@1",
-    "cast@1",
-    "pose-fidgets@1",
-    "rise@1",
-    "choreography@1",
-    "phase-tint@1",
-    "bob@1",
-    "stage-rock@1",
-    "sway@1",
-    "cycle@1",
-    "flicker@1",
     "backdrop-cycle@1",
-    "flash@1",
-    "drifters@1",
-    "flyby@1",
-    "tile@1",
-    "strip@1",
-    "variants@1",
+    "bob@1",
+    "carrier-surface@1",
+    "cast@1",
+    "choreography@1",
+    "cycle@1",
     "day-cycle@1",
-    "atmosphere@1"
+    "drifters@1",
+    "flash@1",
+    "flicker@1",
+    "floor@1",
+    "flyby@1",
+    "phase-strip@1",
+    "phase-tint@1",
+    "pose-fidgets@1",
+    "post-transit@1",
+    "rise@1",
+    "stable-posts@1",
+    "stage-rock@1",
+    "stage@1",
+    "strip@1",
+    "sway@1",
+    "tile@1",
+    "variants@1",
+    "zone-appearance@1",
+    "zones@1"
   ],
   "images": {
     "ship": {
@@ -264,7 +265,7 @@
         600,
         400
       ],
-      "sha256": "0f90372906cfd89f2662b5aed2ccbd09d4b1b461eb630e910f3e946b847a7a63"
+      "sha256": "14c4b4dfbaea1f5bdd9dff0773b3176784fd09c31e381fa50f9c3e7fefe6fe85"
     },
     "sky-night": {
       "path": "sky-night.png",
@@ -272,7 +273,7 @@
         600,
         400
       ],
-      "sha256": "2e2d84050d1463e5239dbd7558c3e41e758148dccc191e3ad0c82fa916ad46db"
+      "sha256": "df9580390e9d2ae921c22fb3a172567f5dd66714a672332576cbad443c876678"
     },
     "sky-dawn": {
       "path": "sky-dawn.png",
@@ -280,7 +281,7 @@
         600,
         400
       ],
-      "sha256": "65927d3b6dc32ef43b71c22f70f0882f902eb06b24a8de4d3e74583ae01f1037"
+      "sha256": "01925580a37bfc69f22e46a658feec0b15b4813e4baef4083e930bd1aab01161"
     },
     "sky-dusk": {
       "path": "sky-dusk.png",
@@ -288,7 +289,7 @@
         600,
         400
       ],
-      "sha256": "5883254ec29c0a703470ba3909289a2c8f46243acaa11a759441955421780cbf"
+      "sha256": "f1d05e353626cdcf70a04d26d1cdb644a261a336997d24ee417ed76d67ffd0e4"
     },
     "sky-puff": {
       "path": "sky-puff.png",
@@ -568,7 +569,7 @@
         1920,
         210
       ],
-      "sha256": "22a71dd6f82d31e1c0afcb2c9ef029bfdb554477a8bbea48783c9150a2717a90"
+      "sha256": "b6d5059841309104fe9aeaf12fe54566d5b82950ae86cbef1ae93bf97bfa7042"
     },
     "sea-far-storm": {
       "path": "sea-far-storm.png",
@@ -576,7 +577,7 @@
         1920,
         210
       ],
-      "sha256": "88be601f0e911166515ea81b558de0bce9b75dbada909c31f0c060ca15eb52f0"
+      "sha256": "d6ef8df75741a4d26291a51eb0b95df94232fc4f1b1e5c1cfe0fa29f1df79e05"
     },
     "sea-mid": {
       "path": "sea-mid.png",
@@ -584,7 +585,7 @@
         1664,
         148
       ],
-      "sha256": "58f1b0b1e131fa9baa69275f617ad9f58b6d77fff3956e3be058f8bff337aee5"
+      "sha256": "1c19c9ade229cb5554e8ff059127f7e8562a1d726418a39d4e65f25b63d403b4"
     },
     "sea-mid-storm": {
       "path": "sea-mid-storm.png",
@@ -592,7 +593,7 @@
         1664,
         148
       ],
-      "sha256": "6e73f7c86080f29870fa4f6ca0b5260e336475fd175f1d38b925bfe9afbf5b99"
+      "sha256": "a53f2481600a3f386a2e6f7eccb02e7d43b1bde355b26e06a22549e10995bb88"
     },
     "sea-floor": {
       "path": "sea-floor.png",
@@ -616,7 +617,7 @@
         1408,
         160
       ],
-      "sha256": "d5963db15ff0a3b1c5e02bcea3cec463c38cb6c2cea621d94107aff3fdc795e4"
+      "sha256": "ecadf6255b30cdef54f6b96a1285f8077ac9fd03a078f918b5be952516339c01"
     },
     "sea-near-storm": {
       "path": "sea-near-storm.png",
@@ -624,7 +625,7 @@
         1408,
         160
       ],
-      "sha256": "a580a0c3f12a2004c9b338af96505763c679fabc0dbd312a66cc113ca63dd025"
+      "sha256": "1f6f776f234dba2af770cf1e6a4bf8a2040b4159d8098d36ce89727fd8ac8362"
     },
     "mist-0": {
       "path": "mist-0.png",
@@ -758,9 +759,9 @@
       "path": "preview.png",
       "size": [
         384,
-        200
+        202
       ],
-      "sha256": "56c1be96ce3e615c093f8eecacc10041ccd859ac5845c6be53925ab31091d757"
+      "sha256": "c70455ac23c90cee74015007559df0cc736ba1a1e671e0f1031552681f37767d"
     },
     "serpent-clear": {
       "path": "serpent-clear.png",
@@ -769,6 +770,230 @@
         44
       ],
       "sha256": "a68e37e4f5e439cd240392ee17a82518b4e403088cb1e77571db5ad88f1f1875"
+    },
+    "voyage-far-dawn": {
+      "path": "voyage-far-dawn.png",
+      "size": [
+        1024,
+        90
+      ],
+      "sha256": "48f836910729822aa2541cdd2abb8739734831df587ddf0b2657b7425d024082"
+    },
+    "voyage-far-day": {
+      "path": "voyage-far-day.png",
+      "size": [
+        1024,
+        90
+      ],
+      "sha256": "98f86cc8ca2f9e436152e23d91d6d6cf4c242d0e9ff1c9c0c56eb7c31c99c00f"
+    },
+    "voyage-far-dusk": {
+      "path": "voyage-far-dusk.png",
+      "size": [
+        1024,
+        90
+      ],
+      "sha256": "23f9ef4645f31c603d6e29e9a21a175a473398a5a236fb83ac402a48a3ae3266"
+    },
+    "voyage-far-night": {
+      "path": "voyage-far-night.png",
+      "size": [
+        1024,
+        90
+      ],
+      "sha256": "43dbcf7a20ecd57035d51abe385ae57957c922a36b87d839eebc003495eab4e0"
+    },
+    "voyage-middle-dawn": {
+      "path": "voyage-middle-dawn.png",
+      "size": [
+        1536,
+        150
+      ],
+      "sha256": "c7ebecaa134acb8c4badc8e171d3709d03e35edca6c6c264361e15c709c546b9"
+    },
+    "voyage-middle-day": {
+      "path": "voyage-middle-day.png",
+      "size": [
+        1536,
+        150
+      ],
+      "sha256": "d2f4611e9139b8ba74b7fb0a0cca406929f2bf887a9fb0648af4a1fed2ccbab5"
+    },
+    "voyage-middle-dusk": {
+      "path": "voyage-middle-dusk.png",
+      "size": [
+        1536,
+        150
+      ],
+      "sha256": "d12cde15f4aca8fd244c78cba78099d094d0c615730850e0242b770ea248a844"
+    },
+    "voyage-middle-night": {
+      "path": "voyage-middle-night.png",
+      "size": [
+        1536,
+        150
+      ],
+      "sha256": "7f7c3ae95b4d9b446274f6432e8e842c9085fc3ccf4676764aecb8838ebd6054"
+    },
+    "voyage-near-dawn": {
+      "path": "voyage-near-dawn.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "bd0c971940e52b4d47d9cd1430f43d86643d58f26a017a730021623d08e43f25"
+    },
+    "voyage-near-day": {
+      "path": "voyage-near-day.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "d4659660ca84b0c74a5f8c7eb03aa8070773d467739bffb81e851a2797dc4ad5"
+    },
+    "voyage-near-dusk": {
+      "path": "voyage-near-dusk.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "61593d833e28c80df9ff03dc8615b4d6ec9d9362bdcbc5683595322028c99dee"
+    },
+    "voyage-near-night": {
+      "path": "voyage-near-night.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "a010628667be02e323d5c6060463d35ef2bae8e901b224c0c858334ba99ab2cc"
+    },
+    "voyage-cascade-dawn-0": {
+      "path": "voyage-cascade-dawn-0.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "50602cd9d0c1983067ac7d509941b164da0bf3ed6d6941a56b3238d3343479e5"
+    },
+    "voyage-cascade-dawn-1": {
+      "path": "voyage-cascade-dawn-1.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "7db7f48ae1fb48af35129b033e66fe2ace8103fe4bb314339f1eb97489377185"
+    },
+    "voyage-cascade-dawn-2": {
+      "path": "voyage-cascade-dawn-2.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "3194bba46e150d3e3a8f7a3bee958a48dc95d535d3ef07e0d371a6d4a3548a9b"
+    },
+    "voyage-cascade-dawn-3": {
+      "path": "voyage-cascade-dawn-3.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "85016999f62dac5204d24bf69186ad9d8967eb2a0b5beb2edcb8c1097eef7ed1"
+    },
+    "voyage-cascade-day-0": {
+      "path": "voyage-cascade-day-0.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "e6563c2599c3109d2f3e865f1d42712705aac43d1bc968576030169faf68555b"
+    },
+    "voyage-cascade-day-1": {
+      "path": "voyage-cascade-day-1.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "71d5307b3d3a57836b6e72436a30cabd0db46e13c50fe4b6e78a1231e586569e"
+    },
+    "voyage-cascade-day-2": {
+      "path": "voyage-cascade-day-2.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "e1eca709d7960b60684a7edd0d057f1141f6bbacb303851736333da6b7f89b08"
+    },
+    "voyage-cascade-day-3": {
+      "path": "voyage-cascade-day-3.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "8a0ec4fa365da65bdfbe1087d558fb81e80588328cbe5bfa176ac94596405596"
+    },
+    "voyage-cascade-dusk-0": {
+      "path": "voyage-cascade-dusk-0.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "be026d480e3b5d4d6ff772b1b179a0f2f66bfbe15eb993271aabfdd0fd3a1c7f"
+    },
+    "voyage-cascade-dusk-1": {
+      "path": "voyage-cascade-dusk-1.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "e78814045c4876e607eec9e35c8053fb42a7ade3cbb35e5f385a6cc44fca29b3"
+    },
+    "voyage-cascade-dusk-2": {
+      "path": "voyage-cascade-dusk-2.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "dbd7fe9680317ecb90c8411d5bbbe08adca4af73e425984423431872cdeadcb1"
+    },
+    "voyage-cascade-dusk-3": {
+      "path": "voyage-cascade-dusk-3.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "c1c9d0e17f6065bf9d3b44d17c3a19b2ecd002820504ec2f7d2834be1ae778d2"
+    },
+    "voyage-cascade-night-0": {
+      "path": "voyage-cascade-night-0.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "b08c00ec4f3f965dc70b84b3932db4622645ae9a594261bd0fe73ce1115ab96b"
+    },
+    "voyage-cascade-night-1": {
+      "path": "voyage-cascade-night-1.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "e620e64c8bad8669fc7acb59f3ffb54ef85f1557b2be399ed7e02e3e099b3ee1"
+    },
+    "voyage-cascade-night-2": {
+      "path": "voyage-cascade-night-2.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "4893316e06ba93114b46e52267dc0a73029cc3016c99e103d2e201dc0201cbe7"
+    },
+    "voyage-cascade-night-3": {
+      "path": "voyage-cascade-night-3.png",
+      "size": [
+        2048,
+        180
+      ],
+      "sha256": "6b81baf3253a2efc5ce825f02e05a3ee23cd7e3fef3455fcd9fe2ee29dd8b3de"
     }
   },
   "preview": "preview",
@@ -796,7 +1021,7 @@
       320
     ],
     "fit": {
-      "top": -14,
+      "top": -90,
       "bottom": 334,
       "margin": 0.94
     },
@@ -3558,8 +3783,8 @@
         },
         "top": 177,
         "span": [
-          -100,
-          580
+          -4096,
+          4576
         ],
         "drift": {
           "pxPerSecond": 0.65,
@@ -3608,8 +3833,8 @@
         },
         "top": 215,
         "span": [
-          -100,
-          580
+          -4096,
+          4576
         ],
         "drift": {
           "pxPerSecond": 1.8,
@@ -3658,8 +3883,8 @@
         },
         "top": 286,
         "span": [
-          -100,
-          580
+          -4096,
+          4576
         ],
         "drift": {
           "pxPerSecond": 3.8,
@@ -3717,8 +3942,8 @@
         },
         "top": 301,
         "span": [
-          -100,
-          580
+          -4096,
+          4576
         ],
         "drift": {
           "pxPerSecond": 3,
@@ -4007,6 +4232,252 @@
         "nightBelow": 0.5,
         "most": 2
       }
+    },
+    {
+      "id": "voyage-far",
+      "slot": "back",
+      "order": 2.4,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "phase-strip",
+        "top": -50,
+        "span": [
+          -4096,
+          4576
+        ],
+        "frames": {
+          "sprites": [
+            {
+              "image": "voyage-far-day"
+            }
+          ],
+          "frameMs": 1000
+        },
+        "drift": {
+          "pxPerSecond": 0.8533333333333334,
+          "clock": "voyage"
+        },
+        "byPhase": {
+          "dawn": [
+            {
+              "image": "voyage-far-dawn"
+            }
+          ],
+          "day": [
+            {
+              "image": "voyage-far-day"
+            }
+          ],
+          "dusk": [
+            {
+              "image": "voyage-far-dusk"
+            }
+          ],
+          "night": [
+            {
+              "image": "voyage-far-night"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "voyage-middle",
+      "slot": "back",
+      "order": 3.3,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "phase-strip",
+        "top": -86,
+        "span": [
+          -4096,
+          4576
+        ],
+        "frames": {
+          "sprites": [
+            {
+              "image": "voyage-middle-day"
+            }
+          ],
+          "frameMs": 1000
+        },
+        "drift": {
+          "pxPerSecond": 1.28,
+          "clock": "voyage"
+        },
+        "byPhase": {
+          "dawn": [
+            {
+              "image": "voyage-middle-dawn"
+            }
+          ],
+          "day": [
+            {
+              "image": "voyage-middle-day"
+            }
+          ],
+          "dusk": [
+            {
+              "image": "voyage-middle-dusk"
+            }
+          ],
+          "night": [
+            {
+              "image": "voyage-middle-night"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "voyage-near",
+      "slot": "back",
+      "order": 4.5,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "phase-strip",
+        "top": -64,
+        "span": [
+          -4096,
+          4576
+        ],
+        "frames": {
+          "sprites": [
+            {
+              "image": "voyage-near-day"
+            }
+          ],
+          "frameMs": 1000
+        },
+        "drift": {
+          "pxPerSecond": 1.7066666666666668,
+          "clock": "voyage"
+        },
+        "byPhase": {
+          "dawn": [
+            {
+              "image": "voyage-near-dawn"
+            }
+          ],
+          "day": [
+            {
+              "image": "voyage-near-day"
+            }
+          ],
+          "dusk": [
+            {
+              "image": "voyage-near-dusk"
+            }
+          ],
+          "night": [
+            {
+              "image": "voyage-near-night"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "voyage-cascade",
+      "slot": "back",
+      "order": 4.51,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "phase-strip",
+        "top": -64,
+        "span": [
+          -4096,
+          4576
+        ],
+        "frames": {
+          "sprites": [
+            {
+              "image": "voyage-cascade-day-0"
+            },
+            {
+              "image": "voyage-cascade-day-1"
+            },
+            {
+              "image": "voyage-cascade-day-2"
+            },
+            {
+              "image": "voyage-cascade-day-3"
+            }
+          ],
+          "frameMs": 180,
+          "clock": "voyage"
+        },
+        "drift": {
+          "pxPerSecond": 1.7066666666666668,
+          "clock": "voyage"
+        },
+        "byPhase": {
+          "dawn": [
+            {
+              "image": "voyage-cascade-dawn-0"
+            },
+            {
+              "image": "voyage-cascade-dawn-1"
+            },
+            {
+              "image": "voyage-cascade-dawn-2"
+            },
+            {
+              "image": "voyage-cascade-dawn-3"
+            }
+          ],
+          "day": [
+            {
+              "image": "voyage-cascade-day-0"
+            },
+            {
+              "image": "voyage-cascade-day-1"
+            },
+            {
+              "image": "voyage-cascade-day-2"
+            },
+            {
+              "image": "voyage-cascade-day-3"
+            }
+          ],
+          "dusk": [
+            {
+              "image": "voyage-cascade-dusk-0"
+            },
+            {
+              "image": "voyage-cascade-dusk-1"
+            },
+            {
+              "image": "voyage-cascade-dusk-2"
+            },
+            {
+              "image": "voyage-cascade-dusk-3"
+            }
+          ],
+          "night": [
+            {
+              "image": "voyage-cascade-night-0"
+            },
+            {
+              "image": "voyage-cascade-night-1"
+            },
+            {
+              "image": "voyage-cascade-night-2"
+            },
+            {
+              "image": "voyage-cascade-night-3"
+            }
+          ]
+        }
+      }
     }
   ],
   "dayCycle": {
@@ -4042,7 +4513,8 @@
         "swell": 0.8,
         "heave": 2,
         "engine": 0.7,
-        "mood": 0
+        "mood": 0,
+        "voyage": 1
       },
       {
         "at": 0.35,
@@ -4052,7 +4524,8 @@
         "swell": 1,
         "heave": 3,
         "engine": 1.1,
-        "mood": 0
+        "mood": 0,
+        "voyage": 1
       },
       {
         "at": 1,
@@ -4062,7 +4535,8 @@
         "swell": 1.3,
         "heave": 4,
         "engine": 1.8,
-        "mood": 0.75
+        "mood": 0.75,
+        "voyage": 1
       }
     ],
     "delivered": {
@@ -4072,14 +4546,16 @@
       "swell": 1,
       "heave": 2,
       "engine": 1,
-      "mood": 0
+      "mood": 0,
+      "voyage": 1
     },
     "clocks": {
       "cloud": "pace",
       "wind": "wind",
       "sail": "sail",
       "swell": "swell",
-      "engine": "engine"
+      "engine": "engine",
+      "voyage": "voyage"
     }
   },
   "attentionCarrier": {
