@@ -900,6 +900,13 @@ drop out of the first mate's view. Agents get `PASEO_CLI`, `PASEO_HOME` and thei
 
 ## The templates
 
+`templates/tools/recall.mjs` and the plugin-owned `data/recall.md` guide supply optional record
+recall (approved D5 slice 1). `prepareHome` supplies code only: no catalog build, snapshot, watch,
+config or operational charter change. Explicit `search|show|rebuild` uses the source allowlist,
+exact file/unit digests and historical warnings documented in `docs/recall-slice1.md`. Rebuild reads
+the existing baseline watch's snapshots and creates none. Private probes, corpora and trial evidence
+stay outside Git and the indexed corpus. The later 160-run adoption trial has not run.
+
 `templates/tools/launch.mjs` is the optional new-task helper, rendered by
 `server/launch-tool.ts` during `prepareHome`. The first mate still creates local
 workspaces/agents through its own MCP calls; the helper launches remote work only

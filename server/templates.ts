@@ -72,6 +72,8 @@ export const TEMPLATES = {
   watchHelper: "tools/watch.mjs",
   roleHelper: "tools/role.mjs",
   launchHelper: "tools/launch.mjs",
+  recallHelper: "tools/recall.mjs",
+  recallGuide: "data/recall.md",
   briefIntro: "parts/brief-intro.md",
   briefRules: "parts/brief-rules.md",
   briefStatus: "parts/brief-status.md",
