@@ -1,0 +1,335 @@
+{
+  "results": [
+    {
+      "aspect": "wide",
+      "phase": "day",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 1414,
+        "height": 735
+      },
+      "fit": {
+        "scale": 2.1590624999999997,
+        "x": 189,
+        "y": 22
+      },
+      "visibleBottom": 330.23592415689683,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "wide",
+      "phase": "dawn",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 1414,
+        "height": 735
+      },
+      "fit": {
+        "scale": 2.1590624999999997,
+        "x": 189,
+        "y": 22
+      },
+      "visibleBottom": 330.23592415689683,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "wide",
+      "phase": "dusk",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 1414,
+        "height": 735
+      },
+      "fit": {
+        "scale": 2.1590624999999997,
+        "x": 189,
+        "y": 22
+      },
+      "visibleBottom": 330.23592415689683,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "wide",
+      "phase": "night",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 1414,
+        "height": 735
+      },
+      "fit": {
+        "scale": 2.1590624999999997,
+        "x": 189,
+        "y": 22
+      },
+      "visibleBottom": 330.23592415689683,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "wide",
+      "phase": "storm",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 1414,
+        "height": 735
+      },
+      "fit": {
+        "scale": 2.1590624999999997,
+        "x": 189,
+        "y": 22
+      },
+      "visibleBottom": 330.23592415689683,
+      "mode": "full",
+      "weather": "1.00"
+    },
+    {
+      "aspect": "tall",
+      "phase": "day",
+      "viewport": {
+        "width": 650,
+        "height": 1900
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 624,
+        "height": 1735
+      },
+      "fit": {
+        "scale": 1.222,
+        "x": 19,
+        "y": 672
+      },
+      "visibleBottom": 869.885433715221,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "tall",
+      "phase": "dawn",
+      "viewport": {
+        "width": 650,
+        "height": 1900
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 624,
+        "height": 1735
+      },
+      "fit": {
+        "scale": 1.222,
+        "x": 19,
+        "y": 672
+      },
+      "visibleBottom": 869.885433715221,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "tall",
+      "phase": "dusk",
+      "viewport": {
+        "width": 650,
+        "height": 1900
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 624,
+        "height": 1735
+      },
+      "fit": {
+        "scale": 1.222,
+        "x": 19,
+        "y": 672
+      },
+      "visibleBottom": 869.885433715221,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "tall",
+      "phase": "night",
+      "viewport": {
+        "width": 650,
+        "height": 1900
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 624,
+        "height": 1735
+      },
+      "fit": {
+        "scale": 1.222,
+        "x": 19,
+        "y": 672
+      },
+      "visibleBottom": 869.885433715221,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "tall",
+      "phase": "storm",
+      "viewport": {
+        "width": 650,
+        "height": 1900
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 624,
+        "height": 1735
+      },
+      "fit": {
+        "scale": 1.222,
+        "x": 19,
+        "y": 672
+      },
+      "visibleBottom": 869.885433715221,
+      "mode": "full",
+      "weather": "1.00"
+    },
+    {
+      "aspect": "ultrawide",
+      "phase": "day",
+      "viewport": {
+        "width": 2400,
+        "height": 800
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 2374,
+        "height": 635
+      },
+      "fit": {
+        "scale": 1.8653125,
+        "x": 739,
+        "y": 19
+      },
+      "visibleBottom": 330.2395711174401,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "ultrawide",
+      "phase": "dawn",
+      "viewport": {
+        "width": 2400,
+        "height": 800
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 2374,
+        "height": 635
+      },
+      "fit": {
+        "scale": 1.8653125,
+        "x": 739,
+        "y": 19
+      },
+      "visibleBottom": 330.2395711174401,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "ultrawide",
+      "phase": "dusk",
+      "viewport": {
+        "width": 2400,
+        "height": 800
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 2374,
+        "height": 635
+      },
+      "fit": {
+        "scale": 1.8653125,
+        "x": 739,
+        "y": 19
+      },
+      "visibleBottom": 330.2395711174401,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "ultrawide",
+      "phase": "night",
+      "viewport": {
+        "width": 2400,
+        "height": 800
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 2374,
+        "height": 635
+      },
+      "fit": {
+        "scale": 1.8653125,
+        "x": 739,
+        "y": 19
+      },
+      "visibleBottom": 330.2395711174401,
+      "mode": "still",
+      "weather": "still"
+    },
+    {
+      "aspect": "ultrawide",
+      "phase": "storm",
+      "viewport": {
+        "width": 2400,
+        "height": 800
+      },
+      "canvas": {
+        "x": 13,
+        "y": 93,
+        "width": 2374,
+        "height": 635
+      },
+      "fit": {
+        "scale": 1.8653125,
+        "x": 739,
+        "y": 19
+      },
+      "visibleBottom": 330.2395711174401,
+      "mode": "full",
+      "weather": "1.00"
+    }
+  ],
+  "errors": []
+}

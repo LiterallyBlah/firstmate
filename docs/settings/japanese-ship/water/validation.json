@@ -1,0 +1,105 @@
+{
+  "date": "2026-10-16",
+  "implementation": "8b1001f",
+  "runtimeCompiledAt": "0453867",
+  "runtimeSourceChangedSinceCompile": false,
+  "packLint": {
+    "command": "npm.cmd run lint:deck-packs",
+    "passed": 69,
+    "failed": 0
+  },
+  "typecheck": {
+    "command": "npm.cmd run typecheck",
+    "exitCode": 0
+  },
+  "hermes": {
+    "evidence": "compile-results.json",
+    "main": "parsed",
+    "branch": "parsed",
+    "clientGrowthBytes": 0
+  },
+  "shipGate": {
+    "evidence": "ship-gate.json",
+    "shots": 81,
+    "pixelIdentical": true,
+    "flakes": 0,
+    "errors": 0
+  },
+  "renders": {
+    "evidence": "after/results.json",
+    "viewports": [
+      [
+        1440,
+        900
+      ],
+      [
+        650,
+        1900
+      ],
+      [
+        2400,
+        800
+      ]
+    ],
+    "phases": [
+      "dawn",
+      "day",
+      "dusk",
+      "night",
+      "storm"
+    ],
+    "overlay": true,
+    "errors": 0,
+    "motion": [
+      "full",
+      "lite",
+      "still"
+    ],
+    "stillStable": true,
+    "uniqueSeaFrames": 28,
+    "seaSamples": 32,
+    "spiritWidePeakOpaquePixels": 6949,
+    "spiritTallPeakOpaquePixels": 2198,
+    "spiritFullySubmergesBothSizes": true
+  },
+  "crew": {
+    "evidence": "crew.json",
+    "exactTargetClicks": 192,
+    "workersPerState": 24,
+    "states": 4,
+    "phases": 2
+  },
+  "suite": {
+    "command": "npm.cmd test -- --maxWorkers=1",
+    "concurrentRenderOrCompileJobs": 0,
+    "exitCode": 0,
+    "filesPassed": 101,
+    "passed": 1184,
+    "skipped": 3,
+    "failed": 0,
+    "durationSeconds": 93.03,
+    "testsModified": false
+  },
+  "base": "88b8e1b",
+  "imageBytes": 904476,
+  "anchor": {
+    "evidence": "anchor/results.json",
+    "worldWaterline": [
+      100,
+      178
+    ],
+    "coastSpace": "stationary world phase strip",
+    "sizes": [
+      "wide",
+      "square",
+      "tall-narrow"
+    ],
+    "fullRiseAndSubmerge": true,
+    "hiddenIn": [
+      "lite",
+      "still",
+      "reduced motion"
+    ],
+    "errors": 0
+  }
+}

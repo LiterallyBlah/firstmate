@@ -3,34 +3,36 @@
   "formatVersion": 1,
   "id": "japanese-ship",
   "name": "Sakura coast",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "requires": [
-    "stage@1",
-    "floor@1",
-    "zones@1",
-    "zone-appearance@1",
-    "post-transit@1",
+    "atmosphere@1",
     "attention-carrier@1",
-    "carrier-surface@1",
-    "stable-posts@1",
-    "cast@1",
-    "pose-fidgets@1",
-    "rise@1",
-    "choreography@1",
-    "phase-tint@1",
-    "bob@1",
-    "sway@1",
-    "cycle@1",
-    "flicker@1",
     "backdrop-cycle@1",
-    "overlay@1",
-    "flash@1",
+    "bob@1",
+    "carrier-surface@1",
+    "cast@1",
+    "choreography@1",
+    "cycle@1",
+    "day-cycle@1",
     "drifters@1",
+    "flash@1",
+    "flicker@1",
+    "floor@1",
     "flyby@1",
+    "overlay@1",
+    "phase-strip@1",
+    "phase-tint@1",
+    "pose-fidgets@1",
+    "post-transit@1",
+    "rise@1",
+    "stable-posts@1",
+    "stage@1",
+    "strip@1",
+    "sway@1",
     "tile@1",
     "variants@1",
-    "day-cycle@1",
-    "atmosphere@1"
+    "zone-appearance@1",
+    "zones@1"
   ],
   "copy": {
     "pane": "Deck",
@@ -65,7 +67,7 @@
         600,
         400
       ],
-      "sha256": "9cfddb5aded4fac975828b8dd991c1c8acfd2c06f4d52ad280866e057cc978cb"
+      "sha256": "e2eae8d9750fa7328a85f8ec31ee9d6e7bef17803e10ae332aef1f87b2ae28e7"
     },
     "coast-night": {
       "path": "coast-night.png",
@@ -73,15 +75,7 @@
         600,
         400
       ],
-      "sha256": "86ea9731b9d116a8e133b315a48bcc8feeb22fac319cde2b021938b0335f7306"
-    },
-    "ripples": {
-      "path": "ripples.png",
-      "size": [
-        96,
-        64
-      ],
-      "sha256": "9a2521f7f513e1cba41bd47400022894ad50786831810087aae80a36b4a7d0cb"
+      "sha256": "5ce196ea5e9a01c6bde4f1b449eb91964250e58ed7f8e8943cf1fff6794da3f3"
     },
     "wake": {
       "path": "wake.png",
@@ -182,18 +176,18 @@
     "coast-front": {
       "path": "coast-front.png",
       "size": [
-        600,
-        400
+        1200,
+        280
       ],
-      "sha256": "ad3fa19118a487502b28979620586630c5ea6f6dd43697acde88e56dbd8d8d07"
+      "sha256": "8296f93520dd3d26729bd993d59117ddaa2ca7f32b7f43a3cc74b3354770ae08"
     },
     "coast-night-front": {
       "path": "coast-night-front.png",
       "size": [
-        600,
-        400
+        1200,
+        280
       ],
-      "sha256": "116f375f38c2518076c9f39fcd064c37021fe250f536315af674411b0bef9acf"
+      "sha256": "e58ea6357222dee42c992c67e4982ccaa6ab55866a40f7cfb28c8d2a9060d804"
     },
     "wake-motion": {
       "path": "wake-motion.png",
@@ -345,7 +339,7 @@
         96,
         64
       ],
-      "sha256": "e48fe9a5cb1519885c1d9fabf6c1218854b950b429009093b03684543f8a2ef5"
+      "sha256": "3e59e8abf28253756ad351ebeb153c7d7db6dddc7f54fcbe30228db2f0e86ebe"
     },
     "overcast": {
       "path": "overcast.png",
@@ -385,7 +379,7 @@
         96,
         64
       ],
-      "sha256": "d6c1e9143529ae7a56be0407576f33a232205e63667e575e5acfa14ad320b10e"
+      "sha256": "7985902fbc4a7e2527a4c283d6a6a9df3bdbc900b56f1b68c00cff8dae9da1cd"
     },
     "moon-sky": {
       "path": "moon-sky.png",
@@ -401,15 +395,15 @@
         600,
         400
       ],
-      "sha256": "7ce0665ca7e47594145d3b5da1db10331b9e7fd82c4c8cf18e4f36985c292328"
+      "sha256": "55e3def62f78d7cd6322d81ecee7ffc638d85aaba555f13366805497e622cf3d"
     },
     "coast-dawn-front": {
       "path": "coast-dawn-front.png",
       "size": [
-        600,
-        400
+        1200,
+        280
       ],
-      "sha256": "b0058a42b8df5cfd61c2d458ca3dced337619735ce47606233e0decc13da8a52"
+      "sha256": "ccaf012bf2639c98c0369a1c687726cf750ce52a9f7e6d4ac4ce11605d7f2514"
     },
     "coast-morning": {
       "path": "coast-morning.png",
@@ -417,15 +411,15 @@
         600,
         400
       ],
-      "sha256": "f526f59a3d696a72f5917001d920775e99f738c4fb41e6a20ae0c96755ae0a50"
+      "sha256": "c9d9251c0081677b1677a1945759a23aabfe2605b699f2a8a8af6ccd8fb01db8"
     },
     "coast-morning-front": {
       "path": "coast-morning-front.png",
       "size": [
-        600,
-        400
+        1200,
+        280
       ],
-      "sha256": "2d3e004b5b5fbd88e1822f79abdb8a495aa2ca6be5f165b98bf25e29943c59c0"
+      "sha256": "2e0c0f94de82595bedd22c87f0d27cf6a0e9e260e71fae84ce32d6e12bdc8cb3"
     },
     "coast-afternoon": {
       "path": "coast-afternoon.png",
@@ -433,15 +427,15 @@
         600,
         400
       ],
-      "sha256": "8f346e364cb862dac2603c6a6568e423670c3b053612f1245a8eda4d4e0e85b9"
+      "sha256": "b723e114ced9280deb7ab22e44e8f728aa376d1379e5908f45b2bf41856faad5"
     },
     "coast-afternoon-front": {
       "path": "coast-afternoon-front.png",
       "size": [
-        600,
-        400
+        1200,
+        280
       ],
-      "sha256": "1c7edf34240e00a8bcee3f17bff432c04ee45e42c222bd2c038d2cfd68d88866"
+      "sha256": "489cfd94b3d84be00b3e27d614583557b8d774b999341685d2425055b76e1ab5"
     },
     "coast-dusk": {
       "path": "coast-dusk.png",
@@ -449,15 +443,111 @@
         600,
         400
       ],
-      "sha256": "a17d85f4e88ed512943a0f0634d73cde4e84e588f8ddcc78f0ab9ef20073ad07"
+      "sha256": "e78d72c555e32895387cb2b0137fa0d838f3b962e3e668d9ff3a0d45d6c7cd72"
     },
     "coast-dusk-front": {
       "path": "coast-dusk-front.png",
       "size": [
+        1200,
+        280
+      ],
+      "sha256": "505141afd636eaaa8d385e67b70e8d0a9513fab1b266f267c9542dd5d1de5073"
+    },
+    "bay-far-midday": {
+      "path": "bay-far-midday.png",
+      "size": [
+        1536,
+        32
+      ],
+      "sha256": "6dc7c0e7bd9932f79a384af4dcbbd21fb6993c577b50d00822dd3b463d8ac20a"
+    },
+    "bay-far-dusk": {
+      "path": "bay-far-dusk.png",
+      "size": [
+        1536,
+        32
+      ],
+      "sha256": "9e7f746ffc9d33a3716d8901fd430d7d32e73563e25bae4e690d91317e494cea"
+    },
+    "bay-far-night": {
+      "path": "bay-far-night.png",
+      "size": [
+        1536,
+        32
+      ],
+      "sha256": "221b8a77fba024c906b8ea90f00e3a03c9f8b5d9691232b9a61a6f7e0074f9c6"
+    },
+    "bay-mid-midday": {
+      "path": "bay-mid-midday.png",
+      "size": [
+        1536,
+        64
+      ],
+      "sha256": "fe9baacb8a0fee88f631ac35013cea45e87980efaedda5db307d9b5eecfd8a0f"
+    },
+    "bay-mid-dusk": {
+      "path": "bay-mid-dusk.png",
+      "size": [
+        1536,
+        64
+      ],
+      "sha256": "671bca918875365aa7d3f3196c37b1e6cd81e8bda46007b304309971a761fc9d"
+    },
+    "bay-mid-night": {
+      "path": "bay-mid-night.png",
+      "size": [
+        1536,
+        64
+      ],
+      "sha256": "ee66c5f0bc20b3b768e46f0ea2b6ca999c2bfd113c6218e4a0e9d20d1266c1e2"
+    },
+    "bay-near": {
+      "path": "bay-near.png",
+      "size": [
+        2304,
+        96
+      ],
+      "sha256": "f1b53f512bc701c96bbe96483bc0588a89512363e798fe4e0b96989d54e45f45"
+    },
+    "bay-near-storm": {
+      "path": "bay-near-storm.png",
+      "size": [
+        2304,
+        96
+      ],
+      "sha256": "f58fa2f4149e3fc1ceb7dc410f129d92f0b2b16420fd13fca0d07ba0dffe1040"
+    },
+    "bay-stars": {
+      "path": "bay-stars.png",
+      "size": [
         600,
         400
       ],
-      "sha256": "022b8910fb395443f1db24c876c6bcf858384310237183a58dbe3cdc242a802d"
+      "sha256": "5b679d823ef1fd8e44aa6c147c7ca4ff456ed4aa03e631294328c5f9dd28490c"
+    },
+    "umibozu-sink": {
+      "path": "umibozu-sink.png",
+      "size": [
+        216,
+        80
+      ],
+      "sha256": "885b115de548a738dcae480554b05cd396815fcac9e254e1a848431425bbd4eb"
+    },
+    "open-night-sea": {
+      "path": "open-night-sea.png",
+      "size": [
+        600,
+        400
+      ],
+      "sha256": "b8aae82fa6c2156d4cdf370a607dfadaea4738c69809320b44c59db0bed331b5"
+    },
+    "coast-storm-shade": {
+      "path": "coast-storm-shade.png",
+      "size": [
+        2400,
+        280
+      ],
+      "sha256": "091f259121c29e667f07433fc6f035035a414286a60c240e8f8a883f4f6a6390"
     }
   },
   "preview": "preview",
@@ -3187,7 +3277,7 @@
           "midday": "coast",
           "afternoon": "coast-afternoon",
           "dusk": "coast-dusk",
-          "night": "coast-night-front"
+          "night": "open-night-sea"
         },
         "placement": {
           "horizonRow": 180,
@@ -3199,40 +3289,6 @@
             "channel": "weather"
           }
         }
-      }
-    },
-    {
-      "id": "sea-ripples",
-      "slot": "back",
-      "order": 5,
-      "lite": "freeze",
-      "still": "first-frame",
-      "behaviour": {
-        "kind": "tile",
-        "frames": {
-          "sprites": [
-            {
-              "image": "ripples"
-            }
-          ],
-          "frameMs": 500,
-          "clock": "water"
-        },
-        "drift": {
-          "pxPerSecond": 3,
-          "clock": "water"
-        },
-        "origin": 214,
-        "bands": [
-          {
-            "slot": "back",
-            "fromRow": 214
-          },
-          {
-            "slot": "front",
-            "fromRow": 290
-          }
-        ]
       }
     },
     {
@@ -3385,28 +3441,54 @@
       "lite": "run",
       "still": "first-frame",
       "behaviour": {
-        "kind": "backdrop-cycle",
-        "size": [
-          600,
-          400
+        "kind": "phase-strip",
+        "top": -30,
+        "span": [
+          -4096,
+          4608
         ],
-        "phases": {
-          "dawn": "coast-dawn-front",
-          "morning": "coast-morning-front",
-          "midday": "coast-front",
-          "afternoon": "coast-afternoon-front",
-          "dusk": "coast-dusk-front",
-          "night": "coast-night-front"
+        "frames": {
+          "sprites": [
+            {
+              "image": "coast-front"
+            }
+          ],
+          "frameMs": 1000
         },
-        "placement": {
-          "horizonRow": 180,
-          "stageRow": 150
+        "byPhase": {
+          "dawn": [
+            {
+              "image": "coast-dawn-front"
+            }
+          ],
+          "morning": [
+            {
+              "image": "coast-morning-front"
+            }
+          ],
+          "midday": [
+            {
+              "image": "coast-front"
+            }
+          ],
+          "afternoon": [
+            {
+              "image": "coast-afternoon-front"
+            }
+          ],
+          "dusk": [
+            {
+              "image": "coast-dusk-front"
+            }
+          ],
+          "night": [
+            {
+              "image": "coast-night-front"
+            }
+          ]
         },
-        "tint": {
-          "to": "#4D647D",
-          "amount": {
-            "channel": "weather"
-          }
+        "drift": {
+          "pxPerSecond": 0
         }
       }
     },
@@ -3701,7 +3783,7 @@
       "id": "umibozu",
       "slot": "back",
       "order": 6.5,
-      "lite": "freeze",
+      "lite": "hide",
       "still": "hide",
       "behaviour": {
         "kind": "cycle",
@@ -3710,7 +3792,7 @@
             {
               "image": "umibozu",
               "rect": [
-                0,
+                144,
                 0,
                 72,
                 80
@@ -3718,6 +3800,87 @@
             },
             {
               "image": "umibozu",
+              "rect": [
+                144,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu",
+              "rect": [
+                216,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu",
+              "rect": [
+                72,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu",
+              "rect": [
+                0,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
+              "rect": [
+                0,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
+              "rect": [
+                72,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
+              "rect": [
+                144,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
+              "rect": [
+                144,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
+              "rect": [
+                72,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu-sink",
               "rect": [
                 0,
                 0,
@@ -3737,19 +3900,37 @@
             {
               "image": "umibozu",
               "rect": [
+                72,
                 0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu",
+              "rect": [
+                216,
+                0,
+                72,
+                80
+              ]
+            },
+            {
+              "image": "umibozu",
+              "rect": [
+                144,
                 0,
                 72,
                 80
               ]
             }
           ],
-          "frameMs": 1300,
+          "frameMs": 500,
           "clock": "swell"
         },
         "at": [
-          58,
-          163
+          100,
+          178
         ],
         "anchor": [
           36,
@@ -3762,65 +3943,11 @@
               0
             ],
             [
-              1,
-              0.85
+              0.780001,
+              1
             ]
           ]
-        },
-        "variants": [
-          {
-            "id": "umibozu-rises",
-            "frames": [
-              {
-                "image": "umibozu",
-                "rect": [
-                  0,
-                  0,
-                  72,
-                  80
-                ]
-              },
-              {
-                "image": "umibozu",
-                "rect": [
-                  72,
-                  0,
-                  72,
-                  80
-                ]
-              },
-              {
-                "image": "umibozu",
-                "rect": [
-                  144,
-                  0,
-                  72,
-                  80
-                ]
-              },
-              {
-                "image": "umibozu",
-                "rect": [
-                  216,
-                  0,
-                  72,
-                  80
-                ]
-              }
-            ],
-            "blend": "crossfade",
-            "opacity": [
-              [
-                0.84,
-                0
-              ],
-              [
-                1,
-                1
-              ]
-            ]
-          }
-        ]
+        }
       }
     },
     {
@@ -3874,6 +4001,1072 @@
               [
                 1,
                 0.55
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "bay-far",
+      "slot": "back",
+      "order": 5,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "phase-strip",
+        "frames": {
+          "sprites": [
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "frameMs": 320,
+          "clock": "water"
+        },
+        "byPhase": {
+          "midday": [
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "dusk": [
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "night": [
+            {
+              "image": "bay-far-night",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-night",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "dawn": [
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-dusk",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "morning": [
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ],
+          "afternoon": [
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                32
+              ]
+            },
+            {
+              "image": "bay-far-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                32
+              ]
+            }
+          ]
+        },
+        "top": 212,
+        "span": [
+          -4096,
+          4608
+        ],
+        "drift": {
+          "pxPerSecond": 0.55,
+          "clock": "water"
+        }
+      }
+    },
+    {
+      "id": "bay-mid",
+      "slot": "back",
+      "order": 5.1,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "phase-strip",
+        "frames": {
+          "sprites": [
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "frameMs": 320,
+          "clock": "water"
+        },
+        "byPhase": {
+          "midday": [
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "dusk": [
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "night": [
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-night",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "dawn": [
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-dusk",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "morning": [
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ],
+          "afternoon": [
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                0,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                256,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                512,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                768,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1024,
+                0,
+                256,
+                64
+              ]
+            },
+            {
+              "image": "bay-mid-midday",
+              "rect": [
+                1280,
+                0,
+                256,
+                64
+              ]
+            }
+          ]
+        },
+        "top": 232,
+        "span": [
+          -4096,
+          4608
+        ],
+        "drift": {
+          "pxPerSecond": 1.35,
+          "clock": "water"
+        }
+      }
+    },
+    {
+      "id": "bay-near",
+      "slot": "back",
+      "order": 5.2,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "tile",
+        "frames": {
+          "sprites": [
+            {
+              "image": "bay-near",
+              "rect": [
+                0,
+                0,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                384,
+                0,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                768,
+                0,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                1152,
+                0,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                1536,
+                0,
+                384,
+                96
+              ]
+            },
+            {
+              "image": "bay-near",
+              "rect": [
+                1920,
+                0,
+                384,
+                96
+              ]
+            }
+          ],
+          "frameMs": 320,
+          "clock": "water"
+        },
+        "drift": {
+          "pxPerSecond": 2.7,
+          "clock": "water"
+        },
+        "origin": 276,
+        "bands": [
+          {
+            "slot": "back",
+            "fromRow": 276
+          },
+          {
+            "slot": "front",
+            "fromRow": 290
+          }
+        ],
+        "variants": [
+          {
+            "id": "rough",
+            "frames": [
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  0,
+                  0,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  384,
+                  0,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  768,
+                  0,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  1152,
+                  0,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  1536,
+                  0,
+                  384,
+                  96
+                ]
+              },
+              {
+                "image": "bay-near-storm",
+                "rect": [
+                  1920,
+                  0,
+                  384,
+                  96
+                ]
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                1,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "bay-stars",
+      "slot": "back",
+      "order": -1.5,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "overlay",
+        "image": "bay-stars",
+        "space": "coast",
+        "alpha": "night",
+        "hiddenBy": [
+          "overcast"
+        ]
+      }
+    },
+    {
+      "id": "coast-storm-shade",
+      "slot": "back",
+      "order": 4.1,
+      "lite": "run",
+      "still": "hide",
+      "behaviour": {
+        "kind": "strip",
+        "top": -30,
+        "span": [
+          -4096,
+          4608
+        ],
+        "frames": {
+          "sprites": [
+            {
+              "image": "coast-storm-shade",
+              "rect": [
+                0,
+                0,
+                1200,
+                280
+              ]
+            }
+          ],
+          "frameMs": 1000
+        },
+        "drift": {
+          "pxPerSecond": 0
+        },
+        "variants": [
+          {
+            "id": "storm",
+            "frames": [
+              {
+                "image": "coast-storm-shade",
+                "rect": [
+                  1200,
+                  0,
+                  1200,
+                  280
+                ]
+              }
+            ],
+            "blend": "over",
+            "opacity": [
+              [
+                0.35,
+                0
+              ],
+              [
+                1,
+                0.5
               ]
             ]
           }
