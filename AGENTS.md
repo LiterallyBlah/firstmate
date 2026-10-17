@@ -1035,7 +1035,9 @@ status line, and `(hold: …)` for anything waiting on the captain, which the ca
 absent from `BUILT_IN_WATCHES`: installation into a home is a separate approved step. It runs silently
 every 15 minutes, baselines each host on its first successful listing, appends versioned launch
 observations to `data/metrics/launches.jsonl`, and snapshots changed backlog bytes under
-`recall/backlog/`. Its `--report` mode is read-only and groups explicit periods by locality. The lead
+`recall/backlog/`. An unmeasurable host warns once per run on stderr and leaves unseen launches
+eligible for retry without failing the run or blocking other hosts; internal storage errors remain
+fatal. Its `--report` mode is read-only and groups explicit periods by locality. The lead
 lookup mirrors `dataPath`/`role.mjs` current-before-legacy config precedence and verifies the home;
 unreadable identity stays unknown. CLI-unexposed branches and remote receipt causes/retry counts also
 stay unknown. Do not infer them from a requested branch or count workspace dispatches as worker

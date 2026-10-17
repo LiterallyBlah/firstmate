@@ -106,7 +106,9 @@ Everything it quotes from the hosts is marked as remote data. `data/remote-acces
 
 This shipped template is **not installed or enabled automatically**. It observes launches every
 15 minutes, writes no stdout (even when it finds a launch), and never dispatches or changes agents.
-Errors go to stderr and the watch runner's existing failure reporting. Its first successful listing
+An unmeasurable host warns once per run on stderr, leaves unseen launches eligible for retry, and
+does not fail the run or block snapshots and other measurable launches. Internal read/write errors
+still fail through the watch runner's existing failure reporting. Its first successful listing
 on each host records a baseline only, excluding existing crew. The first run also saves the initial
 backlog snapshot. An offline/new host gets its own baseline when it can first be listed; launches
 before that listing are a stated coverage gap. Keep the same state directory for the whole study.
