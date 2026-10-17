@@ -52,13 +52,16 @@ The current pack replaces the four coiled sprites with eight right-facing dragon
 The head stays fixed within each frame while a body wave travels toward the tail. The frames
 hold for 180 ms on the swell clock (about 138 ms at peak); drift is 24 px/s on wind,
 or 79.2 world pixels per second at peak. The 160-pixel-wide dragon appears once per
-2,048-pixel strip. Top -8, span [-1200, 1680], back-slot order 6.1 and storm gating
-are unchanged, keeping the route above the balloon and the suggestion whale below.
+2,048-pixel strip. Top -80 places every painted frame between stage rows -77 and -42, above the
+masthead, lookout and balloon throughout their rocking motion. The unchanged
+back-slot order 6.1 draws the dragon in front of every distant floating-island
+layer; their silhouettes pass behind its uninterrupted crossing. Span [-1200, 1680]
+and storm gating are unchanged.
 
 The supplied PNGs are shipped byte-for-byte. `strip@1` has no per-effect scale field;
 nearest-neighbour sampling follows the scene's camera scale. The old `serpent.mjs`
 script and earlier policy/render records describe the retired coiled art.
-Current wide/tall flight clips and before/after stills are uncommitted, in
-`C:/Users/micha/.paseo/plugin-data/firstmate/home/data/sky-dragon-flight/evidence/`.
+Current wide, square and tall-narrow crossing clips and three-position stills are uncommitted, in
+`C:/Users/micha/.paseo/plugin-data/firstmate/home/data/sky-dragon-flight/evidence/clearance/`.
 
 `serpent-lite-render.mjs` also captures wide/tall software-renderer views at intensity 1, asserts the public canvas motion mode is lite, and records zero browser errors. Reduced-motion captures show no frozen serpent.

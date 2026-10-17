@@ -523,7 +523,7 @@ Office was withdrawn after visual review; its files are retained at
 
 Sky pirates' peak-storm `sky-serpent` uses the eight `dragon-0..7.png` flight frames,
 a transparent base, 180 ms on the swell clock and rightward 24 px/s on wind. Its 2,048-pixel
-strip stays above the airship at top -8 and hides in lite/still modes. `strip@1` draws at
+strip stays above the entire airship at top -80 and hides in lite/still modes. `strip@1` draws at
 native art size; it has no per-effect scale. Flight evidence is kept outside the repository.
 
 ### The deck moves (`docs/ship-deck-motion/README.md` has the evidence)
