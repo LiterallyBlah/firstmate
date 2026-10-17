@@ -558,7 +558,7 @@ describe("precipitation in the scenery renderer", () => {
     const held = { ...drop.position };
     for (let i = 0; i < 30; i++) scenery.draw(3 + i, lite, 720, weather);
     expect({ ...drop.position }).toEqual(held);
-    expect(rain.cacheChanges).toEqual([{ resolution: 1, antialias: false }]);
+    expect(rain.cacheChanges).toEqual([{ resolution: 1, antialias: false, scaleMode: "nearest" }]);
     expect(rain.cacheUpdates).toBe(0);
     scenery.draw(34, lite, 720, { ...weather, intensity: .75 });
     expect(rain.alpha).toBeLessThan(1);

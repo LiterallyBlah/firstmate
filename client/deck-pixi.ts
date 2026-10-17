@@ -102,7 +102,7 @@ export interface PixiContainer {
   tint: number;
   blendMode?: string;
   filters?: unknown[];
-  cacheAsTexture?(options: boolean | { resolution: number; antialias: boolean }): void;
+  cacheAsTexture?(options: boolean | { resolution: number; antialias: boolean; scaleMode: "nearest" }): void;
   updateCacheTexture?(): void;
   addChild(...children: PixiContainer[]): unknown;
   removeChild(...children: PixiContainer[]): unknown;

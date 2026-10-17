@@ -86,7 +86,7 @@ export function precipLayer(pixi: PixiModule, element: AmbientElement<"precip">,
         sprite.alpha = splash.alpha;
       });
       if (hold) {
-        if (!cached) { container.cacheAsTexture?.({ resolution: 1, antialias: false }); cached = true; }
+        if (!cached) { container.cacheAsTexture?.({ resolution: 1, antialias: false, scaleMode: "nearest" }); cached = true; }
         else container.updateCacheTexture?.();
       }
     },
