@@ -401,7 +401,7 @@ client code:
   harness draws with it in Edge.
 
 - **The art is served the same way**, as a setting pack (see *The Deck is a scene engine drawing setting packs*
-  below): `firstmate.deck.setting` sends the ship's `setting.json` and every image it names, about 300 KB, fetched
+  below): `firstmate.deck.setting` sends a pack's `setting.json` and every image it names, fetched
   and decoded once a session alongside Pixi, never bundled. `docs/ship-deck-art/build-art.py` rebuilds the atlas
   from the generated sources; `docs/ship-deck-art/README.md` says where those came from and what still needs a
   pixel artist.
@@ -479,7 +479,7 @@ Office was withdrawn after visual review; its files are retained at
   says how intensity looks, never what it means.
 - **Served by id**: `firstmate.deck.settings` lists the packs, `firstmate.deck.setting` sends one whole. The server
   checks every manifest whole (`SettingManifestSchema`: shape and references) before it serves it, confines its
-  paths to its folder, caps it at 1 MB, and lists a pack this engine cannot draw — a newer format, a capability it
+  paths to its folder, caps its raw image bytes at 2,000,000, and lists a pack this engine cannot draw — a newer format, a capability it
   lacks — as incompatible, with why, without parsing the rest. The client's contracts (`shared/deck-rpc.ts`) carry
   none of the format's rules, so the schema costs the phone's bundle nothing.
 - **The pack linter** (`test/deck-settings.test.ts`) runs over every pack: the schema and its references, images
@@ -488,6 +488,8 @@ Office was withdrawn after visual review; its files are retained at
   and its floor against its own backdrop: every walkable point on it, posts and marks on open floor and in sight,
   everything reachable from everything else, the fit taking in every part, flyby and effect, and two dozen workers
   packed into each packing zone, each in sight and in the pointer's reach.
+  Above 80% of that budget (1,600,000 bytes), the linter prints an advisory warning; exceeding the cap still fails.
+  Transport limits and the reproducible first-draw benchmark are in `docs/deck-pack-budget/README.md`.
   Run it with `npm run lint:deck-packs`. `node docs/deck-settings/render.mjs '?setting=ship&overlay=1'` draws
   the selected pack's floor, posts, zones, marks and fit box over its own deck. See `docs/deck-settings/authoring.md`.
 - **Whole-stage rocking**: `stage-rock@1` optionally gives the whole stage a rigid pivoted rotation and sideways drift

@@ -109,6 +109,9 @@ See [Sakura coast](docs/settings/japanese-ship/README.md),
 [shark interactions](docs/deck-shark-suggestions/README.md) and the
 [scene-pack authoring guide](docs/deck-settings/authoring.md).
 
+Scene packs may serve up to 2,000,000 bytes of PNG images. Pack lint warns above 80% of the budget;
+the manifest and base64 transport overhead are additional. See the [transport budget](docs/deck-pack-budget/README.md).
+
 ## Home and workspace tabs
 
 ![FirstMate Home with a synthetic conversation beside the Deck view](docs/readme/home-deck.webp)

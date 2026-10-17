@@ -14,7 +14,7 @@
  * folder of `art/settings/` beside it: `setting.json` and the PNGs it names, every one inside the folder. Listed
  * (`listDeckSettings`) and read (`readDeckSetting`) once per process, and sent whole: the manifest, and every image
  * by its id, base64. Only ids the scan found are read, a path that would leave its pack is refused, and no pack may
- * serve more than `PACK_BYTES_MAX` of images, so one cannot balloon the WebSocket frame. A pack this engine cannot
+ * serve more than `PACK_BYTES_MAX` of images, so one cannot balloon the WebSocket message. A pack this engine cannot
  * draw — a newer format, a behaviour it does not have — is listed as incompatible and refused.
  */
 import { readdir, readFile } from "node:fs/promises";
@@ -32,8 +32,12 @@ export const PIXI_BUILD = "vendor/pixi.min.js";
 export const SETTINGS_DIR = "art/settings";
 /** Each pack's manifest, in its folder. */
 export const SETTING_MANIFEST = "setting.json";
-/** The most image bytes one pack may serve: the ship's are about 300 KB. */
-export const PACK_BYTES_MAX = 1_000_000;
+/**
+ * Raw image budget. The 2 MB fixture measures 2,708,070 JSON bytes / 3,610,816 relay bytes:
+ * under 11% of Cloudflare's 32 MiB message limit, with Paseo 0.11's 64 MiB queue backstop.
+ * See docs/deck-pack-budget/README.md for transport sources, measurements and their scope.
+ */
+export const PACK_BYTES_MAX = 2_000_000;
 
 /**
  * The build as the client evaluates it: its version from the banner, the source map comment dropped (the

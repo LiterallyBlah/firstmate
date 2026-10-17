@@ -59,7 +59,8 @@ share the pane's existing fractional fit, so device pixel widths can alternate w
    be on open, reachable floor; a walk-in's source may be off-floor. Packing zones need enough visible space.
    Set the fit box to contain every part and effect. Define cast lanes/looks/roles, `copy` for the pane and zone descriptions, and optional ambience,
    day phases and atmosphere channels. Name each PNG in `images` with dimensions and SHA-256. The total
-   image budget is 1,000,000 bytes; no unused image, source file or script belongs in the pack.
+   image budget is 2,000,000 bytes; lint warns above 1,600,000 bytes (80%) without failing.
+   See [transport limits and measurement](../deck-pack-budget/README.md). No unused image, source file or script belongs in the pack.
    Give each prop an explicit sprite `rect`, including whole-image props: the current prop texture path
    requires it. A doorway that stays open between finite effects needs an open-frame depth piece in the
    stage; effects are temporary, not persistent door state.
@@ -231,7 +232,7 @@ The element keeps the usual `slot`, `order`, `lite`, `still`, `needs` and `fallb
 is the required base and supplies the only frame count, `frameMs` and optional frame clock. Every
 `byPhase` key must exist in `dayCycle`; every set has the base's frame count and every sprite has the
 base's size. Crops must stay inside their declared images. The span must increase. All images use
-the existing PNG inventory, SHA-256 and 1,000,000-byte pack budget. Fields are strict; intensity
+the existing PNG inventory, SHA-256 and 2,000,000-byte pack budget. Fields are strict; intensity
 variants are not part of this capability.
 
 Placement, positive whole-pixel drift, horizontal wrap and fixed world span are exactly those of a
