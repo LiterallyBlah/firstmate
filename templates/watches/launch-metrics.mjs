@@ -344,46 +344,49 @@ async function observe() {
   const hosts = [{ id: "local" }, ...catalog.hosts.filter(h => identifier(h.serverId)).map(h => ({ ...h, id: h.serverId }))];
   const inputs = await requests();
   const receipts = await receiptRows();
-  let failed = false;
   for (const host of hosts) {
     if (host.id !== "local" && !host.online) continue;
     if (Date.now() >= deadline) break;
+    let warned = false;
+    const warn = () => {
+      if (!warned) console.error("Launch metrics: a host could not be measured; unseen launches remain eligible for the next run.");
+      warned = true;
+    };
+    let crew;
     try {
-      const crew = await listing(host.id);
+      crew = await listing(host.id);
       if (crew.some(row => !identifier(row.id))) throw new Error("invalid-crew-list");
-      if (!Object.hasOwn(state.hosts, host.id)) {
-        state.startedAt ??= new Date().toISOString();
-        state.hosts[host.id] = { baselineAt: new Date().toISOString(), seen: crew.map(row => row.id) };
-        await atomic(path, state);
-        continue;
-      }
-      const seen = new Set(state.hosts[host.id].seen);
-      for (const row of crew) {
-        if (Date.now() >= deadline) break;
-        if (seen.has(row.id)) continue;
-        if (!recorded.has(`${host.id}:${row.id}`)) {
-          let record;
-          try { record = await measure(host, row.id, backlogItems(bytes.toString("utf8")), inputs, receipts); }
-          catch {
-            failed = true;
-            console.error("Launch metrics: a worker could not be measured; it remains eligible for the next run.");
-            continue;
-          }
-          await mkdir(join(home, "data", "metrics"), { recursive: true });
-          await appendFile(join(home, "data", "metrics", "launches.jsonl"), JSON.stringify(record) + "\n", { mode: 0o600 });
-          recorded.add(record.key);
-        }
-        seen.add(row.id);
-        state.hosts[host.id].seen = [...seen];
-        await atomic(path, state);
-      }
     } catch {
-      failed = true;
-      console.error("Launch metrics: a host could not be measured; unseen launches remain eligible for the next run.");
+      warn();
+      continue;
+    }
+    if (!Object.hasOwn(state.hosts, host.id)) {
+      state.startedAt ??= new Date().toISOString();
+      state.hosts[host.id] = { baselineAt: new Date().toISOString(), seen: crew.map(row => row.id) };
+      await atomic(path, state);
+      continue;
+    }
+    const seen = new Set(state.hosts[host.id].seen);
+    for (const row of crew) {
+      if (Date.now() >= deadline) break;
+      if (seen.has(row.id)) continue;
+      if (!recorded.has(`${host.id}:${row.id}`)) {
+        let record;
+        try { record = await measure(host, row.id, backlogItems(bytes.toString("utf8")), inputs, receipts); }
+        catch {
+          warn();
+          continue;
+        }
+        await mkdir(join(home, "data", "metrics"), { recursive: true });
+        await appendFile(join(home, "data", "metrics", "launches.jsonl"), JSON.stringify(record) + "\n", { mode: 0o600 });
+        recorded.add(record.key);
+      }
+      seen.add(row.id);
+      state.hosts[host.id].seen = [...seen];
+      await atomic(path, state);
     }
   }
   await atomic(path, state);
-  if (failed) process.exitCode = 1;
 }
 async function report(args) {
   if (!home) throw new Error("missing-home");

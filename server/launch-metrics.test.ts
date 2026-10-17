@@ -191,9 +191,44 @@ describe("opt-in launch metrics watch", () => {
     f.add("preexisting", "remote"); f.catalog.hosts[0]!.online = true; await f.run();
     expect(await f.records()).toEqual([]);
     f.add("retry-me"); f.fixture.local!.fail = true;
-    await expect(f.run()).rejects.toMatchObject({ stdout: "", stderr: expect.stringContaining("unseen launches remain eligible") });
+    expect(await f.run()).toMatchObject({ stdout: "", stderr: expect.stringContaining("unseen launches remain eligible") });
     delete f.fixture.local!.fail; await f.backlog("retry-me"); await f.run();
     expect(await f.records()).toHaveLength(1);
+  }, 30000);
+  it("soft-fails an unreachable host while saving snapshots and other launches, then retries without duplicates", async () => {
+    const f = await setup();
+    f.fixture.available = { agents: [], workspaces: [] };
+    f.catalog.hosts.push({ ...f.catalog.hosts[0]!, serverId: "available", label: "Available" });
+    await f.run();
+    f.add("local-launch"); f.add("remote-launch", "available"); f.add("retry-launch", "remote");
+    f.fixture.remote!.fail = true;
+    await f.backlog("local-launch");
+    const result = await f.run(); // execFile resolves only for exit 0.
+    expect(result.stdout).toBe("");
+    expect(result.stderr.trim().split("\n")).toEqual([
+      "Launch metrics: a host could not be measured; unseen launches remain eligible for the next run.",
+    ]);
+    expect((await f.records()).map(r => r.key)).toEqual(["local:local-launch", "available:remote-launch"]);
+    const state = JSON.parse(await readFile(join(f.state, "launch-metrics.json"), "utf8"));
+    expect(state.hosts.remote.seen).toEqual([]);
+    expect(state.hosts.local.seen).toEqual(["local-launch"]);
+    expect(state.hosts.available.seen).toEqual(["remote-launch"]);
+    const snapshots = await readdir(join(f.home, "recall", "backlog"));
+    expect(snapshots).toHaveLength(2);
+    expect(await Promise.all(snapshots.map(name => readFile(join(f.home, "recall", "backlog", name), "utf8"))))
+      .toContain(await readFile(f.env.FIRSTMATE_BACKLOG, "utf8"));
+    delete f.fixture.remote!.fail;
+    expect(await f.run()).toMatchObject({ stdout: "", stderr: "" });
+    await f.run();
+    expect((await f.records()).map(r => r.key)).toEqual(["local:local-launch", "available:remote-launch", "remote:retry-launch"]);
+    expect(await readdir(join(f.home, "recall", "backlog"))).toHaveLength(2);
+  }, 30000);
+  it("keeps metrics storage failures fatal and leaves the launch unseen", async () => {
+    const f = await setup(); await f.run(); f.add("retry-write");
+    await writeFile(join(f.home, "data", "metrics"), "not a directory");
+    await expect(f.run()).rejects.toMatchObject({ code: 1, stdout: "", stderr: expect.stringContaining("Launch metrics failed") });
+    const state = JSON.parse(await readFile(join(f.state, "launch-metrics.json"), "utf8"));
+    expect(state.hosts.local.seen).toEqual([]);
   }, 30000);
   it("accepts planned structured requests and serializes overlapping manual runs", async () => {
     const f = await setup(); await f.run(); const worker = f.add("structured");
@@ -224,7 +259,7 @@ describe("opt-in launch metrics watch", () => {
   it("does not let one unavailable worker prevent measuring the remaining crew", async () => {
     const f = await setup(); await f.run(); f.add("unavailable"); f.add("available");
     f.fixture.local!.failInspect = "unavailable"; await f.backlog("available");
-    await expect(f.run()).rejects.toMatchObject({ stdout: "", stderr: expect.stringContaining("worker could not be measured") });
+    expect(await f.run()).toMatchObject({ stdout: "", stderr: expect.stringContaining("host could not be measured") });
     expect((await f.records()).map(record => record.agentId)).toEqual(["available"]);
     delete f.fixture.local!.failInspect; await f.run();
     expect(await f.records()).toHaveLength(2);
