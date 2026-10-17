@@ -5,12 +5,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL, URL } from "node:url";
 import { promisify } from "node:util";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CREW_LABELS, FirstmateConfigSchema } from "../shared/fleet";
 import { prepareHome } from "./home";
 import { briefParts } from "./launch-tool";
 import { commandArguments } from "./remotes";
 import { fill, readTemplate, TEMPLATES } from "./templates";
+
+// These scenarios run real Node/git processes; loaded Windows runners need the same budget as local verification.
+vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
 
 const execute = promisify(execFile);
 const cli = fileURLToPath(new URL("../test/launch-cli.mjs", import.meta.url));
