@@ -26,10 +26,30 @@ function broken(change: (manifest: SettingManifest) => void): SettingManifest {
 }
 
 describe("a setting manifest", () => {
+  it("gates depth colour blending and validates its rows, phases and weather channel", () => {
+    const manifest = structuredClone(shipManifest());
+    const tile = manifest.ambience.find((element) => element.behaviour.kind === "tile")!.behaviour;
+    if (tile.kind !== "tile") throw new Error("tile required");
+    tile.depthWash = { rows: [448, 1250], byPhase: Object.fromEntries(manifest.dayCycle!.phases.map(({ id }) =>
+      [id, { colour: "#36696B", alpha: [.34, .14] }])), opacity: { channel: "wind" } };
+    manifest.requires = capabilitiesUsed(manifest);
+    expect(SettingManifestSchema.safeParse(manifest).success).toBe(true);
+    expect(manifest.requires).toContain("depth-wash@1");
+    tile.depthWash.rows = [1250, 448];
+    expect(SettingManifestSchema.safeParse(manifest).success).toBe(false);
+    tile.depthWash.rows = [448, 1250];
+    delete tile.depthWash.byPhase[manifest.dayCycle!.phases[0]!.id];
+    expect(settingProblems(manifest).join("\n")).toContain("depth-wash needs phase");
+    tile.depthWash.opacity = { channel: "missing" };
+    expect(settingProblems(manifest).join("\n")).toContain('channel "missing"');
+    manifest.requires = manifest.requires.filter((id) => id !== "depth-wash@1");
+    expect(SettingManifestSchema.safeParse(manifest).success).toBe(false);
+  });
+
   it("is whole for the ship: nothing it names is missing, and it needs exactly what it uses", () => {
     expect(settingProblems(shipManifest())).toEqual([]);
     expect(capabilitiesUsed(shipManifest())).toEqual(shipManifest().requires);
-    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["carrier-surface@1", "stable-posts@1", "cast-scale@1", "walk-in@1", "stage-rock@1", "phase-frames@1", "phase-strip@1"]);
+    expect(ENGINE_CAPABILITIES.filter((capability) => !capabilitiesUsed(shipManifest()).includes(capability))).toEqual(["carrier-surface@1", "stable-posts@1", "cast-scale@1", "walk-in@1", "depth-wash@1", "stage-rock@1", "phase-frames@1", "phase-strip@1"]);
   });
 
   it("names every image it draws with once, the backdrop first", () => {

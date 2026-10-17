@@ -90,6 +90,9 @@ saves one choice for the whole fleet, also available in settings.
   Ship's deck grows stormier as the fleet gets busy. Reduced motion keeps the scene calm, and hidden
   canvases pause. Sky pirates adds a rightward dragon flight through the open sky at peak storm.
   Pirate voyage and Sakura coast rain advances downward in a seamless loop as storms build.
+  Ghost ship keeps its haunted sea at the surface, with a half-submerged anglerfish, falling storm
+  rain and a crow's nest that moves rigidly with the mast. Its sea follows daylight and darkens
+  gradually below the near waves.
 
 Click the shark, choose a suggestion, and the prompt arrives in Home chat:
 

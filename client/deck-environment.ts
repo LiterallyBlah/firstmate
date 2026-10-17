@@ -61,6 +61,7 @@ import { cloudColours, cloudField, cloudX, hexColour, variantPalette, type Drift
 import { flashAt, flashSalt, underCloud } from "./deck-flash";
 import { phaseFrameAt } from "./deck-phase-frames";
 import { phaseStripSets, phaseStripWeights } from "./deck-phase-strip";
+import { depthWashAt, depthWashAlpha } from "./deck-depth-wash";
 import type { PixiContainer, PixiGraphics, PixiModule, PixiSprite, PixiTexture, PixiTextureSource } from "./deck-pixi";
 import { backdropPlacement, dayBlend, dominantPhase, NO_DAY, scrollOffset, type DayBlend, type Placement } from "./deck-sky";
 import { cycleFrame, curvePeak, opacityAt, variantBlend, type Variant } from "./deck-variants";
@@ -329,7 +330,7 @@ function ambienceLayers(
     views.set(id, layer);
     return layer;
   };
-  const tiles = elementsOf(ambience, "tile").map((element) => placedLayer(element.id, tileLayer(pixi, element, cut, ambience.sizes)));
+  const tiles = elementsOf(ambience, "tile").map((element) => placedLayer(element.id, tileLayer(pixi, element, cut, ambience.sizes, phases)));
   const water: WaterLayer[] = [
     ...tiles,
     ...elementsOf(ambience, "strip").map((element) => placedLayer(element.id, stripLayer(pixi, element, cut, ambience.sizes))),
@@ -653,7 +654,7 @@ function cycleLayer(pixi: PixiModule, element: AmbientElement<"cycle">, cut: Cut
  * A tile (`tile@1`): its frames repeated both ways in each band from the band's row, all on one tile origin, every tile
  * on the same frame and the bands drifting together a whole pixel at a time; its variants a band of tiles over each band.
  */
-function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, sizes: DeckAmbience["sizes"]) {
+function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, sizes: DeckAmbience["sizes"], phases: DayCycle["phases"]) {
   const { behaviour } = element;
   const { sprites } = behaviour.frames;
   const [tileWidth, tileHeight] = spriteSize(sprites[0]!, sizes);
@@ -674,6 +675,12 @@ function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, 
     return made;
   };
   const holders = bands.map((band) => container(`${element.place}:${band.slot}`, true));
+  const washes = behaviour.depthWash === undefined ? [] : bands.map((band) => {
+    const graphics = new pixi.Graphics();
+    graphics.label = `${element.place}:${band.slot}:depth-wash`;
+    return graphics;
+  });
+  let washed = "";
   const over = variants.map((variant) => ({ frames: variant.frames.map(frameTextures), holders: bands.map((band) => container(`${element.place}:${band.slot}:${variant.id}`, false)) }));
   let frame = 0;
   /** Every tile: its band, whether it is that band's first row (cut to line up), and each variant's tile over it. */
@@ -694,7 +701,7 @@ function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, 
     tiles.push({ band, sprite, atCut, over: layered });
   }
 
-  const inSlot = (slot: string) => bands.flatMap((band, index) => (band.slot === slot ? [holders[index]!, ...over.map((variant) => variant.holders[index]!)] : []));
+  const inSlot = (slot: string) => bands.flatMap((band, index) => (band.slot === slot ? [holders[index]!, ...over.map((variant) => variant.holders[index]!), ...(washes[index] ? [washes[index]!] : [])] : []));
   return {
     back: inSlot("back"),
     front: inSlot("front"),
@@ -728,11 +735,36 @@ function tileLayer(pixi: PixiModule, element: AmbientElement<"tile">, cut: Cut, 
         });
       }
     },
-    draw(seconds: number, plan: MotionPlan, weather: Weather) {
+    draw(seconds: number, plan: MotionPlan, weather: Weather, blend: DayBlend) {
       const motion = elementMotion(element, plan);
       const run = motion === "run";
       const drift = run ? scrollOffset(clockOf(weather, behaviour.drift.clock, seconds), behaviour.drift.pxPerSecond, tileWidth) : 0;
       const mix = variantBlend(variants, weather.intensity);
+      if (behaviour.depthWash !== undefined) {
+        const wash = behaviour.depthWash;
+        const { colour, top, bottom } = depthWashAt(wash, phases, blend);
+        const strength = unit(wash.opacity === undefined ? 1 : levelAt(wash.opacity, weather));
+        // Sub-byte alpha changes during a 90-minute day fade need no geometry rebuild each frame.
+        const key = `${colour}:${Math.round(top * 1024)}:${Math.round(bottom * 1024)}:${tiled.left}:${tiled.right}:${tiled.top}:${tiled.bottom}`;
+        washes.forEach((graphics, index) => {
+          graphics.visible = motion !== "hide" && strength > 0;
+          graphics.alpha = strength;
+          if (key === washed) return;
+          graphics.clear();
+          const start = fullHeight ? Math.min(bands[index]!.fromRow, tiled.top) : bands[index]!.fromRow;
+          // World-aligned one-pixel colour blends, never a repeated gradient per texture tile.
+          // The two constant regions are single rectangles even in extremely tall panes.
+          const rect = (y: number, end: number, alpha: number) => {
+            if (end > y && alpha > 0) graphics.rect(tiled.left, y, tiled.right - tiled.left, end - y).fill({ color: colour, alpha });
+          };
+          rect(start, Math.min(tiled.bottom, wash.rows[0]), top);
+          for (let y = Math.max(start, wash.rows[0]); y < Math.min(tiled.bottom, wash.rows[1]); y++) {
+            rect(y, y + 1, depthWashAlpha(y + .5, wash.rows, top, bottom));
+          }
+          rect(Math.max(start, wash.rows[1]), tiled.bottom, bottom);
+        });
+        washed = key;
+      }
       for (const holder of holders) {
         holder.position.set(drift, 0);
         holder.visible = motion !== "hide" && mix.base > 0;

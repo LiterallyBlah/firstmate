@@ -15,9 +15,6 @@
     "coast": {
       "sha256": "e0a5d123ec29cc3cfff4a41ad6c3da421832b3dd6db3426dba5b446d5e235045"
     },
-    "water": {
-      "sha256": "41d43fabe2c7f7d6023f986fc1f0729ae49db1b8ba32007a8944a671098fa2b1"
-    },
     "storm-textures": {
       "sha256": "df749ea1778a899046737d3ec1b9c925f58a407e602d455fb1c8372808aca976"
     },
@@ -33,9 +30,6 @@
     "whale": {
       "sha256": "7620184ed325cf9431143f02d43b0159c830c8c22db8eb5e7e257413f23cff66"
     },
-    "underwater": {
-      "sha256": "8a0612a40a3180d1ce65227c25be4cdf6bfceaef7e5a0cf445738120b0ccdf20"
-    },
     "rain-clear": {
       "reusedFrom": "art/settings/ship/rain-clear.png",
       "sha256": "550a7e24934a43814a398ee72c84f6b30320667c1231967f57cbeb5eb2341798",
@@ -43,26 +37,61 @@
     },
     "rain-0": {
       "reusedFrom": "art/settings/ship/rain-0.png",
+      "revision": "df3469c2023013297838e5355e9aef340f91b49a",
       "sha256": "5e00ba56d634e9361b3a2ce77d24ec34b86ec3e8de5ca92f57fbddd03d436911",
-      "transform": null
+      "transform": {
+        "reflectX": true,
+        "periodRows": 32,
+        "downRows": 0
+      }
     },
     "rain-1": {
-      "reusedFrom": "art/settings/ship/rain-1.png",
-      "sha256": "86b8ee47e1a1eb5bc622ac41b0cd010a81ef6fd07885733bb66e480f23159b39",
-      "transform": null
+      "reusedFrom": "art/settings/ship/rain-0.png",
+      "revision": "df3469c2023013297838e5355e9aef340f91b49a",
+      "sha256": "5e00ba56d634e9361b3a2ce77d24ec34b86ec3e8de5ca92f57fbddd03d436911",
+      "transform": {
+        "reflectX": true,
+        "periodRows": 32,
+        "downRows": 8
+      }
     },
     "rain-2": {
-      "reusedFrom": "art/settings/ship/rain-2.png",
-      "sha256": "6d2e2bb7244e5a966f08f68bab5df0bff89867a35c3f421ad88a5d8a06e0ba9f",
-      "transform": null
+      "reusedFrom": "art/settings/ship/rain-0.png",
+      "revision": "df3469c2023013297838e5355e9aef340f91b49a",
+      "sha256": "5e00ba56d634e9361b3a2ce77d24ec34b86ec3e8de5ca92f57fbddd03d436911",
+      "transform": {
+        "reflectX": true,
+        "periodRows": 32,
+        "downRows": 16
+      }
     },
     "rain-3": {
-      "reusedFrom": "art/settings/ship/rain-3.png",
-      "sha256": "be75c06a3e5eacc9dfdc0c165979cd4c09354283bd23ee4efd54d9c0ef52d345",
-      "transform": null
+      "reusedFrom": "art/settings/ship/rain-0.png",
+      "revision": "df3469c2023013297838e5355e9aef340f91b49a",
+      "sha256": "5e00ba56d634e9361b3a2ce77d24ec34b86ec3e8de5ca92f57fbddd03d436911",
+      "transform": {
+        "reflectX": true,
+        "periodRows": 32,
+        "downRows": 24
+      }
     },
     "preview-canvas": {
-      "sha256": "a437e1f17d63b985be97f13c3174cc1d9e079f01bb1ec1ff0b3aefa94b66f4cd"
+      "renderedFrom": "compiled Ghost ship fixture, midday wide",
+      "sha256": "6d912f4ecca7b3cf32cff4d7409649c26c182607362d021ec94f1f3ee39392e9"
+    },
+    "rigid-crows-nest": {
+      "reusedFrom": "flag-main-0",
+      "rect": [
+        0,
+        28,
+        22,
+        30
+      ],
+      "to": "fixed",
+      "at": [
+        302,
+        58
+      ]
     }
   },
   "images": {
@@ -144,7 +173,7 @@
         122,
         58
       ],
-      "sha256": "0ee50471a66293f7bb023357656d80b37d3a05543e5124c2efcdb3081a237c00"
+      "sha256": "9a8d3e807d2a363d32a7c9487759454a93befd1cf4298d24b07e9b517fa52208"
     },
     "flag-main-1": {
       "path": "flag-main-1.png",
@@ -152,7 +181,7 @@
         122,
         58
       ],
-      "sha256": "7637d86db6b6c7ea36824f87da64c00f85879e81d9f70c1ffb1c37cfc0908ee8"
+      "sha256": "c66ced688daaa1911ee57333eb6b8f0d0217747911772179e253b25b251a875e"
     },
     "flag-main-2": {
       "path": "flag-main-2.png",
@@ -160,7 +189,7 @@
         122,
         58
       ],
-      "sha256": "0ee50471a66293f7bb023357656d80b37d3a05543e5124c2efcdb3081a237c00"
+      "sha256": "9a8d3e807d2a363d32a7c9487759454a93befd1cf4298d24b07e9b517fa52208"
     },
     "flag-main-3": {
       "path": "flag-main-3.png",
@@ -168,7 +197,7 @@
         122,
         58
       ],
-      "sha256": "9228da00b730160c4e47532105f149ddc8475e0a49ffa0ad36fb0c98b70780d6"
+      "sha256": "9d40798012287e4fd1a645901666af7cd0f337186720f09ad6ed887f4c5575a3"
     },
     "flag-aft-0": {
       "path": "flag-aft-0.png",
@@ -240,7 +269,7 @@
         800,
         520
       ],
-      "sha256": "e31c7d034da7ff584f3d9ee876a15b2e7278716aab8cc6ba2a06faf5f2ec95c9"
+      "sha256": "a60b7b81a4b8cffab150b7662f42379371e2e507193132d459916265d4edd98a"
     },
     "sail-screen": {
       "path": "sail-screen.png",
@@ -442,126 +471,6 @@
       ],
       "sha256": "786bc3a20afb30de4e1b3c5ac5e4858c1a7ba9029ecf415e02c90602ec11526e"
     },
-    "water-0-0-0": {
-      "path": "water-0-0-0.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "89a64906cf1279ed3e4fed6c5749cee2c62840d895e245034417ee317694bc40"
-    },
-    "water-0-0-1": {
-      "path": "water-0-0-1.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "cdffd6364a064282734d4d25d66f21733049fd15f2bfdd4ac9ac731a7d3d9e2e"
-    },
-    "water-0-0-2": {
-      "path": "water-0-0-2.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "aa0fea29e309eed7d4c4c976675960c63b5dc6c9db9fe64825490802249a262f"
-    },
-    "water-0-0-3": {
-      "path": "water-0-0-3.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "585e2ef69c02b8ec4c62b90b2407936ab47376918c4683c3524be19e827404dc"
-    },
-    "water-1-0-0": {
-      "path": "water-1-0-0.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "181014a3988928cd499c9239cf67bd58b6974728f532abb21e530298f6b23ada"
-    },
-    "water-1-0-1": {
-      "path": "water-1-0-1.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "94c7aea6c09e99fc54e77368d532f129942d48741ac8ad0a9abe53ef835785f8"
-    },
-    "water-1-0-2": {
-      "path": "water-1-0-2.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "93f04cabeb7cae80803a4902602ba43f2848c326c3bfe234fc79fbf44156ac26"
-    },
-    "water-1-0-3": {
-      "path": "water-1-0-3.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "f509b107ece99c72eb55eb610d9c21732c0ffc4ea48701a9a153fced366a7933"
-    },
-    "water-2-0-0": {
-      "path": "water-2-0-0.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "c14213ec6cdbda646f7b3c7a926398fc88971be0d01d03c92c272004c6dfc5d8"
-    },
-    "water-2-0-1": {
-      "path": "water-2-0-1.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "d0350f5aca926c54c4d30db10614d2bc26b1e7d8d3dc6a1cb2a1f5763e6e399e"
-    },
-    "water-2-0-2": {
-      "path": "water-2-0-2.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "41a3b164e9291d6f8b85d044cec63954a5ac10b49aa165038a1b4b02e9220e10"
-    },
-    "water-2-0-3": {
-      "path": "water-2-0-3.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "7565781965d54fc505dc1cfc9551dd4fe542cd2d956453ce8690696ed17c1cdd"
-    },
-    "storm-water-0": {
-      "path": "storm-water-0.png",
-      "size": [
-        393,
-        64
-      ],
-      "sha256": "5cae69fb90b1e89a36a3da2f054ce18f76c64dde9e0e8c84c1ebc2d7d12ddb49"
-    },
-    "storm-water-1": {
-      "path": "storm-water-1.png",
-      "size": [
-        393,
-        64
-      ],
-      "sha256": "2935abab961dac85fd79f664ed6f0d6bdbc9281ac2c2aca4732f0fd3363b008f"
-    },
-    "storm-water-2": {
-      "path": "storm-water-2.png",
-      "size": [
-        393,
-        64
-      ],
-      "sha256": "279f982b338ac1c4de11e7aa0aa6fe4669fc3324299be52ff2606c6ab165a0f4"
-    },
     "storm-fog": {
       "path": "storm-fog.png",
       "size": [
@@ -626,22 +535,6 @@
       ],
       "sha256": "410337ad3fae2ab619e0758374812f110e4a177b0563eff2de10fb0cfe356f23"
     },
-    "jelly-wide": {
-      "path": "jelly-wide.png",
-      "size": [
-        28,
-        42
-      ],
-      "sha256": "26117d227c27dbe73250441fed071bd680598d681ad073c703ea9e90183257c2"
-    },
-    "jelly-narrow": {
-      "path": "jelly-narrow.png",
-      "size": [
-        28,
-        42
-      ],
-      "sha256": "7f1c8456ba4151ddb13c716a0acdaf41186a747df116c366625f3fba99860f63"
-    },
     "sleeper": {
       "path": "sleeper.png",
       "size": [
@@ -673,70 +566,6 @@
         24
       ],
       "sha256": "3b84a7a185a770c293a765e10cc581f709d5f84e1eb4a408bd67847490e5ea45"
-    },
-    "jelly-drift-0": {
-      "path": "jelly-drift-0.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "d31987feb88df7a2a42ab801ac2533756c408b20e5734e275cb3dddc128f3ee6"
-    },
-    "jelly-drift-1": {
-      "path": "jelly-drift-1.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "892f36c4b0a9a8e2e70c65cef160d21cac56b572b73d82aac2eb11bf76705d20"
-    },
-    "jelly-drift-2": {
-      "path": "jelly-drift-2.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "f7ebf55d3ee3b6614af8c946f19f70aec4893b24138d2427ed1afb3f9fbc0897"
-    },
-    "jelly-drift-3": {
-      "path": "jelly-drift-3.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "f162537a84666c72dd5f56659047eea16378d4399506e7031654ed7d7bac5095"
-    },
-    "jelly-drift-4": {
-      "path": "jelly-drift-4.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "e4ad85e926c852bb174875f9e5198aa43fabb2972ebdf9f24a3e011b29419f5e"
-    },
-    "jelly-drift-5": {
-      "path": "jelly-drift-5.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "be511395a0f896674ffe2647639855973ec2f4da6761e4bb86fcbe7943cd707d"
-    },
-    "jelly-drift-6": {
-      "path": "jelly-drift-6.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "95b3155403d04aa6c02d999e4599a014dad07fcfa9d7db67bf0169db98217153"
-    },
-    "jelly-drift-7": {
-      "path": "jelly-drift-7.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "4f61460c1c32711545b19542d302ced3ae980828980f1683b92eea2aa3fc3ea0"
     },
     "fog-0": {
       "path": "fog-0.png",
@@ -1370,22 +1199,6 @@
       ],
       "sha256": "9117c65347b38d43cc236fbdb7ca0291c1deeb4de48d6cca1b6e24f1e1164cba"
     },
-    "underwater": {
-      "path": "underwater.png",
-      "size": [
-        520,
-        100
-      ],
-      "sha256": "875ac7b297d9afe5c95da32b78340aed72c78646b208a2197ac5b62caef3b2df"
-    },
-    "deep-water": {
-      "path": "deep-water.png",
-      "size": [
-        96,
-        64
-      ],
-      "sha256": "c3465595bcad194a3324deef412473ae8d53c40f8d1b69111b152a2442cb1fa3"
-    },
     "rain-clear": {
       "path": "rain-clear.png",
       "size": [
@@ -1400,7 +1213,7 @@
         96,
         64
       ],
-      "sha256": "1d67dd58bc780a3056ef03255f80acb9d6fdf27252078360f34ac64a03bf4010"
+      "sha256": "be916bd8c2a342b154fedbfc5c03f61a859e3838aa51a45a107284b02cf28c2b"
     },
     "rain-1": {
       "path": "rain-1.png",
@@ -1408,7 +1221,7 @@
         96,
         64
       ],
-      "sha256": "b012cbadf7b6640e7ae56c9873de8ae738bc73770133c86084c661977812cf39"
+      "sha256": "36302ba8a095dc82245dbe20cc18a667d80ec38161e0c4f833884a0f7bc06a02"
     },
     "rain-2": {
       "path": "rain-2.png",
@@ -1416,7 +1229,7 @@
         96,
         64
       ],
-      "sha256": "12983f516d94ac402fbab2740025ac160741382c8a385a2ee685f8fc9da6cb91"
+      "sha256": "d795206fcea24103e593a8999c1aab6c5d60b52bf0572e95867089abe654920c"
     },
     "rain-3": {
       "path": "rain-3.png",
@@ -1424,7 +1237,7 @@
         96,
         64
       ],
-      "sha256": "092f46387208185f187569ac9c300cbaa51507487732d9e8411769eb2739d2cd"
+      "sha256": "f8166febdab291bebe4f7f5eb47e7c47ecceb3eb58c17cb57fc7cd7cb7aeefd6"
     },
     "storm-sky-overcast": {
       "path": "storm-sky-overcast.png",
@@ -1440,7 +1253,71 @@
         384,
         216
       ],
-      "sha256": "a8d157703fae9fb4fd6f3ebf86325e78d1badda8b4f1efbc257104746b8618d7"
+      "sha256": "362f8e394977c512289fcd02cf7690c6540037268311dad550d5d69e567d0fdc"
+    },
+    "sea-far": {
+      "path": "sea-far.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "f39400f3d74b57c5915e631fd05e3bb78127b195fdf60261c661dd61cce371ca"
+    },
+    "sea-mid": {
+      "path": "sea-mid.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "a48425ed4c2e8fd189988fb6fb2f7ec74ae11b8be248a0cb7d764744a0ec0480"
+    },
+    "sea-near": {
+      "path": "sea-near.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "88205d42ff2ed7b43366035346def8f2252764896212af97be3d21ef188509ff"
+    },
+    "sea-deep": {
+      "path": "sea-deep.png",
+      "size": [
+        3072,
+        512
+      ],
+      "sha256": "15b9573bd5cb1d982fdc8eb441509669db94533a2fa909105029ed43debe1191"
+    },
+    "sea-storm-far": {
+      "path": "sea-storm-far.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "b9d3cd5d70eca990d95025319cbf137efd4a0516ae4e08814d3fc432ec2f01a1"
+    },
+    "sea-storm-mid": {
+      "path": "sea-storm-mid.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "9072e0f5b812c06cbd05340f903c0dc790b0c4e6c6d72f190e550163aa8d0327"
+    },
+    "sea-storm-near": {
+      "path": "sea-storm-near.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "1eb9ae64f7758004516a950b4d3ee97080eae4c6a9fe166c2cce7c9459e18ad6"
+    },
+    "sea-storm-deep": {
+      "path": "sea-storm-deep.png",
+      "size": [
+        3072,
+        512
+      ],
+      "sha256": "c588ca64de4458db3b9c8d2679eb2c478f9da2200995c06c6f0f8febe496c83b"
     }
   },
   "lanes": {

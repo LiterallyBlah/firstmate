@@ -3,7 +3,8 @@ import {readFileSync,writeFileSync,mkdirSync,existsSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
-import {crc32,deflateSync} from 'node:zlib';
+import {indexed} from './indexed-png.mjs';
+import {waterImages} from './water-art.mjs';
 import {decodePng} from '../../../test/png.ts';
 import {blank,crop,nearest,quant,encode,paste} from '../japanese-ship/build-art.mjs';
 const here=dirname(fileURLToPath(import.meta.url)),out=resolve(here,'../../../art/settings/ghost-ship');
@@ -15,7 +16,6 @@ const clone=a=>({width:a.width,height:a.height,rgba:Buffer.from(a.rgba)});
 const pixel=(a,x,y)=>a.rgba.subarray((y*a.width+x)*4,(y*a.width+x)*4+4);
 const put=(a,x,y,c)=>{if(x>=0&&y>=0&&x<a.width&&y<a.height)a.rgba.set(c,(y*a.width+x)*4);};
 function pal(a,n=32,alpha=true){const al=[];for(let i=3;i<a.rgba.length;i+=4){al.push(a.rgba[i]<70?0:alpha?Math.min(255,Math.round(a.rgba[i]/51)*51):255);a.rgba[i]=al.at(-1)?255:0;}quant(a,n);for(let i=3,j=0;i<a.rgba.length;i+=4,j++)a.rgba[i]=al[j];return a;}
-function indexed(a){const cols=[],map=new Map(),raw=Buffer.alloc((a.width+1)*a.height);for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++){const p=[...pixel(a,x,y)],k=p[3]?p.join(','):'0,0,0,0';let id=map.get(k);if(id===undefined){id=cols.length;map.set(k,id);cols.push(k.split(',').map(Number));}if(id>255)return encode(a);raw[y*(a.width+1)+1+x]=id;}const chunk=(s,b)=>{const h=Buffer.alloc(8),t=Buffer.alloc(4);h.writeUInt32BE(b.length);h.write(s,4);t.writeUInt32BE(crc32(Buffer.concat([h.subarray(4),b]))>>>0);return Buffer.concat([h,b,t]);};const h=Buffer.alloc(13);h.writeUInt32BE(a.width);h.writeUInt32BE(a.height,4);h.set([8,3,0,0,0],8);return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',h),chunk('PLTE',Buffer.from(cols.flatMap(c=>c.slice(0,3)))),chunk('tRNS',Buffer.from(cols.map(c=>c[3]))),chunk('IDAT',deflateSync(raw,{level:9})),chunk('IEND',Buffer.alloc(0))]);}
 const save=(id,a)=>{const b=indexed(a);writeFileSync(resolve(out,id+'.png'),b);images[id]={path:id+'.png',size:[a.width,a.height],sha256:sha(b)};return a;};
 const cells=(a,c,r)=>Array.from({length:c*r},(_,i)=>{const x=Math.round(i%c*a.width/c),y=Math.round(Math.floor(i/c)*a.height/r),x2=Math.round((i%c+1)*a.width/c),y2=Math.round((Math.floor(i/c)+1)*a.height/r);return crop(a,x,y,x2-x,y2-y);});
 function bounds(a,threshold=100){let x0=a.width,y0=a.height,x1=-1,y1=-1;for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++)if(pixel(a,x,y)[3]>=threshold){x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}return x1<0?[0,0,1,1]:[x0,y0,x1-x0+1,y1-y0+1];}
@@ -59,24 +59,17 @@ const sky=cells(source('skies-framed'),3,2);phases.forEach((p,i)=>save('sky-'+p,
 const coast0=source('coast'),coast=fit(coast0,800,168,40),coastPlate=blank(1800,168);paste(coastPlate,coast,100,0);
 const coastTints=[[1.12,1.04,1.1],[1.15,1.2,1.18],[1.1,1.18,1.17],[1.12,1.1,1.05],[.94,.86,1],[.75,1,.95]];
 phases.forEach((p,i)=>{const a=tint(coastPlate,coastTints[i]);for(let j=0;j<a.rgba.length;j+=4)if(a.rgba[j+1]>a.rgba[j]*1.65&&a.rgba[j+1]>70){const gain=p==='night'?1.9:p==='dusk'?1.2:.45;for(let c=0;c<3;c++)a.rgba[j+c]=Math.min(255,Math.round(a.rgba[j+c]*gain));}save('coast-'+p,pal(a,48));});
-const water=cells(source('water'),2,3);
-// Calm pixels are unchanged: duplicate their existing period into the wider storm frame.
-for(let band=0;band<3;band++){const a=pal(nearest(water[band*2],192,64),32,false);for(let k=0;k<4;k++){const b=blank(384,64);for(let y=0;y<64;y++)for(let x=0;x<384;x++)put(b,x,y,pixel(a,(x+k*3+Math.round(Math.sin((y+k*8)/64*Math.PI*2)*2)+192)%192,y));save('water-'+band+'-0-'+k,b);}}
-const weather=source('storm-textures'),rough=crop(weather,0,528,weather.width,weather.height-528);
-for(let band=0;band<3;band++){
- const a=pal(periodic(nearest(rough,384,64)),24,false),atlas=blank(393,64);
- for(let y=0;y<64;y++)for(let x=0;x<393;x++)put(atlas,x,y,pixel(a,(x+band*89)%384,y));
- save('storm-water-'+band,atlas);
-}
+// Water is commissioned atlas art, preserved byte-for-byte by the pack builder.
+Object.assign(images,waterImages(out));
+const weather=source('storm-textures');
 const fog=periodic(nearest(crop(weather,0,0,weather.width,500),512,256));
 for(let y=0;y<fog.height;y++)for(let x=0;x<fog.width;x++){const p=pixel(fog,x,y),v=(p[0]+p[1]+p[2])/3;put(fog,x,y,[76,116,105,Math.round((24+Math.min(100,v)*.7)/4)*4]);}
 save('storm-fog',fog);save('storm-fog-clear',blank(512,256));
 const ambience=cells(source('ambience'),4,4);
-const sprites=[['cloud-wisp',0,40,12],['cloud-bank',1,52,28],['fog',2,160,42],['hatch-mist',3,36,42],['raven-rest',4,16,18],['raven-turn',5,24,18],['bat-up',6,20,16],['bat-down',7,20,16],['jelly-wide',8,28,42],['jelly-narrow',9,28,42],['candle',10,20,28],['spectral-ship',11,140,100],['lightning',12,70,160],['ripple',13,90,24],['beam',14,170,22],['sleeper',15,18,12]];
+const sprites=[['cloud-wisp',0,40,12],['cloud-bank',1,52,28],['fog',2,160,42],['hatch-mist',3,36,42],['raven-rest',4,16,18],['raven-turn',5,24,18],['bat-up',6,20,16],['bat-down',7,20,16],['candle',10,20,28],['spectral-ship',11,140,100],['lightning',12,70,160],['ripple',13,90,24],['beam',14,170,22],['sleeper',15,18,12]];
 const cutSprites={};for(const [id,i,w,h]of sprites)cutSprites[id]=fit(ambience[i],w,h,24);
 for(const id of ['cloud-wisp','cloud-bank']){const a=cutSprites[id];quant(a,3,[[64,84,100],[110,140,150],[190,212,208]]);save(id,a);}
-for(const id of ['raven-rest','raven-turn','bat-up','bat-down','jelly-wide','jelly-narrow','sleeper','spectral-ship','lightning','ripple'])save(id,id==='sleeper'?tint(cutSprites[id],[1,1,1],.72):cutSprites[id]);
-for(let k=0;k<8;k++){const a=blank(44,50);paste(a,cutSprites[Math.floor(k/2)%2?'jelly-narrow':'jelly-wide'],8+Math.round(Math.sin(k*Math.PI/4)*3),4+Math.round(Math.cos(k*Math.PI/4)*2));save('jelly-drift-'+k,a);}
+for(const id of ['raven-rest','raven-turn','bat-up','bat-down','sleeper','spectral-ship','lightning','ripple'])save(id,id==='sleeper'?tint(cutSprites[id],[1,1,1],.72):cutSprites[id]);
 for(const id of ['fog','hatch-mist','candle'])for(let k=0;k<4;k++){
  const a=warp(cutSprites[id],k,id==='fog'?5:2);
  if(id==='candle'){const moving=blank(a.width,a.height);for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++)put(moving,x,y+[0,1,2,1][k],pixel(a,x,y));save(id+'-'+k,moving);}
@@ -101,17 +94,20 @@ const whale=source('whale');for(let i=0;i<6;i++){
  for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++)put(b,x+10,y+dy,pixel(a,x,y));save('whale-'+i,b);
 }
 save('fog-clear',blank(160,42));save('distant-kraken-clear',blank(78,66));save('whale-clear',blank(174,162));save('kraken-clear',blank(156,132));save('ship-clear',blank(140,100));save('bat-clear',blank(20,16));
-save('underwater',pal(nearest(source('underwater'),520,100),24));
-const deep=blank(96,64);for(let y=0;y<64;y++)for(let x=0;x<96;x++)put(deep,x,y,[4,29,39,255]);save('deep-water',deep);
 // Generic rain art is reused, unchanged, from the existing shipped Ship; retain explicit provenance.
 const original=JSON.parse(readFileSync(resolve(here,'../../../art/settings/ship/setting.json')));
 for(const id of ['rain-clear','rain-0','rain-1','rain-2','rain-3']){const def=original.images[id],b=readFileSync(resolve(here,'../../../art/settings/ship',def.path));save(id,decodePng(b));sources[id]={reusedFrom:'art/settings/ship/'+def.path,sha256:sha(b),transform:null};}
 // Flat overcast attenuation extends to arbitrary panes without stretched edge stripes.
 // Cloud detail comes from the seamless drifting fog and existing cloud field above it.
 const overcast=blank(320,240);for(let y=0;y<240;y++)for(let x=0;x<320;x++)put(overcast,x,y,[12,30,34,255]);save('storm-sky-overcast',overcast);
-save('preview',pal(nearest(source('preview-canvas'),384,216),96,false));
+// Preserve the reviewed live-render thumbnail; make-preview.mjs refreshes it explicitly.
+const previewBytes=readFileSync(resolve(out,'preview.png'));
+images.preview={path:'preview.png',size:[384,216],sha256:sha(previewBytes)};
 writeFileSync(resolve(here,'registration.json'),JSON.stringify({sources,images,lanes,parts},null,2)+'\n');
-writeFileSync(resolve(here,'stage-registration.png'),encode(ship));
+// Apply the reviewed pixel-registration corrections without regenerating any art.
+await import('./fix-motion.mjs');
+const review=resolve(here,'../../../.local/ghost-ship-fixes');mkdirSync(review,{recursive:true});
+writeFileSync(resolve(review,'stage-registration.png'),encode(ship));
 console.log(JSON.stringify({images:Object.keys(images).length,bytes:Object.values(images).reduce((s,a)=>s+readFileSync(resolve(out,a.path)).length,0)}));
 
 

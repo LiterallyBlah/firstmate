@@ -13,10 +13,12 @@
     "attention-carrier@1",
     "carrier-surface@1",
     "cast@1",
+    "cast-scale@1",
     "pose-fidgets@1",
     "rise@1",
     "choreography@1",
     "phase-tint@1",
+    "depth-wash@1",
     "bob@1",
     "stage-rock@1",
     "cycle@1",
@@ -30,8 +32,7 @@
     "phase-strip@1",
     "variants@1",
     "day-cycle@1",
-    "atmosphere@1",
-    "cast-scale@1"
+    "atmosphere@1"
   ],
   "preview": "preview",
   "images": {
@@ -113,7 +114,7 @@
         122,
         58
       ],
-      "sha256": "0ee50471a66293f7bb023357656d80b37d3a05543e5124c2efcdb3081a237c00"
+      "sha256": "9a8d3e807d2a363d32a7c9487759454a93befd1cf4298d24b07e9b517fa52208"
     },
     "flag-main-1": {
       "path": "flag-main-1.png",
@@ -121,7 +122,7 @@
         122,
         58
       ],
-      "sha256": "7637d86db6b6c7ea36824f87da64c00f85879e81d9f70c1ffb1c37cfc0908ee8"
+      "sha256": "c66ced688daaa1911ee57333eb6b8f0d0217747911772179e253b25b251a875e"
     },
     "flag-main-2": {
       "path": "flag-main-2.png",
@@ -129,7 +130,7 @@
         122,
         58
       ],
-      "sha256": "0ee50471a66293f7bb023357656d80b37d3a05543e5124c2efcdb3081a237c00"
+      "sha256": "9a8d3e807d2a363d32a7c9487759454a93befd1cf4298d24b07e9b517fa52208"
     },
     "flag-main-3": {
       "path": "flag-main-3.png",
@@ -137,7 +138,7 @@
         122,
         58
       ],
-      "sha256": "9228da00b730160c4e47532105f149ddc8475e0a49ffa0ad36fb0c98b70780d6"
+      "sha256": "9d40798012287e4fd1a645901666af7cd0f337186720f09ad6ed887f4c5575a3"
     },
     "flag-aft-0": {
       "path": "flag-aft-0.png",
@@ -209,7 +210,7 @@
         800,
         520
       ],
-      "sha256": "e31c7d034da7ff584f3d9ee876a15b2e7278716aab8cc6ba2a06faf5f2ec95c9"
+      "sha256": "a60b7b81a4b8cffab150b7662f42379371e2e507193132d459916265d4edd98a"
     },
     "sail-screen": {
       "path": "sail-screen.png",
@@ -379,126 +380,6 @@
       ],
       "sha256": "786bc3a20afb30de4e1b3c5ac5e4858c1a7ba9029ecf415e02c90602ec11526e"
     },
-    "water-0-0-0": {
-      "path": "water-0-0-0.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "89a64906cf1279ed3e4fed6c5749cee2c62840d895e245034417ee317694bc40"
-    },
-    "water-0-0-1": {
-      "path": "water-0-0-1.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "cdffd6364a064282734d4d25d66f21733049fd15f2bfdd4ac9ac731a7d3d9e2e"
-    },
-    "water-0-0-2": {
-      "path": "water-0-0-2.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "aa0fea29e309eed7d4c4c976675960c63b5dc6c9db9fe64825490802249a262f"
-    },
-    "water-0-0-3": {
-      "path": "water-0-0-3.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "585e2ef69c02b8ec4c62b90b2407936ab47376918c4683c3524be19e827404dc"
-    },
-    "water-1-0-0": {
-      "path": "water-1-0-0.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "181014a3988928cd499c9239cf67bd58b6974728f532abb21e530298f6b23ada"
-    },
-    "water-1-0-1": {
-      "path": "water-1-0-1.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "94c7aea6c09e99fc54e77368d532f129942d48741ac8ad0a9abe53ef835785f8"
-    },
-    "water-1-0-2": {
-      "path": "water-1-0-2.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "93f04cabeb7cae80803a4902602ba43f2848c326c3bfe234fc79fbf44156ac26"
-    },
-    "water-1-0-3": {
-      "path": "water-1-0-3.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "f509b107ece99c72eb55eb610d9c21732c0ffc4ea48701a9a153fced366a7933"
-    },
-    "water-2-0-0": {
-      "path": "water-2-0-0.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "c14213ec6cdbda646f7b3c7a926398fc88971be0d01d03c92c272004c6dfc5d8"
-    },
-    "water-2-0-1": {
-      "path": "water-2-0-1.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "d0350f5aca926c54c4d30db10614d2bc26b1e7d8d3dc6a1cb2a1f5763e6e399e"
-    },
-    "water-2-0-2": {
-      "path": "water-2-0-2.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "41a3b164e9291d6f8b85d044cec63954a5ac10b49aa165038a1b4b02e9220e10"
-    },
-    "water-2-0-3": {
-      "path": "water-2-0-3.png",
-      "size": [
-        384,
-        64
-      ],
-      "sha256": "7565781965d54fc505dc1cfc9551dd4fe542cd2d956453ce8690696ed17c1cdd"
-    },
-    "storm-water-0": {
-      "path": "storm-water-0.png",
-      "size": [
-        393,
-        64
-      ],
-      "sha256": "5cae69fb90b1e89a36a3da2f054ce18f76c64dde9e0e8c84c1ebc2d7d12ddb49"
-    },
-    "storm-water-1": {
-      "path": "storm-water-1.png",
-      "size": [
-        393,
-        64
-      ],
-      "sha256": "2935abab961dac85fd79f664ed6f0d6bdbc9281ac2c2aca4732f0fd3363b008f"
-    },
-    "storm-water-2": {
-      "path": "storm-water-2.png",
-      "size": [
-        393,
-        64
-      ],
-      "sha256": "279f982b338ac1c4de11e7aa0aa6fe4669fc3324299be52ff2606c6ab165a0f4"
-    },
     "storm-fog": {
       "path": "storm-fog.png",
       "size": [
@@ -562,70 +443,6 @@
         160
       ],
       "sha256": "a3fe282186e7e1fa141a2a475e3c1b374779aac19d56d718b3c1bf7aa49c1ab0"
-    },
-    "jelly-drift-0": {
-      "path": "jelly-drift-0.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "d31987feb88df7a2a42ab801ac2533756c408b20e5734e275cb3dddc128f3ee6"
-    },
-    "jelly-drift-1": {
-      "path": "jelly-drift-1.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "892f36c4b0a9a8e2e70c65cef160d21cac56b572b73d82aac2eb11bf76705d20"
-    },
-    "jelly-drift-2": {
-      "path": "jelly-drift-2.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "f7ebf55d3ee3b6614af8c946f19f70aec4893b24138d2427ed1afb3f9fbc0897"
-    },
-    "jelly-drift-3": {
-      "path": "jelly-drift-3.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "f162537a84666c72dd5f56659047eea16378d4399506e7031654ed7d7bac5095"
-    },
-    "jelly-drift-4": {
-      "path": "jelly-drift-4.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "e4ad85e926c852bb174875f9e5198aa43fabb2972ebdf9f24a3e011b29419f5e"
-    },
-    "jelly-drift-5": {
-      "path": "jelly-drift-5.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "be511395a0f896674ffe2647639855973ec2f4da6761e4bb86fcbe7943cd707d"
-    },
-    "jelly-drift-6": {
-      "path": "jelly-drift-6.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "95b3155403d04aa6c02d999e4599a014dad07fcfa9d7db67bf0169db98217153"
-    },
-    "jelly-drift-7": {
-      "path": "jelly-drift-7.png",
-      "size": [
-        44,
-        50
-      ],
-      "sha256": "4f61460c1c32711545b19542d302ced3ae980828980f1683b92eea2aa3fc3ea0"
     },
     "fog-0": {
       "path": "fog-0.png",
@@ -1227,22 +1044,6 @@
       ],
       "sha256": "cded7c417d3af98616768a74db0ae6063b28e3214e9eaaf7a8b60fc6d4b5e786"
     },
-    "underwater": {
-      "path": "underwater.png",
-      "size": [
-        520,
-        100
-      ],
-      "sha256": "875ac7b297d9afe5c95da32b78340aed72c78646b208a2197ac5b62caef3b2df"
-    },
-    "deep-water": {
-      "path": "deep-water.png",
-      "size": [
-        96,
-        64
-      ],
-      "sha256": "c3465595bcad194a3324deef412473ae8d53c40f8d1b69111b152a2442cb1fa3"
-    },
     "rain-clear": {
       "path": "rain-clear.png",
       "size": [
@@ -1257,7 +1058,7 @@
         96,
         64
       ],
-      "sha256": "1d67dd58bc780a3056ef03255f80acb9d6fdf27252078360f34ac64a03bf4010"
+      "sha256": "be916bd8c2a342b154fedbfc5c03f61a859e3838aa51a45a107284b02cf28c2b"
     },
     "rain-1": {
       "path": "rain-1.png",
@@ -1265,7 +1066,7 @@
         96,
         64
       ],
-      "sha256": "b012cbadf7b6640e7ae56c9873de8ae738bc73770133c86084c661977812cf39"
+      "sha256": "36302ba8a095dc82245dbe20cc18a667d80ec38161e0c4f833884a0f7bc06a02"
     },
     "rain-2": {
       "path": "rain-2.png",
@@ -1273,7 +1074,7 @@
         96,
         64
       ],
-      "sha256": "12983f516d94ac402fbab2740025ac160741382c8a385a2ee685f8fc9da6cb91"
+      "sha256": "d795206fcea24103e593a8999c1aab6c5d60b52bf0572e95867089abe654920c"
     },
     "rain-3": {
       "path": "rain-3.png",
@@ -1281,7 +1082,7 @@
         96,
         64
       ],
-      "sha256": "092f46387208185f187569ac9c300cbaa51507487732d9e8411769eb2739d2cd"
+      "sha256": "f8166febdab291bebe4f7f5eb47e7c47ecceb3eb58c17cb57fc7cd7cb7aeefd6"
     },
     "storm-sky-overcast": {
       "path": "storm-sky-overcast.png",
@@ -1297,7 +1098,71 @@
         384,
         216
       ],
-      "sha256": "a8d157703fae9fb4fd6f3ebf86325e78d1badda8b4f1efbc257104746b8618d7"
+      "sha256": "362f8e394977c512289fcd02cf7690c6540037268311dad550d5d69e567d0fdc"
+    },
+    "sea-far": {
+      "path": "sea-far.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "f39400f3d74b57c5915e631fd05e3bb78127b195fdf60261c661dd61cce371ca"
+    },
+    "sea-mid": {
+      "path": "sea-mid.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "a48425ed4c2e8fd189988fb6fb2f7ec74ae11b8be248a0cb7d764744a0ec0480"
+    },
+    "sea-near": {
+      "path": "sea-near.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "88205d42ff2ed7b43366035346def8f2252764896212af97be3d21ef188509ff"
+    },
+    "sea-deep": {
+      "path": "sea-deep.png",
+      "size": [
+        3072,
+        512
+      ],
+      "sha256": "15b9573bd5cb1d982fdc8eb441509669db94533a2fa909105029ed43debe1191"
+    },
+    "sea-storm-far": {
+      "path": "sea-storm-far.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "b9d3cd5d70eca990d95025319cbf137efd4a0516ae4e08814d3fc432ec2f01a1"
+    },
+    "sea-storm-mid": {
+      "path": "sea-storm-mid.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "9072e0f5b812c06cbd05340f903c0dc790b0c4e6c6d72f190e550163aa8d0327"
+    },
+    "sea-storm-near": {
+      "path": "sea-storm-near.png",
+      "size": [
+        3072,
+        128
+      ],
+      "sha256": "1eb9ae64f7758004516a950b4d3ee97080eae4c6a9fe166c2cce7c9459e18ad6"
+    },
+    "sea-storm-deep": {
+      "path": "sea-storm-deep.png",
+      "size": [
+        3072,
+        512
+      ],
+      "sha256": "c588ca64de4458db3b9c8d2679eb2c478f9da2200995c06c6f0f8febe496c83b"
     }
   },
   "copy": {
@@ -1325,7 +1190,7 @@
     ],
     "fit": {
       "top": -8,
-      "bottom": 600,
+      "bottom": 520,
       "margin": 0.94
     },
     "actorHeight": 66,
@@ -3880,41 +3745,50 @@
         "at": 0,
         "wind": 0.6,
         "water": 0.7,
+        "sea": 1,
         "swell": 0.7,
         "heave": 1,
         "mood": 0,
-        "voyage": 1
+        "voyage": 1,
+        "sea-light": 1
       },
       {
         "at": 0.4,
         "wind": 1.2,
         "water": 1,
+        "sea": 1.1,
         "swell": 1,
         "heave": 2,
         "mood": 0.05,
-        "voyage": 1
+        "voyage": 1,
+        "sea-light": 0.7
       },
       {
         "at": 1,
         "wind": 2.5,
         "water": 1.8,
+        "sea": 1.25,
         "swell": 1.3,
         "heave": 3,
         "mood": 0.72,
-        "voyage": 1
+        "voyage": 1,
+        "sea-light": 0.25
       }
     ],
     "delivered": {
       "wind": 0.6,
       "water": 0.7,
+      "sea": 1,
       "swell": 0.7,
       "heave": 1,
       "mood": 0,
-      "voyage": 1
+      "voyage": 1,
+      "sea-light": 1
     },
     "clocks": {
       "wind": "wind",
       "water": "water",
+      "sea": "sea",
       "swell": "swell",
       "voyage": "voyage"
     }
@@ -4358,9 +4232,9 @@
       }
     },
     {
-      "id": "far-sea",
+      "id": "sea-surface",
       "slot": "back",
-      "order": 5,
+      "order": 2.5,
       "optional": false,
       "lite": "run",
       "still": "first-frame",
@@ -4369,38 +4243,343 @@
         "frames": {
           "sprites": [
             {
-              "image": "water-0-0-0"
+              "image": "sea-deep",
+              "rect": [
+                0,
+                0,
+                768,
+                512
+              ]
             },
             {
-              "image": "water-0-0-1"
+              "image": "sea-deep",
+              "rect": [
+                768,
+                0,
+                768,
+                512
+              ]
             },
             {
-              "image": "water-0-0-2"
+              "image": "sea-deep",
+              "rect": [
+                1536,
+                0,
+                768,
+                512
+              ]
             },
             {
-              "image": "water-0-0-3"
+              "image": "sea-deep",
+              "rect": [
+                2304,
+                0,
+                768,
+                512
+              ]
             }
           ],
-          "frameMs": 450,
-          "clock": "water"
+          "frameMs": 800,
+          "clock": "sea"
         },
         "origin": 265,
         "bands": [
           {
             "slot": "back",
             "fromRow": 265
+          },
+          {
+            "slot": "front",
+            "fromRow": 448
           }
         ],
         "drift": {
-          "pxPerSecond": 1,
-          "clock": "water"
+          "pxPerSecond": 0.6,
+          "clock": "sea"
+        },
+        "variants": [
+          {
+            "id": "rough-deep",
+            "frames": [
+              {
+                "image": "sea-storm-deep",
+                "rect": [
+                  0,
+                  0,
+                  768,
+                  512
+                ]
+              },
+              {
+                "image": "sea-storm-deep",
+                "rect": [
+                  768,
+                  0,
+                  768,
+                  512
+                ]
+              },
+              {
+                "image": "sea-storm-deep",
+                "rect": [
+                  1536,
+                  0,
+                  768,
+                  512
+                ]
+              },
+              {
+                "image": "sea-storm-deep",
+                "rect": [
+                  2304,
+                  0,
+                  768,
+                  512
+                ]
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.25,
+                0
+              ],
+              [
+                1,
+                1
+              ]
+            ]
+          }
+        ],
+        "depthWash": {
+          "rows": [
+            448,
+            1250
+          ],
+          "byPhase": {
+            "dawn": {
+              "colour": "#586A70",
+              "alpha": [
+                0.24,
+                0.08
+              ]
+            },
+            "morning": {
+              "colour": "#466D72",
+              "alpha": [
+                0.3,
+                0.12
+              ]
+            },
+            "midday": {
+              "colour": "#36696B",
+              "alpha": [
+                0.34,
+                0.14
+              ]
+            },
+            "afternoon": {
+              "colour": "#606C60",
+              "alpha": [
+                0.28,
+                0.1
+              ]
+            },
+            "dusk": {
+              "colour": "#4C4C6A",
+              "alpha": [
+                0.2,
+                0.06
+              ]
+            },
+            "night": {
+              "colour": "#173B44",
+              "alpha": [
+                0.12,
+                0.02
+              ]
+            }
+          },
+          "opacity": {
+            "channel": "sea-light"
+          }
+        }
+      }
+    },
+    {
+      "id": "far-sea",
+      "slot": "back",
+      "order": 5,
+      "optional": false,
+      "lite": "run",
+      "still": "first-frame",
+      "behaviour": {
+        "kind": "strip",
+        "frames": {
+          "sprites": [
+            {
+              "image": "sea-far",
+              "rect": [
+                0,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                384,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                768,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                1152,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                1536,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                1920,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                2304,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                2688,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                0,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                384,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                768,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                1152,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                1536,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                1920,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                2304,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-far",
+              "rect": [
+                2688,
+                64,
+                384,
+                64
+              ]
+            }
+          ],
+          "frameMs": 200,
+          "clock": "sea"
+        },
+        "top": 265,
+        "span": [
+          -4000,
+          4800
+        ],
+        "drift": {
+          "pxPerSecond": 0.4,
+          "clock": "sea"
         },
         "variants": [
           {
             "id": "rough-far",
             "frames": [
               {
-                "image": "storm-water-0",
+                "image": "sea-storm-far",
                 "rect": [
                   0,
                   0,
@@ -4409,28 +4588,136 @@
                 ]
               },
               {
-                "image": "storm-water-0",
+                "image": "sea-storm-far",
                 "rect": [
-                  3,
+                  384,
                   0,
                   384,
                   64
                 ]
               },
               {
-                "image": "storm-water-0",
+                "image": "sea-storm-far",
                 "rect": [
-                  6,
+                  768,
                   0,
                   384,
                   64
                 ]
               },
               {
-                "image": "storm-water-0",
+                "image": "sea-storm-far",
                 "rect": [
-                  9,
+                  1152,
                   0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  1536,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  1920,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  2304,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  2688,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  0,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  384,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  768,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  1152,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  1536,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  1920,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  2304,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-far",
+                "rect": [
+                  2688,
+                  64,
                   384,
                   64
                 ]
@@ -4463,20 +4750,152 @@
         "frames": {
           "sprites": [
             {
-              "image": "water-1-0-0"
+              "image": "sea-mid",
+              "rect": [
+                0,
+                0,
+                384,
+                64
+              ]
             },
             {
-              "image": "water-1-0-1"
+              "image": "sea-mid",
+              "rect": [
+                384,
+                0,
+                384,
+                64
+              ]
             },
             {
-              "image": "water-1-0-2"
+              "image": "sea-mid",
+              "rect": [
+                768,
+                0,
+                384,
+                64
+              ]
             },
             {
-              "image": "water-1-0-3"
+              "image": "sea-mid",
+              "rect": [
+                1152,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                1536,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                1920,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                2304,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                2688,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                0,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                384,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                768,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                1152,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                1536,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                1920,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                2304,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-mid",
+              "rect": [
+                2688,
+                64,
+                384,
+                64
+              ]
             }
           ],
-          "frameMs": 350,
-          "clock": "water"
+          "frameMs": 200,
+          "clock": "sea"
         },
         "top": 326,
         "span": [
@@ -4484,15 +4903,15 @@
           4800
         ],
         "drift": {
-          "pxPerSecond": 2,
-          "clock": "water"
+          "pxPerSecond": 0.75,
+          "clock": "sea"
         },
         "variants": [
           {
             "id": "rough-mid",
             "frames": [
               {
-                "image": "storm-water-1",
+                "image": "sea-storm-mid",
                 "rect": [
                   0,
                   0,
@@ -4501,177 +4920,136 @@
                 ]
               },
               {
-                "image": "storm-water-1",
+                "image": "sea-storm-mid",
                 "rect": [
-                  3,
+                  384,
                   0,
                   384,
                   64
                 ]
               },
               {
-                "image": "storm-water-1",
+                "image": "sea-storm-mid",
                 "rect": [
-                  6,
+                  768,
                   0,
                   384,
                   64
                 ]
               },
               {
-                "image": "storm-water-1",
+                "image": "sea-storm-mid",
                 "rect": [
-                  9,
-                  0,
-                  384,
-                  64
-                ]
-              }
-            ],
-            "blend": "crossfade",
-            "opacity": [
-              [
-                0.3,
-                0
-              ],
-              [
-                1,
-                1
-              ]
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": "deep-water",
-      "slot": "front",
-      "order": 1,
-      "optional": false,
-      "lite": "run",
-      "still": "first-frame",
-      "behaviour": {
-        "kind": "tile",
-        "frames": {
-          "sprites": [
-            {
-              "image": "deep-water"
-            }
-          ],
-          "frameMs": 1000
-        },
-        "origin": 450,
-        "bands": [
-          {
-            "slot": "front",
-            "fromRow": 450
-          }
-        ],
-        "drift": {
-          "pxPerSecond": 0
-        }
-      }
-    },
-    {
-      "id": "underwater-wreck",
-      "slot": "front",
-      "order": 2,
-      "optional": false,
-      "lite": "run",
-      "still": "first-frame",
-      "behaviour": {
-        "kind": "cycle",
-        "frames": {
-          "sprites": [
-            {
-              "image": "underwater"
-            }
-          ],
-          "frameMs": 1000,
-          "clock": "wind"
-        },
-        "at": [
-          140,
-          490
-        ],
-        "anchor": [
-          0,
-          0
-        ]
-      }
-    },
-    {
-      "id": "near-sea",
-      "slot": "front",
-      "order": 3,
-      "optional": false,
-      "lite": "run",
-      "still": "first-frame",
-      "behaviour": {
-        "kind": "strip",
-        "frames": {
-          "sprites": [
-            {
-              "image": "water-2-0-0"
-            },
-            {
-              "image": "water-2-0-1"
-            },
-            {
-              "image": "water-2-0-2"
-            },
-            {
-              "image": "water-2-0-3"
-            }
-          ],
-          "frameMs": 300,
-          "clock": "water"
-        },
-        "top": 436,
-        "span": [
-          -4000,
-          4800
-        ],
-        "drift": {
-          "pxPerSecond": 3.5,
-          "clock": "water"
-        },
-        "variants": [
-          {
-            "id": "rough-near",
-            "frames": [
-              {
-                "image": "storm-water-2",
-                "rect": [
-                  0,
+                  1152,
                   0,
                   384,
                   64
                 ]
               },
               {
-                "image": "storm-water-2",
+                "image": "sea-storm-mid",
                 "rect": [
-                  3,
+                  1536,
                   0,
                   384,
                   64
                 ]
               },
               {
-                "image": "storm-water-2",
+                "image": "sea-storm-mid",
                 "rect": [
-                  6,
+                  1920,
                   0,
                   384,
                   64
                 ]
               },
               {
-                "image": "storm-water-2",
+                "image": "sea-storm-mid",
                 "rect": [
-                  9,
+                  2304,
                   0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-mid",
+                "rect": [
+                  2688,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-mid",
+                "rect": [
+                  0,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-mid",
+                "rect": [
+                  384,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-mid",
+                "rect": [
+                  768,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-mid",
+                "rect": [
+                  1152,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-mid",
+                "rect": [
+                  1536,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-mid",
+                "rect": [
+                  1920,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-mid",
+                "rect": [
+                  2304,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-mid",
+                "rect": [
+                  2688,
+                  64,
                   384,
                   64
                 ]
@@ -4693,198 +5071,334 @@
       }
     },
     {
-      "id": "jellyfish-0",
+      "id": "near-sea",
       "slot": "front",
-      "order": 4,
+      "order": 3,
       "optional": false,
       "lite": "run",
       "still": "first-frame",
       "behaviour": {
-        "kind": "cycle",
+        "kind": "strip",
         "frames": {
           "sprites": [
             {
-              "image": "jelly-drift-0"
+              "image": "sea-near",
+              "rect": [
+                0,
+                0,
+                384,
+                64
+              ]
             },
             {
-              "image": "jelly-drift-1"
+              "image": "sea-near",
+              "rect": [
+                384,
+                0,
+                384,
+                64
+              ]
             },
             {
-              "image": "jelly-drift-2"
+              "image": "sea-near",
+              "rect": [
+                768,
+                0,
+                384,
+                64
+              ]
             },
             {
-              "image": "jelly-drift-3"
+              "image": "sea-near",
+              "rect": [
+                1152,
+                0,
+                384,
+                64
+              ]
             },
             {
-              "image": "jelly-drift-4"
+              "image": "sea-near",
+              "rect": [
+                1536,
+                0,
+                384,
+                64
+              ]
             },
             {
-              "image": "jelly-drift-5"
+              "image": "sea-near",
+              "rect": [
+                1920,
+                0,
+                384,
+                64
+              ]
             },
             {
-              "image": "jelly-drift-6"
+              "image": "sea-near",
+              "rect": [
+                2304,
+                0,
+                384,
+                64
+              ]
             },
             {
-              "image": "jelly-drift-7"
+              "image": "sea-near",
+              "rect": [
+                2688,
+                0,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-near",
+              "rect": [
+                0,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-near",
+              "rect": [
+                384,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-near",
+              "rect": [
+                768,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-near",
+              "rect": [
+                1152,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-near",
+              "rect": [
+                1536,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-near",
+              "rect": [
+                1920,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-near",
+              "rect": [
+                2304,
+                64,
+                384,
+                64
+              ]
+            },
+            {
+              "image": "sea-near",
+              "rect": [
+                2688,
+                64,
+                384,
+                64
+              ]
             }
           ],
-          "frameMs": 600,
-          "clock": "swell"
+          "frameMs": 200,
+          "clock": "sea"
         },
-        "at": [
-          170,
-          510
+        "top": 428,
+        "span": [
+          -4000,
+          4800
         ],
-        "anchor": [
-          22,
-          4
-        ]
-      }
-    },
-    {
-      "id": "jellyfish-1",
-      "slot": "front",
-      "order": 4,
-      "optional": false,
-      "lite": "run",
-      "still": "first-frame",
-      "behaviour": {
-        "kind": "cycle",
-        "frames": {
-          "sprites": [
-            {
-              "image": "jelly-drift-0"
-            },
-            {
-              "image": "jelly-drift-1"
-            },
-            {
-              "image": "jelly-drift-2"
-            },
-            {
-              "image": "jelly-drift-3"
-            },
-            {
-              "image": "jelly-drift-4"
-            },
-            {
-              "image": "jelly-drift-5"
-            },
-            {
-              "image": "jelly-drift-6"
-            },
-            {
-              "image": "jelly-drift-7"
-            }
-          ],
-          "frameMs": 680,
-          "clock": "swell"
+        "drift": {
+          "pxPerSecond": 1,
+          "clock": "sea"
         },
-        "at": [
-          350,
-          530
-        ],
-        "anchor": [
-          22,
-          4
-        ]
-      }
-    },
-    {
-      "id": "jellyfish-2",
-      "slot": "front",
-      "order": 4,
-      "optional": false,
-      "lite": "run",
-      "still": "first-frame",
-      "behaviour": {
-        "kind": "cycle",
-        "frames": {
-          "sprites": [
-            {
-              "image": "jelly-drift-0"
-            },
-            {
-              "image": "jelly-drift-1"
-            },
-            {
-              "image": "jelly-drift-2"
-            },
-            {
-              "image": "jelly-drift-3"
-            },
-            {
-              "image": "jelly-drift-4"
-            },
-            {
-              "image": "jelly-drift-5"
-            },
-            {
-              "image": "jelly-drift-6"
-            },
-            {
-              "image": "jelly-drift-7"
-            }
-          ],
-          "frameMs": 760,
-          "clock": "swell"
-        },
-        "at": [
-          545,
-          515
-        ],
-        "anchor": [
-          22,
-          4
-        ]
-      }
-    },
-    {
-      "id": "jellyfish-3",
-      "slot": "front",
-      "order": 4,
-      "optional": false,
-      "lite": "run",
-      "still": "first-frame",
-      "behaviour": {
-        "kind": "cycle",
-        "frames": {
-          "sprites": [
-            {
-              "image": "jelly-drift-0"
-            },
-            {
-              "image": "jelly-drift-1"
-            },
-            {
-              "image": "jelly-drift-2"
-            },
-            {
-              "image": "jelly-drift-3"
-            },
-            {
-              "image": "jelly-drift-4"
-            },
-            {
-              "image": "jelly-drift-5"
-            },
-            {
-              "image": "jelly-drift-6"
-            },
-            {
-              "image": "jelly-drift-7"
-            }
-          ],
-          "frameMs": 840,
-          "clock": "swell"
-        },
-        "at": [
-          640,
-          545
-        ],
-        "anchor": [
-          22,
-          4
+        "variants": [
+          {
+            "id": "rough-near",
+            "frames": [
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  0,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  384,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  768,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  1152,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  1536,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  1920,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  2304,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  2688,
+                  0,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  0,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  384,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  768,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  1152,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  1536,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  1920,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  2304,
+                  64,
+                  384,
+                  64
+                ]
+              },
+              {
+                "image": "sea-storm-near",
+                "rect": [
+                  2688,
+                  64,
+                  384,
+                  64
+                ]
+              }
+            ],
+            "blend": "crossfade",
+            "opacity": [
+              [
+                0.25,
+                0
+              ],
+              [
+                1,
+                1
+              ]
+            ]
+          }
         ]
       }
     },

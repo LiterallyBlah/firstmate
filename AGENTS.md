@@ -504,6 +504,15 @@ Office was withdrawn after visual review; its files are retained at
   handed to the crew, the geometry and the renderer; caches are keyed by id (`packOnce` in `client/deck-mount.ts`)
   or held on the compiled floor; and the view takes the id as a prop (`setting`, the default
   `DEFAULT_DECK_SETTING`), so choosing one globally now and per project later changes neither the engine nor the format.
+- **Ghost ship has no underwater cutaway.** Its fit ends at stage row 520. The surface's back/front
+  bands share origin 265 and the same atlas frame and clock, with the foreground starting at row 448.
+  Its optional `depth-wash@1` tile colour blend follows day phases and eases down world rows 448–1250;
+  it does not repeat per tile. `client/deck-depth-wash.ts` owns that arithmetic. A delivered `sea-light`
+  channel preserves daylight under reduced motion and attenuates the colour blend in storms.
+  Commissioned water atlases are registered without repainting by `docs/settings/ghost-ship/water-art.mjs`.
+  `fix-motion.mjs` transfers the basket pixels out of the fluttering flag into the fixed mast and registers
+  a four-frame downward rain loop. Run it after art registration; `build-art.mjs` does this automatically.
+  Review captures belong under ignored `.local/`, never in the shipped pack or committed docs.
 - **Global selection** lives in `displaySettings.deckSetting`, default `ship`, chosen through **Scene** in the
   Deck workspace toolbar (`client/deck-scene-switcher.tsx`) or Settings > Plugins > FirstMate > Deck setting.
   The toolbar saves the host document at its current revision and reports a failed save without changing the scene.
