@@ -124,7 +124,7 @@ export const NeedsYouTargetSchema = z.object({
   revision,
 });
 export type NeedsYouTarget = z.infer<typeof NeedsYouTargetSchema>;
-/** Explicit suggestion binding; no title/task-name heuristics are authorization. */
+/** Explicit or server-derived binding. Only a captain's revision-bound press authorizes a send. */
 export const DecisionBindingSchema = z.object({
   homeId: z.string().min(1),
   requestId: z.string().min(1),
