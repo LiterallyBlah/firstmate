@@ -107,6 +107,7 @@ export function observeNeedsYou(
   const headings = new Set<string>();
   const items: BacklogItem[] = [];
   const tokens = new Map<string, string | null>();
+  const context = new Map<string, Pick<DecisionSource, "specPath" | "notesPath">>();
   const quarantined: QuarantinedTask[] = [];
   const identities: BacklogItem[] = [];
   const identityLines: number[] = [];
@@ -213,6 +214,7 @@ export function observeNeedsYou(
     const key = detected.sources[0]!.key;
     items.push(parsed[0]!);
     tokens.set(key, fields.get("gate") || null);
+    context.set(key, { specPath: fields.get("spec") || null, notesPath: fields.get("notes") || null });
   }
   if (headings.size !== 3)
     problems.push("Backlog must contain In flight, Queued and Done sections.");
@@ -227,6 +229,6 @@ export function observeNeedsYou(
     quarantined,
     sources: structural.length ? [] : detected.sources
       .filter(source => !quarantinesSource(quarantined.filter(row => row.taskId !== null), source))
-      .map(source => ({ ...source, gateToken: tokens.get(source.key) ?? null })),
+      .map(source => ({ ...source, ...context.get(source.key), gateToken: tokens.get(source.key) ?? null })),
   };
 }

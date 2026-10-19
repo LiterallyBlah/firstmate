@@ -174,6 +174,8 @@ function targetChanged(before: DecisionSource, after: DecisionSource) {
   return (
     before.url !== after.url ||
     before.reportPath !== after.reportPath ||
+    (before.specPath ?? null) !== (after.specPath ?? null) ||
+    (before.notesPath ?? null) !== (after.notesPath ?? null) ||
     before.gateToken !== after.gateToken
   );
 }

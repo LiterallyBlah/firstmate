@@ -37,6 +37,17 @@ function fresh() {
 }
 
 describe("decision ledger", () => {
+  it("revises a changed context target and treats old missing paths like null", () => {
+    const before = fresh(), request = before.requests[0]!;
+    delete request.source.specPath;
+    delete request.source.notesPath;
+    const unchanged = reconcileNeedsYou(before, observation(), 300);
+    expect(unchanged.requests[0]!.revision).toBe(request.revision);
+    const changed = reconcileNeedsYou(unchanged, observation("(hold: Merge?) (spec: data/run-sheet.md) (notes: data/notes.md)"), 400);
+    expect(changed.requests.at(-1)!.revision).toBe(request.revision + 1);
+    expect(changed.requests[0]!.resolution?.reason).toBe("superseded");
+    expect(() => mutateNeedsYou(changed, target(before), { kind: "seen" }, 500)).toThrow();
+  });
   it("baselines once, silently, without claiming a human saw it", () => {
     const baseline = reconcileNeedsYou(
       emptyLedger("home", "/home"),

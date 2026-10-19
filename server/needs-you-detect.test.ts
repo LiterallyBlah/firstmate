@@ -8,6 +8,12 @@ import {
 } from "./needs-you-detect";
 import type { RemoteHost } from "../shared/remotes";
 
+it("carries authored spec and notes into decision context without leaking them into the ask", () => {
+  const observed = observeNeedsYou("## In flight\n- [ ] task - Choose (hold: Light or Atlas) (spec: data/run-sheet.md) (notes: data/notes.md)\n## Queued\n## Done\n", null);
+  expect(observed.valid).toBe(true);
+  expect(observed.sources[0]).toMatchObject({ ask: "Light or Atlas", specPath: "data/run-sheet.md", notesPath: "data/notes.md" });
+});
+
 const host = (serverId: string, label: string): RemoteHost => ({
   serverId,
   label,
