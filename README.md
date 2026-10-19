@@ -6,6 +6,11 @@ FirstMate gives a lead agent a persistent home, a charter and a view of its crew
 the first mate prepares briefs, starts workers in separate git worktrees, follows their progress and
 brings back results and decisions. Workers remain ordinary Paseo agents, with their own conversations.
 
+**Needs you** counts recorded decisions across all views, including tasks without a worker.
+An unreadable task is isolated so other decisions stay current; its last good gate is retained,
+and a suspected hold still counts. The decision drawer and indicator explain problems with line
+numbers and task ids. Unavailable data and last known stale counts are labelled, including on Deck.
+
 This fork has diverged substantially from **[FirstMate by Gustavo Ambrozio](https://github.com/gpambrozio/paseo-plugins/tree/main/firstmate)**,
 imported on **7 October 2026 at version 0.3.1** ([import commit](https://github.com/LiterallyBlah/firstmate/commit/129ec61)).
 It now includes animated Deck scenes, workspace tabs, remote crew, managed watches and expanded chat

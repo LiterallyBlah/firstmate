@@ -103,7 +103,9 @@ describe("independent remote access", () => {
     const { directory, home, service: first } = await fixture(async () => success({}));
     expect(await readFile(join(directory, "remotes.json"), "utf8")).toContain(remote.password);
     expect(await readFile(join(home, "data", "remote-hosts.json"), "utf8")).not.toContain(remote.password);
+    expect((await first.read()).localLabel).toBe("Atlas");
     first.stop(); service = new RemoteService(async () => success({}));
+    expect((await service.read()).localLabel).toBe("Atlas");
     expect((await service.read()).hosts.map((host) => host.serverId)).toEqual([remote.serverId]);
     await expect(service.sync([remote])).rejects.toThrow("local host");
     expect((await service.read()).hosts).toHaveLength(1);

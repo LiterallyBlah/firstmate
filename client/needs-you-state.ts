@@ -37,10 +37,12 @@ export function indicatorState(
   snapshot: NeedsYouSnapshot | undefined,
   offline = false,
 ) {
-  const count = snapshot?.actionCount ?? null;
+  const count = snapshot?.freshness.status === "unknown" || snapshot?.freshness.status === "disabled" ? null : snapshot?.actionCount ?? null;
   const fresh = !offline && snapshot?.freshness.status === "fresh";
   const newCount = snapshot?.newCount ?? 0;
   const status = offline ? "stale" : (snapshot?.freshness.status ?? "unknown");
+  const problems = decisionProblems(snapshot, offline);
+  const explanation = problems.slice(0, 3).join(" ") + (problems.length > 3 ? ` ${problems.length - 3} more problems in decisions.` : "");
   const extra = [
     newCount > 0 ? `${newCount} new` : "",
     status === "stale"
@@ -54,6 +56,7 @@ export function indicatorState(
       ? `${snapshot.pendingAnswerCount} answer${snapshot.pendingAnswerCount === 1 ? "" : "s"} pending`
       : "",
     snapshot?.snoozedCount ? `${snapshot.snoozedCount} snoozed` : "",
+    snapshot?.quarantined?.length ? `${snapshot.quarantined.length} unreadable task${snapshot.quarantined.length === 1 ? "" : "s"}` : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -64,8 +67,25 @@ export function indicatorState(
     amber: fresh && newCount > 0,
     label: `Needs you · ${count ?? "?"}`,
     extra,
-    accessibilityLabel: `Needs you, ${count === null ? "count unavailable" : `${count} decisions`}${extra ? `, ${extra}` : ""}. Open decisions`,
+    accessibilityLabel: `Needs you, ${count === null ? "count unavailable" : `${count} decisions`}${extra ? `, ${extra}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
   };
+}
+
+export function decisionProblems(snapshot: NeedsYouSnapshot | undefined, offline = false): string[] {
+  return [...new Set([
+    ...(offline ? ["Could not refresh decision data. Check the host connection."] : []),
+    ...(snapshot?.freshness.problems ?? []),
+    ...(!offline && snapshot && snapshot.freshness.status !== "fresh" && !snapshot.freshness.problems.length ? [
+      snapshot.freshness.status === "disabled" ? "Decision observation is disabled." : "Waiting for a confirmed backlog read.",
+    ] : []),
+    ...(!snapshot ? ["Waiting for decision data from the host."] : []),
+  ])];
+}
+
+/** Every count surface uses the server total and explicitly labels an old count. */
+export function decisionCountText(snapshot: NeedsYouSnapshot | undefined, offline = false): string {
+  if (snapshot?.actionCount == null || snapshot.freshness.status === "unknown" || snapshot.freshness.status === "disabled") return "unavailable";
+  return `${snapshot.actionCount}${offline || snapshot.freshness.status !== "fresh" ? " · stale" : ""}`;
 }
 /** Queue is unfiltered and never changes an already selected ID. */
 export function decisionQueue(requests: readonly NeedsYouRequest[]) {

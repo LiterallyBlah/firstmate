@@ -131,6 +131,16 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/option-picker.tsx`    | A copy of `herald`'s searchable picker, for the model lists.                               |
 | `client/web.ts`, `resize-handle.tsx` | The chat/board split's drag (a copy of `github-board`'s); the chat's file picker, paste and drop. |
 
+Needs-you observation quarantines malformed/unresolvable rows individually. Healthy rows still
+reconcile after stable reads; a quarantined gate retains its last good state and rejects mutations.
+The ledger durably keeps unreadable holds, counted once per row unless an actionable gate already
+represents them. Missing/repeated/unknown sections, duplicate identities, comments/NUL and unreadable
+files remain whole-file failures; a missing gate never resolves. Problems include line numbers and
+task ids, appear in the drawer and indicator description, and unreadable holds link to Board.
+Every decision count, including the Deck legend, uses the server total and labels stale/unavailable
+data. `local` resolves without a catalog; the saved local host label comes from registry sync and is
+retained across restart. Ambiguous labels stay unresolved. See `docs/needs-you-foundation.md`.
+
 ## Home and the workspace tabs (shell phase 1)
 
 Home's header keeps the title, mate status and task counts together, with the List/Board/Home files switch

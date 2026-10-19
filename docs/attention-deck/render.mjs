@@ -61,7 +61,7 @@ try {
     await page.waitForSelector(`canvas[data-firstmate-deck-setting="${setting}"][data-firstmate-deck-motion="still"]`);
     await page.screenshot({ path: join(out, `${tree}-${setting}.png`) });
     if (tree === "after") {
-      assert.equal(await page.getByRole("button", { name: "Needs you: 2 decisions, 1 new", exact: true }).count(), 1);
+      assert.equal(await page.getByRole("button", { name: /^Needs you, 2 decisions, 1 new/ }).count(), 1);
       const tag = page.getByTestId("firstmate-deck-decision-tag"); await tag.click();
       assert.deepEqual(await page.evaluate(() => window.decisionActions.at(-1)), { requestId: "local:Pick the next project", homeId: "sample-home", recordRevision: 1 });
       await page.getByRole("button", { name: "1 more for you with the first mate at the wheel", exact: true }).press("Enter");
@@ -82,6 +82,16 @@ try {
       const calm = await canvas.screenshot();
       await page.waitForTimeout(180);
       assert((await canvas.screenshot()).equals(calm), "reduced motion changed pixels");
+      for (const status of ["unknown", "stale"]) {
+        await page.evaluate(status => window.setDecisionSnapshot(snapshot => ({ ...snapshot,
+          actionCount: status === "unknown" ? null : 6,
+          requests: [],
+          freshness: { ...snapshot.freshness, status, problems: ["Backlog source is unreadable."] },
+        })), status);
+        await page.getByRole("button", { name: status === "unknown" ? /^Needs you · unavailable ·/ : /^Needs you · 6 · stale ·/ }).waitFor();
+        assert.equal(await page.getByText(/^0 needs you/).count(), 0);
+        if (setting === "ship") await page.screenshot({ path: join(out, `legend-${status}.png`) });
+      }
     }
     assert.deepEqual(errors, []);
     results.push({ setting, tree, width: 1440, height: 900, reducedMotion: true, errors, actions: await page.evaluate(() => window.decisionActions) });
@@ -112,7 +122,7 @@ try {
   await checkDrawer("Choose the release", "Which release should sail?", "bow");
   await page.getByTestId("firstmate-deck-decision-tag").click();
   await checkDrawer("Pick the next project", "Which project should the first mate start next?", "first-mate");
-  await page.getByRole("button", { name: /^1 needs you ·/ }).click();
+  await page.getByRole("button", { name: /^Needs you · 2 ·/ }).click();
   await checkDrawer("Choose the release", "Which release should sail?", "legend");
   assert.deepEqual(errors, []);
   assert.equal(await page.evaluate(() => window.fixtureCalls.filter(call => call.name.startsWith("firstmate.needs-you.")).length), 0, "opening a drawer mutated a decision");

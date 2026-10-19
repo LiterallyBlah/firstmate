@@ -10,7 +10,7 @@ import { readFirstmateConfig, resolveHome } from "./config";
 import { paseoHome, pluginDir } from "./data-dir";
 import { serialized } from "./serialize";
 
-const Registry = z.object({ version: z.literal(1), syncedAt: z.string(), hosts: SavedHosts });
+const Registry = z.object({ version: z.literal(1), syncedAt: z.string(), localLabel: z.string().optional(), hosts: SavedHosts });
 /** At most this many followed agents per host, besides the crew. */
 const MAX_FOLLOWED = 50;
 /** As in the helper's `permit ls`: the latest tool calls of at most this many waiting workers per poll. */
@@ -170,6 +170,7 @@ export class RemoteService {
     const cached = RemoteSnapshot.safeParse(await optionalJson(join(pluginDir(), "remote-status.json")));
     if (cached.success) this.snapshot = cached.data;
     this.snapshot.localServerId = this.localId;
+    this.snapshot.localLabel = saved.success ? saved.data.localLabel : undefined;
     this.reconcile();
   }
   private reconcile() {
@@ -184,8 +185,10 @@ export class RemoteService {
       const hosts = SavedHosts.parse(input);
       if (!hosts.some((host) => host.serverId === this.localId)) throw new Error("This app's registry does not include the local host; existing remote access was retained");
       const syncedAt = new Date().toISOString();
-      await atomic(join(pluginDir(), "remotes.json"), { version: 1, syncedAt, hosts: hosts.filter((host) => host.serverId !== this.localId) });
+      const localLabel = hosts.find(host => host.serverId === this.localId)!.label;
+      await atomic(join(pluginDir(), "remotes.json"), { version: 1, syncedAt, localLabel, hosts: hosts.filter((host) => host.serverId !== this.localId) });
       this.hosts = hosts.filter((host) => host.serverId !== this.localId);
+      this.snapshot.localLabel = localLabel;
       this.snapshot.syncedAt = syncedAt; this.snapshot.syncError = null;
       this.reconcile(); await this.publish(); this.pollAt = 0;
       return this.read();

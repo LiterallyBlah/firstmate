@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import type { FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
+import { decisionCountText } from "./needs-you-state";
 import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
 import { activeDecisions, presentedTasks, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
@@ -61,7 +62,7 @@ export function TaskList(props: TaskListProps) {
           accessibilityRole="header"
           style={[heading, { color: snapshot?.newCount ? theme.colors.statusWarning : theme.colors.foregroundMuted }]}
         >
-          Needs you · {snapshot?.actionCount ?? "?"}
+          Needs you · {decisionCountText(snapshot, props.offline)}
         </Text>
         <DecisionQueueNote theme={theme} snapshot={snapshot} offline={props.offline} />
         {requests.map((request) => (
@@ -76,7 +77,7 @@ export function TaskList(props: TaskListProps) {
             onChanged={props.onChanged}
           />
         ))}
-        {snapshot?.actionCount === 0 ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
+        {snapshot?.actionCount === 0 && snapshot.freshness.status === "fresh" && !props.offline ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
       </View>
       <View testID="task-group-in-hand" style={{ gap: 8 }}>
         <Text accessibilityRole="header" style={heading}>

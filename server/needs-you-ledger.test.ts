@@ -267,8 +267,8 @@ describe("decision ledger", () => {
       document() + "## Queued\n- [ ] task - Task (hold: Merge?)",
     ]) {
       const detection = observeNeedsYou(markdown, null);
-      expect(reconcileNeedsYou(before, detection, 300)).toBe(before);
-      expect(reconcileNeedsYou(before, detection, 100000)).toBe(before);
+      expect(reconcileNeedsYou(before, detection, 300).requests).toEqual(before.requests);
+      expect(reconcileNeedsYou(before, detection, 100000).requests).toEqual(before.requests);
     }
   });
 

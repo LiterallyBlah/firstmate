@@ -145,6 +145,9 @@ this machine's clock. Times in the same worker's logs share its host's clock.
 
 ## Working remotely
 
+For a local backlog task, omit `host` or use `(host: local)`. The local server id
+and its unambiguous saved host label also resolve locally after host sync.
+
 Local MCP tools still target Atlas. For a remote task, choose the remote host's
 repository, provider/model, paths and workspace IDs; keep the same charter's
 intake, isolated worktree, review, approval and cleanup rules. Record the host

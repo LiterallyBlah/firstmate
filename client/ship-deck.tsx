@@ -33,6 +33,7 @@
  * that cannot draw — native, no WebGL, Pixi failing to start — gets a plain message in its place.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
+import { decisionCountText, indicatorState } from "./needs-you-state";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { DECK_MOVE_WORDS, deckDecisionDestination } from "./deck-decisions";
 import type { OpenDecision } from "./decision-action";
@@ -505,8 +506,9 @@ function DeckView({
   const lost = scene.stale === 0 ? "" : decisionStale ? ", decisions from the last good read" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
   const asked = speakers.size === 0 ? "" : `, ${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you to pick`;
   const words = (state: (typeof DECK_STATES)[number]) => needsYou === undefined ? state : DECK_MOVE_WORDS[state];
-  const total = needsYou === undefined ? "" : needsYou.actionCount === null ? "Needs you unavailable. " : `${needsYou.actionCount} decisions need you. `;
-  const summary = `${total}${legendStates.map((state) => `${scene.counts[state]} ${words(state)}`).join(", ")}${asked}${lost}`;
+  const decisionLabel = `Needs you · ${decisionCountText(needsYou, stale)}`;
+  const total = needsYou === undefined ? "" : `${decisionLabel}. `;
+  const summary = `${total}${legendStates.map((state) => state === "blocked" && needsYou !== undefined ? decisionLabel : `${scene.counts[state]} ${words(state)}`).join(", ")}${asked}${lost}`;
   const note = deckStatusText(status, presentation);
   // A sailor with replies waiting speaks in its bubble instead of wearing the label.
   const hovered =
@@ -534,12 +536,13 @@ function DeckView({
       </View>
       {needsYou === undefined ? null : (
         <Pressable accessibilityRole="button" onPress={() => onOpenDecision?.(deckDecisionDestination(needsYou, "next"))} disabled={onOpenDecision === undefined}
-          accessibilityLabel={needsYou.actionCount === null ? "Needs you unavailable" : `Needs you: ${needsYou.actionCount} decisions, ${needsYou.newCount ?? 0} new`}
+          accessibilityLabel={indicatorState(needsYou, stale).accessibilityLabel}
           style={{ alignSelf: "flex-start", borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5,
             borderStyle: decisionStale ? "dashed" : "solid",
             borderColor: (needsYou.newCount ?? 0) > 0 ? colors.statusWarning : colors.border }}>
           <Text style={{ color: (needsYou.newCount ?? 0) > 0 ? colors.statusWarning : colors.foreground, fontSize: 12 }}>
-            {needsYou.actionCount === null ? "Needs you unavailable" : `Needs you · ${needsYou.actionCount} · ${needsYou.newCount ?? 0} new`}
+            {decisionLabel}
+            {needsYou.freshness.status === "fresh" && needsYou.newCount !== null ? ` · ${needsYou.newCount} new` : ""}
             {decisionStale ? ` · as of ${needsYou.freshness.asOf === null ? "last good read" : new Date(needsYou.freshness.asOf).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
           </Text>
         </Pressable>
@@ -573,14 +576,14 @@ function DeckView({
           />
         ) : null}
         {status.kind !== "drawing" || open || mateAnchor === null || (scene.decisions?.workerlessCount ?? 0) === 0 ? null : (
-          <Pressable accessibilityRole="button" accessibilityLabel={`${scene.decisions!.workerlessCount} decisions with the first mate need you`}
+          <Pressable accessibilityRole="button" accessibilityLabel={`${scene.decisions!.workerlessCount} decisions with the first mate need you${decisionStale ? ", stale" : ""}`}
             onPress={() => openDecisionFor(FIRST_MATE_KEY)} disabled={onOpenDecision === undefined}
             testID="firstmate-deck-decision-tag"
             style={{ position: "absolute", left: Math.max(4, Math.min(mateAnchor.width - 112, mateAnchor.x - 54)), top: Math.max(4, mateAnchor.top - 32),
               width: 108, alignItems: "center", paddingHorizontal: 8, paddingVertical: 5, borderWidth: 1, borderRadius: 6, backgroundColor: colors.surface1,
               borderStyle: decisionStale ? "dashed" : "solid",
               borderColor: scene.decisions!.workerless.some(r => r.state === "new") ? colors.statusWarning : colors.border }}>
-            <Text style={{ color: scene.decisions!.workerless.some(r => r.state === "new") ? colors.statusWarning : colors.foreground, fontSize: 12 }}>{`${scene.decisions!.workerlessCount} for you`}</Text>
+            <Text style={{ color: scene.decisions!.workerless.some(r => r.state === "new") ? colors.statusWarning : colors.foreground, fontSize: 12 }}>{`${scene.decisions!.workerlessCount} for you${decisionStale ? " · stale" : ""}`}</Text>
           </Pressable>
         )}
         {!open || focusedCard === null || renderFocus === undefined ? null : (
@@ -656,7 +659,7 @@ function DeckView({
               <DeckBadge state={state} colour={scene.palette.states[state]} />
               {state === "blocked" && needsYou !== undefined ? (
                 <Pressable accessibilityRole="button" onPress={() => onOpenDecision?.(deckDecisionDestination(needsYou, "next"))} disabled={onOpenDecision === undefined}>
-                  <Text style={{ color: colors.foreground, fontSize: 12, textDecorationLine: "underline" }}>{`${scene.counts[state]} ${words(state)} · ${places[state]}`}</Text>
+                  <Text style={{ color: colors.foreground, fontSize: 12, textDecorationLine: "underline" }}>{`${decisionLabel} · ${places[state]}`}</Text>
                 </Pressable>
               ) : <Text style={{ color: colors.foreground, fontSize: 12 }}>{`${scene.counts[state]} ${words(state)}${needsYou === undefined ? "" : ` · ${places[state]}`}`}</Text>}
             </View>
@@ -679,7 +682,7 @@ function DeckView({
         </View>
         {scene.decisions?.workerlessCount == null || scene.decisions.workerlessCount === 0 ? null : (
           <Pressable accessibilityRole="button" onPress={() => openDecisionFor(FIRST_MATE_KEY)} disabled={onOpenDecision === undefined}>
-            <Text style={{ color: colors.foreground, fontSize: 12, textDecorationLine: "underline" }}>{`${scene.decisions.workerlessCount} more for you with the first mate at the wheel`}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 12, textDecorationLine: "underline" }}>{`${scene.decisions.workerlessCount} more for you with the first mate at the wheel${decisionStale ? " · stale" : ""}`}</Text>
           </Pressable>
         )}
         {status.kind !== "drawing" ? null : (

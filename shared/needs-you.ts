@@ -30,6 +30,20 @@ export const DecisionSourceSchema = z.object({
 });
 export type DecisionSource = z.infer<typeof DecisionSourceSchema>;
 
+export const QuarantinedTaskSchema = z.object({
+  line: z.number().int().nonnegative(),
+  taskId: z.string().nullable(),
+  /** Only supplied when the complete scoped identity was safely read. */
+  key: z.string().nullable(),
+  hasHold: z.boolean(),
+  problem: z.string(),
+});
+export type QuarantinedTask = z.infer<typeof QuarantinedTaskSchema>;
+export function quarantinesSource(rows: readonly QuarantinedTask[], source: DecisionSource) {
+  return rows.some((row) => row.key !== null ? row.key === source.key :
+    row.taskId === null || row.taskId === source.taskId);
+}
+
 export const AnswerSubmissionSchema = z.object({
   submissionId: z.string().min(1).max(200),
   revision,
@@ -81,6 +95,7 @@ export const NeedsYouSnapshotSchema = z.object({
   freshness: NeedsYouFreshnessSchema,
   requests: z.array(NeedsYouRequestSchema),
   parked: z.array(DecisionSourceSchema),
+  quarantined: z.array(QuarantinedTaskSchema).optional(),
   delivery: z.literal("off"),
 });
 export type NeedsYouSnapshot = z.infer<typeof NeedsYouSnapshotSchema>;

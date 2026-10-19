@@ -116,7 +116,7 @@ type FleetSurfaceProps = PluginScreenProps & {
 export function FleetSurface(props: FleetSurfaceProps) {
   const key = JSON.stringify([props.host?.id, props.workspaceId, props.view ?? "home"]);
   return (
-    <DecisionSurface key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
+    <DecisionSurface shell={props.shell} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
       <FleetViewBody {...props} stateKey={key} />
     </DecisionSurface>
   );

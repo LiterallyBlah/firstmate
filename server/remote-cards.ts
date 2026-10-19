@@ -27,11 +27,15 @@ const words = (value: string) => norm(value).split(/[\s,;()[\]"'`|/]+/).filter((
  * among its words ("Light srv_abc"), then a label among its words — each only when exactly one host
  * matches, so an ambiguous value is never guessed. This machine's own serverId is local work.
  */
-export function resolveHost(value: string, snapshot: Pick<RemoteSnapshot, "localServerId" | "hosts"> | null): HostMatch {
+export function resolveHost(value: string, snapshot: Pick<RemoteSnapshot, "localServerId" | "localLabel" | "hosts"> | null): HostMatch {
   const wanted = norm(value);
+  if (wanted === "local") return { kind: "local" };
   if (wanted === "" || snapshot === null) return { kind: "unknown" };
   const local = norm(snapshot.localServerId);
   if (local !== "" && wanted === local) return { kind: "local" };
+  if (wanted === norm(snapshot.localLabel ?? "") &&
+    !snapshot.hosts.some(host => norm(host.label) === wanted || norm(host.serverId) === wanted)) return { kind: "local" };
+  if (wanted === norm(snapshot.localLabel ?? "")) return { kind: "unknown" };
   const only = (hosts: RemoteHost[]): HostMatch | null => (hosts.length === 1 ? { kind: "remote", host: hosts[0]! } : null);
   const exact =
     only(snapshot.hosts.filter((host) => norm(host.serverId) === wanted)) ??

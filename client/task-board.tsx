@@ -4,6 +4,7 @@ import type { FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { moveTaskColumn, orderedTaskColumns, type TaskColumn, type TaskLayout } from "../shared/task-layout";
+import { decisionCountText } from "./needs-you-state";
 import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
 import { activeDecisions, presentedTasks, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
@@ -65,7 +66,7 @@ export function TaskBoard(props: {
   function column(id: TaskColumn) {
     const folded = layout.collapsed.includes(id),
       entries = tasks.filter((entry) => entry.summary.group === id);
-    const count = id === "needs-you" ? (snapshot?.actionCount ?? "?") : entries.length;
+    const count = id === "needs-you" ? (snapshot?.freshness.status === "fresh" && !props.offline ? snapshot.actionCount ?? "unavailable" : decisionCountText(snapshot, props.offline)) : entries.length;
     const ink =
       id === "needs-you" && ((folded && typeof count === "number" && count > 0) || !!snapshot?.newCount)
         ? colors.statusWarning

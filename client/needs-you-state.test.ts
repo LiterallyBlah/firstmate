@@ -12,6 +12,7 @@ import {
   decisionRoute,
   decisionSession,
   indicatorState,
+  decisionCountText,
   mergeDecisionSnapshot,
   newDecisionBatch,
   routeDecision,
@@ -45,6 +46,20 @@ it("takes counts only from server data, even with no cards/requests and all seen
     amber: true,
     extra: "3 new",
   });
+});
+it("explains quarantined lines and never labels an unknown or stale total as a current zero", () => {
+  const data = snapshot();
+  const problem = "Line 12, task blocked: Could not read metadata; check parentheses.";
+  data.freshness.problems = [problem];
+  expect(indicatorState(data).accessibilityLabel).toContain(problem);
+  expect(decisionCountText(undefined)).toBe("unavailable");
+  for (const status of ["unknown", "disabled", "stale"] as const) {
+    const unavailable = { ...data, actionCount: 0, freshness: { ...data.freshness, status } };
+    expect(decisionCountText(unavailable)).toBe(status === "stale" ? "0 · stale" : "unavailable");
+    expect(indicatorState(unavailable).fresh).toBe(false);
+  }
+  expect(decisionCountText(data, true)).toBe("1 · stale");
+  expect(decisionCountText(data)).toBe("1");
 });
 it("distinguishes zero, disabled, unknown, stale and pending at zero with accessible names", () => {
   expect(indicatorState(undefined).label).toBe("Needs you · ?");

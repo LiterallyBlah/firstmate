@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { checkTaskViews } from "./view-checks.mjs";
+import { checkResilience } from "./resilience-checks.mjs";
 const here = dirname(fileURLToPath(import.meta.url)),
   root = resolve(here, "../..");
 const harness = createRequire(join(root, "docs/board-list/package.json")),
@@ -417,6 +418,7 @@ try {
       0,
     );
     await actions.close();
+    await checkResilience(pageAt, join(root, ".local/needs-you-resilient"));
     const taskViews = await checkTaskViews(pageAt, generated);
     await writeFile(join(generated, "view-results.json"), JSON.stringify(taskViews, null, 2));
     assert.deepEqual(errors, []);
