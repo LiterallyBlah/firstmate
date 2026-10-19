@@ -1,7 +1,45 @@
 export * from "../shell-phase1/stubs.jsx";
 import { useRpc as baseRpc } from "../shell-phase1/stubs.jsx";
 import { fleet } from "../board-list/fixtures.js";
-import React from "react";
+import React, { useState } from "react";
+import { useSettings as baseSettings } from "../shell-phase1/stubs.jsx";
+import { taskSourceKey } from "../../client/task-presentation";
+const viewFixture = new URLSearchParams(location.search).has("views");
+window.fixtureDocuments = {};
+window.fixtureSettingSaves = [];
+export function useSettings(contract) {
+  const base = baseSettings(contract);
+  const [values, setValues] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem(`view-settings-${contract.id}`) ?? "null");
+    const initial =
+      saved ??
+      (contract.id === "display"
+        ? {
+            columnOrder: ["done", "blocked", "working", "ready", "failed", "idle", "queued", "parked"],
+            collapsedColumns: ["blocked"],
+            ...(new URLSearchParams(location.search).has("remote") ? { hostTab: "sample-light" } : {}),
+            ...(new URLSearchParams(location.search).has("dense") ? { density: "compact" } : {}),
+            ...(new URLSearchParams(location.search).has("filtered") ? { tagFilter: ["excluded"] } : {}),
+          }
+        : {});
+    return contract.schema.parse(initial);
+  });
+  if (!viewFixture) return base;
+  if (contract.id === "task-layout" && new URLSearchParams(location.search).has("invalid"))
+    return { status: "invalid" };
+  window.fixtureDocuments[contract.id] = values;
+  return {
+    ...base,
+    values,
+    save: async (next) => {
+      window.fixtureSettingSaves.push(contract.id);
+      const saved = contract.schema.parse(next);
+      localStorage.setItem(`view-settings-${contract.id}`, JSON.stringify(saved));
+      setValues(saved);
+      return true;
+    },
+  };
+}
 export const SidebarRow = ({ onPress, trailing }) => (
   <button aria-label="FirstMate sidebar" onClick={onPress}>
     {trailing}
@@ -71,22 +109,83 @@ fleet.suggestions = [
     },
   },
 ];
+if (viewFixture) {
+  const held = fleet.cards.find((card) => card.key === "block-0");
+  const second = fleet.cards.find((card) => card.key === "block-1");
+  const failed = structuredClone(held);
+  failed.key = "failure-example";
+  failed.taskId = "failure-example";
+  failed.backlog.id = "failure-example";
+  failed.title = failed.backlog.title = "Recover the failed validation run";
+  failed.backlog.hold = null;
+  failed.column = "failed";
+  failed.agent.lastError = "Exact failure: validation exited with code 17";
+  failed.agent.model = "private-model-detail";
+  failed.agent.status = "error";
+  held.agent.lastError = "A worker error must not replace the recorded question";
+  const gate = (id, card, state = "new") => ({
+    ...request(id, state, at - 120000),
+    source: {
+      ...request(id, state, at).source,
+      key: taskSourceKey(card),
+      taskId: card.taskId,
+      project: card.project,
+      title: card.title,
+      ask: card.backlog.hold,
+    },
+  });
+  window.attentionSnapshot.requests = [
+    gate("a", held),
+    gate("seen", second, "seen"),
+    {
+      ...request("b", "new", at - 60000),
+      source: {
+        ...request("b", "new", at).source,
+        title: "Choose the next harbour without a worker",
+        ask: "Which harbour should the first mate prepare next? This decision has no worker card.",
+      },
+    },
+  ];
+  window.attentionSnapshot.snoozedCount = 0;
+  window.attentionSnapshot.pendingAnswerCount = 0;
+  const duplicate = structuredClone(held);
+  duplicate.key = "second-representation";
+  duplicate.agent.id = "second-worker";
+  duplicate.agent.title = "Second worker for the same decision";
+  duplicate.agent.lastError = "The second worker's full diagnostic is also retained";
+  const parked = fleet.cards.find((card) => card.key === "block-2");
+  parked.backlog.blockedBy = "current rollout";
+  const permission = fleet.cards.find((card) => card.key === "block-3");
+  permission.backlog.hold = null;
+  permission.agent.pendingPermissions = 1;
+  fleet.cards.push(failed, duplicate);
+  if (new URLSearchParams(location.search).has("many")) {
+    for (let i = 0; i < 32; i++)
+      window.attentionSnapshot.requests.push({
+        ...request(`long-${i}`, "new", at + i),
+        source: {
+          ...request(`long-${i}`, "new", at).source,
+          title: `Decision ${i}: a deliberately very long title to verify wrapping and full screen-reader names on the narrowest phone`,
+          ask: "A complete question that remains available when host and tag filters exclude every task card.",
+        },
+      });
+    window.attentionSnapshot.actionCount = 35;
+    window.attentionSnapshot.newCount = 34;
+  }
+}
+window.fixtureFleet = fleet;
 const rpc = new Map();
 export function useRpc(contract) {
-  if (!contract.name.startsWith("firstmate.needs-you."))
-    return baseRpc(contract);
+  if (viewFixture && contract.name === "firstmate.fleet.load") return async () => structuredClone(fleet);
+  if (!contract.name.startsWith("firstmate.needs-you.")) return baseRpc(contract);
   if (!rpc.has(contract.name))
     rpc.set(contract.name, async (input) => {
       window.fixtureCalls.push({ name: contract.name, input });
       if (window.attentionOffline) throw new Error("Host offline");
       const snapshot = window.attentionSnapshot;
-      if (contract.name === "firstmate.needs-you.read")
-        return structuredClone(snapshot);
-      if (window.attentionRefuse)
-        throw new Error("This decision changed. Refresh before acting.");
-      const request = snapshot.requests.find(
-        (r) => r.id === (input.id ?? input.requestId),
-      );
+      if (contract.name === "firstmate.needs-you.read") return structuredClone(snapshot);
+      if (window.attentionRefuse) throw new Error("This decision changed. Refresh before acting.");
+      const request = snapshot.requests.find((r) => r.id === (input.id ?? input.requestId));
       if (!request) throw new Error("Missing decision");
       if (contract.name.endsWith(".seen")) request.state = "seen";
       if (contract.name.endsWith(".snooze")) {
@@ -98,17 +197,11 @@ export function useRpc(contract) {
         request.snoozedUntil = null;
       }
       if (contract.name.endsWith(".answer"))
-        request.state = window.attentionUncertain
-          ? "delivery-uncertain"
-          : "answer-sent";
+        request.state = window.attentionUncertain ? "delivery-uncertain" : "answer-sent";
       snapshot.version++;
       snapshot.freshness.checkedAt = Date.now();
-      snapshot.actionCount = snapshot.requests.filter((r) =>
-        ["new", "seen"].includes(r.state),
-      ).length;
-      snapshot.newCount = snapshot.requests.filter(
-        (r) => r.state === "new",
-      ).length;
+      snapshot.actionCount = snapshot.requests.filter((r) => ["new", "seen"].includes(r.state)).length;
+      snapshot.newCount = snapshot.requests.filter((r) => r.state === "new").length;
       snapshot.pendingAnswerCount = snapshot.requests.filter((r) =>
         ["answer-sent", "delivery-uncertain"].includes(r.state),
       ).length;

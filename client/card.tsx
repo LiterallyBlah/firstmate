@@ -33,7 +33,7 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
 import { Icon, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
-import { useMemo, useState, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { exitCrew, interruptCrew, relaunchCrew, steerCrew, type ColumnId, type FleetCard } from "../shared/fleet";
@@ -57,6 +57,9 @@ import { Chip, IconButton, Tag, errorText } from "./ui";
 import { webTitle } from "./web";
 import { cardTags } from "../shared/item-tags";
 import { ItemTagEditor } from "./item-tags";
+import { taskPresentation, TASK_TITLES, type TaskPresentation } from "./task-presentation";
+import { useOpenDecision, type OpenDecision } from "./decision-action";
+import { DecisionButton } from "./decision-drawer";
 
 /** A time a remote host reported, moved onto this machine's clock by the host's measured skew. */
 function hostTime(iso: string, skewSeconds: number | null): string {
@@ -148,6 +151,9 @@ export function CrewCard({
   onConverse = null,
   conversing = false,
   onSteer,
+  summary: suppliedSummary,
+  decisionHomeId,
+  onOpenDecision,
 }: {
   card: FleetCard;
   theme: PluginTheme;
@@ -171,6 +177,10 @@ export function CrewCard({
   conversing?: boolean;
   /** Deck opens its conversation composer; other surfaces keep their inline steer. */
   onSteer?: () => void;
+  summary?: TaskPresentation;
+  decisionHomeId?: string | null | undefined;
+  /** Installation-owned opener for contextual panels outside a FleetSurface. */
+  onOpenDecision?: OpenDecision;
 }) {
   const steer = useRpc(steerCrew);
   const interrupt = useRpc(interruptCrew);
@@ -185,6 +195,11 @@ export function CrewCard({
   const { setExpanded, draft, setDraft } = memory;
   const focus = presentation === "focus";
   const drawer = presentation === "drawer";
+  const summary = suppliedSummary ?? taskPresentation(card);
+  const plain = !focus && !drawer;
+  const surfaceOpenDecision = useOpenDecision();
+  const openDecision = onOpenDecision ?? surfaceOpenDecision;
+  const decisionButtonId = `card-decision-${useId()}`;
   /** The focus panel and the drawer are always open, without telling the board's card to open too. */
   const expanded = memory.expanded || focus || drawer;
   const [busy, setBusy] = useState(false);
@@ -349,7 +364,9 @@ export function CrewCard({
   }
 
   const backlog = card.backlog;
-  const headline = cardHeadline(card);
+  const headline = plain
+    ? { lead: TASK_TITLES[summary.group], text: summary.line, tone: "muted" as const }
+    : cardHeadline(card);
   /** When it last moved: the agent's last update, on this machine's clock; for an item alone, its outcome. */
   const when =
     agent !== null
@@ -401,7 +418,7 @@ export function CrewCard({
           theme={theme}
           icon="Server"
           text={hostText}
-          color={remote?.online === true ? undefined : theme.colors.statusWarning}
+          color={plain || remote?.online === true ? undefined : theme.colors.statusWarning}
         />
       )}
       {followed ? <Tag theme={theme} text="followed, not crew" /> : null}
@@ -413,7 +430,23 @@ export function CrewCard({
         style={[styles.headline, headline.tone === "danger" ? { color: theme.colors.statusDanger } : null]}
         numberOfLines={1}
       >
-        {headline.lead === null ? null : <Text style={styles.reportState}>{headline.lead}: </Text>}
+        {headline.lead === null ? null : (
+          <Text
+            style={
+              plain
+                ? {
+                    fontWeight: "600",
+                    color:
+                      summary.group === "needs-you" && summary.request?.state === "new"
+                        ? theme.colors.statusWarning
+                        : theme.colors.foregroundMuted,
+                  }
+                : styles.reportState
+            }
+          >
+            {headline.lead}:{" "}
+          </Text>
+        )}
         {headline.text}
       </Text>
     );
@@ -451,82 +484,116 @@ export function CrewCard({
               {card.title}
             </Text>
             {onClose === undefined ? null : (
-              <IconButton icon="X" label="Close" tooltip="Back to the whole deck (Esc)." tooltipAlign="end" theme={theme} onPress={onClose} />
+              <IconButton
+                icon="X"
+                label="Close"
+                tooltip="Back to the whole deck (Esc)."
+                tooltipAlign="end"
+                theme={theme}
+                onPress={onClose}
+              />
             )}
           </View>
           {glance}
           {replies}
         </View>
       ) : drawer ? null : (
-      <View style={styles.head}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={[
-          card.title,
-          row ? COLUMNS[card.column].title : null,
-          stateChip?.text ?? COLUMNS[card.column].title,
-          card.project,
-          cardTags(card).length === 0 ? null : `Tags: ${cardTags(card).join(", ")}`,
-          hostText === null ? (row ? "on this machine" : null) : `on ${hostText}`,
-          headline === null ? null : headline.lead === null ? headline.text : `${headline.lead}: ${headline.text}`,
-          `${expanded ? "Hide" : "Show"} details and actions`,
-        ]
-          .filter((part): part is string => part !== null && part !== "")
-          .join(". ")}
-        accessibilityState={{ expanded }}
-        aria-expanded={expanded}
-        onPress={() => setExpanded(!expanded)}
-        {...webTitle(card.title)}
-        style={{ gap: 8, flex: 1, minWidth: 0 }}
-      >
-        {row ? (
-          <>
-            <View style={styles.rowHead}>
-              <Icon name={COLUMNS[card.column].icon} size={15} color={tone} />
-              <View style={styles.rowText}>
-                <Text style={styles.rowTitle} numberOfLines={expanded ? undefined : 1}>
-                  {card.title}
-                </Text>
+        <View style={styles.head}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={[
+              card.title,
+              plain ? TASK_TITLES[summary.group] : row ? COLUMNS[card.column].title : null,
+              plain ? null : (stateChip?.text ?? COLUMNS[card.column].title),
+              card.project,
+              cardTags(card).length === 0 ? null : `Tags: ${cardTags(card).join(", ")}`,
+              hostText === null ? (row ? "on this machine" : null) : `on ${hostText}`,
+              headline === null ? null : headline.lead === null ? headline.text : `${headline.lead}: ${headline.text}`,
+              `${expanded ? "Hide" : "Show"} details and actions`,
+            ]
+              .filter((part): part is string => part !== null && part !== "")
+              .join(". ")}
+            accessibilityState={{ expanded }}
+            aria-expanded={expanded}
+            onPress={() => setExpanded(!expanded)}
+            {...webTitle(card.title)}
+            style={{ gap: 8, flex: 1, minWidth: 0, minHeight: 44 }}
+          >
+            {row ? (
+              <>
+                <View style={styles.rowHead}>
+                  <Icon
+                    name={summary.group === "done" ? "Check" : summary.group === "later" ? "Clock" : "Users"}
+                    size={15}
+                    color={theme.colors.foregroundMuted}
+                  />
+                  <View style={styles.rowText}>
+                    <Text style={styles.rowTitle} numberOfLines={expanded ? undefined : 1}>
+                      {card.title}
+                    </Text>
+                    {statusLine}
+                  </View>
+                  {compact ? null : <View style={styles.rowTags}>{tags}</View>}
+                  {!expanded || when === null || when === "" ? null : (
+                    <Text style={[styles.time, { marginLeft: 0, flexShrink: 0 }]} numberOfLines={1}>
+                      {when}
+                    </Text>
+                  )}
+                  <Text style={styles.meta}>Details</Text>
+                </View>
+                {compact ? <View style={styles.rowTags}>{tags}</View> : null}
+              </>
+            ) : (
+              <>
+                <View style={styles.titleRow}>
+                  <Text style={styles.title} numberOfLines={expanded ? undefined : 2}>
+                    {card.title}
+                  </Text>
+                  <View style={styles.chevron}>
+                    <Icon
+                      name={expanded ? "ChevronUp" : "ChevronDown"}
+                      size={14}
+                      color={theme.colors.foregroundMuted}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.chips}>
+                  {tags}
+                  <Text style={styles.meta}>Details</Text>
+                </View>
                 {statusLine}
-              </View>
-              {compact ? null : <View style={styles.rowTags}>{tags}</View>}
-              {when === null || when === "" ? null : (
-                <Text style={[styles.time, { marginLeft: 0, flexShrink: 0 }]} numberOfLines={1}>
-                  {when}
-                </Text>
-              )}
-              <Icon name={expanded ? "ChevronUp" : "ChevronDown"} size={14} color={theme.colors.foregroundMuted} />
-            </View>
-            {compact ? <View style={styles.rowTags}>{tags}</View> : null}
-          </>
-        ) : (
-          <>
-            <View style={styles.titleRow}>
-              <Text style={styles.title} numberOfLines={expanded ? undefined : 2}>
-                {card.title}
-              </Text>
-              <View style={styles.chevron}>
-                <Icon name={expanded ? "ChevronUp" : "ChevronDown"} size={14} color={theme.colors.foregroundMuted} />
-              </View>
-            </View>
-
-            {glance}
-
-            {expanded ? null : statusLine}
-          </>
-        )}
-      </Pressable>
-      {converseButton}
-      </View>
+              </>
+            )}
+          </Pressable>
+          {converseButton}
+        </View>
       )}
+
+      {plain && summary.request && decisionHomeId ? (
+        <DecisionButton
+          theme={theme}
+          nativeID={decisionButtonId}
+          label={`Open decision: ${summary.request.source.title}`}
+          onPress={() =>
+            openDecision(
+              { homeId: decisionHomeId, requestId: summary.request!.id, recordRevision: summary.request!.revision },
+              decisionButtonId,
+            )
+          }
+        />
+      ) : null}
 
       {focus || cardTags(card).length === 0 ? null : (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-          {cardTags(card).map((tag) => <Tag key={tag} theme={theme} icon="Tag" text={tag} />)}
+          {cardTags(card).map((tag) => (
+            <Tag key={tag} theme={theme} icon="Tag" text={tag} />
+          ))}
         </View>
       )}
       {expanded ? (
         <View style={styles.details}>
+          {focus ? null : glance}
           {focus ? null : <ItemTagEditor card={card} theme={theme} onChanged={onChanged} />}
           {focus || facts.length === 0 ? null : <Text style={styles.meta}>{facts.join(" · ")}</Text>}
           {card.report === null ? null : (
@@ -666,7 +733,9 @@ export function CrewCard({
             </Text>
           )}
           {focus ? null : (
-            <Text style={styles.meta}>Relaunch is the first mate's on a remote host: it writes the new brief there.</Text>
+            <Text style={styles.meta}>
+              Relaunch is the first mate's on a remote host: it writes the new brief there.
+            </Text>
           )}
         </View>
       ) : null}
@@ -688,9 +757,7 @@ export function CrewCard({
               icon="MessageSquare"
               label="Steer"
               tooltip={
-                busy
-                  ? actionPending
-                  : "Send instructions directly to this worker; the first mate is told about them."
+                busy ? actionPending : "Send instructions directly to this worker; the first mate is told about them."
               }
               showLabel
               theme={theme}
@@ -729,11 +796,7 @@ export function CrewCard({
           <IconButton
             icon="Power"
             label="End"
-            tooltip={
-              busy
-                ? actionPending
-                : "Confirm archiving this worker. Its workspace and local copy are kept."
-            }
+            tooltip={busy ? actionPending : "Confirm archiving this worker. Its workspace and local copy are kept."}
             showLabel
             tone="danger"
             theme={theme}
@@ -786,7 +849,9 @@ export function CrewCard({
       {expanded && agent === null && target === null ? (
         <View style={styles.actions}>
           <Icon name="Info" size={12} color={theme.colors.foregroundMuted} />
-          <Text style={styles.meta}>Use Converse to discuss this item with the first mate, then Start work when ready.</Text>
+          <Text style={styles.meta}>
+            Use Converse to discuss this item with the first mate, then Start work when ready.
+          </Text>
         </View>
       ) : null}
     </View>

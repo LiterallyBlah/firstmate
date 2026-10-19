@@ -5,6 +5,7 @@ import { createServer } from "node:http";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
+import { checkTaskViews } from "./view-checks.mjs";
 const here = dirname(fileURLToPath(import.meta.url)),
   root = resolve(here, "../..");
 const harness = createRequire(join(root, "docs/board-list/package.json")),
@@ -77,7 +78,7 @@ async function pageAt(query, width = 1440) {
       .waitFor();
   else
     await page
-      .getByRole("button", { name: /^Needs you, 3 decisions/ })
+      .getByRole("button", { name: /^Needs you, \d+ decisions/ })
       .waitFor();
   return page;
 }
@@ -416,6 +417,8 @@ try {
       0,
     );
     await actions.close();
+    const taskViews = await checkTaskViews(pageAt, generated);
+    await writeFile(join(generated, "view-results.json"), JSON.stringify(taskViews, null, 2));
     assert.deepEqual(errors, []);
     await writeFile(
       join(generated, "results.json"),
@@ -425,6 +428,7 @@ try {
       JSON.stringify({
         layouts: evidence.length,
         surfaces: 4,
+        taskViews: taskViews.length,
         failures: errors.length,
         checks:
           "counts, no implicit actions, exact selection, retained drafts, focus return, revisions, typed send, 44-point targets",

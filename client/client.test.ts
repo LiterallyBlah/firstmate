@@ -31,8 +31,6 @@ import { isDirty, markSaved, type OpenFile } from "./open-file";
 import { allAnswered, buildAnswers, dismissSubmitsEmpty, parseQuestions, toggleOption } from "./questions";
 import {
   DONE_SHOWN,
-  listGroup,
-  listGroups,
   watchAttention,
   cardHeadline,
   contextPercent,
@@ -1069,34 +1067,12 @@ describe("the Done column", () => {
 });
 
 describe("the grouped task list", () => {
-  it("keeps every column visible in urgency order, without relying on saved board order", () => {
-    const columns = ["done", "idle", "parked", "queued", "working", "ready", "failed", "blocked"] as const;
-    const cards = columns.map((column) => crewCard(column, null, column));
-    const groups = listGroups(cards);
-    expect([...groups.keys()]).toEqual(["needs-you", "working", "queued", "idle", "done"]);
-    expect(groups.get("needs-you")?.map((card) => card.key)).toEqual(["ready", "failed", "blocked"]);
-    expect(groups.get("idle")?.map((card) => card.key)).toEqual(["idle", "parked"]);
-    expect([...groups.values()].flat()).toHaveLength(cards.length);
-    expect(listGroup({ ...crewCard("w", null), note: "waiting" })).toBe("working");
-  });
-
   it("marks only failing, invalid and switched-off watches in the header", () => {
     const watch = (extra: Partial<WatchSummary> = {}) => ({ enabled: true, invalid: null, lastResult: "silent", ...extra }) as WatchSummary;
     expect(watchAttention([watch({ lastResult: "delivered" }), watch({ lastResult: "silent" })])).toEqual({ count: 0, failing: false });
     expect(watchAttention([watch({ enabled: false }), watch({ lastResult: "failed" }), watch({ invalid: "no schedule" })])).toEqual({ count: 3, failing: true });
     expect(watchAttention([watch({ enabled: false })])).toEqual({ count: 1, failing: false });
     expect(watchAttention([watch({ enabled: false, lastResult: "failed" })]).count).toBe(1);
-  });
-
-  it("surfaces captain holds, errors and permissions even on a Done card", () => {
-    const card = crewCard("held", null, "done");
-    expect(listGroup({ ...card, backlog: backlogItem("done", { hold: "land it?" }) })).toBe("needs-you");
-    expect(listGroup({ ...card, agent: crewCard("p", { pendingPermissions: 1 }).agent })).toBe("needs-you");
-    expect(listGroup({ ...card, agent: crewCard("e", { status: "error" }).agent })).toBe("needs-you");
-    expect(listGroup({ ...card, report: { state: "needs-decision", text: "pick a path" } })).toBe("needs-you");
-    const worker = { id: "w", name: "Worker", status: "idle", updatedAt: "", pendingPermissions: 1, permissionDetails: [], recentTools: [], followed: false };
-    expect(listGroup({ ...card, remote: { serverId: "host", host: "Host", online: true, clockSkewSeconds: null, worker } })).toBe("needs-you");
-    expect(listGroups([]).get("needs-you")).toEqual([]);
   });
 
   it("defaults existing layouts to List while retaining their other settings", () => {

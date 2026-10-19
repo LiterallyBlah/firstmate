@@ -30,6 +30,7 @@ import { IconButton, errorText } from "./ui";
 import { homeWorkspace, type FleetShell } from "./shell";
 import { NeedsYouIndicator } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
+import { taskPresentation } from "./task-presentation";
 
 type Navigation = PluginWorkspacePanelProps["navigation"];
 
@@ -123,7 +124,13 @@ function PanelBody({
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets>
       <Text style={styles.title}>FirstMate here</Text>
-      <NeedsYouIndicator theme={theme} compact={compact} snapshot={decisions.data} offline={decisions.error !== null} onOpen={shell.openDecision} />
+      <NeedsYouIndicator
+        theme={theme}
+        compact={compact}
+        snapshot={decisions.data}
+        offline={decisions.error !== null}
+        onOpen={shell.openDecision}
+      />
       <Text style={styles.muted}>{summary}</Text>
       {isMate ? null : (
         <IconButton
@@ -144,6 +151,9 @@ function PanelBody({
           <CrewCard
             key={card.key}
             card={card}
+            summary={taskPresentation(card, decisions.data)}
+            decisionHomeId={decisions.data?.homeId}
+            onOpenDecision={shell.openDecision}
             theme={theme}
             compact={compact}
             opener={

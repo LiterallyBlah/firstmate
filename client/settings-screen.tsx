@@ -8,6 +8,7 @@
  * the board, so they are a host settings document the app reads itself.
  */
 import { useRpc, useSettings, type PluginSurfaceProps } from "@getpaseo/plugin/client";
+import { useTaskLayout } from "./task-layout";
 import { useToast } from "@getpaseo/plugin/client/react-native";
 import {
   SettingsAction,
@@ -42,6 +43,7 @@ export function SettingsScreen({ theme, layout }: PluginSurfaceProps) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const display = useSettings(displaySettings);
+  const taskLayout = useTaskLayout();
   const settings = useDeckSettings();
   const fleet = useFleet(display.status === "ready" ? display.values.pollSeconds : 5);
 
@@ -100,7 +102,11 @@ export function SettingsScreen({ theme, layout }: PluginSurfaceProps) {
         <SettingsSection title="Aboard">
           <SettingsRow
             label="First mate"
-            hint={mate === null ? "None yet. Launch one from the FirstMate board." : `${modelLabel(mate)} · ${agentStatusLabel(mate)}`}
+            hint={
+              mate === null
+                ? "None yet. Launch one from the FirstMate board."
+                : `${modelLabel(mate)} · ${agentStatusLabel(mate)}`
+            }
           >
             <Text style={styles.value} numberOfLines={1}>
               {mate === null ? "—" : (mate.title ?? mate.id)}
@@ -216,6 +222,17 @@ export function SettingsScreen({ theme, layout }: PluginSurfaceProps) {
         </SettingsSection>
         <SettingsSection title="Board">
           <SettingsSelect
+            label="Columns"
+            hint="Detailed columns shows the previous eight columns with their saved order and folds."
+            value={taskLayout.values.mode}
+            options={[
+              { label: "Needs you / In hand / Later / Done", value: "summary" },
+              { label: "Detailed columns", value: "detailed" },
+            ]}
+            disabled={taskLayout.disabled}
+            onValueChange={(mode) => taskLayout.save({ mode: mode === "detailed" ? "detailed" : "summary" })}
+          />
+          <SettingsSelect
             label="Refresh every"
             value={String(display.status === "ready" ? display.values.pollSeconds : 5)}
             options={POLL_SECONDS.map((seconds) => ({ label: `${seconds} seconds`, value: String(seconds) }))}
@@ -230,18 +247,26 @@ export function SettingsScreen({ theme, layout }: PluginSurfaceProps) {
           <OptionPicker
             label="Deck setting"
             title="Deck setting"
-            hint={settings.isError ? "The installed settings could not be loaded." : "The scene used for the whole fleet."}
+            hint={
+              settings.isError ? "The installed settings could not be loaded." : "The scene used for the whole fleet."
+            }
             value={display.status === "ready" ? display.values.deckSetting : DEFAULT_DECK_SETTING}
             options={(settings.data ?? []).map((pack) => ({
-              label: pack.name, value: pack.id, disabled: !pack.compatible,
-              detail: pack.compatible ? pack.version : pack.reason ?? "Needs a newer FirstMate",
+              label: pack.name,
+              value: pack.id,
+              disabled: !pack.compatible,
+              detail: pack.compatible ? pack.version : (pack.reason ?? "Needs a newer FirstMate"),
               ...(pack.preview === null ? {} : { preview: `data:image/png;base64,${pack.preview}` }),
             }))}
             disabled={display.status !== "ready" || settings.data === undefined}
             theme={theme}
             compact={layout.compact}
             onSelect={(deckSetting) => {
-              if (display.status !== "ready" || !settings.data?.some((pack) => pack.id === deckSetting && pack.compatible)) return;
+              if (
+                display.status !== "ready" ||
+                !settings.data?.some((pack) => pack.id === deckSetting && pack.compatible)
+              )
+                return;
               void display.save({ ...display.values, deckSetting }, display.revision).then((ok) => {
                 if (!ok) toast.error(display.saveError ?? "The deck setting was not saved.");
               });

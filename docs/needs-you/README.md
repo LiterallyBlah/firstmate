@@ -88,4 +88,51 @@ placement after font/layout readiness; it does not relax the requirement.
 
 Unit/integration coverage lives in `client/needs-you-state.test.ts`,
 `server/decision-answer.test.ts` and the foundation's detector/ledger/service
-tests. Deck markers, Crew/Board regrouping and status vocabulary remain separate.
+tests. Deck markers remain a separate slice.
+
+## Crew, Board and status vocabulary
+
+Crew and the default Board lead with the server ledger's unfiltered decision queue,
+labelled **Across all machines**. New items come first, then Seen, oldest first with
+a stable id tie-break. Multiple worker cards for the same gate produce one decision
+row; workerless decisions stay visible. Both the heading count and header indicator
+use the server snapshot. Host and tag filters apply to the other tasks.
+
+`client/task-presentation.ts` maps ordinary cards to **In hand**, **Later** or **Done**.
+In hand groups work with the first mate, active workers, and parked runs. Worker
+failures, permissions, finishes and stalls stay with the first mate. Done requires
+a completed backlog item, whose outcome wins over a stale worker. Structural
+dependencies, unasked captain choices and snoozed requests go to Later; pending or
+uncertain answers stay with the first mate. The drawer still exposes the complete
+ledger, including requests without a matching task card.
+
+Cards at rest show ownership plus one useful line. Lifecycle, provider/model,
+timestamps, raw reports, full errors and permissions remain in **Details**, along
+with the existing actions. No report parser, supervision rule, internal state or
+Deck animation changes. Opening a row only opens the shared decision drawer; it
+never acknowledges, snoozes or answers a request.
+
+Crew has one scroll container, with Later and Done folded to counts. Board has
+four columns: Needs you pinned first, In hand, Later and Done. Later and Done start
+folded. Needs you can fold but keeps its amber count. The last three columns can
+move. On compact layouts all four stack in one vertical scroll container.
+
+The new `task-layout` host settings document has its own version 1, independent
+of `display` version 1. It stores the summary/detailed choice, summary order/folds
+and Crew's Later fold. Existing display settings are neither migrated nor rewritten;
+saved `blocked` folds keep their original meaning. **Detailed columns** restores
+the old eight-column layout for one release. Invalid or newer documents are not
+reset; controls remain disabled with an explanatory notice. Initial rendering and
+view restoration never write settings.
+
+`client/task-presentation.test.ts` covers the column/report matrix with local,
+remote, followed and absent workers, lifecycle notes, structural deferral, ledger
+states, duplicate representations, outcome ordering and settings isolation.
+`view-checks.mjs`, called by `render.mjs`, checks Crew and Board at 1440, 390 and
+320 pixels, light/dark themes, enlarged text and compact density. It verifies global
+decisions under filters, named keyboard actions, 44-point decision targets,
+permission/error details, drawer focus return, drafts during worker moves, a
+35-question queue, preserved scroll, summary fold/order persistence and legacy
+layout restoration. Screenshots and `view-results.json` are CI artifacts on both
+Windows and Ubuntu; they use synthetic host APIs, without installing or reloading
+the plugin.
