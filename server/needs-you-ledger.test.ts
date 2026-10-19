@@ -5,6 +5,7 @@ import {
   mutateNeedsYou,
   needsYouSnapshot,
   reconcileNeedsYou,
+  NeedsYouLedgerSchema,
   type NeedsYouLedger,
 } from "./needs-you-ledger";
 import {
@@ -37,6 +38,42 @@ function fresh() {
 }
 
 describe("decision ledger", () => {
+  it("migrates a unique task scope without losing its id, revision, snooze or submission history", () => {
+    const before = mutateNeedsYou(fresh(), target(fresh()), { kind: "snooze", until: 10000 }, 250);
+    const moved = reconcileNeedsYou(before, observation("(hold: Merge?) (project: new-project)"), 300);
+    expect(moved.requests[0]).toMatchObject({ id: before.requests[0]!.id, revision: before.requests[0]!.revision,
+      state: "snoozed", snoozedUntil: 10000, source: { project: "new-project" }, identityKey: before.requests[0]!.source.key });
+    expect(moved.quarantined).toEqual([]);
+    expect(NeedsYouLedgerSchema.safeParse(moved).success).toBe(true);
+    const detection = observation("(hold: Merge?) (project: new-project)");
+    detection.sources[0]!.hostId = "remote-machine";
+    detection.sources[0]!.key = JSON.stringify([["remote", "remote-machine"], "new-project", "task"]);
+    const sent = mutateNeedsYou(moved, target(moved), { kind: "answer", submissionId: "chosen", outcome: "accepted" }, 350);
+    const remote = reconcileNeedsYou(sent, detection, 400);
+    expect(remote.requests[0]).toMatchObject({ id: before.requests[0]!.id, state: "answer-sent", submissions: [{ submissionId: "chosen" }] });
+    expect(NeedsYouLedgerSchema.safeParse(remote).success).toBe(true);
+    const lifted = reconcileNeedsYou(remote, observation("(project: third-project)"), 500);
+    expect(lifted.requests[0]).toMatchObject({ id: before.requests[0]!.id, state: "resolved", resolution: { reason: "answered" } });
+    expect(NeedsYouLedgerSchema.safeParse(lifted).success).toBe(true);
+    const reopened = reconcileNeedsYou(lifted, observation("(hold: Merge?) (project: third-project)"), 600);
+    const movedHistory = reconcileNeedsYou(reopened, observation("(hold: Merge?) (project: fourth-project)"), 700);
+    expect(movedHistory.requests.map(r => r.id)).toEqual(reopened.requests.map(r => r.id));
+    expect(movedHistory.requests.every(r => r.source.project === "fourth-project")).toBe(true);
+    expect(NeedsYouLedgerSchema.safeParse(movedHistory).success).toBe(true);
+  });
+
+  it("refuses an ambiguous scope move but still reconciles independent tasks", () => {
+    const before = fresh();
+    const observed = observeNeedsYou(document("(project: first) (hold: Choose?)").replace("## Done",
+      "- [ ] task - Another (project: second) (hold: Choose?)\n- [ ] healthy - Healthy (hold: Proceed?)\n## Done"), null);
+    const after = reconcileNeedsYou(before, observed, 300);
+    expect(after.quarantined).toMatchObject([{ taskId: "task", key: before.requests[0]!.source.key }]);
+    expect(after.requests.find(r => r.id === before.requests[0]!.id)).toEqual(before.requests[0]);
+    const healthy = after.requests.find(r => r.source.taskId === "healthy")!;
+    expect(mutateNeedsYou(after, { homeId: after.homeId, id: healthy.id, revision: healthy.revision }, { kind: "seen" }, 400)
+      .requests.find(r => r.id === healthy.id)?.state).toBe("seen");
+  });
+
   it("revises a changed context target and treats old missing paths like null", () => {
     const before = fresh(), request = before.requests[0]!;
     delete request.source.specPath;

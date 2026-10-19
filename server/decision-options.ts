@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { Suggestion } from "../shared/fleet";
 import { quarantinesSource, type DecisionAnswerOption, type NeedsYouSnapshot } from "../shared/needs-you";
 import { parseSuggestions } from "./suggestions";
+import { briefAnswerOptions, decisionBriefs } from "./decision-brief";
 
 export function decisionAnswerOptions(snapshot: NeedsYouSnapshot, suggestions: readonly Suggestion[]): DecisionAnswerOption[] {
   if (!snapshot.homeId || snapshot.freshness.status !== "fresh") return [];
@@ -43,5 +44,6 @@ export async function withDecisionOptions(home: string, snapshot: NeedsYouSnapsh
     try { suggestions = parseSuggestions(await readFile(join(home, "data", "suggestions.md"), "utf8")); }
     catch { /* Optional context never changes the ledger's count or freshness. */ }
   }
-  return { ...snapshot, answerOptions: decisionAnswerOptions(snapshot, suggestions) };
+  const context = { ...snapshot, briefs: await decisionBriefs(home, snapshot) };
+  return { ...context, answerOptions: [...decisionAnswerOptions(context, suggestions), ...briefAnswerOptions(context)] };
 }

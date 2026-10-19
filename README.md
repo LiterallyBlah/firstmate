@@ -7,7 +7,7 @@ the first mate prepares briefs, starts workers in separate git worktrees, follow
 brings back results and decisions. Workers remain ordinary Paseo agents, with their own conversations.
 
 **Needs you** counts recorded decisions across all views, including tasks without a worker.
-An unreadable task is isolated so other decisions stay current; its last good gate is retained,
+An unreadable or missing task is isolated so other decisions stay current; its last good gate is retained,
 and a suspected hold still counts. The decision drawer and indicator explain problems with line
 numbers and task ids. Unavailable data and last known stale counts are labelled, including on Deck.
 The List keeps six decisions in about 340 pixels on desktop, with NEW, Your call, waiting time and
@@ -16,6 +16,12 @@ Detailed columns choice lives in its ellipsis menu. On Deck, the first mate walk
 workerless decisions wait and returns to the wheel when they clear; the legend leads with the total.
 Task-prefixed suggestions are bound to the current decision and rechecked when pressed. The
 decision drawer links specs and notes, previews a named draft and opens the complete file.
+When `data/<task-id>/decision.md` exists, it shows the full background, options and highlighted
+recommendation. Numbered, bold-labelled options can be chosen directly and are rechecked against
+the current brief before sending. All shows full questions and recommendations in distinct counted
+sections; long titles expand on selection. Back returns to the Deck, List or Board that opened it.
+Unambiguous host/project moves retain the decision identity and drafts. Missing tasks stay blocked
+until their records return, without blocking other answers.
 
 The signal stays amber while a decision waits and fills while any are new. Opening a decision marks
 it Seen without reducing the count. Answer in your own words or use a supplied answer, snooze from
@@ -144,6 +150,8 @@ the manifest and base64 transport overhead are additional. See the [transport bu
 **Home** keeps the first-mate conversation beside **List**, **Board**, **Home files** or **Deck**.
 Compact layouts switch between these and **First mate**. The divider and view choices are saved.
 **More** holds watches, provider transfer, layout controls, updates, refresh and settings.
+**Open** holds the workspace and native-tool shortcuts, keeping the desktop header to one row.
+Narrow desktop panes fold the view switcher into a menu and put status/counts under More.
 
 The shortcuts open dedicated **Deck**, **Board**, **Crew** (the grouped List) and **Chat** tabs in the
 home workspace. Paseo handles tab order, splits and closing. Chat and Home share the same mate,

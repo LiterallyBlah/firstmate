@@ -6,6 +6,8 @@ Home. Waiting decisions keep an amber outline; New decisions fill it. Clear read
 **Nothing needs you**, unavailable reads **Can't read decisions**, and stale counts
 carry a dashed outline with their last confirmed time. Stale or
 unavailable data is labelled and cannot enable an answer or acknowledgement.
+Missing tasks are quarantined individually; other readable tasks remain answerable. Unique
+task ids can move host/project without losing their durable request identity or drafts.
 Worker cards, filters and lifecycle events do not determine these counts.
 
 Unreadable backlog lines appear as problems with line numbers and task ids in the
@@ -31,7 +33,9 @@ evening, tomorrow at 09:00, or a calendar with hour/minute choices in local time
 phone keeps its answer bar at the bottom, above the keyboard and safe area. Enter stays
 a newline. Actions require fresh, unquarantined data and use the existing send gate.
 
-All groups Waiting for you, Answered, Snoozed, Parked and Settled today. An uncertain
+All groups Waiting for you, Answered, Snoozed, Parked and Settled today into bordered blocks with
+strong headings and counts. It shows complete questions and recommendations. Row titles are clamped;
+selecting a decision shows the full title, and parked titles expand in place with one press. An uncertain
 send offers Open the first mate's chat, It arrived (record the existing submission as
 accepted), and Send again with confirmation. A confirmed resend first records the prior
 attempt as failed, then sends with a new id. The retained draft supplies the words; after
@@ -46,6 +50,14 @@ a title use the task id. The original message is retained exactly.
 
 ## Bound one-press answers
 
+Optional `data/<task-id>/decision.md` briefs are read through home containment (64 KiB per file,
+512 KiB per snapshot). Ambiguous task ids do not select a brief. The drawer renders all authored
+content, including Background, Options and a highlighted Recommendation, accepting Markdown headings
+or bold section labels. Numbered options with bold labels receive content-bound answers: the server
+rereads the whole brief before sending. Unstructured or unavailable briefs fall back to the recorded
+question and ordinary reading links. Briefs and derived choices are optional snapshot context, never
+persisted as ledger state.
+
 The drawer consumes optional snapshot.answerOptions supplied by the options/context slice,
 falling back to explicitly bound suggestions on older snapshots. specPath and notesPath
 are optional reading links for the same integration. Existing suggestions remain unchanged. An optional suffix on the label binds an
@@ -59,8 +71,9 @@ Only unique bindings for the displayed revision appear in the drawer. The server
 rereads the file and checks the binding, label and complete prompt before sending.
 Malformed bindings are rejected; they never fall back to unbound actions. Unbound
 suggestions remain in the existing suggestion strip and Deck reply buttons.
-Bound suggestions use only the drawer's validated send path. No charter or home
-records are changed by this slice.
+Bound suggestions use only the drawer's validated send path. The shipped charter teaches the brief
+format; edited live charters retain the usual compare/update path. No authored home records are
+rewritten by observation or an answer.
 
 ## Shared opening action and notifications
 
@@ -84,8 +97,15 @@ DecisionPane covers only Home's task pane, keeping its chat and header unchanged
 surfaces dock a 440-point drawer. Full covers hide/inert the background and trap Tab;
 pane covers keep the adjacent chat reachable. Escape closes and returns to the opener.
 The heading takes focus on open. Desktop controls use Paseo's compact scale.
+Back captures the opening view (Deck, List, Board, Chat or Home), including inline Home views.
+Home's desktop launcher is behind Open so the header occupies one row. The Deck header pill alone
+carries decision staleness; the bow tag and one short legend link remain.
 
 Run npm ci --prefix docs/board-list, then node docs/needs-you/render.mjs.
+`polish-checks.mjs` covers the seven polish fixes using real components and synthetic host APIs,
+including the shipped Deck engine. `POLISH_ONLY=1` runs that subset. Captures stay in
+`.local/needs-you-drawer/`; no screenshots are committed. These are fixture checks, not an installed
+desktop or native-device test.
 The harness mounts real components with synthetic host APIs at 320, 390, 637, 638, 900,
 1440 and 1680 pixels in both themes. It verifies heading focus, Seen/count semantics,
 append-only navigation, retained drafts, pinned phone input, pane cover, answer/snooze

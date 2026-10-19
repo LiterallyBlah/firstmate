@@ -69,7 +69,7 @@ import { focusWebElement, webAttributes } from "./web";
 import { HubLauncher } from "./hub-launcher";
 import { chatIsVisible, FLEET_PANELS, homeWorkspace, type FleetShell, type FleetView } from "./shell";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
-import { DecisionSurface, DecisionPane, useDecisionPaneOpen } from "./decision-surface";
+import { DecisionSurface, DecisionPane, useDecisionPaneOpen, useDecisionOrigin } from "./decision-surface";
 import { NeedsYouIndicator } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
 import { useOpenDecision } from "./decision-action";
@@ -134,6 +134,7 @@ function FleetViewBody({
 }: FleetSurfaceProps & { stateKey: string }) {
   const home = view === undefined;
   const decisionOpen = useDecisionPaneOpen();
+  const [viewMenu, setViewMenu] = useState(false);
   const remembered = viewState.get(stateKey);
   const [width, setWidth] = useState(0);
   const compact = layout.compact || (width > 0 && width < MIN_SPLIT_WIDTH);
@@ -182,6 +183,8 @@ function FleetViewBody({
   /** Keep the standalone Deck tab's availability policy; inline Deck measures its narrower container. */
   const deck = deckOffered(Platform.OS, compact);
   const pane: RightPane = rightPane;
+  useDecisionOrigin(home ? (compact && tab === "chat" ? "First mate" : paneName(compact ? (tab === "chat" ? "board" : tab) : pane, crewView))
+    : view === "deck" ? "Deck" : view === "crew" ? "List" : view === "board" ? "Board" : "Chat");
   /** The drawer sits beside the list or board, rather than over it, on a wide pane with room for both. */
   const onDeck = view === "deck" || (home && (compact ? shownTab : pane) === "deck");
   const docked = !compact && drawerDocks(paneWidth);
@@ -638,38 +641,36 @@ function FleetViewBody({
         ].join(" · ")}
       </Text>
     );
+  const narrowHeader = !compact && width < 1000;
+  const homeViewControl = (
+    <Segmented theme={theme} value={pane === "board" ? crewView : pane}
+      options={[
+        { value: "list", label: "List", tooltip: "Show the tasks as a list grouped by urgency." },
+        { value: "board", label: "Board", tooltip: "Show the same tasks in status columns." },
+        { value: "files", label: "Home files", tooltip: "Browse and edit files in the FirstMate home." },
+        { value: "deck", label: "Deck", tooltip: "Show the crew on deck beside the first mate." },
+      ]}
+      onChange={value => { selectHomePane(value); setViewMenu(false); }} />
+  );
   const header = (
     <View style={[styles.header, { paddingTop: 8, gap: 6 }]} nativeID="firstmate-home-header">
       <View style={[styles.headerRow, { flexWrap: "nowrap" }]}>
         <Icon name="Ship" size={16} color={theme.colors.foreground} />
-        <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "nowrap" }}>
           <Text style={[styles.title, { fontSize: 17 }]}>FirstMate</Text>
           {compact ? null : attention}
-          {compact ? null : mateStatus}
-          {compact ? null : taskCounts}
+          {compact || narrowHeader ? null : mateStatus}
+          {compact || narrowHeader ? null : taskCounts}
         </View>
         {home && !compact && mate !== null && data !== null && !values.boardCollapsed ? (
-          <Segmented
-            theme={theme}
-            value={pane === "board" ? crewView : pane}
-            options={[
-              {
-                value: "list",
-                label: "List",
-                tooltip: "Show the tasks as a list grouped by urgency.",
-              },
-              {
-                value: "board",
-                label: "Board",
-                tooltip: "Show the same tasks in status columns.",
-              },
-              { value: "files", label: "Home files", tooltip: "Browse and edit files in the FirstMate home." },
-              { value: "deck", label: "Deck", tooltip: "Show the crew on deck beside the first mate." },
-            ]}
-            onChange={selectHomePane}
-          />
+          narrowHeader ? <>
+            <IconButton theme={theme} icon="ChevronDown" label={`${paneName(pane, crewView)} view`} showLabel onPress={() => setViewMenu(true)} />
+            <Modal title="Home view" open={viewMenu} onOpenChange={setViewMenu}>
+              <Modal.Content>{homeViewControl}</Modal.Content>
+            </Modal>
+          </> : homeViewControl
         ) : null}
-        {compact && shell !== undefined ? (
+        {shell !== undefined ? (
           <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} compact />
         ) : null}
         <HeaderActions
@@ -685,6 +686,7 @@ function FleetViewBody({
           onRefresh={refresh}
           onOpenFile={openFile}
           onOpenSettings={openSettings === null ? null : () => openSettings?.("firstmate")}
+          summary={narrowHeader ? <View style={{ gap: 8 }}>{mateStatus}{taskCounts}</View> : null}
           onUpdateSent={() => {
             if (compact) setTab("chat");
             else if (values.chatCollapsed) save({ chatCollapsed: false });
@@ -698,9 +700,6 @@ function FleetViewBody({
           {taskCounts}
         </View>
       ) : null}
-      {compact || shell === undefined ? null : (
-        <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} />
-      )}
     </View>
   );
 

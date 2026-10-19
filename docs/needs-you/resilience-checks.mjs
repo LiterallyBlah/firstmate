@@ -70,6 +70,9 @@ export async function checkResilience(pageAt, output) {
           (c) => c.name === "firstmate.needs-you.seen" && c.input.id === "b",
         ),
       );
+      assert.equal(await drawer.getByText(problem, { exact: true }).count(), 0);
+      await drawer.getByRole("button", { name: "Previous decision", exact: true }).click();
+      await drawer.getByRole("heading", { name: "Decision a", exact: true }).waitFor();
       await drawer
         .getByRole("button", { name: "Open Board", exact: true })
         .click();

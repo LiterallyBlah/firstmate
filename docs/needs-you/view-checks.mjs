@@ -110,7 +110,7 @@ export async function checkTaskViews(pageAt, generated) {
         await page.getByRole("textbox", { name: "Answer the first mate", exact: true }).inputValue(),
         "Preserve this decision draft",
       );
-      await page.getByRole("button", { name: "Close decisions" }).focus();
+      await page.getByRole("button", { name: /^Back to (?:List|Board)$/ }).focus();
       await page.keyboard.press("Escape");
       await page.waitForFunction(() => document.activeElement?.id.startsWith("decision-task-"));
       await page.locator('[id^="decision-task-"][aria-label^="Answer: Install the merged board changes"]').click();
@@ -118,7 +118,7 @@ export async function checkTaskViews(pageAt, generated) {
         await page.getByRole("textbox", { name: "Answer the first mate", exact: true }).inputValue(),
         "Preserve this decision draft",
       );
-      await page.getByRole("button", { name: "Close decisions" }).click();
+      await page.getByRole("button", { name: /^Back to (?:List|Board)$/ }).click();
       // Status is present at rest; model details and actions stay behind the chevron.
       const failure = surface.getByRole("button", { name: /^Recover the failed validation run\./ });
       await failure.click();
@@ -172,7 +172,7 @@ export async function checkTaskViews(pageAt, generated) {
   await legacy
     .getByRole("heading", { name: "Install the merged board changes and check the live panel", exact: true })
     .waitFor();
-  await legacy.getByRole("button", { name: "Close decisions" }).focus();
+  await legacy.getByRole("button", { name: /^Back to (?:List|Board)$/ }).focus();
   await legacy.keyboard.press("Escape");
   await legacy.waitForFunction(() => document.activeElement?.id.startsWith("card-decision-"));
   // Restore the legacy fold before checking that summary saves never reinterpret it.
@@ -205,7 +205,7 @@ export async function checkTaskViews(pageAt, generated) {
   assert.ok(scrolled > 0);
   await many.keyboard.press("Enter");
   await many.getByRole("heading", { name: /^Decision 31:/ }).waitFor();
-  await many.getByRole("button", { name: "Close decisions" }).focus();
+  await many.getByRole("button", { name: /^Back to (?:List|Board)$/ }).focus();
   await many.keyboard.press("Escape");
   await many.waitForFunction(() =>
     document.activeElement?.getAttribute("aria-label")?.startsWith("Answer: Decision 31:"),

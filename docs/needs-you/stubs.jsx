@@ -24,7 +24,7 @@ export function useSettings(contract) {
         : {});
     return contract.schema.parse(initial);
   });
-  if (!viewFixture) return base;
+  if (!viewFixture) return { ...base, values: { ...base.values, deckSetting: "ship" } };
   if (contract.id === "task-layout" && new URLSearchParams(location.search).has("invalid"))
     return { status: "invalid" };
   window.fixtureDocuments[contract.id] = values;
@@ -177,6 +177,14 @@ if (viewFixture) {
 window.fixtureFleet = fleet;
 const rpc = new Map();
 export function useRpc(contract) {
+  if (contract.name.startsWith("firstmate.deck.")) {
+    if (!rpc.has(contract.name)) rpc.set(contract.name, async input => {
+      const response = await fetch(`/rpc/${contract.name}`, { method: "POST", body: JSON.stringify(input) });
+      if (!response.ok) throw new Error(await response.text());
+      return response.json();
+    });
+    return rpc.get(contract.name);
+  }
   if (viewFixture && contract.name === "firstmate.fleet.load") return async () => structuredClone(fleet);
   if (!contract.name.startsWith("firstmate.needs-you.")) return baseRpc(contract);
   if (!rpc.has(contract.name))

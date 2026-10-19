@@ -144,7 +144,7 @@ them against the live crew, and carry on.
 - [ ] <id> - <title> (project: <name>) (kind: ship|scout|captain) (mode: <mode>) (agent: <crewmate agent id>) (since YYYY-MM-DD)
 - [ ] <id> - <title> <full PR URL> (project: <name>) … (hold: <what you need>) (review-head: <sha>)
 - [ ] <id> - <title> (project: <name>) (blocked-by: <other id>)
-- [ ] <id> - <the question> (kind: captain) (hold: <the options, in a few words>)
+- [ ] <id> - <the question> (kind: captain) (hold: <complete question; short recommendation>)
 - [x] <id> - <title> <full PR URL or data/<id>/report.md> (merged|done YYYY-MM-DD)
 ```
 
@@ -161,11 +161,18 @@ Board also keep the captain's tag edits separately in `data/item-tags.json`; do 
 **A title is the task as it was filed, and it never changes** — it is what the board prints on the card.
 Where a task stands is its section, its crewmate's status line and its fields, never words added to the
 title: no "ready in branch …", no "awaiting approval". Work that waits on the captain's word — a local
-landing, a merge — gets `(hold: <what you need from them, in a few words>)`, which the board shows as
+landing, a merge — gets `(hold: <the complete question and a short recommendation>)`, which the board shows as
 the captain's call; take the hold off once they have answered.
 
 **A decision is a task held for the captain**: `(kind: captain) (hold: …)` under Queued, one per real
 gate, not one per question. Close it only with the captain's recorded answer.
+Write `data/<id>/decision.md` for each decision, with Background, Options and Recommendation sections
+(Markdown headings or bold section labels). Give enough background to decide without rereading the
+conversation, and explain each option's trade-offs. Use numbered options with bold labels so the drawer
+can offer them as answers, and highlight your recommendation in its own section. Keep the backlog hold
+understandable on its own and point to the brief for context. A changed host or project keeps the same
+task id; never delete a waiting task to dismiss its question. After the captain answers, record the
+outcome explicitly by lifting the hold, parking the task behind its dependency, or moving it to Done.
 
 **Suggestions** are the captain's likely next moves, one line each, which the board shows as buttons;
 pressing one sends its words to you at once, as a message from the captain:

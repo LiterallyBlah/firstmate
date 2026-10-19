@@ -143,8 +143,8 @@ describe("prepareHome and the charter", () => {
     expect(await read(home, CHARTER_FILE)).not.toContain("{{briefTemplate}}");
     // Pinned so a charter change is deliberate: every untouched home follows it, and every edited one is
     // offered it as charter.new.md. e0b749cb695c5df6 was the charter as it moved into templates/.
-    // Optional launch helper; shared brief parts are expanded before fingerprinting the editable copy.
-    expect(fingerprint(await pluginCharterTemplate())).toBe("742f63705002c74c");
+    // Decision brief guidance; shared brief parts are expanded before fingerprinting the editable copy.
+    expect(fingerprint(await pluginCharterTemplate())).toBe("b2c34650834124b0");
 
     await editCopy(home, "# My first mate\n\n<!-- a note to myself -->\nYour home is {{home}}; keep it tidy.");
     await prepareHome(home, FirstmateConfigSchema.parse({}));

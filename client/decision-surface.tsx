@@ -28,7 +28,12 @@ const DecisionPaneContext = createContext<{
   drawer: ReactNode;
   open: boolean;
   register(value: boolean): void;
-}>({ drawer: null, open: false, register() {} });
+  origin(label: string): void;
+}>({ drawer: null, open: false, register() {}, origin() {} });
+export function useDecisionOrigin(label: string) {
+  const { origin } = useContext(DecisionPaneContext);
+  useEffect(() => origin(label), [label, origin]);
+}
 export function useDecisionPaneOpen() {
   return useContext(DecisionPaneContext).open;
 }
@@ -89,6 +94,9 @@ export function DecisionSurface({
   const [width, setWidth] = useState(0),
     [hasPane, setHasPane] = useState(false);
   const focus = useRef<string | null>(null);
+  const origin = useRef("Home");
+  const [returnLabel, setReturnLabel] = useState("Home");
+  const registerOrigin = useCallback((label: string) => { origin.current = label; }, []);
   const route = JSON.stringify(routeDecision(params));
   useEffect(() => {
     setDestination(JSON.parse(route) as DecisionDestination | null);
@@ -96,6 +104,7 @@ export function DecisionSurface({
   const open = useCallback<OpenDecision>(
     (next = { requestId: "next" }, returnFocusId) => {
       focus.current = returnFocusId ?? null;
+      setReturnLabel(origin.current);
       setDestination(next);
     },
     [],
@@ -155,6 +164,7 @@ export function DecisionSurface({
         suggestions={fleet.data?.suggestions ?? []}
         compact={phone}
         modal={full}
+        returnLabel={returnLabel}
       />
     ) : null;
   return (
@@ -164,6 +174,7 @@ export function DecisionSurface({
           drawer: paneCover ? drawer : null,
           open: destination !== null,
           register: setHasPane,
+          origin: registerOrigin,
         }}
       >
         <View

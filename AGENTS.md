@@ -163,8 +163,9 @@ Home's header keeps the title, mate status and task counts together, with the Li
 and **More** beside them. `client/header-actions.tsx` puts provider migration, watches, pane visibility,
 the full conversation, updates, refresh, settings and the full home path behind More's host modal.
 Migration and Watches open sibling dialogs after More closes, with web focus returning to More.
-Recovery/failing-watch attention colours the More trigger. Wide layouts keep workspace shortcuts below.
-Compact layouts put them behind **Open**, beside More, in a host Modal; status and counts share one
+Recovery/failing-watch attention colours the More trigger. All layouts keep workspace shortcuts behind
+**Open**, beside More, in a host Modal, so the desktop header occupies one row. Below 1,000 points
+the desktop view switcher uses its own menu and status/counts move into More. On compact layouts status and counts share one
 quiet row under the title. The existing compact rule (host compact layout or less than 638 points)
 also applies to a narrowed desktop pane. Shortcut capability explanations live in tooltips and the browser dialog.
 
@@ -237,6 +238,22 @@ name is rendered from the same shared constant. Browser sharing is conditional o
 a connected desktop automation host, not a capability the plugin enables. Localhost is the desktop,
 and another device's browser is a different page. Edited charters retain their usual compare/update
 path; a running mate must reread its charter to receive the new guidance.
+
+## Needs you decision context
+
+`server/decision-brief.ts` reads optional `data/<task-id>/decision.md`
+through home containment, capped at 64 KiB per file and 512 KiB per snapshot. Ambiguous task ids do not
+select a brief. `shared/decision-brief.ts` reads Markdown section labels and numbered bold options;
+the drawer renders all prose, highlights recommendations and binds clear options to the whole brief's
+content hash. Sending rereads the file through the existing answer path. All keeps full questions and
+recommendations in counted section blocks; parked titles expand in place. The drawer captures its
+opening view for the back label. Deck retains the header pill and bow tag, with one short legend link;
+the pill alone carries decision staleness.
+
+Missing tasks are retained as per-task quarantines, never inferred resolved and never freezing healthy
+answers. A unique task id moving scope migrates its source while keeping request ids, revisions,
+submissions and drafts; `identityKey` retains the original hash scope for persisted id validation.
+Ambiguous moves stay quarantined. Whole-file structural/read failures still fail closed globally.
 
 ## The plugin never dispatches a crewmate
 

@@ -533,9 +533,9 @@ function DeckView({
         </Text>
         {captionActions ? <View style={{ marginLeft: "auto" }}>{captionActions}</View> : null}
       </View>
-      {scene.stale === 0 ? null : (
+      {scene.stale === 0 || decisionStale ? null : (
         <Text style={{ color: colors.statusWarning, fontSize: 12 }}>
-          {decisionStale ? "Decision data is stale: the deck keeps the last good decisions, greyed." : stale
+          {stale
             ? "The crew's feed is lost: the deck shows where everyone last stood, greyed."
             : `${scene.stale === 1 ? `One ${copy.actor.one}'s host is` : `${scene.stale} ${copy.actor.many}' hosts are`} out of reach: greyed where last seen.`}
         </Text>
@@ -562,14 +562,14 @@ function DeckView({
           />
         ) : null}
         {status.kind !== "drawing" || open || mateAnchor === null || (scene.decisions?.workerlessCount ?? 0) === 0 ? null : (
-          <Pressable accessibilityRole="button" accessibilityLabel={`${scene.decisions!.workerlessCount} decisions with the first mate need you${decisionStale ? ", stale" : ""}`}
+          <Pressable accessibilityRole="button" accessibilityLabel={`${scene.decisions!.workerlessCount} decisions with the first mate need you`}
             onPress={() => openDecisionFor(FIRST_MATE_KEY)} disabled={onOpenDecision === undefined}
             testID="firstmate-deck-decision-tag"
             style={{ position: "absolute", left: Math.max(4, Math.min(mateAnchor.width - 112, mateAnchor.x - 54)), top: Math.max(4, mateAnchor.top - 32),
               width: 108, alignItems: "center", paddingHorizontal: 8, paddingVertical: 5, borderWidth: 1, borderRadius: 6, backgroundColor: decisionStale ? colors.surface1 : colors.statusWarning,
               borderStyle: decisionStale ? "dashed" : "solid",
               borderColor: colors.statusWarning }}>
-            <Text style={{ color: decisionStale ? colors.statusWarning : colors.surface0, fontSize: 12 }}>{`${scene.decisions!.workerlessCount} ${scene.decisions!.workerlessCount === 1 ? "needs" : "need"} you${decisionStale ? " · stale" : ""}`}</Text>
+            <Text style={{ color: decisionStale ? colors.statusWarning : colors.surface0, fontSize: 12 }}>{`${scene.decisions!.workerlessCount} ${scene.decisions!.workerlessCount === 1 ? "needs" : "need"} you`}</Text>
           </Pressable>
         )}
         {!open || focusedCard === null || renderFocus === undefined ? null : (
@@ -635,11 +635,9 @@ function DeckView({
       </View>
       <View style={{ gap: 4 }}>
         {needsYou === undefined ? null : <View testID="firstmate-deck-decision-legend" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, paddingVertical: 4 }}>
-          <DeckBadge state="blocked" colour={colors.statusWarning} />
-          <Text style={{ color: colors.statusWarning, fontSize: 13, fontWeight: "600" }}>{decisionLabel}</Text>
-          {(scene.decisions?.workerlessCount ?? 0) > 0 ? <Text style={{ color: colors.foreground, fontSize: 12 }}>— the first mate is waiting at the bow with them</Text> : null}
+          <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{deckDecisionLabel(needsYou, false, false)} ·</Text>
             <Pressable accessibilityRole="button" accessibilityLabel={needsYou.actionCount ? "Answer the next" : "Open decisions"} onPress={() => onOpenDecision?.(deckDecisionDestination(needsYou, "next"))} disabled={onOpenDecision === undefined}
-            style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7, borderWidth: 1, borderColor: colors.statusWarning }}>
+            style={{ paddingVertical: 6, minHeight: 28, justifyContent: "center" }}>
             <Text style={{ color: colors.foreground, fontSize: 12 }}>{needsYou.actionCount ? "Answer the next" : "Open decisions"}</Text>
           </Pressable>
         </View>}
@@ -652,7 +650,7 @@ function DeckView({
               style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
             >
               <DeckBadge state={state} colour={scene.palette.states[state]} />
-              <Text style={{ color: colors.foreground, fontSize: 12 }}>{`${scene.counts[state]} ${words(state)}${needsYou === undefined ? "" : ` · ${places[state]}`}`}</Text>
+              <Text style={{ color: colors.foreground, fontSize: 12 }}>{`${scene.counts[state]} ${words(state)}`}</Text>
             </View>
           ))}
           {speakers.size === 0 ? null : (
@@ -664,7 +662,7 @@ function DeckView({
               <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>point at one to pick</Text>
             </View>
           )}
-          {scene.stale === 0 ? null : (
+          {scene.stale === 0 || decisionStale ? null : (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <View style={{ width: 10, height: 10, borderRadius: 5, borderWidth: 1, borderColor: colors.foregroundMuted }} />
               <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{`${scene.stale} stale`}</Text>
