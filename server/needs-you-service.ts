@@ -22,6 +22,7 @@ import {
 import { serialized } from "./serialize";
 import { resolveHome } from "./config";
 import { dataPath } from "./data-dir";
+import { withDecisionOptions } from "./decision-options";
 
 /** The board tolerates broken config with defaults; durable identities must not. */
 export async function readConfiguredDecisionHome(): Promise<string> {
@@ -190,7 +191,7 @@ export class NeedsYouService {
           this.readSource(home),
           this.catalog(),
         ]);
-        return await this.observeLocked(home, source, catalog);
+        return await withDecisionOptions(home, await this.observeLocked(home, source, catalog));
       } catch {
         // Config failures cannot select a different home or manufacture a zero.
         return this.sourceUnavailable();
@@ -222,7 +223,7 @@ export class NeedsYouService {
       } catch {
         return this.sourceUnavailable();
       }
-      return this.observeLocked(home, source, catalog);
+      return withDecisionOptions(home, await this.observeLocked(home, source, catalog));
     });
   }
 
@@ -255,7 +256,7 @@ export class NeedsYouService {
       );
       state.snapshot = needsYouSnapshot(ledger, snapshot.freshness);
       this.lastSnapshot = state.snapshot;
-      return state.snapshot;
+      return withDecisionOptions(home, state.snapshot);
     });
   }
 

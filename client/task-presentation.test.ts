@@ -3,7 +3,7 @@ import { COLUMN_IDS, type FleetCard, type CrewReportSummary } from "../shared/fl
 import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
 import { displaySettings } from "../shared/settings";
 import { DEFAULT_TASK_LAYOUT, moveTaskColumn, orderedTaskColumns, taskLayoutSettings } from "../shared/task-layout";
-import { activeDecisions, presentedTasks, requestForCard, taskPresentation, taskSourceKey } from "./task-presentation";
+import { activeDecisions, presentedTasks, requestForCard, taskPresentation, taskSourceKey, waitingOver30Minutes } from "./task-presentation";
 
 function card(extra: Partial<FleetCard> = {}): FleetCard {
   return {
@@ -142,10 +142,10 @@ describe.each(COLUMN_IDS)("presentation over legacy %s", (column) => {
     }
   });
 });
-it("keeps failures, permissions and worker finishes with the first mate, with no raw diagnostics in the summary", () => {
+it("keeps failures, permissions and worker finishes with the first mate, with the worker status in the summary", () => {
   expect(
-    taskPresentation(card({ column: "failed", report: { state: "failed", text: "private raw failure" } })),
-  ).toMatchObject({ group: "in-hand", owner: "first-mate", line: "The first mate is handling a failed run" });
+    taskPresentation(card({ column: "failed", report: { state: "failed", text: "exit 137" } })),
+  ).toMatchObject({ group: "in-hand", owner: "first-mate", line: "Handling a failure: exit 137" });
   expect(taskPresentation(card({ column: "ready" }))).toMatchObject({
     group: "in-hand",
     line: "With the first mate for review",
@@ -162,7 +162,7 @@ it("keeps failures, permissions and worker finishes with the first mate, with no
         },
       }),
     ),
-  ).toMatchObject({ group: "in-hand", owner: "first-mate", line: "With the first mate for a permission" });
+  ).toMatchObject({ group: "in-hand", owner: "first-mate", line: "Answering a permission: a tool is waiting for approval" });
 });
 it("maps structural deferral and snooze to Later, pending answers to In hand, and resolved gates back to task ownership", () => {
   const c = card();
@@ -181,7 +181,7 @@ it("keeps every lifecycle note subordinate to ledger ownership and out of the ca
   for (const note of [undefined, "waiting", "stalled", "no worker seen"] as const) {
     const c = card({ ...(note ? { note } : {}), report: { state: "working", text: "Raw lifecycle prose" } });
     expect(taskPresentation(c).group).toBe("in-hand");
-    expect(taskPresentation(c).line).not.toContain("Raw lifecycle prose");
+    expect(taskPresentation(c).line).toContain("Raw lifecycle prose");
     expect(taskPresentation(c, snapshot([request(c)]))).toMatchObject({
       group: "needs-you",
       line: "Approve the current question?",
@@ -194,7 +194,7 @@ it("keeps every lifecycle note subordinate to ledger ownership and out of the ca
   }
   expect(
     taskPresentation(card({ note: "waiting", report: { state: "blocked", text: "Waiting for a known job" } })),
-  ).toMatchObject({ owner: "worker", line: "Waiting for work already under way" });
+  ).toMatchObject({ owner: "worker", line: "Waiting: Waiting for a known job" });
   expect(
     taskPresentation(card({ note: "waiting", report: { state: "paused", text: "Waiting for a known job" } })),
   ).toMatchObject({ owner: "worker" });
@@ -277,4 +277,23 @@ it("pins Needs you, normalizes duplicate/unknown saved columns and only reorders
   expect(moveTaskColumn(DEFAULT_TASK_LAYOUT.order, "needs-you", 1)).toEqual(DEFAULT_TASK_LAYOUT.order);
   expect(moveTaskColumn(DEFAULT_TASK_LAYOUT.order, "in-hand", -1)).toEqual(DEFAULT_TASK_LAYOUT.order);
   expect(moveTaskColumn(DEFAULT_TASK_LAYOUT.order, "later", -1)).toEqual(["needs-you", "later", "in-hand", "done"]);
+});
+
+it("counts observable waits over 30 minutes, correcting remote time and excluding work and offline feeds", () => {
+  const now = Date.parse("2026-10-19T12:00:00Z");
+  const c = card({ column: "ready", remote: { serverId: "r", host: "Remote", online: true, clockSkewSeconds: 3600,
+    worker: { ...worker, status: "idle", updatedAt: "2026-10-19T12:29:00Z" } } });
+  const entries = () => presentedTasks([c]);
+  expect(waitingOver30Minutes(entries(), now)).toBe(1);
+  c.remote!.worker!.updatedAt = "2026-10-19T12:30:00Z";
+  expect(waitingOver30Minutes(entries(), now)).toBe(0);
+  c.remote!.worker!.updatedAt = "2026-10-19T12:29:00Z";
+  c.remote!.worker!.status = "running";
+  expect(waitingOver30Minutes(entries(), now)).toBe(0);
+  c.remote!.worker!.status = "idle"; c.remote!.online = false;
+  expect(waitingOver30Minutes(entries(), now)).toBe(0);
+});
+it("never claims an unreadable hold is with the first mate", () => {
+  const c = card(); c.backlog!.hold = "Choose the release";
+  expect(taskPresentation(c)).toMatchObject({ owner: "unknown", reason: "unknown", line: "Decision unavailable: Choose the release" });
 });

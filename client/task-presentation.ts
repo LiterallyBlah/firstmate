@@ -4,11 +4,12 @@ import type { TaskColumn } from "../shared/task-layout";
 import { decisionQueue } from "./needs-you-state";
 import { doneCards } from "./format";
 
-export type TaskOwner = "first-mate" | "worker" | "parked";
+export type TaskOwner = "first-mate" | "worker" | "parked" | "unknown";
 export const OWNER_LABELS: Record<TaskOwner, string> = {
   "first-mate": "With the first mate",
   worker: "At work",
   parked: "Parked",
+  unknown: "Decision data unavailable",
 };
 export const TASK_TITLES: Record<TaskColumn, string> = {
   "needs-you": "Needs you",
@@ -21,6 +22,20 @@ export interface TaskPresentation {
   owner: TaskOwner;
   line: string;
   request?: NeedsYouRequest;
+  reason?: "failure" | "permission" | "review" | "next" | "working" | "waiting" | "parked" | "unknown";
+}
+
+export const TASK_REASON_ICONS = { failure: "TriangleAlert", permission: "KeyRound", review: "CircleCheck",
+  next: "Compass", working: "Rocket", waiting: "Clock", parked: "Pause", unknown: "CircleHelp" } as const;
+
+/** Last worker update is the observable start of the wait, corrected for a known remote clock skew. */
+export function waitingOver30Minutes(entries: readonly { card: FleetCard; summary: TaskPresentation }[], now = Date.now()): number {
+  return entries.filter(({ card, summary }) => {
+    if (summary.group !== "in-hand" || summary.owner !== "first-mate" || card.remote?.online === false) return false;
+    const iso = card.agent?.updatedAt ?? card.remote?.worker?.updatedAt;
+    const at = iso ? Date.parse(iso) - (card.remote?.clockSkewSeconds ?? 0) * 1000 : NaN;
+    return Number.isFinite(at) && now - at > 30 * 60 * 1000;
+  }).length;
 }
 
 /** Same structured identity as the ledger, never a title, worker id, column or file position. */
@@ -73,35 +88,41 @@ export function taskPresentation(card: FleetCard, snapshot?: NeedsYouSnapshot): 
     return { group: "later", owner: "first-mate", line: "Parked choice; no question recorded" };
   if (item?.section === "queued" && !worker && !item.hold?.trim())
     return { group: "later", owner: "first-mate", line: "Queued with the first mate" };
+  if (item?.hold?.trim() && !request)
+    return { group: "in-hand", owner: "unknown", reason: "unknown", line: `Decision unavailable: ${item.hold.trim()}` };
+  const status = card.report?.text?.trim();
   if (
     card.column === "failed" ||
     worker?.status === "error" ||
     card.agent?.lastError ||
     card.report?.state === "failed"
   )
-    return { group: "in-hand", owner: "first-mate", line: "The first mate is handling a failed run" };
-  if ((worker?.pendingPermissions ?? 0) > 0)
-    return { group: "in-hand", owner: "first-mate", line: "With the first mate for a permission" };
+    return { group: "in-hand", owner: "first-mate", reason: "failure", line: `Handling a failure: ${card.agent?.lastError || status || "the worker stopped with an error"}` };
+  if ((worker?.pendingPermissions ?? 0) > 0) {
+    const permission = card.remote?.worker?.permissionDetails[0];
+    const detail = permission ? [permission.tool, permission.description].filter(Boolean).join(" · ") : status;
+    return { group: "in-hand", owner: "first-mate", reason: "permission", line: `Answering a permission: ${detail || "a tool is waiting for approval"}` };
+  }
   if (worker?.status === "running" || worker?.status === "initializing")
-    return { group: "in-hand", owner: "worker", line: "Work is under way" };
-  if (card.note === "waiting") return { group: "in-hand", owner: "worker", line: "Waiting for work already under way" };
+    return { group: "in-hand", owner: "worker", reason: "working", line: status ? `Working: ${status}` : "Work is under way" };
+  if (card.note === "waiting") return { group: "in-hand", owner: "worker", reason: "waiting", line: status ? `Waiting: ${status}` : "Waiting for work already under way" };
   if (
     card.column === "ready" ||
     card.column === "done" ||
     card.report?.state === "done" ||
     card.report?.state === "resolved"
   )
-    return { group: "in-hand", owner: "first-mate", line: "With the first mate for review" };
+    return { group: "in-hand", owner: "first-mate", reason: "review", line: status ? `Reviewing: ${status}` : "With the first mate for review" };
   if (card.column === "parked" || card.report?.state === "paused")
-    return { group: "in-hand", owner: "parked", line: "Work is parked with the first mate" };
+    return { group: "in-hand", owner: "parked", reason: "parked", line: status ? `Parked: ${status}` : "Work is parked with the first mate" };
   if (
     card.column === "blocked" ||
     card.report?.state === "needs-decision" ||
     card.report?.state === "blocked" ||
     card.note === "stalled"
   )
-    return { group: "in-hand", owner: "first-mate", line: "With the first mate for the next step" };
-  return { group: "in-hand", owner: "first-mate", line: "With the first mate" };
+    return { group: "in-hand", owner: "first-mate", reason: "next", line: status ? `Deciding the next step: ${status}` : "With the first mate for the next step" };
+  return { group: "in-hand", owner: "first-mate", reason: "next", line: status ? `First mate: ${status}` : "With the first mate" };
 }
 export function presentedTasks(cards: readonly FleetCard[], snapshot?: NeedsYouSnapshot) {
   // Sorting affects only Done; other groups retain fleet order. No cards are hidden by a display cap.

@@ -77,7 +77,6 @@ import { activeCrewCount } from "./screen";
 import { TaskBoard } from "./task-board";
 import { useTaskLayout } from "./task-layout";
 import { taskPresentation } from "./task-presentation";
-import { DecisionButton } from "./decision-drawer";
 
 export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
@@ -753,21 +752,13 @@ function FleetViewBody({
         tagCards={tagCards}
         selectedTags={values.tagFilter}
         onTagsChange={(tagFilter) => save({ tagFilter })}
+        boardMode={crewView === "board" ? { detailed: taskLayout.values.mode === "detailed", disabled: taskLayout.disabled,
+          onChange: () => taskLayout.save({ mode: taskLayout.values.mode === "summary" ? "detailed" : "summary" }) } : undefined}
       />
       {taskLayout.invalid ? (
         <Text accessibilityRole="alert" style={{ color: theme.colors.foregroundMuted, padding: 12 }}>
           Task layout settings could not be read. Saved settings have not been changed.
         </Text>
-      ) : null}
-      {crewView === "board" ? (
-        <View style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
-          <DecisionButton
-            theme={theme}
-            label={taskLayout.values.mode === "summary" ? "Detailed columns" : "Summary columns"}
-            disabled={taskLayout.disabled}
-            onPress={() => taskLayout.save({ mode: taskLayout.values.mode === "summary" ? "detailed" : "summary" })}
-          />
-        </View>
       ) : null}
       {hostCards.length > 0 && filteredCards.length === 0 ? (
         <Text style={{ color: theme.colors.foregroundMuted, padding: 12 }}>
@@ -778,6 +769,7 @@ function FleetViewBody({
         <TaskList
           cards={filteredCards}
           allCards={data.cards}
+          filtered={hostTab !== "all" || values.tagFilter.length > 0}
           snapshot={decisions.data}
           offline={decisions.error !== null}
           showLater={!taskLayout.values.laterCollapsed}
@@ -799,6 +791,7 @@ function FleetViewBody({
         <TaskBoard
           cards={filteredCards}
           allCards={data.cards}
+          filtered={hostTab !== "all" || values.tagFilter.length > 0}
           snapshot={decisions.data}
           offline={decisions.error !== null}
           theme={theme}

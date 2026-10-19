@@ -1,6 +1,6 @@
 /** Strict observations alongside the board's deliberately lenient parser. Pure. */
 import type { BacklogItem } from "../shared/fleet";
-import { quarantinesSource, type QuarantinedTask, type DecisionSource } from "../shared/needs-you";
+import { DecisionSourceSchema, quarantinesSource, type QuarantinedTask, type DecisionSource } from "../shared/needs-you";
 import type { RemoteSnapshot } from "../shared/remotes";
 import { parseBacklog } from "./backlog";
 import { resolveHost } from "./remote-cards";
@@ -107,6 +107,7 @@ export function observeNeedsYou(
   const headings = new Set<string>();
   const items: BacklogItem[] = [];
   const tokens = new Map<string, string | null>();
+  const context = new Map<string, Pick<DecisionSource, "specPath" | "notesPath">>();
   const quarantined: QuarantinedTask[] = [];
   const identities: BacklogItem[] = [];
   const identityLines: number[] = [];
@@ -213,6 +214,7 @@ export function observeNeedsYou(
     const key = detected.sources[0]!.key;
     items.push(parsed[0]!);
     tokens.set(key, fields.get("gate") || null);
+    context.set(key, { specPath: fields.get("spec") || null, notesPath: fields.get("notes") || null });
   }
   if (headings.size !== 3)
     problems.push("Backlog must contain In flight, Queued and Done sections.");
@@ -227,6 +229,7 @@ export function observeNeedsYou(
     quarantined,
     sources: structural.length ? [] : detected.sources
       .filter(source => !quarantinesSource(quarantined.filter(row => row.taskId !== null), source))
-      .map(source => ({ ...source, gateToken: tokens.get(source.key) ?? null })),
+      // Keep the same field order as persisted schema reads: unchanged polls stay byte-identical.
+      .map(source => DecisionSourceSchema.parse({ ...source, ...context.get(source.key), gateToken: tokens.get(source.key) ?? null })),
   };
 }

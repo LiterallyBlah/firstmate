@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 export async function checkTaskViews(pageAt, generated) {
   const evidence = [];
+  const answerButtons = page => page.locator('[id^="decision-task-"]');
+  async function boardMode(page, label) {
+    await page.getByRole("button", { name: "Board options", exact: true }).click();
+    await page.getByRole("button", { name: label, exact: true }).click();
+  }
   for (const view of ["crew", "board"])
     for (const width of [1440, 390, 320]) {
       const page = await pageAt(`views&view=${view}${width === 390 ? "&light" : ""}`, width);
@@ -13,22 +18,22 @@ export async function checkTaskViews(pageAt, generated) {
         await page.waitForFunction(
           () => document.querySelector('[id^="needs-you-"]').getBoundingClientRect().width === innerWidth - 24,
         );
-      const decisions = surface.getByRole("button", { name: /^Open decision:/ });
+      const decisions = answerButtons(surface);
       assert.equal(await decisions.count(), 3);
       assert.equal(
-        await surface.getByText("Across all machines · task filters do not hide decisions", { exact: true }).count(),
-        1,
+        await surface.getByText("Filters don't hide decisions", { exact: true }).count(),
+        0,
       );
       const name = await decisions.first().getAttribute("aria-label");
       assert.ok(name.includes("run the local smoke check"));
       for (const button of await decisions.all()) {
         const box = await button.boundingBox();
-        assert.ok(box.width >= 44 && box.height >= 44);
+        assert.ok(box.width >= 44 && box.height >= (width < 638 ? 44 : 28));
       }
       assert.equal(await surface.getByText("private-model-detail", { exact: false }).count(), 0);
       assert.equal(
-        await surface.getByText("Exact failure: validation exited with code 17", { exact: true }).count(),
-        0,
+        await surface.getByText("Handling a failure: Exact failure: validation exited with code 17", { exact: true }).count(),
+        1,
       );
       if (view === "board") {
         const ids = await surface
@@ -63,7 +68,7 @@ export async function checkTaskViews(pageAt, generated) {
         await surface.getByRole("button", { name: "Unfold Needs you · 3", exact: true }).waitFor();
         const foldedInk = await surface
           .getByTestId("task-column-needs-you")
-          .getByText("3 · +", { exact: true })
+          .getByText("Needs you · 3 ›", { exact: true })
           .evaluate((node) => getComputedStyle(node).color);
         assert.equal(foldedInk, "rgb(192, 150, 100)");
         await surface.getByRole("button", { name: "Unfold Needs you · 3", exact: true }).click();
@@ -108,13 +113,13 @@ export async function checkTaskViews(pageAt, generated) {
       await page.getByRole("button", { name: "Close decisions" }).focus();
       await page.keyboard.press("Escape");
       await page.waitForFunction(() => document.activeElement?.id.startsWith("decision-task-"));
-      await page.getByRole("button", { name: /^Open decision: Install the merged board changes and check the live panel\./ }).click();
+      await page.locator('[id^="decision-task-"][aria-label^="Answer: Install the merged board changes"]').click();
       assert.equal(
         await page.getByRole("textbox", { name: "Answer the first mate", exact: true }).inputValue(),
         "Preserve this decision draft",
       );
       await page.getByRole("button", { name: "Close decisions" }).click();
-      // Diagnostics are one tap away, while the ordinary summary is neutral ownership text.
+      // Status is present at rest; model details and actions stay behind the chevron.
       const failure = surface.getByRole("button", { name: /^Recover the failed validation run\./ });
       await failure.click();
       await surface.getByText("Exact failure: validation exited with code 17", { exact: true }).waitFor();
@@ -139,12 +144,12 @@ export async function checkTaskViews(pageAt, generated) {
   for (const view of ["crew", "board"]) {
     const page = await pageAt(`views&filtered&view=${view}`, 320);
     await page.getByText("No items match the selected tags on this host.").waitFor();
-    assert.equal(await page.getByRole("button", { name: /^Open decision:/ }).count(), 3);
+    assert.equal(await answerButtons(page).count(), 3);
     const before = await page.evaluate(() => window.fixtureDocuments.display);
     if (view === "board") {
-      await page.getByRole("button", { name: "Detailed columns", exact: true }).click();
-      await page.getByRole("button", { name: "Summary columns", exact: true }).waitFor();
-      await page.getByRole("button", { name: "Summary columns", exact: true }).click();
+      await boardMode(page, "Detailed columns");
+      await page.getByRole("button", { name: "Board options", exact: true }).waitFor();
+      await boardMode(page, "Summary columns");
       await page.getByTestId("firstmate-task-board").waitFor();
     }
     assert.deepEqual(await page.evaluate(() => window.fixtureDocuments.display), before);
@@ -152,7 +157,7 @@ export async function checkTaskViews(pageAt, generated) {
   }
   const legacy = await pageAt("views&view=board");
   const old = await legacy.evaluate(() => window.fixtureDocuments.display);
-  await legacy.getByRole("button", { name: "Detailed columns", exact: true }).click();
+  await boardMode(legacy, "Detailed columns");
   await legacy.getByTestId("firstmate-board").waitFor();
   await legacy.getByRole("button", { name: "Unfold Blocked", exact: true }).waitFor();
   await legacy.getByRole("button", { name: "Unfold Blocked", exact: true }).click();
@@ -174,8 +179,8 @@ export async function checkTaskViews(pageAt, generated) {
   await legacy.getByRole("button", { name: "Fold Blocked", exact: true }).click();
   await legacy.waitForFunction(() => JSON.parse(localStorage.getItem("view-settings-display") ?? "{}").collapsedColumns?.includes("blocked"));
   await legacy.reload();
-  await legacy.getByRole("button", { name: "Summary columns", exact: true }).waitFor();
-  await legacy.getByRole("button", { name: "Summary columns", exact: true }).click();
+  await legacy.getByRole("button", { name: "Board options", exact: true }).waitFor();
+  await boardMode(legacy, "Summary columns");
   await legacy.getByTestId("firstmate-task-board").waitFor();
   await legacy.getByRole("button", { name: "Move In hand right", exact: true }).click();
   await legacy.getByRole("button", { name: "Fold Needs you · 3", exact: true }).click();
@@ -193,8 +198,8 @@ export async function checkTaskViews(pageAt, generated) {
   await legacy.close();
   const many = await pageAt("views&many&view=crew", 320);
   await many.getByTestId("firstmate-task-list").waitFor();
-  assert.equal(await many.getByRole("button", { name: /^Open decision:/ }).count(), 35);
-  const last = many.getByRole("button", { name: /^Open decision: Decision 31:/ });
+  assert.equal(await answerButtons(many).count(), 35);
+  const last = many.locator('[id^="decision-task-"][aria-label^="Answer: Decision 31:"]');
   await last.focus();
   const scrolled = await many.getByTestId("firstmate-task-list").evaluate((node) => node.scrollTop);
   assert.ok(scrolled > 0);
@@ -203,7 +208,7 @@ export async function checkTaskViews(pageAt, generated) {
   await many.getByRole("button", { name: "Close decisions" }).focus();
   await many.keyboard.press("Escape");
   await many.waitForFunction(() =>
-    document.activeElement?.getAttribute("aria-label")?.startsWith("Open decision: Decision 31:"),
+    document.activeElement?.getAttribute("aria-label")?.startsWith("Answer: Decision 31:"),
   );
   assert.equal(await many.getByTestId("firstmate-task-list").evaluate((node) => node.scrollTop), scrolled);
   await many.close();
@@ -212,7 +217,7 @@ export async function checkTaskViews(pageAt, generated) {
     await page.getByTestId(view === "crew" ? "firstmate-task-list" : "firstmate-task-board").waitFor();
     await page.addStyleTag({ content: '[dir="auto"]{font-size:20px!important;line-height:28px!important}' });
     await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-    const decisions = page.getByRole("button", { name: /^Open decision:/ });
+    const decisions = answerButtons(page);
     for (const button of await decisions.all()) {
       const box = await button.boundingBox();
       assert.ok(box.width >= 44 && box.height >= 44 && box.x >= 0 && box.x + box.width <= 320);
@@ -226,7 +231,7 @@ export async function checkTaskViews(pageAt, generated) {
     const surface = page.getByTestId(view === "crew" ? "firstmate-task-list" : "firstmate-task-board");
     await surface.waitFor();
     assert.equal(await page.evaluate(() => window.fixtureDocuments.display.hostTab), "sample-light");
-    assert.equal(await surface.getByRole("button", { name: /^Open decision:/ }).count(), 3);
+    assert.equal(await answerButtons(surface).count(), 3);
     assert.equal(await surface.getByRole("button", { name: /^Recover the failed validation run\./ }).count(), 0);
     assert.ok((await surface.getByRole("button", { name: /^Build the chapter-craft plan/ }).count()) > 0);
     await page.close();
@@ -235,10 +240,12 @@ export async function checkTaskViews(pageAt, generated) {
   await invalid
     .getByText("Task layout settings could not be read. Saved settings have not been changed.", { exact: true })
     .waitFor();
+  await invalid.getByRole("button", { name: "Board options", exact: true }).click();
   assert.equal(await invalid.getByRole("button", { name: "Detailed columns", exact: true }).isDisabled(), true);
+  await invalid.getByRole("button", { name: "Close", exact: true }).click();
   assert.equal(await invalid.getByRole("button", { name: "Fold Needs you · 3", exact: true }).isDisabled(), true);
   assert.deepEqual(await invalid.evaluate(() => window.fixtureSettingSaves), []);
-  assert.equal(await invalid.getByRole("button", { name: /^Open decision:/ }).count(), 3);
+  assert.equal(await answerButtons(invalid).count(), 3);
   await invalid.close();
   return evidence;
 }

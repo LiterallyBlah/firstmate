@@ -31,6 +31,7 @@ export const ENGINE_CAPABILITIES = [
   "floor@1",
   "zones@1",
   "first-mate@1",
+  "first-mate-asking@1",
   "zone-appearance@1",
   "post-transit@1",
   "attention-carrier@1",
@@ -573,6 +574,8 @@ const ManifestShape = z.strictObject({
   /** Reserved officer, never assigned to ordinary crew. Feet and clearance are stage pixels. */
   firstMate: z.strictObject({
     at: Point, clearance: Spacing, image: Id, lane: Id, pose: Id, facing: z.enum(["left", "right"]),
+    /** A reserved bow post while workerless decisions wait, using the same officer art. */
+    asking: z.strictObject({ at: Point, clearance: Spacing }).optional(),
   }).optional(),
   portals: Portals,
   effects: z.record(Id, EffectDef),
@@ -655,6 +658,7 @@ export function settingImageIds(manifest: SettingManifest): string[] {
 export function capabilitiesUsed(manifest: SettingManifest): string[] {
   const used = new Set<string>(["stage@1", "floor@1", "zones@1", "cast@1"]);
   if (manifest.firstMate !== undefined) used.add("first-mate@1");
+  if (manifest.firstMate?.asking !== undefined) used.add("first-mate-asking@1");
   if (manifest.cast.scale !== undefined) used.add("cast-scale@1");
   if (manifest.zones.zones.some((zone) => zone.appearance !== undefined)) used.add("zone-appearance@1");
   if (manifest.zones.zones.some((zone) => zone.posts.some((post) => post.transit !== undefined))) used.add("post-transit@1");
@@ -737,8 +741,8 @@ export function settingProblems(manifest: SettingManifest): string[] {
     if (manifest.images[mate.image] === undefined) missing("image", mate.image, "firstMate");
     if (manifest.cast.lanes[mate.lane]?.[mate.pose] === undefined) missing("pose", mate.pose, "firstMate lane");
     if (manifest.cast.looks.some(look => look.image === mate.image)) problems.push("firstMate image is reserved, not a crew look");
-    for (const zone of manifest.zones.zones) for (const post of zone.posts) {
-      if (Math.abs(post.at[0] - mate.at[0]) < mate.clearance[0] && Math.abs(post.at[1] - mate.at[1]) < mate.clearance[1])
+    for (const { at, clearance } of [mate, ...(mate.asking ? [mate.asking] : [])]) for (const zone of manifest.zones.zones) for (const post of zone.posts) {
+      if (Math.abs(post.at[0] - at[0]) < clearance[0] && Math.abs(post.at[1] - at[1]) < clearance[1])
         problems.push(`firstMate clearance overlaps crew post ${post.id}`);
     }
   }

@@ -135,8 +135,10 @@ function reserve(crew: Crew, walker: Walker, byPreference: boolean): void {
   walker.anchor = chosen.id;
   walker.endFacing = chosen.facing;
   const taken = others.map((other) => other.target);
+  const mate = crew.stage.firstMate;
+  const reserved = mate ? [mate, ...(mate.asking ? [mate.asking] : [])] : [];
   walker.target =
-    zone.overflow.kind === "pack" ? restSpot(crew.stage.floor, zone.overflow, chosen, taken, zone.appearance !== null, crew.stage.firstMate ?? undefined) : sharedSpot(crew.stage.floor, chosen, taken, zone.overflow.spacing, crew.stage.firstMate ?? undefined);
+    zone.overflow.kind === "pack" ? restSpot(crew.stage.floor, zone.overflow, chosen, taken, zone.appearance !== null, reserved) : sharedSpot(crew.stage.floor, chosen, taken, zone.overflow.spacing, reserved);
 }
 
 function walkTo(crew: Crew, walker: Walker, target: Point): void {

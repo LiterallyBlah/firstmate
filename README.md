@@ -10,6 +10,12 @@ brings back results and decisions. Workers remain ordinary Paseo agents, with th
 An unreadable task is isolated so other decisions stay current; its last good gate is retained,
 and a suspected hold still counts. The decision drawer and indicator explain problems with line
 numbers and task ids. Unavailable data and last known stale counts are labelled, including on Deck.
+The List keeps six decisions in about 340 pixels on desktop, with NEW, Your call, waiting time and
+Answer. In hand shows the worker's status and reason, including waits over 30 minutes. Board's
+Detailed columns choice lives in its ellipsis menu. On Deck, the first mate walks to the bow while
+workerless decisions wait and returns to the wheel when they clear; the legend leads with the total.
+Task-prefixed suggestions are bound to the current decision and rechecked when pressed. The
+decision drawer links specs and notes, previews a named draft and opens the complete file.
 
 The signal stays amber while a decision waits and fills while any are new. Opening a decision marks
 it Seen without reducing the count. Answer in your own words or use a supplied answer, snooze from

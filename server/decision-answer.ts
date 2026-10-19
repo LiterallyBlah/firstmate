@@ -13,6 +13,7 @@ import {
   type NeedsYouService,
 } from "./needs-you-service";
 import { parseSuggestions } from "./suggestions";
+import { decisionAnswerOptions } from "./decision-options";
 import { message, TEMPLATES } from "./templates";
 import { serialized } from "./serialize";
 
@@ -80,9 +81,9 @@ export async function answerDecision(
               "utf8",
             ),
           );
-          const matches = suggestions.filter(
+          const matches = decisionAnswerOptions(snapshot, suggestions).filter(
             (entry) =>
-              entry.decision?.homeId === input.homeId &&
+              entry.decision.homeId === input.homeId &&
               entry.decision.requestId === input.requestId &&
               entry.decision.recordRevision === input.recordRevision &&
               entry.decision.actionId === input.suggestion!.actionId,
@@ -107,6 +108,8 @@ export async function answerDecision(
             ask: request.source.ask,
             url: request.source.url,
             report: request.source.reportPath,
+            ...(request.source.specPath ? { spec: request.source.specPath } : {}),
+            ...(request.source.notesPath ? { notes: request.source.notesPath } : {}),
           }),
           answer: input.text,
         });

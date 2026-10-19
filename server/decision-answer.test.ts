@@ -247,3 +247,44 @@ it.each(["unbound", "revised", "changed", "duplicate", "removed"])(
     expect((await service.read()).actionCount).toBe(1);
   },
 );
+
+it("binds a task prefix on read, sends the exact prompt only on press, and deduplicates a retry", async () => {
+  const prompt = "For task: Use the cautious option, exactly as drafted.";
+  await writeFile(join(home, "data", "suggestions.md"), `- Cautious :: ${prompt}\n`);
+  const option = (await service.read()).answerOptions![0]!;
+  expect(option).toMatchObject({ label: "Cautious", prompt, decision: {
+    homeId: input.homeId, requestId: input.requestId, recordRevision: input.recordRevision,
+  } });
+  expect(send).not.toHaveBeenCalled();
+  const answer = { ...input, text: option.prompt, suggestion: { actionId: option.decision.actionId, label: option.label } };
+  expect((await answerDecision(api, service, answer)).outcome).toBe("accepted");
+  expect(send.mock.calls[0]![0]).toContain(prompt);
+  expect((await answerDecision(api, service, answer)).outcome).toBe("accepted");
+  expect(send).toHaveBeenCalledTimes(1);
+  expect((await service.read()).answerOptions).toEqual([]);
+});
+
+it.each(["prompt", "label", "removed", "hold", "ambiguous", "duplicate", "quarantined", "ambiguous-quarantine"])(
+  "rejects a task-prefixed option when its %s changed before the press",
+  async kind => {
+    const prompt = "For task: Use the cautious option.";
+    const line = `- Cautious :: ${prompt}\n`;
+    await writeFile(join(home, "data", "suggestions.md"), line);
+    const option = (await service.read()).answerOptions![0]!;
+    if (kind === "hold") { await writeFile(join(home, "data", "backlog.md"), backlog("Choose another direction?")); await settle(); }
+    else if (kind === "ambiguous") {
+      await writeFile(join(home, "data", "backlog.md"), backlog().replace("## Queued", "- [ ] task - Another task (project: elsewhere) (hold: Another call)\n## Queued"));
+      await settle();
+    } else if (kind === "ambiguous-quarantine") {
+      await writeFile(join(home, "data", "backlog.md"), backlog().replace("## Queued", "- [ ] task - Another task (project: elsewhere) (hold: Choose (A)?)\n## Queued"));
+      await settle();
+    } else if (kind === "quarantined") {
+      await writeFile(join(home, "data", "backlog.md"), backlog().replace("(agent: worker-id)", "(hold: duplicate)"));
+      await settle();
+    } else await writeFile(join(home, "data", "suggestions.md"), kind === "prompt" ? line.replace("cautious", "different") :
+      kind === "label" ? line.replace("Cautious", "Changed label") : kind === "duplicate" ? line + line : "");
+    await expect(answerDecision(api, service, { ...input, text: option.prompt,
+      suggestion: { actionId: option.decision.actionId, label: option.label } })).rejects.toThrow();
+    expect(send).not.toHaveBeenCalled();
+  },
+);

@@ -7,7 +7,9 @@ import { crewIntensity } from "./deck-atmosphere";
 import { compileStage } from "./deck-stage";
 import { compileCast, availableLooks } from "./deck-cast";
 import { applyCrew, createCrew, crewFigures } from "./deck-crew";
-import { firstMateFigure } from "./deck-first-mate";
+import { createFirstMateMotion, firstMateFigure, moveFirstMate } from "./deck-first-mate";
+import { walkable } from "./deck-geometry";
+import { deckDecisionLabel } from "./deck-decisions";
 import { SettingManifestSchema } from "../shared/deck-setting";
 
 describe("the Deck's daemon-owned decisions", () => {
@@ -58,6 +60,13 @@ describe("the Deck's daemon-owned decisions", () => {
     expect(scene.decisions?.workerlessCount).toBe(4);
     expect(scene.decisions?.workerless).toHaveLength(4);
   });
+  it("keeps the same task id in different projects separate", () => {
+    const card = attentionCard("shared-id", "working"), snapshot = attentionSnapshot([attentionRequest("shared-id")]);
+    card.project = "Another project";
+    const scene = deckScene([card], attentionTheme, { needsYou: snapshot });
+    expect(scene.decisions?.byCard.size).toBe(0);
+    expect(scene.decisions?.workerlessCount).toBe(1);
+  });
   it.each(["ship", "japanese-ship", "ghost-ship", "sky-airship"])("places ledger fixtures at the authored bow and wheel of %s", id => {
     const manifest = SettingManifestSchema.parse(JSON.parse(readFileSync(new URL(`../art/settings/${id}/setting.json`, import.meta.url), "utf8")));
     const stage = compileStage(manifest), cast = compileCast(manifest);
@@ -67,10 +76,37 @@ describe("the Deck's daemon-owned decisions", () => {
     expect(stage.zoneOf("blocked").posts.some(p => p.id === bow.anchor)).toBe(true);
     for (const key of ["Review the patch", "Handle a failure", "Answer a permission"]) expect(stage.zoneOf("waiting").posts.some(p => p.id === crew.walkers.get(key)?.anchor)).toBe(true);
     const mate = firstMateFigure(stage, cast, scene)!;
-    expect([mate.x, mate.row]).toEqual(manifest.firstMate!.at);
+    expect([mate.x, mate.row]).toEqual(manifest.firstMate!.asking!.at);
     expect(mate.state).toBe("blocked");
     expect(mate.decisionNew).toBe(false); // workerless decision is Seen
     expect(availableLooks(cast, () => true)).not.toContain(mate.look);
     expect(crewFigures(crew, 0, { still: true })).toEqual(crewFigures(crew, 10000, { still: true }));
+    const clear = deckScene(attentionCards, attentionTheme, { needsYou: attentionSnapshot([]) });
+    const motion = createFirstMateMotion();
+    const atWheel = moveFirstMate(stage, cast, motion, clear, 0, false)!;
+    expect([atWheel.x, atWheel.y]).toEqual(manifest.firstMate!.at);
+    let previous = atWheel;
+    for (let frame = 0; frame < 1200; frame++) {
+      const next = moveFirstMate(stage, cast, motion, scene, 33, false)!;
+      expect(walkable(stage.floor, next.x, next.y)).toBe(true);
+      expect(Math.hypot(next.x - previous.x, next.y - previous.y)).toBeLessThanOrEqual(stage.floor.walkSpeed * .033 + .001);
+      expect(next.look).toBe(mate.look);
+      previous = next;
+    }
+    expect([previous.x, previous.y]).toEqual(manifest.firstMate!.asking!.at);
+    const returning = moveFirstMate(stage, cast, motion, clear, 33, false)!;
+    const reversed = moveFirstMate(stage, cast, motion, scene, 33, false)!;
+    expect(Math.hypot(returning.x - reversed.x, returning.y - reversed.y)).toBeLessThanOrEqual(stage.floor.walkSpeed * .033 + .001);
+    const snapped = moveFirstMate(stage, cast, motion, clear, 0, true)!;
+    expect([snapped.x, snapped.y]).toEqual(manifest.firstMate!.at);
+    expect(snapped.moving).toBe(false);
+  });
+  it("keeps clear, stale and unavailable totals explicit without empty new-count copy", () => {
+    expect(deckDecisionLabel(attentionSnapshot())).toBe("2 need you");
+    expect(deckDecisionLabel(attentionSnapshot([]))).toBe("Nothing needs you");
+    const stale = attentionSnapshot(); stale.freshness.status = "stale";
+    expect(deckDecisionLabel(stale)).toContain("2 need you · as of");
+    stale.actionCount = null;
+    expect(deckDecisionLabel(stale)).toBe("Can't read decisions");
   });
 });

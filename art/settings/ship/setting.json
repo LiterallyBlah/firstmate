@@ -35,7 +35,8 @@
     "day-cycle@1",
     "atmosphere@1",
     "cast-scale@1",
-    "first-mate@1"
+    "first-mate@1",
+    "first-mate-asking@1"
   ],
   "images": {
     "clouds-cumulus": {
@@ -2151,7 +2152,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            22,
+            20,
             10
           ]
         }
@@ -2180,7 +2181,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            22,
+            20,
             10
           ]
         }
@@ -2188,14 +2189,6 @@
       {
         "id": "bow",
         "posts": [
-          {
-            "id": "bow-0",
-            "at": [
-              174,
-              280
-            ],
-            "facing": "left"
-          },
           {
             "id": "bow-1",
             "at": [
@@ -2209,7 +2202,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            22,
+            20,
             10
           ]
         }
@@ -7424,6 +7417,16 @@
     "image": "firstmate-a1",
     "lane": "bosun",
     "pose": "side-idle",
-    "facing": "left"
+    "facing": "left",
+    "asking": {
+      "at": [
+        174,
+        280
+      ],
+      "clearance": [
+        24,
+        50
+      ]
+    }
   }
 }

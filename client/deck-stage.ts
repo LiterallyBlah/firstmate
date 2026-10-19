@@ -51,7 +51,7 @@ export interface DeckStage {
   /** Colour multiplication for stage art and actor bodies, independent of intensity and motion. */
   phaseTint: PhaseTint | null;
   floor: Floor;
-  firstMate: (Point & { clearance: readonly [number, number] }) | null;
+  firstMate: (Point & { clearance: readonly [number, number]; asking?: Point & { clearance: readonly [number, number] } }) | null;
   zones: ReadonlyMap<string, Zone>;
   transits: ReadonlyMap<string, PostTransit>;
   /** Where each activity state sends its worker. */
@@ -114,7 +114,8 @@ export function compileStage(manifest: SettingManifest, hasImage: (id: string) =
     height: stage.size[1],
     fit: stage.fit,
     actorHeight: stage.actorHeight,
-    firstMate: manifest.firstMate === undefined ? null : { ...point(manifest.firstMate.at), clearance: manifest.firstMate.clearance },
+    firstMate: manifest.firstMate === undefined ? null : { ...point(manifest.firstMate.at), clearance: manifest.firstMate.clearance,
+      ...(manifest.firstMate.asking ? { asking: { ...point(manifest.firstMate.asking.at), clearance: manifest.firstMate.asking.clearance } } : {}) },
     phaseTint: compilePhaseTint(manifest),
     floor: createFloor({
       areas: floor.areas,
