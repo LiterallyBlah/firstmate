@@ -796,7 +796,7 @@ describe("contracts and fleet integration", () => {
         await handler.handle(handler.input.parse(input)),
       ) as NeedsYouSnapshot;
     }
-    expect(handlers.size).toBe(5);
+    expect(handlers.size).toBe(6);
     const before = await call("read");
     const seen = await call("seen", target(before));
     expect(seen.actionCount).toBe(1);

@@ -846,7 +846,7 @@ describe("the ship deck view", () => {
     expect(engine.probes).toBe(0);
     expect(text(renderer!)).toContain("Needs you · unavailable");
     expect(text(renderer!)).not.toContain("0 needs you");
-    await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Needs you, count unavailable, unavailable. Waiting for a confirmed backlog read. Open decisions" }).props.onPress());
+    await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Needs you, count unavailable, unavailable. FirstMate cannot confirm the backlog. The last known decisions are read-only. Open decisions" }).props.onPress());
     expect(open).toHaveBeenCalledWith({ requestId: "next", homeId: snapshot.homeId });
   });
   it("labels the server's last count as stale even when no sailor carries a gate", async () => {

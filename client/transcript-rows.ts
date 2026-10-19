@@ -1,3 +1,4 @@
+import { decisionAnswerSummary, type DecisionAnswerSummary } from "./decision-answer-summary";
 /**
  * The first mate's timeline, turned into the rows the chat pane draws.
  *
@@ -19,6 +20,7 @@ type TimelineItem = TimelineEntry["item"];
 type ToolCallItem = Extract<TimelineItem, { type: "tool_call" }>;
 
 export type TranscriptRow =
+  | { key: string; kind: "decision-answer"; text: string; answer: DecisionAnswerSummary }
   /** `messageId` is the message's `clientMessageId`, under which the chat keeps the images it carried. */
   | { key: string; kind: "captain"; text: string; messageId?: string }
   | { key: string; kind: "mate"; text: string }
@@ -174,6 +176,8 @@ export function transcriptRows(entries: readonly TimelineEntry[]): TranscriptRow
     const item = entry.item;
     switch (item.type) {
       case "user_message": {
+        const answer = decisionAnswerSummary(item.text, item.clientMessageId);
+        if (answer) { rows.push({ key, kind: "decision-answer", text: item.text, answer }); break; }
         const summary = injectedSummary(item.text, item.clientMessageId);
         // A message of attachments alone has no words; the row still says the captain sent something.
         const text = item.text.trim() === "" ? ATTACHMENTS_ONLY : item.text;

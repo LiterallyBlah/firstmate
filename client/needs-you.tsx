@@ -3,9 +3,10 @@ import { Pressable, Text, View } from "react-native";
 import { useEffect, useId, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { indicatorState, decisionCountText, decisionSession } from "./needs-you-state";
+import { indicatorState, decisionSession } from "./needs-you-state";
 import { webAttributes, webSurfaceVisible } from "./web";
 import { useOpenDecision, type OpenDecision } from "./decision-action";
+import { decisionSignalInk } from "./decision-copy";
 
 export function NeedsYouIndicator({
   theme,
@@ -32,15 +33,19 @@ export function NeedsYouIndicator({
   }, [session]);
   const id = `needs-you-${useId()}`;
   const state = indicatorState(snapshot, offline);
-  const color = state.amber
-    ? theme.colors.statusWarning
-    : theme.colors.foregroundMuted;
+  const color = state.unavailable
+    ? theme.colors.statusDanger
+    : state.amber
+      ? theme.colors.statusWarning
+      : theme.colors.foregroundMuted;
   return (
     <Pressable
-      ref={ref as never}
+      ref={(node) => {
+        ref.current = node;
+        webAttributes({ title: state.accessibilityLabel }).ref?.(node);
+      }}
       nativeID={id}
       accessibilityRole="button"
-      {...webAttributes({ title: state.accessibilityLabel })}
       accessibilityLabel={state.accessibilityLabel}
       onPress={() =>
         (onOpen ?? action)(
@@ -52,25 +57,34 @@ export function NeedsYouIndicator({
         )
       }
       style={{
-        minHeight: 44,
+        minHeight: compact ? 44 : 28,
         paddingHorizontal: 12,
         paddingVertical: 7,
         borderWidth: 1,
         borderColor: color,
-        borderRadius: 8,
-        backgroundColor: theme.colors.surface1,
+        borderRadius: 18,
+        borderStyle: state.stale ? "dashed" : "solid",
+        backgroundColor: state.filled
+          ? theme.colors.statusWarning
+          : theme.colors.surface1,
         justifyContent: "center",
         ...(compact
           ? { alignSelf: "stretch" as const, width: "100%" as const }
           : {}),
       }}
     >
-      <Text style={{ color, fontSize: 14, fontWeight: "600" }}>
+      <Text
+        style={{
+          color: state.filled
+            ? decisionSignalInk(theme.colors.surface0, theme.colors.foreground)
+            : color,
+          fontSize: 13,
+          fontWeight: "600",
+        }}
+      >
         {state.label}
+        {state.fresh && state.newCount > 0 ? ` · ${state.newCount} new` : ""}
       </Text>
-      {state.extra ? (
-        <Text style={{ color, fontSize: 11 }}>{state.extra}</Text>
-      ) : null}
     </Pressable>
   );
 }
@@ -84,7 +98,8 @@ export function NeedsYouBadge({
   offline?: boolean;
 }) {
   const state = indicatorState(snapshot, offline);
-  if (state.count === 0 && state.fresh && !snapshot?.freshness.problems.length) return null;
+  if (state.count === 0 && state.fresh && !snapshot?.freshness.problems.length)
+    return null;
   return (
     <View
       accessibilityLabel={state.accessibilityLabel}
@@ -94,21 +109,30 @@ export function NeedsYouBadge({
         paddingVertical: 3,
         borderRadius: 9,
         borderWidth: 1,
-        borderColor: state.amber
+        borderStyle: state.stale ? "dashed" : "solid",
+        borderColor: state.unavailable
+          ? theme.colors.statusDanger
+          : state.amber
+            ? theme.colors.statusWarning
+            : theme.colors.border,
+        backgroundColor: state.filled
           ? theme.colors.statusWarning
-          : theme.colors.border,
-        backgroundColor: theme.colors.surface1,
+          : theme.colors.surface1,
       }}
     >
       <Text
         style={{
-          color: state.amber
-            ? theme.colors.statusWarning
-            : theme.colors.foregroundMuted,
+          color: state.filled
+            ? decisionSignalInk(theme.colors.surface0, theme.colors.foreground)
+            : state.unavailable
+              ? theme.colors.statusDanger
+              : state.amber
+                ? theme.colors.statusWarning
+                : theme.colors.foregroundMuted,
           fontSize: 12,
         }}
       >
-        {decisionCountText(snapshot, offline)}
+        {state.badge}
       </Text>
     </View>
   );

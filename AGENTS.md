@@ -141,6 +141,22 @@ Every decision count, including the Deck legend, uses the server total and label
 data. `local` resolves without a catalog; the saved local host label comes from registry sync and is
 retained across restart. Ambiguous labels stay unresolved. See `docs/needs-you-foundation.md`.
 
+The decision drawer marks a visible open question Seen through the revision-bound RPC; this never
+reduces the action count. `Mark as new` is an explicit menu action. Its session order is append-only,
+and answering/snoozing advances to the next waiting question with a receipt. Below 1,600 points it
+covers Home's task pane (`DecisionPane`) while preserving the chat/header; below 638 or host compact
+it covers the surface and pins the answer bar with keyboard/safe-area support. Only the full cover
+traps focus. Heading focus and opener return are deliberate. All groups use human state names.
+Uncertain delivery is never retried on render: `It arrived` records the existing submission;
+`Send again…` requires confirmation, records the prior attempt as failed, then uses a new submission
+id and the existing send gate. The retained draft supplies the words; after a fresh session they must
+be entered again. `I answered in chat` records accepted delivery without sending anything.
+`decision-answer-summary.ts` folds only complete identified answer envelopes in both chats, preserving
+the exact original for disclosure and the home/request/revision for reopening. New envelopes include
+the authored title; old envelopes fall back to their task id. The drawer consumes optional server-bound
+`answerOptions`, `specPath` and `notesPath` additively; their production belongs to the options slice.
+Render evidence lives in ignored `.local/needs-you-drawer/`, never in tracked docs.
+
 ## Home and the workspace tabs (shell phase 1)
 
 Home's header keeps the title, mate status and task counts together, with the List/Board/Home files switch

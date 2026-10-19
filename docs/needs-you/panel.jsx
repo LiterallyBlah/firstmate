@@ -54,7 +54,7 @@ function App() {
   const Component = (screens.get(route.id) ?? panels.get(route.id)).Component;
   return (
     <>
-      <div style={{ display: "none" }}>
+      <div style={{ display: params.has("sidebar") ? "flex" : "none", padding: 12, background: theme.colors.surface0 }}>
         <FleetSidebarItem
           theme={theme}
           currentScreen={{ screenId: route.id }}

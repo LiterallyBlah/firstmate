@@ -69,7 +69,7 @@ import { focusWebElement, webAttributes } from "./web";
 import { HubLauncher } from "./hub-launcher";
 import { chatIsVisible, FLEET_PANELS, homeWorkspace, type FleetShell, type FleetView } from "./shell";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
-import { DecisionSurface } from "./decision-surface";
+import { DecisionSurface, DecisionPane, useDecisionPaneOpen } from "./decision-surface";
 import { NeedsYouIndicator } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
 import { useOpenDecision } from "./decision-action";
@@ -134,6 +134,7 @@ function FleetViewBody({
   stateKey,
 }: FleetSurfaceProps & { stateKey: string }) {
   const home = view === undefined;
+  const decisionOpen = useDecisionPaneOpen();
   const remembered = viewState.get(stateKey);
   const [width, setWidth] = useState(0);
   const compact = layout.compact || (width > 0 && width < MIN_SPLIT_WIDTH);
@@ -1023,7 +1024,7 @@ function FleetViewBody({
           />
         )}
         <View style={{ flex: 1, minHeight: 0 }} onLayout={(event) => setPaneWidth(event.nativeEvent.layout.width)}>
-          {view !== "deck" ? (
+          <DecisionPane>{view !== "deck" ? (
             crew
           ) : !deck ? (
             <Text style={styles.loading}>
@@ -1031,7 +1032,7 @@ function FleetViewBody({
             </Text>
           ) : (
             inlineDeck
-          )}
+          )}</DecisionPane>
         </View>
       </View>
     );
@@ -1100,12 +1101,12 @@ function FleetViewBody({
         ) : (
           <View
             nativeID="firstmate-chat-pane"
-            style={values.boardCollapsed ? { flex: 1 } : { width: Math.round(chatShare * width), flexShrink: 0 }}
+            style={values.boardCollapsed && !decisionOpen ? { flex: 1 } : { width: Math.round(chatShare * width), flexShrink: 0 }}
           >
             {chat}
           </View>
         )}
-        {values.chatCollapsed || values.boardCollapsed ? null : (
+        {values.chatCollapsed || (values.boardCollapsed && !decisionOpen) ? null : (
           <ResizeHandle
             theme={theme}
             share={chatShare}
@@ -1117,7 +1118,7 @@ function FleetViewBody({
             }}
           />
         )}
-        {values.boardCollapsed ? (
+        {values.boardCollapsed && !decisionOpen ? (
           <View style={[styles.rail, { borderLeftWidth: 1 }]}>
             <IconButton
               icon="PanelRightOpen"
@@ -1128,13 +1129,13 @@ function FleetViewBody({
           </View>
         ) : (
           <View style={{ flex: 1, minWidth: 0 }} onLayout={(event) => setPaneWidth(event.nativeEvent.layout.width)}>
-            {pane === "board" ? (
+            <DecisionPane>{pane === "board" ? (
               crew
             ) : pane === "deck" ? (
               inlineDeck
             ) : (
               <FilesView theme={theme} compact={false} request={filesRequest} />
-            )}
+            )}</DecisionPane>
           </View>
         )}
       </View>

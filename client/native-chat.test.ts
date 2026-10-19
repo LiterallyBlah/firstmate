@@ -75,7 +75,8 @@ it("registers the matching schema and component and disposes both contributions"
   });
   const stop = registerNativeChat({ addTimelineTransformer, addTimelineRenderer } as unknown as PluginClientContext);
   expect(addTimelineTransformer).toHaveBeenCalledExactlyOnceWith(nativeChatTransformer);
-  expect(addTimelineRenderer).toHaveBeenCalledExactlyOnceWith({
+  expect(addTimelineRenderer).toHaveBeenCalledTimes(2);
+  expect(addTimelineRenderer).toHaveBeenCalledWith({
     kind: "firstmate-machine-note",
     version: 1,
     schema: machineNoteSchema,
@@ -83,5 +84,5 @@ it("registers the matching schema and component and disposes both contributions"
   });
   expect(machineNoteSchema.safeParse({ summary: "Missing original" }).success).toBe(false);
   stop();
-  expect(removals).toEqual(["transformer", "renderer"]);
+  expect(removals).toEqual(["renderer", "transformer", "renderer"]);
 });

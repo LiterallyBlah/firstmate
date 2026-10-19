@@ -125,7 +125,9 @@ try {
   await page.getByRole("button", { name: /^Needs you · 2 ·/ }).click();
   await checkDrawer("Choose the release", "Which release should sail?", "legend");
   assert.deepEqual(errors, []);
-  assert.equal(await page.evaluate(() => window.fixtureCalls.filter(call => call.name.startsWith("firstmate.needs-you.")).length), 0, "opening a drawer mutated a decision");
+  const decisionCalls = await page.evaluate(() => window.fixtureCalls.filter(call => call.name.startsWith("firstmate.needs-you.")));
+  assert.ok(decisionCalls.length > 0, "opening acknowledges the displayed decision");
+  assert.ok(decisionCalls.every(call => call.name === "firstmate.needs-you.seen" && call.input.revision === 1), "opening only marks the displayed revision Seen");
   results.push({ tree: "drawer", setting: "ship", bow: "local:Choose the release", firstMate: "local:Pick the next project", legend: "local:Choose the release", errors });
   await context.close();
 } finally { await browser.close(); server.close(); }

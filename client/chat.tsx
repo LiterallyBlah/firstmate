@@ -1,3 +1,4 @@
+import { DecisionAnswerBubble } from "./decision-answer-bubble";
 /**
  * The conversation with the first mate: its transcript, folded to the words,
  * and a composer. The whole session — every tool call and its output — is
@@ -360,6 +361,7 @@ export function MateChat({
     }
     const row = group.row;
     switch (row.kind) {
+      case "decision-answer": return <View key={row.key} style={styles.captain}><DecisionAnswerBubble theme={theme} answer={row.answer} /></View>;
       case "captain": {
         const images = sentImages.get(row.messageId);
         return (

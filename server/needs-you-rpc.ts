@@ -1,6 +1,7 @@
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import {
   markNeedsYouSeen,
+  markNeedsYouNew,
   readNeedsYou,
   recordNeedsYouAnswer,
   snoozeNeedsYou,
@@ -16,6 +17,7 @@ export function registerNeedsYouRpc(
   server.handle(markNeedsYouSeen, (input) =>
     service.mutate(input, { kind: "seen" }),
   );
+  server.handle(markNeedsYouNew, (input) => service.mutate(input, { kind: "new" }));
   server.handle(snoozeNeedsYou, (input) =>
     service.mutate(input, { kind: "snooze", until: input.until }),
   );

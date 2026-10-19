@@ -39,7 +39,7 @@ it("takes counts only from server data, even with no cards/requests and all seen
   const data = { ...snapshot(), requests: [], actionCount: 42, newCount: 0 };
   expect(indicatorState(data)).toMatchObject({
     count: 42,
-    amber: false,
+    amber: true,
     label: "Needs you · 42",
   });
   expect(indicatorState({ ...data, newCount: 3 })).toMatchObject({
@@ -62,16 +62,16 @@ it("explains quarantined lines and never labels an unknown or stale total as a c
   expect(decisionCountText(data)).toBe("1");
 });
 it("distinguishes zero, disabled, unknown, stale and pending at zero with accessible names", () => {
-  expect(indicatorState(undefined).label).toBe("Needs you · ?");
+  expect(indicatorState(undefined).label).toBe("Can't read decisions");
   const data = snapshot();
   expect(
     indicatorState({ ...data, actionCount: 0, pendingAnswerCount: 1 })
       .accessibilityLabel,
   ).toContain("1 answer pending");
   expect(indicatorState(data, true)).toMatchObject({
-    amber: false,
+    amber: true,
     fresh: false,
-    extra: "stale",
+    extra: "offline",
   });
   expect(
     indicatorState({

@@ -89,7 +89,7 @@ export async function checkTaskViews(pageAt, generated) {
         .waitFor();
       assert.equal(
         await page.evaluate(
-          () => window.fixtureCalls.filter((c) => /needs-you\.(seen|snooze|answer)/.test(c.name)).length,
+          () => window.fixtureCalls.filter((c) => /needs-you\.(snooze|answer)/.test(c.name)).length,
         ),
         0,
       );
@@ -108,7 +108,7 @@ export async function checkTaskViews(pageAt, generated) {
       await page.getByRole("button", { name: "Close decisions" }).focus();
       await page.keyboard.press("Escape");
       await page.waitForFunction(() => document.activeElement?.id.startsWith("decision-task-"));
-      await decisions.first().click();
+      await page.getByRole("button", { name: /^Open decision: Install the merged board changes and check the live panel\./ }).click();
       assert.equal(
         await page.getByRole("textbox", { name: "Answer the first mate", exact: true }).inputValue(),
         "Preserve this decision draft",
@@ -172,6 +172,7 @@ export async function checkTaskViews(pageAt, generated) {
   await legacy.waitForFunction(() => document.activeElement?.id.startsWith("card-decision-"));
   // Restore the legacy fold before checking that summary saves never reinterpret it.
   await legacy.getByRole("button", { name: "Fold Blocked", exact: true }).click();
+  await legacy.waitForFunction(() => JSON.parse(localStorage.getItem("view-settings-display") ?? "{}").collapsedColumns?.includes("blocked"));
   await legacy.reload();
   await legacy.getByRole("button", { name: "Summary columns", exact: true }).waitFor();
   await legacy.getByRole("button", { name: "Summary columns", exact: true }).click();

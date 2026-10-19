@@ -23,6 +23,9 @@ export const DecisionSourceSchema = z.object({
   ask: z.string(),
   url: z.string().nullable(),
   reportPath: z.string().nullable(),
+  /** Authored home-relative context; optional for ledgers written before these links existed. */
+  specPath: z.string().nullable().optional(),
+  notesPath: z.string().nullable().optional(),
   gateToken: z.string().nullable(),
   section: z.enum(["in-flight", "queued", "done"]),
   disposition: z.enum(["open", "parked", "in-hand", "done"]),
@@ -78,6 +81,19 @@ export const NeedsYouRequestSchema = z.object({
 });
 export type NeedsYouRequest = z.infer<typeof NeedsYouRequestSchema>;
 
+/** Server-bound options; a task-id prefix chooses display, never authorizes a send. */
+export const DecisionAnswerOptionSchema = z.object({
+  label: z.string(),
+  prompt: z.string(),
+  decision: z.object({
+    homeId: z.string().min(1),
+    requestId: z.string().min(1),
+    recordRevision: revision,
+    actionId: z.string().min(1).max(200),
+  }),
+});
+export type DecisionAnswerOption = z.infer<typeof DecisionAnswerOptionSchema>;
+
 export const NeedsYouFreshnessSchema = z.object({
   status: z.enum(["disabled", "unknown", "stale", "fresh"]),
   asOf: instant.nullable(),
@@ -96,6 +112,8 @@ export const NeedsYouSnapshotSchema = z.object({
   requests: z.array(NeedsYouRequestSchema),
   parked: z.array(DecisionSourceSchema),
   quarantined: z.array(QuarantinedTaskSchema).optional(),
+  /** Rebuilt from current suggestions, never persisted in the ledger. Submit via needs-you.answer. */
+  answerOptions: z.array(DecisionAnswerOptionSchema).optional(),
   delivery: z.literal("off"),
 });
 export type NeedsYouSnapshot = z.infer<typeof NeedsYouSnapshotSchema>;
@@ -138,6 +156,11 @@ export const markNeedsYouSeen = defineRpc({
   input: NeedsYouTargetSchema,
   output: NeedsYouSnapshotSchema,
 });
+export const markNeedsYouNew = defineRpc({
+  name: "firstmate.needs-you.new",
+  input: NeedsYouTargetSchema,
+  output: NeedsYouSnapshotSchema,
+});
 export const snoozeNeedsYou = defineRpc({
   name: "firstmate.needs-you.snooze",
   input: NeedsYouTargetSchema.extend({ until: instant }),
@@ -170,6 +193,7 @@ export const NeedsYouTransitionSchema = z.object({
     "actionable",
     "updated",
     "seen",
+    "marked-new",
     "snoozed",
     "snooze-due",
     "unsnoozed",

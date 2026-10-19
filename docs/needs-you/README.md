@@ -2,7 +2,9 @@
 
 Home, Chat, Crew, Board and the Deck header use the server ledger's counts.
 The sidebar badge uses the same source; active crew appears as `N in hand` in
-Home. New decisions colour the signal amber, Seen decisions neutral. Stale or
+Home. Waiting decisions keep an amber outline; New decisions fill it. Clear reads
+**Nothing needs you**, unavailable reads **Can't read decisions**, and stale counts
+carry a dashed outline with their last confirmed time. Stale or
 unavailable data is labelled and cannot enable an answer or acknowledgement.
 Worker cards, filters and lifecycle events do not determine these counts.
 
@@ -16,26 +18,37 @@ The Deck legend uses this same server total, including workerless/unreadable hol
 `resilience-checks.mjs` exercises the real drawer at 390 and 1440 pixels with
 synthetic quarantined and unavailable snapshots; images go under `.local/`.
 
-Opening a decision, following a link, restoring a view or polling never sends,
-marks seen or snoozes. Previous/Next starts with New, then Seen, ordered by waiting
-time and stable id. Pending and snoozed decisions follow; All decisions also
-includes resolved and parked records. New arrivals do not replace a selected
-question. Drafts are keyed by home, request and revision in the shared client
-session; a changed question retains its old draft separately.
+Opening a visible decision marks it Seen through the current home/request/revision,
+without reducing the waiting count. Polling and opening All do not acknowledge unseen
+questions. Mark as new lives in the actions menu. The drawer's session order stays
+stable across state changes and appends new arrivals; Previous/Next wrap so they remain
+usable after an action. Answering, recording an answer, and snoozing show a receipt and
+advance to the next waiting decision. Drafts stay keyed by home, request and revision.
 
-Explicit actions are Mark seen; Snooze for one hour, tomorrow at 09:00 in the
-device's time zone, or an entered local date/time; Unsnooze; and Answer the first
-mate. Enter in the answer field is a newline. The send button uses the existing
-per-mate send gate and server lifecycle lock. The server validates the current
-home, fresh source and record revision, writes a durable uncertain reservation,
-then calls the existing mate-send path. Accepted delivery waits for the mate's
-recorded outcome; uncertain delivery never automatically retries. Reusing a
-submission id with the same payload returns its journaled result, including
-after restart. Reusing it for a different payload is refused.
+The question comes first, then reading links and supplied answer choices, then an accent
+Send answer and Snooze / Discuss first / I answered in chat. Snooze offers an hour,
+evening, tomorrow at 09:00, or a calendar with hour/minute choices in local time. The
+phone keeps its answer bar at the bottom, above the keyboard and safe area. Enter stays
+a newline. Actions require fresh, unquarantined data and use the existing send gate.
+
+All groups Waiting for you, Answered, Snoozed, Parked and Settled today. An uncertain
+send offers Open the first mate's chat, It arrived (record the existing submission as
+accepted), and Send again with confirmation. A confirmed resend first records the prior
+attempt as failed, then sends with a new id. The retained draft supplies the words; after
+a fresh client session they must be entered again. Cancel does nothing. I answered in
+chat records an accepted submission without sending. None of these actions lifts a hold;
+the first mate still reconciles the backlog. Nothing retries automatically.
+
+Both chats fold complete identified answer envelopes into Your answer to «title», with
+the answer, recorded question, Open the decision, and Show what was sent. Malformed,
+partial, quoted or unidentified envelopes remain ordinary text. Existing envelopes without
+a title use the task id. The original message is retained exactly.
 
 ## Bound one-press answers
 
-Existing suggestions remain unchanged. An optional suffix on the label binds an
+The drawer consumes optional snapshot.answerOptions supplied by the options/context slice,
+falling back to explicitly bound suggestions on older snapshots. specPath and notesPath
+are optional reading links for the same integration. Existing suggestions remain unchanged. An optional suffix on the label binds an
 answer to the exact home, request and revision returned by `firstmate.needs-you.read`:
 
 ```markdown
@@ -55,7 +68,7 @@ Descendants of `FleetSurface` call `useOpenDecision()` from `decision-action.tsx
 `open({homeId, requestId, recordRevision}, optionalReturnFocusId)`. Omit the target
 to open the next decision. Other installation-owned contributions can call
 `FleetShell.openDecision(target)`, which opens Home with the same declarative
-destination. Neither action acknowledges or submits anything.
+destination. The opening action itself does not submit; the visible drawer acknowledges its question.
 
 The sidebar owns one quiet toast for each newly observed batch. Initial baselines
 and polling/reload duplicates are silent. A visible FirstMate indicator suppresses
@@ -65,40 +78,20 @@ The outbox remains off and no phone transport is included.
 
 ## Compact layout and verification
 
-Below 638 points (or with host compact layout), the indicator fills the header's
-content width under the title. The drawer fills its surface unless there is room
-for both its 440-point width and a 638-point fleet pane. Its controls have at least
-44-point targets. Covering drawers hide/inert the background for accessibility,
-trap Tab/Shift+Tab, close with Escape and return focus to the opener. Wide drawers
-leave the adjacent fleet accessible.
+Below 638 points (or host compact), the indicator fills the header width, the drawer
+covers its surface, and controls keep 44-point targets. At desktop widths below 1,600,
+DecisionPane covers only Home's task pane, keeping its chat and header unchanged. Larger
+surfaces dock a 440-point drawer. Full covers hide/inert the background and trap Tab;
+pane covers keep the adjacent chat reachable. Escape closes and returns to the opener.
+The heading takes focus on open. Desktop controls use Paseo's compact scale.
 
-`render.mjs` runs the real React Native Web views with synthetic host RPCs. It
-checks 320, 390, 637, 638, 900, 1440 and 1680 pixels, host compact layout, light and
-dark themes, accessible control names, target sizes, focus trapping/return,
-preserved selection/drafts, revision links and an explicit bound typed send.
-The CI matrix runs it on Windows and Ubuntu and uploads its screenshots/results.
+Run npm ci --prefix docs/board-list, then node docs/needs-you/render.mjs.
+The harness mounts real components with synthetic host APIs at 320, 390, 637, 638, 900,
+1440 and 1680 pixels in both themes. It verifies heading focus, Seen/count semantics,
+append-only navigation, retained drafts, pinned phone input, pane cover, answer/snooze
+receipts, All, quarantined data, recovery cancellation/confirmation and readable chat.
+Screenshots and results go to ignored .local/needs-you-drawer/ and CI artifacts.
 This is fixture evidence, not an installed desktop or native-device test.
-
-```powershell
-npm.cmd ci --prefix docs/board-list
-node docs/needs-you/render.mjs --diagnose 2>&1 | Out-File -Encoding utf8 .local/indicator-diagnose.log
-node docs/needs-you/render.mjs 2>&1 | Out-File -Encoding utf8 .local/indicator-render.log
-```
-
-The targeted compact investigation found a real layout bug: the loading root had
-no initial `onLayout`, and React Native Web did not start observing the reused
-element when its handler appeared later. Both 320 and 390 pixels stayed in wide
-mode (visible 207.89 × 50 signal beside the title, in wrapping row parents of
-288 and 358 pixels). All root states now register layout from mount. The fixed
-indicator is 296 × 50 at x=12 in a 320-pixel pane, and 366 × 50 at x=12 in a
-390-pixel pane, below the title row. `--diagnose` writes screenshots and computed
-indicator/parent/title-row/ancestor boxes, including flex, grid, min-width,
-overflow and visibility. The render assertion checks exact content width and
-placement after font/layout readiness; it does not relax the requirement.
-
-Unit/integration coverage lives in `client/needs-you-state.test.ts`,
-`server/decision-answer.test.ts` and the foundation's detector/ledger/service
-tests. Deck markers remain a separate slice.
 
 ## Crew, Board and status vocabulary
 
@@ -119,8 +112,8 @@ ledger, including requests without a matching task card.
 Cards at rest show ownership plus one useful line. Lifecycle, provider/model,
 timestamps, raw reports, full errors and permissions remain in **Details**, along
 with the existing actions. No report parser, supervision rule, internal state or
-Deck animation changes. Opening a row only opens the shared decision drawer; it
-never acknowledges, snoozes or answers a request.
+Deck animation changes. Opening a row only opens the shared decision drawer; the visible drawer
+marks it Seen, but never snoozes or answers without a press.
 
 Crew has one scroll container, with Later and Done folded to counts. Board has
 four columns: Needs you pinned first, In hand, Later and Done. Later and Done start
