@@ -75,6 +75,7 @@ export type StartDeck = (
   size: { width: number; height: number },
   onHover: (hover: DeckHover | null) => void,
   onSelect: (key: string | null, action?: "attention") => void,
+  onFirstMate?: (anchor: DeckHover | null) => void,
 ) => Promise<DeckDrawing>;
 
 /** Everything the mount does that touches the browser or Pixi, so the tests can stand in for it. */
@@ -119,6 +120,7 @@ export function mountDeck(
   onStatus: (status: DeckStatus) => void,
   onHover: (hover: DeckHover | null) => void = function () {},
   onSelect: (key: string | null, action?: "attention") => void = function () {},
+  onFirstMate: (anchor: DeckHover | null) => void = function () {},
 ): DeckMount {
   const idle: DeckMount = { update() {}, focus() {}, destroy() {} };
   if (!isDeckHost(node)) {
@@ -159,6 +161,7 @@ export function mountDeck(
         function (key, action) {
           if (!gone) onSelect(key, action);
         },
+        function (anchor) { if (!gone) onFirstMate(anchor); },
       ).then(function (started) {
         return { started, drawn };
       });
@@ -438,6 +441,7 @@ export function packArt(
   if (lacking !== undefined) return Promise.reject(pack.failed.get(lacking) ?? new Error(`the setting's ${lacking} did not load`));
   for (const id of parts.missing) warn(`[firstmate] the deck's ${pathOf(id)} did not load; drawing without it:`, pack.failed.get(id));
   const cast = compileCast(pack.manifest);
+  if (cast.firstMate !== null && !pack.images.has(cast.firstMate.image)) return Promise.reject(pack.failed.get(cast.firstMate.image) ?? new Error("the commissioned first-mate art did not load"));
   const absentLook = cast.looks.find((look) => !look.optional && !pack.images.has(look.image));
   if (absentLook !== undefined) return Promise.reject(pack.failed.get(absentLook.image) ?? new Error(`the setting's ${absentLook.image} did not load`));
   const effectImages = new Set(Object.values(pack.manifest.effects).flatMap((effect) => Object.values(effect.frames).map((sprite) => sprite.image)));
@@ -534,8 +538,8 @@ export function browserDeckEngine(
         art.catch(() => packOnce.delete(setting));
       }
       return Promise.all([engineOnce, art]).then(function ([pixi, drawn]): StartDeck {
-        return function (host, scene, size, onHover, onSelect) {
-          return startDeck(pixi, drawn, host, scene, size, motion(), onHover, onSelect);
+        return function (host, scene, size, onHover, onSelect, onFirstMate) {
+          return startDeck(pixi, drawn, host, scene, size, motion(), onHover, onSelect, onFirstMate);
         };
       });
     },

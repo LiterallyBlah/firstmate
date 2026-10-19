@@ -4,7 +4,7 @@
   "id": "ship",
   "name": "Pirate voyage",
   "preview": "preview",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "requires": [
     "stage@1",
     "floor@1",
@@ -34,7 +34,8 @@
     "variants@1",
     "day-cycle@1",
     "atmosphere@1",
-    "cast-scale@1"
+    "cast-scale@1",
+    "first-mate@1"
   ],
   "images": {
     "clouds-cumulus": {
@@ -1276,6 +1277,14 @@
         360
       ],
       "sha256": "abe3ccb2b60b2318bbace6dd3d9f1269f2e999db24dd2c8fa6ae2f519098c096"
+    },
+    "firstmate-a1": {
+      "path": "firstmate-a1.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "9d2c57c26ffb5be08e55351835b16e597d2c2a896f21ca76401e3d380a778f20"
     }
   },
   "copy": {
@@ -2124,21 +2133,13 @@
           {
             "id": "station-4",
             "at": [
-              203,
-              278
-            ],
-            "facing": "right"
-          },
-          {
-            "id": "station-5",
-            "at": [
               418,
               284
             ],
             "facing": "right"
           },
           {
-            "id": "station-6",
+            "id": "station-5",
             "at": [
               473,
               283
@@ -2161,7 +2162,7 @@
           {
             "id": "helm-0",
             "at": [
-              541,
+              530,
               264
             ],
             "facing": "front"
@@ -2169,15 +2170,7 @@
           {
             "id": "helm-1",
             "at": [
-              563,
-              264
-            ],
-            "facing": "front"
-          },
-          {
-            "id": "helm-2",
-            "at": [
-              585,
+              553,
               264
             ],
             "facing": "front"
@@ -2198,7 +2191,7 @@
           {
             "id": "bow-0",
             "at": [
-              168,
+              174,
               280
             ],
             "facing": "left"
@@ -2206,16 +2199,8 @@
           {
             "id": "bow-1",
             "at": [
-              179,
-              281
-            ],
-            "facing": "left"
-          },
-          {
-            "id": "bow-2",
-            "at": [
-              202,
-              282
+              199,
+              283
             ],
             "facing": "left"
           }
@@ -7426,5 +7411,19 @@
     "veil": "#050B14",
     "staleTint": "#8A9096",
     "staleAlpha": 0.6
+  },
+  "firstMate": {
+    "at": [
+      579,
+      264
+    ],
+    "clearance": [
+      24,
+      50
+    ],
+    "image": "firstmate-a1",
+    "lane": "bosun",
+    "pose": "side-idle",
+    "facing": "left"
   }
 }

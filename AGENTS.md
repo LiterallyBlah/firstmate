@@ -451,6 +451,14 @@ starts.
 
 ## The Deck is a scene engine drawing setting packs
 
+`first-mate@1` reserves an A1 officer at each pack's `firstMate` post; its atlas is
+never assigned to ordinary crew. `client/deck-decisions.ts` projects the daemon's
+needs-you gates to sailors and the officer's workerless tag, without detecting
+holds or reconstructing total counts. Placement and weather inputs are separate.
+Every decision marker uses `ShipDeckView.onOpenDecision`; see
+`docs/attention-deck/README.md` for the shared `useOpenDecision` integration, geometry
+checks and the CI before/after screenshot artifact.
+
 The Deck is a **scene engine** that knows workers, states, places, portals, layers, behaviours, the day and
 intensity, drawing a **setting pack** that knows what those look like and where they are. The nine-step migration
 is recorded in `docs/deck-settings/README.md`. The released pack is `art/settings/ship/`.

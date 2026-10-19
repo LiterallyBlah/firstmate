@@ -136,7 +136,7 @@ function reserve(crew: Crew, walker: Walker, byPreference: boolean): void {
   walker.endFacing = chosen.facing;
   const taken = others.map((other) => other.target);
   walker.target =
-    zone.overflow.kind === "pack" ? restSpot(crew.stage.floor, zone.overflow, chosen, taken, zone.appearance !== null) : sharedSpot(crew.stage.floor, chosen, taken, zone.overflow.spacing);
+    zone.overflow.kind === "pack" ? restSpot(crew.stage.floor, zone.overflow, chosen, taken, zone.appearance !== null, crew.stage.firstMate ?? undefined) : sharedSpot(crew.stage.floor, chosen, taken, zone.overflow.spacing, crew.stage.firstMate ?? undefined);
 }
 
 function walkTo(crew: Crew, walker: Walker, target: Point): void {
@@ -470,6 +470,8 @@ export function stepCrew(crew: Crew, dtMs: number): void {
 
 /** A sailor as the renderer draws it this frame. */
 export interface Figure {
+  /** Only a New ledger gate moves the existing exclamation badge. */
+  decisionNew?: boolean;
   /** An authored access route's draw order, shared by pointer hit testing. */
   depth?: number;
   /** An access route has no floor under its feet; retain the badge without a floating ground mark. */

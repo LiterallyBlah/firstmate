@@ -1,0 +1,908 @@
+{
+  "schemaVersion": 1,
+  "id": "firstmate-a1-ship",
+  "created": "2026-10-19",
+  "status": "Assets only; not registered with the runtime pack.",
+  "baseCommit": "e9d933e",
+  "setting": "ship",
+  "title": "Ship",
+  "sourcePack": {
+    "path": "art/settings/ship/setting.json",
+    "sha256": "91a20d1bdeef7efab359a1a67d952407176bd0916c56dda1648038b282106e53",
+    "version": "2.0.0"
+  },
+  "reference": {
+    "image": "polish-crew-bosun",
+    "path": "art/settings/ship/legacy-polish-crew-bosun.png",
+    "sha256": "b229c0097665e55108215222e66f89c7d3a54915ce5f04280eb8e90b55006dd7",
+    "lane": "bosun"
+  },
+  "logicalPixelScale": {
+    "pixel": "1 art pixel = 1 native cast pixel",
+    "sampling": "nearest-neighbour",
+    "scale": "inherit the setting cast scale"
+  },
+  "palette": {
+    "source": "docs/ship-deck-art/water/manifest.json",
+    "colours": [
+      "#0E121E",
+      "#151E2D",
+      "#182B47",
+      "#1A1417",
+      "#1D314E",
+      "#1F3554",
+      "#22395A",
+      "#271E1D",
+      "#2C4869",
+      "#2D2B30",
+      "#31211D",
+      "#3E2921",
+      "#492D22",
+      "#4F3427",
+      "#5D3626",
+      "#613A28",
+      "#624130",
+      "#72412A",
+      "#7E472D",
+      "#7F422B",
+      "#815C43",
+      "#834C2D",
+      "#834D31",
+      "#8B4F2F",
+      "#915230",
+      "#9B5A33",
+      "#9E6139",
+      "#A56235",
+      "#A86636",
+      "#A8693B",
+      "#AD6938",
+      "#AD6D3D",
+      "#B16F3D",
+      "#B57642",
+      "#BB7B44",
+      "#BF854C",
+      "#C17F46",
+      "#C5864B",
+      "#C6884C",
+      "#C7894C",
+      "#C88C50",
+      "#C9894C",
+      "#CD8F50",
+      "#CE9659",
+      "#D39151",
+      "#DCA35B",
+      "#DD9954",
+      "#E8CCA6",
+      "#45617A",
+      "#536E87",
+      "#64849A",
+      "#7795A5",
+      "#8FA8B4",
+      "#A8B9BD",
+      "#BECAC6",
+      "#D9D4BE",
+      "#F1DEC0",
+      "#675E78",
+      "#7C7183",
+      "#927F8B",
+      "#B38B88",
+      "#C7987D",
+      "#D2AD86",
+      "#DFBB96"
+    ]
+  },
+  "alpha": {
+    "background": 0,
+    "painted": 255,
+    "transparentRgb": [
+      0,
+      0,
+      0
+    ]
+  },
+  "images": {
+    "firstmate.png": {
+      "path": "firstmate.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "9d2c57c26ffb5be08e55351835b16e597d2c2a896f21ca76401e3d380a778f20"
+    },
+    "standing-directions.png": {
+      "path": "standing-directions.png",
+      "size": [
+        26,
+        32
+      ],
+      "sha256": "0ee5cfc5eebdf1a1fb162f35881e6c91f00f39fb889391dc60d7b4a42203b457"
+    }
+  },
+  "lane": {
+    "front-walk-a": {
+      "rect": [
+        6,
+        3,
+        19,
+        33
+      ],
+      "feet": [
+        9,
+        33
+      ]
+    },
+    "front-pass-a": {
+      "rect": [
+        38,
+        3,
+        19,
+        33
+      ],
+      "feet": [
+        9,
+        33
+      ]
+    },
+    "front-walk-b": {
+      "rect": [
+        70,
+        3,
+        19,
+        33
+      ],
+      "feet": [
+        10,
+        33
+      ]
+    },
+    "front-pass-b": {
+      "rect": [
+        102,
+        3,
+        19,
+        33
+      ],
+      "feet": [
+        11,
+        33
+      ]
+    },
+    "side-walk-a": {
+      "rect": [
+        5,
+        44,
+        22,
+        32
+      ],
+      "feet": [
+        11,
+        32
+      ]
+    },
+    "side-pass-a": {
+      "rect": [
+        41,
+        44,
+        13,
+        32
+      ],
+      "feet": [
+        7,
+        32
+      ]
+    },
+    "side-walk-b": {
+      "rect": [
+        69,
+        44,
+        22,
+        32
+      ],
+      "feet": [
+        11,
+        32
+      ]
+    },
+    "side-pass-b": {
+      "rect": [
+        105,
+        44,
+        14,
+        32
+      ],
+      "feet": [
+        7,
+        32
+      ]
+    },
+    "front-idle": {
+      "rect": [
+        6,
+        84,
+        19,
+        32
+      ],
+      "feet": [
+        10,
+        32
+      ]
+    },
+    "hauling": {
+      "rect": [
+        34,
+        84,
+        28,
+        32
+      ],
+      "feet": [
+        11,
+        32
+      ]
+    },
+    "hauling-pull": {
+      "rect": [
+        66,
+        85,
+        27,
+        31
+      ],
+      "feet": [
+        12,
+        31
+      ]
+    },
+    "waiting": {
+      "rect": [
+        103,
+        84,
+        18,
+        32
+      ],
+      "feet": [
+        10,
+        32
+      ]
+    },
+    "climb-a": {
+      "rect": [
+        7,
+        120,
+        18,
+        36
+      ],
+      "feet": [
+        11,
+        36
+      ]
+    },
+    "climb-b": {
+      "rect": [
+        39,
+        120,
+        18,
+        36
+      ],
+      "feet": [
+        8,
+        36
+      ]
+    },
+    "lookout": {
+      "rect": [
+        69,
+        121,
+        21,
+        35
+      ],
+      "feet": [
+        11,
+        35
+      ]
+    },
+    "thinking": {
+      "rect": [
+        103,
+        121,
+        17,
+        35
+      ],
+      "feet": [
+        9,
+        35
+      ]
+    },
+    "side-idle": {
+      "rect": [
+        41,
+        44,
+        13,
+        32
+      ],
+      "feet": [
+        7,
+        32
+      ]
+    },
+    "leaning": {
+      "rect": [
+        103,
+        121,
+        17,
+        35
+      ],
+      "feet": [
+        9,
+        35
+      ]
+    }
+  },
+  "roles": {
+    "stand": "front-idle",
+    "walkFront": [
+      "front-walk-a",
+      "front-pass-a",
+      "front-walk-b",
+      "front-pass-b"
+    ],
+    "walkSide": [
+      "side-walk-a",
+      "side-pass-a",
+      "side-walk-b",
+      "side-pass-b"
+    ],
+    "rise": 0,
+    "stepMs": 160,
+    "settled": {
+      "working": {
+        "pose": "hauling",
+        "mirror": "facing"
+      },
+      "waiting": {
+        "pose": "waiting",
+        "mirror": "none"
+      },
+      "blocked": {
+        "pose": "thinking",
+        "mirror": "none"
+      },
+      "idle": {
+        "pose": "side-idle",
+        "mirror": "seed"
+      }
+    }
+  },
+  "breath": {
+    "state": "idle",
+    "rows": 12,
+    "periodMs": 4200,
+    "inMs": 2200,
+    "seedMs": 53
+  },
+  "standing": {
+    "sourcePose": "side-idle",
+    "image": "standing-directions.png",
+    "right": {
+      "rect": [
+        0,
+        0,
+        13,
+        32
+      ],
+      "feet": [
+        7,
+        32
+      ]
+    },
+    "left": {
+      "rect": [
+        13,
+        0,
+        13,
+        32
+      ],
+      "feet": [
+        6,
+        32
+      ]
+    },
+    "note": "Right is the native pose. Left is its exact pixel mirror; foot X follows the same horizontal mirror. Runtime may instead mirror the native pose as it already does."
+  },
+  "poses": [
+    {
+      "name": "front-walk-a",
+      "sourceCell": [
+        0,
+        0,
+        281,
+        351
+      ],
+      "sourceBounds": [
+        48,
+        15,
+        181,
+        314
+      ],
+      "rect": [
+        6,
+        3,
+        19,
+        33
+      ],
+      "feet": [
+        9,
+        33
+      ],
+      "outputBody": [
+        6,
+        3,
+        19,
+        33
+      ]
+    },
+    {
+      "name": "front-pass-a",
+      "sourceCell": [
+        281,
+        0,
+        280,
+        351
+      ],
+      "sourceBounds": [
+        332,
+        14,
+        182,
+        315
+      ],
+      "rect": [
+        38,
+        3,
+        19,
+        33
+      ],
+      "feet": [
+        9,
+        33
+      ],
+      "outputBody": [
+        38,
+        3,
+        19,
+        33
+      ]
+    },
+    {
+      "name": "front-walk-b",
+      "sourceCell": [
+        561,
+        0,
+        281,
+        351
+      ],
+      "sourceBounds": [
+        622,
+        15,
+        178,
+        314
+      ],
+      "rect": [
+        70,
+        3,
+        19,
+        33
+      ],
+      "feet": [
+        10,
+        33
+      ],
+      "outputBody": [
+        70,
+        3,
+        19,
+        33
+      ]
+    },
+    {
+      "name": "front-pass-b",
+      "sourceCell": [
+        842,
+        0,
+        280,
+        351
+      ],
+      "sourceBounds": [
+        913,
+        15,
+        177,
+        314
+      ],
+      "rect": [
+        102,
+        3,
+        19,
+        33
+      ],
+      "feet": [
+        11,
+        33
+      ],
+      "outputBody": [
+        102,
+        3,
+        19,
+        33
+      ]
+    },
+    {
+      "name": "side-walk-a",
+      "sourceCell": [
+        0,
+        351,
+        281,
+        350
+      ],
+      "sourceBounds": [
+        48,
+        362,
+        197,
+        316
+      ],
+      "rect": [
+        5,
+        44,
+        22,
+        32
+      ],
+      "feet": [
+        11,
+        32
+      ],
+      "outputBody": [
+        5,
+        44,
+        22,
+        32
+      ]
+    },
+    {
+      "name": "side-pass-a",
+      "sourceCell": [
+        281,
+        351,
+        280,
+        350
+      ],
+      "sourceBounds": [
+        370,
+        362,
+        134,
+        317
+      ],
+      "rect": [
+        41,
+        44,
+        13,
+        32
+      ],
+      "feet": [
+        7,
+        32
+      ],
+      "outputBody": [
+        41,
+        44,
+        13,
+        32
+      ]
+    },
+    {
+      "name": "side-walk-b",
+      "sourceCell": [
+        561,
+        351,
+        281,
+        350
+      ],
+      "sourceBounds": [
+        621,
+        363,
+        193,
+        316
+      ],
+      "rect": [
+        69,
+        44,
+        22,
+        32
+      ],
+      "feet": [
+        11,
+        32
+      ],
+      "outputBody": [
+        69,
+        44,
+        22,
+        32
+      ]
+    },
+    {
+      "name": "side-pass-b",
+      "sourceCell": [
+        842,
+        351,
+        280,
+        350
+      ],
+      "sourceBounds": [
+        936,
+        363,
+        156,
+        316
+      ],
+      "rect": [
+        105,
+        44,
+        14,
+        32
+      ],
+      "feet": [
+        7,
+        32
+      ],
+      "outputBody": [
+        105,
+        44,
+        14,
+        32
+      ]
+    },
+    {
+      "name": "front-idle",
+      "sourceCell": [
+        0,
+        701,
+        281,
+        351
+      ],
+      "sourceBounds": [
+        52,
+        710,
+        175,
+        299
+      ],
+      "rect": [
+        6,
+        84,
+        19,
+        32
+      ],
+      "feet": [
+        10,
+        32
+      ],
+      "outputBody": [
+        6,
+        84,
+        19,
+        32
+      ]
+    },
+    {
+      "name": "hauling",
+      "sourceCell": [
+        281,
+        701,
+        280,
+        351
+      ],
+      "sourceBounds": [
+        313,
+        715,
+        248,
+        294
+      ],
+      "rect": [
+        34,
+        84,
+        28,
+        32
+      ],
+      "feet": [
+        11,
+        32
+      ],
+      "outputBody": [
+        34,
+        84,
+        28,
+        32
+      ]
+    },
+    {
+      "name": "hauling-pull",
+      "sourceCell": [
+        561,
+        701,
+        281,
+        351
+      ],
+      "sourceBounds": [
+        620,
+        715,
+        222,
+        293
+      ],
+      "rect": [
+        66,
+        85,
+        27,
+        31
+      ],
+      "feet": [
+        12,
+        31
+      ],
+      "outputBody": [
+        66,
+        85,
+        27,
+        31
+      ]
+    },
+    {
+      "name": "waiting",
+      "sourceCell": [
+        842,
+        701,
+        280,
+        351
+      ],
+      "sourceBounds": [
+        926,
+        710,
+        147,
+        299
+      ],
+      "rect": [
+        103,
+        84,
+        18,
+        32
+      ],
+      "feet": [
+        10,
+        32
+      ],
+      "outputBody": [
+        103,
+        84,
+        18,
+        32
+      ]
+    },
+    {
+      "name": "climb-a",
+      "sourceCell": [
+        0,
+        1052,
+        281,
+        350
+      ],
+      "sourceBounds": [
+        54,
+        1052,
+        171,
+        317
+      ],
+      "rect": [
+        7,
+        120,
+        18,
+        36
+      ],
+      "feet": [
+        11,
+        36
+      ],
+      "outputBody": [
+        7,
+        120,
+        18,
+        36
+      ]
+    },
+    {
+      "name": "climb-b",
+      "sourceCell": [
+        281,
+        1052,
+        280,
+        350
+      ],
+      "sourceBounds": [
+        340,
+        1052,
+        165,
+        319
+      ],
+      "rect": [
+        39,
+        120,
+        18,
+        36
+      ],
+      "feet": [
+        8,
+        36
+      ],
+      "outputBody": [
+        39,
+        120,
+        18,
+        36
+      ]
+    },
+    {
+      "name": "lookout",
+      "sourceCell": [
+        561,
+        1052,
+        281,
+        350
+      ],
+      "sourceBounds": [
+        621,
+        1052,
+        193,
+        313
+      ],
+      "rect": [
+        69,
+        121,
+        21,
+        35
+      ],
+      "feet": [
+        11,
+        35
+      ],
+      "outputBody": [
+        69,
+        121,
+        21,
+        35
+      ]
+    },
+    {
+      "name": "thinking",
+      "sourceCell": [
+        842,
+        1052,
+        280,
+        350
+      ],
+      "sourceBounds": [
+        927,
+        1052,
+        157,
+        314
+      ],
+      "rect": [
+        103,
+        121,
+        17,
+        35
+      ],
+      "feet": [
+        9,
+        35
+      ],
+      "outputBody": [
+        103,
+        121,
+        17,
+        35
+      ]
+    }
+  ]
+}

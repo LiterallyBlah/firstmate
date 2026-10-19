@@ -56,6 +56,7 @@ import type { MotionPlan } from "./deck-ambient";
 import { clockOf, crewIntensity, deliveredWeather, levelAt, openingAtmosphere, shade, stepAtmosphere, weatherOf, type DeckAtmosphere } from "./deck-atmosphere";
 import { ASK_PAPER, ASK_SIZE, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, createCrew, crewFigures, fading, figureScale, figureStanding, portalEffects, stepCrew, stepDepartures, type Figure } from "./deck-crew";
+import { firstMateFigure, FIRST_MATE_KEY } from "./deck-first-mate";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
 import { askMarks, badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type AskMark, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
@@ -290,7 +291,7 @@ function atlasTextures(pixi: PixiModule, art: DeckArtImage) {
   // Each look's image — the atlas for its own two outfits, an extra look's own otherwise — cut at its lane's frames.
   const { cast } = art;
   const lookSources = new Map<string, PixiTextureSource>();
-  for (const look of cast.looks) {
+  for (const look of [...cast.looks, ...(cast.firstMate == null ? [] : [cast.firstMate])]) {
     const image = art.images.get(look.image);
     if (image !== undefined && !lookSources.has(look.id)) lookSources.set(look.id, sourceFor(image));
   }
@@ -471,6 +472,7 @@ export async function startDeck(
   environment: DeckMotionEnvironment,
   onHover: (hover: DeckHover | null) => void = function () {},
   onSelect: (key: string | null, action?: "attention") => void = function () {},
+  onFirstMate: (anchor: DeckHover | null) => void = function () {},
 ): Promise<DeckDrawing> {
   const app = new pixi.Application();
   await app.init({
@@ -598,6 +600,7 @@ export async function startDeck(
   let pointer: { x: number; y: number } | null = null;
   let hoveredKey: string | null = null;
   let reported: DeckHover | null = null;
+  let mateReported: DeckHover | null = null;
   // The camera: the sailor focused, the shot last drawn, and the zoom under way (`client/deck-camera.ts`).
   let focusKey: string | null = null;
   /** The sailor in the spotlight: the one focused, or the one the camera is pulling back from. */
@@ -791,7 +794,7 @@ export async function startDeck(
       const badgeY = badgeTop(figure, cast) - figure.row;
       sprites.badge.visible = showsBadge(figure);
       sprites.badge.alpha = figure.stale ? 0.5 : 1;
-      sprites.badge.position.set(-Math.floor(BADGE_SIZE.width / 2), badgeY);
+      sprites.badge.position.set(-Math.floor(BADGE_SIZE.width / 2), badgeY - (figure.decisionNew && !figure.stale && !still ? askLift(figure.seed, nowMs) : 0));
       // A settled idle sailor dozes: a small z drifts up off its badge now and then. Never under reduced motion.
       const doze = figure.state === "idle" && !figure.stale && !figure.moving && !still && showsBadge(figure) ? dozeAt(figure.seed, nowMs) : null;
       sprites.doze.visible = doze !== null;
@@ -902,6 +905,9 @@ export async function startDeck(
       if (glass !== null) glass.tint = hexColour(glassTint(level, tints));
     }
     drawnFigures = crewFigures(crew, elapsedMs, { still: !moving });
+    for (const figure of drawnFigures) figure.decisionNew = current.decisions?.byCard.get(figure.key)?.state === "new";
+    const mateFigure = firstMateFigure(stage, cast, current);
+    if (mateFigure !== null) drawnFigures.push(mateFigure);
     drawnMarks = askMarks(drawnFigures, cast);
     drawnBob = bob;
     spot.position.set(bob.x, bob.y);
@@ -927,6 +933,9 @@ export async function startDeck(
    * wears the reply marker: the pane hangs its speech bubble there, through the zoom and every resize.
    */
   function findHover(): boolean {
+    const mate = drawnFigures.find(figure => figure.key === FIRST_MATE_KEY);
+    const mateAnchor = mate === undefined || drawnFit.scale <= 0 || focusKey !== null ? null : hoverOf(mate, cast, drawnFit, drawnBob, app.screen, null);
+    if (hoverChanged(mateReported, mateAnchor)) { mateReported = mateAnchor; onFirstMate(mateAnchor); }
     const attentionKey = current.suggestionsOpen && focusKey === null ? carrierKey : pointer === null ? null : carrierUnder(pointer);
     // While a sailor is focused its panel says who it is: no label, no ring, for anyone else.
     const figure =
@@ -1088,6 +1097,7 @@ export async function startDeck(
       canvas.removeEventListener?.("pointerleave", onLeave);
       canvas.removeEventListener?.("click", onClick);
       if (reported !== null) onHover(null);
+      if (mateReported !== null) onFirstMate(null);
       reported = null;
       stopSky();
       stopFades?.();

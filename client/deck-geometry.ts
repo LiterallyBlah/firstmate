@@ -38,9 +38,16 @@ export interface Anchor extends Point {
 type Polygon = ReadonlyArray<readonly [number, number]>;
 type Rect = readonly [number, number, number, number];
 
+/** Optional deterministic route diagnostics; callers own and may accumulate the counters. */
+export interface RouteWork {
+  expandedCells: number;
+  lineSamples: number;
+  failedSearches: number;
+}
+
 /** A setting's floor, compiled: its areas, obstacles and pathing grid, and what is worked out from them once, on first use. */
 export interface Floor {
-  readonly areas: ReadonlyArray<{ id: string; polygon: Polygon; spill: boolean }>;
+  readonly areas: ReadonlyArray<{ id: string; polygon: Polygon; spill: boolean; bounds: readonly [number, number, number, number] }>;
   readonly obstacles: ReadonlyArray<{ id: string; rect: Rect }>;
   /** The grid's cell, its top left, and how many cells across and down. */
   readonly cell: number;
@@ -62,7 +69,11 @@ export function createFloor(spec: {
   const [left, top, width, height] = spec.grid.bounds;
   const { cell } = spec.grid;
   return {
-    areas: spec.areas.map((area) => ({ id: area.id, polygon: area.polygon, spill: area.spill !== false })),
+    areas: spec.areas.map((area) => ({
+      id: area.id, polygon: area.polygon, spill: area.spill !== false,
+      bounds: [Math.min(...area.polygon.map(([x]) => x)), Math.min(...area.polygon.map(([, y]) => y)),
+        Math.max(...area.polygon.map(([x]) => x)), Math.max(...area.polygon.map(([, y]) => y))],
+    })),
     obstacles: spec.obstacles,
     cell,
     left,
@@ -84,6 +95,12 @@ function inPolygon(polygon: Polygon, x: number, y: number): boolean {
   return inside;
 }
 
+/** Reject distant areas before ray casting. Inclusive bounds leave all edge decisions to inPolygon. */
+function inArea(area: Floor["areas"][number], x: number, y: number): boolean {
+  const [left, top, right, bottom] = area.bounds;
+  return x >= left && x <= right && y >= top && y <= bottom && inPolygon(area.polygon, x, y);
+}
+
 /** Whether a point is inside any of `rects` ([x, y, width, height]). */
 export function inRects(rects: readonly Rect[], point: Point): boolean {
   return rects.some(([x, y, width, height]) => point.x >= x && point.x < x + width && point.y >= y && point.y < y + height);
@@ -91,19 +108,20 @@ export function inRects(rects: readonly Rect[], point: Point): boolean {
 
 /** Whether a worker's feet can be at this point: on the walkable floor and clear of every obstacle. */
 export function walkable(floor: Floor, x: number, y: number): boolean {
-  if (!floor.areas.some((area) => inPolygon(area.polygon, x, y))) return false;
+  if (!floor.areas.some((area) => inArea(area, x, y))) return false;
   return !floor.obstacles.some(({ rect: [rx, ry, rw, rh] }) => x >= rx && x < rx + rw && y >= ry && y < ry + rh);
 }
 
 /** The walkable area at a point, or null. */
 export function areaAt(floor: Floor, x: number, y: number): { id: string; spill: boolean } | null {
-  return floor.areas.find((area) => inPolygon(area.polygon, x, y)) ?? null;
+  return floor.areas.find((area) => inArea(area, x, y)) ?? null;
 }
 
 /** Whether the straight line from `a` to `b` stays on the walkable floor, checked every half pixel. */
-export function clearLine(floor: Floor, a: Point, b: Point): boolean {
+export function clearLine(floor: Floor, a: Point, b: Point, work?: RouteWork): boolean {
   const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) * 2));
   for (let step = 0; step <= steps; step += 1) {
+    if (work !== undefined) work.lineSamples += 1;
     const t = step / steps;
     if (!walkable(floor, a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)) return false;
   }
@@ -164,7 +182,7 @@ const NEIGHBOURS: ReadonlyArray<readonly [number, number, number]> = [
 ];
 
 /** A* over the cells, 8-way, never cutting a blocked corner. The cells from start to goal, or null. */
-function search(floor: Floor, start: number, goal: number): number[] | null {
+function search(floor: Floor, start: number, goal: number, work?: RouteWork): number[] | null {
   const cells = grid(floor);
   const { columns, rows } = floor;
   const cost = new Float64Array(cells.length).fill(Number.POSITIVE_INFINITY);
@@ -217,6 +235,7 @@ function search(floor: Floor, start: number, goal: number): number[] | null {
       return cellsOnPath;
     }
     closed[cell] = 1;
+    if (work !== undefined) work.expandedCells += 1;
     const column = cell % columns;
     const row = Math.floor(cell / columns);
     for (const [dx, dy, step] of NEIGHBOURS) {
@@ -242,13 +261,16 @@ function search(floor: Floor, start: number, goal: number): number[] | null {
  * when already there. A point off the floor (a worker caught mid-step) starts from the nearest walkable cell.
  * When there is no way at all, the one straight step, so nobody is stranded.
  */
-export function findPath(floor: Floor, from: Point, to: Point): Point[] {
+export function findPath(floor: Floor, from: Point, to: Point, work?: RouteWork): Point[] {
   if (Math.hypot(to.x - from.x, to.y - from.y) < 0.5) return [];
-  if (walkable(floor, from.x, from.y) && clearLine(floor, from, to)) return [{ x: to.x, y: to.y }];
+  if (walkable(floor, from.x, from.y) && clearLine(floor, from, to, work)) return [{ x: to.x, y: to.y }];
   const start = nearestCell(floor, from);
   const goal = nearestCell(floor, to);
-  const cells = start < 0 || goal < 0 ? null : search(floor, start, goal);
-  if (cells === null) return [{ x: to.x, y: to.y }];
+  const cells = start < 0 || goal < 0 ? null : search(floor, start, goal, work);
+  if (cells === null) {
+    if (work !== undefined) work.failedSearches += 1;
+    return [{ x: to.x, y: to.y }];
+  }
   const corners: Point[] = cells.map((cell) => cellCentre(floor, cell % floor.columns, Math.floor(cell / floor.columns)));
   corners.push({ x: to.x, y: to.y });
   // Pull the string tight: from each kept point, skip ahead to the furthest point still in sight.
@@ -259,7 +281,7 @@ export function findPath(floor: Floor, from: Point, to: Point): Point[] {
   while (index < corners.length) {
     let furthest = index;
     for (let ahead = corners.length - 1; ahead > index; ahead -= 1) {
-      if (clearLine(floor, at, corners[ahead]!)) {
+      if (clearLine(floor, at, corners[ahead]!, work)) {
         furthest = ahead;
         break;
       }
@@ -303,8 +325,8 @@ function openPoints(floor: Floor, includeNonSpill = false): Point[] {
  * a crowd may not spill onto. Only when that area is full does it spill onto the nearest other one. The post itself
  * when the whole floor is full.
  */
-export function sharedSpot(floor: Floor, anchor: Point, taken: readonly Point[], spacing: readonly [number, number]): Point {
-  const crowded = (spot: Point) => taken.some((other) => Math.abs(other.x - spot.x) < spacing[0] && Math.abs(other.y - spot.y) < spacing[1]);
+export function sharedSpot(floor: Floor, anchor: Point, taken: readonly Point[], spacing: readonly [number, number], reserved?: Point & { clearance: readonly [number, number] }): Point {
+  const crowded = (spot: Point) => (reserved !== undefined && Math.abs(reserved.x - spot.x) < reserved.clearance[0] && Math.abs(reserved.y - spot.y) < reserved.clearance[1]) || taken.some((other) => Math.abs(other.x - spot.x) < spacing[0] && Math.abs(other.y - spot.y) < spacing[1]);
   if (!crowded(anchor)) return { x: anchor.x, y: anchor.y };
   const area = areaAt(floor, anchor.x, anchor.y)?.id ?? null;
   const cost = (spot: Point) => Math.hypot((spot.x - anchor.x) / 2, spot.y - anchor.y) + ((areaAt(floor, spot.x, spot.y)?.id ?? null) === area ? 0 : 1000);
@@ -332,6 +354,7 @@ export function restSpot(
   anchor: Point,
   taken: readonly Point[],
   includeNonSpill = false,
+  reserved?: Point & { clearance: readonly [number, number] },
 ): Point {
   for (const spacing of [overflow.spacing, overflow.fallback]) {
     const crowded = (spot: Point) => taken.some((other) => Math.abs(other.x - spot.x) < spacing[0] && Math.abs(other.y - spot.y) < spacing[1]);
@@ -339,6 +362,7 @@ export function restSpot(
     let bestCost = Number.POSITIVE_INFINITY;
     for (const spot of openPoints(floor, includeNonSpill)) {
       if (!inRects(overflow.areas, spot)) continue;
+      if (reserved !== undefined && Math.abs(reserved.x - spot.x) < reserved.clearance[0] && Math.abs(reserved.y - spot.y) < reserved.clearance[1]) continue;
       const cost = Math.hypot(spot.x - anchor.x, spot.y - anchor.y);
       if (cost < bestCost && !crowded(spot)) {
         best = spot;

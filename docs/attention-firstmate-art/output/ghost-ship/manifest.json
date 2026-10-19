@@ -1,0 +1,508 @@
+{
+  "schemaVersion": 1,
+  "id": "firstmate-a1-ghost-ship",
+  "created": "2026-10-19",
+  "status": "Assets only; not registered with the runtime pack.",
+  "baseCommit": "e9d933e",
+  "setting": "ghost-ship",
+  "title": "Ghost ship",
+  "sourcePack": {
+    "path": "art/settings/ghost-ship/setting.json",
+    "sha256": "723561a67b49cf359711fb8ac40a77555b94336c2cd691114915a5a0b3463f65",
+    "version": "1.0.0"
+  },
+  "reference": {
+    "image": "crew-0",
+    "path": "art/settings/ghost-ship/crew-0.png",
+    "sha256": "e37260b7ca7b858c8282c6c0c6b456d8e4b860633c1071f72315b6046b002b19",
+    "lane": "ghost-0"
+  },
+  "logicalPixelScale": {
+    "pixel": "1 art pixel = 1 native cast pixel",
+    "sampling": "nearest-neighbour",
+    "scale": "inherit the setting cast scale"
+  },
+  "palette": {
+    "source": "32-colour subset of existing setting cast RGB values; source median-cut representatives snapped to actual existing cast colours",
+    "colours": [
+      "#072B2F",
+      "#076463",
+      "#094F4D",
+      "#095557",
+      "#0A6D6C",
+      "#0B6161",
+      "#0C171E",
+      "#0C3D40",
+      "#0D3230",
+      "#11423E",
+      "#188077",
+      "#19564B",
+      "#1B9987",
+      "#32A387",
+      "#3EAF95",
+      "#4B6440",
+      "#568761",
+      "#61CAAC",
+      "#73D5B6",
+      "#83DEBE",
+      "#9BEDC8",
+      "#A68932",
+      "#A7BF9D",
+      "#CEFBE1",
+      "#CFA335",
+      "#DACE9A",
+      "#E9FBE7",
+      "#EAC144",
+      "#ECF798",
+      "#F4DE6A",
+      "#F6D04D",
+      "#F6F1D2"
+    ]
+  },
+  "alpha": {
+    "background": 0,
+    "painted": 184,
+    "transparentRgb": [
+      0,
+      0,
+      0
+    ]
+  },
+  "images": {
+    "firstmate.png": {
+      "path": "firstmate.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "0db4147fce84e9468388ad204fc432b6f7aee4b96bb80648f8bb58cebc98793c"
+    },
+    "standing-directions.png": {
+      "path": "standing-directions.png",
+      "size": [
+        48,
+        28
+      ],
+      "sha256": "f6ee72bc873d346da94143b987b6b64f1881f1eaed9ba44b62cef4c63b8f4bfe"
+    }
+  },
+  "lane": {
+    "stand": {
+      "rect": [
+        0,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ]
+    },
+    "walk-a": {
+      "rect": [
+        24,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ]
+    },
+    "walk-b": {
+      "rect": [
+        48,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ]
+    },
+    "haul-a": {
+      "rect": [
+        72,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ]
+    },
+    "haul-b": {
+      "rect": [
+        96,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ]
+    },
+    "wait": {
+      "rect": [
+        120,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ]
+    },
+    "climb": {
+      "rect": [
+        144,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ]
+    },
+    "fall": {
+      "rect": [
+        168,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ]
+    }
+  },
+  "roles": {
+    "stand": "stand",
+    "walkFront": [
+      "stand",
+      "walk-a",
+      "stand",
+      "walk-b"
+    ],
+    "walkSide": [
+      "walk-a",
+      "stand",
+      "walk-b",
+      "wait"
+    ],
+    "rise": 1,
+    "stepMs": 180,
+    "settled": {
+      "working": {
+        "pose": "haul-a",
+        "mirror": "facing"
+      },
+      "waiting": {
+        "pose": "wait",
+        "mirror": "none"
+      },
+      "blocked": {
+        "pose": "stand",
+        "mirror": "facing"
+      },
+      "idle": {
+        "pose": "wait",
+        "mirror": "none"
+      }
+    }
+  },
+  "breath": {
+    "state": "waiting",
+    "rows": 12,
+    "periodMs": 3200,
+    "inMs": 1800,
+    "seedMs": 97
+  },
+  "standing": {
+    "sourcePose": "stand",
+    "image": "standing-directions.png",
+    "right": {
+      "rect": [
+        0,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ]
+    },
+    "left": {
+      "rect": [
+        24,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ]
+    },
+    "note": "Right is the native pose. Left is its exact pixel mirror; foot X follows the same horizontal mirror. Runtime may instead mirror the native pose as it already does."
+  },
+  "poses": [
+    {
+      "name": "stand",
+      "sourceCell": [
+        0,
+        0,
+        397,
+        496
+      ],
+      "sourceBounds": [
+        80,
+        114,
+        205,
+        365
+      ],
+      "rect": [
+        0,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ],
+      "outputBody": [
+        5,
+        2,
+        14,
+        25
+      ]
+    },
+    {
+      "name": "walk-a",
+      "sourceCell": [
+        397,
+        0,
+        396,
+        496
+      ],
+      "sourceBounds": [
+        459,
+        114,
+        255,
+        372
+      ],
+      "rect": [
+        24,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ],
+      "outputBody": [
+        27,
+        2,
+        17,
+        25
+      ]
+    },
+    {
+      "name": "walk-b",
+      "sourceCell": [
+        793,
+        0,
+        397,
+        496
+      ],
+      "sourceBounds": [
+        850,
+        114,
+        263,
+        366
+      ],
+      "rect": [
+        48,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ],
+      "outputBody": [
+        51,
+        2,
+        18,
+        25
+      ]
+    },
+    {
+      "name": "haul-a",
+      "sourceCell": [
+        1190,
+        0,
+        396,
+        496
+      ],
+      "sourceBounds": [
+        1229,
+        162,
+        357,
+        318
+      ],
+      "rect": [
+        72,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ],
+      "outputBody": [
+        73,
+        7,
+        22,
+        20
+      ]
+    },
+    {
+      "name": "haul-b",
+      "sourceCell": [
+        0,
+        496,
+        397,
+        496
+      ],
+      "sourceBounds": [
+        55,
+        577,
+        342,
+        372
+      ],
+      "rect": [
+        96,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ],
+      "outputBody": [
+        97,
+        3,
+        22,
+        24
+      ]
+    },
+    {
+      "name": "wait",
+      "sourceCell": [
+        397,
+        496,
+        396,
+        496
+      ],
+      "sourceBounds": [
+        489,
+        576,
+        207,
+        389
+      ],
+      "rect": [
+        120,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ],
+      "outputBody": [
+        125,
+        2,
+        13,
+        25
+      ]
+    },
+    {
+      "name": "climb",
+      "sourceCell": [
+        793,
+        496,
+        397,
+        496
+      ],
+      "sourceBounds": [
+        866,
+        563,
+        247,
+        392
+      ],
+      "rect": [
+        144,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ],
+      "outputBody": [
+        148,
+        2,
+        16,
+        25
+      ]
+    },
+    {
+      "name": "fall",
+      "sourceCell": [
+        1190,
+        496,
+        396,
+        496
+      ],
+      "sourceBounds": [
+        1228,
+        593,
+        329,
+        361
+      ],
+      "rect": [
+        168,
+        0,
+        24,
+        28
+      ],
+      "feet": [
+        12,
+        27
+      ],
+      "outputBody": [
+        169,
+        3,
+        22,
+        24
+      ]
+    }
+  ]
+}

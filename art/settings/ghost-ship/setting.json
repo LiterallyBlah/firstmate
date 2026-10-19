@@ -3,7 +3,7 @@
   "formatVersion": 1,
   "id": "ghost-ship",
   "name": "Ghost ship",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "requires": [
     "stage@1",
     "floor@1",
@@ -33,7 +33,8 @@
     "phase-strip@1",
     "variants@1",
     "day-cycle@1",
-    "atmosphere@1"
+    "atmosphere@1",
+    "first-mate@1"
   ],
   "preview": "preview",
   "images": {
@@ -1132,6 +1133,14 @@
         360
       ],
       "sha256": "2de1cbeae0cfee37d23f611a74b65528e55e934778eceeb1868d418ea5f685bb"
+    },
+    "firstmate-a1": {
+      "path": "firstmate-a1.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "0db4147fce84e9468388ad204fc432b6f7aee4b96bb80648f8bb58cebc98793c"
     }
   },
   "copy": {
@@ -1993,7 +2002,7 @@
           {
             "id": "rigging-1",
             "at": [
-              346,
+              340,
               326
             ],
             "facing": "right"
@@ -2046,16 +2055,8 @@
           {
             "id": "helm-0",
             "at": [
-              702,
-              257
-            ],
-            "facing": "front"
-          },
-          {
-            "id": "helm-1",
-            "at": [
-              730,
-              257
+              690,
+              259
             ],
             "facing": "front"
           }
@@ -2075,16 +2076,16 @@
           {
             "id": "bow-0",
             "at": [
-              284,
-              326
+              220,
+              305
             ],
             "facing": "left"
           },
           {
             "id": "bow-1",
             "at": [
-              312,
-              326
+              256,
+              317
             ],
             "facing": "left"
           }
@@ -8202,5 +8203,19 @@
     "veil": "#081522",
     "staleTint": "#809B99",
     "staleAlpha": 0.5
+  },
+  "firstMate": {
+    "at": [
+      744,
+      259
+    ],
+    "clearance": [
+      52,
+      60
+    ],
+    "image": "firstmate-a1",
+    "lane": "ghost-0",
+    "pose": "stand",
+    "facing": "left"
   }
 }

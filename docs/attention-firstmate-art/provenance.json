@@ -1,0 +1,457 @@
+{
+  "tool": "Built-in image_gen__imagegen (reference edits)",
+  "prompts": "prompts.json",
+  "normalization": "build.mjs",
+  "verification": "verify.mjs",
+  "sources": [
+    {
+      "path": "sources/ship.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "e1fa48424790aca0915e6ac125b219842d2c7a48590c90dc47f39322639807ab",
+      "bytes": 1111598,
+      "setting": "ship",
+      "sourceGrid": [
+        4,
+        4
+      ]
+    },
+    {
+      "path": "sources/japanese-ship.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "a8761074a9d740d4b8d584d44c85781b04199013c143ae175d0ce2ba95357799",
+      "bytes": 978702,
+      "setting": "japanese-ship",
+      "sourceGrid": [
+        4,
+        4
+      ]
+    },
+    {
+      "path": "sources/ghost-ship.png",
+      "size": [
+        1586,
+        992
+      ],
+      "sha256": "3da03b352208d2aa624a8cb1aa1530f79df1c033839ffb43e8cdafc1029aa247",
+      "bytes": 985406,
+      "setting": "ghost-ship",
+      "sourceGrid": [
+        4,
+        2
+      ]
+    },
+    {
+      "path": "sources/sky-airship.png",
+      "size": [
+        1122,
+        1402
+      ],
+      "sha256": "92cc761e8343c9fe76cfd5efbf0ef86b25b12adcababc7cb55cd289e8398a86a",
+      "bytes": 1052161,
+      "setting": "sky-airship",
+      "sourceGrid": [
+        4,
+        4
+      ]
+    }
+  ],
+  "references": [
+    {
+      "path": "../../art/settings/ship/legacy-polish-crew-bosun.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "b229c0097665e55108215222e66f89c7d3a54915ce5f04280eb8e90b55006dd7",
+      "bytes": 13734,
+      "setting": "ship"
+    },
+    {
+      "path": "../../art/settings/japanese-ship/crew-elder.png",
+      "size": [
+        480,
+        36
+      ],
+      "sha256": "8e39934d5bf63ca086a9c87e6ae7dbceacddd1d5b10fb3c8cc243bd6cfcecbd2",
+      "bytes": 5392,
+      "setting": "japanese-ship"
+    },
+    {
+      "path": "../../art/settings/ghost-ship/crew-0.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "e37260b7ca7b858c8282c6c0c6b456d8e4b860633c1071f72315b6046b002b19",
+      "bytes": 4762,
+      "setting": "ghost-ship"
+    },
+    {
+      "path": "../../art/settings/sky-airship/crew-navy.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "07f81b5dce505b9c0a893e20d6ef5f94a28b872a18f47ab175a66984613e423e",
+      "bytes": 8367,
+      "setting": "sky-airship"
+    }
+  ],
+  "generationInputs": [
+    {
+      "setting": "ship",
+      "generatedFile": "exec-84d7cbb6-4ed3-4019-8e34-a29edc1e53ad.png",
+      "source": "sources/ship.png",
+      "references": [
+        {
+          "path": "../../art/settings/ship/legacy-polish-crew-bosun.png",
+          "size": [
+            128,
+            160
+          ],
+          "sha256": "b229c0097665e55108215222e66f89c7d3a54915ce5f04280eb8e90b55006dd7",
+          "bytes": 13734
+        }
+      ]
+    },
+    {
+      "setting": "japanese-ship",
+      "generatedFile": "exec-933b159f-821e-4359-a37e-0dd358cdc930.png",
+      "source": "sources/japanese-ship.png",
+      "references": [
+        {
+          "path": "references/japanese-ship.png",
+          "size": [
+            768,
+            960
+          ],
+          "sha256": "1297367a0bfc737dc9e796c664697ac319cf6ccc0bea3bda6fa6d9fafd53a17a",
+          "bytes": 18322
+        },
+        {
+          "path": "../../art/settings/japanese-ship/crew-padded.png",
+          "size": [
+            480,
+            36
+          ],
+          "sha256": "f533143cd678120fc9ab69ed35b11adba356c77e2a2cbc57831c84310ba2481f",
+          "bytes": 4832
+        }
+      ]
+    },
+    {
+      "setting": "ghost-ship",
+      "generatedFile": "exec-40fb824f-3f95-4694-921d-68aa7cc1d551.png",
+      "source": "sources/ghost-ship.png",
+      "references": [
+        {
+          "path": "references/ghost-ship.png",
+          "size": [
+            768,
+            480
+          ],
+          "sha256": "2e892060202a4928bc8ea682d8ab79382f9cdb60910a59c6167bc66f18b2c504",
+          "bytes": 12099
+        }
+      ]
+    },
+    {
+      "setting": "sky-airship",
+      "generatedFile": "exec-72b4a512-80fe-4bd3-a804-a2dc87d25896.png",
+      "source": "sources/sky-airship.png",
+      "references": [
+        {
+          "path": "references/sky-airship.png",
+          "size": [
+            768,
+            960
+          ],
+          "sha256": "a4098cc79c1071ebad066b0dd29b4c8314220aabcc75cd94ebe2a4d4df0720fd",
+          "bytes": 21738
+        }
+      ]
+    }
+  ],
+  "runtime": [
+    {
+      "path": "output/ship/firstmate.png",
+      "size": [
+        128,
+        160
+      ],
+      "sha256": "9d2c57c26ffb5be08e55351835b16e597d2c2a896f21ca76401e3d380a778f20",
+      "bytes": 5820,
+      "setting": "ship",
+      "colours": 50,
+      "alpha": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "output/ship/standing-directions.png",
+      "size": [
+        26,
+        32
+      ],
+      "sha256": "0ee5cfc5eebdf1a1fb162f35881e6c91f00f39fb889391dc60d7b4a42203b457",
+      "bytes": 696,
+      "setting": "ship",
+      "colours": 31,
+      "alpha": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "output/japanese-ship/firstmate.png",
+      "size": [
+        480,
+        36
+      ],
+      "sha256": "0c47a91a1ebe13c4ed27efec1d2e8e0a0f28c8b8a29a0618eead82cf20d351aa",
+      "bytes": 5232,
+      "setting": "japanese-ship",
+      "colours": 31,
+      "alpha": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "output/japanese-ship/standing-directions.png",
+      "size": [
+        22,
+        32
+      ],
+      "sha256": "cc8505ba59df3959b8e714ac0796a9a827aff3b393cc769e6e2d0fd7dc7bb5bc",
+      "bytes": 741,
+      "setting": "japanese-ship",
+      "colours": 28,
+      "alpha": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "output/japanese-ship/hand-raised.png",
+      "size": [
+        32,
+        36
+      ],
+      "sha256": "0d90c431598a9b0bf86a5facccf37b3796d8c1d0d596f1b82bc7319f74adff7a",
+      "bytes": 695,
+      "setting": "japanese-ship",
+      "colours": 31,
+      "alpha": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "output/ghost-ship/firstmate.png",
+      "size": [
+        192,
+        28
+      ],
+      "sha256": "0db4147fce84e9468388ad204fc432b6f7aee4b96bb80648f8bb58cebc98793c",
+      "bytes": 2638,
+      "setting": "ghost-ship",
+      "colours": 32,
+      "alpha": [
+        0,
+        184
+      ]
+    },
+    {
+      "path": "output/ghost-ship/standing-directions.png",
+      "size": [
+        48,
+        28
+      ],
+      "sha256": "f6ee72bc873d346da94143b987b6b64f1881f1eaed9ba44b62cef4c63b8f4bfe",
+      "bytes": 864,
+      "setting": "ghost-ship",
+      "colours": 31,
+      "alpha": [
+        0,
+        184
+      ]
+    },
+    {
+      "path": "output/sky-airship/firstmate.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "878b2fed13f77fd2d023bcc93907853d0196c1f2f308eef6afec8665c9ba5853",
+      "bytes": 6057,
+      "setting": "sky-airship",
+      "colours": 30,
+      "alpha": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "output/sky-airship/standing-directions.png",
+      "size": [
+        26,
+        30
+      ],
+      "sha256": "f9cc8502bb7064b4a191f654cc797a990af7f1ac21b93fc398290fe5c1080d5c",
+      "bytes": 806,
+      "setting": "sky-airship",
+      "colours": 29,
+      "alpha": [
+        0,
+        255
+      ]
+    }
+  ],
+  "reviews": [
+    {
+      "path": "contact-sheet.png",
+      "size": [
+        1728,
+        1056
+      ],
+      "sha256": "723790fed69cbc124087f7e65fc13fc8598dd344e6dea7126f57bbe2e94c84de",
+      "bytes": 74370
+    },
+    {
+      "path": "standing-comparison.png",
+      "size": [
+        800,
+        1536
+      ],
+      "sha256": "2ee7bd6157984c552db9f5e28f4e4a6604a77dfa02dcf8262a6198a8cda41b14",
+      "bytes": 33076
+    }
+  ],
+  "checks": [
+    {
+      "setting": "ship",
+      "lane": "bosun",
+      "nativeSize": [
+        128,
+        160
+      ],
+      "uniquePoses": 16,
+      "poseNames": 18,
+      "standingDirections": 2,
+      "raisedHand": false,
+      "paletteSize": 64,
+      "paintedAlpha": 255,
+      "packBytesBefore": 982779,
+      "addedAtlasBytes": 5820,
+      "checks": [
+        "native dimensions and grid",
+        "identical lane/feet/roles/breath",
+        "all poses nonempty",
+        "sole/wisp baselines",
+        "no pixels outside lane",
+        "fixed existing palette",
+        "native alpha and zero transparent RGB",
+        "distinct walk/climb frames",
+        "left/right mirror and anchor",
+        "SHA-256 digests",
+        "future pack payload budget"
+      ]
+    },
+    {
+      "setting": "japanese-ship",
+      "lane": "indigo",
+      "nativeSize": [
+        480,
+        36
+      ],
+      "uniquePoses": 15,
+      "poseNames": 15,
+      "standingDirections": 2,
+      "raisedHand": true,
+      "paletteSize": 31,
+      "paintedAlpha": 255,
+      "packBytesBefore": 1317084,
+      "addedAtlasBytes": 5232,
+      "checks": [
+        "native dimensions and grid",
+        "identical lane/feet/roles/breath",
+        "all poses nonempty",
+        "sole/wisp baselines",
+        "no pixels outside lane",
+        "fixed existing palette",
+        "native alpha and zero transparent RGB",
+        "distinct walk/climb frames",
+        "left/right mirror and anchor",
+        "SHA-256 digests",
+        "future pack payload budget"
+      ]
+    },
+    {
+      "setting": "ghost-ship",
+      "lane": "ghost-0",
+      "nativeSize": [
+        192,
+        28
+      ],
+      "uniquePoses": 8,
+      "poseNames": 8,
+      "standingDirections": 2,
+      "raisedHand": false,
+      "paletteSize": 32,
+      "paintedAlpha": 184,
+      "packBytesBefore": 971036,
+      "addedAtlasBytes": 2638,
+      "checks": [
+        "native dimensions and grid",
+        "identical lane/feet/roles/breath",
+        "all poses nonempty",
+        "sole/wisp baselines",
+        "no pixels outside lane",
+        "fixed existing palette",
+        "native alpha and zero transparent RGB",
+        "distinct walk/climb frames",
+        "left/right mirror and anchor",
+        "SHA-256 digests",
+        "future pack payload budget"
+      ]
+    },
+    {
+      "setting": "sky-airship",
+      "lane": "navy",
+      "nativeSize": [
+        512,
+        36
+      ],
+      "uniquePoses": 16,
+      "poseNames": 16,
+      "standingDirections": 2,
+      "raisedHand": false,
+      "paletteSize": 30,
+      "paintedAlpha": 255,
+      "packBytesBefore": 969098,
+      "addedAtlasBytes": 6057,
+      "checks": [
+        "native dimensions and grid",
+        "identical lane/feet/roles/breath",
+        "all poses nonempty",
+        "sole/wisp baselines",
+        "no pixels outside lane",
+        "fixed existing palette",
+        "native alpha and zero transparent RGB",
+        "distinct walk/climb frames",
+        "left/right mirror and anchor",
+        "SHA-256 digests",
+        "future pack payload budget"
+      ]
+    }
+  ],
+  "status": "Assets only. No runtime manifest, engine, layout or post changes."
+}
