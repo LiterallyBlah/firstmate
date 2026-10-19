@@ -303,8 +303,8 @@ function openPoints(floor: Floor, includeNonSpill = false): Point[] {
  * a crowd may not spill onto. Only when that area is full does it spill onto the nearest other one. The post itself
  * when the whole floor is full.
  */
-export function sharedSpot(floor: Floor, anchor: Point, taken: readonly Point[], spacing: readonly [number, number]): Point {
-  const crowded = (spot: Point) => taken.some((other) => Math.abs(other.x - spot.x) < spacing[0] && Math.abs(other.y - spot.y) < spacing[1]);
+export function sharedSpot(floor: Floor, anchor: Point, taken: readonly Point[], spacing: readonly [number, number], reserved?: Point & { clearance: readonly [number, number] }): Point {
+  const crowded = (spot: Point) => (reserved !== undefined && Math.abs(reserved.x - spot.x) < reserved.clearance[0] && Math.abs(reserved.y - spot.y) < reserved.clearance[1]) || taken.some((other) => Math.abs(other.x - spot.x) < spacing[0] && Math.abs(other.y - spot.y) < spacing[1]);
   if (!crowded(anchor)) return { x: anchor.x, y: anchor.y };
   const area = areaAt(floor, anchor.x, anchor.y)?.id ?? null;
   const cost = (spot: Point) => Math.hypot((spot.x - anchor.x) / 2, spot.y - anchor.y) + ((areaAt(floor, spot.x, spot.y)?.id ?? null) === area ? 0 : 1000);
@@ -332,6 +332,7 @@ export function restSpot(
   anchor: Point,
   taken: readonly Point[],
   includeNonSpill = false,
+  reserved?: Point & { clearance: readonly [number, number] },
 ): Point {
   for (const spacing of [overflow.spacing, overflow.fallback]) {
     const crowded = (spot: Point) => taken.some((other) => Math.abs(other.x - spot.x) < spacing[0] && Math.abs(other.y - spot.y) < spacing[1]);
@@ -339,6 +340,7 @@ export function restSpot(
     let bestCost = Number.POSITIVE_INFINITY;
     for (const spot of openPoints(floor, includeNonSpill)) {
       if (!inRects(overflow.areas, spot)) continue;
+      if (reserved !== undefined && Math.abs(reserved.x - spot.x) < reserved.clearance[0] && Math.abs(reserved.y - spot.y) < reserved.clearance[1]) continue;
       const cost = Math.hypot(spot.x - anchor.x, spot.y - anchor.y);
       if (cost < bestCost && !crowded(spot)) {
         best = spot;

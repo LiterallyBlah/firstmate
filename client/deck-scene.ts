@@ -1,11 +1,14 @@
 /**
  * The ship deck's scene: the board's own cards turned into sailors on one deck, sent by state. Pure.
  *
- * The deck draws nothing the board does not already know. It reads the cards `firstmate.fleet.load`
- * already filed into columns — the same query the board, the panels and the sidebar share — so a
- * sailor goes where its card's column says, and the column rules stay in `server/fleet.ts`.
+ * `firstmate.fleet.load` supplies both cards and the server-owned decision ledger. With that ledger,
+ * an actionable worker goes to the bow, the first mate's queue to the wheel, work to the rigging and
+ * parked work below deck. Unassigned gates stay with the reserved first mate. The client never detects
+ * a hold or rebuilds the server's total count; `deck-decisions.ts` only joins gates to visible workers.
+ * Original activity and feed state remain separate inputs to the unchanged weather calculation.
  *
- * Four states, from the column, each sent to its zone by the setting (`zones.byState`, read by
+ * Older daemons without a ledger retain the legacy four states from the column, sent by `zones.byState`
+ * (read by
  * `client/deck-stage.ts`) — on the ship:
  *
  * - **working** — Working, hauling at the stations amidships, round the mast and the stores;
@@ -36,6 +39,8 @@ import type { FleetCard } from "../shared/fleet";
 import type { Figure } from "./deck-crew";
 import type { DeckDeparture } from "./deck-choreography";
 import { cardHeadline } from "./format";
+import type { NeedsYouSnapshot } from "../shared/needs-you";
+import { deckDecisions, DECK_MOVE_WORDS, type DeckDecisions } from "./deck-decisions";
 
 export const DECK_STATES = ["working", "waiting", "blocked", "idle"] as const;
 export type DeckState = (typeof DECK_STATES)[number];
@@ -66,6 +71,9 @@ export interface SailorCaption {
 
 /** One live crewmate on deck: what it is doing and who it is, never where it stands. */
 export interface DeckSailor {
+  /** Original activity input: decisions must never affect weather. */
+  activityState?: DeckState;
+  activityStale?: boolean;
   /** The card's key, so a sailor keeps its identity across polls. */
   key: string;
   label: string;
@@ -89,6 +97,7 @@ export interface DeckSailor {
 }
 
 export interface DeckScene {
+  decisions?: DeckDecisions;
   /** The independent suggestion carrier; crew replies remain on their sailors. */
   hasSuggestions?: boolean;
   suggestionsOpen?: boolean;
@@ -109,8 +118,15 @@ export function hasLiveWorker(card: FleetCard): boolean {
 }
 
 /** What a card's sailor is doing on deck, or null for a card that is not on deck. */
-export function deckState(card: FleetCard): DeckState | null {
+export function deckState(card: FleetCard, decisions?: DeckDecisions): DeckState | null {
   if (!hasLiveWorker(card)) return null;
+  if (decisions !== undefined) {
+    if (decisions.byCard.has(card.key)) return "blocked";
+    if (card.column === "done" || card.column === "queued") return null;
+    if (decisions.inHand.has(card.key)) return "waiting";
+    if (decisions.parked.has(card.key) || card.column === "parked") return "idle";
+    return card.column === "working" ? "working" : "waiting";
+  }
   switch (card.column) {
     case "working":
       return card.note === "waiting" ? "waiting" : "working";
@@ -214,12 +230,15 @@ export function deckPalette(theme: PluginTheme): DeckPalette {
 export function deckScene(
   cards: readonly FleetCard[],
   theme: PluginTheme,
-  options: { feedStale?: boolean; asking?: ReadonlySet<string> } = {},
+  options: { feedStale?: boolean; asking?: ReadonlySet<string>; needsYou?: NeedsYouSnapshot | undefined } = {},
 ): DeckScene {
+  const snapshot = options.needsYou;
+  const decisions = snapshot === undefined ? undefined : deckDecisions(cards,
+    options.feedStale && snapshot.actionCount !== null ? { ...snapshot, freshness: { ...snapshot.freshness, status: "stale" } } : snapshot, hasLiveWorker);
   const byState = new Map<DeckState, FleetCard[]>(DECK_STATES.map((state) => [state, []]));
   const departures: Record<string, DeckDeparture> = {};
   for (const card of cards) {
-    const state = deckState(card);
+    const state = deckState(card, decisions);
     if (state !== null) byState.get(state)?.push(card);
     else departures[card.key] = departureOf(card);
   }
@@ -229,20 +248,31 @@ export function deckScene(
     const crew = [...(byState.get(state) ?? [])].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
     counts[state] = crew.length;
     for (const card of crew) {
-      const stale = options.feedStale === true || card.remote?.online === false;
+      const stale = options.feedStale === true || card.remote?.online === false || decisions?.snapshot.freshness.status === "stale";
+      const decision = decisions?.byCard.get(card.key);
+      const caption = sailorCaption(card, options);
       sailors.push({
         key: card.key,
         label: card.title,
         state,
+        ...(decisions === undefined ? {} : { activityState: deckState(card) ?? "idle", activityStale: options.feedStale === true || card.remote?.online === false }),
         identity: sailorIdentity(card),
         stale,
-        caption: sailorCaption(card, options),
+        caption: decisions === undefined ? caption : { ...caption,
+          status: `${DECK_MOVE_WORDS[state]} · ${caption.status}`,
+          line: decision === undefined ? caption.line : `Your call: ${decision.source.ask}`,
+          stale: decisions.snapshot.freshness.status === "stale" ? "Decisions are from the last good read." : caption.stale,
+        },
         ...(options.asking?.has(card.key) === true && !stale ? { asks: true } : {}),
       });
     }
   }
   return {
-    palette: deckPalette(theme),
+    palette: decisions === undefined ? deckPalette(theme) : { ...deckPalette(theme), states: {
+      working: theme.colors.statusSuccess, waiting: theme.colors.foregroundMuted,
+      blocked: theme.colors.statusWarning, idle: theme.colors.foregroundMuted,
+    } },
+    ...(decisions === undefined ? {} : { decisions }),
     sailors,
     departures,
     counts,

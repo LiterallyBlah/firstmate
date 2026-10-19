@@ -23,6 +23,7 @@ vi.mock("@getpaseo/plugin/client", () => ({
 }));
 
 import type { AgentStatus, ColumnId, FleetCard, RemoteCard } from "../shared/fleet";
+import { attentionRequest, attentionSnapshot } from "../test/attention-deck-fixture";
 import { deckEngineSource } from "../server/deck-settings";
 import {
   browserDeckEngine,
@@ -400,6 +401,7 @@ interface FakeEngine extends DeckEngine {
   resize?: (width: number, height: number) => void;
   hover?: (hover: DeckHover | null) => void;
   select?: (key: string | null, action?: "attention") => void;
+  firstMate?: ((anchor: DeckHover | null) => void) | undefined;
 }
 
 function deferred<T>() {
@@ -426,10 +428,11 @@ function fakeEngine(options: { webgl?: "webgl2" | "webgl" | null; load?: () => P
     load() {
       engine.loads += 1;
       if (options.load !== undefined) return options.load();
-      return Promise.resolve<StartDeck>(async (host, scene, size, onHover, onSelect) => {
+      return Promise.resolve<StartDeck>(async (host, scene, size, onHover, onSelect, onFirstMate) => {
         engine.starts.push({ host, scene, size });
         engine.hover = onHover;
         engine.select = onSelect;
+        engine.firstMate = onFirstMate;
         if (options.hold !== undefined) await options.hold;
         if (options.startFails !== undefined) throw options.startFails;
         const drawing = {
@@ -814,6 +817,36 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
 const viewEngine = (options: Parameters<typeof fakeEngine>[0] = {}) => fakeEngine({ presentation: deckPresentation(shipManifest()), ...options });
 
 describe("the ship deck view", () => {
+  it("opens every decision indicator through the same action, preserving the server counts and revision", async () => {
+    const engine = viewEngine(), open = vi.fn();
+    const snapshot = attentionSnapshot([attentionRequest("w1"), attentionRequest("unassigned", "seen")]);
+    const before = structuredClone(snapshot);
+    await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, needsYou: snapshot, onOpenDecision: open }), { createNodeMock: () => fakeHost() }); });
+    await act(flush);
+    const root = renderer!;
+    expect(text(root)).toContain("Needs you · 2 · 1 new");
+    expect(text(root)).toContain("1 more for you with the first mate at the wheel");
+    await act(async () => engine.select?.("w1"));
+    expect(open).toHaveBeenLastCalledWith("local:w1");
+    await act(async () => engine.select?.("@first-mate"));
+    expect(open).toHaveBeenLastCalledWith("local:unassigned");
+    await act(async () => engine.firstMate?.({ key: "@first-mate", x: 300, top: 160, bottom: 200, width: 640, height: 300, floor: null }));
+    await act(async () => root.root.findByProps({ testID: "firstmate-deck-decision-tag" }).props.onPress());
+    expect(open).toHaveBeenLastCalledWith("local:unassigned");
+    await act(async () => root.root.findByProps({ accessibilityLabel: "Needs you: 2 decisions, 1 new" }).props.onPress());
+    expect(open).toHaveBeenLastCalledWith("next");
+    expect(snapshot).toEqual(before); // Viewing, focus and clicking cannot acknowledge locally.
+  });
+
+  it("keeps the shared action reachable without WebGL and says unavailable instead of zero", async () => {
+    const engine = viewEngine(), open = vi.fn(), snapshot = attentionSnapshot();
+    snapshot.actionCount = null; snapshot.newCount = null; snapshot.freshness.status = "unknown";
+    await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "ios", needsYou: snapshot, onOpenDecision: open })); });
+    expect(engine.probes).toBe(0);
+    expect(text(renderer!)).toContain("Needs you unavailable");
+    await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Needs you unavailable" }).props.onPress());
+    expect(open).toHaveBeenCalledWith("next");
+  });
   beforeAll(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   });

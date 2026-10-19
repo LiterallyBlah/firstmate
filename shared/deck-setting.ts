@@ -30,6 +30,7 @@ export const ENGINE_CAPABILITIES = [
   "stage@1",
   "floor@1",
   "zones@1",
+  "first-mate@1",
   "zone-appearance@1",
   "post-transit@1",
   "attention-carrier@1",
@@ -569,6 +570,10 @@ const ManifestShape = z.strictObject({
   floor: Floor,
   zones: Zones,
   cast: Cast,
+  /** Reserved officer, never assigned to ordinary crew. Feet and clearance are stage pixels. */
+  firstMate: z.strictObject({
+    at: Point, clearance: Spacing, image: Id, lane: Id, pose: Id, facing: z.enum(["left", "right"]),
+  }).optional(),
   portals: Portals,
   effects: z.record(Id, EffectDef),
   ambience: z.array(AmbienceElement),
@@ -640,6 +645,7 @@ export function settingImageIds(manifest: SettingManifest): string[] {
   const ids = [
     ...spritesOf(manifest).map((entry) => entry.sprite.image),
     ...manifest.cast.looks.map((look) => look.image),
+    ...(manifest.firstMate === undefined ? [] : [manifest.firstMate.image]),
     ...(manifest.preview === undefined ? [] : [manifest.preview]),
   ];
   return [...new Set(ids)];
@@ -648,6 +654,7 @@ export function settingImageIds(manifest: SettingManifest): string[] {
 /** The capabilities a manifest uses: what its `requires` must say. */
 export function capabilitiesUsed(manifest: SettingManifest): string[] {
   const used = new Set<string>(["stage@1", "floor@1", "zones@1", "cast@1"]);
+  if (manifest.firstMate !== undefined) used.add("first-mate@1");
   if (manifest.cast.scale !== undefined) used.add("cast-scale@1");
   if (manifest.zones.zones.some((zone) => zone.appearance !== undefined)) used.add("zone-appearance@1");
   if (manifest.zones.zones.some((zone) => zone.posts.some((post) => post.transit !== undefined))) used.add("post-transit@1");
@@ -724,6 +731,16 @@ export function settingProblems(manifest: SettingManifest): string[] {
   for (const look of manifest.cast.looks) {
     if (manifest.images[look.image] === undefined) missing("image", look.image, `look ${look.id}`);
     if (manifest.cast.lanes[look.lane] === undefined) missing("lane", look.lane, `look ${look.id}`);
+  }
+  const mate = manifest.firstMate;
+  if (mate !== undefined) {
+    if (manifest.images[mate.image] === undefined) missing("image", mate.image, "firstMate");
+    if (manifest.cast.lanes[mate.lane]?.[mate.pose] === undefined) missing("pose", mate.pose, "firstMate lane");
+    if (manifest.cast.looks.some(look => look.image === mate.image)) problems.push("firstMate image is reserved, not a crew look");
+    for (const zone of manifest.zones.zones) for (const post of zone.posts) {
+      if (Math.abs(post.at[0] - mate.at[0]) < mate.clearance[0] && Math.abs(post.at[1] - mate.at[1]) < mate.clearance[1])
+        problems.push(`firstMate clearance overlaps crew post ${post.id}`);
+    }
   }
   if (manifest.preview !== undefined && manifest.images[manifest.preview] === undefined) missing("image", manifest.preview, "preview");
 

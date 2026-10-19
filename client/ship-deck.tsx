@@ -33,6 +33,9 @@
  * that cannot draw — native, no WebGL, Pixi failing to start — gets a plain message in its place.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
+import type { NeedsYouSnapshot } from "../shared/needs-you";
+import { DECK_MOVE_WORDS, type OpenDeckDecision } from "./deck-decisions";
+import { FIRST_MATE_KEY } from "./deck-first-mate";
 import { useRpc } from "@getpaseo/plugin/client";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
@@ -219,7 +222,11 @@ function DeckView({
   setting = DEFAULT_DECK_SETTING,
   onFailure,
   conversationOpen = false,
+  needsYou,
+  onOpenDecision,
 }: {
+  needsYou?: NeedsYouSnapshot | undefined;
+  onOpenDecision?: OpenDeckDecision | undefined;
   cards: readonly FleetCard[];
   theme: PluginTheme;
   /**
@@ -261,8 +268,8 @@ function DeckView({
   );
   // A reply the file has dropped is forgotten, so one that comes back later is offered again.
   useEffect(() => answeredReplies.keepOnly(suggestions), [suggestions]);
-  const asking = useMemo(() => new Set([...replies.keys(), ...(carrierMode ? cards.filter(needsResponse).map(card => card.key) : [])]), [replies, cards, carrierMode]);
-  const scene = useMemo(() => ({ ...deckScene(cards, theme, { feedStale: stale, asking }), hasSuggestions: suggestions.length > 0, suggestionsOpen }), [cards, theme, stale, asking, suggestions, suggestionsOpen]);
+  const asking = useMemo(() => new Set([...replies.keys(), ...(needsYou === undefined && carrierMode ? cards.filter(needsResponse).map(card => card.key) : [])]), [replies, cards, carrierMode, needsYou]);
+  const scene = useMemo(() => ({ ...deckScene(cards, theme, { feedStale: stale, asking, needsYou }), hasSuggestions: suggestions.length > 0, suggestionsOpen }), [cards, theme, stale, asking, suggestions, suggestionsOpen, needsYou]);
   // One engine for the view's life, so a new `useRpc` function on a re-render never restarts the canvas.
   const loadEngine = useRpc(loadDeckEngine);
   const loadSetting = useRpc(loadDeckSetting);
@@ -286,6 +293,7 @@ function DeckView({
   const suggestionPanel = useRef<View>(null);
   const suggestionTrigger = useRef<View>(null);
   const [hover, setHover] = useState<DeckHover | null>(null);
+  const [mateAnchor, setMateAnchor] = useState<DeckHover | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   /** The sailor the camera is closed in on, by card key. */
   const [focused, setFocused] = useState<string | null>(null);
@@ -293,6 +301,17 @@ function DeckView({
   const mount = useRef<DeckMount | null>(null);
   const sceneRef = useRef(scene);
   sceneRef.current = scene;
+  const decisionOpener = useRef(onOpenDecision);
+  decisionOpener.current = onOpenDecision;
+  const openDecisionFor = (key: string | null): boolean => {
+    const decisions = sceneRef.current.decisions;
+    const decision = key === FIRST_MATE_KEY ? decisions?.workerless[0] : key === null ? undefined : decisions?.byCard.get(key);
+    if (decisionOpener.current === undefined || (decision === undefined && key !== FIRST_MATE_KEY)) return false;
+    setFocused(null);
+    setSuggestionsOpen(false);
+    decisionOpener.current(decision?.id ?? "next");
+    return true;
+  };
   const focusedRef = useRef(focused);
   focusedRef.current = focused;
   const focusableRef = useRef(focusable);
@@ -312,8 +331,9 @@ function DeckView({
         return;
       }
       setSuggestionsOpen(false);
+      if (openDecisionFor(key)) return;
       if (focusableRef.current) setFocused((now) => nextFocus(now, key));
-    });
+    }, setMateAnchor);
     started.focus(focusedRef.current);
     mount.current = started;
     return () => {
@@ -342,7 +362,7 @@ function DeckView({
   }, [focused, open]);
 
   /** The sailors with replies waiting, live: those wearing the marker. */
-  const speakers = useMemo(() => new Set(scene.sailors.filter((sailor) => sailor.asks === true && replies.has(sailor.key)).map((sailor) => sailor.key)), [scene, replies]);
+  const speakers = useMemo(() => new Set(scene.sailors.filter((sailor) => sailor.asks === true && replies.has(sailor.key) && !scene.decisions?.byCard.has(sailor.key)).map((sailor) => sailor.key)), [scene, replies]);
 
   /**
    * The hovered sailor whose bubble is up, and where it was: kept `BUBBLE_LINGER_MS` after the pointer leaves the
@@ -435,7 +455,8 @@ function DeckView({
       const order = sceneRef.current.sailors.map((sailor) => sailor.key);
       if (action === "open") {
         const last = lastFocused.current;
-        setFocused(last !== null && order.includes(last) ? last : (order[0] ?? null));
+        const key = last !== null && order.includes(last) ? last : (order[0] ?? null);
+        if (!openDecisionFor(key)) setFocused(key);
         return;
       }
       setFocused(stepFocus(order, current ?? lastFocused.current, action === "next" ? 1 : -1));
@@ -476,14 +497,19 @@ function DeckView({
   const presentation = status.kind === "drawing" ? status.presentation ?? LOADING_DECK : LOADING_DECK;
   const { copy, places } = presentation;
   const { colors } = theme;
+  const decisionSnapshot = scene.decisions?.snapshot;
+  const decisionStale = decisionSnapshot?.freshness.status === "stale";
+  const legendStates = needsYou === undefined ? DECK_STATES : (["blocked", "waiting", "working", "idle"] as const);
   const crew = scene.sailors.length;
-  const lost = scene.stale === 0 ? "" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
+  const lost = scene.stale === 0 ? "" : decisionStale ? ", decisions from the last good read" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
   const asked = speakers.size === 0 ? "" : `, ${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you to pick`;
-  const summary = `${DECK_STATES.map((state) => `${scene.counts[state]} ${state}`).join(", ")}${asked}${lost}`;
+  const words = (state: (typeof DECK_STATES)[number]) => needsYou === undefined ? state : DECK_MOVE_WORDS[state];
+  const total = needsYou === undefined ? "" : needsYou.actionCount === null ? "Needs you unavailable. " : `${needsYou.actionCount} decisions need you. `;
+  const summary = `${total}${legendStates.map((state) => `${scene.counts[state]} ${words(state)}`).join(", ")}${asked}${lost}`;
   const note = deckStatusText(status, presentation);
   // A sailor with replies waiting speaks in its bubble instead of wearing the label.
   const hovered =
-    hover === null || status.kind !== "drawing" || open || suggestionsOpen || replies.has(hover.key)
+    hover === null || status.kind !== "drawing" || open || suggestionsOpen || speakers.has(hover.key)
       ? null
       : (scene.sailors.find((sailor) => sailor.key === hover.key) ?? null);
   const layout = focusLayout(size);
@@ -505,9 +531,21 @@ function DeckView({
         </Text>
         {captionActions ? <View style={{ marginLeft: "auto" }}>{captionActions}</View> : null}
       </View>
+      {needsYou === undefined ? null : (
+        <Pressable accessibilityRole="button" onPress={() => onOpenDecision?.("next")} disabled={onOpenDecision === undefined}
+          accessibilityLabel={needsYou.actionCount === null ? "Needs you unavailable" : `Needs you: ${needsYou.actionCount} decisions, ${needsYou.newCount ?? 0} new`}
+          style={{ alignSelf: "flex-start", borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5,
+            borderStyle: decisionStale ? "dashed" : "solid",
+            borderColor: (needsYou.newCount ?? 0) > 0 ? colors.statusWarning : colors.border }}>
+          <Text style={{ color: (needsYou.newCount ?? 0) > 0 ? colors.statusWarning : colors.foreground, fontSize: 12 }}>
+            {needsYou.actionCount === null ? "Needs you unavailable" : `Needs you · ${needsYou.actionCount} · ${needsYou.newCount ?? 0} new`}
+            {decisionStale ? ` · as of ${needsYou.freshness.asOf === null ? "last good read" : new Date(needsYou.freshness.asOf).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
+          </Text>
+        </Pressable>
+      )}
       {scene.stale === 0 ? null : (
         <Text style={{ color: colors.statusWarning, fontSize: 12 }}>
-          {stale
+          {decisionStale ? "Decision data is stale: the deck keeps the last good decisions, greyed." : stale
             ? "The crew's feed is lost: the deck shows where everyone last stood, greyed."
             : `${scene.stale === 1 ? `One ${copy.actor.one}'s host is` : `${scene.stale} ${copy.actor.many}' hosts are`} out of reach: greyed where last seen.`}
         </Text>
@@ -533,6 +571,17 @@ function DeckView({
             style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
           />
         ) : null}
+        {status.kind !== "drawing" || open || mateAnchor === null || (scene.decisions?.workerlessCount ?? 0) === 0 ? null : (
+          <Pressable accessibilityRole="button" accessibilityLabel={`${scene.decisions!.workerlessCount} decisions with the first mate need you`}
+            onPress={() => openDecisionFor(FIRST_MATE_KEY)} disabled={onOpenDecision === undefined}
+            testID="firstmate-deck-decision-tag"
+            style={{ position: "absolute", left: Math.max(4, Math.min(mateAnchor.width - 112, mateAnchor.x - 54)), top: Math.max(4, mateAnchor.top - 32),
+              width: 108, alignItems: "center", paddingHorizontal: 8, paddingVertical: 5, borderWidth: 1, borderRadius: 6, backgroundColor: colors.surface1,
+              borderStyle: decisionStale ? "dashed" : "solid",
+              borderColor: scene.decisions!.workerless.some(r => r.state === "new") ? colors.statusWarning : colors.border }}>
+            <Text style={{ color: scene.decisions!.workerless.some(r => r.state === "new") ? colors.statusWarning : colors.foreground, fontSize: 12 }}>{`${scene.decisions!.workerlessCount} for you`}</Text>
+          </Pressable>
+        )}
         {!open || focusedCard === null || renderFocus === undefined ? null : (
           <View
             ref={panel}
@@ -543,6 +592,12 @@ function DeckView({
             style={{ position: "absolute", ...layout.panel }}
           >
             <ScrollView style={{ maxHeight: layout.panel.maxHeight }}>
+              {focused === null || !scene.decisions?.byCard.has(focused) ? null : (
+                <Pressable accessibilityRole="button" onPress={() => openDecisionFor(focused)} style={{ padding: 12, backgroundColor: colors.surface1 }}>
+                  <Text style={{ color: colors.statusWarning, fontSize: 13 }}>{`Your call: ${scene.decisions.byCard.get(focused)!.source.ask}`}</Text>
+                  <Text style={{ color: colors.foreground, fontSize: 13, textDecorationLine: "underline" }}>Answer the first mate</Text>
+                </Pressable>
+              )}
               {renderFocus(
                 focusedCard,
                 () => setFocused(null),
@@ -590,7 +645,7 @@ function DeckView({
       </View>
       <View style={{ gap: 4 }}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 12, rowGap: 4 }}>
-          {DECK_STATES.map((state) => (
+          {legendStates.map((state) => (
             <View
               key={state}
               {...webAttributes({ title: places[state] })}
@@ -598,7 +653,11 @@ function DeckView({
               style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
             >
               <DeckBadge state={state} colour={scene.palette.states[state]} />
-              <Text style={{ color: colors.foreground, fontSize: 12 }}>{`${scene.counts[state]} ${state}`}</Text>
+              {state === "blocked" && needsYou !== undefined ? (
+                <Pressable accessibilityRole="button" onPress={() => onOpenDecision?.("next")} disabled={onOpenDecision === undefined}>
+                  <Text style={{ color: colors.foreground, fontSize: 12, textDecorationLine: "underline" }}>{`${scene.counts[state]} ${words(state)} · ${places[state]}`}</Text>
+                </Pressable>
+              ) : <Text style={{ color: colors.foreground, fontSize: 12 }}>{`${scene.counts[state]} ${words(state)}${needsYou === undefined ? "" : ` · ${places[state]}`}`}</Text>}
             </View>
           ))}
           {speakers.size === 0 ? null : (
@@ -617,6 +676,11 @@ function DeckView({
             </View>
           )}
         </View>
+        {scene.decisions?.workerlessCount == null || scene.decisions.workerlessCount === 0 ? null : (
+          <Pressable accessibilityRole="button" onPress={() => openDecisionFor(FIRST_MATE_KEY)} disabled={onOpenDecision === undefined}>
+            <Text style={{ color: colors.foreground, fontSize: 12, textDecorationLine: "underline" }}>{`${scene.decisions.workerlessCount} more for you with the first mate at the wheel`}</Text>
+          </Pressable>
+        )}
         {status.kind !== "drawing" ? null : (
           <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             {carrierMode ? (

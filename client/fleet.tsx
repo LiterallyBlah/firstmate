@@ -857,6 +857,8 @@ function FleetViewBody({
 
   const deckScene = (
     <SelectedDeckView
+      needsYou={data.needsYou}
+      onOpenDecision={shell?.openDecision}
       conversationOpen={watching !== null}
       captionActions={home ? <DeckSceneSwitcher theme={theme} compact={compact || paneWidth < 638} /> : null}
       setting={values.deckSetting}

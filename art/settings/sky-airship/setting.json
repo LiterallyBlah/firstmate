@@ -3,7 +3,7 @@
   "formatVersion": 1,
   "id": "sky-airship",
   "name": "Sky pirates",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "requires": [
     "atmosphere@1",
     "attention-carrier@1",
@@ -34,7 +34,8 @@
     "variants@1",
     "zone-appearance@1",
     "zones@1",
-    "cast-scale@1"
+    "cast-scale@1",
+    "first-mate@1"
   ],
   "images": {
     "ship": {
@@ -1044,6 +1045,14 @@
         360
       ],
       "sha256": "f9261017ca0f17be6eb164f3127b0df30e3a43d345e8ef924e54f55c1bdff0af"
+    },
+    "firstmate-a1": {
+      "path": "firstmate-a1.png",
+      "size": [
+        512,
+        36
+      ],
+      "sha256": "878b2fed13f77fd2d023bcc93907853d0196c1f2f308eef6afec8665c9ba5853"
     }
   },
   "preview": "preview",
@@ -1935,7 +1944,7 @@
           {
             "id": "engine-0",
             "at": [
-              212,
+              210,
               234
             ],
             "facing": "right",
@@ -1966,7 +1975,7 @@
           {
             "id": "engine-1",
             "at": [
-              226,
+              222,
               234
             ],
             "facing": "right"
@@ -1974,7 +1983,7 @@
           {
             "id": "engine-2",
             "at": [
-              310,
+              306,
               234
             ],
             "facing": "right"
@@ -1982,7 +1991,7 @@
           {
             "id": "engine-3",
             "at": [
-              338,
+              330,
               234
             ],
             "facing": "right"
@@ -1990,7 +1999,7 @@
           {
             "id": "engine-4",
             "at": [
-              366,
+              354,
               234
             ],
             "facing": "right"
@@ -2008,7 +2017,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            14,
+            12,
             40
           ]
         }
@@ -2019,23 +2028,7 @@
           {
             "id": "helm-0",
             "at": [
-              394,
-              205
-            ],
-            "facing": "front"
-          },
-          {
-            "id": "helm-1",
-            "at": [
-              408,
-              205
-            ],
-            "facing": "front"
-          },
-          {
-            "id": "helm-2",
-            "at": [
-              422,
+              390,
               205
             ],
             "facing": "front"
@@ -2045,7 +2038,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            14,
+            12,
             40
           ]
         }
@@ -2064,7 +2057,7 @@
           {
             "id": "bow-1",
             "at": [
-              142,
+              138,
               234
             ],
             "facing": "left"
@@ -2072,7 +2065,7 @@
           {
             "id": "bow-2",
             "at": [
-              170,
+              162,
               234
             ],
             "facing": "left"
@@ -2082,7 +2075,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            14,
+            12,
             40
           ]
         }
@@ -5468,5 +5461,19 @@
     "veil": "#0B1630",
     "staleTint": "#87959D",
     "staleAlpha": 0.6
+  },
+  "firstMate": {
+    "at": [
+      420,
+      205
+    ],
+    "clearance": [
+      24,
+      42
+    ],
+    "image": "firstmate-a1",
+    "lane": "navy",
+    "pose": "side-idle",
+    "facing": "left"
   }
 }

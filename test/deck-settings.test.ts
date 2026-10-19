@@ -32,6 +32,7 @@ import { walkingEntryProblems } from "./deck-entry";
 import { rockedBounds } from "../client/deck-stage-motion";
 import type { Level } from "../client/deck-atmosphere";
 import { askMarks } from "../client/deck-hover";
+import { firstMateFigure } from "../client/deck-first-mate";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const settings = join(root, SETTINGS_DIR);
@@ -142,6 +143,7 @@ describe.each(packs)("the %s pack", (id) => {
     for (const look of manifest.cast.looks) {
       for (const [pose, standing] of Object.entries(manifest.cast.lanes[look.lane]!)) inside({ image: look.image, rect: standing.rect }, `${look.id} ${pose}`);
     }
+    if (manifest.firstMate !== undefined) for (const pose of Object.values(manifest.cast.lanes[manifest.firstMate.lane]!)) inside({ image: manifest.firstMate.image, rect: pose.rect }, "firstMate");
     for (const element of manifest.ambience) if (element.behaviour.kind === "flyby") for (const sprite of Object.values(element.behaviour.poses)) inside(sprite, element.id);
     for (const element of manifest.ambience) if (element.behaviour.kind === "phase-frames") for (const sprite of element.behaviour.frames) inside(sprite, element.id);
     for (const element of manifest.ambience) if (element.behaviour.kind === "precip") {
@@ -248,8 +250,39 @@ describe.each(packs)("the %s pack", (id) => {
     const posts = [...stage.zones.values()].flatMap((zone) => zone.posts.map((post) => ({ ...post, appearance: zone.appearance })));
     const queues = [...stage.exits.entries()].flatMap(([exitId, exit]) => (exit.kind === "choreography" ? [{ id: `${exitId} queue`, ...exit.queue.at }] : []));
     const sinks = [...stage.exits.entries()].flatMap(([exitId, exit]) => (exit.kind === "sink" ? [{ id: exitId, ...exit.at }] : []));
-    const places: Array<Point & { id: string; appearance?: ZoneAppearance | null }> = [...posts, { id: "entry", ...stage.entry }, ...sinks, ...queues];
+    const places: Array<Point & { id: string; appearance?: ZoneAppearance | null }> = [...posts, { id: "entry", ...stage.entry }, ...sinks, ...queues,
+      ...(stage.firstMate === null ? [] : [{ id: "firstMate", ...stage.firstMate }])];
     const [gridLeft, gridTop, gridWidth, gridHeight] = manifest.floor.grid.bounds;
+
+    it("reserves an unchanged A1 officer on visible floor, clear of posts and crowded pointer targets", () => {
+      const cast = compileCast(manifest), mate = firstMateFigure(stage, cast);
+      expect(mate, "every shipped setting declares its first mate").not.toBeNull();
+      if (mate === null || manifest.firstMate === undefined) return;
+      const supplied = readFileSync(join(root, "docs/attention-firstmate-art/output", id, "firstmate.png"));
+      expect(readFileSync(join(folder, manifest.images[manifest.firstMate.image]!.path)).equals(supplied)).toBe(true);
+      expect(walkable(floor, mate.x, mate.y)).toBe(true);
+      expect(hidden(mate)).toBe(false);
+      const box = figureBox(mate, cast)!;
+      expect(box.left).toBeGreaterThanOrEqual(0);
+      expect(box.right).toBeLessThanOrEqual(stage.width);
+      expect(box.top).toBeGreaterThanOrEqual(stage.fit.top);
+      expect(box.bottom).toBeLessThanOrEqual(stage.fit.bottom);
+      for (const state of STATES) {
+        const crew = createCrew(stage, cast);
+        const others = STATES.filter(s => s !== state).flatMap(s => stage.zoneOf(s).posts.map((_, i) => worker(`${s}-${i}`, s)));
+        applyCrew(crew, [...others, ...Array.from({ length: 24 }, (_, i) => worker(`crowd-${i}`, state))], { snap: true });
+        const figures = [...crewFigures(crew, 0, { still: true }), mate];
+        for (const f of figures.filter(f => f !== mate)) {
+          const other = figureBox(f, cast)!;
+          expect(box.left < other.right && other.left < box.right && box.top < other.bottom && other.top < box.bottom, `${state}: mate overlaps ${f.key}`).toBe(false);
+        }
+        let reachable = false;
+        for (let y = badgeTop(mate, cast); y < badgeTop(mate, cast) + BADGE_SIZE.height; y++) {
+          for (let x = mate.x - 3; x <= mate.x + 3; x++) reachable ||= sailorAt(figures, cast, { x, y })?.key === mate.key;
+        }
+        expect(reachable, `${state}: officer pointer reach`).toBe(true);
+      }
+    });
 
     it("fits the entire rocked stage, all furniture, lights, access routes and crowded interaction bounds", () => {
       const rock = manifest.stage.motion?.rock;
@@ -288,6 +321,8 @@ describe.each(packs)("the %s pack", (id) => {
         for (const glow of style.glow) fits({ left: light.at[0] + glow.at[0] - glow.radius, right: light.at[0] + glow.at[0] + glow.radius, top: light.at[1] + glow.at[1] - glow.radius, bottom: light.at[1] + glow.at[1] + glow.radius }, light.id);
       }
       const cast = compileCast(manifest);
+      const officer = firstMateFigure(stage, cast);
+      if (officer !== null) fits(figureBox(officer, cast)!, "firstMate");
       const fidgets = Object.values(manifest.cast.fidgets).flatMap(f => f?.keys ?? []);
       const dx = Math.max(0, ...fidgets.map(k => Math.abs(k.dx)));
       const dy = Math.max(Math.abs(cast.rise), ...fidgets.map(k => Math.abs(k.dy)));

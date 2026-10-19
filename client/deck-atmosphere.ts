@@ -34,9 +34,9 @@ export function compileAtmosphere(manifest: Pick<SettingManifest, "atmosphere">)
 }
 
 /** How busy the crew is, 0 to 1; a lost feed never counts. */
-export function crewIntensity(sailors: ReadonlyArray<Pick<DeckSailor, "state" | "stale">>): number {
+export function crewIntensity(sailors: ReadonlyArray<Pick<DeckSailor, "state" | "stale" | "activityState" | "activityStale">>): number {
   let activity = 0;
-  for (const sailor of sailors) if (!sailor.stale) activity += ACTIVITY_WEIGHTS[sailor.state] ?? 0;
+  for (const sailor of sailors) if (!(sailor.activityStale ?? sailor.stale)) activity += ACTIVITY_WEIGHTS[sailor.activityState ?? sailor.state] ?? 0;
   return Math.max(0, Math.min(1, activity / BUSY_CREW));
 }
 

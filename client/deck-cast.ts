@@ -28,6 +28,7 @@ type Fidget = NonNullable<SettingManifest["cast"]["fidgets"][ActivityState]>;
 export interface DeckCast {
   /** Uniform size on stage; atlas frames and cropped row counts remain unscaled. */
   scale: number;
+  firstMate: { id: string; image: string; lane: string; pose: string; flip: boolean; optional: false } | null;
   /** Each lane's poses, by id. */
   lanes: ReadonlyMap<string, ReadonlyMap<string, Standing>>;
   /** The looks, in the order identities hash into: each one's image and lane, and whether it must draw. */
@@ -54,6 +55,10 @@ export function compileCast(manifest: SettingManifest): DeckCast {
   const first = lanes.get(looks[0]!.lane)!;
   return {
     scale: cast.scale ?? 1,
+    firstMate: manifest.firstMate === undefined ? null : {
+      id: "@first-mate", image: manifest.firstMate.image, lane: manifest.firstMate.lane,
+      pose: manifest.firstMate.pose, flip: manifest.firstMate.facing === "left", optional: false,
+    },
     lanes,
     looks,
     stand: cast.roles.stand,
@@ -77,6 +82,7 @@ export function standing(cast: DeckCast, lane: string, pose: string): Standing {
 
 /** The lane a look is drawn with: its own, or the first look's for a look the cast does not have. */
 export function laneOf(cast: DeckCast, look: string): string {
+  if (cast.firstMate?.id === look) return cast.firstMate.lane;
   return (cast.looks.find((each) => each.id === look) ?? cast.looks[0]!).lane;
 }
 
