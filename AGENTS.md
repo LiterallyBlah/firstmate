@@ -43,6 +43,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `server/receipts.ts`          | The receipt journal behind `FIRSTMATE_RECEIPT_JOURNAL` (off by default): hash-linked entries, the generation and record ledgers. |
 | `server/receipt-observers.ts`, `shared/receipts.ts` | What the journal observes — the first mate's tool calls, uncertain native finishes — and the read-only timeline-page RPC. |
 | `server/attention.ts`, `attention-projection.ts`, `attention-report.ts`, `shared/attention.ts` | Opt-in 14-day attention timing: detached hook/catalog observations, existing fleet states, and the read-only JSONL report. See `docs/attention-observation.md`. |
+| `shared/needs-you.ts`, `server/needs-you-*.ts` | Opt-in captain-decision foundation: strict backlog observation, per-home ledger and disabled outbox, background service and revision-bound RPCs. Separate from native attention and timing telemetry. See `docs/needs-you-foundation.md`. |
 | `shared/deck-setting.ts`      | A deck setting pack's format, `firstmate.deck-setting` 1: the manifest's schema, every reference it must resolve (`settingProblems`), the closed, versioned behaviour catalogue (`ENGINE_CAPABILITIES`) and what a pack uses. Server and tests only. |
 | `shared/deck-rpc.ts`, `server/deck-settings.ts` | What the Deck needs from the daemon: `firstmate.deck.engine` serving `vendor/pixi.min.js`, `firstmate.deck.settings` listing the packs under `art/settings/` (and which this engine can draw), `firstmate.deck.setting` serving one whole — manifest and images — confined to its folder and capped. |
 | `client/deck-setting.ts`, `deck-setting-query.ts`, `deck-setting-view.tsx` | Global selection: the fleet resolver, shared installed-pack metadata, fallback notice and one resolved id passed into the engine. Pack-owned presentation words travel with the drawing. |
@@ -1647,7 +1648,7 @@ later, web-only — see *Attachments go the way Paseo's composer sends them*.
 ## Checking it
 
 Vitest loads `test/setup.ts` before every test file: it forces `FIRSTMATE_RECEIPT_JOURNAL=0`
-and `FIRSTMATE_ATTENTION_OBSERVE=0`
+and `FIRSTMATE_ATTENTION_OBSERVE=0`, `FIRSTMATE_NEEDS_YOU=0`
 and gives the file a fresh temporary `PASEO_HOME`, removed after the file finishes. This applies to
 `npm test` and direct Vitest runs, regardless of the shell's environment. Receipt tests may opt in
 only against temporary homes and must drain pending receipts before cleanup. Never restore a live
