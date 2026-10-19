@@ -125,7 +125,7 @@ describe("service persistence and observation", () => {
     await rm(path);
     expect(await settle(restarted)).toMatchObject({ actionCount: 1, freshness: { status: "stale" } });
     await writeFile(path, document("", "absent"));
-    expect(await settle(restarted)).toMatchObject({ actionCount: 1, freshness: { status: "stale" } });
+    expect(await settle(restarted)).toMatchObject({ actionCount: 1, freshness: { status: "fresh" }, quarantined: [{ taskId: "task", hasHold: true }] });
     await writeFile(path, document("(hold: Readable now?)"));
     expect(await settle(restarted)).toMatchObject({ actionCount: 1, requests: [{ source: { ask: "Readable now?" } }], quarantined: [] });
     await writeFile(path, document(""));
@@ -274,7 +274,6 @@ describe("service persistence and observation", () => {
     for (const content of [
       null,
       "",
-      document("", "absent"),
       document() + "## Queued\n- [ ] task - Task (hold: Duplicate)",
     ]) {
       if (content === null) await rm(path);
@@ -296,6 +295,24 @@ describe("service persistence and observation", () => {
     await rmdir(path);
     await writeFile(path, document());
     expect((await settle(instance)).requests).toEqual(before.requests);
+  });
+
+  it("quarantines a vanished decision across restart while other answers and new arrivals remain usable", async () => {
+    const instance = service(), before = await settle(instance);
+    const good = "- [ ] good - Good (hold: Choose a safe option?)\n";
+    await writeFile(join(home, "data", "backlog.md"), document("", "absent").replace("## Done", `${good}## Done`));
+    const after = await settle(instance);
+    expect(after).toMatchObject({ actionCount: 2, freshness: { status: "fresh" }, quarantined: [{ taskId: "task", key: before.requests[0]!.source.key }] });
+    expect(after.requests.find(r => r.id === before.requests[0]!.id)).toEqual(before.requests[0]);
+    await expect(instance.mutate(target(before), { kind: "answer", submissionId: "missing", outcome: "uncertain" })).rejects.toThrow("stale");
+    const healthy = after.requests.find(r => r.source.taskId === "good")!;
+    await instance.stop();
+    const restarted = service();
+    await settle(restarted);
+    expect(await restarted.mutate({ homeId: after.homeId!, id: healthy.id, revision: healthy.revision },
+      { kind: "answer", submissionId: "healthy", outcome: "accepted" })).toMatchObject({ pendingAnswerCount: 1, actionCount: 1 });
+    await writeFile(join(home, "data", "backlog.md"), document().replace("## Done", `${good}## Done`));
+    expect(await settle(restarted)).toMatchObject({ quarantined: [] });
   });
 
   it("does not reset baseline when the source is initially missing", async () => {

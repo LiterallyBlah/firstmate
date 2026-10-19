@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { checkTaskViews } from "./view-checks.mjs";
 import { checkResilience } from "./resilience-checks.mjs";
+import { checkPolish } from "./polish-checks.mjs";
 const here = dirname(fileURLToPath(import.meta.url)),
   root = resolve(here, "../..");
 const harness = createRequire(join(root, "docs/board-list/package.json")),
@@ -47,6 +48,22 @@ await build({
   ],
 });
 const server = createServer(async (request, response) => {
+  if (request.url?.startsWith("/rpc/")) {
+    try {
+      let body = ""; for await (const chunk of request) body += chunk;
+      const name = request.url.slice(5), input = JSON.parse(body || "{}");
+      const manifest = JSON.parse(await readFile(join(root, "art/settings/ship/setting.json"), "utf8"));
+      let result;
+      if (name === "firstmate.deck.engine") result = { version: "8.22.0", source: await readFile(join(root, "vendor/pixi.min.js"), "utf8") };
+      else if (name === "firstmate.deck.settings") result = [{ id: "ship", name: manifest.name, version: manifest.version,
+        formatVersion: manifest.formatVersion, compatible: true, reason: null, preview: null, bytes: 0 }];
+      else if (name === "firstmate.deck.setting" && input.id === "ship") result = { manifest, images: Object.fromEntries(await Promise.all(
+        Object.entries(manifest.images).map(async ([id, image]) => [id, (await readFile(join(root, "art/settings/ship", image.path))).toString("base64")]))) };
+      else throw new Error(`Unexpected fixture RPC: ${name}`);
+      response.setHeader("Content-Type", "application/json"); response.end(JSON.stringify(result));
+    } catch (error) { response.statusCode = 500; response.end(String(error)); }
+    return;
+  }
   response.setHeader(
     "Content-Type",
     request.url === "/panel.js" ? "text/javascript" : "text/html",
@@ -86,14 +103,15 @@ async function pageAt(query, width = 1440) {
   return page;
 }
 try {
+  const polish = await checkPolish(pageAt, output);
   const { checkDrawer } = await import("./drawer-checks.mjs");
-  const layouts = await checkDrawer(pageAt, output);
-  await checkResilience(pageAt, output);
-  const taskViews = await checkTaskViews(pageAt, output);
+  const layouts = process.env.POLISH_ONLY ? [] : await checkDrawer(pageAt, output);
+  if (!process.env.POLISH_ONLY) await checkResilience(pageAt, output);
+  const taskViews = process.env.POLISH_ONLY ? [] : await checkTaskViews(pageAt, output);
   assert.deepEqual(errors, []);
   await writeFile(
     join(output, "results.json"),
-    JSON.stringify({ layouts, taskViews, errors }, null, 2),
+    JSON.stringify({ polish, layouts, taskViews, errors }, null, 2),
   );
   console.log(
     JSON.stringify({

@@ -39,7 +39,7 @@ export const NeedsYouLedgerSchema = z
       if (
         ids.has(request.id) ||
         request.id !==
-          decisionId(ledger.homeId, request.source.key, request.generation)
+          decisionId(ledger.homeId, request.identityKey ?? request.source.key, request.generation)
       ) {
         context.addIssue({
           code: "custom",
@@ -147,27 +147,40 @@ function currentRequests(ledger: NeedsYouLedger) {
   return current;
 }
 
-/** Missing tasks are not evidence of any resolution, however many reads agree. */
-export function missingRequests(
-  ledger: NeedsYouLedger,
-  detection: NeedsYouDetection,
-): string[] {
-  const present = new Set(detection.sources.map((source) => source.key));
-  const missing = [...currentRequests(ledger).values()]
+/** A move requires a single old and new scope, with no competing unreadable identity. */
+function movedRequests(ledger: NeedsYouLedger, detection: NeedsYouDetection) {
+  const current = [...currentRequests(ledger).values()];
+  return current.flatMap(request => {
+    if (detection.sources.some(source => source.key === request.source.key) ||
+        current.filter(other => other.source.taskId === request.source.taskId).length !== 1 ||
+        detection.quarantined?.some(row => row.taskId === null || row.taskId === request.source.taskId)) return [];
+    const matches = detection.sources.filter(source => source.taskId === request.source.taskId);
+    return matches.length === 1 ? [{ request, source: matches[0]! }] : [];
+  });
+}
+
+/** Missing decisions remain quarantined individually; absence never settles one. */
+function missingTaskRows(ledger: NeedsYouLedger, detection: NeedsYouDetection): QuarantinedTask[] {
+  const present = new Set(detection.sources.map(source => source.key));
+  const moves = movedRequests(ledger, detection);
+  for (const { request } of moves) present.add(request.source.key);
+  const missing: QuarantinedTask[] = [...currentRequests(ledger).values()]
     .filter(
       (request) =>
         request.state !== "resolved" && !present.has(request.source.key) &&
         !quarantinesSource(detection.quarantined ?? [], request.source),
     )
-    .map((request) => request.source.taskId);
+    .map((request) => ({ line: 0, taskId: request.source.taskId, key: request.source.key,
+      hasHold: true, problem: `Task ${request.source.taskId} is missing. Restore its backlog record before answering it.` }));
   for (const row of ledger.quarantined) {
     if (!row.hasHold) continue;
     const recovered = row.taskId !== null && detection.sources.filter(source => quarantinesSource([row], source)).length === 1;
     const stillQuarantined = detection.quarantined?.some(next =>
       row.key !== null && next.key !== null ? row.key === next.key : next.taskId === row.taskId);
-    if (!recovered && !stillQuarantined) missing.push(row.taskId ?? `unread task at line ${row.line}`);
+    const moved = moves.some(({ request }) => quarantinesSource([row], request.source));
+    if (!recovered && !stillQuarantined && !moved && !missing.some(next => next.key === row.key && next.taskId === row.taskId)) missing.push(row);
   }
-  return [...new Set(missing)];
+  return missing;
 }
 
 function targetChanged(before: DecisionSource, after: DecisionSource) {
@@ -186,12 +199,20 @@ export function reconcileNeedsYou(
   detection: NeedsYouDetection,
   now: number,
 ): NeedsYouLedger {
-  if (!detection.valid || missingRequests(previous, detection).length)
+  if (!detection.valid)
     return previous;
   const ledger = structuredClone(previous);
   const baseline = ledger.initializedAt === null;
+  const missing = missingTaskRows(previous, detection);
+  for (const { request, source } of movedRequests(ledger, detection)) {
+    for (const history of ledger.requests.filter(entry => entry.source.key === request.source.key)) {
+      history.identityKey ??= history.source.key;
+      // Keep ids/revisions and drafts. Ask/target edits follow the normal rules below.
+      history.source = { ...history.source, key: source.key, hostId: source.hostId, project: source.project };
+    }
+  }
   const current = currentRequests(ledger);
-  ledger.quarantined = (detection.quarantined ?? []).map(row => ({ ...row,
+  ledger.quarantined = [...(detection.quarantined ?? []), ...missing].map(row => ({ ...row,
     // Losing the word "hold" in another unreadable edit is not an answer either.
     hasHold: row.hasHold || previous.quarantined.some(old => old.hasHold &&
       (row.key !== null && old.key !== null ? row.key === old.key : row.taskId === old.taskId)),
@@ -259,7 +280,7 @@ export function reconcileNeedsYou(
     }
   }
   if (baseline) ledger.initializedAt = now;
-  expireSnoozes(ledger, now, detection.quarantined);
+  expireSnoozes(ledger, now, ledger.quarantined);
   return changed(previous, ledger, now);
 }
 

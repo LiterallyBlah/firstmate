@@ -827,7 +827,7 @@ describe("the ship deck view", () => {
     await act(flush);
     const root = renderer!;
     expect(text(root)).toContain("2 need you");
-    expect(text(root)).toContain("the first mate is waiting at the bow with them");
+    expect(text(root)).not.toContain("the first mate is waiting at the bow with them");
     await act(async () => engine.select?.("w1"));
     expect(open).toHaveBeenLastCalledWith({ requestId: "local:w1", homeId: snapshot.homeId, recordRevision: 7 });
     await act(async () => engine.select?.("@first-mate"));
@@ -850,12 +850,14 @@ describe("the ship deck view", () => {
     await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Open decisions" }).props.onPress());
     expect(open).toHaveBeenCalledWith({ requestId: "next", homeId: snapshot.homeId });
   });
-  it("labels the server's last count as stale even when no sailor carries a gate", async () => {
+  it("keeps the server total but leaves stale detail to the header pill", async () => {
     const snapshot = attentionSnapshot([]);
     snapshot.actionCount = 6;
     snapshot.freshness.status = "stale";
     await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine: viewEngine(), needsYou: snapshot })); });
-    expect(text(renderer!)).toContain("6 need you · as of");
+    expect(text(renderer!)).toContain("6 need you");
+    expect(text(renderer!)).not.toContain("as of");
+    expect(text(renderer!)).not.toContain("Decision data is stale");
     expect(text(renderer!)).not.toContain("0 needs you");
   });
   beforeAll(() => {

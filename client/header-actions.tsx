@@ -1,6 +1,6 @@
 import type { PluginScreenProps } from "@getpaseo/plugin/client";
 import { Modal } from "@getpaseo/plugin/client/react-native";
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Text, View } from "react-native";
 import type { Fleet } from "../shared/fleet";
 import type { DisplaySettings } from "../shared/settings";
@@ -27,6 +27,7 @@ export function HeaderActions({
   onOpenFile,
   onOpenSettings,
   onUpdateSent,
+  summary,
 }: {
   theme: PluginScreenProps["theme"];
   navigation: PluginScreenProps["navigation"];
@@ -41,6 +42,7 @@ export function HeaderActions({
   onOpenFile: (path: string) => void;
   onOpenSettings: (() => void) | null;
   onUpdateSent: () => void;
+  summary?: ReactNode;
 }) {
   const [more, setMore] = useState(false);
   const [watches, setWatches] = useState(false);
@@ -86,6 +88,7 @@ export function HeaderActions({
             />
             <Modal title="FirstMate controls" open={more} onOpenChange={setMore}>
               <Modal.Content>
+                {summary}
                 <View style={{ gap: 8 }}>
                   {migration}
                   {data === null ? null : (

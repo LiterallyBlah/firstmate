@@ -47,8 +47,8 @@ rows, while `quarantined` identifies the excluded rows. Local aliases include
 Stable observations require two reads at least two seconds apart. File stat
 changes during a read are rejected. Files larger than 2 MiB are not observed.
 Even a syntactically valid empty or near-empty document cannot resolve missing
-open tasks: the entire last good decision snapshot is retained until those tasks
-are represented again. A still-present task can resolve its gate by removing
+open tasks: each absent gate is retained and quarantined until represented again,
+while readable tasks continue to reconcile and accept answers. A still-present task can resolve its gate by removing
 the hold, moving to Done, or adding a blocker. Removal alone is never an answer.
 This favors an inspectable stale request over silently losing a decision.
 
@@ -78,8 +78,11 @@ creates a namespace or resolves a gate. Ambiguous reused aliases or unreadable
 recovery metadata leave counts unknown; a readable match remains stale.
 
 Within a home, source identity is host/project/task, matching the scope of item
-tags. A request ID additionally contains its generation. Monotonic record
-revisions bind acknowledgements and answer submissions. Whitespace, case and
+tags. A request ID additionally contains its generation. Durable request
+identities survive an unambiguous host/project move with the same task id: all
+generations move together, keeping their original hash scope in `identityKey`.
+Competing old/new scopes or unreadable matching identities prevent migration.
+Monotonic record revisions bind acknowledgements and answer submissions. Whitespace, case and
 trailing question punctuation are cosmetic. Title, tags, section and worker
 changes do not revise the question. A wording edit increments the record
 revision but retains acknowledgement/snooze. A different URL/report target,

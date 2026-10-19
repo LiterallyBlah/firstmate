@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile, rename } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile, rename, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { answerDecision } from "./decision-answer";
@@ -79,6 +79,50 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await service?.stop();
+});
+
+const brief = "# Choose a pilot\n\n**Background.** The engine needs a real run.\n\n**Options:**\n1. **Public research (recommended).** A frozen corpus.\n2. **Owned lab.** Needs setup.\n\n**My recommendation:** Start with public research.";
+async function writeBrief(content = brief) {
+  await mkdir(join(home, "data", "task"), { recursive: true });
+  await writeFile(join(home, "data", "task", "decision.md"), content);
+}
+it("loads the full authored brief and sends only the exact content-bound option", async () => {
+  await writeBrief();
+  const snapshot = await service.read();
+  expect(snapshot.briefs).toMatchObject([{ path: "data/task/decision.md", content: brief }]);
+  const option = snapshot.answerOptions!.find(option => option.label === "Public research")!;
+  expect(option.decision.actionId).toMatch(/^brief:/);
+  const chosen = { ...input, text: option.prompt, suggestion: { actionId: option.decision.actionId, label: option.label } };
+  expect((await answerDecision(api, service, chosen)).outcome).toBe("accepted");
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(JSON.stringify(send.mock.calls)).toContain("I choose option 1");
+  expect(await readFile(join(home, "data", "task", "decision.md"), "utf8")).toBe(brief);
+});
+it("refuses an old brief option after its trade-offs change and keeps free text available", async () => {
+  await writeBrief();
+  const option = (await service.read()).answerOptions![0]!;
+  await writeBrief(brief.replace("A frozen corpus", "A changing live source"));
+  await expect(answerDecision(api, service, { ...input, text: option.prompt,
+    suggestion: { actionId: option.decision.actionId, label: option.label } })).rejects.toThrow("option changed");
+  expect(send).not.toHaveBeenCalled();
+  expect((await answerDecision(api, service, input)).outcome).toBe("accepted");
+});
+it("falls back to the question for absent, oversized and outside-home briefs", async () => {
+  expect((await service.read()).briefs).toEqual([]);
+  await writeBrief("x".repeat(65537));
+  expect((await service.read()).briefs).toEqual([]);
+  await rename(join(home, "data", "task"), join(root, "outside-task"));
+  await writeFile(join(root, "outside-task", "decision.md"), brief);
+  await symlink(join(root, "outside-task"), join(home, "data", "task"), process.platform === "win32" ? "junction" : "dir");
+  expect((await service.read()).briefs).toEqual([]);
+});
+it("sends a healthy answer while an unrelated decision is missing", async () => {
+  await writeFile(join(home, "data", "backlog.md"), backlog().replace("## Done", "- [ ] gone - Gone (hold: Wait?)\n## Done"));
+  await settle();
+  await writeFile(join(home, "data", "backlog.md"), backlog());
+  expect(await settle()).toMatchObject({ freshness: { status: "fresh" }, quarantined: [{ taskId: "gone" }] });
+  expect((await answerDecision(api, service, input)).outcome).toBe("accepted");
+  expect(send).toHaveBeenCalledTimes(1);
 });
 
 it("uses the existing mate send with an exact envelope, not a worker, and leaves source bytes alone", async () => {

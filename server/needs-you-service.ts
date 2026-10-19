@@ -7,7 +7,6 @@ import { FirstmateConfigSchema } from "../shared/fleet";
 import { quarantinesSource, type NeedsYouSnapshot, type NeedsYouTarget } from "../shared/needs-you";
 import { observeNeedsYou, type HostCatalog, type NeedsYouDetection } from "./needs-you-detect";
 import {
-  missingRequests,
   mutateNeedsYou,
   needsYouSnapshot,
   reconcileNeedsYou,
@@ -336,22 +335,16 @@ export class NeedsYouService {
       stable = now - state.candidate.since >= (this.options.stableMs ?? 2000);
     if (detection.valid && !stable)
       problems.push("Waiting for a stable backlog observation.");
-    let missing = false;
     try {
       const ledger = await state.store.transact((previous) => {
-        const absent = detection.valid
-          ? missingRequests(previous, detection)
-          : [];
-        missing = absent.length > 0;
-        if (missing)
-          problems.push(
-            `Previously open tasks are missing: ${absent.join(", ")}.`,
-          );
-        return stable && detection.valid && !missing
+        return stable && detection.valid
           ? reconcileNeedsYou(previous, detection, now)
           : previous;
       }, observedAlias);
-      const fresh = stable && detection.valid && !missing;
+      const fresh = stable && detection.valid;
+      if (fresh) for (const row of ledger.quarantined) {
+        if (!problems.includes(row.problem)) problems.push(row.problem);
+      }
       state.snapshot = needsYouSnapshot(ledger, {
         status: fresh
           ? "fresh"

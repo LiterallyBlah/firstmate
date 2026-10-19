@@ -1,7 +1,5 @@
 /** A durable reservation precedes the existing lifecycle-guarded mate send. Never retries delivery. */
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import type {
   SubmitDecisionAnswer,
   NeedsYouSnapshot,
@@ -12,8 +10,7 @@ import {
   readConfiguredDecisionHome,
   type NeedsYouService,
 } from "./needs-you-service";
-import { parseSuggestions } from "./suggestions";
-import { decisionAnswerOptions } from "./decision-options";
+import { withDecisionOptions } from "./decision-options";
 import { message, TEMPLATES } from "./templates";
 import { serialized } from "./serialize";
 
@@ -71,17 +68,8 @@ export async function answerDecision(
             "This decision changed or is stale. Refresh before answering.",
           );
         if (input.suggestion) {
-          const suggestions = parseSuggestions(
-            await readFile(
-              join(
-                await readConfiguredDecisionHome(),
-                "data",
-                "suggestions.md",
-              ),
-              "utf8",
-            ),
-          );
-          const matches = decisionAnswerOptions(snapshot, suggestions).filter(
+          const current = await withDecisionOptions(await readConfiguredDecisionHome(), snapshot);
+          const matches = current.answerOptions!.filter(
             (entry) =>
               entry.decision.homeId === input.homeId &&
               entry.decision.requestId === input.requestId &&

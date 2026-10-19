@@ -59,6 +59,8 @@ export const AnswerSubmissionSchema = z.object({
 });
 export const NeedsYouRequestSchema = z.object({
   id: z.string(),
+  /** Original scope used by the durable id, retained after an unambiguous task move. */
+  identityKey: z.string().optional(),
   source: DecisionSourceSchema,
   generation: revision,
   revision,
@@ -112,8 +114,12 @@ export const NeedsYouSnapshotSchema = z.object({
   requests: z.array(NeedsYouRequestSchema),
   parked: z.array(DecisionSourceSchema),
   quarantined: z.array(QuarantinedTaskSchema).optional(),
-  /** Rebuilt from current suggestions, never persisted in the ledger. Submit via needs-you.answer. */
+  /** Rebuilt from current suggestions/briefs, never persisted in the ledger. Submit via needs-you.answer. */
   answerOptions: z.array(DecisionAnswerOptionSchema).optional(),
+  /** Optional authored context, reread from the confined home, never persisted as decision state. */
+  briefs: z.array(z.object({
+    requestId: z.string(), recordRevision: revision, path: z.string(), content: z.string(),
+  })).optional(),
   delivery: z.literal("off"),
 });
 export type NeedsYouSnapshot = z.infer<typeof NeedsYouSnapshotSchema>;

@@ -41,6 +41,7 @@ import {
 } from "./decision-copy";
 import { DecisionSnooze } from "./decision-snooze";
 import { DecisionAsk, DecisionMaterials } from "./decision-context";
+import { DecisionBrief, DecisionSummary, briefFor } from "./decision-brief";
 import { FilesView } from "./files";
 import {
   bindWebKeys,
@@ -129,6 +130,26 @@ function SectionLabel({
   );
 }
 
+function DecisionGroup({ theme, label, count, children }: { theme: PluginTheme; label: string; count: number; children: ReactNode }) {
+  const colors = theme.colors;
+  return <View testID="decision-group" style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, overflow: "hidden" }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 12, backgroundColor: colors.surface2 }}>
+      <Text accessibilityRole="header" style={{ flex: 1, color: colors.foreground, fontSize: 14, fontWeight: "700" }}>{label}</Text>
+      <Text accessibilityLabel={`${count} ${label}`} style={{ color: colors.foreground, fontSize: 13, fontWeight: "700",
+        backgroundColor: colors.surface0, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 }}>{count}</Text>
+    </View>
+    <View style={{ paddingHorizontal: 12, backgroundColor: colors.surface1 }}>{children}</View>
+  </View>;
+}
+
+function ParkedTitle({ title, theme }: { title: string; theme: PluginTheme }) {
+  const [expanded, setExpanded] = useState(false);
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Full title: ${title}`} accessibilityState={{ expanded }} aria-expanded={expanded}
+    onPress={() => setExpanded(!expanded)} style={{ minHeight: 44, justifyContent: "center" }}>
+    <Text numberOfLines={expanded ? undefined : 2} style={{ color: theme.colors.foreground, fontSize: 13, fontWeight: "600" }}>{title}</Text>
+  </Pressable>;
+}
+
 export function DecisionDrawer({
   theme,
   snapshot,
@@ -144,6 +165,7 @@ export function DecisionDrawer({
   onOpenChat,
   filtered = false,
   loading = false,
+  returnLabel = "Home",
 }: {
   theme: PluginTheme;
   snapshot?: NeedsYouSnapshot | undefined;
@@ -159,6 +181,7 @@ export function DecisionDrawer({
   onOpenChat?: (() => void) | undefined;
   filtered?: boolean;
   loading?: boolean;
+  returnLabel?: string;
 }) {
   const order = useRef<{ home: string | null; ids: string[] }>({
     home: null,
@@ -231,7 +254,9 @@ export function DecisionDrawer({
     if (following) select(following);
   }
   const colors = theme.colors;
-  const problems = decisionProblems(snapshot, offline);
+  const scopedRows = (snapshot?.quarantined ?? []).filter(row => all || !request || quarantinesSource([row], request.source));
+  const problems = !all && request && !offline && snapshot?.freshness.status === "fresh"
+    ? scopedRows.map(row => row.problem) : decisionProblems(snapshot, offline);
   const failure =
     !loading &&
     ((snapshot && snapshot.freshness.status !== "fresh") ||
@@ -272,13 +297,13 @@ export function DecisionDrawer({
               {problem}
             </Text>
           ))}
-          {(snapshot?.quarantined ?? [])
+          {scopedRows
             .filter((r) => r.hasHold)
             .map((r, i) => (
               <Text
                 key={i}
                 style={{ color: colors.foreground, fontSize: 13 }}
-              >{`Couldn't read this task${r.taskId ? `: ${r.taskId}` : ""}. Check the Board and data/backlog.md, line ${r.line}.`}</Text>
+              >{`Couldn't read this task${r.taskId ? `: ${r.taskId}` : ""}. Check the Board and data/backlog.md${r.line ? `, line ${r.line}` : ""}.`}</Text>
             ))}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
             <DecisionButton
@@ -323,15 +348,12 @@ export function DecisionDrawer({
   function group(label: string, rows: NeedsYouRequest[]) {
     if (!rows.length) return null;
     return (
-      <View style={{ gap: 6 }} key={label}>
-        <SectionLabel theme={theme}>
-          {label} · {rows.length}
-        </SectionLabel>
+      <DecisionGroup theme={theme} label={label} count={rows.length} key={label}>
         {rows.map((r) => (
           <Pressable
             key={r.id}
             accessibilityRole="button"
-            accessibilityLabel={`${decisionTitle(r.source.title)} · ${decisionStateLabel(r)}`}
+            accessibilityLabel={`${r.source.title} · ${decisionStateLabel(r)}`}
             onPress={() => select(r)}
             style={{
               paddingVertical: 12,
@@ -352,8 +374,7 @@ export function DecisionDrawer({
               {r.state === "new" ? "NEW · " : ""}
               {decisionTitle(r.source.title)}
             </Text>
-            <Text
-              numberOfLines={2}
+            {r.state === "new" || r.state === "seen" ? <DecisionSummary theme={theme} snapshot={snapshot} request={r} /> : <Text
               style={{
                 color:
                   r.state === "delivery-uncertain"
@@ -362,13 +383,11 @@ export function DecisionDrawer({
                 fontSize: 12,
               }}
             >
-              {r.state === "new" || r.state === "seen"
-                ? `${r.source.ask} · ${relativeDecisionTime(r.detectedAt)}`
-                : decisionStateLabel(r)}
-            </Text>
+              {decisionStateLabel(r)}
+            </Text>}
           </Pressable>
         ))}
-      </View>
+      </DecisionGroup>
     );
   }
   return (
@@ -399,8 +418,8 @@ export function DecisionDrawer({
           theme={theme}
           compact={compact}
           icon="ChevronLeft"
-          label={all ? "Back to Needs you" : "Close decisions"}
-          text={all ? "Needs you" : "List"}
+          label={all ? "Back to Needs you" : `Back to ${returnLabel}`}
+          text={all ? "Needs you" : returnLabel}
           onPress={all ? () => setAll(false) : onClose}
         />
         <Text
@@ -498,10 +517,7 @@ export function DecisionDrawer({
             snapshot?.requests.filter((r) => r.state === "snoozed") ?? [],
           )}
           {snapshot?.parked.length ? (
-            <View style={{ gap: 10 }}>
-              <SectionLabel theme={theme}>
-                Parked until something else happens · {snapshot.parked.length}
-              </SectionLabel>
+            <DecisionGroup theme={theme} label="Parked until something else happens" count={snapshot.parked.length}>
               {snapshot.parked.map((r) => (
                 <View
                   key={r.key}
@@ -509,18 +525,16 @@ export function DecisionDrawer({
                     gap: 4,
                     borderTopWidth: 1,
                     borderColor: colors.border,
-                    paddingTop: 10,
+                    paddingVertical: 10,
                   }}
                 >
-                  <Text style={{ color: colors.foreground, fontSize: 13 }}>
-                    {decisionTitle(r.title)}
-                  </Text>
+                  <ParkedTitle title={r.title} theme={theme} />
                   <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
                     {r.blockedBy ?? "No question recorded"}
                   </Text>
                 </View>
               ))}
-            </View>
+            </DecisionGroup>
           ) : null}
           {group(
             "Settled today",
@@ -796,6 +810,7 @@ function DecisionDetails({
     request,
   );
   const latest = request.submissions.at(-1);
+  const brief = briefFor(snapshot, request);
   const button = (
     label: string,
     onPress: () => void,
@@ -933,7 +948,7 @@ function DecisionDetails({
               fontWeight: "600",
             }}
           >
-            {decisionTitle(request.source.title)}
+            {request.source.title}
           </Text>
         </View>
         {openedRevision !== undefined && openedRevision !== request.revision ? (
@@ -1039,6 +1054,10 @@ function DecisionDetails({
             onOpenFile={setFile}
           />
         </View>
+        {brief ? <DecisionBrief theme={theme} content={brief.content} answer={label => {
+          const choice = choices.find(choice => choice.label === label && choice.decision?.actionId.startsWith("brief:"));
+          return choice && !pending && request.state !== "resolved" ? button(`Choose: ${label}`, () => send(choice), !writable || !mateId || sender.sending) : null;
+        }} /> : null}
         <DecisionMaterials
           theme={theme}
           source={request.source}
@@ -1046,10 +1065,10 @@ function DecisionDetails({
           onOpenFile={setFile}
           compact={compact}
         />
-        {choices.length && !pending && request.state !== "resolved" ? (
+        {choices.some(choice => !brief || !choice.decision?.actionId.startsWith("brief:")) && !pending && request.state !== "resolved" ? (
           <View style={{ gap: 8 }}>
             <SectionLabel theme={theme}>THE FIRST MATE SUGGESTS</SectionLabel>
-            {choices.map((choice) => (
+            {choices.filter(choice => !brief || !choice.decision?.actionId.startsWith("brief:")).map((choice) => (
               <View
                 key={choice.decision!.actionId}
                 style={{

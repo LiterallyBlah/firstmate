@@ -59,10 +59,10 @@ export function deckDecisions(cards: readonly FleetCard[], snapshot: NeedsYouSna
 export const DECK_MOVE_WORDS = { blocked: "needs you", waiting: "with the first mate", working: "at work", idle: "parked" } as const;
 
 /** Ledger total, never the number of figures at the bow. */
-export function deckDecisionLabel(snapshot: NeedsYouSnapshot | undefined, offline = false): string {
+export function deckDecisionLabel(snapshot: NeedsYouSnapshot | undefined, offline = false, includeFreshness = true): string {
   if (snapshot?.freshness.status === "disabled") return "Decisions are off";
   if (!snapshot || snapshot.actionCount === null || snapshot.freshness.status === "unknown") return "Can't read decisions";
   const label = snapshot.actionCount === 0 ? "Nothing needs you" : `${snapshot.actionCount} ${snapshot.actionCount === 1 ? "needs" : "need"} you`;
-  return offline || snapshot.freshness.status === "stale"
+  return includeFreshness && (offline || snapshot.freshness.status === "stale")
     ? `${label} · as of ${snapshot.freshness.asOf === null ? "last good read" : new Date(snapshot.freshness.asOf).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : label;
 }

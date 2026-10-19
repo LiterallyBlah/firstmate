@@ -61,7 +61,7 @@ try {
     await page.waitForSelector(`canvas[data-firstmate-deck-setting="${setting}"][data-firstmate-deck-motion="still"]`);
     await page.screenshot({ path: join(out, `${tree}-${setting}.png`) });
     if (tree === "after") {
-      assert.equal(await page.getByTestId("firstmate-deck-decision-legend").getByText("2 need you", { exact: true }).count(), 1);
+      assert.equal(await page.getByTestId("firstmate-deck-decision-legend").getByText("2 need you ·", { exact: true }).count(), 1);
       const tag = page.getByTestId("firstmate-deck-decision-tag"); await tag.click();
       assert.deepEqual(await page.evaluate(() => window.decisionActions.at(-1)), { requestId: "local:Pick the next project", homeId: "sample-home", recordRevision: 1 });
       await page.getByRole("button", { name: "Answer the next", exact: true }).press("Enter");
@@ -94,7 +94,7 @@ try {
       assert.deepEqual(await mateAt(), manifest.firstMate.asking.at);
       await page.screenshot({ path: join(out, `six-workerless-${setting}.png`) });
       await page.evaluate(() => window.setDecisionSnapshot(snapshot => ({ ...snapshot, actionCount: 0, requests: [] })));
-      await page.getByText("Nothing needs you", { exact: true }).waitFor();
+      await page.getByText("Nothing needs you ·", { exact: true }).waitFor();
       await tag.waitFor({ state: "detached" });
       await page.waitForFunction(at => {
         const find = node => node.label === "@first-mate" ? node : node.children?.map(find).find(Boolean);
@@ -107,7 +107,8 @@ try {
           requests: [],
           freshness: { ...snapshot.freshness, status, problems: ["Backlog source is unreadable."] },
         })), status);
-        await page.getByTestId("firstmate-deck-decision-legend").getByText(status === "unknown" ? "Can't read decisions" : /^6 need you · as of/).waitFor();
+        await page.getByTestId("firstmate-deck-decision-legend").getByText(status === "unknown" ? "Can't read decisions ·" : "6 need you ·", { exact: true }).waitFor();
+        assert.equal(await page.getByText("Decision data is stale", { exact: false }).count(), 0);
         assert.equal(await page.getByText(/^0 needs you/).count(), 0);
         if (setting === "ship") await page.screenshot({ path: join(out, `legend-${status}.png`) });
       }
@@ -128,7 +129,7 @@ try {
     await drawer.getByText(title, { exact: true }).waitFor();
     await drawer.getByText(ask, { exact: true }).waitFor();
     await page.screenshot({ path: join(out, `drawer-${capture}.png`) });
-    await drawer.getByRole("button", { name: "Close decisions", exact: true }).click();
+    await drawer.getByRole("button", { name: "Back to Deck", exact: true }).click();
     await drawer.waitFor({ state: "detached" });
   }
   const point = await page.evaluate(() => {

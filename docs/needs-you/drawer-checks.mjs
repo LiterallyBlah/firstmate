@@ -81,11 +81,11 @@ export async function checkDrawer(pageAt, output) {
           send.y + send.height <= 844,
           "phone answer bar stays in the viewport",
         );
-        await button(page, "Close decisions").focus();
+        await button(page, /^Back to (?:List|Board)$/).focus();
         await page.keyboard.press("Shift+Tab");
         await page.keyboard.press("Tab");
         assert.equal(
-          await button(page, "Close decisions").evaluate(
+          await button(page, /^Back to (?:List|Board)$/).evaluate(
             (node) => node === document.activeElement,
           ),
           true,
@@ -109,7 +109,7 @@ export async function checkDrawer(pageAt, output) {
       await page.screenshot({
         path: join(output, `drawer-${width}-${light ? "light" : "dark"}.png`),
       });
-      await button(page, "Close decisions").focus();
+      await button(page, /^Back to (?:List|Board)$/).focus();
       await page.keyboard.press("Escape");
       await page.waitForFunction(() =>
         document.activeElement?.id.startsWith("needs-you-"),
