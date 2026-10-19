@@ -18,3 +18,13 @@ jobs:
         env:
           # Test setup must override an enabled journal on developer machines.
           FIRSTMATE_RECEIPT_JOURNAL: "1"
+      - run: npm ci --prefix docs/board-list
+      - run: npx --prefix docs/board-list playwright install --with-deps chromium
+      - run: node docs/needs-you/render.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: needs-you-render-${{ matrix.os }}
+          path: |
+            docs/needs-you/.generated/*.png
+            docs/needs-you/.generated/*.json

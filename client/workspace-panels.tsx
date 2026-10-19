@@ -2,10 +2,12 @@ import type { PluginClientContext, PluginScreenProps, PluginWorkspacePanelProps 
 import { FleetSurface } from "./fleet";
 import { FLEET_SCREEN_ID } from "./screen";
 import { FLEET_PANELS, type FleetShell, type FleetView } from "./shell";
+import { decisionRoute } from "./needs-you-state";
 
 /** Capabilities stay bound to this installation/host, including when several hosts are open. */
 export function registerFleetViews(client: PluginClientContext): FleetShell {
   const shell: FleetShell = {
+    openDecision(destination) { client.openScreen(decisionRoute(destination)); },
     openView(view, workspaceId) {
       client.openPanel(FLEET_PANELS[view].id, {
         workspaceId,

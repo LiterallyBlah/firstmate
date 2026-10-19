@@ -38,6 +38,7 @@ export const AnswerSubmissionSchema = z.object({
   settledAt: instant.nullable(),
   previousState: z.enum(["new", "seen", "snoozed"]),
   previousSnoozedUntil: instant.nullable(),
+  messageHash: z.string().optional(),
 });
 export const NeedsYouRequestSchema = z.object({
   id: z.string(),
@@ -90,6 +91,28 @@ export const NeedsYouTargetSchema = z.object({
   revision,
 });
 export type NeedsYouTarget = z.infer<typeof NeedsYouTargetSchema>;
+/** Explicit suggestion binding; no title/task-name heuristics are authorization. */
+export const DecisionBindingSchema = z.object({
+  homeId: z.string().min(1),
+  requestId: z.string().min(1),
+  recordRevision: revision,
+  actionId: z.string().min(1).max(200),
+});
+export type DecisionBinding = z.infer<typeof DecisionBindingSchema>;
+export const SubmitDecisionAnswerSchema = z.object({
+  homeId: z.string().min(1),
+  requestId: z.string().min(1),
+  recordRevision: revision,
+  submissionId: z.string().min(1).max(200),
+  text: z.string().trim().min(1).max(32000),
+  suggestion: z.object({ actionId: z.string().min(1), label: z.string() }).optional(),
+});
+export type SubmitDecisionAnswer = z.infer<typeof SubmitDecisionAnswerSchema>;
+export const submitDecisionAnswer = defineRpc({
+  name: "firstmate.needs-you.answer",
+  input: SubmitDecisionAnswerSchema,
+  output: z.object({ outcome: z.enum(["accepted", "uncertain", "failed"]), snapshot: NeedsYouSnapshotSchema }),
+});
 export const readNeedsYou = defineRpc({
   name: "firstmate.needs-you.read",
   input: z.object({}),

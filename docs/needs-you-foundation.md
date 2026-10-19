@@ -1,12 +1,13 @@
 # Needs-you server foundation
 
-This slice implements the reconciled 19 October attention model. There is no UI,
-Deck marker, vocabulary change, template change, send path, toast or phone
-transport. Native attention and the opt-in timing observer are independent.
+This foundation implements the reconciled 19 October attention model. The shared
+indicator and decision drawer are documented in [needs-you/README.md](needs-you/README.md).
+Native attention and the opt-in timing observer remain independent. There is no
+phone transport.
 
-Observation is opt-in through `FIRSTMATE_NEEDS_YOU=1` in the plugin server's
-environment. It defaults off. This PR does not set that environment variable,
-install or reload the plugin, or change a FirstMate home. With it off, the new
+Observation defaults on with the indicator slice; `FIRSTMATE_NEEDS_YOU=0` in the
+plugin server's environment disables it. Tests explicitly disable the production
+timer and use isolated services. With observation off, the
 fleet field reports `disabled`, counts are unknown (`null`), and no decision
 ledger is created. Disablement preserves an existing ledger. Re-enabling it
 reconciles current records without re-baselining existing decisions.

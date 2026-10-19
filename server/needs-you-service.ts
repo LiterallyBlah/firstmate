@@ -121,7 +121,7 @@ export class NeedsYouService {
   }
 
   private enabled() {
-    return this.options.enabled?.() ?? process.env.FIRSTMATE_NEEDS_YOU === "1";
+    return this.options.enabled?.() ?? process.env.FIRSTMATE_NEEDS_YOU !== "0";
   }
 
   start() {
