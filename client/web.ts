@@ -265,6 +265,31 @@ export function focusWebElement(id: string): void {
   }, 0);
 }
 
+/** Retained hidden panes must not suppress a new-decision toast. Native uses mounted visibility. */
+export function webSurfaceVisible(target: unknown): boolean {
+  if (Platform.OS !== "web") return true;
+  if ((globalThis as { document?: { visibilityState?: string } }).document?.visibilityState === "hidden") return false;
+  const element = target as { checkVisibility?: (options: object) => boolean; getBoundingClientRect?: () => { width: number; height: number } } | null;
+  if (!element) return false;
+  if (element.checkVisibility && !element.checkVisibility({ visibilityProperty: true, opacityProperty: true })) return false;
+  const rect = element.getBoundingClientRect?.();
+  return !!rect && rect.width > 0 && rect.height > 0;
+}
+
+/** Trap only the covering decision drawer; docked drawers leave the rest of the view reachable. */
+export function cycleWebFocus(target: unknown, backwards: boolean): boolean {
+  if (Platform.OS !== "web" || !target) return false;
+  type Focusable = { focus(): void; getClientRects(): { length: number } };
+  const element = target as { querySelectorAll?: (selector: string) => ArrayLike<Focusable> };
+  const nodes = Array.from(element.querySelectorAll?.('button:not([disabled]), [role="button"]:not([aria-disabled="true"]), a[href], input:not([disabled]), textarea:not([disabled]), [tabindex="0"]') ?? []).filter((node) => node.getClientRects().length > 0);
+  const active = (globalThis as { document?: { activeElement?: unknown } }).document?.activeElement;
+  const index = nodes.findIndex((node) => node === active);
+  if (!nodes.length) return false;
+  if (backwards && index <= 0) { nodes.at(-1)!.focus(); return true; }
+  if (!backwards && (index < 0 || index === nodes.length - 1)) { nodes[0]!.focus(); return true; }
+  return false;
+}
+
 /** Convert the responder's page coordinate to the document tracker's client coordinate. */
 export function pointerClientX(pageX: number): number {
   return Platform.OS === "web" ? pageX - ((globalThis as { scrollX?: number }).scrollX ?? 0) : pageX;

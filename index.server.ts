@@ -18,6 +18,8 @@ import { newAction, receiptJournal } from "./server/receipts";
 import { AttentionObserver } from "./server/attention";
 import { NeedsYouService, readConfiguredDecisionHome } from "./server/needs-you-service";
 import { registerNeedsYouRpc } from "./server/needs-you-rpc";
+import { answerDecision } from "./server/decision-answer";
+import { submitDecisionAnswer } from "./shared/needs-you";
 import { pluginDir } from "./server/data-dir";
 import { join } from "node:path";
 import { pageReceiptTimeline } from "./shared/receipts";
@@ -121,6 +123,7 @@ export default function contribute(server: PluginServerContext) {
     catalog: () => remotes.read(),
   });
   registerNeedsYouRpc(server, decisions);
+  server.handle(submitDecisionAnswer, (input, { paseo }) => answerDecision(paseo, decisions, input));
   decisions.start();
   server.handle(readRemotes, () => remotes.read());
   server.handle(syncRemotes, ({ hosts }) => remotes.sync(hosts));

@@ -9,7 +9,7 @@
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import { WatchRoutingSchema } from "./watch-routing";
-import { NeedsYouSnapshotSchema } from "./needs-you";
+import { DecisionBindingSchema, NeedsYouSnapshotSchema } from "./needs-you";
 
 import { CaptainMessageSchema } from "./attachments";
 
@@ -181,6 +181,7 @@ export type Project = z.infer<typeof ProjectSchema>;
 export const SuggestionSchema = z.object({
   label: z.string(),
   prompt: z.string(),
+  decision: DecisionBindingSchema.optional(),
 });
 export type Suggestion = z.infer<typeof SuggestionSchema>;
 

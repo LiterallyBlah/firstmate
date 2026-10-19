@@ -50,6 +50,7 @@ export const TEMPLATES = {
   bearings: "messages/bearings.md",
   bearingsArgs: "messages/bearings-args.md",
   updateRequest: "messages/update-request.md",
+  decisionAnswer: "messages/decision-answer.md",
   itemDiscuss: "messages/item-discuss.md",
   itemGraduate: "messages/item-graduate.md",
   itemWorkDiscussion: "messages/item-work-discussion.md",

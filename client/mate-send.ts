@@ -18,6 +18,7 @@ import { useSyncExternalStore } from "react";
 import type { CaptainMessage } from "../shared/attachments";
 import { askMate, askMateCommand, type MateCommand } from "../shared/fleet";
 import { requestUpdate, type UpdateStatus } from "../shared/update";
+import { submitDecisionAnswer, type SubmitDecisionAnswer, type NeedsYouSnapshot } from "../shared/needs-you";
 import { errorText } from "./format";
 import { keepSentImages, sentImages } from "./sent-images";
 
@@ -71,6 +72,7 @@ function gateFor(mateId: string): SendGate {
 export interface MateSender {
   /** A message to the first mate is on its way. */
   sending: boolean;
+  answer: (input: SubmitDecisionAnswer, onResult: (result: { outcome: "accepted" | "uncertain" | "failed"; snapshot: NeedsYouSnapshot }) => void, onFailure: () => void) => boolean;
   /**
    * Sends a message, unless one is already on its way; false when refused. A
    * failure is shown as a toast, then `onFailure` runs — the chat's Send puts
@@ -86,6 +88,7 @@ export function useMateSender(mateId: string): MateSender {
   const ask = useRpc(askMate);
   const askCommand = useRpc(askMateCommand);
   const update = useRpc(requestUpdate);
+  const answer = useRpc(submitDecisionAnswer);
   const toast = useToast();
   const gate = gateFor(mateId);
   const sending = useSyncExternalStore(gate.subscribe, gate.busy);
@@ -102,6 +105,7 @@ export function useMateSender(mateId: string): MateSender {
 
   return {
     sending,
+    answer: (input, onResult, onFailure) => deliver(() => answer(input).then(onResult), onFailure),
     send: (message, onFailure) =>
       deliver(() => {
         // Its images are kept for the transcript before it goes, so they show as the daemon echoes it.

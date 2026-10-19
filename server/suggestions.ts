@@ -16,6 +16,7 @@
  * file means no suggestions.
  */
 import type { Suggestion } from "../shared/fleet";
+import { DecisionBindingSchema } from "../shared/needs-you";
 
 /** More than this is a list nobody reads; the charter asks for about five. */
 export const MAX_SUGGESTIONS = 8;
@@ -30,10 +31,18 @@ function parseLine(line: string): Suggestion | null {
   const body = line.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "").replace(/^\[[ xX]\]\s+/, "");
   const at = body.indexOf(SEPARATOR);
   if (at === -1) return null;
-  const label = unwrap(body.slice(0, at).trim());
+  let label = body.slice(0, at).trim();
+  let decision: Suggestion["decision"];
+  const binding = /\s+\[decision:\s*(\{.*\})\]\s*$/.exec(label);
+  if (binding) {
+    try { decision = DecisionBindingSchema.parse(JSON.parse(binding[1]!)); }
+    catch { return null; }
+    label = label.slice(0, binding.index).trim();
+  } else if (label.includes("[decision:")) return null;
+  label = unwrap(label);
   const prompt = body.slice(at + SEPARATOR.length).trim();
   if (label === "" || prompt === "") return null;
-  return { label, prompt };
+  return { label, prompt, ...(decision ? { decision } : {}) };
 }
 
 /** A suggestion, and the characters of the file its line is made of — its line break included, its notes not. */
@@ -96,7 +105,7 @@ export function parseSuggestions(markdown: string): Suggestion[] {
 }
 
 function same(a: Suggestion, b: Suggestion): boolean {
-  return a.label === b.label && a.prompt === b.prompt;
+  return a.label === b.label && a.prompt === b.prompt && JSON.stringify(a.decision) === JSON.stringify(b.decision);
 }
 
 /**

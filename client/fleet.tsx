@@ -69,6 +69,10 @@ import { focusWebElement, webAttributes } from "./web";
 import { HubLauncher } from "./hub-launcher";
 import { chatIsVisible, FLEET_PANELS, homeWorkspace, type FleetShell, type FleetView } from "./shell";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
+import { DecisionSurface } from "./decision-surface";
+import { NeedsYouIndicator } from "./needs-you";
+import { useNeedsYou } from "./needs-you-query";
+import { activeCrewCount } from "./screen";
 
 export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
@@ -106,7 +110,7 @@ type FleetSurfaceProps = PluginScreenProps & {
 /** A key makes even host/workspace prop changes start from that destination's own view state. */
 export function FleetSurface(props: FleetSurfaceProps) {
   const key = JSON.stringify([props.host?.id, props.workspaceId, props.view ?? "home"]);
-  return <FleetViewBody key={key} {...props} stateKey={key} />;
+  return <DecisionSurface key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}><FleetViewBody {...props} stateKey={key} /></DecisionSurface>;
 }
 
 function FleetViewBody({
@@ -149,6 +153,8 @@ function FleetViewBody({
   const [filesRequest, setFilesRequest] = useState<FilesRequest | null>(null);
 
   const fleet = useFleet(values.pollSeconds);
+  const decisions = useNeedsYou();
+  const attention = <NeedsYouIndicator theme={theme} snapshot={decisions.data} offline={decisions.error !== null} compact={compact} />;
   const data = fleet.data ?? null;
   const homeWorkspaceId = homeWorkspace(data);
   const crewView = home ? values.crewView : view === "crew" ? "list" : "board";
@@ -572,8 +578,9 @@ function FleetViewBody({
 
   if (!home && view !== "chat" && (data === null || homeWorkspaceId === null || workspaceId !== homeWorkspaceId)) {
     return (
-      <View style={[styles.screen, { padding: 16, gap: 12 }]}>
-        <Text style={styles.title}>{FLEET_PANELS[view].title}</Text>
+      <View style={[styles.screen, { padding: 16, gap: 12 }]} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+        <Text accessibilityRole="header" style={styles.title}>{FLEET_PANELS[view].title}</Text>
+        {attention}
         <Text style={styles.meta}>
           {data === null
             ? fleet.error === null
@@ -607,6 +614,7 @@ function FleetViewBody({
     data === null ? null : (
       <Text style={[styles.meta, { flexShrink: 1, fontSize: compact ? 11 : 12 }]} numberOfLines={1}>
         {[
+          activeCrewCount(data.cards) + " in hand",
           counts.working + " working",
           counts.blocked + " blocked",
           counts.queued + " queued",
@@ -620,6 +628,7 @@ function FleetViewBody({
         <Icon name="Ship" size={16} color={theme.colors.foreground} />
         <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <Text style={[styles.title, { fontSize: 17 }]}>FirstMate</Text>
+          {compact ? null : attention}
           {compact ? null : mateStatus}
           {compact ? null : taskCounts}
         </View>
@@ -666,6 +675,7 @@ function FleetViewBody({
           }}
         />
       </View>
+      {compact ? attention : null}
       {compact && (mate !== null || data !== null) ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           {mateStatus}
@@ -690,7 +700,7 @@ function FleetViewBody({
 
   if (mate === null) {
     return (
-      <View style={styles.screen}>
+      <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         {header}
         <ScrollView automaticallyAdjustKeyboardInsets>
           {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
@@ -712,7 +722,7 @@ function FleetViewBody({
         hosts={remoteHosts}
         hostTab={hostTab}
         onHostChange={(id) => save({ hostTab: id })}
-        suggestions={data.suggestions}
+        suggestions={data.suggestions.filter((suggestion) => suggestion.decision === undefined)}
         sending={mateSender.sending}
         onPick={suggest}
         onRemove={dismissSuggestion}
@@ -781,7 +791,8 @@ function FleetViewBody({
       <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>FirstMate · Chat</Text>
+            <Text accessibilityRole="header" style={styles.title}>FirstMate · Chat</Text>
+            {compact ? null : attention}
             {mateStatus}
             <View style={styles.spacer} />
             {shell === undefined ? null : (
@@ -789,6 +800,7 @@ function FleetViewBody({
             )}
             <IconButton theme={theme} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
           </View>
+          {compact ? attention : null}
         </View>
         {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
         {chat}
@@ -851,7 +863,7 @@ function FleetViewBody({
       cards={data.cards}
       theme={theme}
       stale={fleet.error !== null}
-      suggestions={data.suggestions}
+      suggestions={data.suggestions.filter((suggestion) => suggestion.decision === undefined)}
       onRemove={dismissSuggestion}
       replyBlocked={replyBlockedText({
         mate: mate !== null,
@@ -899,7 +911,8 @@ function FleetViewBody({
       <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>{FLEET_PANELS[view].title}</Text>
+            <Text accessibilityRole="header" style={styles.title}>{FLEET_PANELS[view].title}</Text>
+            {compact ? null : attention}
             <View style={styles.spacer} />
             {view === "deck" && deck ? <DeckSceneSwitcher theme={theme} compact={compact || width < 900} /> : null}
             {shell === undefined ? null : (
@@ -907,6 +920,7 @@ function FleetViewBody({
             )}
             <IconButton theme={theme} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
           </View>
+          {compact ? attention : null}
         </View>
         {fleet.error === null ? null : <Banner theme={theme} tone="danger" text={errorText(fleet.error)} />}
         {mate.pendingPermissions === 0 ? null : (

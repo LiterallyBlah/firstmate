@@ -1,56 +1,59 @@
-/**
- * The sidebar item: the FirstMate row, with a badge counting the crewmates
- * that are working, ready or idle, and none while that is zero.
- *
- * It reads the board's own fleet query, so with the screen or a panel open the
- * three poll once between them; with neither open, it is what keeps the poll
- * going.
- */
+/** Server-owned captain count. The sidebar also owns the single quiet in-app batch toast. */
 import type { PluginSidebarItemProps } from "@getpaseo/plugin/client";
-import { useSettings } from "@getpaseo/plugin/client";
 import { SidebarRow } from "@getpaseo/plugin/client/ui";
-import { useMemo } from "react";
-import { Text, View } from "react-native";
+import { useToast } from "@getpaseo/plugin/client/react-native";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { FLEET_SCREEN_ID } from "./screen";
+import { NeedsYouBadge } from "./needs-you";
+import { useNeedsYou } from "./needs-you-query";
+import {
+  decisionRoute,
+  decisionSession,
+  newDecisionBatch,
+} from "./needs-you-state";
 
-import { displaySettings } from "../shared/settings";
-import { useFleet } from "./fleet";
-import { FLEET_SCREEN_ID, activeCrewCount } from "./screen";
-
-export function FleetSidebarItem({ theme, currentScreen, openScreen }: PluginSidebarItemProps) {
-  const display = useSettings(displaySettings);
-  const fleet = useFleet(display.status === "ready" ? display.values.pollSeconds : 5);
-  const count = activeCrewCount(fleet.data?.cards ?? []);
-
-  const styles = useMemo(
-    () => ({
-      badge: {
-        minWidth: 18,
-        paddingHorizontal: 5,
-        paddingVertical: 1,
-        borderRadius: 9,
-        alignItems: "center" as const,
-        backgroundColor: theme.colors.surface2,
-      },
-      badgeText: { color: theme.colors.foregroundMuted, fontSize: 11, fontWeight: "600" as const },
-    }),
-    [theme],
-  );
-
+export function FleetSidebarItem({
+  theme,
+  currentScreen,
+  openScreen,
+}: PluginSidebarItemProps) {
+  const query = useNeedsYou();
+  const session = decisionSession(useQueryClient());
+  const toast = useToast();
+  useEffect(() => {
+    if (query.error) return;
+    const batch = newDecisionBatch(session, query.data);
+    if (batch.length)
+      toast.show(
+        `FirstMate needs your call — ${batch.length} new: ${batch
+          .slice(0, 2)
+          .map((r) => r.source.title)
+          .join("; ")}`,
+        { variant: "info" },
+      );
+  }, [query.data, query.error, session, toast]);
   return (
     <SidebarRow
       icon="Ship"
       active={currentScreen?.screenId === FLEET_SCREEN_ID}
       trailing={
-        count === 0 ? undefined : (
-          <View
-            style={styles.badge}
-            accessibilityLabel={`${count} ${count === 1 ? "crewmate" : "crewmates"} working, ready or idle`}
-          >
-            <Text style={styles.badgeText}>{count}</Text>
-          </View>
+        <NeedsYouBadge
+          theme={theme}
+          snapshot={query.data}
+          offline={query.error !== null}
+        />
+      }
+      onPress={() =>
+        openScreen(
+          query.data?.actionCount === 0
+            ? { screenId: FLEET_SCREEN_ID }
+            : decisionRoute({
+                requestId: "next",
+                ...(query.data?.homeId ? { homeId: query.data.homeId } : {}),
+              }),
         )
       }
-      onPress={() => openScreen({ screenId: FLEET_SCREEN_ID })}
     />
   );
 }

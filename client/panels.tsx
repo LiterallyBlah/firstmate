@@ -28,6 +28,8 @@ import { FLEET_QUERY_KEY, useFleet } from "./fleet";
 import { groupCards } from "./format";
 import { IconButton, errorText } from "./ui";
 import { homeWorkspace, type FleetShell } from "./shell";
+import { NeedsYouIndicator } from "./needs-you";
+import { useNeedsYou } from "./needs-you-query";
 
 type Navigation = PluginWorkspacePanelProps["navigation"];
 
@@ -50,6 +52,7 @@ function PanelBody({
 }) {
   const display = useSettings(displaySettings);
   const fleet = useFleet(display.status === "ready" ? display.values.pollSeconds : 5);
+  const decisions = useNeedsYou();
   const queryClient = useQueryClient();
   const ask = useRpc(askMate);
   const toast = useToast();
@@ -120,6 +123,7 @@ function PanelBody({
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets>
       <Text style={styles.title}>FirstMate here</Text>
+      <NeedsYouIndicator theme={theme} compact={compact} snapshot={decisions.data} offline={decisions.error !== null} onOpen={shell.openDecision} />
       <Text style={styles.muted}>{summary}</Text>
       {isMate ? null : (
         <IconButton

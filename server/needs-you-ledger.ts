@@ -277,6 +277,8 @@ export type NeedsYouMutation =
       kind: "answer";
       submissionId: string;
       outcome: "uncertain" | "accepted" | "failed";
+      messageHash?: string;
+      onlyNew?: boolean;
     };
 
 export function mutateNeedsYou(
@@ -311,6 +313,7 @@ export function mutateNeedsYou(
       );
     const existing = owned?.submission;
     if (existing) {
+      if (mutation.onlyNew) throw new Error("This submission has already been reserved. Refresh its outcome; do not resend.");
       if (existing.outcome === mutation.outcome) return previous;
       if (existing.outcome !== "uncertain")
         throw new Error("This submission already has a definitive outcome.");
@@ -336,6 +339,7 @@ export function mutateNeedsYou(
         settledAt: mutation.outcome === "uncertain" ? null : now,
         previousState: request.state,
         previousSnoozedUntil: request.snoozedUntil,
+        ...(mutation.messageHash === undefined ? {} : { messageHash: mutation.messageHash }),
       });
     }
     if (mutation.outcome !== "failed") {
