@@ -10,6 +10,9 @@ import {
   type NeedsYouSnapshot,
   type NeedsYouTarget,
   type NeedsYouTransition,
+  type QuarantinedTask,
+  quarantinesSource,
+  QuarantinedTaskSchema,
 } from "../shared/needs-you";
 import { normalizeAsk, type NeedsYouDetection } from "./needs-you-detect";
 
@@ -25,6 +28,7 @@ export const NeedsYouLedgerSchema = z
     observedAt: z.number().int().nonnegative().nullable(),
     requests: z.array(NeedsYouRequestSchema),
     parked: z.array(DecisionSourceSchema),
+    quarantined: z.array(QuarantinedTaskSchema).default([]),
     sequence: z.number().int().nonnegative(),
     outbox: z.array(NeedsYouTransitionSchema),
   })
@@ -95,6 +99,7 @@ export function emptyLedger(
     observedAt: null,
     requests: [],
     parked: [],
+    quarantined: [],
     sequence: 0,
     outbox: [],
   };
@@ -148,12 +153,21 @@ export function missingRequests(
   detection: NeedsYouDetection,
 ): string[] {
   const present = new Set(detection.sources.map((source) => source.key));
-  return [...currentRequests(ledger).values()]
+  const missing = [...currentRequests(ledger).values()]
     .filter(
       (request) =>
-        request.state !== "resolved" && !present.has(request.source.key),
+        request.state !== "resolved" && !present.has(request.source.key) &&
+        !quarantinesSource(detection.quarantined ?? [], request.source),
     )
     .map((request) => request.source.taskId);
+  for (const row of ledger.quarantined) {
+    if (!row.hasHold) continue;
+    const recovered = row.taskId !== null && detection.sources.filter(source => quarantinesSource([row], source)).length === 1;
+    const stillQuarantined = detection.quarantined?.some(next =>
+      row.key !== null && next.key !== null ? row.key === next.key : next.taskId === row.taskId);
+    if (!recovered && !stillQuarantined) missing.push(row.taskId ?? `unread task at line ${row.line}`);
+  }
+  return [...new Set(missing)];
 }
 
 function targetChanged(before: DecisionSource, after: DecisionSource) {
@@ -175,6 +189,11 @@ export function reconcileNeedsYou(
   const ledger = structuredClone(previous);
   const baseline = ledger.initializedAt === null;
   const current = currentRequests(ledger);
+  ledger.quarantined = (detection.quarantined ?? []).map(row => ({ ...row,
+    // Losing the word "hold" in another unreadable edit is not an answer either.
+    hasHold: row.hasHold || previous.quarantined.some(old => old.hasHold &&
+      (row.key !== null && old.key !== null ? row.key === old.key : row.taskId === old.taskId)),
+  }));
   ledger.parked = detection.sources
     .filter((source) => source.disposition === "parked")
     .sort((a, b) => a.key.localeCompare(b.key));
@@ -238,13 +257,14 @@ export function reconcileNeedsYou(
     }
   }
   if (baseline) ledger.initializedAt = now;
-  expireSnoozes(ledger, now);
+  expireSnoozes(ledger, now, detection.quarantined);
   return changed(previous, ledger, now);
 }
 
-function expireSnoozes(ledger: NeedsYouLedger, now: number) {
+function expireSnoozes(ledger: NeedsYouLedger, now: number, quarantined: readonly QuarantinedTask[] = []) {
   for (const request of ledger.requests) {
     if (
+      quarantinesSource(quarantined, request.source) ||
       request.state !== "snoozed" ||
       request.snoozedUntil === null ||
       now < request.snoozedUntil
@@ -294,7 +314,8 @@ export function mutateNeedsYou(
   if (
     !request ||
     request.revision !== target.revision ||
-    request.state === "resolved"
+    request.state === "resolved" ||
+    quarantinesSource(previous.quarantined, request.source)
   )
     throw new Error("This decision changed. Refresh before acting.");
   if (mutation.kind === "answer") {
@@ -388,7 +409,7 @@ export function mutateNeedsYou(
     }
   }
   request.updatedAt = now;
-  expireSnoozes(ledger, now);
+  expireSnoozes(ledger, now, previous.quarantined);
   return changed(previous, ledger, now);
 }
 
@@ -398,13 +419,17 @@ export function needsYouSnapshot(
 ): NeedsYouSnapshot {
   const known = ledger?.initializedAt != null;
   const requests = ledger?.requests ?? [];
+  const quarantined = ledger?.quarantined ?? [];
+  const unreadHolds = quarantined.filter(row => row.hasHold &&
+    (row.taskId === null || !requests.some(request =>
+      (request.state === "new" || request.state === "seen") && quarantinesSource([row], request.source)))).length;
   return {
     homeId: ledger?.homeId ?? null,
     version: ledger?.version ?? 0,
     actionCount: known
       ? requests.filter(
           (entry) => entry.state === "new" || entry.state === "seen",
-        ).length
+        ).length + unreadHolds
       : null,
     newCount: known
       ? requests.filter((entry) => entry.state === "new").length
@@ -422,6 +447,7 @@ export function needsYouSnapshot(
     freshness,
     requests: structuredClone(requests),
     parked: structuredClone(ledger?.parked ?? []),
+    quarantined: structuredClone([...quarantined]),
     delivery: "off",
   };
 }

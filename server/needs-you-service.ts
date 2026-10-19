@@ -4,8 +4,8 @@ import { watch, type FSWatcher } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { FirstmateConfigSchema } from "../shared/fleet";
-import type { NeedsYouSnapshot, NeedsYouTarget } from "../shared/needs-you";
-import { observeNeedsYou, type HostCatalog } from "./needs-you-detect";
+import { quarantinesSource, type NeedsYouSnapshot, type NeedsYouTarget } from "../shared/needs-you";
+import { observeNeedsYou, type HostCatalog, type NeedsYouDetection } from "./needs-you-detect";
 import {
   missingRequests,
   mutateNeedsYou,
@@ -241,7 +241,9 @@ export class NeedsYouService {
       const snapshot = await this.observeLocked(home, source, catalog);
       if (
         snapshot.freshness.status !== "fresh" ||
-        snapshot.homeId !== target.homeId
+        snapshot.homeId !== target.homeId ||
+        snapshot.requests.some(request => request.id === target.id &&
+          quarantinesSource(snapshot.quarantined ?? [], request.source))
       )
         throw new Error(
           "The decision source is stale or the home changed. Refresh before acting.",
@@ -315,7 +317,7 @@ export class NeedsYouService {
       state.sequence = source.sequence;
     }
     const now = this.now();
-    const detection =
+    const detection: NeedsYouDetection =
       source.markdown === null
         ? { valid: false, problems: [source.problem], sources: [] }
         : observeNeedsYou(source.markdown, catalog);
@@ -333,20 +335,22 @@ export class NeedsYouService {
       stable = now - state.candidate.since >= (this.options.stableMs ?? 2000);
     if (detection.valid && !stable)
       problems.push("Waiting for a stable backlog observation.");
+    let missing = false;
     try {
       const ledger = await state.store.transact((previous) => {
-        const missing = detection.valid
+        const absent = detection.valid
           ? missingRequests(previous, detection)
           : [];
-        if (missing.length)
+        missing = absent.length > 0;
+        if (missing)
           problems.push(
-            `Previously open tasks are missing: ${missing.join(", ")}.`,
+            `Previously open tasks are missing: ${absent.join(", ")}.`,
           );
-        return stable && problems.length === 0
+        return stable && detection.valid && !missing
           ? reconcileNeedsYou(previous, detection, now)
           : previous;
       }, observedAlias);
-      const fresh = stable && problems.length === 0;
+      const fresh = stable && detection.valid && !missing;
       state.snapshot = needsYouSnapshot(ledger, {
         status: fresh
           ? "fresh"

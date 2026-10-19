@@ -25,13 +25,24 @@ is parked. Done is excluded. Conditional prose is not interpreted. The proposed
 the reconciled rule. Native mate requests remain on their existing direct path;
 they are not synthesized into backlog gates here.
 
-The board keeps its existing lenient parser. The detector additionally requires
-all three recognized sections, well-formed item rows and metadata, and unique
-host/project/task identities. Unknown/ambiguous hosts, duplicate identities,
-unknown/repeated headings, contradictory completion markers, comments containing
-possible examples, unparsed metadata, empty/truncated documents and read failures
-are not authoritative observations. These deliberately conservative diagnostics
-are returned in `freshness.problems`; the source is never repaired automatically.
+The board keeps its existing lenient parser. The detector requires all three
+recognized sections and unique host/project/task identities. Missing, unknown or
+repeated sections, duplicate identities, comments/NUL and read failures reject
+the entire observation. Malformed rows/metadata, contradictory completion markers,
+embedded carriage returns and unknown/ambiguous hosts instead quarantine that row.
+Other rows still reconcile after stable reads. Diagnostics in `freshness.problems`
+identify physical line numbers and task ids; no source is repaired automatically.
+
+Quarantined rows retain existing gates exactly, with actions disabled for those
+gates. If an identity cannot be fully read, matching by task id conservatively
+protects all its scopes; an unreadable id protects all missing gates. A suspected
+hold contributes one read-only attention entry unless an actionable retained gate
+already represents it. These rows persist in the ledger, including across restart
+or file failure. Removing a quarantined hold, or losing its hold text in another
+unreadable edit, cannot clear it. A readable task must supply the outcome.
+Snapshots can therefore be fresh with problems: the freshness applies to readable
+rows, while `quarantined` identifies the excluded rows. Local aliases include
+`local`, the local server id and its saved host label (when unambiguous).
 
 Stable observations require two reads at least two seconds apart. File stat
 changes during a read are rejected. Files larger than 2 MiB are not observed.

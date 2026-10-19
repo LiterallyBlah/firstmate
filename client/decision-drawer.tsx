@@ -10,6 +10,7 @@ import {
   unsnoozeNeedsYou,
   type NeedsYouSnapshot,
   type NeedsYouRequest,
+  quarantinesSource,
 } from "../shared/needs-you";
 import type { Suggestion } from "../shared/fleet";
 import { useMateSender } from "./mate-send";
@@ -18,6 +19,7 @@ import {
   boundAnswers,
   chosenWake,
   decisionQueue,
+  decisionProblems,
   decisionSession,
   tomorrowNine,
   type DecisionDestination,
@@ -77,7 +79,9 @@ export function DecisionDrawer({
   mateId,
   suggestions,
   compact,
+  onOpenBoard,
 }: {
+  onOpenBoard?: (() => void) | undefined;
   theme: PluginTheme;
   snapshot?: NeedsYouSnapshot | undefined;
   offline: boolean;
@@ -207,6 +211,17 @@ export function DecisionDrawer({
               : ""}
           </Text>
         ) : null}
+        {decisionProblems(snapshot, offline).map((problem, index) => (
+          <Text key={index} accessibilityRole="alert" style={{ color: colors.statusWarning }}>{problem}</Text>
+        ))}
+        {(snapshot?.quarantined ?? []).filter(row => row.hasHold).map((row, index) => (
+          <View key={index} style={{ gap: 6 }}>
+            <Text style={{ color: colors.foreground }}>
+              {"Couldn't read this task" + (row.taskId ? ": " + row.taskId : "") + ". Check the Board and data/backlog.md, line " + row.line + "."}
+            </Text>
+            {onOpenBoard ? <DecisionButton theme={theme} label="Open Board" onPress={onOpenBoard} /> : null}
+          </View>
+        ))}
         {all ? (
           <>
             {[
@@ -236,9 +251,11 @@ export function DecisionDrawer({
           <Text style={{ color: colors.foreground }}>
             {destination.requestId === "next" ||
             destination.requestId === "empty"
-              ? snapshot?.actionCount === 0
+              ? snapshot?.actionCount === 0 && snapshot.freshness.status === "fresh" && !offline
                 ? "Nothing needs a decision now. Pending, snoozed and past decisions are in All decisions."
-                : "Waiting for decision data…"
+                : snapshot?.quarantined?.some(row => row.hasHold)
+                  ? "Unreadable tasks need review on the Board."
+                  : "Waiting for decision data…"
               : "This decision is no longer available. Its answer has not been replayed."}
           </Text>
         ) : (
@@ -305,6 +322,7 @@ function DecisionDetails({
   const writable =
     !offline &&
     snapshot.freshness.status === "fresh" &&
+    !quarantinesSource(snapshot.quarantined ?? [], request.source) &&
     !pending &&
     request.state !== "resolved" &&
     !busy;

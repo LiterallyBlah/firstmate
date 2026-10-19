@@ -6,6 +6,16 @@ Home. New decisions colour the signal amber, Seen decisions neutral. Stale or
 unavailable data is labelled and cannot enable an answer or acknowledgement.
 Worker cards, filters and lifecycle events do not determine these counts.
 
+Unreadable backlog lines appear as problems with line numbers and task ids in the
+drawer and indicator tooltip/accessibility label. Healthy tasks remain fresh;
+quarantined gates retain their last good state with actions disabled. Suspected
+holds without readable gates still count and offer a **Couldn't read this task**
+entry with **Open Board** when the home workspace is available. Structural failures
+retain the last count marked stale, or show unavailable before initialization.
+The Deck legend uses this same server total, including workerless/unreadable holds.
+`resilience-checks.mjs` exercises the real drawer at 390 and 1440 pixels with
+synthetic quarantined and unavailable snapshots; images go under `.local/`.
+
 Opening a decision, following a link, restoring a view or polling never sends,
 marks seen or snoozes. Previous/Next starts with New, then Seen, ordered by waiting
 time and stable id. Pending and snoozed decisions follow; All decisions also

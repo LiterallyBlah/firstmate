@@ -206,17 +206,17 @@ describe("the reconciled source predicate", () => {
 
   it("does not turn an unknown or ambiguous remote into local work", () => {
     expect(
-      detectNeedsYou([item("(host: nowhere) (hold: Ask?)")], catalog).valid,
-    ).toBe(false);
+      detectNeedsYou([item("(host: nowhere) (hold: Ask?)")], catalog).quarantined,
+    ).toHaveLength(1);
     expect(
       detectNeedsYou([item("(host: Light) (hold: Ask?)")], {
         ...catalog,
         hosts: [...catalog.hosts, host("srv_other", "Light")],
-      }).valid,
-    ).toBe(false);
+      }).quarantined,
+    ).toHaveLength(1);
     expect(
-      detectNeedsYou([item("(host: Light) (hold: Ask?)")], null).valid,
-    ).toBe(false);
+      detectNeedsYou([item("(host: Light) (hold: Ask?)")], null).quarantined,
+    ).toHaveLength(1);
   });
 
   it("normalizes cosmetic questions, but not different questions", () => {
@@ -226,6 +226,45 @@ describe("the reconciled source predicate", () => {
 });
 
 describe("strict observation", () => {
+  it("quarantines one row without losing a later gate token or changing physical line numbers", () => {
+    const result = observeNeedsYou(document([
+      "- [ ] broken - Task (hold: Choose (A)?)",
+      "- [ ] cr - Task (hold: Ask?)\rstray text",
+      "- [ ] remote - Task (host: missing) (hold: Ask?)",
+      "- [ ] good - Task (hold: Ask?) (gate: round-2)",
+    ].join("\n")), catalog);
+    expect(result.valid).toBe(true);
+    expect(result.quarantined?.map(row => [row.line, row.taskId, row.hasHold])).toEqual([
+      [5, "broken", true], [6, "cr", true], [7, "remote", true],
+    ]);
+    expect(result.sources).toMatchObject([{ taskId: "good", gateToken: "round-2" }]);
+    expect(result.problems.join(" ")).toContain("Line 7, task remote");
+  });
+
+  it("fails the whole observation for duplicate identities, including malformed rows and unknown hosts", () => {
+    for (const fields of ["(hold: Choose (A)?)", "(host: missing) (hold: Ask?)"]) {
+      const result = observeNeedsYou(document([
+        `- [ ] task - Task ${fields}`,
+        `- [ ] task - Task ${fields}`,
+        "- [ ] good - Task (hold: Ask?)",
+      ].join("\n")), catalog);
+      expect(result).toMatchObject({ valid: false, sources: [] });
+      expect(result.problems.join(" ")).toContain("Duplicate task identity at line 6: task");
+    }
+    expect(observeNeedsYou(document("- [?] task - Broken (hold: Ask?)\n- [ ] task - Duplicate\n- [ ] good - Good"), catalog))
+      .toMatchObject({ valid: false, sources: [] });
+  });
+
+  it("resolves local and the saved local label, preserving ambiguous labels as unreadable", () => {
+    for (const label of ["local", "LOCAL", "srv_here", "Here"]) {
+      expect(observeNeedsYou(document(`- [ ] task - Task (host: ${label}) (hold: Ask?)`),
+        { ...catalog, localLabel: "Here" }).sources[0]?.hostId).toBe("local");
+    }
+    expect(detectNeedsYou([item("(host: local)")], null).sources[0]?.hostId).toBe("local");
+    expect(observeNeedsYou(document("- [ ] task - Task (host: Light) (hold: Ask?)"),
+      { ...catalog, localLabel: "Light" }).quarantined).toHaveLength(1);
+  });
+
   it.each(["(host: )", "(project: )", "blocked-by: a blocked-by: b"])(
     "rejects ambiguous identity or blocker metadata: %s",
     (fields) => {
@@ -233,8 +272,8 @@ describe("strict observation", () => {
         observeNeedsYou(
           document(`- [ ] task - Task (hold: Ask?) ${fields}`),
           catalog,
-        ).valid,
-      ).toBe(false);
+        ).quarantined,
+      ).toHaveLength(1);
     },
   );
   it.each([
@@ -274,12 +313,14 @@ describe("strict observation", () => {
     ["hidden example", document("<!--\n- [ ] task - Task (hold: Ask?)\n-->")],
     ["NUL", document("\0")],
   ])(
-    "rejects %s without reporting an authoritative empty queue",
+    "isolates line errors and fails closed on structural errors: %s",
     (_name, markdown) => {
-      expect(observeNeedsYou(markdown, catalog)).toMatchObject({
-        valid: false,
-        sources: [],
-      });
+      const result = observeNeedsYou(markdown, catalog);
+      const structural = ["empty", "truncated headings", "unknown heading", "repeated section", "hidden example", "NUL"].includes(_name);
+      expect(result.valid).toBe(!structural);
+      expect(result.problems.length).toBeGreaterThan(0);
+      if (structural) expect(result.sources).toEqual([]);
+      else expect(result.quarantined).toHaveLength(1);
     },
   );
 

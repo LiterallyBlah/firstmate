@@ -834,7 +834,7 @@ describe("the ship deck view", () => {
     await act(async () => engine.firstMate?.({ key: "@first-mate", x: 300, top: 160, bottom: 200, width: 640, height: 300, floor: null }));
     await act(async () => root.root.findByProps({ testID: "firstmate-deck-decision-tag" }).props.onPress());
     expect(open).toHaveBeenLastCalledWith({ requestId: "local:unassigned", homeId: snapshot.homeId, recordRevision: 1 });
-    await act(async () => root.root.findByProps({ accessibilityLabel: "Needs you: 2 decisions, 1 new" }).props.onPress());
+    await act(async () => root.root.findByProps({ accessibilityLabel: "Needs you, 2 decisions, 1 new. Open decisions" }).props.onPress());
     expect(open).toHaveBeenLastCalledWith({ requestId: "next", homeId: snapshot.homeId });
     expect(snapshot).toEqual(before); // Viewing, focus and clicking cannot acknowledge locally.
   });
@@ -844,9 +844,18 @@ describe("the ship deck view", () => {
     snapshot.actionCount = null; snapshot.newCount = null; snapshot.freshness.status = "unknown";
     await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "ios", needsYou: snapshot, onOpenDecision: open })); });
     expect(engine.probes).toBe(0);
-    expect(text(renderer!)).toContain("Needs you unavailable");
-    await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Needs you unavailable" }).props.onPress());
+    expect(text(renderer!)).toContain("Needs you · unavailable");
+    expect(text(renderer!)).not.toContain("0 needs you");
+    await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Needs you, count unavailable, unavailable. Waiting for a confirmed backlog read. Open decisions" }).props.onPress());
     expect(open).toHaveBeenCalledWith({ requestId: "next", homeId: snapshot.homeId });
+  });
+  it("labels the server's last count as stale even when no sailor carries a gate", async () => {
+    const snapshot = attentionSnapshot([]);
+    snapshot.actionCount = 6;
+    snapshot.freshness.status = "stale";
+    await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine: viewEngine(), needsYou: snapshot })); });
+    expect(text(renderer!)).toContain("Needs you · 6 · stale");
+    expect(text(renderer!)).not.toContain("0 needs you");
   });
   beforeAll(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

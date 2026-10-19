@@ -92,6 +92,58 @@ function barrier() {
 }
 
 describe("service persistence and observation", () => {
+  it.each([
+    "(hold: Choose (A)?)", "(hold: Ask?)\rstray", "(host: unknown) (hold: Ask?)", "(project: )",
+  ])("keeps other tasks fresh and an unreadable gate unchanged: %s", async fields => {
+    const instance = service();
+    const before = await settle(instance);
+    await writeFile(join(home, "data", "backlog.md"), document(fields).replace("## Done",
+      "- [ ] good - Good (hold: Decide this?)\n## Done"));
+    const after = await settle(instance);
+    expect(after).toMatchObject({ actionCount: 2, freshness: { status: "fresh" } });
+    expect(after.requests.find(r => r.id === before.requests[0]!.id)).toEqual(before.requests[0]);
+    expect(after.quarantined).toMatchObject([{ taskId: "task" }]);
+    for (const mutation of [{ kind: "seen" }, { kind: "snooze", until: now + 10000 },
+      { kind: "answer", submissionId: "unsafe", outcome: "uncertain" }] as const) {
+      await expect(instance.mutate(target(before), mutation)).rejects.toThrow("stale");
+    }
+    const good = after.requests.find(r => r.source.taskId === "good")!;
+    expect(await instance.mutate({ homeId: after.homeId!, id: good.id, revision: good.revision }, { kind: "seen" }))
+      .toMatchObject({ actionCount: 2 });
+  });
+
+  it("counts an unreadable hold without a previous gate and retains it durably until readable", async () => {
+    const path = join(home, "data", "backlog.md");
+    await writeFile(path, document("(hold: Choose (A)?)"));
+    const instance = service();
+    const before = await settle(instance);
+    expect(before).toMatchObject({ actionCount: 1, requests: [], freshness: { status: "fresh" } });
+    await writeFile(path, document("(broken:"));
+    expect(await settle(instance)).toMatchObject({ actionCount: 1, quarantined: [{ hasHold: true }] });
+    await instance.stop();
+    const restarted = service();
+    await rm(path);
+    expect(await settle(restarted)).toMatchObject({ actionCount: 1, freshness: { status: "stale" } });
+    await writeFile(path, document("", "absent"));
+    expect(await settle(restarted)).toMatchObject({ actionCount: 1, freshness: { status: "stale" } });
+    await writeFile(path, document("(hold: Readable now?)"));
+    expect(await settle(restarted)).toMatchObject({ actionCount: 1, requests: [{ source: { ask: "Readable now?" } }], quarantined: [] });
+    await writeFile(path, document(""));
+    expect(await settle(restarted)).toMatchObject({ actionCount: 0, freshness: { status: "fresh" } });
+  });
+
+  it("does not expire a quarantined snooze when observing or acting on a healthy task", async () => {
+    const instance = service();
+    const before = await settle(instance);
+    const snoozed = await instance.mutate(target(before), { kind: "snooze", until: now + 1000 });
+    await writeFile(join(home, "data", "backlog.md"), document("(hold: Choose (A)?)").replace("## Done",
+      "- [ ] good - Good (hold: Decide?)\n## Done"));
+    const after = await settle(instance);
+    const good = after.requests.find(r => r.source.taskId === "good")!;
+    const acted = await instance.mutate({ homeId: after.homeId!, id: good.id, revision: good.revision }, { kind: "seen" });
+    expect(acted.requests.find(r => r.id === snoozed.requests[0]!.id)).toEqual(snoozed.requests[0]);
+  });
+
   it("requires stable reads, silently baselines, and leaves every authored byte unchanged", async () => {
     const instance = service();
     expect(await instance.read()).toMatchObject({
@@ -223,7 +275,6 @@ describe("service persistence and observation", () => {
       null,
       "",
       document("", "absent"),
-      document("(hold: incomplete"),
       document() + "## Queued\n- [ ] task - Task (hold: Duplicate)",
     ]) {
       if (content === null) await rm(path);

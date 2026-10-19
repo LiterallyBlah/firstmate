@@ -3,8 +3,8 @@ import { Pressable, Text, View } from "react-native";
 import { useEffect, useId, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { indicatorState, decisionSession } from "./needs-you-state";
-import { webSurfaceVisible } from "./web";
+import { indicatorState, decisionCountText, decisionSession } from "./needs-you-state";
+import { webAttributes, webSurfaceVisible } from "./web";
 import { useOpenDecision, type OpenDecision } from "./decision-action";
 
 export function NeedsYouIndicator({
@@ -40,6 +40,7 @@ export function NeedsYouIndicator({
       ref={ref as never}
       nativeID={id}
       accessibilityRole="button"
+      {...webAttributes({ title: state.accessibilityLabel })}
       accessibilityLabel={state.accessibilityLabel}
       onPress={() =>
         (onOpen ?? action)(
@@ -83,7 +84,7 @@ export function NeedsYouBadge({
   offline?: boolean;
 }) {
   const state = indicatorState(snapshot, offline);
-  if (state.count === 0 && state.fresh) return null;
+  if (state.count === 0 && state.fresh && !snapshot?.freshness.problems.length) return null;
   return (
     <View
       accessibilityLabel={state.accessibilityLabel}
@@ -107,8 +108,7 @@ export function NeedsYouBadge({
           fontSize: 12,
         }}
       >
-        {state.count ?? "?"}
-        {state.fresh ? "" : " ·"}
+        {decisionCountText(snapshot, offline)}
       </Text>
     </View>
   );

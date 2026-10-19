@@ -17,6 +17,7 @@ import {
 } from "./needs-you-state";
 import { focusWebElement, webAttributes } from "./web";
 import { useFleet } from "./fleet-query";
+import { homeWorkspace, type FleetShell } from "./shell";
 import { MIN_SPLIT_WIDTH } from "./resize-layout";
 
 /** Shared by Home and all workspace views, independent of cards, filters and worker identities. */
@@ -25,7 +26,9 @@ export function DecisionSurface({
   compact,
   params,
   children,
+  shell,
 }: {
+  shell?: FleetShell | undefined;
   theme: PluginTheme;
   compact: boolean;
   params: Readonly<Record<string, string>>;
@@ -33,6 +36,7 @@ export function DecisionSurface({
 }) {
   const query = useNeedsYou();
   const fleet = useFleet(5);
+  const boardWorkspace = homeWorkspace(fleet.data ?? null);
   const [destination, setDestination] = useState<DecisionDestination | null>(
     () => routeDecision(params),
   );
@@ -106,6 +110,7 @@ export function DecisionSurface({
             }
           >
             <DecisionDrawer
+              onOpenBoard={shell && boardWorkspace ? () => { close(); shell.openView("board", boardWorkspace); } : undefined}
               theme={theme}
               snapshot={query.data}
               offline={query.error !== null}
