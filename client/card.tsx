@@ -57,7 +57,7 @@ import { Chip, IconButton, Tag, errorText } from "./ui";
 import { webTitle } from "./web";
 import { cardTags } from "../shared/item-tags";
 import { ItemTagEditor } from "./item-tags";
-import { taskPresentation, TASK_TITLES, type TaskPresentation } from "./task-presentation";
+import { taskPresentation, TASK_TITLES, TASK_REASON_ICONS, type TaskPresentation } from "./task-presentation";
 import { useOpenDecision, type OpenDecision } from "./decision-action";
 import { DecisionButton } from "./decision-drawer";
 
@@ -365,7 +365,7 @@ export function CrewCard({
 
   const backlog = card.backlog;
   const headline = plain
-    ? { lead: TASK_TITLES[summary.group], text: summary.line, tone: "muted" as const }
+    ? { lead: null, text: summary.line, tone: summary.reason === "failure" ? "danger" as const : "muted" as const }
     : cardHeadline(card);
   /** When it last moved: the agent's last update, on this machine's clock; for an item alone, its outcome. */
   const when =
@@ -523,9 +523,9 @@ export function CrewCard({
               <>
                 <View style={styles.rowHead}>
                   <Icon
-                    name={summary.group === "done" ? "Check" : summary.group === "later" ? "Clock" : "Users"}
+                    name={summary.reason ? TASK_REASON_ICONS[summary.reason] : summary.group === "done" ? "Check" : summary.group === "later" ? "Clock" : "Users"}
                     size={15}
-                    color={theme.colors.foregroundMuted}
+                    color={summary.reason === "failure" ? theme.colors.statusDanger : summary.reason === "permission" ? theme.colors.statusWarning : theme.colors.foregroundMuted}
                   />
                   <View style={styles.rowText}>
                     <Text style={styles.rowTitle} numberOfLines={expanded ? undefined : 1}>
@@ -534,18 +534,20 @@ export function CrewCard({
                     {statusLine}
                   </View>
                   {compact ? null : <View style={styles.rowTags}>{tags}</View>}
-                  {!expanded || when === null || when === "" ? null : (
+                  {compact || when === null || when === "" ? null : (
                     <Text style={[styles.time, { marginLeft: 0, flexShrink: 0 }]} numberOfLines={1}>
                       {when}
                     </Text>
                   )}
-                  <Text style={styles.meta}>Details</Text>
+                  <Icon name={expanded ? "ChevronUp" : "ChevronDown"} size={12} color={theme.colors.foregroundMuted} />
                 </View>
-                {compact ? <View style={styles.rowTags}>{tags}</View> : null}
+                {compact ? <View style={styles.rowTags}>{tags}{when ? <Text style={styles.time}>{when}</Text> : null}</View> : null}
               </>
             ) : (
               <>
                 <View style={styles.titleRow}>
+                  {summary.reason ? <Icon name={TASK_REASON_ICONS[summary.reason]} size={15}
+                    color={summary.reason === "failure" ? theme.colors.statusDanger : summary.reason === "permission" ? theme.colors.statusWarning : theme.colors.foregroundMuted} /> : null}
                   <Text style={styles.title} numberOfLines={expanded ? undefined : 2}>
                     {card.title}
                   </Text>
@@ -560,7 +562,7 @@ export function CrewCard({
 
                 <View style={styles.chips}>
                   {tags}
-                  <Text style={styles.meta}>Details</Text>
+                  {when ? <Text style={styles.meta}>{when}</Text> : null}
                 </View>
                 {statusLine}
               </>

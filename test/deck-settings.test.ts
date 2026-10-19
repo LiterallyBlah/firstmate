@@ -33,6 +33,8 @@ import { rockedBounds } from "../client/deck-stage-motion";
 import type { Level } from "../client/deck-atmosphere";
 import { askMarks } from "../client/deck-hover";
 import { firstMateFigure } from "../client/deck-first-mate";
+import { deckScene } from "../client/deck-scene";
+import { attentionSnapshot, attentionTheme } from "./attention-deck-fixture";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const settings = join(root, SETTINGS_DIR);
@@ -251,12 +253,15 @@ describe.each(packs)("the %s pack", (id) => {
     const queues = [...stage.exits.entries()].flatMap(([exitId, exit]) => (exit.kind === "choreography" ? [{ id: `${exitId} queue`, ...exit.queue.at }] : []));
     const sinks = [...stage.exits.entries()].flatMap(([exitId, exit]) => (exit.kind === "sink" ? [{ id: exitId, ...exit.at }] : []));
     const places: Array<Point & { id: string; appearance?: ZoneAppearance | null }> = [...posts, { id: "entry", ...stage.entry }, ...sinks, ...queues,
-      ...(stage.firstMate === null ? [] : [{ id: "firstMate", ...stage.firstMate }])];
+      ...(stage.firstMate === null ? [] : [{ id: "firstMate", ...stage.firstMate },
+        ...(stage.firstMate.asking ? [{ id: "firstMate.asking", ...stage.firstMate.asking }] : [])])];
     const [gridLeft, gridTop, gridWidth, gridHeight] = manifest.floor.grid.bounds;
 
-    it("reserves an unchanged A1 officer on visible floor, clear of posts and crowded pointer targets", () => {
-      const cast = compileCast(manifest), mate = firstMateFigure(stage, cast);
+    it.each(["wheel", "bow"])("reserves an unchanged A1 officer at the %s on visible floor, clear of posts and crowded pointer targets", (post) => {
+      const cast = compileCast(manifest), mate = firstMateFigure(stage, cast,
+        post === "bow" ? deckScene([], attentionTheme, { needsYou: attentionSnapshot() }) : undefined);
       expect(mate, "every shipped setting declares its first mate").not.toBeNull();
+      expect(manifest.firstMate?.asking, "every shipped setting declares its asking post").toBeDefined();
       if (mate === null || manifest.firstMate === undefined) return;
       const supplied = readFileSync(join(root, "docs/attention-firstmate-art/output", id, "firstmate.png"));
       expect(readFileSync(join(folder, manifest.images[manifest.firstMate.image]!.path)).equals(supplied)).toBe(true);
@@ -323,6 +328,8 @@ describe.each(packs)("the %s pack", (id) => {
       const cast = compileCast(manifest);
       const officer = firstMateFigure(stage, cast);
       if (officer !== null) fits(figureBox(officer, cast)!, "firstMate");
+      const asking = firstMateFigure(stage, cast, deckScene([], attentionTheme, { needsYou: attentionSnapshot() }));
+      if (asking !== null) fits(figureBox(asking, cast)!, "firstMate.asking");
       const fidgets = Object.values(manifest.cast.fidgets).flatMap(f => f?.keys ?? []);
       const dx = Math.max(0, ...fidgets.map(k => Math.abs(k.dx)));
       const dy = Math.max(Math.abs(cast.rise), ...fidgets.map(k => Math.abs(k.dy)));

@@ -820,13 +820,14 @@ describe("the ship deck view", () => {
   it("opens every decision indicator through the same action, preserving the server counts and revision", async () => {
     const engine = viewEngine(), open = vi.fn();
     const snapshot = attentionSnapshot([attentionRequest("w1"), attentionRequest("unassigned", "seen")]);
+    snapshot.requests[0]!.source.project = "ariadne";
     snapshot.requests[0]!.revision = 7;
     const before = structuredClone(snapshot);
     await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, needsYou: snapshot, onOpenDecision: open }), { createNodeMock: () => fakeHost() }); });
     await act(flush);
     const root = renderer!;
-    expect(text(root)).toContain("Needs you · 2 · 1 new");
-    expect(text(root)).toContain("1 more for you with the first mate at the wheel");
+    expect(text(root)).toContain("2 need you");
+    expect(text(root)).toContain("the first mate is waiting at the bow with them");
     await act(async () => engine.select?.("w1"));
     expect(open).toHaveBeenLastCalledWith({ requestId: "local:w1", homeId: snapshot.homeId, recordRevision: 7 });
     await act(async () => engine.select?.("@first-mate"));
@@ -834,7 +835,7 @@ describe("the ship deck view", () => {
     await act(async () => engine.firstMate?.({ key: "@first-mate", x: 300, top: 160, bottom: 200, width: 640, height: 300, floor: null }));
     await act(async () => root.root.findByProps({ testID: "firstmate-deck-decision-tag" }).props.onPress());
     expect(open).toHaveBeenLastCalledWith({ requestId: "local:unassigned", homeId: snapshot.homeId, recordRevision: 1 });
-    await act(async () => root.root.findByProps({ accessibilityLabel: "Needs you, 2 decisions, 1 new. Open decisions" }).props.onPress());
+    await act(async () => root.root.findByProps({ accessibilityLabel: "Answer the next" }).props.onPress());
     expect(open).toHaveBeenLastCalledWith({ requestId: "next", homeId: snapshot.homeId });
     expect(snapshot).toEqual(before); // Viewing, focus and clicking cannot acknowledge locally.
   });
@@ -844,9 +845,9 @@ describe("the ship deck view", () => {
     snapshot.actionCount = null; snapshot.newCount = null; snapshot.freshness.status = "unknown";
     await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, os: "ios", needsYou: snapshot, onOpenDecision: open })); });
     expect(engine.probes).toBe(0);
-    expect(text(renderer!)).toContain("Needs you · unavailable");
+    expect(text(renderer!)).toContain("Can't read decisions");
     expect(text(renderer!)).not.toContain("0 needs you");
-    await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Needs you, count unavailable, unavailable. FirstMate cannot confirm the backlog. The last known decisions are read-only. Open decisions" }).props.onPress());
+    await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Open decisions" }).props.onPress());
     expect(open).toHaveBeenCalledWith({ requestId: "next", homeId: snapshot.homeId });
   });
   it("labels the server's last count as stale even when no sailor carries a gate", async () => {
@@ -854,7 +855,7 @@ describe("the ship deck view", () => {
     snapshot.actionCount = 6;
     snapshot.freshness.status = "stale";
     await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine: viewEngine(), needsYou: snapshot })); });
-    expect(text(renderer!)).toContain("Needs you · 6 · stale");
+    expect(text(renderer!)).toContain("6 need you · as of");
     expect(text(renderer!)).not.toContain("0 needs you");
   });
   beforeAll(() => {

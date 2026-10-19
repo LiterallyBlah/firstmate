@@ -478,7 +478,11 @@ starts.
 ## The Deck is a scene engine drawing setting packs
 
 `first-mate@1` reserves an A1 officer at each pack's `firstMate` post; its atlas is
-never assigned to ordinary crew. `client/deck-decisions.ts` projects the daemon's
+never assigned to ordinary crew. `first-mate-asking@1` adds `firstMate.asking: { at, clearance }`:
+the officer walks along the existing floor to this bow post while workerless decisions wait,
+then returns to the wheel. Still mode snaps to the post. Both posts reserve overflow clearance;
+the pack linter checks both against the unchanged A1 atlas, routes and crowded pointer targets.
+The legend leads with the ledger total and one Answer the next action. `client/deck-decisions.ts` projects the daemon's
 needs-you gates to sailors and the officer's workerless tag, without detecting
 holds or reconstructing total counts. Placement and weather inputs are separate.
 Every decision marker uses `ShipDeckView.onOpenDecision`; see
@@ -881,7 +885,8 @@ included, are placed by the same function; a followed session is marked as follo
 **List is the default** (`crewView` in display settings). Crew and the summary Board use
 `client/task-presentation.ts`: Needs you, In hand, Later and Done. This projection never changes
 `CrewState`, `ColumnId`, report parsing, supervision or Deck placement. Only the server ledger's New
-and Seen requests populate the decision queue. It is unfiltered, labelled **Across all machines**, and
+and Seen requests populate the decision queue. It is unfiltered, with **Filters don't hide decisions**
+shown only while a host/tag filter is active, and
 ordered New first, then longest waiting with a stable id tie-break. Its count is the server's
 `actionCount`; worker cards never recompute it. Duplicate worker representations share one request,
 and a request needs no worker card. Every request opens the shared drawer at its home/id/revision.
@@ -902,16 +907,20 @@ The separate host settings document `task-layout`, version 1 (`shared/task-layou
 versus **Detailed columns**, summary order/folds and Crew's Later fold. It never migrates or writes
 `display` version 1's `columnOrder`/`collapsedColumns`; particularly, `blocked` never means Needs you.
 Existing installations start with summary defaults without a settings write. Detailed columns stays
-available for one release, through Board's toggle and Settings. `client/board.tsx` keeps its original
+available for one release, through Board's ellipsis menu and Settings. Folded summary strips retain
+the full label and count, such as **Later · 23 ›**. `client/board.tsx` keeps its original
 eight-column layout, order, folds, empty-column behaviour and Done cap. Switching back restores it.
 Invalid/newer settings display a notice and remain read-only rather than being reset.
 
-**A card at rest says whose move it is**, plus its question, next step or outcome. Failure owned by the
-first mate reads "The first mate is handling a failed run" in neutral ink. Lifecycle chips, provider/model,
-relative time, raw status lines, errors, permissions and all original actions stay in **Details**, one
-press away. Project, host and item tags remain visible. A card's accessible label includes its full
-summary even when visually clipped. Decision rows lead with the recorded question and retain their
-worker details. Contextual panels use their installation-owned drawer opener; view cards use the shared
+**A card at rest says whose move it is**, plus the worker's status line, next step or outcome.
+Reason icons distinguish failures, permissions, review, work and the next step. Failure detail uses danger
+ink; the redundant "In hand:" prefix is omitted. The first-mate group restores **waiting over 30m**,
+using the last worker update with known remote clock skew corrected and offline feeds excluded.
+Lifecycle chips, provider/model and original actions stay behind the details chevron. Project, host,
+relative time and item tags remain visible. A card's accessible label includes its full summary even
+when clipped. Compact decision rows show NEW, a one-line title, Your call, time waiting and Answer;
+six desktop rows plus their header occupy about 340 pixels. Phones retain 44-point answer targets.
+Full titles and worker details remain expandable. Contextual panels use their installation-owned drawer opener; view cards use the shared
 surface action. Drawer dismissal returns web focus to the initiating control. Deck focus cards and
 animation keep their existing presentation in this slice.
 
@@ -920,6 +929,14 @@ it never hides content or changes decision controls. `docs/needs-you/view-checks
 Crew and Board at desktop, 390 and 320 pixels, both themes, enlarged text, compact density, filters,
 legacy settings restoration, focus, retained drafts and list scroll position. These are synthetic-host
 fixture checks, not installed desktop or native-device claims.
+
+`shared/needs-you.ts` carries optional spec/notes paths and ephemeral `answerOptions` from
+`server/decision-options.ts`. Exact `For <task-id>:` suggestions bind only one unambiguous live hold;
+the answer path rechecks label, prompt, home, request and revision before its existing durable send.
+Explicit bindings remain supported. No suggestion/source file is rewritten. `client/decision-context.tsx`
+exports the ask and reading-material slots, using verified home links and a four-line/700-character
+named-draft preview. See `docs/decision-ux-lists/README.md` for the companion drawer's slot contract,
+render checks and evidence location.
 
 ## The first mate is told it lives in Paseo
 

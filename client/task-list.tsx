@@ -7,7 +7,7 @@ import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { decisionCountText } from "./needs-you-state";
 import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
-import { activeDecisions, presentedTasks, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
+import { activeDecisions, presentedTasks, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
 import { DecisionTask, DecisionQueueNote } from "./decision-tasks";
 
 export interface TaskListProps {
@@ -26,6 +26,7 @@ export interface TaskListProps {
   showLater?: boolean;
   onShowLater?(show: boolean): void;
   layoutDisabled?: boolean;
+  filtered?: boolean;
 }
 export function TaskList(props: TaskListProps) {
   const { cards, snapshot, theme, compact } = props;
@@ -57,14 +58,14 @@ export function TaskList(props: TaskListProps) {
       contentContainerStyle={{ padding: compact ? 12 : 16, gap: 18, paddingBottom: 24 }}
       automaticallyAdjustKeyboardInsets
     >
-      <View testID="task-group-needs-you" style={{ gap: 8 }}>
+      <View testID="task-group-needs-you" style={{ gap: 6 }}>
         <Text
           accessibilityRole="header"
-          style={[heading, { color: snapshot?.newCount ? theme.colors.statusWarning : theme.colors.foregroundMuted }]}
+          style={[heading, { color: snapshot?.actionCount ? theme.colors.statusWarning : theme.colors.foregroundMuted }]}
         >
           Needs you · {decisionCountText(snapshot, props.offline)}
         </Text>
-        <DecisionQueueNote theme={theme} snapshot={snapshot} offline={props.offline} />
+        <DecisionQueueNote theme={theme} snapshot={snapshot} offline={props.offline} filtered={props.filtered} />
         {requests.map((request) => (
           <DecisionTask
             key={request.id}
@@ -83,12 +84,13 @@ export function TaskList(props: TaskListProps) {
         <Text accessibilityRole="header" style={heading}>
           In hand · {tasks.filter((entry) => entry.summary.group === "in-hand").length}
         </Text>
-        {(["first-mate", "worker", "parked"] as TaskOwner[]).map((owner) => {
+        {(["first-mate", "worker", "parked", "unknown"] as TaskOwner[]).map((owner) => {
           const entries = tasks.filter((entry) => entry.summary.group === "in-hand" && entry.summary.owner === owner);
           return entries.length ? (
             <View key={owner}>
               <Text accessibilityRole="header" style={{ ...heading, fontSize: 12, paddingVertical: 8 }}>
                 {OWNER_LABELS[owner]} · {entries.length}
+                {waitingOver30Minutes(entries) ? <Text style={{ color: theme.colors.statusWarning }}> · {waitingOver30Minutes(entries)} waiting over 30m</Text> : null}
               </Text>
               {renderTasks(entries)}
             </View>

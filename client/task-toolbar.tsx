@@ -9,9 +9,9 @@ import type { HostTab } from "./host-tabs";
 import { HostHealthCard } from "./remotes";
 import { ItemTagFilter } from "./item-tags";
 import { SuggestionList } from "./suggestions";
-import { ControlTooltip } from "./ui";
+import { ControlTooltip, IconButton } from "./ui";
 
-type Panel = "machines" | "suggestions" | "tags";
+type Panel = "machines" | "suggestions" | "tags" | "board";
 
 /** One compact row above either task view; the host owns the full control dialogs. */
 export function TaskToolbar({
@@ -27,6 +27,7 @@ export function TaskToolbar({
   tagCards,
   selectedTags,
   onTagsChange,
+  boardMode,
 }: {
   theme: PluginTheme;
   tabs: readonly HostTab[];
@@ -40,6 +41,7 @@ export function TaskToolbar({
   tagCards: readonly FleetCard[];
   selectedTags: readonly string[];
   onTagsChange: (tags: string[]) => void;
+  boardMode?: { detailed: boolean; disabled: boolean; onChange(): void } | undefined;
 }) {
   const [panel, setPanel] = useState<Panel | null>(null);
   const selectedHost = tabs.find((tab) => tab.id === hostTab);
@@ -98,9 +100,12 @@ export function TaskToolbar({
           open={panel === "tags"}
           onPress={() => setPanel("tags")}
         />
+        {boardMode ? <View style={{ marginLeft: "auto" }}>
+          <IconButton theme={theme} icon="Ellipsis" label="Board options" onPress={() => setPanel("board")} />
+        </View> : null}
       </View>
       <Modal
-        title={panel === "machines" ? "Machines" : panel === "suggestions" ? "Suggestions" : "Filter tags"}
+        title={panel === "machines" ? "Machines" : panel === "suggestions" ? "Suggestions" : panel === "board" ? "Board options" : "Filter tags"}
         open={panel !== null}
         onOpenChange={(open) => {
           if (!open) setPanel(null);
@@ -177,7 +182,9 @@ export function TaskToolbar({
                 <Text style={{ color: colors.foregroundMuted }}>No tags on the shown tasks.</Text>
               )}
             </>
-          ) : null}
+          ) : panel === "board" && boardMode ? <IconButton theme={theme} icon="Columns3"
+            label={boardMode.detailed ? "Summary columns" : "Detailed columns"} showLabel disabled={boardMode.disabled}
+            onPress={() => { boardMode.onChange(); setPanel(null); }} /> : null}
         </Modal.Content>
       </Modal>
     </>

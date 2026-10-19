@@ -34,7 +34,8 @@
     "variants@1",
     "zone-appearance@1",
     "zones@1",
-    "first-mate@1"
+    "first-mate@1",
+    "first-mate-asking@1"
   ],
   "copy": {
     "pane": "Deck",
@@ -1297,14 +1298,6 @@
       {
         "id": "bow",
         "posts": [
-          {
-            "id": "bow-1",
-            "at": [
-              77,
-              230
-            ],
-            "facing": "left"
-          },
           {
             "id": "bow-2",
             "at": [
@@ -8745,6 +8738,16 @@
     "image": "firstmate-a1",
     "lane": "indigo",
     "pose": "side-idle",
-    "facing": "left"
+    "facing": "left",
+    "asking": {
+      "at": [
+        77,
+        230
+      ],
+      "clearance": [
+        22,
+        24
+      ]
+    }
   }
 }

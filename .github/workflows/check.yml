@@ -14,12 +14,15 @@ jobs:
       - run: npm ci
       - run: npm ci --prefix docs/board-list
       - run: node docs/attention-deck/render.mjs
+      - run: node docs/decision-ux-lists/render.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: deck-before-after
           path: |
             .local/attention-deck/*.png
             .local/attention-deck/results.json
+            .local/decision-ux-lists/*.png
+            .local/decision-ux-lists/results.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

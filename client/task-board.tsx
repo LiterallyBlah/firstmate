@@ -7,7 +7,7 @@ import { moveTaskColumn, orderedTaskColumns, type TaskColumn, type TaskLayout } 
 import { decisionCountText } from "./needs-you-state";
 import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
-import { activeDecisions, presentedTasks, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
+import { activeDecisions, presentedTasks, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
 import { DecisionQueueNote, DecisionTask } from "./decision-tasks";
 
 export function TaskBoard(props: {
@@ -15,6 +15,7 @@ export function TaskBoard(props: {
   allCards: readonly FleetCard[];
   snapshot?: NeedsYouSnapshot | undefined;
   offline: boolean;
+  filtered?: boolean;
   theme: PluginTheme;
   compact: boolean;
   density: BoardDensity;
@@ -74,11 +75,12 @@ export function TaskBoard(props: {
     const body =
       id === "needs-you" ? (
         <>
-          <DecisionQueueNote theme={theme} snapshot={snapshot} offline={props.offline} />
+          <DecisionQueueNote theme={theme} snapshot={snapshot} offline={props.offline} filtered={props.filtered} />
           {requests.map((request) => (
             <DecisionTask
               key={request.id}
               request={request}
+              presentation="card"
               snapshot={snapshot!}
               cards={props.allCards}
               theme={theme}
@@ -90,12 +92,13 @@ export function TaskBoard(props: {
           {count === 0 ? <Text style={{ color: ink }}>Nothing needs a decision now.</Text> : null}
         </>
       ) : id === "in-hand" ? (
-        (["first-mate", "worker", "parked"] as TaskOwner[]).map((owner) => {
+        (["first-mate", "worker", "parked", "unknown"] as TaskOwner[]).map((owner) => {
           const owned = entries.filter((entry) => entry.summary.owner === owner);
           return owned.length ? (
             <View key={owner} style={{ gap: 8 }}>
               <Text accessibilityRole="header" style={{ color: colors.foregroundMuted, fontSize: 12 }}>
                 {OWNER_LABELS[owner]} · {owned.length}
+                {waitingOver30Minutes(owned) ? <Text style={{ color: colors.statusWarning }}> · {waitingOver30Minutes(owned)} waiting over 30m</Text> : null}
               </Text>
               {renderTasks(owned)}
             </View>
@@ -135,18 +138,15 @@ export function TaskBoard(props: {
             style={{
               minHeight: 44,
               minWidth: 44,
+              ...(folded && !compact ? { width: 44, height: 180 } : {}),
               flex: compact || !folded ? 1 : undefined,
               justifyContent: "center",
               gap: 4,
             }}
           >
-            {folded && !compact ? null : (
-              <Text accessibilityRole="header" style={{ color: ink, fontSize: 14, fontWeight: "600" }}>
-                {TASK_TITLES[id]}
-              </Text>
-            )}
-            <Text style={{ color: ink, fontSize: 13 }}>
-              {count} · {folded ? "+" : "−"}
+            <Text accessibilityRole="header" style={{ color: ink, fontSize: 13, fontWeight: "600",
+              ...(folded && !compact ? { position: "absolute", width: 180, left: -68, top: 80, textAlign: "center", transform: [{ rotate: "90deg" }] } : {}) }}>
+              {TASK_TITLES[id]} · {count} {folded ? "›" : "⌄"}
             </Text>
           </Pressable>
           {folded || id === "needs-you" ? null : (
@@ -164,23 +164,7 @@ export function TaskBoard(props: {
             </>
           )}
         </View>
-        {folded ? (
-          !compact ? (
-            <Text
-              style={{
-                color: ink,
-                fontSize: 12,
-                marginTop: 40,
-                width: 140,
-                alignSelf: "center",
-                textAlign: "center",
-                transform: [{ rotate: "90deg" }],
-              }}
-            >
-              {TASK_TITLES[id]}
-            </Text>
-          ) : null
-        ) : compact ? (
+        {folded ? null : compact ? (
           <View style={{ gap: 10 }}>{body}</View>
         ) : (
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 10, paddingBottom: 8 }}>

@@ -35,7 +35,8 @@
     "zone-appearance@1",
     "zones@1",
     "cast-scale@1",
-    "first-mate@1"
+    "first-mate@1",
+    "first-mate-asking@1"
   ],
   "images": {
     "ship": {
@@ -2017,7 +2018,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            12,
+            10,
             40
           ]
         }
@@ -2038,7 +2039,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            12,
+            10,
             40
           ]
         }
@@ -2046,14 +2047,6 @@
       {
         "id": "bow",
         "posts": [
-          {
-            "id": "bow-0",
-            "at": [
-              114,
-              234
-            ],
-            "facing": "left"
-          },
           {
             "id": "bow-1",
             "at": [
@@ -2075,7 +2068,7 @@
         "overflow": {
           "kind": "beside",
           "spacing": [
-            12,
+            10,
             40
           ]
         }
@@ -5474,6 +5467,16 @@
     "image": "firstmate-a1",
     "lane": "navy",
     "pose": "side-idle",
-    "facing": "left"
+    "facing": "left",
+    "asking": {
+      "at": [
+        114,
+        234
+      ],
+      "clearance": [
+        24,
+        20
+      ]
+    }
   }
 }

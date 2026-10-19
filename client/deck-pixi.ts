@@ -56,7 +56,7 @@ import type { MotionPlan } from "./deck-ambient";
 import { clockOf, crewIntensity, deliveredWeather, levelAt, openingAtmosphere, shade, stepAtmosphere, weatherOf, type DeckAtmosphere } from "./deck-atmosphere";
 import { ASK_PAPER, ASK_SIZE, askFramePixels, askLift, askPixels, BADGE_SIZE, badgeInk, badgePixels, DOZE_GLYPH, dozeAt, hexColour } from "./deck-badges";
 import { applyCrew, createCrew, crewFigures, fading, figureScale, figureStanding, portalEffects, stepCrew, stepDepartures, type Figure } from "./deck-crew";
-import { firstMateFigure, FIRST_MATE_KEY } from "./deck-first-mate";
+import { createFirstMateMotion, moveFirstMate, FIRST_MATE_KEY } from "./deck-first-mate";
 import { boxMiddle, cameraFit, FOCUS_MS, FOCUS_VEIL_ALPHA, focusLayout, shotBetween, visibleWorld, WHOLE_DECK, type DeckShot } from "./deck-camera";
 import { askMarks, badgeTop, figureBox, hoverChanged, hoverOf, sailorAt, showsBadge, toDeck, type AskMark, type DeckFit, type DeckHover } from "./deck-hover";
 import { deckAnimator, type FrameScheduler, type MotionSignals } from "./deck-loop";
@@ -501,6 +501,7 @@ export async function startDeck(
   const textures: Textures = atlasTextures(pixi, art);
   let current = scene;
   const crew = createCrew(stage, cast, availableLooks(cast, (image) => art.images.has(image)));
+  const mateMotion = createFirstMateMotion();
   const breathRows = cast.breath?.rows ?? 0;
 
   const world = new pixi.Container();
@@ -906,7 +907,7 @@ export async function startDeck(
     }
     drawnFigures = crewFigures(crew, elapsedMs, { still: !moving });
     for (const figure of drawnFigures) figure.decisionNew = current.decisions?.byCard.get(figure.key)?.state === "new";
-    const mateFigure = firstMateFigure(stage, cast, current);
+    const mateFigure = moveFirstMate(stage, cast, mateMotion, current, stepMs, !moving);
     if (mateFigure !== null) drawnFigures.push(mateFigure);
     drawnMarks = askMarks(drawnFigures, cast);
     drawnBob = bob;
