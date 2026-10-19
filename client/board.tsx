@@ -9,6 +9,8 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type { ColumnId, FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
+import type { NeedsYouSnapshot } from "../shared/needs-you";
+import { taskPresentation } from "./task-presentation";
 import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
 import { COLUMNS, columnTone, DONE_SHOWN, doneCards, groupCards, moveColumn } from "./format";
@@ -19,6 +21,7 @@ const COLLAPSED_WIDTH = 44;
 
 export interface BoardProps {
   cards: readonly FleetCard[];
+  snapshot?: NeedsYouSnapshot | undefined;
   order: readonly ColumnId[];
   collapsed: readonly string[];
   theme: PluginTheme;
@@ -77,6 +80,8 @@ export function Board(props: BoardProps) {
       <CrewCard
         key={card.key}
         card={card}
+        summary={taskPresentation(card, props.snapshot)}
+        decisionHomeId={props.snapshot?.homeId}
         theme={theme}
         compact={compact}
         density={density}

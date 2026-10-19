@@ -59,39 +59,6 @@ export function moveColumn(
   return next;
 }
 
-export const LIST_GROUPS = [
-  { id: "needs-you", title: "Needs you" },
-  { id: "working", title: "Working" },
-  { id: "queued", title: "Queued" },
-  { id: "idle", title: "Idle / stalled" },
-  { id: "done", title: "Done" },
-] as const;
-export type ListGroupId = (typeof LIST_GROUPS)[number]["id"];
-
-/** Urgency wins over placement, including a held or permission-waiting Done item. */
-export function listGroup(card: FleetCard): ListGroupId {
-  if (
-    ["blocked", "ready", "failed"].includes(card.column) ||
-    Boolean(card.backlog?.hold?.trim()) ||
-    (card.agent?.pendingPermissions ?? card.remote?.worker?.pendingPermissions ?? 0) > 0 ||
-    card.agent?.status === "error" ||
-    card.remote?.worker?.status === "error" ||
-    card.report?.state === "needs-decision"
-  )
-    return "needs-you";
-  if (card.column === "working") return "working";
-  if (card.column === "queued") return "queued";
-  if (card.column === "done") return "done";
-  // Parked work remains visible here too, with its own state icon and status.
-  return "idle";
-}
-
-export function listGroups(cards: readonly FleetCard[]): Map<ListGroupId, FleetCard[]> {
-  const groups = new Map<ListGroupId, FleetCard[]>(LIST_GROUPS.map(({ id }) => [id, []]));
-  for (const card of cards) groups.get(listGroup(card))!.push(card);
-  return groups;
-}
-
 /** Only failing, invalid or switched-off watches draw attention in the header. */
 export function watchAttention(watches: readonly WatchSummary[]): {
   count: number;

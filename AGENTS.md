@@ -106,7 +106,7 @@ compile time. This file covers only what is specific to `firstmate`.
 | `client/keys.ts`              | Enter sends, Shift+Enter is a new line — web and wide layouts only, as in Paseo. Pure.     |
 | `client/transcript-rows.ts`   | Timeline entries → chat rows. Pure.                                                        |
 | `client/native-chat-transform.ts`, `native-chat.tsx` | Native Paseo timeline: strict FirstMate watch/board envelopes use the existing summary helpers, with a reveal-original row. |
-| `client/board.tsx`, `card.tsx`| Full-height board columns, and the shared card/row details and actions. |
+| `client/task-board.tsx`, `board.tsx`, `card.tsx`| Summary Board, legacy detailed columns, and shared card details/actions. |
 | `client/task-list.tsx`        | The default grouped List: one scroll container, Done collapsed to a count. |
 | `client/suggestions.tsx`      | The slim suggestion strip, overflow menu and full-prompt dialogs; send, expand and delete. |
 | `client/suggestion-removals.ts` | Which suggestions have a removal on its way, by label and prompt. Pure.                  |
@@ -852,47 +852,48 @@ live status alone would not explain the column. Ready came after the other seven
 `columnOrder` without it gets it at its end (`orderedColumns`). Remote workers, followed sessions
 included, are placed by the same function; a followed session is marked as followed on its card.
 
-**List is the default** (`crewView` in the display settings, defaulted even for an existing document).
-`client/task-list.tsx` groups tasks by `listGroup`/`listGroups` in `client/format.ts`: Needs you (Blocked,
-Ready, Failed, a captain hold, a permission or an error), Working (including waiting), Queued,
-Idle / stalled (Parked too), then Done. Empty groups are hidden. Each row is `CrewCard` with
-`presentation="row"`: a state icon, a one-line title at rest, project/host tags, relative time and
-the same `cardHeadline`. A full-title web tooltip goes through `webTitle`; React Native Web drops
-the `title` prop, so the web boundary sets the attribute on the forwarded DOM ref. Its accessibility
-label carries the full title and status. Pressing expands the same details and actions; they are
-siblings of the toggle button, so actions never also fold it. Card memory and drafts survive
-switching views. One `ScrollView` owns the entire list, including expanded details and Done.
-Done starts as a single count with Show, expands all tasks in place, and uses `doneCards`' date order.
+**List is the default** (`crewView` in display settings). Crew and the summary Board use
+`client/task-presentation.ts`: Needs you, In hand, Later and Done. This projection never changes
+`CrewState`, `ColumnId`, report parsing, supervision or Deck placement. Only the server ledger's New
+and Seen requests populate the decision queue. It is unfiltered, labelled **Across all machines**, and
+ordered New first, then longest waiting with a stable id tie-break. Its count is the server's
+`actionCount`; worker cards never recompute it. Duplicate worker representations share one request,
+and a request needs no worker card. Every request opens the shared drawer at its home/id/revision.
 
-The header's List/Board switch saves `crewView`. Board draws only columns with a card in them,
-folded or not (`board.tsx`), in one full-height horizontal row on wide screens, with a 300-point
-minimum width per open column and horizontal overflow. Headers and counts cannot shrink or wrap.
-There is no enclosing column box around the cards. A folded column is a 44-point strip; on phones,
-columns stack in one scrolling view. Suggestions and watches are outside both task layouts. The saved
-`columnOrder` still holds all eight. A header's arrows reorder the *shown* columns (`moveColumn` with
-`shown`): the moved column hops past any hidden neighbour to land beside the next shown one, and the
-hidden ones keep their place relative to each other, so a press always moves something on screen and
-no column's slot is lost while it is empty.
+`client/task-list.tsx` owns one `ScrollView`. Needs you comes first, then In hand grouped **With the
+first mate**, **At work** and **Parked**; Later and Done start folded to a count. Ordinary tasks obey
+host/tag filters even when the decision queue is visible. Done means a completed backlog item,
+with its outcome; worker finishes remain with the first mate for review. All completed outcomes are
+shown newest first when unfolded. Existing card memory and drafts survive view/group changes.
 
-**A card at rest is a glance.** The captain found the board too dense, so a card shows its title (two
-lines at most), its state chip — the card's `note` ("waiting", "stalled", "no worker seen") in
-the column's colour where there is one, else the agent's status — its project and host as quiet tags
-(`Tag` in `ui.tsx`), when it last moved, and **one** line from `cardHeadline` (`client/format.ts`): a remote permission waiting, else
-an error, else the captain's call (`hold`), else the status line, else what an in-flight item without a
-worker or a queued one waiting on another says. So a crewmate held for the captain reads "Captain's
-call: …" at rest and its "Done: PR …" only when open. Everything else — kind, task id, blocked-by,
-mode, since, model, the agent id, every one of those lines in full, the pull request, the report path —
-is in the open card, above its actions; the Converse drawer's ⋯ and the workspace panels open it already.
-Pressing the card is still the only way in, and its accessibility label carries the title, status,
-project, host and that one line, since the clipped text is not read out.
+`client/task-board.tsx` is the default four-column Board. Needs you is pinned first and can fold,
+retaining its amber count. In hand groups by whose move; Later and Done start folded. The last three
+columns can move. Desktop columns scroll vertically inside a horizontal board; phones stack all four
+inside one vertical scroll container. New fold/reorder controls have 44-point targets and spoken
+names, expanded states and disabled states. The List/Board switch still saves `crewView`.
 
-Board cards keep their border, including in a light theme; open columns have no enclosing box.
-Board's **Done** shows `DONE_SHOWN` cards, newest first by
-the date in the backlog line's outcome or since (`doneCards`), then the agent's `updatedAt`, with
-undated ones last in file order — the backlog's own order says nothing about recency — and a **Show
-all** that is kept in module scope like the rest of the surface. **Card spacing** (`density` in the
-display settings, Settings › Plugins › FirstMate) is Comfortable or Compact and changes padding, gaps
-and the title's size only, never what a card shows.
+The separate host settings document `task-layout`, version 1 (`shared/task-layout.ts`), owns summary
+versus **Detailed columns**, summary order/folds and Crew's Later fold. It never migrates or writes
+`display` version 1's `columnOrder`/`collapsedColumns`; particularly, `blocked` never means Needs you.
+Existing installations start with summary defaults without a settings write. Detailed columns stays
+available for one release, through Board's toggle and Settings. `client/board.tsx` keeps its original
+eight-column layout, order, folds, empty-column behaviour and Done cap. Switching back restores it.
+Invalid/newer settings display a notice and remain read-only rather than being reset.
+
+**A card at rest says whose move it is**, plus its question, next step or outcome. Failure owned by the
+first mate reads "The first mate is handling a failed run" in neutral ink. Lifecycle chips, provider/model,
+relative time, raw status lines, errors, permissions and all original actions stay in **Details**, one
+press away. Project, host and item tags remain visible. A card's accessible label includes its full
+summary even when visually clipped. Decision rows lead with the recorded question and retain their
+worker details. Contextual panels use their installation-owned drawer opener; view cards use the shared
+surface action. Drawer dismissal returns web focus to the initiating control. Deck focus cards and
+animation keep their existing presentation in this slice.
+
+**Card spacing** (`density` in display settings) still changes ordinary-card padding and title size;
+it never hides content or changes decision controls. `docs/needs-you/view-checks.mjs` exercises real
+Crew and Board at desktop, 390 and 320 pixels, both themes, enlarged text, compact density, filters,
+legacy settings restoration, focus, retained drafts and list scroll position. These are synthetic-host
+fixture checks, not installed desktop or native-device claims.
 
 ## The first mate is told it lives in Paseo
 

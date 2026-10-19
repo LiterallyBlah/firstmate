@@ -51,7 +51,7 @@ import { ConverseDrawer } from "./converse";
 import { DRAWER_WIDTH, converseKey, conversingWith, converseTarget, drawerDocks } from "./converse-layout";
 import { answeredReplies, replyBlockedText } from "./deck-replies";
 import { deckOffered } from "./deck-scene";
-import { agentStatusLabel, agentStatusTone, groupCards, orderedColumns, revealFilesPatch, shortPath } from "./format";
+import { agentStatusLabel, agentStatusTone, orderedColumns, revealFilesPatch, shortPath } from "./format";
 import { LaunchPanel } from "./launch";
 import { HeaderActions } from "./header-actions";
 import { useMateSender } from "./mate-send";
@@ -74,6 +74,10 @@ import { NeedsYouIndicator } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
 import { useOpenDecision } from "./decision-action";
 import { activeCrewCount } from "./screen";
+import { TaskBoard } from "./task-board";
+import { useTaskLayout } from "./task-layout";
+import { taskPresentation } from "./task-presentation";
+import { DecisionButton } from "./decision-drawer";
 
 export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
@@ -111,7 +115,11 @@ type FleetSurfaceProps = PluginScreenProps & {
 /** A key makes even host/workspace prop changes start from that destination's own view state. */
 export function FleetSurface(props: FleetSurfaceProps) {
   const key = JSON.stringify([props.host?.id, props.workspaceId, props.view ?? "home"]);
-  return <DecisionSurface key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}><FleetViewBody {...props} stateKey={key} /></DecisionSurface>;
+  return (
+    <DecisionSurface key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
+      <FleetViewBody {...props} stateKey={key} />
+    </DecisionSurface>
+  );
 }
 
 function FleetViewBody({
@@ -136,6 +144,7 @@ function FleetViewBody({
   const toast = useToast();
   const queryClient = useQueryClient();
   const display = useSettings(displaySettings);
+  const taskLayout = useTaskLayout();
   const saved = display.status === "ready" ? display.values : DEFAULT_DISPLAY;
 
   /** Drawn at once and saved behind, so a fold or a drag never waits on a round trip. */
@@ -156,7 +165,9 @@ function FleetViewBody({
   const fleet = useFleet(values.pollSeconds);
   const decisions = useNeedsYou();
   const openDecision = useOpenDecision();
-  const attention = <NeedsYouIndicator theme={theme} snapshot={decisions.data} offline={decisions.error !== null} compact={compact} />;
+  const attention = (
+    <NeedsYouIndicator theme={theme} snapshot={decisions.data} offline={decisions.error !== null} compact={compact} />
+  );
   const data = fleet.data ?? null;
   const homeWorkspaceId = homeWorkspace(data);
   const crewView = home ? values.crewView : view === "crew" ? "list" : "board";
@@ -278,16 +289,6 @@ function FleetViewBody({
   }
 
   const order = orderedColumns(values.columnOrder);
-  const counts = useMemo(() => {
-    const groups = groupCards(data?.cards ?? []);
-    return {
-      working: groups.get("working")?.length ?? 0,
-      blocked: groups.get("blocked")?.length ?? 0,
-      queued: groups.get("queued")?.length ?? 0,
-      done: groups.get("done")?.length ?? 0,
-    };
-  }, [data]);
-
   const styles = useMemo(() => {
     const { colors } = theme;
     return {
@@ -512,6 +513,16 @@ function FleetViewBody({
       />,
     );
   }
+  if (mate !== null && (mate.status === "error" || mate.status === "closed")) {
+    banners.push(
+      <Banner
+        key="mate-unavailable"
+        theme={theme}
+        tone="info"
+        text="The first mate is unavailable; its reviews and recovery work are waiting."
+      />,
+    );
+  }
   if ((data?.homeGuests?.length ?? 0) > 0) {
     const guests = data!.homeGuests!;
     banners.push(
@@ -580,8 +591,13 @@ function FleetViewBody({
 
   if (!home && view !== "chat" && (data === null || homeWorkspaceId === null || workspaceId !== homeWorkspaceId)) {
     return (
-      <View style={[styles.screen, { padding: 16, gap: 12 }]} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
-        <Text accessibilityRole="header" style={styles.title}>{FLEET_PANELS[view].title}</Text>
+      <View
+        style={[styles.screen, { padding: 16, gap: 12 }]}
+        onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+      >
+        <Text accessibilityRole="header" style={styles.title}>
+          {FLEET_PANELS[view].title}
+        </Text>
         {attention}
         <Text style={styles.meta}>
           {data === null
@@ -617,10 +633,8 @@ function FleetViewBody({
       <Text style={[styles.meta, { flexShrink: 1, fontSize: compact ? 11 : 12 }]} numberOfLines={1}>
         {[
           activeCrewCount(data.cards) + " in hand",
-          counts.working + " working",
-          counts.blocked + " blocked",
-          counts.queued + " queued",
-          counts.done + " done",
+          data.cards.filter((card) => taskPresentation(card, decisions.data).group === "later").length + " later",
+          data.cards.filter((card) => taskPresentation(card, decisions.data).group === "done").length + " done",
         ].join(" · ")}
       </Text>
     );
@@ -714,7 +728,14 @@ function FleetViewBody({
 
   const tabs = hostTabs(data.cards, remoteHosts);
   const hostCards = data.cards.filter((card) => onTab(card, hostTab));
-  const tagCards = tagScopeCards(hostCards, crewView === "list" ? showDone : !values.collapsedColumns.includes("done"));
+  const tagCards = tagScopeCards(
+    hostCards,
+    crewView === "list"
+      ? showDone
+      : taskLayout.values.mode === "detailed"
+        ? !values.collapsedColumns.includes("done")
+        : !taskLayout.values.collapsed.includes("done"),
+  );
   const filteredCards = hostCards.filter((card) => matchesTags(card, values.tagFilter));
   const board = (
     <View style={{ flex: 1, minHeight: 0 }}>
@@ -732,13 +753,35 @@ function FleetViewBody({
         selectedTags={values.tagFilter}
         onTagsChange={(tagFilter) => save({ tagFilter })}
       />
+      {taskLayout.invalid ? (
+        <Text accessibilityRole="alert" style={{ color: theme.colors.foregroundMuted, padding: 12 }}>
+          Task layout settings could not be read. Saved settings have not been changed.
+        </Text>
+      ) : null}
+      {crewView === "board" ? (
+        <View style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
+          <DecisionButton
+            theme={theme}
+            label={taskLayout.values.mode === "summary" ? "Detailed columns" : "Summary columns"}
+            disabled={taskLayout.disabled}
+            onPress={() => taskLayout.save({ mode: taskLayout.values.mode === "summary" ? "detailed" : "summary" })}
+          />
+        </View>
+      ) : null}
       {hostCards.length > 0 && filteredCards.length === 0 ? (
         <Text style={{ color: theme.colors.foregroundMuted, padding: 12 }}>
           No items match the selected tags on this host.
         </Text>
-      ) : crewView === "list" ? (
+      ) : null}
+      {crewView === "list" ? (
         <TaskList
           cards={filteredCards}
+          allCards={data.cards}
+          snapshot={decisions.data}
+          offline={decisions.error !== null}
+          showLater={!taskLayout.values.laterCollapsed}
+          onShowLater={(show) => taskLayout.save({ laterCollapsed: !show })}
+          layoutDisabled={taskLayout.disabled}
           theme={theme}
           compact={compact}
           density={values.density}
@@ -751,9 +794,26 @@ function FleetViewBody({
             setShowDone(next);
           }}
         />
+      ) : taskLayout.values.mode === "summary" ? (
+        <TaskBoard
+          cards={filteredCards}
+          allCards={data.cards}
+          snapshot={decisions.data}
+          offline={decisions.error !== null}
+          theme={theme}
+          compact={compact}
+          density={values.density}
+          conversing={watching}
+          onConverse={setWatching}
+          onChanged={refresh}
+          layout={taskLayout.values}
+          onLayout={taskLayout.save}
+          layoutDisabled={taskLayout.disabled}
+        />
       ) : (
         <Board
           cards={filteredCards}
+          snapshot={decisions.data}
           order={order}
           collapsed={values.collapsedColumns}
           theme={theme}
@@ -793,7 +853,9 @@ function FleetViewBody({
       <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Text accessibilityRole="header" style={styles.title}>FirstMate · Chat</Text>
+            <Text accessibilityRole="header" style={styles.title}>
+              FirstMate · Chat
+            </Text>
             {compact ? null : attention}
             {mateStatus}
             <View style={styles.spacer} />
@@ -830,7 +892,15 @@ function FleetViewBody({
   // The list or board stays mounted under a drawer that covers it, so closing the drawer finds it scrolled where it was.
   const conversation =
     watching === null || watchedTarget === null ? null : (
-      <View style={docked ? { width: DRAWER_WIDTH, flexShrink: 0 } : onDeck ? { position: "absolute", inset: 0, zIndex: 2, backgroundColor: theme.colors.surface0 } : { flex: 1, minWidth: 0 }}>
+      <View
+        style={
+          docked
+            ? { width: DRAWER_WIDTH, flexShrink: 0 }
+            : onDeck
+              ? { position: "absolute", inset: 0, zIndex: 2, backgroundColor: theme.colors.surface0 }
+              : { flex: 1, minWidth: 0 }
+        }
+      >
         <ConverseDrawer
           key={watching}
           watchKey={watching}
@@ -907,7 +977,9 @@ function FleetViewBody({
         {...webAttributes({ inert: covered ? "" : null })}
         pointerEvents={covered ? "none" : "auto"}
         style={{ flex: 1, minWidth: 0 }}
-      >{deckScene}</View>
+      >
+        {deckScene}
+      </View>
       {conversation}
     </View>
   );
@@ -917,7 +989,9 @@ function FleetViewBody({
       <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Text accessibilityRole="header" style={styles.title}>{FLEET_PANELS[view].title}</Text>
+            <Text accessibilityRole="header" style={styles.title}>
+              {FLEET_PANELS[view].title}
+            </Text>
             {compact ? null : attention}
             <View style={styles.spacer} />
             {view === "deck" && deck ? <DeckSceneSwitcher theme={theme} compact={compact || width < 900} /> : null}
@@ -929,6 +1003,13 @@ function FleetViewBody({
           {compact ? attention : null}
         </View>
         {fleet.error === null ? null : <Banner theme={theme} tone="danger" text={errorText(fleet.error)} />}
+        {mate.status === "error" || mate.status === "closed" ? (
+          <Banner
+            theme={theme}
+            tone="info"
+            text="The first mate is unavailable; its reviews and recovery work are waiting."
+          />
+        ) : null}
         {mate.pendingPermissions === 0 ? null : (
           <Banner
             theme={theme}

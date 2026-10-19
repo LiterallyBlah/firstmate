@@ -77,6 +77,7 @@ import { findHomeFiles, listHomeFiles, readHomeFile, writeHomeFile } from "./sha
 import { startWatches } from "./server/watch-service";
 import { createWatch, configureWatch, watchOptions, watchHistory } from "./shared/watch-routing";
 import { displaySettings } from "./shared/settings";
+import { taskLayoutSettings } from "./shared/task-layout";
 import { editItemTag } from "./shared/item-tags";
 import { readItemThread, sendItemThread } from "./shared/item-threads";
 import { readThread, sendThread } from "./server/item-threads";
@@ -296,6 +297,7 @@ export default function contribute(server: PluginServerContext) {
   // Storage lives on the host; registering the definition is what makes the
   // board's `useSettings` reads and writes valid for this installation.
   server.registerSettings(displaySettings);
+  server.registerSettings(taskLayoutSettings);
 
   // The receipt journal's read-only timeline pages; refused while FIRSTMATE_RECEIPT_JOURNAL is off. See server/receipts.ts.
   server.handle(pageReceiptTimeline, async (input, { paseo }) => pageTimeline(paseo, await readFirstmateConfig(), input));
