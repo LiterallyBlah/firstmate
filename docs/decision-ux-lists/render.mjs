@@ -24,7 +24,7 @@ const server = createServer(async (req, res) => {
   else res.end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body,#root{margin:0;width:100%;height:100%;overflow:hidden}body{font-family:Segoe UI,sans-serif;background:#151915}#root{display:flex;flex-direction:column}*{box-sizing:border-box}</style><div id="root"></div><script src="/${req.url.includes("context") ? "context" : "views"}.js"></script>`);
 });
 await new Promise(done => server.listen(0, "127.0.0.1", done));
-const browser = await chromium.launch({ channel: process.platform === "win32" && !process.env.CI ? "msedge" : "chromium", headless: true });
+const browser = await chromium.launch({ channel: process.platform === "win32" ? "msedge" : "chromium", headless: true });
 const errors = [], results = [], base = `http://127.0.0.1:${server.address().port}`;
 try {
   for (const view of ["crew", "board"]) for (const width of [1440, 390, 320]) for (const light of [false, true]) {
