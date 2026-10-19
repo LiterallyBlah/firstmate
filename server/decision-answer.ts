@@ -108,6 +108,8 @@ export async function answerDecision(
             ask: request.source.ask,
             url: request.source.url,
             report: request.source.reportPath,
+            ...(request.source.specPath ? { spec: request.source.specPath } : {}),
+            ...(request.source.notesPath ? { notes: request.source.notesPath } : {}),
           }),
           answer: input.text,
         });

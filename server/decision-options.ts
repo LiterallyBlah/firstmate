@@ -18,6 +18,7 @@ export function decisionAnswerOptions(snapshot: NeedsYouSnapshot, suggestions: r
       : taskId ? live.filter(r => r.source.taskId === taskId) : [];
     // Task ids may repeat across projects/machines. Never guess at that ambiguity.
     if (matches.length !== 1 || (!suggestion.decision && snapshot.parked.some(s => s.taskId === taskId))) continue;
+    if (!suggestion.decision && snapshot.quarantined?.some(row => row.hasHold && (row.taskId === null || row.taskId === taskId))) continue;
     const request = matches[0]!;
     if (!["new", "seen", "snoozed"].includes(request.state) ||
         quarantinesSource(snapshot.quarantined ?? [], request.source)) continue;

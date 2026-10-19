@@ -264,7 +264,7 @@ it("binds a task prefix on read, sends the exact prompt only on press, and dedup
   expect((await service.read()).answerOptions).toEqual([]);
 });
 
-it.each(["prompt", "label", "removed", "hold", "ambiguous", "duplicate", "quarantined"])(
+it.each(["prompt", "label", "removed", "hold", "ambiguous", "duplicate", "quarantined", "ambiguous-quarantine"])(
   "rejects a task-prefixed option when its %s changed before the press",
   async kind => {
     const prompt = "For task: Use the cautious option.";
@@ -274,6 +274,9 @@ it.each(["prompt", "label", "removed", "hold", "ambiguous", "duplicate", "quaran
     if (kind === "hold") { await writeFile(join(home, "data", "backlog.md"), backlog("Choose another direction?")); await settle(); }
     else if (kind === "ambiguous") {
       await writeFile(join(home, "data", "backlog.md"), backlog().replace("## Queued", "- [ ] task - Another task (project: elsewhere) (hold: Another call)\n## Queued"));
+      await settle();
+    } else if (kind === "ambiguous-quarantine") {
+      await writeFile(join(home, "data", "backlog.md"), backlog().replace("## Queued", "- [ ] task - Another task (project: elsewhere) (hold: Choose (A)?)\n## Queued"));
       await settle();
     } else if (kind === "quarantined") {
       await writeFile(join(home, "data", "backlog.md"), backlog().replace("(agent: worker-id)", "(hold: duplicate)"));
