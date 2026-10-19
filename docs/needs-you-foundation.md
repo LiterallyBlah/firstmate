@@ -58,6 +58,13 @@ home gets a separate namespace. Mate/provider/worker replacement is absent
 from identity. Known remote aliases resolve through the existing host resolver;
 an unavailable remote worker does not remove its locally recorded hold.
 
+Configured path aliases are recorded atomically in the same ledger. On restart
+with a missing home, recovery searches those durable aliases rather than hashing
+an unresolved path. This preserves identity through Windows short-name paths and
+junctions even when `realpath` can no longer resolve the home. Recovery never
+creates a namespace or resolves a gate. Ambiguous reused aliases or unreadable
+recovery metadata leave counts unknown; a readable match remains stale.
+
 Within a home, source identity is host/project/task, matching the scope of item
 tags. A request ID additionally contains its generation. Monotonic record
 revisions bind acknowledgements and answer submissions. Whitespace, case and
@@ -115,13 +122,13 @@ source and ledger before committing. Stale sources, wrong homes, resolved gates
 and outdated revisions are refused. Reads, navigation and native attention clears
 never acknowledge these gates.
 
-| RPC suffix under `firstmate.needs-you` | Additional input                            |
-| -------------------------------------- | ------------------------------------------- | -------- | ------- |
-| `read`                                 | No target; input `{}`                       |
-| `seen`                                 | None                                        |
-| `snooze`                               | `until`: absolute future epoch milliseconds |
-| `unsnooze`                             | None                                        |
-| `record-answer`                        | `submissionId`, `outcome`: `uncertain       | accepted | failed` |
+| RPC suffix under `firstmate.needs-you` | Additional input                                               |
+| -------------------------------------- | -------------------------------------------------------------- |
+| `read`                                 | No target; input `{}`                                          |
+| `seen`                                 | None                                                           |
+| `snooze`                               | `until`: absolute future epoch milliseconds                    |
+| `unsnooze`                             | None                                                           |
+| `record-answer`                        | `submissionId`, `outcome`: `uncertain`, `accepted` or `failed` |
 
 `record-answer` records an explicit submission/outcome; it **does not send any
 message or perform an approval**. The later authorized send path can reserve an

@@ -18,6 +18,8 @@ export const NeedsYouLedgerSchema = z
     schema: z.literal(1),
     homeId: z.string().min(1),
     canonicalHome: z.string().min(1),
+    // Paths actually observed resolving to this identity, including Windows 8.3 aliases.
+    homeAliases: z.array(z.string().min(1)).default([]),
     version: z.number().int().nonnegative(),
     initializedAt: z.number().int().nonnegative().nullable(),
     observedAt: z.number().int().nonnegative().nullable(),
@@ -87,6 +89,7 @@ export function emptyLedger(
     schema: 1,
     homeId,
     canonicalHome,
+    homeAliases: [],
     version: 0,
     initializedAt: null,
     observedAt: null,

@@ -17,6 +17,7 @@ import {
   canonicalDecisionHome,
   NeedsYouStore,
   normalizedHome,
+  recoverDecisionHome,
 } from "./needs-you-store";
 import { serialized } from "./serialize";
 import { resolveHome } from "./config";
@@ -262,12 +263,18 @@ export class NeedsYouService {
     catalog: HostCatalog,
   ): Promise<NeedsYouSnapshot> {
     let canonical: string;
+    let observedAlias: string | undefined;
     try {
       canonical = await canonicalDecisionHome(home);
-      this.aliases.set(normalizedHome(home), canonical);
+      observedAlias = normalizedHome(home);
+      this.aliases.set(observedAlias, canonical);
     } catch {
-      canonical =
-        this.aliases.get(normalizedHome(home)) ?? normalizedHome(home);
+      const recovered =
+        this.aliases.get(normalizedHome(home)) ??
+        (await recoverDecisionHome(this.options.root, home));
+      if (recovered === null)
+        return this.unavailable("unknown", ["FirstMate home is unavailable."]);
+      canonical = recovered;
       const known = this.states.get(canonical);
       if (!known) {
         // Read an existing ledger even when the canonical directory disappeared across restart.
@@ -338,7 +345,7 @@ export class NeedsYouService {
         return stable && problems.length === 0
           ? reconcileNeedsYou(previous, detection, now)
           : previous;
-      });
+      }, observedAlias);
       const fresh = stable && problems.length === 0;
       state.snapshot = needsYouSnapshot(ledger, {
         status: fresh

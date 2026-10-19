@@ -83,6 +83,13 @@ function target(snapshot: NeedsYouSnapshot) {
 async function ledgerPath() {
   return join(root, (await readdir(root))[0]!, "ledger.json");
 }
+function barrier() {
+  let release!: () => void;
+  const promise = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return { promise, release };
+}
 
 describe("service persistence and observation", () => {
   it("requires stable reads, silently baselines, and leaves every authored byte unchanged", async () => {
@@ -308,6 +315,116 @@ describe("service persistence and observation", () => {
     });
   });
 
+  it.each(["parent", "home"])(
+    "recovers the durable identity when a %s path alias disappears across restart",
+    async (aliasKind) => {
+      const parent = join(scratch, "canonical-parent");
+      await mkdir(parent);
+      const actual = join(parent, "home");
+      await rename(home, actual);
+      const alias = join(scratch, "alias");
+      await symlink(
+        aliasKind === "parent" ? parent : actual,
+        alias,
+        process.platform === "win32" ? "junction" : "dir",
+      );
+      const configured = aliasKind === "parent" ? join(alias, "home") : alias;
+      const instance = service({ home: async () => configured });
+      const before = await settle(instance);
+      const path = await ledgerPath();
+      const bytes = await readFile(path, "utf8");
+      await instance.stop();
+      await rename(actual, join(parent, "moved-home"));
+      const restarted = service({ home: async () => configured });
+      expect(await restarted.read()).toMatchObject({
+        homeId: before.homeId,
+        version: before.version,
+        actionCount: 1,
+        requests: before.requests,
+        freshness: { status: "stale" },
+      });
+      expect(await readFile(path, "utf8")).toBe(bytes);
+      expect(await readdir(root)).toHaveLength(1);
+    },
+  );
+
+  it("does not select an old identity when a missing alias has referred to two homes", async () => {
+    const alias = join(scratch, "alias");
+    const linkType = process.platform === "win32" ? "junction" : "dir";
+    await symlink(home, alias, linkType);
+    const first = await settle(service({ home: async () => alias }));
+    await rm(alias);
+    const other = join(scratch, "other-home");
+    await mkdir(join(other, "data"), { recursive: true });
+    await writeFile(join(other, "data", "backlog.md"), document());
+    await symlink(other, alias, linkType);
+    const second = await settle(service({ home: async () => alias }));
+    expect(second.homeId).not.toBe(first.homeId);
+    await rm(alias);
+    const paths = (await readdir(root)).map((entry) =>
+      join(root, entry, "ledger.json"),
+    );
+    const before = await Promise.all(
+      paths.map((path) => readFile(path, "utf8")),
+    );
+    expect(await service({ home: async () => alias }).read()).toMatchObject({
+      homeId: null,
+      actionCount: null,
+      freshness: { status: "unknown" },
+    });
+    expect(
+      await Promise.all(paths.map((path) => readFile(path, "utf8"))),
+    ).toEqual(before);
+  });
+
+  it("never initializes a ledger for an unobserved missing home", async () => {
+    expect(
+      await service({ home: async () => join(scratch, "absent") }).read(),
+    ).toMatchObject({
+      homeId: null,
+      actionCount: null,
+      freshness: { status: "unknown" },
+    });
+    await expect(readdir(root)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("keeps fleet observation available when recovery storage cannot be listed", async () => {
+    await writeFile(root, "not a directory");
+    await rename(home, join(scratch, "moved-home"));
+    expect(
+      await service().observe(
+        home,
+        { markdown: null, problem: "missing" },
+        null,
+      ),
+    ).toMatchObject({
+      homeId: null,
+      actionCount: null,
+      freshness: { status: "unknown" },
+    });
+    expect(await readFile(root, "utf8")).toBe("not a directory");
+  });
+
+  it.each(["missing", "corrupt"])(
+    "does not replace a %s ledger when recovering an absent home",
+    async (damage) => {
+      await settle(service());
+      const path = await ledgerPath();
+      if (damage === "missing") await rm(path);
+      else await writeFile(path, "{broken");
+      await rename(home, join(scratch, "moved-home"));
+      expect(await service().read()).toMatchObject({
+        homeId: null,
+        actionCount: null,
+        freshness: { status: "unknown" },
+      });
+      expect(await readdir(root)).toHaveLength(1);
+      if (damage === "missing")
+        await expect(readFile(path)).rejects.toMatchObject({ code: "ENOENT" });
+      else expect(await readFile(path, "utf8")).toBe("{broken");
+    },
+  );
+
   it("does not write unchanged polls, and two clients cannot lose each other's acknowledgements", async () => {
     const writer = vi.fn(writeDecisionLedger);
     const instance = service({
@@ -326,24 +443,79 @@ describe("service persistence and observation", () => {
     expect(writer).toHaveBeenCalledTimes(writes + 1);
   });
 
-  it("serializes multiple service/store callers for the same home", async () => {
-    const first = service();
-    const second = service();
-    await Promise.all([first.read(), second.read()]);
-    now += 2000;
-    const [a, b] = await Promise.all([first.read(), second.read()]);
-    expect(a.homeId).toBe(b.homeId);
-    const [seen, snoozed] = await Promise.all([
-      first.mutate(target(a), { kind: "seen" }),
-      second.mutate(target(b), { kind: "snooze", until: 10000 }),
-    ]);
-    const persisted = await first.read();
-    expect(persisted.requests[0]).toMatchObject({
-      state: "snoozed",
-      seenAt: now,
-    });
-    expect(snoozed.version).toBeGreaterThan(seen.version);
-  });
+  it.each(["seen", "snooze"] as const)(
+    "serializes concurrent service/store callers when %s reaches the commit first",
+    async (leadingKind) => {
+      const committing = barrier();
+      const releaseCommit = barrier();
+      const queued = barrier();
+      let holdNextCommit = false;
+      let holding = false;
+      const writer = vi.fn(
+        async (...args: Parameters<typeof writeDecisionLedger>) => {
+          if (holdNextCommit) {
+            holdNextCommit = false;
+            holding = true;
+            committing.release();
+            await releaseCommit.promise;
+            holding = false;
+          }
+          await writeDecisionLedger(...args);
+        },
+      );
+      const store = (root: string, home: string) => {
+        const instance = new NeedsYouStore(root, home, writer);
+        const transact = instance.transact.bind(instance);
+        instance.transact = (...args) => {
+          if (holding) queued.release();
+          return transact(...args);
+        };
+        return instance;
+      };
+      const first = service({ store });
+      const second = service({ store });
+      await Promise.all([first.read(), second.read()]);
+      now += 2000;
+      const [a, b] = await Promise.all([first.read(), second.read()]);
+      expect(a.homeId).toBe(b.homeId);
+      const leadingMutation =
+        leadingKind === "seen"
+          ? { kind: "seen" as const }
+          : { kind: "snooze" as const, until: 10000 };
+      const followingMutation =
+        leadingKind === "seen"
+          ? { kind: "snooze" as const, until: 10000 }
+          : { kind: "seen" as const };
+      const writes = writer.mock.calls.length;
+      holdNextCommit = true;
+      const leading = first.mutate(target(a), leadingMutation);
+      await committing.promise;
+      const following = second.mutate(target(b), followingMutation);
+      try {
+        // The second service reaches the shared store while the first commit holds its lock.
+        await queued.promise;
+        expect(writer).toHaveBeenCalledTimes(writes + 1);
+      } finally {
+        releaseCommit.release();
+      }
+      const [earlier, later] = await Promise.all([leading, following]);
+      expect(earlier.version).toBe(a.version + 1);
+      expect(later.version).toBe(earlier.version + 1);
+      const persisted = await service().read();
+      expect(persisted.version).toBe(later.version);
+      expect(persisted.requests[0]).toMatchObject({
+        state: "snoozed",
+        seenAt: now,
+        snoozedUntil: 10000,
+      });
+      const ledger = JSON.parse(await readFile(await ledgerPath(), "utf8"));
+      expect(
+        ledger.outbox.map((event: { kind: string }) => event.kind),
+      ).toEqual(
+        leadingKind === "seen" ? ["seen", "snoozed"] : ["snoozed", "seen"],
+      );
+    },
+  );
 
   it("fails closed on corrupt or lost ledger files, including after restart", async () => {
     const instance = service();
