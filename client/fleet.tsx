@@ -72,6 +72,7 @@ import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 import { DecisionSurface } from "./decision-surface";
 import { NeedsYouIndicator } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
+import { useOpenDecision } from "./decision-action";
 import { activeCrewCount } from "./screen";
 
 export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
@@ -154,6 +155,7 @@ function FleetViewBody({
 
   const fleet = useFleet(values.pollSeconds);
   const decisions = useNeedsYou();
+  const openDecision = useOpenDecision();
   const attention = <NeedsYouIndicator theme={theme} snapshot={decisions.data} offline={decisions.error !== null} compact={compact} />;
   const data = fleet.data ?? null;
   const homeWorkspaceId = homeWorkspace(data);
@@ -857,8 +859,10 @@ function FleetViewBody({
 
   const deckScene = (
     <SelectedDeckView
-      needsYou={data.needsYou}
-      onOpenDecision={shell?.openDecision}
+      needsYou={decisions.error && decisions.data
+        ? { ...decisions.data, freshness: { ...decisions.data.freshness, status: "stale" } }
+        : decisions.data ?? data.needsYou}
+      onOpenDecision={openDecision}
       conversationOpen={watching !== null}
       captionActions={home ? <DeckSceneSwitcher theme={theme} compact={compact || paneWidth < 638} /> : null}
       setting={values.deckSetting}

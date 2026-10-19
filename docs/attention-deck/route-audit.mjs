@@ -11,7 +11,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const out = join(root, ".local/attention-deck/routes");
 mkdirSync(out, { recursive: true });
 const { build } = createRequire(join(root, "docs/board-list/package.json"))("esbuild");
-const refs = { main: "2519564", original: "9698749", fixed: null };
+const refs = { main: "2519564", original: "823d309", fixed: null }; // Original PR replayed onto #120; same routing and packs.
 const read = (ref, path) => ref === null ? readFileSync(join(root, path), "utf8")
   : execFileSync("git", ["show", `${ref}:${path}`], { cwd: root, encoding: "utf8", maxBuffer: 10_000_000 });
 const versions = {};

@@ -40,18 +40,16 @@ retain their 24 distinct and reachable workers in every state.
 
 ## Shared drawer integration
 
-`ShipDeckView.onOpenDecision(decision: string | "next")` is the single action for
+`ShipDeckView.onOpenDecision` uses the shared `OpenDecision` contract for
 the held worker's figure/badge, focus-panel Answer, officer figure/tag, total and
-legend links. It passes a stable ledger ID and lets the shared drawer reread its
+legend links. It passes the ledger request ID, home and displayed revision; a
+queue opener passes `requestId: "next"` and the home. The shared drawer rereads the
 current revision. The Deck neither marks Seen nor sends answers on its own.
 
-**Pending parallel integration:** `FleetSurface` currently passes
-`onOpenDecision={shell?.openDecision}`. The clearly marked adapter in
-`workspace-panels.tsx` uses the agreed public Home route
-`openScreen({ screenId: "fleet", params: { decision } })`. The drawer itself is
-being delivered separately. Once its in-place action lands, replace this one prop
-with `onOpenDecision={openDecision}`. No other Deck indicator needs rewiring.
-The native/compact availability policy is unchanged.
+`FleetSurface` passes `onOpenDecision={openDecision}` from `useOpenDecision` under
+the shared `DecisionSurface` added in #120. Markers open that drawer in place and
+read the same needs-you query as the drawer. The temporary Home-navigation adapter
+is removed. The native/compact availability policy is unchanged.
 
 ## Verification and screenshots
 
@@ -72,6 +70,10 @@ byte. These are browser fixture checks, not an installed Paseo or native test.
 All captures remain under ignored `.local/attention-deck/`. The Windows
 `deck-review` CI job attaches all eight PNGs plus `results.json` as the
 `deck-before-after` artifact, retained for 30 days and linked from the PR.
+The same harness renders the real `FleetSurface` and checks that the bow badge,
+first-mate tag and legend open the shared drawer on the expected title and question,
+without navigation or ledger mutations. It attaches `drawer-bow.png`,
+`drawer-first-mate.png` and `drawer-legend.png` as additional review evidence.
 
 The Ghost ship timeout investigation, main/PR measurements and deterministic route-work limits
 are in [routing-review.md](routing-review.md). `node docs/attention-deck/route-audit.mjs` reproduces

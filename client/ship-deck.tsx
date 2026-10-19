@@ -34,7 +34,8 @@
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { DECK_MOVE_WORDS, type OpenDeckDecision } from "./deck-decisions";
+import { DECK_MOVE_WORDS, deckDecisionDestination } from "./deck-decisions";
+import type { OpenDecision } from "./decision-action";
 import { FIRST_MATE_KEY } from "./deck-first-mate";
 import { useRpc } from "@getpaseo/plugin/client";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
@@ -226,7 +227,7 @@ function DeckView({
   onOpenDecision,
 }: {
   needsYou?: NeedsYouSnapshot | undefined;
-  onOpenDecision?: OpenDeckDecision | undefined;
+  onOpenDecision?: OpenDecision | undefined;
   cards: readonly FleetCard[];
   theme: PluginTheme;
   /**
@@ -309,7 +310,7 @@ function DeckView({
     if (decisionOpener.current === undefined || (decision === undefined && key !== FIRST_MATE_KEY)) return false;
     setFocused(null);
     setSuggestionsOpen(false);
-    decisionOpener.current(decision?.id ?? "next");
+    decisionOpener.current(deckDecisionDestination(decisions?.snapshot, decision?.id ?? "next"));
     return true;
   };
   const focusedRef = useRef(focused);
@@ -532,7 +533,7 @@ function DeckView({
         {captionActions ? <View style={{ marginLeft: "auto" }}>{captionActions}</View> : null}
       </View>
       {needsYou === undefined ? null : (
-        <Pressable accessibilityRole="button" onPress={() => onOpenDecision?.("next")} disabled={onOpenDecision === undefined}
+        <Pressable accessibilityRole="button" onPress={() => onOpenDecision?.(deckDecisionDestination(needsYou, "next"))} disabled={onOpenDecision === undefined}
           accessibilityLabel={needsYou.actionCount === null ? "Needs you unavailable" : `Needs you: ${needsYou.actionCount} decisions, ${needsYou.newCount ?? 0} new`}
           style={{ alignSelf: "flex-start", borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5,
             borderStyle: decisionStale ? "dashed" : "solid",
@@ -654,7 +655,7 @@ function DeckView({
             >
               <DeckBadge state={state} colour={scene.palette.states[state]} />
               {state === "blocked" && needsYou !== undefined ? (
-                <Pressable accessibilityRole="button" onPress={() => onOpenDecision?.("next")} disabled={onOpenDecision === undefined}>
+                <Pressable accessibilityRole="button" onPress={() => onOpenDecision?.(deckDecisionDestination(needsYou, "next"))} disabled={onOpenDecision === undefined}>
                   <Text style={{ color: colors.foreground, fontSize: 12, textDecorationLine: "underline" }}>{`${scene.counts[state]} ${words(state)} · ${places[state]}`}</Text>
                 </Pressable>
               ) : <Text style={{ color: colors.foreground, fontSize: 12 }}>{`${scene.counts[state]} ${words(state)}${needsYou === undefined ? "" : ` · ${places[state]}`}`}</Text>}

@@ -1,9 +1,14 @@
 /** Read-only projection of daemon gates. No hold detection, acknowledgement or count reconstruction. */
 import type { FleetCard } from "../shared/fleet";
 import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
+import type { DecisionDestination } from "./needs-you-state";
 
-/** Shared drawer seam: opens the current revision of an id, or the next decision. */
-export type OpenDeckDecision = (decision: string | "next") => void;
+/** Bind the shared drawer to the ledger home and revision that the Deck is displaying. */
+export function deckDecisionDestination(snapshot: NeedsYouSnapshot | undefined, requestId: string): DecisionDestination {
+  const request = snapshot?.requests.find(request => request.id === requestId);
+  return { requestId, ...(snapshot?.homeId ? { homeId: snapshot.homeId } : {}),
+    ...(request === undefined ? {} : { recordRevision: request.revision }) };
+}
 
 export interface DeckDecisions {
   snapshot: NeedsYouSnapshot;

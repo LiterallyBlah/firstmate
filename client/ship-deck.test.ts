@@ -820,6 +820,7 @@ describe("the ship deck view", () => {
   it("opens every decision indicator through the same action, preserving the server counts and revision", async () => {
     const engine = viewEngine(), open = vi.fn();
     const snapshot = attentionSnapshot([attentionRequest("w1"), attentionRequest("unassigned", "seen")]);
+    snapshot.requests[0]!.revision = 7;
     const before = structuredClone(snapshot);
     await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, needsYou: snapshot, onOpenDecision: open }), { createNodeMock: () => fakeHost() }); });
     await act(flush);
@@ -827,14 +828,14 @@ describe("the ship deck view", () => {
     expect(text(root)).toContain("Needs you · 2 · 1 new");
     expect(text(root)).toContain("1 more for you with the first mate at the wheel");
     await act(async () => engine.select?.("w1"));
-    expect(open).toHaveBeenLastCalledWith("local:w1");
+    expect(open).toHaveBeenLastCalledWith({ requestId: "local:w1", homeId: snapshot.homeId, recordRevision: 7 });
     await act(async () => engine.select?.("@first-mate"));
-    expect(open).toHaveBeenLastCalledWith("local:unassigned");
+    expect(open).toHaveBeenLastCalledWith({ requestId: "local:unassigned", homeId: snapshot.homeId, recordRevision: 1 });
     await act(async () => engine.firstMate?.({ key: "@first-mate", x: 300, top: 160, bottom: 200, width: 640, height: 300, floor: null }));
     await act(async () => root.root.findByProps({ testID: "firstmate-deck-decision-tag" }).props.onPress());
-    expect(open).toHaveBeenLastCalledWith("local:unassigned");
+    expect(open).toHaveBeenLastCalledWith({ requestId: "local:unassigned", homeId: snapshot.homeId, recordRevision: 1 });
     await act(async () => root.root.findByProps({ accessibilityLabel: "Needs you: 2 decisions, 1 new" }).props.onPress());
-    expect(open).toHaveBeenLastCalledWith("next");
+    expect(open).toHaveBeenLastCalledWith({ requestId: "next", homeId: snapshot.homeId });
     expect(snapshot).toEqual(before); // Viewing, focus and clicking cannot acknowledge locally.
   });
 
@@ -845,7 +846,7 @@ describe("the ship deck view", () => {
     expect(engine.probes).toBe(0);
     expect(text(renderer!)).toContain("Needs you unavailable");
     await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Needs you unavailable" }).props.onPress());
-    expect(open).toHaveBeenCalledWith("next");
+    expect(open).toHaveBeenCalledWith({ requestId: "next", homeId: snapshot.homeId });
   });
   beforeAll(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

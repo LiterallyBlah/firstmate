@@ -57,6 +57,8 @@ harness dependencies available. It builds the three revisions from git without c
 tree. Seven alternating timing rounds use fresh floor caches; discard the first as warm-up.
 Instrumentation runs separately, checks all route geometry, and hashes every returned path for all
 four packs. Results and temporary bundles go under ignored `.local/attention-deck/routes/`.
+After rebasing onto #120, the script uses `823d309`, the replay of `9698749` with identical routing
+and pack data, so the reference remains in this PR's ancestry.
 
 Local Windows / Node v24.19.0 / AMD Ryzen AI 9 465, six measured rounds, routing only:
 

@@ -456,7 +456,7 @@ never assigned to ordinary crew. `client/deck-decisions.ts` projects the daemon'
 needs-you gates to sailors and the officer's workerless tag, without detecting
 holds or reconstructing total counts. Placement and weather inputs are separate.
 Every decision marker uses `ShipDeckView.onOpenDecision`; see
-`docs/attention-deck/README.md` for the temporary shared-drawer adapter, geometry
+`docs/attention-deck/README.md` for the shared `useOpenDecision` integration, geometry
 checks and the CI before/after screenshot artifact.
 
 The Deck is a **scene engine** that knows workers, states, places, portals, layers, behaviours, the day and
