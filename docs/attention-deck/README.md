@@ -72,3 +72,7 @@ byte. These are browser fixture checks, not an installed Paseo or native test.
 All captures remain under ignored `.local/attention-deck/`. The Windows
 `deck-review` CI job attaches all eight PNGs plus `results.json` as the
 `deck-before-after` artifact, retained for 30 days and linked from the PR.
+
+The Ghost ship timeout investigation, main/PR measurements and deterministic route-work limits
+are in [routing-review.md](routing-review.md). `node docs/attention-deck/route-audit.mjs` reproduces
+the paired timing and exact-path comparison without changing a checkout or running a plugin.

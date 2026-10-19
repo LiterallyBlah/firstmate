@@ -376,22 +376,28 @@ describe.each(packs)("the %s pack", (id) => {
       for (const { id: obstacle, rect } of floor.obstacles) expect(walkable(floor, rect[0] + rect[2] / 2, rect[1] + rect[3] / 2), obstacle).toBe(false);
     });
 
-    it("walks from every post, the entry and every queue to every other, on the floor without avoidable corners", () => {
-      for (const from of places) {
-        for (const to of places) {
-          if (from === to || (from.x === to.x && from.y === to.y)) continue;
-          const path = findPath(floor, from, to);
-          expect(path.at(-1), `${from.id} → ${to.id} ends there`).toEqual({ x: to.x, y: to.y });
-          // Keep every half-pixel sample, but create one assertion per route instead of hundreds of
-          // thousands of matcher objects. Long rooms must not turn exhaustive lint into a CI timeout.
-          const offFloor = walkPoints(from, path).find((point) => !walkable(floor, point.x, point.y));
-          expect(offFloor, `${from.id} → ${to.id} leaves the floor at`).toBeUndefined();
-          // A long obstacle can demand a long detour even between close posts. Test the path against the floor,
-          // not a ship-specific straight-line ratio: no retained corner may be skipped along open floor.
-          const route = [from, ...path];
-          for (let i = 0; i < route.length - 2; i++) {
-            for (let j = i + 2; j < route.length; j++) expect(clearLine(floor, route[i]!, route[j]!), `${from.id} → ${to.id} skips corner ${i + 1}`).toBe(false);
-          }
+    // Each origin still visits every destination. A single timeout for the entire quadratic matrix
+    // measured runner contention, not routing cost. Keep Vitest's normal timeout per bounded origin;
+    // enforce work per route independently of machine speed (current maxima: 5,506 cells / 63,367 samples).
+    it.each(places)("walks from $id to every other post, entry and queue, on the floor without avoidable corners", (from) => {
+      for (const to of places) {
+        if (from === to || (from.x === to.x && from.y === to.y)) continue;
+        const work = { expandedCells: 0, lineSamples: 0, failedSearches: 0 };
+        const path = findPath(floor, from, to, work);
+        const name = `${from.id} → ${to.id}`;
+        expect(work.failedSearches, `${name} must not exhaust the search and fall back`).toBe(0);
+        expect(work.expandedCells, `${name} search work`).toBeLessThanOrEqual(7000);
+        expect(work.lineSamples, `${name} visibility work`).toBeLessThanOrEqual(80000);
+        expect(path.at(-1), `${name} ends there`).toEqual({ x: to.x, y: to.y });
+        // Keep every half-pixel sample, but create one assertion per route instead of hundreds of
+        // thousands of matcher objects. Long rooms must not turn exhaustive lint into a CI timeout.
+        const offFloor = walkPoints(from, path).find((point) => !walkable(floor, point.x, point.y));
+        expect(offFloor, `${name} leaves the floor at`).toBeUndefined();
+        // A long obstacle can demand a long detour even between close posts. Test the path against the floor,
+        // not a ship-specific straight-line ratio: no retained corner may be skipped along open floor.
+        const route = [from, ...path];
+        for (let i = 0; i < route.length - 2; i++) {
+          for (let j = i + 2; j < route.length; j++) expect(clearLine(floor, route[i]!, route[j]!), `${name} skips corner ${i + 1}`).toBe(false);
         }
       }
     });
