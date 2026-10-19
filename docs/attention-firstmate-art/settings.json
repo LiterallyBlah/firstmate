@@ -1,0 +1,6 @@
+[
+  {"id":"ship","title":"Ship","lane":"bosun","referenceImage":"polish-crew-bosun","sourceGrid":[4,4],"standing":"side-idle","alpha":255,"paletteRecord":"docs/ship-deck-art/water/manifest.json"},
+  {"id":"japanese-ship","title":"Sakura","lane":"indigo","referenceImage":"crew-elder","sourceGrid":[4,4],"standing":"side-idle","alpha":255,"extraRaisedHand":15},
+  {"id":"ghost-ship","title":"Ghost ship","lane":"ghost-0","referenceImage":"crew-0","sourceGrid":[4,2],"standing":"stand","alpha":184},
+  {"id":"sky-airship","title":"Sky pirates","lane":"navy","referenceImage":"crew-navy","sourceGrid":[4,4],"standing":"side-idle","alpha":255}
+]

@@ -1,0 +1,829 @@
+{
+  "schemaVersion": 1,
+  "id": "firstmate-a1-japanese-ship",
+  "created": "2026-10-19",
+  "status": "Assets only; not registered with the runtime pack.",
+  "baseCommit": "e9d933e",
+  "setting": "japanese-ship",
+  "title": "Sakura",
+  "sourcePack": {
+    "path": "art/settings/japanese-ship/setting.json",
+    "sha256": "a50019e5d0244ed9ad0a96689c75386a800beee14f21ce5acd5ca84b8c8e62e7",
+    "version": "1.2.1"
+  },
+  "reference": {
+    "image": "crew-elder",
+    "path": "art/settings/japanese-ship/crew-elder.png",
+    "sha256": "8e39934d5bf63ca086a9c87e6ae7dbceacddd1d5b10fb3c8cc243bd6cfcecbd2",
+    "lane": "indigo"
+  },
+  "logicalPixelScale": {
+    "pixel": "1 art pixel = 1 native cast pixel",
+    "sampling": "nearest-neighbour",
+    "scale": "inherit the setting cast scale"
+  },
+  "palette": {
+    "source": "32-colour subset of existing setting cast RGB values; source median-cut representatives snapped to actual existing cast colours",
+    "colours": [
+      "#030214",
+      "#03051E",
+      "#06061C",
+      "#07081E",
+      "#0C0F2C",
+      "#171E39",
+      "#1F213F",
+      "#282425",
+      "#2F2F3B",
+      "#373142",
+      "#3C3232",
+      "#4A311D",
+      "#514444",
+      "#57402D",
+      "#655350",
+      "#686068",
+      "#837463",
+      "#89491D",
+      "#A16A25",
+      "#A57E58",
+      "#CA6D11",
+      "#D3B27F",
+      "#D6820F",
+      "#D8AE64",
+      "#DE8A2D",
+      "#E1BD79",
+      "#E9C681",
+      "#EAC17A",
+      "#EB9937",
+      "#F0A74C",
+      "#F19D33"
+    ]
+  },
+  "alpha": {
+    "background": 0,
+    "painted": 255,
+    "transparentRgb": [
+      0,
+      0,
+      0
+    ]
+  },
+  "images": {
+    "firstmate.png": {
+      "path": "firstmate.png",
+      "size": [
+        480,
+        36
+      ],
+      "sha256": "0c47a91a1ebe13c4ed27efec1d2e8e0a0f28c8b8a29a0618eead82cf20d351aa"
+    },
+    "standing-directions.png": {
+      "path": "standing-directions.png",
+      "size": [
+        22,
+        32
+      ],
+      "sha256": "cc8505ba59df3959b8e714ac0796a9a827aff3b393cc769e6e2d0fd7dc7bb5bc"
+    },
+    "hand-raised.png": {
+      "path": "hand-raised.png",
+      "size": [
+        32,
+        36
+      ],
+      "sha256": "0d90c431598a9b0bf86a5facccf37b3796d8c1d0d596f1b82bc7319f74adff7a"
+    }
+  },
+  "lane": {
+    "stand": {
+      "rect": [
+        8,
+        2,
+        15,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ]
+    },
+    "front-a": {
+      "rect": [
+        40,
+        2,
+        15,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ]
+    },
+    "front-pass": {
+      "rect": [
+        72,
+        2,
+        15,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ]
+    },
+    "front-b": {
+      "rect": [
+        104,
+        2,
+        15,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ]
+    },
+    "side-idle": {
+      "rect": [
+        138,
+        2,
+        11,
+        32
+      ],
+      "feet": [
+        6,
+        32
+      ]
+    },
+    "side-a": {
+      "rect": [
+        168,
+        2,
+        16,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ]
+    },
+    "side-pass": {
+      "rect": [
+        202,
+        2,
+        11,
+        32
+      ],
+      "feet": [
+        6,
+        32
+      ]
+    },
+    "side-b": {
+      "rect": [
+        232,
+        2,
+        16,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ]
+    },
+    "pull-a": {
+      "rect": [
+        259,
+        4,
+        25,
+        30
+      ],
+      "feet": [
+        13,
+        30
+      ]
+    },
+    "pull-b": {
+      "rect": [
+        294,
+        4,
+        19,
+        30
+      ],
+      "feet": [
+        10,
+        30
+      ]
+    },
+    "waiting": {
+      "rect": [
+        327,
+        2,
+        17,
+        32
+      ],
+      "feet": [
+        9,
+        32
+      ]
+    },
+    "rest": {
+      "rect": [
+        359,
+        10,
+        18,
+        24
+      ],
+      "feet": [
+        9,
+        24
+      ]
+    },
+    "climb-a": {
+      "rect": [
+        391,
+        2,
+        18,
+        32
+      ],
+      "feet": [
+        9,
+        32
+      ]
+    },
+    "climb-b": {
+      "rect": [
+        424,
+        2,
+        16,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ]
+    },
+    "lookout": {
+      "rect": [
+        455,
+        2,
+        17,
+        32
+      ],
+      "feet": [
+        9,
+        32
+      ]
+    }
+  },
+  "roles": {
+    "stand": "stand",
+    "walkFront": [
+      "front-a",
+      "front-pass",
+      "front-b",
+      "stand"
+    ],
+    "walkSide": [
+      "side-a",
+      "side-pass",
+      "side-b",
+      "side-idle"
+    ],
+    "rise": 1,
+    "stepMs": 170,
+    "settled": {
+      "working": {
+        "pose": "pull-a",
+        "mirror": "facing"
+      },
+      "waiting": {
+        "pose": "waiting",
+        "mirror": "none"
+      },
+      "blocked": {
+        "pose": "side-idle",
+        "mirror": "facing"
+      },
+      "idle": {
+        "pose": "rest",
+        "mirror": "none"
+      }
+    }
+  },
+  "breath": null,
+  "standing": {
+    "sourcePose": "side-idle",
+    "image": "standing-directions.png",
+    "right": {
+      "rect": [
+        0,
+        0,
+        11,
+        32
+      ],
+      "feet": [
+        6,
+        32
+      ]
+    },
+    "left": {
+      "rect": [
+        11,
+        0,
+        11,
+        32
+      ],
+      "feet": [
+        5,
+        32
+      ]
+    },
+    "note": "Right is the native pose. Left is its exact pixel mirror; foot X follows the same horizontal mirror. Runtime may instead mirror the native pose as it already does."
+  },
+  "raisedHand": {
+    "image": "hand-raised.png",
+    "rect": [
+      0,
+      0,
+      32,
+      36
+    ],
+    "feet": [
+      16,
+      34
+    ],
+    "sourceBounds": [
+      912,
+      1083,
+      153,
+      275
+    ]
+  },
+  "poses": [
+    {
+      "name": "stand",
+      "sourceCell": [
+        0,
+        0,
+        281,
+        351
+      ],
+      "sourceBounds": [
+        71,
+        44,
+        134,
+        271
+      ],
+      "rect": [
+        8,
+        2,
+        15,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ],
+      "outputBody": [
+        8,
+        2,
+        15,
+        32
+      ]
+    },
+    {
+      "name": "front-a",
+      "sourceCell": [
+        281,
+        0,
+        280,
+        351
+      ],
+      "sourceBounds": [
+        353,
+        43,
+        129,
+        272
+      ],
+      "rect": [
+        40,
+        2,
+        15,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ],
+      "outputBody": [
+        40,
+        2,
+        15,
+        32
+      ]
+    },
+    {
+      "name": "front-pass",
+      "sourceCell": [
+        561,
+        0,
+        281,
+        351
+      ],
+      "sourceBounds": [
+        635,
+        44,
+        121,
+        271
+      ],
+      "rect": [
+        72,
+        2,
+        15,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ],
+      "outputBody": [
+        72,
+        2,
+        15,
+        32
+      ]
+    },
+    {
+      "name": "front-b",
+      "sourceCell": [
+        842,
+        0,
+        280,
+        351
+      ],
+      "sourceBounds": [
+        919,
+        44,
+        130,
+        271
+      ],
+      "rect": [
+        104,
+        2,
+        15,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ],
+      "outputBody": [
+        104,
+        2,
+        15,
+        32
+      ]
+    },
+    {
+      "name": "side-idle",
+      "sourceCell": [
+        0,
+        351,
+        281,
+        350
+      ],
+      "sourceBounds": [
+        84,
+        379,
+        101,
+        289
+      ],
+      "rect": [
+        138,
+        2,
+        11,
+        32
+      ],
+      "feet": [
+        6,
+        32
+      ],
+      "outputBody": [
+        138,
+        2,
+        11,
+        32
+      ]
+    },
+    {
+      "name": "side-a",
+      "sourceCell": [
+        281,
+        351,
+        280,
+        350
+      ],
+      "sourceBounds": [
+        345,
+        383,
+        148,
+        285
+      ],
+      "rect": [
+        168,
+        2,
+        16,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ],
+      "outputBody": [
+        168,
+        2,
+        16,
+        32
+      ]
+    },
+    {
+      "name": "side-pass",
+      "sourceCell": [
+        561,
+        351,
+        281,
+        350
+      ],
+      "sourceBounds": [
+        649,
+        383,
+        92,
+        285
+      ],
+      "rect": [
+        202,
+        2,
+        11,
+        32
+      ],
+      "feet": [
+        6,
+        32
+      ],
+      "outputBody": [
+        202,
+        2,
+        11,
+        32
+      ]
+    },
+    {
+      "name": "side-b",
+      "sourceCell": [
+        842,
+        351,
+        280,
+        350
+      ],
+      "sourceBounds": [
+        910,
+        383,
+        146,
+        285
+      ],
+      "rect": [
+        232,
+        2,
+        16,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ],
+      "outputBody": [
+        232,
+        2,
+        16,
+        32
+      ]
+    },
+    {
+      "name": "pull-a",
+      "sourceCell": [
+        0,
+        701,
+        281,
+        351
+      ],
+      "sourceBounds": [
+        31,
+        750,
+        225,
+        265
+      ],
+      "rect": [
+        259,
+        4,
+        25,
+        30
+      ],
+      "feet": [
+        13,
+        30
+      ],
+      "outputBody": [
+        259,
+        4,
+        25,
+        30
+      ]
+    },
+    {
+      "name": "pull-b",
+      "sourceCell": [
+        281,
+        701,
+        280,
+        351
+      ],
+      "sourceBounds": [
+        345,
+        751,
+        172,
+        262
+      ],
+      "rect": [
+        294,
+        4,
+        19,
+        30
+      ],
+      "feet": [
+        10,
+        30
+      ],
+      "outputBody": [
+        294,
+        4,
+        19,
+        30
+      ]
+    },
+    {
+      "name": "waiting",
+      "sourceCell": [
+        561,
+        701,
+        281,
+        351
+      ],
+      "sourceBounds": [
+        636,
+        736,
+        127,
+        279
+      ],
+      "rect": [
+        327,
+        2,
+        17,
+        32
+      ],
+      "feet": [
+        9,
+        32
+      ],
+      "outputBody": [
+        327,
+        2,
+        17,
+        32
+      ]
+    },
+    {
+      "name": "rest",
+      "sourceCell": [
+        842,
+        701,
+        280,
+        351
+      ],
+      "sourceBounds": [
+        898,
+        803,
+        167,
+        212
+      ],
+      "rect": [
+        359,
+        10,
+        18,
+        24
+      ],
+      "feet": [
+        9,
+        24
+      ],
+      "outputBody": [
+        359,
+        10,
+        18,
+        24
+      ]
+    },
+    {
+      "name": "climb-a",
+      "sourceCell": [
+        0,
+        1052,
+        281,
+        350
+      ],
+      "sourceBounds": [
+        70,
+        1083,
+        148,
+        286
+      ],
+      "rect": [
+        391,
+        2,
+        18,
+        32
+      ],
+      "feet": [
+        9,
+        32
+      ],
+      "outputBody": [
+        391,
+        2,
+        18,
+        32
+      ]
+    },
+    {
+      "name": "climb-b",
+      "sourceCell": [
+        281,
+        1052,
+        280,
+        350
+      ],
+      "sourceBounds": [
+        354,
+        1083,
+        140,
+        283
+      ],
+      "rect": [
+        424,
+        2,
+        16,
+        32
+      ],
+      "feet": [
+        8,
+        32
+      ],
+      "outputBody": [
+        424,
+        2,
+        16,
+        32
+      ]
+    },
+    {
+      "name": "lookout",
+      "sourceCell": [
+        561,
+        1052,
+        281,
+        350
+      ],
+      "sourceBounds": [
+        625,
+        1083,
+        154,
+        283
+      ],
+      "rect": [
+        455,
+        2,
+        17,
+        32
+      ],
+      "feet": [
+        9,
+        32
+      ],
+      "outputBody": [
+        455,
+        2,
+        17,
+        32
+      ]
+    }
+  ]
+}
