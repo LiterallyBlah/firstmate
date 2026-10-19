@@ -25,7 +25,7 @@ const server = createServer(async (req, res) => {
 });
 await new Promise(done => server.listen(0, "127.0.0.1", done));
 const browser = await chromium.launch({ channel: process.platform === "win32" ? "msedge" : "chromium", headless: true });
-const errors = [], results = [], base = `http://127.0.0.1:${server.address().port}`;
+const errors = [], results = [], integrated = [], base = `http://127.0.0.1:${server.address().port}`;
 try {
   for (const view of ["crew", "board"]) for (const width of [1440, 390, 320]) for (const light of [false, true]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, reducedMotion: "reduce" });
@@ -60,7 +60,42 @@ try {
     await page.screenshot({ path: join(output, `context-${width}.png`) });
     await page.close();
   }
+  for (const width of [390, 1440]) for (const light of [false, true]) {
+    const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: "reduce" });
+    page.on("pageerror", e => errors.push(String(e)));
+    await page.goto(`${base}/?materials&decision=a${light ? "&light" : ""}`);
+    const drawer = page.getByLabel("FirstMate decisions", { exact: true });
+    await drawer.getByRole("heading", { name: "Choose the reply to the maintainer", exact: true }).waitFor();
+    await drawer.getByText("Thanks for reviewing the proposal.", { exact: false }).waitFor();
+    assert.equal(await drawer.getByText("This fifth line must stay out", { exact: false }).count(), 0);
+    assert.equal(await drawer.getByRole("button", { name: "Use the cautious option", exact: true }).count(), 0);
+    for (const name of ["spec.md", "notes.md", "draft-reply.md", "Discussion #42", "Send this draft"]) {
+      const control = drawer.getByRole("button", { name, exact: true });
+      assert.ok((await control.boundingBox()).height >= (width < 638 ? 44 : 28));
+    }
+    await page.screenshot({ path: join(output, `drawer-materials-${width}-${light ? "light" : "dark"}.png`) });
+    await drawer.getByRole("link", { name: "data/review/spec.md", exact: true }).click();
+    await page.getByRole("textbox", { name: "Edit data/review/spec.md", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+    await drawer.getByRole("link", { name: "Read the whole draft", exact: true }).click();
+    const draft = page.getByRole("textbox", { name: "Edit data/review/draft-reply.md", exact: true });
+    await draft.waitFor();
+    assert.ok((await draft.inputValue()).includes("This fifth line must stay out"), "the full draft opens through Files");
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+    const before = await page.evaluate(() => window.fixtureCalls.filter(c => c.name.startsWith("firstmate.needs-you.") && c.name !== "firstmate.needs-you.read"));
+    assert.ok(before.length > 0 && before.every(c => c.name === "firstmate.needs-you.seen" && c.input.id === "a" && c.input.revision === 1));
+    await drawer.getByRole("button", { name: "Send this draft", exact: true }).click();
+    await drawer.getByText("Answer sent on Choose the reply to the maintainer.", { exact: false }).waitFor();
+    const answers = await page.evaluate(() => window.fixtureCalls.filter(c => c.name === "firstmate.needs-you.answer"));
+    assert.equal(answers.length, 1);
+    assert.equal(answers[0].input.text, "For a: Send data/review/draft-reply.md as written.");
+    assert.equal(answers[0].input.requestId, "a");
+    assert.equal(answers[0].input.recordRevision, 1);
+    assert.deepEqual(answers[0].input.suggestion, { label: "Send this draft", actionId: "task:fixture" });
+    integrated.push({ width, light, preview: "bounded", fullDraft: "opened", answers: 1 });
+    await page.close();
+  }
   assert.deepEqual(errors, []);
-  await writeFile(join(output, "results.json"), JSON.stringify({ results, errors }, null, 2));
-  console.log(JSON.stringify({ output, layouts: results.length, context: 2, errors }));
+  await writeFile(join(output, "results.json"), JSON.stringify({ results, integrated, errors }, null, 2));
+  console.log(JSON.stringify({ output, layouts: results.length, context: 2, integrated: integrated.length, errors }));
 } finally { await browser.close(); await new Promise(done => server.close(done)); }

@@ -23,12 +23,11 @@ chips and the first named draft's first four lines, capped at 700 characters. Mi
 files cannot become invented links or previews. Existing confined `findHomeFiles` and `readHomeFile`
 RPCs are reused; no new file endpoint or home edits are needed.
 
-The companion `fm/fm-decision-ux-drawer` branch owns the drawer. After both branches merge, its ask
-and reading-material JSX slots should use these exports with
+The drawer from merged PR #123 uses these exports in its ask and reading-material slots with
 `{ theme, source: request.source, homeId: snapshot.homeId!, onOpenFile: setFile }`.
-This PR does not edit that worker's drawer. Its bound option renderer consumes
-`snapshot.answerOptions ?? suggestions`. `client/decision-copy.ts` is copied identically from that
-worker's final shared helper so the branches agree on title and time copy.
+Materials also accepts `compact` for 44-point phone controls. Its bound option renderer consumes
+`snapshot.answerOptions ?? suggestions`; an absent server field retains legacy explicit bindings.
+The final shared `client/decision-copy.ts` helpers and automatic Seen behavior from #123 are preserved.
 
 ## Verification
 
@@ -39,7 +38,8 @@ Run `npm run typecheck`, `npm test -- --maxWorkers=2`, `npm run lint:deck-packs`
 - `node docs/needs-you/render.mjs`: existing interaction checks, including filters, folds, focus,
   drafts, enlarged text and independent legacy settings.
 - `node docs/decision-ux-lists/render.mjs`: real List/Board at 1440, 390 and 320 pixels in both
-  themes, six decisions, target sizes and standalone context link/preview clicks.
+  themes, six decisions, target sizes, standalone context link/preview clicks, and four integrated
+  drawer fixtures opening full files and sending the exact server-bound option once.
 - `node docs/attention-deck/render.mjs`: all four shipped packs, ledger routing, six workerless
   gates at the bow, clear state at the wheel, stale/unavailable legends and reduced-motion stability.
 

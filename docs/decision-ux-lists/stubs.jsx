@@ -20,8 +20,22 @@ const files = {
   "data/review/notes.md": "# Notes\nUse the existing answer path.",
   "data/review/draft-reply.md": "Thanks for reviewing the proposal.\nThe changes preserve the existing workflow.\nThe crew has checked both themes.\nThe draft is ready for review.\nThis fifth line must stay out of the preview.",
 };
+if (params.has("materials")) {
+  const request = window.attentionSnapshot.requests.find(r => r.id === "a");
+  Object.assign(request.source, {
+    title: "Choose the reply to the maintainer",
+    ask: "Send data/review/draft-reply.md to https://github.com/example/project/discussions/42 after reviewing data/review/spec.md?",
+    specPath: "data/review/spec.md", notesPath: "data/review/notes.md", reportPath: null, url: null,
+  });
+  window.attentionSnapshot.answerOptions = [{ label: "Send this draft", prompt: "For a: Send data/review/draft-reply.md as written.",
+    decision: { homeId: "fixture-home", requestId: "a", recordRevision: 1, actionId: "task:fixture" } }];
+}
 export function useRpc(contract) {
   if (contract.name === "firstmate.files.find") return async ({ paths }) => ({ files: Object.fromEntries(paths.filter(p => p in files).map(p => [p, p])) });
-  if (contract.name === "firstmate.files.read") return async ({ path }) => ({ path, content: files[path], version: "fixture" });
+  if (contract.name === "firstmate.files.read") return async ({ path }) => {
+    window.fixtureCalls.push({ name: contract.name, input: { path } });
+    return { path, content: files[path], modifiedMs: 1, binary: false, tooLarge: false, size: files[path]?.length ?? 0 };
+  };
+  if (contract.name === "firstmate.files.list") return async ({ path }) => ({ path, home: "fixture", entries: [] });
   return originalRpc(contract);
 }

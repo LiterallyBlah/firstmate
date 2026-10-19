@@ -1,5 +1,5 @@
 import type { PluginTheme } from "@getpaseo/plugin";
-import { useRpc, openExternalUrl } from "@getpaseo/plugin/client";
+import { useRpc } from "@getpaseo/plugin/client";
 import { Modal, Icon } from "@getpaseo/plugin/client/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -35,13 +35,12 @@ import {
   decisionTitle,
   decisionClock,
   decisionStateLabel,
-  decisionLinkLabel,
   relativeDecisionTime,
   stableDecisionOrder,
   nextWaitingDecision,
 } from "./decision-copy";
 import { DecisionSnooze } from "./decision-snooze";
-import { Markdown } from "./markdown";
+import { DecisionAsk, DecisionMaterials } from "./decision-context";
 import { FilesView } from "./files";
 import {
   bindWebKeys,
@@ -791,11 +790,6 @@ function DecisionDetails({
         "Another message is being sent. The draft is retained; try again when it finishes.",
       );
   }
-  function link(url: string) {
-    if (/^https?:\/\//i.test(url))
-      void openExternalUrl(url).catch((error) => setNotice(errorText(error)));
-    else setFile(url);
-  }
   const choices = boundAnswers(
     snapshot.answerOptions ?? suggestions,
     snapshot.homeId!,
@@ -892,16 +886,6 @@ function DecisionDetails({
       ) : null}
     </View>
   );
-  const read = [
-    ...new Set(
-      [
-        request.source.specPath,
-        request.source.notesPath,
-        request.source.url,
-        request.source.reportPath,
-      ].filter((v): v is string => !!v),
-    ),
-  ];
   return (
     <>
       <ScrollView
@@ -1048,33 +1032,20 @@ function DecisionDetails({
               ? "THE FIRST MATE ASKED"
               : "THE FIRST MATE ASKS"}
           </SectionLabel>
-          <Markdown
-            source={request.source.ask}
-            theme={{
-              ...theme,
-              colors: { ...colors, accent: colors.foreground },
-            }}
-            fontSize={15}
-            onOpenLink={link}
+          <DecisionAsk
+            theme={theme}
+            source={request.source}
+            homeId={snapshot.homeId!}
+            onOpenFile={setFile}
           />
         </View>
-        {read.length ? (
-          <View style={{ gap: 8 }}>
-            <SectionLabel theme={theme}>TO READ FIRST</SectionLabel>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {read.map((url) => (
-                <DecisionButton
-                  key={url}
-                  theme={theme}
-                  compact={compact}
-                  icon={/^https?:/.test(url) ? "ExternalLink" : "FileText"}
-                  label={decisionLinkLabel(url)}
-                  onPress={() => link(url)}
-                />
-              ))}
-            </View>
-          </View>
-        ) : null}
+        <DecisionMaterials
+          theme={theme}
+          source={request.source}
+          homeId={snapshot.homeId!}
+          onOpenFile={setFile}
+          compact={compact}
+        />
         {choices.length && !pending && request.state !== "resolved" ? (
           <View style={{ gap: 8 }}>
             <SectionLabel theme={theme}>THE FIRST MATE SUGGESTS</SectionLabel>

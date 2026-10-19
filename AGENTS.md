@@ -934,8 +934,8 @@ fixture checks, not installed desktop or native-device claims.
 `server/decision-options.ts`. Exact `For <task-id>:` suggestions bind only one unambiguous live hold;
 the answer path rechecks label, prompt, home, request and revision before its existing durable send.
 Explicit bindings remain supported. No suggestion/source file is rewritten. `client/decision-context.tsx`
-exports the ask and reading-material slots, using verified home links and a four-line/700-character
-named-draft preview. See `docs/decision-ux-lists/README.md` for the companion drawer's slot contract,
+supplies the merged drawer's ask and reading-material slots, using verified home links and a
+four-line/700-character named-draft preview. See `docs/decision-ux-lists/README.md` for the slot contract,
 render checks and evidence location.
 
 ## The first mate is told it lives in Paseo

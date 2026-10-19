@@ -14,8 +14,8 @@ The List keeps six decisions in about 340 pixels on desktop, with NEW, Your call
 Answer. In hand shows the worker's status and reason, including waits over 30 minutes. Board's
 Detailed columns choice lives in its ellipsis menu. On Deck, the first mate walks to the bow while
 workerless decisions wait and returns to the wheel when they clear; the legend leads with the total.
-Task-prefixed suggestions are bound to the current decision and rechecked when pressed. Context
-slots expose linked specs, notes and a short named-draft preview for the shared decision drawer.
+Task-prefixed suggestions are bound to the current decision and rechecked when pressed. The
+decision drawer links specs and notes, previews a named draft and opens the complete file.
 
 The signal stays amber while a decision waits and fills while any are new. Opening a decision marks
 it Seen without reducing the count. Answer in your own words or use a supplied answer, snooze from

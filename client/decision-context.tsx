@@ -1,13 +1,14 @@
 /** Drawer slots shared with the decision UI. Files are resolved by the existing confined home RPC. */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
-import { useToast } from "@getpaseo/plugin/client/react-native";
+import { Icon, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import type { DecisionSource } from "../shared/needs-you";
 import { findHomeFiles, readHomeFile } from "../shared/files";
 import { fileCandidates, inlineTokens, lookupIn } from "./file-links";
-import { IconButton, errorText } from "./ui";
+import { ControlTooltip, errorText } from "./ui";
+import { Markdown } from "./markdown";
 import { decisionMaterialPaths, draftPreview, githubMaterialLabel, namedDraft } from "./decision-materials";
 
 export interface DecisionContextProps {
@@ -15,6 +16,7 @@ export interface DecisionContextProps {
   source: DecisionSource;
   homeId: string;
   onOpenFile(path: string): void;
+  compact?: boolean;
 }
 
 function useDecisionFiles({ source, homeId }: DecisionContextProps) {
@@ -33,20 +35,16 @@ export function DecisionAsk(props: DecisionContextProps) {
   const { theme, source, onOpenFile } = props;
   const { lookup } = useDecisionFiles(props);
   const toast = useToast();
-  const link = { color: theme.colors.foreground, textDecorationLine: "underline" as const };
-  return <Text style={{ color: theme.colors.foreground, fontSize: 14, lineHeight: 21 }}>
-    {inlineTokens(source.ask, lookup).map((token, index) => {
-      if (token.kind === "file") return <Text key={index} accessibilityRole="link" style={link}
-        onPress={() => onOpenFile(token.path)}>{token.text}</Text>;
-      if (token.kind === "link" && /^https?:\/\//i.test(token.url)) return <Text key={index} accessibilityRole="link" style={link}
-        onPress={() => void openExternalUrl(token.url).catch(error => toast.error(errorText(error)))}>{token.text}</Text>;
-      return <Text key={index} style={token.kind === "bold" ? { fontWeight: "600" } : undefined}>{token.text}</Text>;
-    })}
-  </Text>;
+  return <Markdown source={source.ask} fontSize={15}
+    theme={{ ...theme, colors: { ...theme.colors, accent: theme.colors.foreground } }}
+    files={lookup} onOpenFile={onOpenFile}
+    onOpenLink={url => {
+      if (/^https?:\/\//i.test(url)) void openExternalUrl(url).catch(error => toast.error(errorText(error)));
+    }} />;
 }
 
 export function DecisionMaterials(props: DecisionContextProps) {
-  const { theme, source, homeId, onOpenFile } = props;
+  const { theme, source, homeId, onOpenFile, compact = false } = props;
   const { query, lookup } = useDecisionFiles(props);
   const read = useRpc(readHomeFile);
   const toast = useToast();
@@ -65,10 +63,10 @@ export function DecisionMaterials(props: DecisionContextProps) {
   return <View style={{ gap: 8 }}>
     <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>TO READ FIRST</Text>
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-      {paths.map(path => <IconButton key={path} theme={theme} icon="FileText" label={path.split("/").pop() ?? path}
-        tooltip={path} showLabel onPress={() => onOpenFile(path)} />)}
-      {urls.map(url => <IconButton key={url} theme={theme} icon="ExternalLink" label={githubMaterialLabel(url)}
-        tooltip={url} showLabel onPress={() => void openExternalUrl(url).catch(error => toast.error(errorText(error)))} />)}
+      {paths.map(path => <MaterialLink key={path} theme={theme} compact={compact} icon="FileText" label={path.split("/").pop() ?? path}
+        target={path} onPress={() => onOpenFile(path)} />)}
+      {urls.map(url => <MaterialLink key={url} theme={theme} compact={compact} icon="ExternalLink" label={githubMaterialLabel(url)}
+        target={url} onPress={() => void openExternalUrl(url).catch(error => toast.error(errorText(error)))} />)}
     </View>
     {query.isError ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Home file links are unavailable.</Text> : null}
     {draft ? <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, gap: 6 }}>
@@ -77,8 +75,25 @@ export function DecisionMaterials(props: DecisionContextProps) {
       </Text> : <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
         {preview.isPending ? "Loading preview…" : "Preview unavailable."}
       </Text>}
-      <Text accessibilityRole="link" onPress={() => onOpenFile(draft)}
-        style={{ color: colors.foreground, textDecorationLine: "underline", fontSize: 12 }}>Read the whole draft</Text>
+      <Pressable accessibilityRole="link" onPress={() => onOpenFile(draft)}
+        style={{ minHeight: compact ? 44 : 28, justifyContent: "center" }}>
+        <Text style={{ color: colors.foreground, textDecorationLine: "underline", fontSize: 12 }}>Read the whole draft</Text>
+      </Pressable>
     </View> : null}
   </View>;
+}
+
+function MaterialLink({ theme, compact, icon, label, target, onPress }: {
+  theme: PluginTheme; compact: boolean; icon: string; label: string; target: string; onPress(): void;
+}) {
+  const colors = theme.colors;
+  return <ControlTooltip theme={theme} text={target}>{description =>
+    <Pressable {...description} accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
+      style={{ minHeight: compact ? 44 : 28, paddingHorizontal: 10, paddingVertical: 6,
+        borderWidth: 1, borderColor: colors.border, borderRadius: 7, backgroundColor: colors.surface1,
+        flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <Icon name={icon} size={14} color={colors.foreground} />
+      <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "500", flexShrink: 1 }}>{label}</Text>
+    </Pressable>
+  }</ControlTooltip>;
 }
