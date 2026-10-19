@@ -26,6 +26,8 @@ import { parseCrewReport, reportUrl, waitTarget } from "./crew-report";
 import { readCharterState } from "./charter-file";
 import type { RemoteSnapshot } from "../shared/remotes";
 import { isHomeReady, readBacklog, readProjects, readSuggestions } from "./home";
+import { parseBacklog } from "./backlog";
+import type { BacklogObservation, NeedsYouService } from "./needs-you-service";
 import type { AgentListOptions, PaseoAgent, PaseoApi, TimelineItem } from "./host-types";
 import { buildRemoteCards, resolveHost } from "./remote-cards";
 import { readItemTags, withItemTags } from "./item-tags";
@@ -342,13 +344,19 @@ export async function loadFleet(
   watchSummaries: () => Promise<WatchSummary[]> = async () => [],
   /** The remote snapshot `server/remotes.ts` keeps in memory; null when there is none. */
   remoteSnapshot: () => Promise<RemoteSnapshot | null> = async () => null,
+  decisions?: NeedsYouService,
 ): Promise<Fleet> {
   const home = resolveHome(config);
   const warnings: string[] = [];
+  let decisionSource: BacklogObservation | undefined;
 
   const [homeReady, backlog, projects, suggestions, mate, allAgents, agentTools, charter, watches, remotes] = await Promise.all([
     isHomeReady(home),
-    readBacklog(home).catch((error: unknown) => {
+    (decisions === undefined ? readBacklog(home) : decisions.readSource(home).then(source => {
+      decisionSource = source;
+      // Strict observation failures do not change the board's existing lenient read path.
+      return source.markdown === null ? readBacklog(home) : parseBacklog(source.markdown);
+    })).catch((error: unknown) => {
       warnings.push(`The backlog could not be read: ${describe(error)}`);
       return [];
     }),
@@ -398,6 +406,7 @@ export async function loadFleet(
 
   return {
     home,
+    ...(decisions === undefined || decisionSource === undefined ? {} : { needsYou: await decisions.observe(home, decisionSource, remotes) }),
     homeReady,
     homeGuests,
     mate: mate.agent === null ? null : summarizeAgent(mate.agent),

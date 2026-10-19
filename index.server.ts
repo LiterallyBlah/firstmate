@@ -16,6 +16,10 @@ import { registerCrewSeen } from "./server/crew-seen";
 import { pageTimeline, registerReceiptObservers } from "./server/receipt-observers";
 import { newAction, receiptJournal } from "./server/receipts";
 import { AttentionObserver } from "./server/attention";
+import { NeedsYouService, readConfiguredDecisionHome } from "./server/needs-you-service";
+import { registerNeedsYouRpc } from "./server/needs-you-rpc";
+import { pluginDir } from "./server/data-dir";
+import { join } from "node:path";
 import { pageReceiptTimeline } from "./shared/receipts";
 import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
 import { listDeckSettings, readDeckEngine, readDeckSetting } from "./server/deck-settings";
@@ -111,6 +115,13 @@ export default function contribute(server: PluginServerContext) {
     snapshot => attention.catalog(snapshot),
   );
   remotes.start();
+  const decisions = new NeedsYouService({
+    root: join(pluginDir(), "needs-you"),
+    home: readConfiguredDecisionHome,
+    catalog: () => remotes.read(),
+  });
+  registerNeedsYouRpc(server, decisions);
+  decisions.start();
   server.handle(readRemotes, () => remotes.read());
   server.handle(syncRemotes, ({ hosts }) => remotes.sync(hosts));
   server.handle(reportRemoteSyncError, async ({ unavailable }) => { await remotes.syncError(unavailable); return {}; });
@@ -142,6 +153,7 @@ export default function contribute(server: PluginServerContext) {
       reports,
       () => watches.summaries(),
       () => remotes.read(),
+      decisions,
     );
     // A first mate launched before the plugin named its home gets its name the first time the board looks.
     const workspaceId = fleet.mate?.workspaceId ?? null;
@@ -304,13 +316,14 @@ export default function contribute(server: PluginServerContext) {
     console.error("[firstmate] could not rewrite the charter:", error);
   });
 
-  return () => {
+  return async () => {
     unregisterRelay();
     unregisterCrewSeen();
     unregisterReceipts();
     unregisterAttention();
     watches.stop();
     remotes.stop();
+    await decisions.stop();
   };
 }
 

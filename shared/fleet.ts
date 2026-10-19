@@ -9,6 +9,7 @@
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import { WatchRoutingSchema } from "./watch-routing";
+import { NeedsYouSnapshotSchema } from "./needs-you";
 
 import { CaptainMessageSchema } from "./attachments";
 
@@ -256,6 +257,8 @@ export type WatchSummary = z.infer<typeof WatchSummarySchema>;
 
 export const FleetSchema = z.object({
   home: z.string(),
+  /** Server-owned decisions, independent of worker columns; absent on older servers. */
+  needsYou: NeedsYouSnapshotSchema.optional(),
   /** False until the first launch has written the charter and records. */
   homeReady: z.boolean(),
   mate: AgentSummarySchema.nullable(),

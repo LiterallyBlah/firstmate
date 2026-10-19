@@ -9,6 +9,7 @@ import { afterAll } from "vitest";
 const home = mkdtempSync(join(tmpdir(), "firstmate-tests-"));
 process.env.FIRSTMATE_RECEIPT_JOURNAL = "0";
 process.env.FIRSTMATE_ATTENTION_OBSERVE = "0";
+process.env.FIRSTMATE_NEEDS_YOU = "0";
 process.env.PASEO_HOME = home;
 
 // Receipt-specific tests may opt in and use their own temporary homes. Everyone
