@@ -48,5 +48,6 @@ jobs:
         with:
           name: needs-you-render-${{ matrix.os }}
           path: |
-            docs/needs-you/.generated/*.png
-            docs/needs-you/.generated/*.json
+            .local/needs-you-drawer/*.png
+            .local/needs-you-drawer/*.json
+          include-hidden-files: true

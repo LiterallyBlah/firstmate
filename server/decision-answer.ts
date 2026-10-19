@@ -101,6 +101,7 @@ export async function answerDecision(
             ...target,
             submissionId: input.submissionId,
             task: request.source.taskId,
+            title: request.source.title,
             host: request.source.hostId,
             project: request.source.project,
             ask: request.source.ask,

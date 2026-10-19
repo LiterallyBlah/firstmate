@@ -64,13 +64,15 @@ const browser = await chromium.launch({
   headless: true,
 });
 const errors = [],
-  evidence = [];
+  output = join(root, ".local/needs-you-drawer");
+await mkdir(output, { recursive: true });
 const base = `http://127.0.0.1:${server.address().port}`;
 async function pageAt(query, width = 1440) {
   const page = await browser.newPage({
-    viewport: { width, height: 1000 },
+    viewport: { width, height: width < 638 ? 844 : 900 },
     reducedMotion: "reduce",
   });
+  page.setDefaultTimeout(10000);
   page.on("pageerror", (error) => errors.push(String(error)));
   await page.goto(`${base}/?${query}`);
   if (new URLSearchParams(query).has("decision"))
@@ -84,359 +86,31 @@ async function pageAt(query, width = 1440) {
   return page;
 }
 try {
-  if (process.argv.includes("--diagnose")) {
-    for (const width of [320, 390]) {
-      const page = await pageAt("view=crew", width);
-      await page.evaluate(async () => {
-        await document.fonts.ready;
-        await new Promise((done) =>
-          requestAnimationFrame(() => requestAnimationFrame(done)),
-        );
-      });
-      const boxes = await page
-        .getByRole("button", { name: /^Needs you, 3 decisions/ })
-        .evaluate((indicator) => {
-          const box = (element) => {
-            const style = getComputedStyle(element),
-              rect = element.getBoundingClientRect();
-            return {
-              tag: element.tagName,
-              id: element.id,
-              text: element.textContent.slice(0, 120),
-              rect: {
-                x: rect.x,
-                y: rect.y,
-                width: rect.width,
-                height: rect.height,
-              },
-              ...Object.fromEntries(
-                [
-                  "width",
-                  "minWidth",
-                  "maxWidth",
-                  "display",
-                  "visibility",
-                  "overflow",
-                  "overflowX",
-                  "flex",
-                  "flexDirection",
-                  "flexBasis",
-                  "flexGrow",
-                  "flexShrink",
-                  "flexWrap",
-                  "alignItems",
-                  "alignSelf",
-                  "gridTemplateColumns",
-                ].map((key) => [key, style[key]]),
-              ),
-            };
-          };
-          const ancestors = [];
-          let parent = indicator.parentElement;
-          while (parent) {
-            ancestors.push(box(parent));
-            parent = parent.parentElement;
-          }
-          const title = [...document.querySelectorAll('[role="heading"]')].find(
-            (element) => element.textContent === "Crew",
-          );
-          return {
-            viewport: innerWidth,
-            indicator: box(indicator),
-            parent: box(indicator.parentElement),
-            title: title ? box(title) : null,
-            titleRow: title ? box(title.parentElement) : null,
-            ancestors,
-          };
-        });
-      await page.screenshot({ path: join(generated, `diagnose-${width}.png`) });
-      await writeFile(
-        join(generated, `diagnose-${width}.json`),
-        JSON.stringify(boxes, null, 2),
-        "utf8",
-      );
-      console.log(JSON.stringify(boxes));
-      await page.close();
-    }
-  } else {
-    for (const width of [320, 390, 637, 638, 900, 1440, 1680]) {
-      const page = await pageAt(
-        `view=crew${width === 900 ? "&light" : ""}`,
-        width,
-      );
-      const indicator = page.getByRole("button", {
-        name: /^Needs you, 3 decisions/,
-      });
-      await page.evaluate(() => document.fonts.ready);
-      // Observe the actual header control after RN's asynchronous pane measurement.
-      if (width < 638)
-        await page.waitForFunction(() => {
-          const control = document.querySelector(
-            'button[aria-label^="Needs you, 3 decisions"]',
-          );
-          const title = document.querySelector('[role="heading"]');
-          if (!control || !title) return false;
-          const rect = control.getBoundingClientRect(),
-            parent = control.parentElement;
-          const style = getComputedStyle(parent);
-          return (
-            Math.abs(
-              rect.width -
-                (parent.clientWidth -
-                  parseFloat(style.paddingLeft) -
-                  parseFloat(style.paddingRight)),
-            ) < 1 &&
-            rect.y >= title.parentElement.getBoundingClientRect().bottom
-          );
-        });
-      const rect = await indicator.boundingBox();
-      assert.ok(rect.height >= 44);
-      if (width < 638) {
-        assert.equal(rect.width, width - 24);
-        assert.equal(rect.x, 12);
-      }
-      await page.screenshot({
-        path: join(generated, `indicator-${width}.png`),
-      });
-      await indicator.click();
-      await page
-        .getByRole("heading", { name: "Decision a", exact: true })
-        .waitFor();
-      if (width < 1078) {
-        const drawer = await page
-          .getByLabel("FirstMate decisions", { exact: true })
-          .boundingBox();
-        assert.equal(drawer.width, width);
-        assert.equal(drawer.x, 0);
-        await page.getByRole("button", { name: "Close decisions" }).focus();
-        await page.keyboard.press("Shift+Tab");
-        await page.keyboard.press("Tab");
-        assert.equal(
-          await page
-            .getByRole("button", { name: "Close decisions" })
-            .evaluate((node) => node === document.activeElement),
-          true,
-        );
-      }
-      const mutations = () =>
-        page.evaluate(() =>
-          window.fixtureCalls.filter((c) =>
-            /needs-you\.(seen|snooze|answer)/.test(c.name),
-          ),
-        );
-      assert.equal((await mutations()).length, 0);
-      assert.equal(
-        await page
-          .getByRole("button", {
-            name: "Answer: Use the cautious option",
-            exact: true,
-          })
-          .count(),
-        1,
-      );
-      assert.equal(
-        await page
-          .getByRole("button", { name: "Answer: General action" })
-          .count(),
-        0,
-      );
-      for (const button of await page
-        .getByLabel("FirstMate decisions", { exact: true })
-        .getByRole("button")
-        .all()) {
-        if (await button.isVisible()) {
-          const b = await button.boundingBox();
-          assert.ok(b.height >= 43.5, await button.getAttribute("aria-label"));
-        }
-      }
-      await page
-        .getByRole("textbox", { name: "Answer the first mate", exact: true })
-        .fill("Retained typed answer");
-      await page.evaluate(() => {
-        const next = structuredClone(window.attentionSnapshot.requests[0]);
-        next.id = "new-arrival";
-        next.detectedAt = 0;
-        window.attentionSnapshot.requests.push(next);
-        window.attentionSnapshot.version++;
-        window.attentionSnapshot.freshness.checkedAt = Date.now();
-        return window.refreshDecisions();
-      });
-      assert.equal(
-        await page
-          .getByRole("heading", { name: "Decision a", exact: true })
-          .count(),
-        1,
-      );
-      await page.getByRole("button", { name: "Close decisions" }).focus();
-      await page.keyboard.press("Escape");
-      await indicator.waitFor();
-      await page.waitForFunction(() =>
-        document.activeElement?.id.startsWith("needs-you-"),
-      );
-      await indicator.click();
-      await page
-        .getByRole("button", { name: "All decisions", exact: true })
-        .click();
-      await page
-        .getByRole("button", { name: "Decision a · new", exact: true })
-        .click();
-      assert.equal(
-        await page
-          .getByRole("textbox", { name: "Answer the first mate", exact: true })
-          .inputValue(),
-        "Retained typed answer",
-      );
-      await page.screenshot({ path: join(generated, `drawer-${width}.png`) });
-      evidence.push({ width, indicatorHeight: rect.height, passed: true });
-      await page.close();
-    }
-    for (const view of ["home", "board", "chat", "crew"]) {
-      const page = await pageAt(view === "home" ? "compact" : `view=${view}`);
-      assert.equal(
-        await page
-          .getByRole("button", { name: /^Needs you, 3 decisions/ })
-          .count(),
-        1,
-      );
-      await page.close();
-    }
-    const page = await pageAt("decision=a&revision=99", 390);
-    await page
-      .getByText("The question changed since this link was opened.", {
-        exact: false,
-      })
-      .waitFor();
-    assert.equal(
-      await page.evaluate(
-        () =>
-          window.fixtureCalls.filter((c) =>
-            /needs-you\.(seen|snooze|answer)/.test(c.name),
-          ).length,
-      ),
-      0,
-    );
-    await page
-      .getByRole("textbox", { name: "Answer the first mate", exact: true })
-      .fill("A deliberate answer");
-    await page
-      .getByRole("button", { name: "Send answer to the first mate" })
-      .click();
-    await page
-      .getByText(
-        "Answer sent; waiting for the first mate to record the outcome.",
-        { exact: true },
-      )
-      .waitFor();
-    const sent = await page.evaluate(() =>
-      window.fixtureCalls.filter(
-        (c) => c.name === "firstmate.needs-you.answer",
-      ),
-    );
-    assert.equal(sent.length, 1);
-    assert.equal(sent[0].input.recordRevision, 1);
-    assert.equal(sent[0].input.requestId, "a");
-    assert.ok(sent[0].input.submissionId);
-    await page.close();
-    const actions = await pageAt("view=crew", 320);
-    await actions
-      .getByRole("button", { name: /^Needs you, 3 decisions/ })
-      .focus();
-    await actions.keyboard.press("Enter");
-    await actions
-      .getByRole("heading", { name: "Decision a", exact: true })
-      .waitFor();
-    await actions
-      .getByRole("button", { name: "Mark seen", exact: true })
-      .click();
-    await actions.getByText("Seen", { exact: true }).waitFor();
-    assert.equal(
-      await actions.evaluate(() => window.attentionSnapshot.actionCount),
-      3,
-    );
-    await actions
-      .getByRole("button", { name: "Snooze 1 hour", exact: true })
-      .click();
-    await actions
-      .getByRole("button", { name: "Unsnooze", exact: true })
-      .waitFor();
-    const snooze = await actions.evaluate(() =>
-      window.fixtureCalls.find((c) => c.name === "firstmate.needs-you.snooze"),
-    );
-    assert.ok(Math.abs(snooze.input.until - Date.now() - 3600000) < 10000);
-    assert.equal(snooze.input.id, "a");
-    assert.equal(snooze.input.revision, 1);
-    await actions
-      .getByRole("button", { name: "Unsnooze", exact: true })
-      .click();
-    await actions.getByText("Seen", { exact: true }).waitFor();
-    await actions.evaluate(() => {
-      window.attentionUncertain = true;
-    });
-    await actions
-      .getByRole("button", {
-        name: "Answer: Use the cautious option",
-        exact: true,
-      })
-      .click();
-    await actions
-      .getByText("Delivery uncertain; inspect the first mate's conversation.", {
-        exact: false,
-      })
-      .waitFor();
-    assert.equal(
-      await actions
-        .getByRole("button", {
-          name: "Answer: Use the cautious option",
-          exact: true,
-        })
-        .isDisabled(),
-      true,
-    );
-    const choice = await actions.evaluate(() =>
-      window.fixtureCalls.filter(
-        (c) => c.name === "firstmate.needs-you.answer",
-      ),
-    );
-    assert.equal(choice.length, 1);
-    assert.equal(choice[0].input.suggestion.actionId, "cautious");
-    assert.equal(choice[0].input.recordRevision, 1);
-    await actions.reload();
-    await actions
-      .getByRole("button", { name: /^Needs you, 3 decisions/ })
-      .waitFor();
-    assert.equal(
-      await actions.evaluate(
-        () =>
-          window.fixtureCalls.filter((c) =>
-            /needs-you\.(seen|snooze|answer)/.test(c.name),
-          ).length,
-      ),
-      0,
-    );
-    assert.equal(
-      await actions.evaluate(() => (window.attentionToasts ?? []).length),
-      0,
-    );
-    await actions.close();
-    await checkResilience(pageAt, join(root, ".local/needs-you-resilient"));
-    const taskViews = await checkTaskViews(pageAt, generated);
-    await writeFile(join(generated, "view-results.json"), JSON.stringify(taskViews, null, 2));
-    assert.deepEqual(errors, []);
-    await writeFile(
-      join(generated, "results.json"),
-      JSON.stringify(evidence, null, 2),
-    );
-    console.log(
-      JSON.stringify({
-        layouts: evidence.length,
-        surfaces: 4,
-        taskViews: taskViews.length,
-        failures: errors.length,
-        checks:
-          "counts, no implicit actions, exact selection, retained drafts, focus return, revisions, typed send, 44-point targets",
-      }),
-    );
+  const { checkDrawer } = await import("./drawer-checks.mjs");
+  const layouts = await checkDrawer(pageAt, output);
+  await checkResilience(pageAt, output);
+  const taskViews = await checkTaskViews(pageAt, output);
+  assert.deepEqual(errors, []);
+  await writeFile(
+    join(output, "results.json"),
+    JSON.stringify({ layouts, taskViews, errors }, null, 2),
+  );
+  console.log(
+    JSON.stringify({
+      layouts: layouts.length,
+      taskViews: taskViews.length,
+      failures: errors.length,
+    }),
+  );
+} catch (error) {
+  for (const [index, page] of browser
+    .contexts()
+    .flatMap((context) => context.pages())
+    .entries()) {
+    await page.screenshot({ path: join(output, `failure-${index}.png`) });
+    console.error(await page.locator("body").innerText());
   }
+  throw error;
 } finally {
   await browser.close();
   await new Promise((done) => server.close(done));

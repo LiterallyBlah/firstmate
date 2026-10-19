@@ -11,6 +11,13 @@ An unreadable task is isolated so other decisions stay current; its last good ga
 and a suspected hold still counts. The decision drawer and indicator explain problems with line
 numbers and task ids. Unavailable data and last known stale counts are labelled, including on Deck.
 
+The signal stays amber while a decision waits and fills while any are new. Opening a decision marks
+it Seen without reducing the count. Answer in your own words or use a supplied answer, snooze from
+the calendar picker, or discuss it in chat. The drawer keeps its order and advances with a receipt;
+Home keeps its chat beside the task pane, and phones keep the answer bar at the bottom. Answers appear
+as readable chat bubbles. Unconfirmed delivery offers chat inspection, **It arrived**, and a confirmed
+**Send again…** action. Nothing retries automatically.
+
 This fork has diverged substantially from **[FirstMate by Gustavo Ambrozio](https://github.com/gpambrozio/paseo-plugins/tree/main/firstmate)**,
 imported on **7 October 2026 at version 0.3.1** ([import commit](https://github.com/LiterallyBlah/firstmate/commit/129ec61)).
 It now includes animated Deck scenes, workspace tabs, remote crew, managed watches and expanded chat

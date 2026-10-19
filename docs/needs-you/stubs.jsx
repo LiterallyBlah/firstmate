@@ -1,6 +1,6 @@
 export * from "../shell-phase1/stubs.jsx";
 import { useRpc as baseRpc } from "../shell-phase1/stubs.jsx";
-import { fleet } from "../board-list/fixtures.js";
+import { fleet, entries } from "../board-list/fixtures.js";
 import React, { useState } from "react";
 import { useSettings as baseSettings } from "../shell-phase1/stubs.jsx";
 import { taskSourceKey } from "../../client/task-presentation";
@@ -41,8 +41,8 @@ export function useSettings(contract) {
   };
 }
 export const SidebarRow = ({ onPress, trailing }) => (
-  <button aria-label="FirstMate sidebar" onClick={onPress}>
-    {trailing}
+  <button aria-label="FirstMate sidebar" onClick={onPress} style={{ display: "flex", alignItems: "center", gap: 40, background: "transparent", color: "#a1a5a4", border: 0, fontSize: 14 }}>
+    FirstMate {trailing}
   </button>
 );
 const at = Date.now();
@@ -92,8 +92,9 @@ window.attentionSnapshot = {
     request("seen", "seen", at - 4000, true),
     request("snooze", "snoozed", at),
     request("pending", "delivery-uncertain", at - 180000),
+    request("settled", "resolved", at - 600000),
   ],
-  parked: [],
+  parked: [{ ...request("parked", "seen", at).source, blockedBy: "The current rollout finishes" }],
   delivery: "off",
 };
 fleet.suggestions = [
@@ -187,7 +188,9 @@ export function useRpc(contract) {
       if (window.attentionRefuse) throw new Error("This decision changed. Refresh before acting.");
       const request = snapshot.requests.find((r) => r.id === (input.id ?? input.requestId));
       if (!request) throw new Error("Missing decision");
-      if (contract.name.endsWith(".seen")) request.state = "seen";
+      if (request.revision !== (input.revision ?? input.recordRevision)) throw new Error("This decision changed. Refresh before acting.");
+      if (contract.name.endsWith(".seen")) { request.state = "seen"; request.seenAt = Date.now(); request.seenRevision = request.revision; }
+      if (contract.name.endsWith(".new")) { request.state = "new"; request.seenAt = null; request.seenRevision = null; }
       if (contract.name.endsWith(".snooze")) {
         request.state = "snoozed";
         request.snoozedUntil = input.until;
@@ -196,8 +199,16 @@ export function useRpc(contract) {
         request.state = "seen";
         request.snoozedUntil = null;
       }
-      if (contract.name.endsWith(".answer"))
+      if (contract.name.endsWith(".answer")) {
+        request.submissions.push({ submissionId: input.submissionId, revision: input.recordRevision, outcome: window.attentionUncertain ? "uncertain" : "accepted", recordedAt: Date.now(), settledAt: null, previousState: request.state, previousSnoozedUntil: request.snoozedUntil });
         request.state = window.attentionUncertain ? "delivery-uncertain" : "answer-sent";
+      }
+      if (contract.name.endsWith(".record-answer")) {
+        let submission = request.submissions.find(s => s.submissionId === input.submissionId);
+        if (!submission) { submission = { submissionId: input.submissionId, recordedAt: Date.now(), previousState: request.state }; request.submissions.push(submission); }
+        submission.outcome = input.outcome;
+        request.state = input.outcome === "failed" ? submission.previousState : "answer-sent";
+      }
       snapshot.version++;
       snapshot.freshness.checkedAt = Date.now();
       snapshot.actionCount = snapshot.requests.filter((r) => ["new", "seen"].includes(r.state)).length;
@@ -219,3 +230,14 @@ export const useToast = () => ({
   show: (message) => (window.attentionToasts ??= []).push(message),
   error: (message) => (window.attentionErrors ??= []).push(message),
 });
+if (new URLSearchParams(location.search).has("answer-chat")) {
+  entries.push({ provider: "codex", item: { type: "user_message", clientMessageId: "firstmate-answer-fixture", text: `<firstmate-decision-answer>
+The captain explicitly submitted an answer to this recorded question.
+Decision context (JSON): ${JSON.stringify({ homeId: "fixture-home", id: "a", revision: 1, submissionId: "fixture", task: "a", title: "Choose the Windows host (waiting for the captain)", ask: "Light or Atlas" })}
+
+Captain's answer:
+Atlas. Keep Light for Ariadne.
+</firstmate-decision-answer>
+
+This binds the answer to the recorded question, not to a verified PR head or report digest. Review current material and keep the usual review checks. Reconcile the backlog explicitly after acting; sending an answer alone does not prove the task is complete.` }, timestamp: at, seqStart: 999, seqEnd: 999, sourceSeqRanges: [], collapsed: [] });
+}

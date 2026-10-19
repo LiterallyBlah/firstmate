@@ -1,3 +1,4 @@
+import { decisionAnswerSummary, DECISION_ANSWER_KIND } from "./decision-answer-summary";
 import type { PluginTimelineTransformerContribution } from "@getpaseo/plugin/client";
 
 import { injectedSummary, watchSummary } from "./transcript-rows";
@@ -41,6 +42,8 @@ export const nativeChatTransformer: PluginTimelineTransformerContribution<"user_
   id: MACHINE_NOTE_KIND,
   query: { itemType: "user_message" },
   transform({ item }) {
+    const answer = decisionAnswerSummary(item.text, item.clientMessageId);
+    if (answer) return { items: [{ type: "plugin", kind: DECISION_ANSWER_KIND, version: 1, data: answer }] };
     const summary = nativeNoteSummary(item.text);
     if (summary === null) return undefined;
     return {

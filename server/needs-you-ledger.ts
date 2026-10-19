@@ -291,6 +291,7 @@ function changed(
 
 export type NeedsYouMutation =
   | { kind: "seen" }
+  | { kind: "new" }
   | { kind: "snooze"; until: number }
   | { kind: "unsnooze" }
   | {
@@ -389,6 +390,13 @@ export function mutateNeedsYou(
       request.seenRevision = request.revision;
       if (request.state !== "snoozed") request.state = "seen";
       emit(ledger, request, "seen", now);
+    } else if (mutation.kind === "new") {
+      if (request.state === "new") return previous;
+      request.state = "new";
+      request.seenAt = null;
+      request.seenRevision = null;
+      request.snoozedUntil = null;
+      emit(ledger, request, "marked-new", now);
     } else if (mutation.kind === "snooze") {
       if (!Number.isSafeInteger(mutation.until) || mutation.until <= now)
         throw new Error("Snooze needs an absolute future wake time.");

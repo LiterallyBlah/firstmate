@@ -1,3 +1,4 @@
+import { decisionTitle } from "./decision-copy";
 /** Server-owned captain count. The sidebar also owns the single quiet in-app batch toast. */
 import type { PluginSidebarItemProps } from "@getpaseo/plugin/client";
 import { SidebarRow } from "@getpaseo/plugin/client/ui";
@@ -28,7 +29,7 @@ export function FleetSidebarItem({
       toast.show(
         `FirstMate needs your call — ${batch.length} new: ${batch
           .slice(0, 2)
-          .map((r) => r.source.title)
+          .map((r) => decisionTitle(r.source.title))
           .join("; ")}`,
         { variant: "info" },
       );
