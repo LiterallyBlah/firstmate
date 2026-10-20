@@ -65,6 +65,8 @@ it("keeps unlanded ship completion in flight and preserves the existing captain 
   expect(planBacklogLine(p, node, current)).toContain(current.url);
   await writeFile(join(home, "data/backlog.md"), `## In flight\n${planBacklogLine(p, node, current)}\n## Queued\n## Done\n`);
   expect((await store.agenda()).filter(i => i.kind === "books")).toEqual([]);
+  const landed = await execute({ op: "record", plan: "request", node: "build", attempt: started.launch.workflow.attempt, state: "landed", evidence: "Confirmed merge at approved head" });
+  expect(landed.backlog[0].line).toContain("(hold: Merge this PR?)"); expect(landed.backlog[0].line).toContain(current.url);
   await expect(execute({ op: "record", plan: "request", node: "build", attempt: started.launch.workflow.attempt, state: "running", agentId: "replacement", workspaceId: "space", evidence: "Blind reset" })).rejects.toThrow("immutable");
 });
 it("invalidates evidence append-only and stops every dependent, including held dependencies", async () => {

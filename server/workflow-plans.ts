@@ -256,10 +256,13 @@ export class WorkflowPlanStore {
       if (record.workflow?.attempt === attempt && record.state !== "dry-run") throw new Error("Launch record exists; reconcile without another create.");
     }
   }
-  private result(plan: WorkflowPlan, event: Event) {
+  private async result(plan: WorkflowPlan, event: Event) {
     const c = event.command, node = c.op === "start" ? c.node : c.op === "implicit" ? c.launch.id : null;
     const definition = plan.definition.nodes.find(n => n.id === node);
-    return { plan, worstCase: planWorstCase(plan.definition, plan.nodes), backlog: plan.definition.nodes.map(n => ({ node: n.id, section: backlogSection(n, plan.nodes[n.id]!.state), line: planBacklogLine(plan, n) })),
+    let items: ReturnType<typeof parseBacklog> = [];
+    try { items = parseBacklog(await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8")); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+    return { plan, worstCase: planWorstCase(plan.definition, plan.nodes), backlog: plan.definition.nodes.map(n => ({ node: n.id, section: backlogSection(n, plan.nodes[n.id]!.state), line: planBacklogLine(plan, n, items.find(i => samePlanItem(i, plan, n))) })),
       comingUp: plan.definition.nodes.filter(n => n.kind === "decision" && !plan.nodes[n.id]?.answer),
       ...(definition?.kind === "run" && node ? { launch: { ...(plan.nodes[node]!.launch ?? definition.launch), workflow: { plan: plan.definition.id, node, attempt: plan.nodes[node]!.attempt, briefHash: plan.nodes[node]!.briefHash } } } : {}) };
   }
