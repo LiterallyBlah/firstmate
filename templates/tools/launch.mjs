@@ -317,6 +317,8 @@ async function prepare(file, dryRun) {
     launchedBy: await role(), createdAt: now(), history: [], queuedPreimage: existing?.content ?? null, brief: { path: brief.path, fileSha256: brief.fileSha256, payloadSha256: brief.payloadSha256, chars: brief.chars },
     checks: { baseBranch: "unknown: Paseo validates the requested base during creation", arming: "unknown", briefDelivery: "unknown" } };
   if (dryRun) return { ...output(record, brief.value), dryRun: true, state: "dry-run" };
+  // The implicit intent pins this assembled file; a later lock refusal may leave
+  // an unused brief, but it never exposes creation instructions or a worker.
   if (!request.brief.file) await write(brief.path, brief.bytes);
   const { workflow: binding, ...launchRequest } = resolved.request;
   const launch = { ...launchRequest, brief: { file: brief.path } };

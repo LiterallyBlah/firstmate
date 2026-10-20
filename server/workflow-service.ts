@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { z } from "zod";
 import { WorkflowCommandSchema } from "../shared/workflow-plans";
@@ -24,7 +24,16 @@ export async function processWorkflowRequests(home: string, store: WorkflowPlanS
     let processed = 0;
     for (const name of files.filter(f => /^[\da-f-]{36}\.json$/.test(f)).sort()) {
       const reply = join(directory, name.replace(/\.json$/, ".reply.json"));
-      try { await stat(reply); continue; } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
+      try {
+        const saved = await stat(reply);
+        // Transport replies are disposable; mutation idempotency lives in the durable log.
+        // Never remove a pending request, and retain a full day for a lost read reply.
+        if (Date.now() - saved.mtimeMs > 86400000) {
+          await rm((await resolveInHome(home, `data/workflow-requests/${name}`)).absolute);
+          await rm(reply);
+        }
+        continue;
+      } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
       if (processed++ >= 20) break;
       let result: unknown;
       try {

@@ -9,6 +9,7 @@ import { serialized } from "./serialize";
 import { resolveInHome } from "./files";
 import { parseBacklog } from "./backlog";
 import { observeNeedsYou } from "./needs-you-detect";
+import { RemoteSnapshot } from "../shared/remotes";
 import { fill, readTemplate, TEMPLATES } from "./templates";
 
 const EventSchema = z.object({ version: z.literal(1), home: z.string().min(1), plan: PlanId, sequence: z.number().int().nonnegative(), previous: z.string().length(64).nullable(),
@@ -190,7 +191,12 @@ export class WorkflowPlanStore {
     if (command.op === "plans") return (await this.list()).filter(p => command.all || (!planFinished(p) && p.status !== "abandoned"));
     if (command.op === "show") { const plan = await this.get(command.plan); return plan ? { ...plan, finished: planFinished(plan) } : null; }
     if (command.op === "agenda") return this.agenda();
-    if (command.op === "lint") return observeNeedsYou(await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8"), null);
+    if (command.op === "lint") {
+      let catalog: z.infer<typeof RemoteSnapshot> | null = null;
+      try { catalog = RemoteSnapshot.parse(JSON.parse(await readFile((await resolveInHome(this.home, "data/remote-hosts.json")).absolute, "utf8"))); }
+      catch { /* Unknown host identities stay quarantined if the catalog is missing or unreadable. */ }
+      return observeNeedsYou(await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8"), catalog);
+    }
     return serialized(resolve(this.root), async () => {
       const id = command.op === "draft" || command.op === "revise" ? command.definition.id : command.op === "implicit" ? command.launch.id : command.plan;
       const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>(reduce, null);

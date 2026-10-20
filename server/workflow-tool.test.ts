@@ -28,6 +28,8 @@ it("transports plans, an implicit start, records, read-only agenda and idempoten
   const launch = { id: "task", title: "Task", agentTitle: "Task", project: "project", host: "local", baseBranch: "main", kind: "ship", mode: "direct-PR", brief: { file: "data/task/brief.md" }, agent: { provider: "codex/model", modeId: "full-access" }, backlog: { existing: "none" } };
   await writeFile(join(home, "data/task/request.json"), JSON.stringify(launch));
   expect(await run(["plans"], "guest")).toMatchObject({ ok: true, result: [] });
+  await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n- [ ] choose - Choose (kind: captain) (hold: Pick) (blocked-by: waiting for evidence) (plan: request) (needed-by: build, test)\n## Done\n");
+  expect(await run(["lint"], "guest")).toMatchObject({ ok: true, result: { valid: true, problems: [], sources: [{ disposition: "parked" }] } });
   const id = randomUUID(), args = ["start", "--file", "data/task/request.json", "--request-id", id];
   const started = await run(args); expect(started.ok).toBe(true); expect(await run(args)).toEqual(started);
   const before = await readFile(join(home, "ledger/task/00000000.json"), "utf8");
