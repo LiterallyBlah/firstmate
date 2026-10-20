@@ -118,6 +118,43 @@ it("preserves task/workspace identity, old attempts and cumulative budget on man
   await execute({ op: "record", plan: "request", node: "build", attempt: second.launch.workflow.attempt, state: "running", agentId: "replacement", workspaceId: "space", evidence: "Manual promotion in preserved workspace" });
   expect((await store.get("request"))?.nodes.build?.spent).toBe(2);
 });
+it("keeps a quarantined running owner's task reserved against a differently named plan", async () => {
+  await execute({ op: "draft", definition: definition("plan") });
+  const started = await execute({ op: "start", plan: "plan", node: "build" });
+  await execute({ op: "record", plan: "plan", node: "build", attempt: started.launch.workflow.attempt, state: "running", agentId: "still-working", workspaceId: "original-space", evidence: "Verified live worker" });
+  await writeFile(join(root, "plan/00000002.json"), "{");
+  expect((await store.read()).problems).toHaveLength(1);
+
+  await expect(execute({ op: "draft", definition: definition("fresh-plan") })).rejects.toThrow("ownership");
+  await expect(execute({ op: "implicit", launch: PlanLaunchSchema.parse(run().launch) })).rejects.toThrow("ownership");
+  await expect(execute({ op: "start", plan: "fresh-plan", node: "build" })).rejects.toThrow("ownership");
+  await expect(execute({ op: "claim", plan: "fresh-plan", node: "build", attempt: randomUUID(), briefHash: started.launch.workflow.briefHash, launch: run().launch })).rejects.toThrow("ownership");
+  expect(await store.get("fresh-plan")).toBeNull();
+  expect(await readFile(join(root, "plan/00000002.json"), "utf8")).toBe("{");
+});
+it("holds new starts, claims and identity edits on healthy plans until ownership can be established", async () => {
+  await execute({ op: "draft", definition: definition("plan") });
+  const owner = await execute({ op: "start", plan: "plan", node: "build" });
+  await execute({ op: "record", plan: "plan", node: "build", attempt: owner.launch.workflow.attempt, state: "running", agentId: "still-working", workspaceId: "original-space", evidence: "Verified live worker" });
+  const healthy = definition("healthy", [run("next")]);
+  await execute({ op: "draft", definition: healthy });
+  const original = await readFile(join(root, "plan/00000002.json"), "utf8");
+  await writeFile(join(root, "plan/00000002.json"), "{");
+  await expect(execute({ op: "start", plan: "healthy", node: "next" })).rejects.toThrow("ownership");
+  const p = (await store.get("healthy"))!;
+  await expect(execute({ op: "revise", definition: definition("healthy", [run()]), expected: p.hash, reason: "Reuse task" })).rejects.toThrow("ownership");
+
+  // Repair only the fixture so an unclaimed intent can predate the quarantine.
+  await writeFile(join(root, "plan/00000002.json"), original);
+  const intent = await execute({ op: "start", plan: "healthy", node: "next" });
+  await writeFile(join(root, "plan/00000002.json"), "{");
+  const { workflow, ...launch } = intent.launch;
+  await expect(execute({ op: "claim", ...workflow, launch })).rejects.toThrow("ownership");
+  expect((await store.get("healthy"))?.nodes.next?.claimed).toBe(false);
+  // Quarantine must still allow recording verified outcomes of existing healthy work.
+  await execute({ op: "record", plan: "healthy", node: "next", attempt: workflow.attempt, state: "running", agentId: "known-worker", workspaceId: "known-space", evidence: "Reconciled existing create" });
+  expect((await store.get("healthy"))?.nodes.next?.agentId).toBe("known-worker");
+});
 it("quarantines a bad plan, interior gap and stray file without losing healthy plans or agenda", async () => {
   await execute({ op: "draft", definition: definition() });
   await mkdir(join(root, "broken")); await writeFile(join(root, "broken/00000000.json"), "{");

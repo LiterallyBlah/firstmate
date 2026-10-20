@@ -56,7 +56,9 @@ Home identity is the absolute path (case folded on Windows). Moving a home start
 switching back recovers its history. Old unscoped logs are never silently imported: reconcile them
 explicitly before reuse. Missing expected-tip files also require explicit reconciliation; no shorter
 history is treated as a fresh budget. A bad plan is quarantined and listed as an escalation while
-healthy plans and legacy decisions remain readable.
+healthy plans and legacy decisions remain readable. Until every quarantined history is reconciled,
+new plans, identity edits, replacements, implicit launches, starts and claims are held: an unreadable
+plan may still own a live worker. Verified outcomes for healthy existing work can still be recorded.
 
 `release --plan <id> --node <id> --attempt <uuid> --evidence <inspection>` releases only a starting
 intent with no accounted worker and no issued launch record (a dry-run record is harmless). Restarting

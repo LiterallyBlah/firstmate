@@ -202,7 +202,12 @@ export class WorkflowPlanStore {
       const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>(reduce, null);
       const replay = events.find(e => e.requestId === requestId);
       if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); return this.renderedResult(previous!, replay); }
-      const plans = await this.list();
+      const { plans, problems: inventoryProblems } = await this.read();
+      // A quarantined history can still own a live worker. Its absence from the
+      // healthy projection cannot establish that a task identity is available.
+      if (inventoryProblems.length && ["draft", "revise", "implicit", "start", "claim", "replace"].includes(command.op)) {
+        throw new Error(`Cannot establish task ownership; reconcile quarantined plans before creating or dispatching work.\n${inventoryProblems.join("\n")}`);
+      }
       if (command.op === "draft" || command.op === "revise") {
         const removed = new Set([...(previous?.removed ?? []).map(r => r.node.id), ...(previous?.definition.nodes ?? []).filter(n => !command.definition.nodes.some(next => next.id === n.id)).map(n => n.id)]);
         // Cross-plan dependents still prevent removing their referenced node; only this
