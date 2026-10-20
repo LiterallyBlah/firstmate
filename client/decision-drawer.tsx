@@ -567,6 +567,9 @@ export function DecisionDrawer({
         <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
           {chrome}
           <PlanNeeds theme={theme} snapshot={snapshot} />
+          {sameHome && snapshot?.freshness.status === "fresh" && !offline &&
+            (destination.requestId === "next" || destination.requestId === "empty") &&
+            (!!snapshot.planNow?.length || !!snapshot.comingUp?.length) ? null :
           <Text style={{ color: colors.foreground }}>
             {!sameHome
               ? "This decision belongs to another FirstMate home. Open its original host and home."
@@ -576,11 +579,12 @@ export function DecisionDrawer({
                     destination.requestId === "empty"
                   ? snapshot?.actionCount === 0 &&
                     snapshot.freshness.status === "fresh" &&
+                    !snapshot.planProblems?.length &&
                     !offline
                     ? "✓ Nothing needs you. Answered, snoozed and past decisions are in All."
                     : "Open All to review the last known decisions."
                   : "This decision is no longer available. Its answer has not been replayed."}
-          </Text>
+          </Text>}
         </ScrollView>
       )}
       <SourceFile

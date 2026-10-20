@@ -20,7 +20,19 @@ Decision nodes have `kind: decision`, `id`, `title`, `summary`, `after`, `option
 References can cross plans. Cycles, duplicate task identities and unknown fields are refused.
 
 Two or more runs or any decision wait for review; one run sails. The captain's own words can override
-this with `request: {text, at, posture: sail|review, quote}`. Standing-order parsing comes later.
+this with `request: {text, at, posture: sail|review, quote}`. Otherwise posture is read at draft/revise
+from the plan-posture entry in one fenced block in `data/captain.md`:
+
+```standing-orders
+plan-posture: review
+```
+
+`review` reviews every plan, `sail` releases plans within their budgets, and `default` uses D2.
+Absent/unreadable blocks fall back to D2; malformed, duplicate or unknown plan-posture values
+require review. Other entries are ignored here; merge and routing orders remain in slice 6.
+The resolved source is recorded in the event and shown in the plan. An implicit launch held by an
+order creates only its pending plan, without creation instructions; approve it, start that same node,
+then use the returned bound launch request. No block is installed into existing captain records.
 For approval recorded from chat in this slice, use `plan approve --plan <id> --expected <hash>
 --quote <captain's words>`. This records the first mate as its author; approval grants no merge authority.
 Each one-step run costs at most one worker and one initial worker turn. Reviews/relaunches require a
@@ -136,3 +148,9 @@ Quote the captain's actual words in text; answer also needs node and option. Rea
 from `plan <id>` or the board/read RPC, never invent it or treat a model's interpretation as the captain's answer.
 Bearings reads plans for Captain's Call, Underway and Charted Next, including Coming up, without
 changing any business records.
+Chat-recorded actions show the first mate as their author, distinct from a captain button press.
+A stale action says the plan changed since it was opened. Historical actions are not reauthorized
+against a new projection during replay; their raw committed hashes and chain are still checked.
+Damaged plans show separate problems without hiding unrelated fleet cards or captain decisions.
+Their unknown actions make the displayed count a lower bound. Finished implicit plans leave the
+agenda, board projection and Bearings; Recently Landed covers at most ten explicit results in seven days.

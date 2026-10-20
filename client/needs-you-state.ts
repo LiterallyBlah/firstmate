@@ -44,8 +44,9 @@ export function indicatorState(
       ? null
       : (snapshot?.actionCount ?? null);
   const partialPlans = recordedCount === null && (snapshot?.planNow?.length ?? 0) > 0;
-  const count = partialPlans ? snapshot!.planNow!.length : recordedCount;
-  const fresh = !offline && snapshot?.freshness.status === "fresh";
+  const unavailablePlans = !!snapshot?.planProblems?.length;
+  const count = partialPlans ? snapshot!.planNow!.length : unavailablePlans && recordedCount === 0 ? null : recordedCount;
+  const fresh = !offline && snapshot?.freshness.status === "fresh" && !unavailablePlans;
   const newCount = snapshot?.newCount ?? 0;
   const status = offline ? "stale" : (snapshot?.freshness.status ?? "unknown");
   const problems = decisionProblems(snapshot, offline);
@@ -88,10 +89,10 @@ export function indicatorState(
         ? "Can't read decisions"
         : count === 0 && fresh
           ? "✓ Nothing needs you"
-          : `Needs you · ${count}${partialPlans ? "+ · plans only" : ""}${!fresh && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}`,
-    badge: count === null ? "!" : `${count}${partialPlans ? "+" : ""}`,
+          : `Needs you · ${count}${unavailablePlans ? "+ · some plans unavailable" : partialPlans ? "+ · plans only" : ""}${!fresh && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}`,
+    badge: count === null ? "!" : `${count}${partialPlans || unavailablePlans ? "+" : ""}`,
     extra,
-    accessibilityLabel: `Needs you, ${count === null ? "count unavailable" : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} decisions`}${extra ? `, ${extra}` : ""}${!fresh && count !== null && snapshot?.freshness.asOf != null ? `, as of ${decisionClock(snapshot.freshness.asOf)}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
+    accessibilityLabel: `Needs you, ${count === null ? "count unavailable" : unavailablePlans ? `at least ${count} decisions; some plans unavailable` : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} decisions`}${extra ? `, ${extra}` : ""}${!fresh && count !== null && snapshot?.freshness.asOf != null ? `, as of ${decisionClock(snapshot.freshness.asOf)}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
   };
 }
 
@@ -101,6 +102,7 @@ export function decisionProblems(
 ): string[] {
   return [
     ...new Set([
+      ...(snapshot?.planProblems ?? []),
       ...(offline
         ? ["Could not refresh decision data. Check the host connection."]
         : []),
@@ -125,6 +127,10 @@ export function decisionCountText(
   snapshot: NeedsYouSnapshot | undefined,
   offline = false,
 ): string {
+  if (snapshot?.planProblems?.length || (snapshot?.actionCount == null && snapshot?.planNow?.length)) {
+    const state = indicatorState(snapshot, offline);
+    return state.count === null ? "unavailable" : `${state.badge} · ${snapshot?.planProblems?.length ? "some plans unavailable" : "plans only"}`;
+  }
   if (
     snapshot?.actionCount == null ||
     snapshot.freshness.status === "unknown" ||

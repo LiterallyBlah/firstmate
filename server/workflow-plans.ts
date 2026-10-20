@@ -4,7 +4,8 @@ import type { Dirent } from "node:fs";
 import { mkdir, readFile, readdir, rename, writeFile, stat, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, WorkflowCommandSchema, planFinished, planPosture, planProblems, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
+import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, planFinished, planPosture, planProblems, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
+import { readPlanPosture } from "./workflow-posture";
 import { digest, publish } from "./submissions";
 import { serialized } from "./serialize";
 import { resolveInHome } from "./files";
@@ -16,7 +17,7 @@ import { mergeOwnership, ownershipCapsule, ownershipScope, planOwnership, quaran
 
 const EventSchema = z.object({ version: z.literal(1), home: z.string().min(1), plan: PlanId, sequence: z.number().int().nonnegative(), previous: z.string().length(64).nullable(),
   requestId: z.uuid(), requestHash: z.string().length(64), at: z.iso.datetime(), by: z.string().min(1),
-  command: WorkflowCommandSchema, attempt: z.uuid().optional(), briefHash: z.string().length(64).optional(), launch: PlanLaunchSchema.optional(), hash: z.string().length(64) }).strict();
+  command: WorkflowCommandSchema, attempt: z.uuid().optional(), briefHash: z.string().length(64).optional(), launch: PlanLaunchSchema.optional(), postureSource: PlanPostureSourceSchema.optional(), hash: z.string().length(64) }).strict();
 type Event = z.infer<typeof EventSchema>;
 const RecoverySchema = z.object({ version: z.literal(1), home: z.string(), plan: PlanId, sequence: z.number().int().nonnegative(),
   orphanHash: z.string().length(64), previous: z.string().length(64).nullable(), revision: z.number().int().positive(), at: z.iso.datetime(), hash: z.string().length(64) }).strict();
@@ -45,14 +46,14 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
       budget: { agents: 1, turns: 1 }, nodes: [{ id: c.launch.id, kind: "run", title: c.launch.title, summary: c.launch.title,
         workflow: c.launch.kind === "scout" ? "scout@1" : "task@1", launch: c.launch, after: [] }],
     };
-    const posture = planPosture(definition);
+    const posture = event.postureSource?.posture ?? planPosture(definition);
     next = { definition, revision: 1, sequence: 0, hash: "", posture, status: posture === "review" ? "review" : "active",
       approvedBudget: planWorstCase(definition), nodes: Object.fromEntries(definition.nodes.map(n => [n.id, { state: "planned" as const }])), told: [], handled: [],
-      history: [{ revision: 1, at: event.at, by: event.by, reason: "draft" }] };
+      history: [{ revision: 1, at: event.at, by: event.by, reason: "draft" }], ...(event.postureSource ? { postureSource: event.postureSource } : {}) };
   }
   if (!next) throw new Error("Plan log does not start with a draft.");
   if (c.op === "captain") {
-    if (c.revision !== next.revision || c.subjectHash !== planSubjectHash(next)) throw new Error("This plan or decision changed on another device. Refresh and review it again.");
+    // Revision/subject are checked once at append. Historical actions trust their committed chain.
     if (next.status === "abandoned") throw new Error("This plan was declined.");
     if (c.action === "changes" && !c.text.trim()) throw new Error("Describe the requested changes.");
     if (c.action === "answer") {
@@ -68,6 +69,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
         const node = next.definition.nodes.find(n => n.id === edit.node);
         if (!node || next.nodes[node.id]?.state !== "planned") throw new Error("Only unstarted, unanswered nodes can be edited.");
         if (edit.kind === "remove") {
+          next.removed ??= []; next.removed.push({ node: structuredClone(node), state: structuredClone(next.nodes[node.id]!) });
           // Removing a prerequisite holds its dependents; it never silently releases them.
           for (const dependent of next.definition.nodes.filter(n => n.after.some(d => d.node === node.id))) {
             dependent.after = dependent.after.filter(d => d.node !== node.id); next.nodes[dependent.id]!.held = true;
@@ -79,13 +81,13 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
       next.definition = PlanDefinitionSchema.parse({ ...next.definition, implicit: false }); next.revision++;
       next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: c.text || "Approved with structured edits" });
     }
-    if (c.action === "approve" || c.action === "edit") { next.status = "active"; next.approvedBudget = planWorstCase(next.definition); }
+    if (c.action === "approve" || c.action === "edit") { next.status = "active"; next.approvedBudget = planWorstCase(next.definition, next.nodes); }
     if (c.action === "hold" || c.action === "changes") next.status = "held";
     if (c.action === "decline") {
       if (next.definition.nodes.some(n => n.kind === "run" && next!.nodes[n.id]?.state !== "planned")) throw new Error("A started plan cannot be declined. Hold it and preserve its work.");
       next.status = "abandoned";
     }
-    next.captainEvents ??= []; next.captainEvents.push({ id: event.requestId, action: c.action, text: c.text, ...(c.node ? { node: c.node } : {}), at: event.at });
+    next.captainEvents ??= []; next.captainEvents.push({ id: event.requestId, action: c.action, text: c.text, ...(c.node ? { node: c.node } : {}), at: event.at, by: event.by });
   }
   if (c.op === "revise") {
     if (c.expected !== previous?.hash || c.definition.id !== next.definition.id) throw new Error("Stale plan revision.");
@@ -104,16 +106,18 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     const worst = planWorstCase(c.definition, next.nodes);
     if (worst.agents > c.definition.budget.agents || worst.turns > c.definition.budget.turns) throw new Error("Revision exceeds cumulative spent and remaining budget.");
     // Scope and changed choices require review; counts never reset by revision.
-    next.posture = planPosture(c.definition);
-    next.status = next.posture === "review" || worst.agents > next.approvedBudget.agents * 1.5 || worst.turns > next.approvedBudget.turns * 1.5 ? "review" : next.status;
+    next.posture = event.postureSource?.posture ?? planPosture(c.definition);
+    if (event.postureSource) next.postureSource = event.postureSource;
+    next.status = next.posture === "review" || worst.agents > next.approvedBudget.agents * 1.5 || worst.turns > next.approvedBudget.turns * 1.5 ? "review" : next.status === "held" || next.status === "abandoned" ? next.status : "active";
     next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: c.reason });
   }
   if (c.op === "approve") {
     if (c.expected !== previous?.hash || next.status === "abandoned") throw new Error("Stale plan approval.");
     next.status = "active"; next.approvedBudget = planWorstCase(next.definition, next.nodes);
     next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: `Recorded from chat: ${c.quote}` });
+    next.captainEvents ??= []; next.captainEvents.push({ id: event.requestId, action: "approve", text: c.quote, at: event.at, by: event.by });
   }
-  if (c.op === "start" || c.op === "implicit") {
+  if (c.op === "start" || (c.op === "implicit" && next.status === "active")) {
     const id = c.op === "start" ? c.node : c.launch.id;
     if (next.status !== "active" || next.nodes[id]?.state !== "planned" || !event.attempt || !event.briefHash) throw new Error("Run is held, already started or has no pinned brief.");
     const state = next.nodes[id]!;
@@ -166,6 +170,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
   if (c.op === "notified") { const action = next.captainEvents?.find(a => a.id === c.eventId); if (!action) throw new Error("Unknown captain event."); action.notified = true; }
   return { ...next, hash: event.hash, sequence: event.sequence };
 }
+export { reduce as replayWorkflowEvent };
 
 export class WorkflowPlanStore {
   private static cache = new Map<string, { identity: string; plan: WorkflowPlan | null }>();
@@ -416,6 +421,12 @@ export class WorkflowPlanStore {
       const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>(reduce, null);
       const replay = events.find(e => e.requestId === requestId);
       if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); return this.renderedResult(previous!, replay); }
+      if (command.op === "captain" && (!previous || command.revision !== previous.revision || command.subjectHash !== planSubjectHash(previous))) throw new Error("This plan changed since you opened it. Refresh and review it again.");
+      const postureDefinition = command.op === "draft" || command.op === "revise" ? command.definition : command.op === "implicit" ? PlanDefinitionSchema.parse({
+        format: "firstmate.plan/1", id, title: command.launch.title, request: { text: command.launch.title, at: new Date().toISOString() }, implicit: true,
+        budget: { agents: 1, turns: 1 }, nodes: [{ id, title: command.launch.title, summary: command.launch.title, kind: "run", workflow: command.launch.kind === "scout" ? "scout@1" : "task@1", launch: command.launch }],
+      }) : null;
+      const postureSource = postureDefinition ? await readPlanPosture(this.home, postureDefinition) : undefined;
       const { plans, quarantined, unavailable } = await this.read();
       const unavailableDependencies = quarantinedDependencyIds(quarantined);
       const ownsWork = ["draft", "revise", "implicit", "start", "claim", "replace"].includes(command.op);
@@ -433,9 +444,10 @@ export class WorkflowPlanStore {
         for (const p of plans.filter(p => p.definition.id !== id)) for (const n of p.definition.nodes) for (const edge of n.after) if (removed.has(edge.node)) problems.push(`${n.id}: unknown dependency ${edge.node}.`);
         if (problems.length) throw new Error(problems.join("\n"));
       }
-      if (command.op === "implicit" && previous?.definition.implicit && previous.nodes[id]?.state === "starting") {
-        if (digest(previous.nodes[id]?.launch) !== digest(command.launch)) throw new Error("Existing implicit intent has different content.");
-        await this.assertUncreated(id, previous.nodes[id]!.attempt!);
+      if (command.op === "implicit" && previous?.definition.implicit && ["starting", "planned"].includes(previous.nodes[id]?.state ?? "")) {
+        const node = previous.definition.nodes[0];
+        if (node?.kind !== "run" || digest(previous.nodes[id]?.launch ?? node.launch) !== digest(command.launch)) throw new Error("Existing implicit intent has different content.");
+        if (previous.nodes[id]?.attempt) await this.assertUncreated(id, previous.nodes[id]!.attempt!);
         const original = events.find(e => e.command.op === "implicit")!;
         return this.renderedResult(previous, original);
       }
@@ -461,9 +473,9 @@ export class WorkflowPlanStore {
         }
       } else if (command.op === "implicit") briefHash = (await this.brief({ kind: "run", id, title: command.launch.title, summary: command.launch.title, after: [], workflow: command.launch.kind === "scout" ? "scout@1" : "task@1", launch: command.launch })).hash;
       const event: Event = { version: 1, home: resolve(this.home), plan: id, sequence: events.length, previous: previous?.hash ?? null, requestId, requestHash: digest(command), at: new Date().toISOString(), by, command,
-        ...(briefHash ? { briefHash, attempt: command.op === "start" ? previous?.nodes[command.node]?.attempt ?? randomUUID() : randomUUID() } : {}), ...(launch ? { launch } : {}), hash: "" };
+        ...(briefHash && !(command.op === "implicit" && postureSource?.posture === "review") ? { briefHash, attempt: command.op === "start" ? previous?.nodes[command.node]?.attempt ?? randomUUID() : randomUUID() } : {}), ...(launch ? { launch } : {}), ...(postureSource ? { postureSource } : {}), hash: "" };
       event.hash = checksum(event); const next = reduce(previous, event);
-      const problems = planProblems(next.definition, plans); if (problems.length) throw new Error(problems.join("\n"));
+      const problems = planProblems(next.definition, plans, new Set(next.removed?.map(r => r.node.id))); if (problems.length) throw new Error(problems.join("\n"));
       if (event.sequence > 99999999) throw new Error("Plan event capacity exceeded.");
       await mkdir(this.directory(id), { recursive: true });
       await mkdir(this.tips(id), { recursive: true });
@@ -501,7 +513,7 @@ export class WorkflowPlanStore {
     catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") projectionProblem = "Plan committed; backlog is unreadable. Reconcile it before applying any projection."; }
     return { plan, worstCase: planWorstCase(plan.definition, plan.nodes), ...(projectionProblem ? { projectionProblem } : {}), backlog: projectionProblem ? [] : plan.definition.nodes.map(n => ({ node: n.id, section: backlogSection(n, plan.nodes[n.id]!.state), line: planBacklogLine(plan, n, items.find(i => samePlanItem(i, plan, n))) })),
       comingUp: plan.definition.nodes.filter(n => n.kind === "decision" && !plan.nodes[n.id]?.answer),
-      ...(definition?.kind === "run" && node ? { launch: { ...(plan.nodes[node]!.launch ?? definition.launch), workflow: { plan: plan.definition.id, node, attempt: plan.nodes[node]!.attempt, briefHash: plan.nodes[node]!.briefHash } } } : {}) };
+      ...(definition?.kind === "run" && node && plan.nodes[node]?.attempt ? { launch: { ...(plan.nodes[node]!.launch ?? definition.launch), workflow: { plan: plan.definition.id, node, attempt: plan.nodes[node]!.attempt, briefHash: plan.nodes[node]!.briefHash } } } : {}) };
   }
   async render(plan: WorkflowPlan): Promise<void> {
     const path = await resolveInHome(this.home, `data/plans/${plan.definition.id}/plan.md`);
@@ -518,9 +530,10 @@ export class WorkflowPlanStore {
     const content = fill(await readTemplate(TEMPLATES.workflowPlan), {
       title: plan.definition.title, request: plan.definition.request.text, revision: String(plan.revision), posture: plan.posture, state: planFinished(plan) ? "finished" : plan.status,
       budget: JSON.stringify(planWorstCase(plan.definition, plan.nodes)),
+      postureSource: plan.postureSource ? `${plan.postureSource.source}: ${plan.postureSource.detail}${plan.postureSource.warning ? ` ${plan.postureSource.warning}` : ""}` : "D2 default",
       nodes: nodes.join("\n\n"),
       history: plan.history.map(h => `- ${h.revision} · ${h.at} · ${h.by} · ${h.reason}`).join("\n"),
-      actions: (plan.captainEvents ?? []).map(a => `- ${a.at} · ${a.action}${a.text ? ` · ${a.text}` : ""}`).join("\n"),
+      actions: (plan.captainEvents ?? []).map(a => `- ${a.at} · ${a.by === "board:captain" ? "Captain pressed" : "Recorded by the first mate from chat"}: ${a.action}${a.text ? ` · ${a.text}` : ""}`).join("\n"),
     });
     const temporary = `${path.absolute}.${randomUUID()}.tmp`;
     try { await writeFile(temporary, content, { flag: "wx" }); await rename(temporary, path.absolute); }
@@ -539,7 +552,6 @@ export class WorkflowPlanStore {
         if (kind === "tell" ? plan.told.includes(id) : plan.handled.includes(id)) return;
         result.push({ id, kind, priority, plan: plan.definition.id, text, ...(node ? { node } : {}), ...extra });
       };
-      if (plan.status === "abandoned") continue;
       if (plan.definition.implicit && planFinished(plan)) continue;
       for (const removed of plan.removed ?? []) {
         const current = items.find(i => samePlanItem(i, plan, removed.node));
@@ -547,12 +559,12 @@ export class WorkflowPlanStore {
           `removed:${removed.node.id}:${plan.revision}`, `Removed planned work: ${removed.node.title}. ${current.agentId ? "Inspect unexpected worker; do not discard its work." : "Remove only this plan's scoped backlog row."}`, removed.node.id, { section: "remove" });
       }
       for (const action of plan.captainEvents ?? []) {
-        add("captain", 2, `captain:${action.id}`, `Captain: ${action.action}. ${action.text}`, action.node);
+        add("captain", 2, `captain:${action.id}`, `${action.by === "board:captain" ? "Captain pressed" : "Recorded by the first mate from chat"}: ${action.action}. ${action.text}`, action.node);
         if (action.action === "changes") add("replan", 3, `changes:${action.id}`, action.text);
       }
       if (plan.status === "abandoned") {
         for (const node of plan.definition.nodes) {
-          const current = items.find(i => i.id === node.id && i.plan === plan.definition.id);
+          const current = items.find(i => samePlanItem(i, plan, node));
           if (!current) continue;
           if (current.agentId) add("escalation", 1, `declined-worker:${node.id}`, `A declined node still names a worker. Reconcile ${node.title} and preserve its work.`, node.id);
           else if (current.section === "queued") add("books", 6, `declined-books:${node.id}:${plan.revision}`, `Remove the declined Queued line for ${node.title}; retain the plan history.`, node.id, { section: "remove", line: "" });

@@ -8,7 +8,8 @@ vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "Vi
 vi.mock("@getpaseo/plugin/client/ui", () => ({ SettingsRow: "SettingsRow" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: "Icon", TextInput: "TextInput", FlatList: "FlatList", Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
 import { PlanDialog, PlanNeeds } from "./workflow-plans";
-import { indicatorState } from "./needs-you-state";
+import { indicatorState, decisionCountText } from "./needs-you-state";
+import { OptionPicker } from "./option-picker";
 const theme = { colors: { foreground: "#ffffff", foregroundMuted: "#aaaaaa", border: "#333333", surface1: "#222222", statusWarning: "#ffff00" } } as PluginTheme;
 let renderer: ReactTestRenderer | null = null;
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
@@ -50,7 +51,32 @@ it("reports only a lower bound from plans when legacy decisions are unavailable,
 });
 it("shows completed plans as history without another approval action", async () => {
   const completed = plan(); for (const state of Object.values(completed.nodes)) state.state = "done";
+  completed.nodes.build!.state = "landed";
   await act(async () => { renderer = create(createElement(PlanDialog, { theme, plan: completed, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct: vi.fn(), onRefresh() {} })); });
   expect(JSON.stringify(renderer!.toJSON())).toContain("Completed");
   expect(renderer!.root.findAll(n => n.type === ("Pressable" as any) && n.props.accessibilityLabel === "Approve")).toHaveLength(0);
+});
+it("labels a known decision count as a lower bound when any plan is quarantined", () => {
+  const snapshot: any = { actionCount: 2, planNow: [], planProblems: ["Plan damaged: hash chain"], freshness: { status: "fresh", problems: [], asOf: null } };
+  expect(indicatorState(snapshot)).toMatchObject({ count: 2, badge: "2+", fresh: false });
+  expect(decisionCountText(snapshot)).toBe("2+ · some plans unavailable");
+  expect(decisionCountText({ ...snapshot, actionCount: 0 })).toBe("unavailable");
+  expect(indicatorState({ ...snapshot, actionCount: 0 })).toMatchObject({ count: null, badge: "!" });
+});
+it("shows separate provenance for captain presses and approvals recorded from chat", async () => {
+  const p = plan(); p.captainEvents = [{ id: "one", by: "mate", action: "approve", text: "Just go", at: "2026-10-20T12:00:00Z" }, { id: "two", by: "board:captain", action: "hold", text: "", at: "2026-10-20T12:00:00Z" }];
+  await act(async () => { renderer = create(createElement(PlanDialog, { theme, plan: p, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct: vi.fn(), onRefresh() {} })); });
+  expect(JSON.stringify(renderer!.toJSON())).toContain("Recorded by the first mate from chat"); expect(JSON.stringify(renderer!.toJSON())).toContain("Captain pressed");
+});
+it("requires an explicit access-mode choice when changing to a model without the current mode", async () => {
+  const onAct = vi.fn().mockResolvedValue(undefined);
+  await act(async () => { renderer = create(createElement(PlanDialog, { theme, plan: plan(), subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct, onRefresh() {}, models: [{ provider: "claude/opus", label: "New model", modes: [{ id: "unrestricted", label: "Unrestricted" }, { id: "read-only", label: "Read only" }], thinking: [] }] })); });
+  await act(async () => button("Approve with edits").props.onPress());
+  const picker = (label: string) => renderer!.root.findAllByType(OptionPicker).find(n => n.props.label === label)!;
+  await act(async () => picker("Model").props.onSelect("claude/opus"));
+  expect(picker("Access mode").props.value).toBe(""); expect(button("Apply edits and approve").props.disabled).toBe(true);
+  await act(async () => picker("Access mode").props.onSelect("read-only"));
+  expect(button("Apply edits and approve").props.disabled).toBe(false);
+  await act(async () => button("Apply edits and approve").props.onPress());
+  expect(onAct).toHaveBeenCalledWith(expect.objectContaining({ edits: [{ kind: "model", node: "trial", agent: { provider: "claude/opus", modeId: "read-only" } }] }));
 });

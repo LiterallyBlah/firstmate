@@ -329,6 +329,7 @@ async function prepare(file, dryRun) {
       await workflowCommand({ op: "claim", ...binding, launch }, workflowRequestId(request.id, number, "claim")); record.workflow = binding;
     } else {
       const planned = await workflowCommand({ op: "implicit", launch }, workflowRequestId(request.id, number, "implicit"));
+      if (!planned.launch?.workflow) fail("plan-approval-required", "This plan awaits captain approval. Review the plan, then start its existing node; do not prepare another implicit launch.");
       record.workflow = planned.launch.workflow;
     }
     await atomic(recordPath(request.id, number), record, true);

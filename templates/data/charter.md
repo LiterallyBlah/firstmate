@@ -312,8 +312,9 @@ fits one task or scout run plans itself through `launch.mjs`, with no approval m
 For larger work, draft strict JSON with `workflow.mjs plan draft --file …`: the runs, each dependency
 and its reason (builds-on, needs-evidence, decision or shared-state), and each decision the captain
 will face, with options and a recommendation. File the backlog lines from the plan and agenda.
-Two or more runs or any decision wait for approval; otherwise the plan sails. The captain's own
-words on this request override that default. Approval authorizes the work and resolves no merge,
+By default, two or more runs or any decision wait for approval; otherwise the plan sails. The
+plan-posture standing order in `data/captain.md` can change this; `data/workflows.md` gives its format.
+The captain's own words on this request override the order and default. Approval authorizes the work and resolves no merge,
 deploy, discard or publish gate. Never infer approval from displaying or dismissing a plan.
 
 Start every independent ready run, within the plan's worker and turn budget. There is no global concurrency cap. Serialize only for a real dependency —

@@ -1,6 +1,6 @@
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import { startWorkflowService, workflowStore, queuePlanNotes } from "./server/workflow-service";
-import { workflowHomeId, workflowSnapshot, withWorkflowNeeds, withWorkflowCards } from "./server/workflow-board";
+import { workflowHomeId, workflowSnapshot, withWorkflowNeeds, withWorkflowFleet } from "./server/workflow-board";
 import { readWorkflowPlans, actOnWorkflowPlan } from "./shared/workflow-rpc";
 import { ensureSharedTerminal as ensureSharedTerminalRpc } from "./shared/native-tools";
 import { ensureSharedTerminal } from "./server/native-tools";
@@ -183,8 +183,8 @@ export default function contribute(server: PluginServerContext) {
       () => remotes.read(),
       decisions,
     );
-    if (fleet.needsYou) fleet.needsYou = await withWorkflowNeeds(fleet.needsYou, fleet.home);
-    fleet.cards = await withWorkflowCards(fleet.cards, fleet.home);
+    const decorated = await withWorkflowFleet(fleet);
+    fleet.cards = decorated.cards; fleet.needsYou = decorated.needsYou; fleet.warnings = decorated.warnings;
     // A first mate launched before the plugin named its home gets its name the first time the board looks.
     const workspaceId = fleet.mate?.workspaceId ?? null;
     if (workspaceId !== null && fleet.mateInHome) nameHomeOnce(paseo, workspaceId, fleet.home);

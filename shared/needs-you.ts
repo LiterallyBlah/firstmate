@@ -106,6 +106,7 @@ export const NeedsYouFreshnessSchema = z.object({
 export const NeedsYouSnapshotSchema = z.object({
   planNow: z.array(PlanNeedSchema).optional(),
   comingUp: z.array(PlanNeedSchema).optional(),
+  planProblems: z.array(z.string()).optional(),
   homeId: z.string().nullable(),
   version: z.number().int().nonnegative(),
   /** null means unavailable, never a claim that the queue is empty. */

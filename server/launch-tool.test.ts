@@ -95,6 +95,14 @@ async function remoteFixture(behavior = "ok") {
 }
 
 describe("launch contract and assembly", () => {
+  it("holds an implicit launch under review orders and launches only its approved existing node", async () => {
+    await writeFile(join(home, "data/captain.md"), "```standing-orders\nplan-posture: review\n```\n");
+    expect(await prepare()).toMatchObject({ code: "plan-approval-required" }); expect(await entries()).toEqual([]);
+    const plans = new WorkflowPlanStore(join(scratch, "workflow-plans"), home), p = (await plans.get("task"))!;
+    await plans.execute({ op: "approve", plan: "task", expected: p.hash, quote: "Approve this work" }, "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa", "mate");
+    const started: any = await plans.execute({ op: "start", plan: "task", node: "task" }, "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb", "mate");
+    expect(await prepare(started.launch)).toMatchObject({ ok: true, workflow: { plan: "task" } });
+  });
   it("prepares the conductor's exact dependent request after verified predecessor completion", async () => {
     await mkdir(join(home, "data/predecessor")); await writeFile(join(home, "data/predecessor/brief.md"), "# Status line\ndone: report");
     await writeFile(join(home, "data/task/brief.md"), "# Status line\ndone: task");

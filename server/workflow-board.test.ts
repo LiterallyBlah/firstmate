@@ -8,12 +8,12 @@ import { workflowStore, queuePlanNotes } from "./workflow-service";
 import { planSubjectHash } from "./workflow-plans";
 import { workflowSnapshot, withWorkflowCards, withWorkflowNeeds, workflowBearings } from "./workflow-board";
 import { updateFirstmateConfig, readFirstmateConfig } from "./config";
-import { pluginDir } from "./data-dir";
 
 let home: string;
+const daemonRoot = process.env.PASEO_HOME!;
 beforeEach(async () => {
   // Each test has its own daemon data as well as its own configured home.
-  process.env.PASEO_HOME = join(process.env.PASEO_HOME!, randomUUID()); home = join(process.env.PASEO_HOME!, "home");
+  process.env.PASEO_HOME = join(daemonRoot, randomUUID()); home = join(process.env.PASEO_HOME!, "home");
   for (const id of ["trial", "build"]) { await mkdir(join(home, `data/${id}`), { recursive: true }); await writeFile(join(home, `data/${id}/brief.md`), `Instructions for ${id}.`); }
   await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n## Done\n");
   await updateFirstmateConfig({ home }); await updateFirstmateConfig({ mateAgentId: "mate" });
@@ -34,7 +34,7 @@ it("applies D2, keeps Coming up outside the urgent count and exposes worker-less
 });
 it("binds answers to revision and subject, refuses a second device, and permits an early choice", async () => {
   const firstDevice = await command("answer", { node: "database", option: "sqlite" }), secondDevice = { ...firstDevice, option: "postgres" };
-  await act(firstDevice); await expect(act(secondDevice)).rejects.toThrow("another device");
+  await act(firstDevice); await expect(act(secondDevice)).rejects.toThrow("changed since you opened");
   expect((await workflowStore(home).get("scheduler"))?.nodes.database?.answer).toBe("sqlite");
   const current = await command("answer", { node: "database", option: "postgres" }); await expect(act(current)).rejects.toThrow("already answered");
   const snapshot = await workflowSnapshot(home); expect(snapshot.comingUp).toEqual([]); expect(snapshot.now).toHaveLength(1); // Plan approval is separate.
@@ -60,9 +60,9 @@ it("holds new starts, refuses to decline started work, and builds read-only Bear
   await act(await command("approve")); await workflowStore(home).execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), "mate");
   await expect(act(await command("decline"))).rejects.toThrow("started plan");
   await expect(act(await command("edit", { edits: [{ kind: "model", node: "trial", agent: { provider: "claude/opus", modeId: "plan" } }] }))).rejects.toThrow("unstarted");
-  await act(await command("hold")); const before = await readdir(join(pluginDir(), "workflow-plans/scheduler"));
+  await act(await command("hold")); const before = await readdir(join(workflowStore(home).root, "scheduler"));
   const bearings = await workflowBearings(home); expect(bearings).toContain("Underway\n- Scheduler · Database trial: starting"); expect(bearings).toContain("Coming up");
-  expect(await readdir(join(pluginDir(), "workflow-plans/scheduler"))).toEqual(before);
+  expect(await readdir(join(workflowStore(home).root, "scheduler"))).toEqual(before);
   expect(await readFile(join(home, "data/plans/scheduler/plan.md"), "utf8")).toContain("held");
 });
 it("retains an old answer when changed assumptions route unstarted work through a replacement decision", async () => {
@@ -77,7 +77,7 @@ it("retains an old answer when changed assumptions route unstarted work through 
 });
 it("keeps a decline on the agenda, removes pending projections and leaves backlog cleanup to the mate", async () => {
   const cards = await withWorkflowCards([], home);
-  const backlog = "## In flight\n## Queued\n- [ ] trial - Database trial (plan: scheduler)\n- [ ] build - Build the scheduler (plan: scheduler)\n## Done\n";
+  const backlog = "## In flight\n## Queued\n- [ ] trial - Database trial (project: scheduler) (plan: scheduler)\n- [ ] build - Build the scheduler (project: scheduler) (plan: scheduler)\n## Done\n";
   await writeFile(join(home, "data/backlog.md"), backlog);
   await act(await command("decline"));
   const agenda = await workflowStore(home).agenda();

@@ -36,16 +36,19 @@ export const PlanDefinitionSchema = z.object({
 }).strict();
 export type PlanDefinition = z.infer<typeof PlanDefinitionSchema>;
 export type NodeState = "planned" | "starting" | "running" | "done" | "landed" | "failed" | "cancelled" | "unresolved";
-export interface PlanNodeState { state: NodeState; attempt?: string; claimed?: boolean; agentId?: string; workspaceId?: string; evidence?: string; briefHash?: string; answer?: string;
-  launch?: PlanLaunch; held?: string | boolean; invalidated?: string;
-  priorAttempts?: PlanNodeState[]; spent?: number; completedAt?: string }
+export interface PlanNodeState { state: NodeState; attempt?: string | undefined; claimed?: boolean | undefined; agentId?: string | undefined; workspaceId?: string | undefined; evidence?: string | undefined; briefHash?: string | undefined; answer?: string | undefined;
+  launch?: PlanLaunch | undefined; held?: string | boolean | undefined; invalidated?: string | undefined;
+  priorAttempts?: PlanNodeState[] | undefined; spent?: number | undefined; completedAt?: string | undefined }
+export const PlanPostureSourceSchema = z.object({ posture: z.enum(["review", "sail"]), source: z.enum(["request", "standing-orders", "default"]), detail: z.string(), warning: z.string().optional() });
+export type PlanPostureSource = z.infer<typeof PlanPostureSourceSchema>;
 export interface WorkflowPlan {
   definition: PlanDefinition; revision: number; sequence: number; hash: string; posture: "review" | "sail";
   status: "review" | "active" | "held" | "abandoned"; approvedBudget: { agents: number; turns: number };
   nodes: Record<string, PlanNodeState>; told: string[]; handled: string[];
   history: { revision: number; at: string; by: string; reason: string }[];
-  removed?: { node: PlanNode; state: PlanNodeState }[];
-  captainEvents?: { id: string; action: string; text: string; node?: string | undefined; at: string; notified?: boolean | undefined }[] | undefined;
+  removed?: { node: PlanNode; state: PlanNodeState }[] | undefined;
+  postureSource?: PlanPostureSource | undefined;
+  captainEvents?: { id: string; action: string; text: string; node?: string | undefined; at: string; by?: string | undefined; notified?: boolean | undefined }[] | undefined;
 }
 /** Completion is a fold over durable node outcomes, never inferred from a worker's status line. */
 export function planFinished(plan: WorkflowPlan): boolean {

@@ -56,6 +56,12 @@ array; Coming up never enters any count. A disabled legacy detector reports plan
 bound (`1+`, plans only), never a fresh complete count. `withWorkflowCards` draws pending runs while
 the backlog catches up, with no invented agent identity. Deck continues to use real workers only.
 The visual fixture `node docs/workflows/render.mjs` writes exclusively to `.local/workflows/`.
+Plan actions retain author provenance: a captain press and a mate-recorded chat action are distinct.
+Subject/revision checks run at append, never against a changing historical projection on replay.
+Fleet/Needs-you/Bearings isolate plan failures and label incomplete counts. Decision projections,
+card chips and filters require the explicit plan association plus host/project/task scope.
+The posture reader consumes only `plan-posture` in a fenced `standing-orders` block at draft/revise;
+request quotes override it, unreadable/absent blocks use D2, and invalid entries require review.
 
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |

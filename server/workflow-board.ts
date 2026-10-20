@@ -1,20 +1,25 @@
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
+import { readFile } from "node:fs/promises";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import type { PlanNeed, WorkflowSnapshot } from "../shared/workflow-rpc";
-import { dependenciesMet, planSubjectHash } from "./workflow-plans";
-import { pluginDir } from "./data-dir";
+import type { Fleet, FleetCard } from "../shared/fleet";
+import { RemoteSnapshot } from "../shared/remotes";
+import { planFinished, type WorkflowPlan } from "../shared/workflow-plans";
+import { workflowNodeOwnsCard } from "../shared/workflow-identity";
+import { dependenciesMet, planSubjectHash, planBacklogLine, backlogSection, samePlanItem } from "./workflow-plans";
+import { workflowStore } from "./workflow-service";
 import { digest } from "./submissions";
-import type { FleetCard } from "../shared/fleet";
 import { parseBacklog } from "./backlog";
-import { planBacklogLine, WorkflowPlanStore } from "./workflow-plans";
-import { planFinished } from "../shared/workflow-plans";
-const workflowStore = (home: string) => new WorkflowPlanStore(join(pluginDir(), "workflow-plans"), home);
+import { resolveInHome } from "./files";
+import { resolveHost } from "./remote-cards";
 
-export const workflowHomeId = (home: string) => digest(resolve(home));
+export const workflowHomeId = (home: string) => digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home));
 export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> {
-  const plans = await workflowStore(home).list(), now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
+  let read: { plans: WorkflowPlan[]; problems: string[] };
+  try { read = await workflowStore(home).read(); } catch (e) { read = { plans: [], problems: [`Plans unavailable: ${String(e)}`] }; }
+  const plans = read.plans.filter(p => !(p.definition.implicit && planFinished(p))), now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
   for (const plan of plans) {
-    if (plan.status === "abandoned" || planFinished(plan) || plan.definition.implicit) continue;
+    if (plan.status === "abandoned" || planFinished(plan)) continue;
     if (plan.status === "review") now.push({ plan: plan.definition.id, title: plan.definition.title, question: "Approve this plan", waits: [], neededBy: [], recommendation: "Review the runs, dependencies and budget." });
     for (const node of plan.definition.nodes) {
       if (node.kind !== "decision" || plan.nodes[node.id]?.answer) continue;
@@ -25,62 +30,79 @@ export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> 
       (dependenciesMet(node, plans) ? now : comingUp).push(need);
     }
   }
-  return { homeId: workflowHomeId(home), version: digest(plans.map(p => p.hash)), plans,
-    subjects: Object.fromEntries(plans.map(p => [p.definition.id, planSubjectHash(p)])), now, comingUp };
+  return { homeId: workflowHomeId(home), version: digest({ plans: plans.map(p => p.hash), problems: read.problems }), plans,
+    subjects: Object.fromEntries(plans.map(p => [p.definition.id, planSubjectHash(p)])), now, comingUp, problems: read.problems };
+}
+async function backlog(home: string) { return parseBacklog(await readFile((await resolveInHome(home, "data/backlog.md")).absolute, "utf8")); }
+async function catalog(home: string) {
+  try { return RemoteSnapshot.parse(JSON.parse(await readFile((await resolveInHome(home, "data/remote-hosts.json")).absolute, "utf8"))); } catch { return null; }
 }
 
-/** Add planned decisions without double-counting their backlog projections. Future choices never count. */
-export async function withWorkflowNeeds(snapshot: NeedsYouSnapshot, home: string): Promise<NeedsYouSnapshot> {
-  const workflow = await workflowSnapshot(home);
-  if (!workflow.plans.length) return snapshot;
-  const ids = new Set(workflow.plans.flatMap(p => p.definition.nodes.filter(n => n.kind === "decision").map(n => n.id)));
-  const removed = snapshot.requests.filter(r => ids.has(r.source.taskId));
-  return { ...snapshot, requests: snapshot.requests.filter(r => !ids.has(r.source.taskId)), parked: snapshot.parked.filter(r => !ids.has(r.taskId)),
-    actionCount: snapshot.actionCount === null ? null : Math.max(0, snapshot.actionCount - removed.filter(r => r.state === "new" || r.state === "seen").length) + workflow.now.length,
+/** Deduplicate only the exact local, project-less decision projection this plan owns. */
+export async function withWorkflowNeeds(snapshot: NeedsYouSnapshot, home: string, workflow?: WorkflowSnapshot): Promise<NeedsYouSnapshot> {
+  const view = workflow ?? await workflowSnapshot(home), problems = [...(view.problems ?? [])];
+  let items: Awaited<ReturnType<typeof backlog>> = [];
+  try { items = await backlog(home); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") problems.push("Plan backlog projections could not be matched; legacy decisions are retained."); }
+  const ids = new Set(view.plans.flatMap(p => p.definition.nodes.filter(n => n.kind === "decision" && items.some(i => samePlanItem(i, p, n))).map(n => n.id)));
+  const owned = (source: { taskId: string; hostId: string; project: string | null }) => ids.has(source.taskId) && source.hostId === "local" && !source.project;
+  const removed = snapshot.requests.filter(r => owned(r.source));
+  return { ...snapshot, requests: snapshot.requests.filter(r => !owned(r.source)), parked: snapshot.parked.filter(r => !owned(r)),
+    actionCount: snapshot.actionCount === null ? null : Math.max(0, snapshot.actionCount - removed.filter(r => r.state === "new" || r.state === "seen").length) + view.now.length,
     newCount: snapshot.newCount === null ? null : Math.max(0, snapshot.newCount - removed.filter(r => r.state === "new").length),
-    planNow: workflow.now, comingUp: workflow.comingUp };
+    planNow: view.now, comingUp: view.comingUp, planProblems: problems };
 }
 
-/** Log-owned planned runs remain visible while the first mate reconciles its backlog. No fake workers. */
-export async function withWorkflowCards(cards: FleetCard[], home: string): Promise<FleetCard[]> {
-  const result = [...cards];
-  for (const plan of await workflowStore(home).list()) {
-    if (plan.status === "abandoned") {
-      for (let i = result.length - 1; i >= 0; i--) {
-        const card = result[i]!;
-        if (card.backlog?.plan === plan.definition.id && card.column === "queued" && !card.agent && !card.remote?.worker && !card.backlog.agentId) result.splice(i, 1);
-      }
-      continue;
+/** Pending cards carry scope and no invented worker. Bad plans never affect unrelated cards. */
+export async function withWorkflowCards(cards: FleetCard[], home: string, workflow?: WorkflowSnapshot): Promise<FleetCard[]> {
+  const result = cards.map(c => ({ ...c })), view = workflow ?? await workflowSnapshot(home), hosts = await catalog(home);
+  for (const plan of view.plans) {
+    const removed = [...(plan.removed ?? []).map(r => r.node), ...(plan.status === "abandoned" ? plan.definition.nodes : [])];
+    for (let i = result.length - 1; i >= 0; i--) {
+      const card = result[i]!;
+      if (!removed.some(n => workflowNodeOwnsCard(plan, n, card))) continue;
+      if (!card.agent && !card.remote?.worker && !card.backlog?.agentId) result.splice(i, 1);
+      else card.note = "Removed from plan; inspect the worker and preserve its work.";
     }
-    if (plan.definition.implicit) continue;
+    if (plan.status === "abandoned" || (plan.definition.implicit && plan.status !== "review")) continue;
     for (const node of plan.definition.nodes) {
       if (node.kind !== "run") continue;
-      const state = plan.nodes[node.id]!, existing = result.find(c => c.taskId === node.id);
-      const column = ["done", "landed", "cancelled"].includes(state.state) ? "done" : state.state === "failed" ? "failed" : state.state === "planned" ? "queued" : "working";
-      const backlog = parseBacklog(`## ${column === "done" ? "Done" : column === "queued" ? "Queued" : "In flight"}\n${planBacklogLine(plan, node)}`)[0]!;
-      const note = plan.status === "review" ? "awaiting your approval" : plan.status === "held" ? "plan held" : node.after.length ? `after ${node.after.map(d => d.node).join(", ")}` : "planned";
+      const state = plan.nodes[node.id]!, existing = result.find(c => workflowNodeOwnsCard(plan, node, c));
+      const column = state.invalidated || state.state === "unresolved" ? "ready" : state.state === "failed" ? "failed" : backlogSection(node, state.state) === "done" ? "done" : state.state === "done" ? "ready" : state.state === "planned" ? "queued" : "working";
+      if (!existing && column === "done") continue;
+      const item = parseBacklog(`## ${column === "done" ? "Done" : column === "queued" ? "Queued" : "In flight"}\n${planBacklogLine(plan, node, existing?.backlog ?? undefined)}`)[0]!;
+      const note = state.invalidated ? "Evidence needs renewed verification" : state.held ? "Dependencies need review" : plan.status === "review" ? "awaiting your approval" : plan.status === "held" ? "plan held" : state.state === "planned" ? node.after.length ? `after ${node.after.map(d => d.node).join(", ")}` : "planned" : state.state === "done" ? "Deliverable ready; landing unconfirmed" : state.state;
       if (existing) {
-        existing.backlog = { ...backlog, ...(existing.backlog ?? {}), plan: plan.definition.id };
+        existing.backlog = { ...(existing.backlog ?? item), ...item };
+        if (state.state === "done" && node.launch.kind === "ship" && existing.column === "done") { existing.column = "ready"; existing.note = note; }
         if (!existing.agent && !existing.remote?.worker) { existing.column = column; existing.note = note; }
-      } else result.push({ key: `plan:${plan.definition.id}:${node.id}`, taskId: node.id, title: node.title, project: node.launch.project, kind: node.launch.kind, column, backlog, agent: null, report: null, url: null, note });
+      } else {
+        const host = resolveHost(node.launch.host, hosts);
+        result.push({ key: `plan:${plan.definition.id}:${node.id}`, taskId: node.id, title: node.title, project: node.launch.project, kind: node.launch.kind, column, backlog: item, agent: null, report: null, url: null, note,
+          ...(host.kind === "local" ? {} : { remote: { serverId: host.kind === "remote" ? host.host.serverId : null, host: host.kind === "remote" ? host.host.label : node.launch.host, online: host.kind === "remote" && host.host.online, clockSkewSeconds: null, worker: null } }) });
+      }
     }
   }
   return result;
 }
-
-export async function workflowBearings(home: string): Promise<string> {
+/** Fleet and Needs you share a single plan read/publication snapshot. */
+export async function withWorkflowFleet(fleet: Fleet): Promise<Fleet> {
+  const view = await workflowSnapshot(fleet.home);
+  return { ...fleet, cards: await withWorkflowCards(fleet.cards, fleet.home, view), ...(fleet.needsYou ? { needsYou: await withWorkflowNeeds(fleet.needsYou, fleet.home, view) } : {}),
+    warnings: [...fleet.warnings, ...(view.problems ?? []).map(p => `Workflow: ${p}`)] };
+}
+export async function workflowBearings(home: string, nowMs = Date.now()): Promise<string> {
   const snapshot = await workflowSnapshot(home);
-  if (!snapshot.plans.length) return "";
+  if (!snapshot.plans.length && !snapshot.problems?.length) return "";
   const now = snapshot.now.map(n => `- ${n.title}: ${n.question}. Recommended: ${n.recommendation}`);
-  const done: string[] = [], running: string[] = [], queued: string[] = [];
+  const done: { line: string; at: string }[] = [], running: string[] = [], queued: string[] = [];
   for (const plan of snapshot.plans) for (const node of plan.definition.nodes) {
-    const state = plan.nodes[node.id]!;
     if (node.kind === "decision") continue;
-    const line = `- ${plan.definition.title} · ${node.title}: ${state.answer ?? state.state}${state.evidence ? ` · ${state.evidence}` : ""}`;
-    if (state.state === "landed" || (state.state === "done" && node.workflow === "scout@1")) done.push(line);
-    else if (state.state === "done") running.push(line);
-    else if (["running", "starting", "unresolved"].includes(state.state)) running.push(line);
-    else if (node.kind === "run" && plan.status !== "abandoned") queued.push(`${line}. After: ${node.after.map(d => d.node).join(", ") || (plan.status === "review" ? "plan approval" : "ready")}`);
+    const state = plan.nodes[node.id]!, line = `- ${plan.definition.title} · ${node.title}: ${state.state}${state.evidence ? ` · ${state.evidence}` : ""}`;
+    if (state.invalidated) running.push(`${line}. Evidence unresolved: ${state.invalidated}`);
+    else if (backlogSection(node, state.state) === "done") {
+      if (state.completedAt && nowMs - Date.parse(state.completedAt) < 7 * 86400000) done.push({ line, at: state.completedAt });
+    } else if (state.state !== "planned") running.push(line);
+    else if (plan.status !== "abandoned") queued.push(`${line}. After: ${node.after.map(d => d.node).join(", ") || (plan.status === "review" ? "plan approval" : "ready")}`);
   }
-  return ["Captain's Call", ...now, "Recently Landed", ...done, "Underway", ...running, "Charted Next", ...queued, "Coming up", ...snapshot.comingUp.map(n => `- ${n.question}. After ${n.waits.join(", ")}. Recommended: ${n.recommendation}`)].join("\n");
+  return ["Captain's Call", ...now, ...(snapshot.problems ?? []).map(p => `- Plans unavailable: ${p}`), "Recently Landed", ...done.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10).map(d => d.line), "Underway", ...running, "Charted Next", ...queued, "Coming up", ...snapshot.comingUp.map(n => `- ${n.question}. After ${n.waits.join(", ")}. Recommended: ${n.recommendation}`)].join("\n");
 }

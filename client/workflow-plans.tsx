@@ -13,6 +13,7 @@ import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { FLEET_QUERY_KEY } from "./fleet-query";
 import { NEEDS_YOU_QUERY_KEY } from "./needs-you-query";
 import { errorText } from "./format";
+import { workflowOwnsCard } from "../shared/workflow-identity";
 
 export const WORKFLOW_QUERY_KEY = ["firstmate", "workflow-plans"] as const;
 const Plans = createContext<{ snapshot?: WorkflowSnapshot; open(id: string): void }>({ open() {} });
@@ -66,13 +67,15 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
 }) {
   const [mode, setMode] = useState<"changes" | "edit" | null>(null), [text, setText] = useState("");
   const [edits, setEdits] = useState<NonNullable<PlanCaptainCommand["edits"]>>([]);
-  const colors = theme.colors, worst = planWorstCase(plan.definition), disabled = busy || stale;
+  const colors = theme.colors, worst = planWorstCase(plan.definition, plan.nodes), disabled = busy || stale;
+  const missingMode = edits.some(e => e.kind === "model" && !models.find(m => m.provider === e.agent.provider)?.modes.some(m => m.id === e.agent.modeId));
   const send = (action: PlanCaptainCommand["action"], extra: Partial<PlanCaptainCommand> = {}) => onAct({ op: "captain", plan: plan.definition.id, revision: plan.revision, subjectHash, action, text, ...extra });
   return <View testID="workflow-plan-dialog" style={{ gap: 16 }}>
     <Text style={{ color: colors.foregroundMuted }}>Revision {plan.revision} · {planFinished(plan) ? "Completed" : plan.status === "review" ? "Awaiting approval" : plan.status === "active" ? (plan.posture === "sail" ? "Sailing" : "Approved") : plan.status === "held" ? "On hold" : "Declined"}</Text>
     <Text selectable style={{ color: colors.foreground }}>{plan.definition.request.text}</Text>
     <Text style={{ color: colors.foregroundMuted }}>{new Date(plan.definition.request.at).toLocaleString()} · Worst case: {worst.agents} workers, {worst.turns} worker turns</Text>
     <Text style={{ color: colors.foregroundMuted }}>Approval permits this work. Merge and deployment still need their own approval.</Text>
+    {plan.postureSource ? <Text style={{ color: colors.foregroundMuted }}>Posture from {plan.postureSource.source}: {plan.postureSource.detail}{plan.postureSource.warning ? ` ${plan.postureSource.warning}` : ""}</Text> : null}
     {stale ? <View style={{ gap: 6 }}><Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>This plan changed or could not be refreshed. Review the latest version before acting.</Text><Button theme={theme} label="Review latest plan" disabled={busy} onPress={onRefresh} /></View> : null}
     {plan.definition.nodes.map(node => <View key={node.id} style={{ gap: 6, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 8 }}>
       <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>{node.title} · {plan.nodes[node.id]?.answer ? "Answered" : plan.nodes[node.id]?.held ? "Held" : plan.nodes[node.id]?.state === "planned" ? "Queued" : plan.nodes[node.id]?.state}</Text>
@@ -87,10 +90,10 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
       {plan.nodes[node.id]?.evidence ? <Text selectable style={{ color: colors.foregroundMuted }}>{plan.nodes[node.id]!.evidence}</Text> : null}
     </View>)}
     <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Revision history</Text>
-    {plan.history.map(h => <Text key={h.revision} style={{ color: colors.foregroundMuted }}>{h.revision} · {h.by === "board:captain" ? "You" : "First mate"} · {h.reason}</Text>)}
+    {plan.history.map((h, i) => <Text key={`${h.revision}:${i}`} style={{ color: colors.foregroundMuted }}>{h.revision} · {h.by === "board:captain" ? "You" : "First mate"} · {h.reason}</Text>)}
     {plan.captainEvents?.length ? <>
       <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Plan actions</Text>
-      {plan.captainEvents.map(a => <Text key={a.id} selectable style={{ color: colors.foregroundMuted }}>{new Date(a.at).toLocaleString()} · {({ approve: "Approved", edit: "Approved with edits", changes: "Changes requested", hold: "Held", decline: "Declined", answer: "Decision answered" } as Record<string, string>)[a.action] ?? "Updated"}{a.text ? ` · ${a.text}` : ""}</Text>)}
+      {plan.captainEvents.map(a => <Text key={a.id} selectable style={{ color: colors.foregroundMuted }}>{new Date(a.at).toLocaleString()} · {a.by === "board:captain" ? "Captain pressed" : "Recorded by the first mate from chat"}: {({ approve: "Approved", edit: "Approved with edits", changes: "Changes requested", hold: "Held", decline: "Declined", answer: "Decision answered" } as Record<string, string>)[a.action] ?? "Updated"}{a.text ? ` · ${a.text}` : ""}</Text>)}
     </> : null}
     {plan.status !== "abandoned" && !planFinished(plan) ? <>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
@@ -115,7 +118,7 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
               <Text style={{ color: colors.foreground }}>{node.title}</Text>
               {agent ? <>
                 <OptionPicker theme={theme} compact label="Model" title={`Model for ${node.title}`} value={agent.provider} disabled={disabled || !models.length}
-                  options={models.map(m => ({ value: m.provider, label: m.label }))} onSelect={value => { const m = models.find(m => m.provider === value)!; replace({ kind: "model", node: node.id, agent: { provider: value, modeId: m.modes[0]?.id ?? agent.modeId } }); }} />
+                  options={models.map(m => ({ value: m.provider, label: m.label }))} onSelect={value => { const m = models.find(m => m.provider === value)!; replace({ kind: "model", node: node.id, agent: { provider: value, modeId: m.modes.some(mode => mode.id === agent.modeId) ? agent.modeId : "" } }); }} />
                 <OptionPicker theme={theme} compact label="Access mode" title={`Access mode for ${node.title}`} value={agent.modeId} disabled={disabled || !target}
                   options={target?.modes.map(m => ({ value: m.id, label: m.label })) ?? []} onSelect={value => replace({ kind: "model", node: node.id, agent: { ...agent, modeId: value } })} />
                 <OptionPicker theme={theme} compact label="Thinking" title={`Thinking for ${node.title}`} value={agent.thinkingOptionId ?? ""} disabled={disabled || !target}
@@ -134,8 +137,9 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
             </View>;
           })}
           <Text style={{ color: colors.foregroundMuted }}>{edits.length} edits selected. Required dependencies and started work are checked again before approval.</Text>
+          {missingMode ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>Choose an access mode for the selected model before approving.</Text> : null}
         </> : null}
-        <Button theme={theme} label={mode === "edit" ? "Apply edits and approve" : "Send changes to first mate"} disabled={disabled || (mode === "changes" ? !text.trim() : !edits.length)}
+        <Button theme={theme} label={mode === "edit" ? "Apply edits and approve" : "Send changes to first mate"} disabled={disabled || (mode === "changes" ? !text.trim() : !edits.length || missingMode)}
           onPress={() => { if (mode === "edit") void send("edit", { edits }); else void send("changes"); }} />
       </View> : null}
     </> : null}
@@ -144,14 +148,14 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
 }
 
 export function PlanChip({ card, theme }: { card: FleetCard; theme: PluginTheme }) {
-  const { snapshot, open } = useWorkflowPlans(), plan = snapshot?.plans.find(p => !p.definition.implicit && p.definition.nodes.some(n => n.id === card.taskId));
+  const { snapshot, open } = useWorkflowPlans(), plan = snapshot?.plans.find(p => (!p.definition.implicit || p.status === "review") && workflowOwnsCard(p, card));
   if (!plan) return null;
   const done = Object.values(plan.nodes).filter(n => n.state === "done" || n.state === "landed").length;
   return <Button theme={theme} label={`${plan.definition.title} · ${done} of ${plan.definition.nodes.length}${plan.status === "review" && !planFinished(plan) ? " · awaiting approval" : ""}`} onPress={() => open(plan.definition.id)} />;
 }
 export function PlansControl({ theme, selected, onSelect }: { theme: PluginTheme; selected: string | null; onSelect(id: string | null): void }) {
   const { snapshot, open } = useWorkflowPlans(), [shown, setShown] = useState(false);
-  const plans = snapshot?.plans.filter(p => !p.definition.implicit) ?? [];
+  const plans = snapshot?.plans.filter(p => !p.definition.implicit || p.status === "review") ?? [];
   if (!plans.length) return null;
   return <><Button theme={theme} label={selected ? `Plans: ${plans.find(p => p.definition.id === selected)?.definition.title ?? "selected"}` : "Plans"} onPress={() => setShown(true)} />
     <Modal title="Plans" open={shown} onOpenChange={setShown}><Modal.Content>
@@ -160,7 +164,7 @@ export function PlansControl({ theme, selected, onSelect }: { theme: PluginTheme
         <Button theme={theme} label={`Open plan: ${p.definition.title}`} onPress={() => { setShown(false); open(p.definition.id); }} /></View>)}
     </Modal.Content></Modal></>;
 }
-export function PlanNeeds({ theme, snapshot }: { theme: PluginTheme; snapshot?: Pick<NeedsYouSnapshot, "planNow" | "comingUp"> | undefined }) {
+export function PlanNeeds({ theme, snapshot }: { theme: PluginTheme; snapshot?: Pick<NeedsYouSnapshot, "planNow" | "comingUp" | "planProblems"> | undefined }) {
   const { open } = useWorkflowPlans();
   const group = (label: string, needs: readonly PlanNeed[], muted: boolean) => needs.length ? <View testID={muted ? "workflow-coming-up" : "workflow-now"} style={{ gap: 8, paddingVertical: 10 }}>
     <Text accessibilityRole="header" style={{ color: muted ? theme.colors.foregroundMuted : theme.colors.foreground, fontSize: 13, fontWeight: "600" }}>{label}</Text>
@@ -169,5 +173,5 @@ export function PlanNeeds({ theme, snapshot }: { theme: PluginTheme; snapshot?: 
       <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{n.waits.length ? `After ${n.waits.join(", ")}. ` : ""}{n.neededBy.length ? `Needed before ${n.neededBy.join(", ")}. ` : ""}Recommended: {n.recommendation}</Text>
     </View>)}
   </View> : null;
-  return <>{group("Now · plans", snapshot?.planNow ?? [], false)}{group("Coming up", snapshot?.comingUp ?? [], true)}</>;
+  return <>{snapshot?.planProblems?.length ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Some plans are unavailable. The decision count is incomplete. {snapshot.planProblems.join(" ")}</Text> : null}{group("Now · plans", snapshot?.planNow ?? [], false)}{group("Coming up", snapshot?.comingUp ?? [], true)}</>;
 }

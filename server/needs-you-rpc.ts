@@ -13,8 +13,12 @@ import type { NeedsYouSnapshot } from "../shared/needs-you";
 export function registerNeedsYouRpc(
   server: Pick<PluginServerContext, "handle">,
   service: NeedsYouService,
-  decorate: (snapshot: NeedsYouSnapshot) => Promise<NeedsYouSnapshot> = async snapshot => snapshot,
+  decoratePlans: (snapshot: NeedsYouSnapshot) => Promise<NeedsYouSnapshot> = async snapshot => snapshot,
 ) {
+  const decorate = async (snapshot: NeedsYouSnapshot): Promise<NeedsYouSnapshot> => {
+    try { return await decoratePlans(snapshot); }
+    catch { return { ...snapshot, planProblems: ["Workflow plans unavailable. Existing captain decisions remain available; the total is incomplete."] }; }
+  };
   server.handle(readNeedsYou, () => service.read().then(decorate));
   server.handle(markNeedsYouSeen, (input) =>
     service.mutate(input, { kind: "seen" }).then(decorate),

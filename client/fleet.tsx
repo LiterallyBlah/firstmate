@@ -78,6 +78,7 @@ import { TaskBoard } from "./task-board";
 import { useTaskLayout } from "./task-layout";
 import { taskPresentation } from "./task-presentation";
 import { WorkflowSurface, PlansControl, useWorkflowPlans } from "./workflow-plans";
+import { workflowOwnsCard } from "../shared/workflow-identity";
 
 export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
@@ -739,7 +740,7 @@ function FleetViewBody({
         ? !values.collapsedColumns.includes("done")
         : !taskLayout.values.collapsed.includes("done"),
   );
-  const filteredCards = hostCards.filter((card) => matchesTags(card, values.tagFilter) && (!planFilter || plans.snapshot?.plans.find(p => p.definition.id === planFilter)?.definition.nodes.some(n => n.id === card.taskId)));
+  const filteredCards = hostCards.filter((card) => matchesTags(card, values.tagFilter) && (!planFilter || plans.snapshot?.plans.some(p => p.definition.id === planFilter && workflowOwnsCard(p, card))));
   const board = (
     <View style={{ flex: 1, minHeight: 0 }}>
       <TaskToolbar

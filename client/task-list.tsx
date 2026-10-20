@@ -80,7 +80,7 @@ export function TaskList(props: TaskListProps) {
           />
         ))}
         <PlanNeeds theme={theme} snapshot={snapshot} />
-        {snapshot?.actionCount === 0 && snapshot.freshness.status === "fresh" && !props.offline ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
+        {snapshot?.actionCount === 0 && snapshot.freshness.status === "fresh" && !snapshot.planProblems?.length && !props.offline ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
       </View>
       <View testID="task-group-in-hand" style={{ gap: 8 }}>
         <Text accessibilityRole="header" style={heading}>
