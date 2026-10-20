@@ -82,7 +82,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     if (c.action === "approve" || c.action === "edit") { next.status = "active"; next.approvedBudget = planWorstCase(next.definition); }
     if (c.action === "hold" || c.action === "changes") next.status = "held";
     if (c.action === "decline") {
-      if (Object.values(next.nodes).some(n => n.state !== "planned")) throw new Error("A started plan cannot be declined. Hold it and preserve its work.");
+      if (next.definition.nodes.some(n => n.kind === "run" && next!.nodes[n.id]?.state !== "planned")) throw new Error("A started plan cannot be declined. Hold it and preserve its work.");
       next.status = "abandoned";
     }
     next.captainEvents ??= []; next.captainEvents.push({ id: event.requestId, action: c.action, text: c.text, ...(c.node ? { node: c.node } : {}), at: event.at });

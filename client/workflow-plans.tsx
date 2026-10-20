@@ -94,7 +94,7 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
         <Button theme={theme} label="Approve with edits" disabled={disabled} onPress={() => setMode("edit")} />
         <Button theme={theme} label="Ask for changes" disabled={disabled} onPress={() => setMode("changes")} />
         <Button theme={theme} label="Hold" disabled={disabled} onPress={() => void send("hold")} />
-        <Button theme={theme} label="Decline" disabled={disabled || Object.values(plan.nodes).some(n => n.state !== "planned")} onPress={() => void send("decline")} />
+        <Button theme={theme} label="Decline" disabled={disabled || plan.definition.nodes.some(n => n.kind === "run" && plan.nodes[n.id]?.state !== "planned")} onPress={() => void send("decline")} />
       </View>
       {mode ? <View style={{ gap: 8 }}>
         <TextInput accessibilityLabel="Requested plan changes" placeholder="Describe the changes" value={text} onChangeText={setText} multiline style={{ minHeight: 80 }} />

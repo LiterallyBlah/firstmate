@@ -107,7 +107,8 @@ export function planProblems(plan: PlanDefinition, others: readonly WorkflowPlan
     } else {
       if (new Set(node.options.map(o => o.id)).size !== node.options.length) problems.push(`${node.id}: duplicate options.`);
       if (node.recommendation && !node.options.some(o => o.id === node.recommendation)) problems.push(`${node.id}: unknown recommendation.`);
-      if (![...nodes.values()].some(n => n.after.some(d => d.node === node.id))) problems.push(`${node.id}: no run needs this decision.`);
+      const answered = others.some(p => !!p.nodes[node.id]?.answer);
+      if (!answered && ![...nodes.values()].some(n => n.after.some(d => d.node === node.id))) problems.push(`${node.id}: no run needs this decision.`);
     }
     if (new Set(node.after.map(d => d.node)).size !== node.after.length) problems.push(`${node.id}: repeated dependency.`);
     for (const edge of node.after) {

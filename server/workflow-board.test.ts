@@ -65,3 +65,13 @@ it("holds new starts, refuses to decline started work, and builds read-only Bear
   expect(await readdir(join(pluginDir(), "workflow-plans/scheduler"))).toEqual(before);
   expect(await readFile(join(home, "data/plans/scheduler/plan.md"), "utf8")).toContain("held");
 });
+it("retains an old answer when changed assumptions route unstarted work through a replacement decision", async () => {
+  await act(await command("answer", { node: "database", option: "sqlite" }));
+  const p = (await workflowStore(home).get("scheduler"))!, revised = structuredClone(p.definition);
+  const original = revised.nodes.find(n => n.id === "database")!;
+  revised.nodes.push({ ...original, id: "database-revised", title: "Choose with new evidence" });
+  revised.nodes.find(n => n.id === "build")!.after = [{ node: "database-revised", reason: "decision", on: "answered" }];
+  await workflowStore(home).execute({ op: "revise", definition: revised, expected: p.hash, reason: "New storage evidence invalidates the earlier assumption." }, randomUUID(), "mate");
+  expect((await workflowStore(home).get("scheduler"))?.nodes.database?.answer).toBe("sqlite");
+  expect((await workflowStore(home).agenda()).some(i => i.kind === "start" && i.node === "build")).toBe(false);
+});
