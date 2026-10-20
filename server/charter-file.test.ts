@@ -144,7 +144,7 @@ describe("prepareHome and the charter", () => {
     // Pinned so a charter change is deliberate: every untouched home follows it, and every edited one is
     // offered it as charter.new.md. e0b749cb695c5df6 was the charter as it moved into templates/.
     // Decision brief guidance; shared brief parts are expanded before fingerprinting the editable copy.
-    expect(fingerprint(await pluginCharterTemplate())).toBe("b2c34650834124b0");
+    expect(fingerprint(await pluginCharterTemplate())).toBe("5fba49fd244bdd16");
 
     await editCopy(home, "# My first mate\n\n<!-- a note to myself -->\nYour home is {{home}}; keep it tidy.");
     await prepareHome(home, FirstmateConfigSchema.parse({}));

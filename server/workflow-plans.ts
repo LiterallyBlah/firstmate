@@ -10,7 +10,7 @@ import { resolveInHome } from "./files";
 import { parseBacklog } from "./backlog";
 import { fill, readTemplate, TEMPLATES } from "./templates";
 
-const EventSchema = z.object({ version: z.literal(1), plan: PlanId, sequence: z.number().int().nonnegative(), previous: z.string().length(64).nullable(),
+const EventSchema = z.object({ version: z.literal(1), home: z.string().min(1), plan: PlanId, sequence: z.number().int().nonnegative(), previous: z.string().length(64).nullable(),
   requestId: z.uuid(), requestHash: z.string().length(64), at: z.iso.datetime(), by: z.string().min(1),
   command: WorkflowCommandSchema, attempt: z.uuid().optional(), briefHash: z.string().length(64).optional(), hash: z.string().length(64) }).strict();
 type Event = z.infer<typeof EventSchema>;
@@ -87,7 +87,7 @@ export class WorkflowPlanStore {
       const path = join(this.directory(id), name);
       if ((await stat(path)).size > 512000) throw new Error("Plan event too large.");
       const event = EventSchema.parse(JSON.parse(await readFile(path, "utf8")));
-      if (event.plan !== id || event.sequence !== events.length || event.previous !== previous || checksum(event) !== event.hash || event.requestHash !== digest(event.command)) throw new Error(`Plan log ${id} failed its hash chain.`);
+      if (event.home !== resolve(this.home) || event.plan !== id || event.sequence !== events.length || event.previous !== previous || checksum(event) !== event.hash || event.requestHash !== digest(event.command)) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
       previous = event.hash; events.push(event);
     }
     return events;
@@ -98,6 +98,8 @@ export class WorkflowPlanStore {
     try { entries = await readdir(this.root, { withFileTypes: true }); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return []; throw e; }
     const plans: WorkflowPlan[] = [];
     for (const entry of entries) { if (!entry.isDirectory()) throw new Error("Unexpected file in workflow-plans."); const plan = await this.get(entry.name); if (plan) plans.push(plan); }
+    // Concurrent publications into different plan directories must not make duplicate tasks executable.
+    for (const plan of plans) { const problems = planProblems(plan.definition, plans); if (problems.length) throw new Error(problems.join("\n")); }
     return plans.sort((a, b) => a.definition.id.localeCompare(b.definition.id));
   }
   async brief(node: PlanNode): Promise<{ hash: string; text: string }> {
@@ -128,7 +130,7 @@ export class WorkflowPlanStore {
         if (!node || !dependenciesMet(node, plans)) throw new Error("Run dependencies are not satisfied.");
         briefHash = (await this.brief(node)).hash;
       } else if (command.op === "implicit") briefHash = (await this.brief({ kind: "run", id, title: command.launch.title, summary: command.launch.title, after: [], workflow: command.launch.kind === "scout" ? "scout@1" : "task@1", launch: command.launch })).hash;
-      const event: Event = { version: 1, plan: id, sequence: events.length, previous: previous?.hash ?? null, requestId, requestHash: digest(command), at: new Date().toISOString(), by, command,
+      const event: Event = { version: 1, home: resolve(this.home), plan: id, sequence: events.length, previous: previous?.hash ?? null, requestId, requestHash: digest(command), at: new Date().toISOString(), by, command,
         ...(briefHash ? { briefHash, attempt: randomUUID() } : {}), hash: "" };
       event.hash = checksum(event); const next = reduce(previous, event);
       if (event.sequence > 99999999) throw new Error("Plan event capacity exceeded.");
