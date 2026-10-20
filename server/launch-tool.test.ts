@@ -12,6 +12,7 @@ import { briefParts } from "./launch-tool";
 import { commandArguments } from "./remotes";
 import { WorkflowPlanStore } from "./workflow-plans";
 import { processWorkflowRequests } from "./workflow-service";
+import { PlanDefinitionSchema } from "../shared/workflow-plans";
 import { fill, readTemplate, TEMPLATES } from "./templates";
 
 // These scenarios run real Node/git processes; loaded Windows runners need the same budget as local verification.
@@ -94,6 +95,17 @@ async function remoteFixture(behavior = "ok") {
 }
 
 describe("launch contract and assembly", () => {
+  it("claims a drafted plan's already-filed Queued line without another adoption request", async () => {
+    await writeFile(join(home, "data/task/brief.md"), "Implement the planned task.");
+    const launch = request({ brief: { file: "data/task/brief.md" } });
+    const plans = new WorkflowPlanStore(join(scratch, "workflow-plans"), home);
+    const definition = PlanDefinitionSchema.parse({ format: "firstmate.plan/1", id: "planned", title: "Planned task", request: { text: "Build it", at: "2026-10-20T12:00:00Z" }, budget: { agents: 1, turns: 1 }, nodes: [{ id: "task", title: "Fix the thing", summary: "Implement the requested fix", kind: "run", workflow: "task@1", launch }] });
+    await plans.execute({ op: "draft", definition }, "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa", "mate");
+    const started: any = await plans.execute({ op: "start", plan: "planned", node: "task" }, "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb", "mate");
+    await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n- [ ] task - Fix the thing (project: project) (plan: planned)\n## Done\n");
+    const result = await prepare(started.launch); expect(result.ok).toBe(true); expect(result.workflow.plan).toBe("planned");
+    expect(result.backlog.line).toContain("(plan: planned)"); expect((await plans.get("planned"))?.nodes.task?.claimed).toBe(true);
+  });
   it("emits exact local MCP arguments with baseBranch and never creates locally", async () => {
     const result = await prepare(); expect(result.ok).toBe(true);
     expect(result.createWorkspace).toEqual({ isolation: "worktree", path: cwd, branchName: "fm/task", baseBranch: "main", worktreeSlug: "task", title: "Fix the thing" });

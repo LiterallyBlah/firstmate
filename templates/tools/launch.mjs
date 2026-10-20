@@ -300,7 +300,10 @@ async function prepare(file, dryRun) {
   await available(previous);
   const existing = itemFor(await read("data/backlog.md"), request.id);
   const owned = existing && previous.some(item => item.backlog?.line === existing.content);
-  if (existing && !owned && (existing.section !== "Queued" || request.backlog.existing !== "adopt")) fail("unsupported-before-effects", `Only a new item or an adopted Queued item is supported. ${manual}`);
+  // A drafted plan's printed Queued line is already filed before start. Its bound claim below
+  // still verifies the exact committed request; this metadata alone grants no launch authority.
+  const plannedExisting = request.workflow?.node === request.id && group(existing?.content, "plan") === request.workflow?.plan;
+  if (existing && !owned && (existing.section !== "Queued" || (request.backlog.existing !== "adopt" && !plannedExisting))) fail("unsupported-before-effects", `Only a new item or an adopted Queued item is supported. ${manual}`);
   if (!existing && request.backlog.existing === "adopt") fail("invalid-request", "No Queued item to adopt");
   gates(request, existing);
   const brief = await briefFor(request), resolved = await resolveRequest(request);
