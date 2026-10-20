@@ -100,7 +100,10 @@ export async function checkPolish(pageAt, output) {
   for (const view of ["deck", "board", "crew"]) {
     const page = await pageAt(`view=${view}`, 1440);
     const label = view === "crew" ? "List" : view === "deck" ? "Deck" : "Board";
-    await page.getByRole("button", { name: /^Needs you, 3 decisions/ }).click();
+    if (view === "deck")
+      await page.getByTestId("firstmate-deck-decision-legend").getByRole("button", { name: "Answer the next", exact: true }).click();
+    else
+      await page.getByRole("button", { name: /^Needs you, 3 decisions/ }).click();
     await button(drawerFor(page), `Back to ${label}`).click();
     assert.equal(await drawerFor(page).count(), 0);
     await page.close();
@@ -129,7 +132,7 @@ export async function checkPolish(pageAt, output) {
     await legend.getByText("3 need you ·", { exact: true }).waitFor();
     assert.equal(await page.getByText("Decision data is stale", { exact: false }).count(), 0);
     assert.equal(await page.getByText("the first mate is waiting at the bow", { exact: false }).count(), 0);
-    assert.equal(await page.getByText(/as of/).count(), 1);
+    assert.equal(await page.getByText(/as of/).count(), 0);
     await page.getByTestId("firstmate-deck-decision-tag").click();
     await button(drawerFor(page), "Back to Deck").click();
     await page.screenshot({ path: join(output, `polish-deck-stale-1440-${light ? "light" : "dark"}.png`) });

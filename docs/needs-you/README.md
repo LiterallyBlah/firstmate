@@ -1,6 +1,8 @@
 # Shared Needs-you indicator and decision drawer
 
-Home, Chat, Crew, Board and the Deck header use the server ledger's counts.
+Home, Chat, Crew and Board headers use the server ledger's counts.
+Deck has no header pill in either state; its scene legend and first mate keep their existing
+decision signals and drawer actions. Its heading preserves visible-surface toast suppression.
 The sidebar badge uses the same source; active crew appears as `N in hand` in
 Home. Waiting decisions keep an amber outline; New decisions fill it. Clear reads
 **Nothing needs you**, unavailable reads **Can't read decisions**, and stale counts
@@ -98,8 +100,8 @@ surfaces dock a 440-point drawer. Full covers hide/inert the background and trap
 pane covers keep the adjacent chat reachable. Escape closes and returns to the opener.
 The heading takes focus on open. Desktop controls use Paseo's compact scale.
 Back captures the opening view (Deck, List, Board, Chat or Home), including inline Home views.
-Home's desktop launcher is behind Open so the header occupies one row. The Deck header pill alone
-carries decision staleness; the bow tag and one short legend link remain.
+Home's desktop launcher is behind Open so the header occupies one row. Deck keeps the bow tag
+and one short legend link without a header pill; the drawer retains the detailed freshness status.
 
 Run npm ci --prefix docs/board-list, then node docs/needs-you/render.mjs.
 `polish-checks.mjs` covers the seven polish fixes using real components and synthetic host APIs,
@@ -112,6 +114,10 @@ append-only navigation, retained drafts, pinned phone input, pane cover, answer/
 receipts, All, quarantined data, recovery cancellation/confirmation and readable chat.
 Screenshots and results go to ignored .local/needs-you-drawer/ and CI artifacts.
 This is fixture evidence, not an installed desktop or native-device test.
+`header-checks.mjs` adds 40 captures across Deck, Home/List, Board, Crew and Chat at 390 and
+1440 pixels in both themes. It checks empty and non-empty states, count restoration, unchanged
+Deck header geometry, sidebar counts and both Deck legend drawer actions. Phone Deck retains
+its existing wide-window notice.
 
 ## Crew, Board and status vocabulary
 

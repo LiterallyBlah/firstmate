@@ -156,6 +156,10 @@ the exact original for disclosure and the home/request/revision for reopening. N
 the authored title; old envelopes fall back to their task id. The drawer consumes optional server-bound
 `answerOptions`, `specPath` and `notesPath` additively; their production belongs to the options slice.
 Render evidence lives in ignored `.local/needs-you-drawer/`, never in tracked docs.
+The standalone Deck omits the Needs-you header pill in every state; its scene legend and first mate
+remain the decision entry points. Other headers keep both empty and non-empty indicators.
+Deck's heading retains decision-surface visibility tracking so removing the pill does not change
+toast suppression. `docs/needs-you/header-checks.mjs` checks both states in light/dark at phone/desktop widths.
 
 ## Home and the workspace tabs (shell phase 1)
 
