@@ -185,6 +185,16 @@ it("retains scoped ownership from publication capsules even when the first event
   await expect(execute({ op: "draft", definition: definition("duplicate") })).rejects.toThrow("ownership");
   expect((await execute({ op: "implicit", launch: PlanLaunchSchema.parse(run("next").launch) })).launch.workflow.attempt).toBeTruthy();
 });
+it("retains known task scopes when retirement metadata is also corrupt", async () => {
+  await execute({ op: "draft", definition: definition("owner") });
+  await writeFile(join(root, "owner/00000000.json"), "{");
+  await mkdir(join(root, ".retired/owner"), { recursive: true });
+  await writeFile(join(root, `.retired/owner/${randomUUID()}.json`), "{");
+  store = new WorkflowPlanStore(root, home);
+  expect((await store.read()).quarantined[0]?.inventory.scopes).toContainEqual({ node: "build", host: "local" });
+  await expect(execute({ op: "draft", definition: definition("duplicate") })).rejects.toThrow("ownership");
+  expect((await execute({ op: "implicit", launch: PlanLaunchSchema.parse(run("next").launch) })).launch.workflow.attempt).toBeTruthy();
+});
 it("quarantines a bad plan, interior gap and stray file without losing healthy plans or agenda", async () => {
   await execute({ op: "draft", definition: definition() });
   await mkdir(join(root, "broken")); await writeFile(join(root, "broken/00000000.json"), "{");

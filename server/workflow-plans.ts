@@ -154,26 +154,37 @@ export class WorkflowPlanStore {
   private async quarantineEvidence(id: string, problem: string): Promise<QuarantinedWorkflow> {
     const identities: unknown[] = [], inventories: WorkflowOwnership[] = [];
     // Published capsules remain usable when the event itself cannot be projected.
-    for (const directory of [this.directory(id), this.tips(id), this.published(id)]) for (const name of await this.names(directory)) {
-      const path = join(directory, name), info = await stat(path);
-      if (!info.isFile() || info.size > 512000) { identities.push([directory, name, info.size, info.mtimeMs]); continue; }
-      const bytes = await readFile(path); identities.push([directory, name, digest(bytes.toString("base64"))]);
-      if (directory === this.published(id) && /^\d{8}\.json$/.test(name)) {
-        try { const marker = JSON.parse(bytes.toString("utf8")); if (marker.ownership) inventories.push(readOwnershipCapsule(marker.ownership, this.home, id, marker.hash)); }
-        catch { /* A damaged capsule is never trusted as ownership evidence. */ }
+    for (const directory of [this.directory(id), this.tips(id), this.published(id)]) {
+      let names: string[];
+      try { names = await this.names(directory); } catch (error) { identities.push([directory, String(error)]); continue; }
+      for (const name of names) {
+        try {
+          const path = join(directory, name), info = await stat(path);
+          if (!info.isFile() || info.size > 512000) { identities.push([directory, name, info.size, info.mtimeMs]); continue; }
+          const bytes = await readFile(path); identities.push([directory, name, digest(bytes.toString("base64"))]);
+          if (directory === this.published(id) && /^\d{8}\.json$/.test(name)) {
+            try { const marker = JSON.parse(bytes.toString("utf8")); if (marker.ownership) inventories.push(readOwnershipCapsule(marker.ownership, this.home, id, marker.hash)); }
+            catch { /* A damaged capsule is never trusted as ownership evidence. */ }
+          }
+        } catch (error) { identities.push([directory, name, String(error)]); }
       }
     }
     // Pre-capsule logs retain the scopes and attempts from their verified prefix.
     let prefix: WorkflowPlan | null = null;
-    for (const name of (await this.names(this.directory(id))).filter(f => /^\d{8}\.json$/.test(f))) {
+    let prefixNames: string[] = [];
+    try { prefixNames = await this.names(this.directory(id)); } catch (error) { identities.push([this.directory(id), String(error)]); }
+    for (const name of prefixNames.filter(f => /^\d{8}\.json$/.test(f))) {
       try {
+        if ((await stat(join(this.directory(id), name))).size > 512000) break;
         const raw = JSON.parse(await readFile(join(this.directory(id), name), "utf8")), event = EventSchema.parse(raw);
         const tip = JSON.parse(await readFile(join(this.tips(id), name), "utf8"));
         if (checksum(raw) !== raw.hash || raw.requestHash !== digest(raw.command) || workflowHomeIdentity(event.home) !== workflowHomeIdentity(this.home) || event.plan !== id || event.sequence !== (prefix ? prefix.sequence + 1 : 0) || event.previous !== (prefix?.hash ?? null) || tip.hash !== event.hash || tip.sequence !== event.sequence) break;
         prefix = reduce(prefix, event); inventories.push(planOwnership(prefix));
       } catch { break; }
     }
-    const retirement = await this.retirement(id);
+    let retirement: WorkflowRetirement | undefined;
+    try { retirement = await this.retirement(id); }
+    catch (error) { problem += ` Retirement evidence is unreadable: ${String(error)}`; }
     if (retirement) inventories.push(retirement.inventory);
     const inventory = mergeOwnership(inventories);
     // If all ownership evidence was lost, reserve the known plan/task id, never the whole home.
