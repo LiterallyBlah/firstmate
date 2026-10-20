@@ -46,6 +46,9 @@ try {
     await dialog.getByRole("button", { name: "Send changes to first mate", exact: true }).click();
     await dialog.waitFor({ state: "hidden" });
     assert.equal(await page.evaluate(() => window.workflowActions[0].command.action), "changes");
+    await page.getByRole("button", { name: "Scheduler · 0 of 3 · awaiting approval", exact: true }).click(); await dialog.waitFor();
+    await dialog.getByText("Plan actions", { exact: true }).waitFor();
+    await dialog.getByText(/Changes requested · Keep the trial read-only\./).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.deepEqual(errors, []); results.push({ theme, device, width, height, errors }); await page.close();
   }
