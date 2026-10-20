@@ -96,14 +96,14 @@ async function remoteFixture(behavior = "ok") {
 
 describe("launch contract and assembly", () => {
   it("claims a drafted plan's already-filed Queued line without another adoption request", async () => {
-    await writeFile(join(home, "data/task/brief.md"), "Implement the planned task.");
+    await writeFile(join(home, "data/task/brief.md"), "Implement the planned task.\n\n# Status line\nEnd every turn with done: <result> or blocked: <reason>.\n");
     const launch = request({ brief: { file: "data/task/brief.md" } });
     const plans = new WorkflowPlanStore(join(scratch, "workflow-plans"), home);
     const definition = PlanDefinitionSchema.parse({ format: "firstmate.plan/1", id: "planned", title: "Planned task", request: { text: "Build it", at: "2026-10-20T12:00:00Z" }, budget: { agents: 1, turns: 1 }, nodes: [{ id: "task", title: "Fix the thing", summary: "Implement the requested fix", kind: "run", workflow: "task@1", launch }] });
     await plans.execute({ op: "draft", definition }, "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa", "mate");
     const started: any = await plans.execute({ op: "start", plan: "planned", node: "task" }, "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb", "mate");
     await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n- [ ] task - Fix the thing (project: project) (plan: planned)\n## Done\n");
-    const result = await prepare(started.launch); expect(result.ok).toBe(true); expect(result.workflow.plan).toBe("planned");
+    const result = await prepare(started.launch); expect(result, JSON.stringify(result)).toMatchObject({ ok: true }); expect(result.workflow.plan).toBe("planned");
     expect(result.backlog.line).toContain("(plan: planned)"); expect((await plans.get("planned"))?.nodes.task?.claimed).toBe(true);
   });
   it("emits exact local MCP arguments with baseBranch and never creates locally", async () => {
