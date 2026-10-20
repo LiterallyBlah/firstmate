@@ -101,6 +101,13 @@ Its eight crew looks mix straw hats, an apron, a grey topknot, a ponytail, headc
 The **Scene** picker in Home and the Deck tab
 saves one choice for the whole fleet, also available in settings.
 
+**Hide workers on disconnected hosts** is on by default in Settings > Plugins > FirstMate,
+beside the Deck setting. Offline hosts' workers leave the scene and its aboard counts until the host
+reconnects. A short line counts the hidden workers and hosts; **Show** reveals their last known,
+greyed state for this app session without saving a setting. Turning the setting off always shows
+that greyed state. The first mate and reachable workers stay visible; List, Board and Crew's backlog
+items are unchanged.
+
 | Ship's deck · day | Sakura coast · day |
 | --- | --- |
 | ![Ship's deck in daylight, with crew badges and the suggestion shark](docs/readme/ship-day.webp) | ![Sakura coast in daylight, with a cedar ship beside the island](docs/readme/sakura-day.webp) |

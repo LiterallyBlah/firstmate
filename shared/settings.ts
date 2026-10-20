@@ -30,6 +30,8 @@ export const displaySettings = defineSettings({
       .string()
       .regex(/^[a-z0-9-]+$/)
       .default(DEFAULT_DECK_SETTING),
+    /** Deck workers only; backlog cards remain visible in List and Board. */
+    hideDisconnectedWorkers: z.boolean().default(true),
     /** Grouped task rows by default; the wide board remains available. */
     crewView: z.enum(CREW_VIEWS).default("list"),
     /** Home's right pane; Board and List share the board destination and crewView. */

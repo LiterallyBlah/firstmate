@@ -22,6 +22,8 @@
  * crew, not a followed session. Queued and Done cards, and cards with no worker, are left off. A card
  * that leaves the deck says why (`departureOf`: done, failed or closed; a card gone from the board is
  * removed), and `client/deck-choreography.ts` decides from that how its sailor goes.
+ * Disconnected hosts' workers are hidden by default; revealing them keeps today's stale treatment.
+ * Hiding suppresses departure animation and moves their decision access to the reserved first mate.
  *
  * The scene says only what each sailor is doing, and who it is: its `caption`, what the deck shows
  * when the pointer is over it (`sailorCaption`). Where it stands, and its walk there, are
@@ -97,6 +99,8 @@ export interface DeckSailor {
 }
 
 export interface DeckScene {
+  /** Workers suppressed by host reachability, including keys whose departure must not animate. */
+  hidden?: { keys: ReadonlySet<string>; workers: number; hosts: number };
   decisions?: DeckDecisions;
   /** The independent suggestion carrier; crew replies remain on their sailors. */
   hasSuggestions?: boolean;
@@ -225,20 +229,34 @@ export function deckPalette(theme: PluginTheme): DeckPalette {
 /**
  * The deck for these cards: one sailor per live crew worker, in card-key order within its state.
  * `feedStale` — the fleet load failing — greys the whole crew; a remote host that cannot be reached
- * greys its own workers. `asking` names the cards with replies waiting for the captain.
+ * hides its own workers by default (or greys them when revealed). `asking` names cards with replies.
  */
 export function deckScene(
   cards: readonly FleetCard[],
   theme: PluginTheme,
-  options: { feedStale?: boolean; asking?: ReadonlySet<string>; needsYou?: NeedsYouSnapshot | undefined } = {},
+  options: { feedStale?: boolean; asking?: ReadonlySet<string>; needsYou?: NeedsYouSnapshot | undefined; hideDisconnectedWorkers?: boolean } = {},
 ): DeckScene {
+  // Exactly the existing out-of-reach signal, owned by the remote poll's timeout. Never agent status
+  // or a failing fleet read; local workers and the engine's reserved first mate stay on deck.
+  const hiddenKeys = new Set(cards.filter(card => options.hideDisconnectedWorkers !== false && card.agent === null &&
+    card.remote?.online === false && hasLiveWorker(card)).map(card => card.key));
+  const hiddenHosts = new Set<string>();
+  let hiddenWorkers = 0;
   const snapshot = options.needsYou;
   const decisions = snapshot === undefined ? undefined : deckDecisions(cards,
-    options.feedStale && snapshot.actionCount !== null ? { ...snapshot, freshness: { ...snapshot.freshness, status: "stale" } } : snapshot, hasLiveWorker);
+    options.feedStale && snapshot.actionCount !== null ? { ...snapshot, freshness: { ...snapshot.freshness, status: "stale" } } : snapshot,
+    card => hasLiveWorker(card) && !hiddenKeys.has(card.key));
   const byState = new Map<DeckState, FleetCard[]>(DECK_STATES.map((state) => [state, []]));
   const departures: Record<string, DeckDeparture> = {};
   for (const card of cards) {
     const state = deckState(card, decisions);
+    if (hiddenKeys.has(card.key)) {
+      if (state !== null) {
+        hiddenWorkers++;
+        hiddenHosts.add(card.remote!.serverId ?? card.remote!.host);
+      }
+      continue;
+    }
     if (state !== null) byState.get(state)?.push(card);
     else departures[card.key] = departureOf(card);
   }
@@ -268,6 +286,7 @@ export function deckScene(
     }
   }
   return {
+    ...(hiddenKeys.size === 0 ? {} : { hidden: { keys: hiddenKeys, workers: hiddenWorkers, hosts: hiddenHosts.size } }),
     palette: decisions === undefined ? deckPalette(theme) : { ...deckPalette(theme), states: {
       working: theme.colors.statusSuccess, waiting: theme.colors.foregroundMuted,
       blocked: theme.colors.statusWarning, idle: theme.colors.foregroundMuted,

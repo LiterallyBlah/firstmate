@@ -17,6 +17,7 @@ import {
   SettingsRow,
   SettingsSection,
   SettingsSelect,
+  SettingsSwitch,
 } from "@getpaseo/plugin/client/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -270,6 +271,18 @@ export function SettingsScreen({ theme, layout }: PluginSurfaceProps) {
               void display.save({ ...display.values, deckSetting }, display.revision).then((ok) => {
                 if (!ok) toast.error(display.saveError ?? "The deck setting was not saved.");
               });
+            }}
+          />
+          <SettingsSwitch
+            label="Hide workers on disconnected hosts"
+            hint="Hide them from the Deck until their host reconnects. Show on the Deck reveals them for this app session."
+            value={display.status === "ready" ? display.values.hideDisconnectedWorkers : true}
+            disabled={display.status !== "ready"}
+            onValueChange={(hideDisconnectedWorkers) => {
+              if (display.status !== "ready") return;
+              void display.save({ ...display.values, hideDisconnectedWorkers }, display.revision).then((ok) => {
+                if (!ok) toast.error(display.saveError ?? "The worker visibility setting was not saved.");
+              }).catch(() => toast.error("The worker visibility setting was not saved."));
             }}
           />
           <SettingsSelect

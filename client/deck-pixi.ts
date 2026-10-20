@@ -871,7 +871,7 @@ export async function startDeck(
     if (stepMs > 0) stepCrew(crew, stepMs);
     // Reduced motion turned on mid-walk: everyone to their anchor, nobody frozen on the way or on the ladder,
     // and anyone on the way out fading where they are.
-    if (!moving) applyCrew(crew, current.sailors, { snap: true, departures: current.departures });
+    if (!moving) applyCrew(crew, current.sailors, { snap: true, departures: current.departures, hidden: current.hidden?.keys });
     // The weather: eased towards how busy the crew is, each animation on its own clock; as it always was when still.
     atmosphere = stepAtmosphere(art.atmosphere, atmosphere, stepMs, crewIntensity(current.sailors), moving);
     const weather = moving ? weatherOf(art.atmosphere, atmosphere) : deliveredWeather(art.atmosphere, seconds);
@@ -1032,7 +1032,7 @@ export async function startDeck(
     });
   }
 
-  applyCrew(crew, scene.sailors, { snap: true, departures: scene.departures });
+  applyCrew(crew, scene.sailors, { snap: true, departures: scene.departures, hidden: scene.hidden?.keys });
   fit();
   const animator = deckAnimator({ scheduler: environment.scheduler, signals: environment.signals, software, size, frame: draw });
   // A running loop reads the clock every frame; a still deck is drawn again once a minute, so its sky keeps up.
@@ -1072,7 +1072,7 @@ export async function startDeck(
         for (const sprites of sailors.values()) sprites.marked = "";
       }
       current = next;
-      applyCrew(crew, next.sailors, { snap: animator.plan().level === "still", departures: next.departures });
+      applyCrew(crew, next.sailors, { snap: animator.plan().level === "still", departures: next.departures, hidden: next.hidden?.keys });
       animator.invalidate();
     },
     focus(key) {
