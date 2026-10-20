@@ -36,22 +36,40 @@ export const PlanDefinitionSchema = z.object({
 }).strict();
 export type PlanDefinition = z.infer<typeof PlanDefinitionSchema>;
 export type NodeState = "planned" | "starting" | "running" | "done" | "landed" | "failed" | "cancelled" | "unresolved";
-export interface PlanNodeState { state: NodeState; attempt?: string; claimed?: boolean; agentId?: string; workspaceId?: string; evidence?: string; briefHash?: string; answer?: string;
-  launch?: PlanLaunch; held?: string; invalidated?: string;
-  priorAttempts?: PlanNodeState[]; spent?: number; completedAt?: string }
+export interface PlanNodeState { state: NodeState; attempt?: string | undefined; claimed?: boolean | undefined; agentId?: string | undefined; workspaceId?: string | undefined; evidence?: string | undefined; briefHash?: string | undefined; answer?: string | undefined;
+  launch?: PlanLaunch | undefined; held?: string | boolean | undefined; invalidated?: string | undefined;
+  priorAttempts?: PlanNodeState[] | undefined; spent?: number | undefined; completedAt?: string | undefined }
+export const PlanPostureSourceSchema = z.object({ posture: z.enum(["review", "sail"]), source: z.enum(["request", "standing-orders", "default"]), detail: z.string(), warning: z.string().optional() });
+export type PlanPostureSource = z.infer<typeof PlanPostureSourceSchema>;
 export interface WorkflowPlan {
   definition: PlanDefinition; revision: number; sequence: number; hash: string; posture: "review" | "sail";
   status: "review" | "active" | "held" | "abandoned"; approvedBudget: { agents: number; turns: number };
   nodes: Record<string, PlanNodeState>; told: string[]; handled: string[];
   history: { revision: number; at: string; by: string; reason: string }[];
-  removed?: { node: PlanNode; state: PlanNodeState }[];
+  removed?: { node: PlanNode; state: PlanNodeState }[] | undefined;
+  postureSource?: PlanPostureSource | undefined;
+  captainEvents?: { id: string; action: string; text: string; node?: string | undefined; at: string; by?: string | undefined; notified?: boolean | undefined }[] | undefined;
 }
 /** Completion is a fold over durable node outcomes, never inferred from a worker's status line. */
 export function planFinished(plan: WorkflowPlan): boolean {
   return plan.definition.nodes.every(node => !plan.nodes[node.id]?.invalidated &&
     (node.kind === "run" && node.launch.kind === "ship" ? ["landed", "failed", "cancelled"] : ["done", "landed", "failed", "cancelled"]).includes(plan.nodes[node.id]?.state ?? ""));
 }
+export const PlanEditSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("model"), node: PlanId, agent: PlanLaunchSchema.shape.agent }).strict(),
+  z.object({ kind: z.literal("host"), node: PlanId, host: line }).strict(),
+  z.object({ kind: z.literal("dependencies"), node: PlanId, after: z.array(PlanDependencySchema).max(100) }).strict(),
+  z.object({ kind: z.literal("remove"), node: PlanId }).strict(),
+  z.object({ kind: z.literal("posture"), posture: z.enum(["review", "sail"]) }).strict(),
+]);
+export const PlanCaptainCommandSchema = z.object({ op: z.literal("captain"), plan: PlanId, revision: z.number().int().positive(), subjectHash: z.string().length(64),
+  action: z.enum(["approve", "edit", "changes", "hold", "decline", "answer"]), text: z.string().max(10000).default(""),
+  edits: z.array(PlanEditSchema).max(100).optional(), node: PlanId.optional(), option: PlanId.optional(),
+}).strict();
+export type PlanCaptainCommand = z.infer<typeof PlanCaptainCommandSchema>;
 export const WorkflowCommandSchema = z.discriminatedUnion("op", [
+  PlanCaptainCommandSchema,
+  z.object({ op: z.literal("notified"), plan: PlanId, eventId: z.uuid() }).strict(),
   z.object({ op: z.literal("plans"), all: z.boolean().optional() }).strict(),
   z.object({ op: z.literal("agenda") }).strict(),
   z.object({ op: z.literal("lint") }).strict(),
@@ -92,7 +110,8 @@ export function planProblems(plan: PlanDefinition, others: readonly WorkflowPlan
     } else {
       if (new Set(node.options.map(o => o.id)).size !== node.options.length) problems.push(`${node.id}: duplicate options.`);
       if (node.recommendation && !node.options.some(o => o.id === node.recommendation)) problems.push(`${node.id}: unknown recommendation.`);
-      if (![...nodes.values()].some(n => n.after.some(d => d.node === node.id))) problems.push(`${node.id}: no run needs this decision.`);
+      const answered = others.some(p => !!p.nodes[node.id]?.answer);
+      if (!answered && ![...nodes.values()].some(n => n.after.some(d => d.node === node.id))) problems.push(`${node.id}: no run needs this decision.`);
     }
     if (new Set(node.after.map(d => d.node)).size !== node.after.length) problems.push(`${node.id}: repeated dependency.`);
     for (const edge of node.after) {

@@ -59,6 +59,7 @@ export async function main(argv) {
     ...(words[0] === "validate" ? { expected: options.expected } : {}), ...(words[0] === "replace" ? { expected: options.expected, kind: options.kind, budget: { agents: Number(options.agents), turns: Number(options.turns) } } : {}) };
   else if (words[0] === "plan" && words[1] === "draft") command = { op: "draft", definition: await file() };
   else if (words[0] === "plan" && words[1] === "revise") command = { op: "revise", definition: await file(), expected: options.expected, reason: options.reason };
+  else if (words[0] === "plan" && words[1] === "action") { command = await file(); if (command.op !== "captain" || !command.text?.trim()) throw new Error("A quoted captain action with its revision and subject hash is required."); }
   else if (words[0] === "plan" && words.length === 2) command = { op: "show", plan: words[1] };
   else if (words[0] === "start") command = options.file ? { op: "implicit", launch: await file() } : { op: "start", plan: options.plan, node: options.node };
   else if (words[0] === "record") command = options.told || options.handled ? { op: "ack", plan: options.plan, kind: options.told ? "told" : "handled", ids: (options.told ?? options.handled).split(",") } :

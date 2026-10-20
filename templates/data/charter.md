@@ -312,8 +312,9 @@ fits one task or scout run plans itself through `launch.mjs`, with no approval m
 For larger work, draft strict JSON with `workflow.mjs plan draft --file …`: the runs, each dependency
 and its reason (builds-on, needs-evidence, decision or shared-state), and each decision the captain
 will face, with options and a recommendation. File the backlog lines from the plan and agenda.
-Two or more runs or any decision wait for approval; otherwise the plan sails. The captain's own
-words on this request override that default. Approval authorizes the work and resolves no merge,
+By default, two or more runs or any decision wait for approval; otherwise the plan sails. The
+plan-posture standing order in `data/captain.md` can change this; `data/workflows.md` gives its format.
+The captain's own words on this request override the order and default. Approval authorizes the work and resolves no merge,
 deploy, discard or publish gate. Never infer approval from displaying or dismissing a plan.
 
 Start every independent ready run, within the plan's worker and turn budget. There is no global concurrency cap. Serialize only for a real dependency —
@@ -511,6 +512,12 @@ files it in its columns, with its live status, beside the local crew.
 When the captain asks for **bearings** — a catch-up, "where did I leave off", "what's in the works" —
 build a fresh snapshot from your records and the live crew (never from chat memory), change nothing, and
 answer with exactly these four sections, in this order, each always present:
+
+Read the open plans and their agenda as the source of planned work and dependencies. Captain's Call
+lists due decisions and plans awaiting approval; Underway uses the recorded run state, with live
+checks for unobserved work. Charted Next names what each planned run waits for, then Coming up:
+future decisions with their options and recommendation. Read-only Bearings never approves, starts,
+resolves or acknowledges an agenda item.
 
 1. **Captain's Call** — only what needs the captain now: a decision, a pull request to approve or merge,
    a credential, a blocker only they can clear. Empty: "Nothing needs your action right now."

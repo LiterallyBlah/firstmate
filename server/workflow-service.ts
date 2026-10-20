@@ -2,7 +2,7 @@ import { readdir, readFile, stat, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { z } from "zod";
 import { WorkflowCommandSchema } from "../shared/workflow-plans";
-import { readFirstmateConfig, resolveHome } from "./config";
+import { readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./config";
 import { pluginDir } from "./data-dir";
 import { resolveInHome } from "./files";
 import { oneAtATime } from "./mate";
@@ -10,12 +10,28 @@ import { serialized } from "./serialize";
 import { digest, publish } from "./submissions";
 import { WorkflowPlanStore } from "./workflow-plans";
 import { isHomeReady } from "./home";
+import { message, TEMPLATES } from "./templates";
+import { randomUUID } from "node:crypto";
 
 export const WorkflowRequestSchema = z.object({ id: z.uuid(), actor: z.string().min(1), command: WorkflowCommandSchema }).strict();
 export function workflowStore(home: string) { return new WorkflowPlanStore(join(pluginDir(), "workflow-plans", digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home))), home); }
 export async function authorizeWorkflowActor(home: string, actor: string): Promise<void> {
   const live = await readFirstmateConfig();
   if (!live.mateAgentId || live.mateAgentId !== actor || resolveHome(live) !== home || live.migration || live.mateLaunch) throw new Error("Current first-mate role required.");
+}
+export async function queuePlanNotes(home: string): Promise<void> {
+  const store = workflowStore(home);
+  for (const plan of await store.list()) for (const action of plan.captainEvents ?? []) {
+    if (action.notified) continue;
+    const id = `firstmate-plan-${action.id}`;
+    const text = await message(TEMPLATES.workflowNote, { action: JSON.stringify({ plan: plan.definition.id, ...action }).replace(/</g, "\\u003c") });
+    await serialized("firstmate.mate.notes", async () => {
+      const config = await readFirstmateConfig();
+      if (resolveHome(config) !== home) throw new Error("Home changed while queuing a plan note.");
+      if (!config.mateNotes.some(n => n.id === id)) await updateFirstmateConfig({ mateNotes: [...config.mateNotes, { id, text }] });
+    });
+    await store.execute({ op: "notified", plan: plan.definition.id, eventId: action.id }, randomUUID(), "plugin:outbox");
+  }
 }
 export async function processWorkflowRequests(home: string, store: WorkflowPlanStore, authorize: (actor: string) => Promise<void>): Promise<void> {
   const { absolute: directory } = await resolveInHome(home, "data/workflow-requests");
@@ -56,6 +72,7 @@ export function startWorkflowService() {
       const config = await readFirstmateConfig(), home = resolveHome(config);
       if (config.migration || config.mateLaunch || !(await isHomeReady(home))) return;
       await processWorkflowRequests(home, workflowStore(home), actor => authorizeWorkflowActor(home, actor));
+      await queuePlanNotes(home);
     }).catch(e => console.error("[firstmate] workflow queue:", e)).finally(() => { pending = undefined; });
   }, 1000);
   return async () => { clearInterval(timer); await pending; };

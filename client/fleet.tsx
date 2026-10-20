@@ -77,6 +77,8 @@ import { activeCrewCount } from "./screen";
 import { TaskBoard } from "./task-board";
 import { useTaskLayout } from "./task-layout";
 import { taskPresentation } from "./task-presentation";
+import { WorkflowSurface, PlansControl, useWorkflowPlans } from "./workflow-plans";
+import { workflowOwnsCard } from "../shared/workflow-identity";
 
 export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
@@ -115,9 +117,9 @@ type FleetSurfaceProps = PluginScreenProps & {
 export function FleetSurface(props: FleetSurfaceProps) {
   const key = JSON.stringify([props.host?.id, props.workspaceId, props.view ?? "home"]);
   return (
-    <DecisionSurface shell={props.shell} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
+    <WorkflowSurface theme={props.theme}><DecisionSurface shell={props.shell} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
       <FleetViewBody {...props} stateKey={key} />
-    </DecisionSurface>
+    </DecisionSurface></WorkflowSurface>
   );
 }
 
@@ -133,6 +135,8 @@ function FleetViewBody({
   stateKey,
 }: FleetSurfaceProps & { stateKey: string }) {
   const home = view === undefined;
+  const plans = useWorkflowPlans();
+  const [planFilter, setPlanFilter] = useState<string | null>(null);
   const decisionOpen = useDecisionPaneOpen();
   const [viewMenu, setViewMenu] = useState(false);
   const remembered = viewState.get(stateKey);
@@ -736,12 +740,13 @@ function FleetViewBody({
         ? !values.collapsedColumns.includes("done")
         : !taskLayout.values.collapsed.includes("done"),
   );
-  const filteredCards = hostCards.filter((card) => matchesTags(card, values.tagFilter));
+  const filteredCards = hostCards.filter((card) => matchesTags(card, values.tagFilter) && (!planFilter || plans.snapshot?.plans.some(p => p.definition.id === planFilter && workflowOwnsCard(p, card))));
   const board = (
     <View style={{ flex: 1, minHeight: 0 }}>
       <TaskToolbar
         theme={theme}
         tabs={tabs}
+        planControl={<PlansControl theme={theme} selected={planFilter} onSelect={setPlanFilter} />}
         hosts={remoteHosts}
         hostTab={hostTab}
         onHostChange={(id) => save({ hostTab: id })}
@@ -762,7 +767,7 @@ function FleetViewBody({
       ) : null}
       {hostCards.length > 0 && filteredCards.length === 0 ? (
         <Text style={{ color: theme.colors.foregroundMuted, padding: 12 }}>
-          No items match the selected tags on this host.
+          {planFilter ? "No items match the selected plan and filters on this host." : "No items match the selected tags on this host."}
         </Text>
       ) : null}
       {crewView === "list" ? (

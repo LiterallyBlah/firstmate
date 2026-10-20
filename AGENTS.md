@@ -46,6 +46,23 @@ rows. Explicit release, invalidate/validate and replace transitions preserve his
 budget; manual replacement/promotion keeps the workspace and task identity. Legacy unscoped logs
 and missing anchors require deliberate reconciliation, never an automatic budget reset.
 
+Slice 2 adds `shared/workflow-rpc.ts`, `server/workflow-board.ts` and `client/workflow-plans.tsx`.
+The dialog's captain action carries the plan revision and subject hash (including prior captain
+actions), and the store rechecks them under the same serialization/publication boundary. No view,
+filter or dismissal writes approval. Edits affect unstarted nodes only; removing a prerequisite holds
+its dependents. A saved note outbox wakes the mate between turns and survives reloads. Plan approval
+is never merge/deploy authority. `withWorkflowNeeds` adds due plan actions and a separate Coming up
+array; Coming up never enters any count. A disabled legacy detector reports plan actions as a lower
+bound (`1+`, plans only), never a fresh complete count. `withWorkflowCards` draws pending runs while
+the backlog catches up, with no invented agent identity. Deck continues to use real workers only.
+The visual fixture `node docs/workflows/render.mjs` writes exclusively to `.local/workflows/`.
+Plan actions retain author provenance: a captain press and a mate-recorded chat action are distinct.
+Subject/revision checks run at append, never against a changing historical projection on replay.
+Fleet/Needs-you/Bearings isolate plan failures and label incomplete counts. Decision projections,
+card chips and filters require the explicit plan association plus host/project/task scope.
+The posture reader consumes only `plan-posture` in a fenced `standing-orders` block at draft/revise;
+request quotes override it, unreadable/absent blocks use D2, and invalid entries require review.
+
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |
 | `index.server.ts`             | Wiring — the RPCs, the display settings document, the steer relay hook.                    |

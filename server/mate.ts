@@ -260,10 +260,14 @@ const COMMANDS = {
  * plain requests, which charter §10 defines, rather than slash commands, which the first mate's own
  * harness would take as its own. `args` is whatever the captain typed after the command.
  */
-export function commandText(command: MateCommand, args: string): Promise<string> {
+export async function commandText(command: MateCommand, args: string): Promise<string> {
   const extra = args.trim();
   const [plain, withArgs] = COMMANDS[command];
-  return extra === "" ? message(plain) : message(withArgs, { args: extra });
+  const text = await (extra === "" ? message(plain) : message(withArgs, { args: extra }));
+  if (command !== "bearings") return text;
+  const { workflowBearings } = await import("./workflow-board");
+  const plans = await workflowBearings(resolveHome(await readFirstmateConfig()));
+  return plans ? `${text}\n\n${await message(TEMPLATES.workflowBearings, { plans })}` : text;
 }
 
 /**

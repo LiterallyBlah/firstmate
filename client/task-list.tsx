@@ -9,6 +9,7 @@ import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
 import { activeDecisions, presentedTasks, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
 import { DecisionTask, DecisionQueueNote } from "./decision-tasks";
+import { PlanNeeds } from "./workflow-plans";
 
 export interface TaskListProps {
   cards: readonly FleetCard[];
@@ -78,7 +79,8 @@ export function TaskList(props: TaskListProps) {
             onChanged={props.onChanged}
           />
         ))}
-        {snapshot?.actionCount === 0 && snapshot.freshness.status === "fresh" && !props.offline ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
+        <PlanNeeds theme={theme} snapshot={snapshot} />
+        {snapshot?.actionCount === 0 && snapshot.freshness.status === "fresh" && !snapshot.planProblems?.length && !props.offline ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
       </View>
       <View testID="task-group-in-hand" style={{ gap: 8 }}>
         <Text accessibilityRole="header" style={heading}>

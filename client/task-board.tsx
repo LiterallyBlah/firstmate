@@ -9,6 +9,7 @@ import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
 import { activeDecisions, presentedTasks, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
 import { DecisionQueueNote, DecisionTask } from "./decision-tasks";
+import { PlanNeeds } from "./workflow-plans";
 
 export function TaskBoard(props: {
   cards: readonly FleetCard[];
@@ -67,7 +68,7 @@ export function TaskBoard(props: {
   function column(id: TaskColumn) {
     const folded = layout.collapsed.includes(id),
       entries = tasks.filter((entry) => entry.summary.group === id);
-    const count = id === "needs-you" ? (snapshot?.freshness.status === "fresh" && !props.offline ? snapshot.actionCount ?? "unavailable" : decisionCountText(snapshot, props.offline)) : entries.length;
+    const count = id === "needs-you" ? (snapshot?.freshness.status === "fresh" && !snapshot.planProblems?.length && !props.offline ? snapshot.actionCount ?? "unavailable" : decisionCountText(snapshot, props.offline)) : entries.length;
     const ink =
       id === "needs-you" && ((folded && typeof count === "number" && count > 0) || !!snapshot?.newCount)
         ? colors.statusWarning
@@ -89,6 +90,7 @@ export function TaskBoard(props: {
               onChanged={props.onChanged}
             />
           ))}
+          <PlanNeeds theme={theme} snapshot={snapshot} />
           {count === 0 ? <Text style={{ color: ink }}>Nothing needs a decision now.</Text> : null}
         </>
       ) : id === "in-hand" ? (

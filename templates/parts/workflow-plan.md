@@ -5,6 +5,8 @@
 
 Revision {{revision}} · {{state}} · {{posture}}
 
+Posture source: {{postureSource}}
+
 Worst case (workers and worker turns): {{budget}}
 These one-step runs are dispatched by the first mate. Approval authorizes work and resolves no gate.
 
@@ -13,3 +15,7 @@ These one-step runs are dispatched by the first mate. Approval authorizes work a
 ## Revisions
 
 {{history}}
+
+## Plan actions
+
+{{actions}}

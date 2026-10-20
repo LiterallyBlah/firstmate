@@ -6,6 +6,10 @@ dependencies, then read one agenda on every wake. Plans survive restarts in a ha
 readable `data/plans/<id>/plan.md` projections. The first mate still makes all local worker calls;
 approval authorizes planned work and resolves no merge or deployment gate. See
 [the home tool guide](templates/data/workflows.md) for commands and the current one-step limits.
+Larger plans have a dialog and a Plans filter. Approve, edit, hold or decline the plan, or ask the
+first mate for changes. Decisions appear under Coming up before they are due; only current actions
+count in Needs you. An answer from an outdated plan or another device is refused. Deck still shows
+real workers, and Bearings draws its next steps from the plans.
 
 **One conversation to coordinate a crew of coding agents in [Paseo](https://paseo.sh).**
 

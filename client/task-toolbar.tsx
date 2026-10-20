@@ -1,6 +1,7 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { Icon, Modal } from "@getpaseo/plugin/client/react-native";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import type { FleetCard, Suggestion } from "../shared/fleet";
 import type { RemoteHost } from "../shared/remotes";
@@ -28,6 +29,7 @@ export function TaskToolbar({
   selectedTags,
   onTagsChange,
   boardMode,
+  planControl,
 }: {
   theme: PluginTheme;
   tabs: readonly HostTab[];
@@ -42,6 +44,7 @@ export function TaskToolbar({
   selectedTags: readonly string[];
   onTagsChange: (tags: string[]) => void;
   boardMode?: { detailed: boolean; disabled: boolean; onChange(): void } | undefined;
+  planControl?: ReactNode;
 }) {
   const [panel, setPanel] = useState<Panel | null>(null);
   const selectedHost = tabs.find((tab) => tab.id === hostTab);
@@ -103,6 +106,7 @@ export function TaskToolbar({
         {boardMode ? <View style={{ marginLeft: "auto" }}>
           <IconButton theme={theme} icon="Ellipsis" label="Board options" onPress={() => setPanel("board")} />
         </View> : null}
+        {planControl}
       </View>
       <Modal
         title={panel === "machines" ? "Machines" : panel === "suggestions" ? "Suggestions" : panel === "board" ? "Board options" : "Filter tags"}
