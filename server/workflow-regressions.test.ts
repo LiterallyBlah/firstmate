@@ -195,6 +195,22 @@ it("retains known task scopes when retirement metadata is also corrupt", async (
   await expect(execute({ op: "draft", definition: definition("duplicate") })).rejects.toThrow("ownership");
   expect((await execute({ op: "implicit", launch: PlanLaunchSchema.parse(run("next").launch) })).launch.workflow.attempt).toBeTruthy();
 });
+it.each(["start", "claim"])("does not %s using another host's same-named outcome for a quarantined prerequisite", async phase => {
+  await execute({ op: "draft", definition: definition("owner") }); const original = await execute({ op: "start", plan: "owner", node: "build" });
+  await execute({ op: "record", plan: "owner", node: "build", attempt: original.launch.workflow.attempt, state: "done", evidence: "Verified local prerequisite" });
+  const consumer = definition("consumer", [run("next")]); consumer.nodes[0]!.after = [{ node: "build", reason: "builds-on", on: "done" }];
+  await execute({ op: "draft", definition: consumer });
+  const intent = phase === "claim" ? await execute({ op: "start", plan: "consumer", node: "next" }) : null;
+  await writeFile(join(root, "owner/00000002.json"), "{");
+  const remote = definition("remote-plan"); if (remote.nodes[0]!.kind !== "run") throw new Error("fixture"); remote.nodes[0]!.launch.host = "remote";
+  await execute({ op: "draft", definition: remote }); const started = await execute({ op: "start", plan: "remote-plan", node: "build" });
+  await execute({ op: "record", plan: "remote-plan", node: "build", attempt: started.launch.workflow.attempt, state: "done", evidence: "Verified remote deliverable; not the quarantined local prerequisite" });
+  if (intent) {
+    const { workflow, ...launch } = intent.launch;
+    await expect(execute({ op: "claim", ...workflow, launch })).rejects.toThrow("dependencies");
+  } else await expect(execute({ op: "start", plan: "consumer", node: "next" })).rejects.toThrow("dependencies");
+  expect((await store.agenda()).some(i => i.kind === "start" && i.plan === "consumer")).toBe(false);
+});
 it("quarantines a bad plan, interior gap and stray file without losing healthy plans or agenda", async () => {
   await execute({ op: "draft", definition: definition() });
   await mkdir(join(root, "broken")); await writeFile(join(root, "broken/00000000.json"), "{");

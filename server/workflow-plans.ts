@@ -12,7 +12,7 @@ import { parseBacklog } from "./backlog";
 import { observeNeedsYou } from "./needs-you-detect";
 import { RemoteSnapshot } from "../shared/remotes";
 import { fill, readTemplate, TEMPLATES } from "./templates";
-import { mergeOwnership, ownershipCapsule, ownershipScope, planOwnership, readOwnershipCapsule, RetirementSchema, workflowHomeIdentity, type QuarantinedWorkflow, type WorkflowOwnership, type WorkflowRetirement } from "./workflow-ownership";
+import { mergeOwnership, ownershipCapsule, ownershipScope, planOwnership, quarantinedDependencyIds, readOwnershipCapsule, RetirementSchema, workflowHomeIdentity, type QuarantinedWorkflow, type WorkflowOwnership, type WorkflowRetirement } from "./workflow-ownership";
 
 const EventSchema = z.object({ version: z.literal(1), home: z.string().min(1), plan: PlanId, sequence: z.number().int().nonnegative(), previous: z.string().length(64).nullable(),
   requestId: z.uuid(), requestHash: z.string().length(64), at: z.iso.datetime(), by: z.string().min(1),
@@ -26,8 +26,9 @@ export const backlogSection = (node: PlanNode, state: string) => terminal(state)
 export const samePlanItem = (item: ReturnType<typeof parseBacklog>[number], plan: WorkflowPlan, node: PlanNode) =>
   item.id === node.id && (node.kind === "decision" ? !item.project && !item.host : item.project === node.launch.project && (item.host ?? "local").toLowerCase() === node.launch.host.toLowerCase()) &&
   (plan.definition.implicit || item.plan === plan.definition.id);
-export function dependenciesMet(node: PlanNode, plans: readonly WorkflowPlan[]): boolean {
+export function dependenciesMet(node: PlanNode, plans: readonly WorkflowPlan[], unavailableDependencies?: ReadonlySet<string>): boolean {
   return node.after.every(edge => {
+    if (unavailableDependencies?.has(edge.node)) return false;
     const state = plans.flatMap(p => Object.entries(p.nodes)).find(([id]) => id === edge.node)?.[1];
     if (state?.held || state?.invalidated) return false;
     return edge.on === "answered" ? !!state?.answer : edge.on === "landed" ? state?.state === "landed" : state?.state === "done" || state?.state === "landed";
@@ -378,6 +379,7 @@ export class WorkflowPlanStore {
       const replay = events.find(e => e.requestId === requestId);
       if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); return this.renderedResult(previous!, replay); }
       const { plans, quarantined, unavailable } = await this.read();
+      const unavailableDependencies = quarantinedDependencyIds(quarantined);
       const ownsWork = ["draft", "revise", "implicit", "start", "claim", "replace"].includes(command.op);
       const candidates = command.op === "draft" || command.op === "revise" ? command.definition.nodes.map(ownershipScope) : command.op === "implicit" ? [{ node: command.launch.id, host: command.launch.host.trim().toLowerCase() }] :
         ownsWork ? previous?.definition.nodes.filter(n => "node" in command && n.id === command.node).map(ownershipScope) ?? [] : [];
@@ -403,14 +405,14 @@ export class WorkflowPlanStore {
       if (command.op === "release") await this.assertUncreated(command.node, command.attempt);
       if (command.op === "claim") {
         const node = previous?.definition.nodes.find(n => n.id === command.node);
-        if (!node || !dependenciesMet(node, plans)) throw new Error("Run dependencies changed since start; reconcile before dispatch.");
+        if (!node || !dependenciesMet(node, plans, unavailableDependencies)) throw new Error("Run dependencies changed since start; reconcile before dispatch.");
         if ((await this.brief(node)).hash !== command.briefHash) throw new Error("Brief changed since start; replan before dispatch.");
       }
       let briefHash: string | undefined;
       let launch: z.infer<typeof PlanLaunchSchema> | undefined;
       if (command.op === "start") {
         const node = previous?.definition.nodes.find(n => n.id === command.node);
-        if (!node || !dependenciesMet(node, plans)) throw new Error("Run dependencies are not satisfied.");
+        if (!node || !dependenciesMet(node, plans, unavailableDependencies)) throw new Error("Run dependencies are not satisfied.");
         briefHash = (await this.brief(node)).hash;
         if (node.kind === "run") {
           launch = structuredClone(node.launch);
@@ -485,7 +487,7 @@ export class WorkflowPlanStore {
     finally { await rm(temporary, { force: true }); }
   }
   async agenda(): Promise<AgendaItem[]> {
-    const { plans, problems, warnings } = await this.read(), result: AgendaItem[] = [
+    const { plans, problems, warnings, quarantined } = await this.read(), unavailableDependencies = quarantinedDependencyIds(quarantined), result: AgendaItem[] = [
       ...problems.map((text, n): AgendaItem => ({ id: `plan-problem:${n}`, kind: "escalation", priority: 1, plan: "unavailable", text })),
       ...warnings.map((text, n): AgendaItem => ({ id: `plan-warning:${n}`, kind: "books", priority: 6, plan: "unavailable", text })),
     ];
@@ -511,7 +513,8 @@ export class WorkflowPlanStore {
         if (state.held) add("replan", 3, `held:${node.id}:${plan.revision}`, `${node.title}: ${state.held}`, node.id);
         if (state.state === "unresolved" || state.invalidated) add("escalation", 1, `uncertain:${node.id}:${state.attempt}:${digest(state.invalidated ?? null)}`, `Reconcile ${node.title}; never create or send again blindly. ${state.invalidated ?? ""}`, node.id);
         if (!terminal(state.state) && node.after.some(d => plans.some(p => ["failed", "cancelled"].includes(p.nodes[d.node]?.state ?? "")))) add("replan", 3, `dependency:${node.id}:${plan.revision}`, `${node.title} has a failed or cancelled dependency.`, node.id);
-        const ready = dependenciesMet(node, plans);
+        if (!terminal(state.state) && node.after.some(d => unavailableDependencies.has(d.node))) add("replan", 3, `quarantined:${node.id}:${digest([...unavailableDependencies])}`, `${node.title}: prerequisite task identity is quarantined; replan with unambiguous evidence.`, node.id);
+        const ready = dependenciesMet(node, plans, unavailableDependencies);
         if (node.kind === "run" && state.state === "planned" && plan.status === "active" && ready) {
           try { await this.brief(node); add("start", 4, `start:${node.id}:${plan.revision}`, `Start ${node.title}.`, node.id); }
           catch { add("replan", 3, `brief:${node.id}:${plan.revision}`, `Supply the missing or unreadable brief for ${node.title}.`, node.id); }

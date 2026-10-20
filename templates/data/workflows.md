@@ -76,6 +76,8 @@ ownership capsules (scopes, attempts, worker/workspace identities and budget), e
 event becomes unreadable. Older logs use their verified prefix. If all ownership metadata was lost,
 only the known plan/task id can be held, across hosts; restore a known backup to recover other lost
 identities. Unrelated launches and verified outcome records remain available.
+Dependency references use bare node ids: a quarantined prerequisite cannot borrow evidence from a
+same-named task on another host. Its dependents stay held for replanning with an unambiguous id.
 
 To retire an unreadable plan, inspect `node tools/workflow.mjs plan <id>` first. Its `quarantined`
 record gives the file fingerprint, problem, retained scopes and attempts. After inspecting any

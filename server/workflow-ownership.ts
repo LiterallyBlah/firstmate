@@ -44,3 +44,5 @@ export const RetirementSchema = z.object({ version: z.literal(1), home: z.string
   at: z.iso.datetime(), by: z.string().min(1), expected: z.string().length(64), evidence: z.string().min(1).max(10000), inventory: OwnershipSchema, hash: z.string().length(64) }).strict();
 export type WorkflowRetirement = z.infer<typeof RetirementSchema>;
 export interface QuarantinedWorkflow { plan: string; problem: string; fingerprint: string; inventory: WorkflowOwnership; retirement?: WorkflowRetirement }
+/** Dependency references are bare node ids, so a quarantined name cannot borrow another host's evidence. */
+export const quarantinedDependencyIds = (plans: readonly QuarantinedWorkflow[]) => new Set(plans.flatMap(p => p.inventory.scopes.map(s => s.node)));
