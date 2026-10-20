@@ -17,20 +17,21 @@ export const workflowHomeId = (home: string) => digest(process.platform === "win
 export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> {
   let read: { plans: WorkflowPlan[]; problems: string[] };
   try { read = await workflowStore(home).read(); } catch (e) { read = { plans: [], problems: [`Plans unavailable: ${String(e)}`] }; }
-  const plans = read.plans.filter(p => !(p.definition.implicit && planFinished(p))), now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
+  // Completed implicit plans leave presentation, but remain evidence for other plans.
+  const allPlans = read.plans, plans = allPlans.filter(p => !(p.definition.implicit && planFinished(p))), now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
   for (const plan of plans) {
     if (plan.status === "abandoned" || planFinished(plan)) continue;
     if (plan.status === "review") now.push({ plan: plan.definition.id, title: plan.definition.title, question: "Approve this plan", waits: [], neededBy: [], recommendation: "Review the runs, dependencies and budget." });
     for (const node of plan.definition.nodes) {
       if (node.kind !== "decision" || plan.nodes[node.id]?.answer) continue;
       const need = { plan: plan.definition.id, node: node.id, title: plan.definition.title, question: node.title,
-        waits: node.after.map(d => plans.flatMap(p => p.definition.nodes).find(n => n.id === d.node)?.title ?? d.node),
+        waits: node.after.map(d => allPlans.flatMap(p => p.definition.nodes).find(n => n.id === d.node)?.title ?? d.node),
         neededBy: plan.definition.nodes.filter(n => n.after.some(d => d.node === node.id)).map(n => n.title),
         recommendation: `${node.options.find(o => o.id === node.recommendation)?.label ?? "None yet"} — ${node.rationale}` };
-      (dependenciesMet(node, plans) ? now : comingUp).push(need);
+      (dependenciesMet(node, allPlans) ? now : comingUp).push(need);
     }
   }
-  return { homeId: workflowHomeId(home), version: digest({ plans: plans.map(p => p.hash), problems: read.problems }), plans,
+  return { homeId: workflowHomeId(home), version: digest({ plans: allPlans.map(p => p.hash), problems: read.problems }), plans,
     subjects: Object.fromEntries(plans.map(p => [p.definition.id, planSubjectHash(p)])), now, comingUp, problems: read.problems };
 }
 async function backlog(home: string) { return parseBacklog(await readFile((await resolveInHome(home, "data/backlog.md")).absolute, "utf8")); }

@@ -8,7 +8,7 @@ import { WorkflowSnapshotSchema } from "../shared/workflow-rpc";
 import { FirstmateConfigSchema, FleetSchema } from "../shared/fleet";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 import { workflowStore } from "./workflow-service";
-import { planBacklogLine, planSubjectHash, replayWorkflowEvent } from "./workflow-plans";
+import { dependenciesMet, planBacklogLine, planSubjectHash, replayWorkflowEvent } from "./workflow-plans";
 import { workflowSnapshot, withWorkflowNeeds, withWorkflowCards, withWorkflowFleet, workflowBearings } from "./workflow-board";
 import { NeedsYouService } from "./needs-you-service";
 import { registerNeedsYouRpc } from "./needs-you-rpc";
@@ -53,6 +53,32 @@ it.each(["malformed JSON", "missing interior", "unknown log file", "stray root f
   expect(fleet.cards.some(c => c.taskId === "legacy")).toBe(true); expect(fleet.needsYou?.actionCount).toBe(2); expect(fleet.warnings.join()).toContain("Workflow:");
   expect(await workflowBearings(home)).toContain("Plans unavailable");
   await service.stop();
+});
+it("counts a due cross-plan choice after its completed implicit prerequisite leaves presentation", async () => {
+  // Use a separate home to reproduce an implicit trial followed by an explicit plan.
+  home = join(home, "cross-plan");
+  await mkdir(join(home, "data/trial"), { recursive: true });
+  await writeFile(join(home, "data/trial/brief.md"), "# Status line\ndone: verified trial");
+  await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n## Done\n");
+  const d = workflowFixture(), trial = d.nodes.shift()!;
+  if (trial.kind !== "run") throw new Error("fixture");
+  const started = await execute({ op: "implicit", launch: trial.launch });
+  await execute({ op: "record", plan: "trial", node: "trial", attempt: started.launch.workflow.attempt, state: "done", evidence: "Verified comparison report" });
+  d.id = "followup"; d.request = { ...d.request, posture: "sail", quote: "Present the choice when the trial is done, then build" };
+  d.nodes[0]!.id = "choose"; d.nodes[0]!.title = "Choose";
+  d.nodes[1]!.after = [{ node: "choose", reason: "decision", on: "answered" }];
+  await execute({ op: "draft", definition: d });
+  expect(dependenciesMet(d.nodes[0]!, await workflowStore(home).list())).toBe(true);
+  expect((await workflowStore(home).agenda()).some(i => i.text === "Decision due: Choose.")).toBe(true);
+
+  const view = await workflowSnapshot(home);
+  expect(view.plans.map(p => p.definition.id)).toEqual(["followup"]);
+  expect(view.now).toMatchObject([{ plan: "followup", node: "choose", question: "Choose", waits: ["Database trial"] }]);
+  expect(view.comingUp).toEqual([]);
+  const base: any = { actionCount: 0, newCount: 0, requests: [], parked: [], freshness: { status: "fresh" } };
+  const needs = await withWorkflowNeeds(base, home, view);
+  expect(needs.actionCount).toBe(1); expect(needs.planNow?.map(n => n.node)).toEqual(["choose"]);
+  expect((await workflowBearings(home)).split("Recently Landed")[0]).toContain("Choose");
 });
 it("never suppresses same-slug holds on another host/project or attaches their chips/cards", async () => {
   const p = (await workflowStore(home).get("scheduler"))!;
