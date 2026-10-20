@@ -15,7 +15,7 @@ import { resolveHost } from "./remote-cards";
 
 export const workflowHomeId = (home: string) => digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home));
 export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> {
-  let read: { plans: WorkflowPlan[]; problems: string[] };
+  let read: { plans: WorkflowPlan[]; problems: string[]; warnings?: string[] };
   try { read = await workflowStore(home).read(); } catch (e) { read = { plans: [], problems: [`Plans unavailable: ${String(e)}`] }; }
   // Completed implicit plans leave presentation, but remain evidence for other plans.
   const allPlans = read.plans, plans = allPlans.filter(p => !(p.definition.implicit && planFinished(p))), now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
@@ -31,8 +31,8 @@ export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> 
       (dependenciesMet(node, allPlans) ? now : comingUp).push(need);
     }
   }
-  return { homeId: workflowHomeId(home), version: digest({ plans: allPlans.map(p => p.hash), problems: read.problems }), plans,
-    subjects: Object.fromEntries(plans.map(p => [p.definition.id, planSubjectHash(p)])), now, comingUp, problems: read.problems };
+  return { homeId: workflowHomeId(home), version: digest({ plans: allPlans.map(p => p.hash), problems: read.problems, warnings: read.warnings ?? [] }), plans,
+    subjects: Object.fromEntries(plans.map(p => [p.definition.id, planSubjectHash(p)])), now, comingUp, problems: read.problems, warnings: read.warnings ?? [] };
 }
 async function backlog(home: string) { return parseBacklog(await readFile((await resolveInHome(home, "data/backlog.md")).absolute, "utf8")); }
 async function catalog(home: string) {
@@ -89,11 +89,11 @@ export async function withWorkflowCards(cards: FleetCard[], home: string, workfl
 export async function withWorkflowFleet(fleet: Fleet): Promise<Fleet> {
   const view = await workflowSnapshot(fleet.home);
   return { ...fleet, cards: await withWorkflowCards(fleet.cards, fleet.home, view), ...(fleet.needsYou ? { needsYou: await withWorkflowNeeds(fleet.needsYou, fleet.home, view) } : {}),
-    warnings: [...fleet.warnings, ...(view.problems ?? []).map(p => `Workflow: ${p}`)] };
+    warnings: [...fleet.warnings, ...[...(view.problems ?? []), ...(view.warnings ?? [])].map(p => `Workflow: ${p}`)] };
 }
 export async function workflowBearings(home: string, nowMs = Date.now()): Promise<string> {
   const snapshot = await workflowSnapshot(home);
-  if (!snapshot.plans.length && !snapshot.problems?.length) return "";
+  if (!snapshot.plans.length && !snapshot.problems?.length && !snapshot.warnings?.length) return "";
   const now = snapshot.now.map(n => `- ${n.title}: ${n.question}. Recommended: ${n.recommendation}`);
   const done: { line: string; at: string }[] = [], running: string[] = [], queued: string[] = [];
   for (const plan of snapshot.plans) for (const node of plan.definition.nodes) {
@@ -105,5 +105,5 @@ export async function workflowBearings(home: string, nowMs = Date.now()): Promis
     } else if (state.state !== "planned") running.push(line);
     else if (plan.status !== "abandoned") queued.push(`${line}. After: ${node.after.map(d => d.node).join(", ") || (plan.status === "review" ? "plan approval" : "ready")}`);
   }
-  return ["Captain's Call", ...now, ...(snapshot.problems ?? []).map(p => `- Plans unavailable: ${p}`), "Recently Landed", ...done.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10).map(d => d.line), "Underway", ...running, "Charted Next", ...queued, "Coming up", ...snapshot.comingUp.map(n => `- ${n.question}. After ${n.waits.join(", ")}. Recommended: ${n.recommendation}`)].join("\n");
+  return ["Captain's Call", ...now, ...(snapshot.problems ?? []).map(p => `- Plans unavailable: ${p}`), "Recently Landed", ...done.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10).map(d => d.line), "Underway", ...running, "Charted Next", ...queued, "Coming up", ...snapshot.comingUp.map(n => `- ${n.question}. After ${n.waits.join(", ")}. Recommended: ${n.recommendation}`), ...(snapshot.warnings ?? []).map(p => `- Workflow note: ${p}`)].join("\n");
 }

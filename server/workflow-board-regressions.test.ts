@@ -37,22 +37,36 @@ it.each(["malformed JSON", "missing interior", "unknown log file", "stray root f
   if (kind === "missing interior") { await execute({ op: "start", plan: "broken", node: "broken-task" }); await rm(join(root, "broken/00000000.json")); }
   if (kind === "unknown log file") await writeFile(join(root, "broken/desktop.ini"), "stray");
   if (kind === "stray root file") await writeFile(join(root, "desktop.ini"), "stray");
-  expect(WorkflowSnapshotSchema.parse(await workflowSnapshot(home)).problems).toHaveLength(1);
+  const problemCount = kind === "stray root file" ? 0 : 1;
+  const workflow = WorkflowSnapshotSchema.parse(await workflowSnapshot(home));
+  expect(workflow.problems).toHaveLength(problemCount);
+  if (!problemCount) expect(workflow.warnings?.join()).toContain("Ignored non-plan entry");
   let clock = 1000;
   const service = new NeedsYouService({ root: join(home, "decisions"), home: async () => home, catalog: async () => null, enabled: () => true, now: () => clock });
   await service.read(); clock += 2000; await service.read();
   const handlers = new Map<string, any>();
   registerNeedsYouRpc({ handle: (rpc: any, handle: any) => handlers.set(rpc.name, { ...rpc, handle }) } as any, service, snapshot => withWorkflowNeeds(snapshot, home));
   const call = async (name: string, input = {}) => { const h = handlers.get(`firstmate.needs-you.${name}`); return h.output.parse(await h.handle(h.input.parse(input))); };
-  const read = await call("read"); expect(read.actionCount).toBe(2); expect(read.planProblems).toHaveLength(1);
+  const read = await call("read"); expect(read.actionCount).toBe(2); expect(read.planProblems).toHaveLength(problemCount);
   const legacy = read.requests.find((r: any) => r.source.taskId === "legacy");
   const seen = await call("seen", { homeId: read.homeId, id: legacy.id, revision: legacy.revision });
-  expect(seen.requests.find((r: any) => r.id === legacy.id).state).toBe("seen"); expect(seen.planProblems).toHaveLength(1);
+  expect(seen.requests.find((r: any) => r.id === legacy.id).state).toBe("seen"); expect(seen.planProblems).toHaveLength(problemCount);
   const paseo: any = { agents: { list: async () => ({ entries: [], hasMore: false }) }, config: { get: async () => ({ mcp: { injectIntoAgents: true } }) } };
   const fleet = FleetSchema.parse(await withWorkflowFleet(await loadFleet(paseo, FirstmateConfigSchema.parse({ home }), new ReportCache(), async () => [], async () => null, service)));
   expect(fleet.cards.some(c => c.taskId === "legacy")).toBe(true); expect(fleet.needsYou?.actionCount).toBe(2); expect(fleet.warnings.join()).toContain("Workflow:");
-  expect(await workflowBearings(home)).toContain("Plans unavailable");
+  expect(await workflowBearings(home)).toContain(problemCount ? "Plans unavailable" : "Ignored non-plan entry");
   await service.stop();
+});
+it("refuses a captain host edit into a quarantined task scope without holding another host", async () => {
+  const d = workflowFixture(); d.id = "broken"; d.nodes = [d.nodes[0]!]; d.nodes[0]!.id = "broken-task";
+  if (d.nodes[0]!.kind !== "run") throw new Error("fixture");
+  d.nodes[0]!.launch.id = "broken-task"; d.nodes[0]!.launch.brief.file = "data/broken-task/brief.md";
+  await execute({ op: "draft", definition: d }); await writeFile(join(workflowStore(home).root, "broken/00000000.json"), "{");
+  d.id = "other-host"; d.nodes[0]!.launch.host = "remote";
+  await execute({ op: "draft", definition: d }); const p = (await workflowStore(home).get("other-host"))!;
+  await expect(execute({ op: "captain", plan: "other-host", revision: p.revision, subjectHash: planSubjectHash(p), action: "edit", text: "Move to local", edits: [{ kind: "host", node: "broken-task", host: "local" }] })).rejects.toThrow("ownership");
+  expect((await workflowStore(home).get("other-host"))?.hash).toBe(p.hash);
+  expect((await execute({ op: "start", plan: "other-host", node: "broken-task" })).launch.workflow.attempt).toBeTruthy();
 });
 it("counts a due cross-plan choice after its completed implicit prerequisite leaves presentation", async () => {
   // Use a separate home to reproduce an implicit trial followed by an explicit plan.

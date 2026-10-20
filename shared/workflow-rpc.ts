@@ -10,7 +10,7 @@ export const WorkflowPlanSchema = z.object({ definition: PlanDefinitionSchema, r
   captainEvents: z.array(z.object({ id: z.string(), action: z.string(), text: z.string(), node: z.string().optional(), at: z.string(), by: z.string().optional(), notified: z.boolean().optional() })).optional() });
 export const PlanNeedSchema = z.object({ plan: z.string(), node: z.string().optional(), title: z.string(), question: z.string(), waits: z.array(z.string()), neededBy: z.array(z.string()), recommendation: z.string() });
 export type PlanNeed = z.infer<typeof PlanNeedSchema>;
-export const WorkflowSnapshotSchema = z.object({ homeId: z.string(), version: z.string(), plans: z.array(WorkflowPlanSchema), subjects: z.record(z.string(), z.string()), now: z.array(PlanNeedSchema), comingUp: z.array(PlanNeedSchema), problems: z.array(z.string()).optional() });
+export const WorkflowSnapshotSchema = z.object({ homeId: z.string(), version: z.string(), plans: z.array(WorkflowPlanSchema), subjects: z.record(z.string(), z.string()), now: z.array(PlanNeedSchema), comingUp: z.array(PlanNeedSchema), problems: z.array(z.string()).optional(), warnings: z.array(z.string()).optional() });
 export type WorkflowSnapshot = z.infer<typeof WorkflowSnapshotSchema>;
 export const readWorkflowPlans = defineRpc({ name: "firstmate.workflow.read", input: z.object({}), output: WorkflowSnapshotSchema });
 export const actOnWorkflowPlan = defineRpc({ name: "firstmate.workflow.act", input: z.object({ homeId: z.string(), requestId: z.uuid(), command: PlanCaptainCommandSchema }).strict(), output: WorkflowSnapshotSchema });
