@@ -48,3 +48,9 @@ it("reports only a lower bound from plans when legacy decisions are unavailable,
   expect(indicatorState(snapshot)).toMatchObject({ count: 1, badge: "1+", fresh: false, stale: true });
   expect(indicatorState({ ...snapshot, planNow: [] }).count).toBeNull();
 });
+it("shows completed plans as history without another approval action", async () => {
+  const completed = plan(); for (const state of Object.values(completed.nodes)) state.state = "done";
+  await act(async () => { renderer = create(createElement(PlanDialog, { theme, plan: completed, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct: vi.fn(), onRefresh() {} })); });
+  expect(JSON.stringify(renderer!.toJSON())).toContain("Completed");
+  expect(renderer!.root.findAll(n => n.type === ("Pressable" as any) && n.props.accessibilityLabel === "Approve")).toHaveLength(0);
+});

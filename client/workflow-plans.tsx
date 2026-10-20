@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { actOnWorkflowPlan, readWorkflowPlans, WorkflowSnapshotSchema, type WorkflowSnapshot, type PlanNeed } from "../shared/workflow-rpc";
-import { planWorstCase, type PlanCaptainCommand, type WorkflowPlan } from "../shared/workflow-plans";
+import { planFinished, planWorstCase, type PlanCaptainCommand, type WorkflowPlan } from "../shared/workflow-plans";
 import { migrationTargets, type FleetCard } from "../shared/fleet";
 import { readRemotes } from "../shared/remotes";
 import { OptionPicker } from "./option-picker";
@@ -69,7 +69,7 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
   const colors = theme.colors, worst = planWorstCase(plan.definition), disabled = busy || stale;
   const send = (action: PlanCaptainCommand["action"], extra: Partial<PlanCaptainCommand> = {}) => onAct({ op: "captain", plan: plan.definition.id, revision: plan.revision, subjectHash, action, text, ...extra });
   return <View testID="workflow-plan-dialog" style={{ gap: 16 }}>
-    <Text style={{ color: colors.foregroundMuted }}>Revision {plan.revision} · {plan.status === "review" ? "Awaiting approval" : plan.status === "active" ? (plan.posture === "sail" ? "Sailing" : "Approved") : plan.status === "held" ? "On hold" : "Declined"}</Text>
+    <Text style={{ color: colors.foregroundMuted }}>Revision {plan.revision} · {planFinished(plan) ? "Completed" : plan.status === "review" ? "Awaiting approval" : plan.status === "active" ? (plan.posture === "sail" ? "Sailing" : "Approved") : plan.status === "held" ? "On hold" : "Declined"}</Text>
     <Text selectable style={{ color: colors.foreground }}>{plan.definition.request.text}</Text>
     <Text style={{ color: colors.foregroundMuted }}>{new Date(plan.definition.request.at).toLocaleString()} · Worst case: {worst.agents} workers, {worst.turns} worker turns</Text>
     <Text style={{ color: colors.foregroundMuted }}>Approval permits this work. Merge and deployment still need their own approval.</Text>
@@ -92,7 +92,7 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
       <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Plan actions</Text>
       {plan.captainEvents.map(a => <Text key={a.id} selectable style={{ color: colors.foregroundMuted }}>{new Date(a.at).toLocaleString()} · {({ approve: "Approved", edit: "Approved with edits", changes: "Changes requested", hold: "Held", decline: "Declined", answer: "Decision answered" } as Record<string, string>)[a.action] ?? "Updated"}{a.text ? ` · ${a.text}` : ""}</Text>)}
     </> : null}
-    {plan.status !== "abandoned" ? <>
+    {plan.status !== "abandoned" && !planFinished(plan) ? <>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         <Button theme={theme} label="Approve" disabled={disabled} onPress={() => void send("approve")} />
         <Button theme={theme} label="Approve with edits" disabled={disabled} onPress={() => setMode("edit")} />
@@ -147,7 +147,7 @@ export function PlanChip({ card, theme }: { card: FleetCard; theme: PluginTheme 
   const { snapshot, open } = useWorkflowPlans(), plan = snapshot?.plans.find(p => !p.definition.implicit && p.definition.nodes.some(n => n.id === card.taskId));
   if (!plan) return null;
   const done = Object.values(plan.nodes).filter(n => n.state === "done" || n.state === "landed").length;
-  return <Button theme={theme} label={`${plan.definition.title} · ${done} of ${plan.definition.nodes.length}${plan.status === "review" ? " · awaiting approval" : ""}`} onPress={() => open(plan.definition.id)} />;
+  return <Button theme={theme} label={`${plan.definition.title} · ${done} of ${plan.definition.nodes.length}${plan.status === "review" && !planFinished(plan) ? " · awaiting approval" : ""}`} onPress={() => open(plan.definition.id)} />;
 }
 export function PlansControl({ theme, selected, onSelect }: { theme: PluginTheme; selected: string | null; onSelect(id: string | null): void }) {
   const { snapshot, open } = useWorkflowPlans(), [shown, setShown] = useState(false);

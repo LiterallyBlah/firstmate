@@ -7,13 +7,14 @@ import { digest } from "./submissions";
 import type { FleetCard } from "../shared/fleet";
 import { parseBacklog } from "./backlog";
 import { planBacklogLine, WorkflowPlanStore } from "./workflow-plans";
+import { planFinished } from "../shared/workflow-plans";
 const workflowStore = (home: string) => new WorkflowPlanStore(join(pluginDir(), "workflow-plans"), home);
 
 export const workflowHomeId = (home: string) => digest(resolve(home));
 export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> {
   const plans = await workflowStore(home).list(), now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
   for (const plan of plans) {
-    if (plan.status === "abandoned" || plan.definition.implicit) continue;
+    if (plan.status === "abandoned" || planFinished(plan) || plan.definition.implicit) continue;
     if (plan.status === "review") now.push({ plan: plan.definition.id, title: plan.definition.title, question: "Approve this plan", waits: [], neededBy: [], recommendation: "Review the runs, dependencies and budget." });
     for (const node of plan.definition.nodes) {
       if (node.kind !== "decision" || plan.nodes[node.id]?.answer) continue;
@@ -67,8 +68,10 @@ export async function workflowBearings(home: string): Promise<string> {
   const done: string[] = [], running: string[] = [], queued: string[] = [];
   for (const plan of snapshot.plans) for (const node of plan.definition.nodes) {
     const state = plan.nodes[node.id]!;
+    if (node.kind === "decision") continue;
     const line = `- ${plan.definition.title} · ${node.title}: ${state.answer ?? state.state}${state.evidence ? ` · ${state.evidence}` : ""}`;
-    if (["done", "landed"].includes(state.state)) done.push(line);
+    if (state.state === "landed" || (state.state === "done" && node.workflow === "scout@1")) done.push(line);
+    else if (state.state === "done") running.push(line);
     else if (["running", "starting", "unresolved"].includes(state.state)) running.push(line);
     else if (node.kind === "run" && plan.status !== "abandoned") queued.push(`${line}. After: ${node.after.map(d => d.node).join(", ") || (plan.status === "review" ? "plan approval" : "ready")}`);
   }
