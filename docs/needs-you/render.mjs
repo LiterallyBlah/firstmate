@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { checkTaskViews } from "./view-checks.mjs";
 import { checkResilience } from "./resilience-checks.mjs";
 import { checkPolish } from "./polish-checks.mjs";
+import { checkHeaders } from "./header-checks.mjs";
 const here = dirname(fileURLToPath(import.meta.url)),
   root = resolve(here, "../..");
 const harness = createRequire(join(root, "docs/board-list/package.json")),
@@ -96,6 +97,8 @@ async function pageAt(query, width = 1440) {
     await page
       .getByRole("heading", { name: "Decision a", exact: true })
       .waitFor();
+  else if (new URLSearchParams(query).get("view") === "deck")
+    await page.getByRole("heading", { name: "Deck", exact: true }).waitFor();
   else
     await page
       .getByRole("button", { name: /^Needs you, \d+ decisions/ })
@@ -103,6 +106,7 @@ async function pageAt(query, width = 1440) {
   return page;
 }
 try {
+  const headers = await checkHeaders(pageAt, output);
   const polish = await checkPolish(pageAt, output);
   const { checkDrawer } = await import("./drawer-checks.mjs");
   const layouts = process.env.POLISH_ONLY ? [] : await checkDrawer(pageAt, output);
@@ -111,10 +115,11 @@ try {
   assert.deepEqual(errors, []);
   await writeFile(
     join(output, "results.json"),
-    JSON.stringify({ polish, layouts, taskViews, errors }, null, 2),
+    JSON.stringify({ headers, polish, layouts, taskViews, errors }, null, 2),
   );
   console.log(
     JSON.stringify({
+      headers: headers.length,
       layouts: layouts.length,
       taskViews: taskViews.length,
       failures: errors.length,

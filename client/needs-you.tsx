@@ -8,6 +8,21 @@ import { webAttributes, webSurfaceVisible } from "./web";
 import { useOpenDecision, type OpenDecision } from "./decision-action";
 import { decisionSignalInk } from "./decision-copy";
 
+/** Keep visible decision surfaces quiet even when they have no header indicator. */
+export function useDecisionVisibility(enabled = true) {
+  const ref = useRef<unknown>(null);
+  const session = decisionSession(useQueryClient());
+  useEffect(() => {
+    if (!enabled) return;
+    const visible = () => webSurfaceVisible(ref.current);
+    session.surfaces.add(visible);
+    return () => {
+      session.surfaces.delete(visible);
+    };
+  }, [session, enabled]);
+  return ref;
+}
+
 export function NeedsYouIndicator({
   theme,
   snapshot,
@@ -22,15 +37,7 @@ export function NeedsYouIndicator({
   onOpen?: OpenDecision;
 }) {
   const action = useOpenDecision();
-  const ref = useRef<unknown>(null);
-  const session = decisionSession(useQueryClient());
-  useEffect(() => {
-    const visible = () => webSurfaceVisible(ref.current);
-    session.surfaces.add(visible);
-    return () => {
-      session.surfaces.delete(visible);
-    };
-  }, [session]);
+  const ref = useDecisionVisibility();
   const id = `needs-you-${useId()}`;
   const state = indicatorState(snapshot, offline);
   const color = state.unavailable

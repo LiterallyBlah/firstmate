@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { registerFleetViews } from "../../client/workspace-panels";
 import { FleetSidebarItem } from "../../client/sidebar";
+import { decisionSession } from "../../client/needs-you-state";
 import { theme as dark } from "../board-list/theme.js";
 const params = new URLSearchParams(location.search);
 const theme = params.has("light")
@@ -35,6 +36,8 @@ window.openFixturePanel = (view) =>
 window.queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
 });
+window.decisionSurfaceVisible = () =>
+  [...decisionSession(window.queryClient).surfaces].some(visible => visible());
 window.refreshDecisions = () =>
   window.queryClient.invalidateQueries({
     queryKey: ["firstmate", "needs-you"],

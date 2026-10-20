@@ -7,6 +7,8 @@ the first mate prepares briefs, starts workers in separate git worktrees, follow
 brings back results and decisions. Workers remain ordinary Paseo agents, with their own conversations.
 
 **Needs you** counts recorded decisions across all views, including tasks without a worker.
+Deck keeps its decision signal below the scene and on the first mate, with no extra header pill.
+The other views keep their Needs-you header indicator, including its empty state.
 An unreadable or missing task is isolated so other decisions stay current; its last good gate is retained,
 and a suspected hold still counts. The decision drawer and indicator explain problems with line
 numbers and task ids. Unavailable data and last known stale counts are labelled, including on Deck.

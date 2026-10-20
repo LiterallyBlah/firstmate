@@ -70,7 +70,7 @@ import { HubLauncher } from "./hub-launcher";
 import { chatIsVisible, FLEET_PANELS, homeWorkspace, type FleetShell, type FleetView } from "./shell";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 import { DecisionSurface, DecisionPane, useDecisionPaneOpen, useDecisionOrigin } from "./decision-surface";
-import { NeedsYouIndicator } from "./needs-you";
+import { NeedsYouIndicator, useDecisionVisibility } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
 import { useOpenDecision } from "./decision-action";
 import { activeCrewCount } from "./screen";
@@ -166,7 +166,8 @@ function FleetViewBody({
   const fleet = useFleet(values.pollSeconds);
   const decisions = useNeedsYou();
   const openDecision = useOpenDecision();
-  const attention = (
+  const deckAttentionRef = useDecisionVisibility(view === "deck");
+  const attention = view === "deck" ? null : (
     <NeedsYouIndicator theme={theme} snapshot={decisions.data} offline={decisions.error !== null} compact={compact} />
   );
   const data = fleet.data ?? null;
@@ -598,7 +599,7 @@ function FleetViewBody({
         style={[styles.screen, { padding: 16, gap: 12 }]}
         onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       >
-        <Text accessibilityRole="header" style={styles.title}>
+        <Text ref={node => { deckAttentionRef.current = node; }} accessibilityRole="header" style={styles.title}>
           {FLEET_PANELS[view].title}
         </Text>
         {attention}
@@ -653,7 +654,7 @@ function FleetViewBody({
       onChange={value => { selectHomePane(value); setViewMenu(false); }} />
   );
   const header = (
-    <View style={[styles.header, { paddingTop: 8, gap: 6 }]} nativeID="firstmate-home-header">
+    <View ref={node => { deckAttentionRef.current = node; }} style={[styles.header, { paddingTop: 8, gap: 6 }]} nativeID="firstmate-home-header">
       <View style={[styles.headerRow, { flexWrap: "nowrap" }]}>
         <Icon name="Ship" size={16} color={theme.colors.foreground} />
         <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "nowrap" }}>
@@ -982,7 +983,7 @@ function FleetViewBody({
       <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Text accessibilityRole="header" style={styles.title}>
+            <Text ref={node => { deckAttentionRef.current = node; }} accessibilityRole="header" style={styles.title}>
               {FLEET_PANELS[view].title}
             </Text>
             {compact ? null : attention}
