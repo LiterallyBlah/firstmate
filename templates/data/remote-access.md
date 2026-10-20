@@ -14,6 +14,12 @@ is refreshed approximately every minute in `data/remote-hosts.json`. It contains
 no saved passwords or pairing links. Credentials live outside this home;
 do not read, print, or copy them into instructions, records, or Git.
 
+The Deck hides workers on disconnected hosts by default and counts how many are hidden.
+Its Show action reveals their last known, greyed state for the app session; the persistent
+"Hide workers on disconnected hosts" switch is beside Deck setting in FirstMate settings.
+Reconnection restores them automatically. This only changes the Deck's display: workers,
+backlog cards and the catalog are unchanged, and hidden workers must not be assumed stopped.
+
 Route a Paseo command through the helper using the host's serverId or unique
 name. Examples (replace the placeholders with values from that host):
 

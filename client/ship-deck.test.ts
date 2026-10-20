@@ -23,6 +23,7 @@ vi.mock("@getpaseo/plugin/client", () => ({
 }));
 
 import type { AgentStatus, ColumnId, FleetCard, RemoteCard } from "../shared/fleet";
+import { displaySettings } from "../shared/settings";
 import { attentionRequest, attentionSnapshot } from "../test/attention-deck-fixture";
 import { deckEngineSource } from "../server/deck-settings";
 import {
@@ -197,6 +198,42 @@ describe("who each sailor is", () => {
 });
 
 describe("the deck's scene", () => {
+  it("defaults to hiding only offline live crew, counting workers and distinct hosts without mutating backlog cards", () => {
+    const offline = card("offline", "working", { remote: {} });
+    offline.remote!.online = false;
+    const another = { ...offline, key: "offline-2" };
+    const otherHost = { ...offline, key: "other-host", remote: { ...offline.remote!, serverId: "other", host: "Other" } };
+    const done = { ...offline, key: "done-offline", column: "done" as const };
+    const followed = { ...offline, key: "followed-offline", remote: { ...offline.remote!, worker: { ...offline.remote!.worker!, followed: true } } };
+    const cards = [...fixture, offline, another, otherHost, done, followed];
+    const before = structuredClone(cards);
+    const scene = deckScene(cards, theme);
+    expect(scene.hidden).toMatchObject({ workers: 3, hosts: 2 });
+    expect(scene.sailors.map(s => s.key)).toEqual(deckScene(fixture, theme).sailors.map(s => s.key));
+    expect(scene.counts).toEqual(deckScene(fixture, theme).counts);
+    expect(scene.stale).toBe(0);
+    expect(cards).toEqual(before);
+    // A failing fleet read and every possible reachable agent status cannot hide workers.
+    expect(deckScene(fixture, theme, { feedStale: true }).hidden).toBeUndefined();
+    expect(deckScene(fixture, theme)).toEqual(deckScene(fixture, theme, { hideDisconnectedWorkers: false }));
+  });
+
+  it("keeps hidden workers' decisions with the first mate and preserves the server total", () => {
+    const offline = card("offline", "blocked", { remote: {} });
+    offline.remote!.online = false;
+    const request = attentionRequest("offline", "new", "light");
+    request.source.project = "ariadne";
+    const snapshot = attentionSnapshot([request]);
+    const scene = deckScene([offline], theme, { needsYou: snapshot });
+    expect(scene.sailors).toEqual([]);
+    expect(scene.decisions!.snapshot.actionCount).toBe(1);
+    expect(scene.decisions!.workerlessCount).toBe(1);
+    expect(scene.decisions!.workerless[0]).toBe(request);
+    const revealed = deckScene([offline], theme, { needsYou: snapshot, hideDisconnectedWorkers: false });
+    expect(revealed.sailors[0]).toMatchObject({ key: "offline", stale: true, state: "blocked" });
+    expect(revealed.decisions!.workerlessCount).toBe(0);
+  });
+
   it("puts each live crewmate where its column says, and leaves the rest off deck", () => {
     expect(Object.fromEntries(fixture.map((c) => [c.key, deckState(c)]))).toEqual({
       w1: "working",
@@ -246,7 +283,7 @@ describe("the deck's scene", () => {
     expect(lost.counts).toEqual(live.counts);
     const remote = card("w9", "working", { remote: {} });
     const unreachable: FleetCard = { ...remote, remote: { ...remote.remote!, online: false } };
-    const partly = deckScene([...fixture, unreachable], theme);
+    const partly = deckScene([...fixture, unreachable], theme, { hideDisconnectedWorkers: false });
     expect(partly.stale).toBe(1);
     expect(partly.sailors.find((s) => s.key === "w9")).toMatchObject({ state: "working", stale: true });
     expect(partly.sailors.filter((s) => s.key !== "w9").every((s) => !s.stale)).toBe(true);
@@ -817,6 +854,48 @@ describe("Pixi, as the daemon serves it and the client evaluates it", () => {
 const viewEngine = (options: Parameters<typeof fakeEngine>[0] = {}) => fakeEngine({ presentation: deckPresentation(shipManifest()), ...options });
 
 describe("the ship deck view", () => {
+  it("hides offline workers and counts only visible crew; Show reveals for this host's session across remounts", async () => {
+    const offline = card("offline", "working", { remote: {} });
+    offline.remote!.online = false;
+    const cards = [...fixture, offline], engine = viewEngine();
+    const props = { cards, theme, engine, hostId: "session-reveal-test" };
+    const settingsBefore = displaySettings.schema.parse({});
+    await act(async () => { renderer = create(createElement(ShipDeckView, props), { createNodeMock: () => fakeHost() }); });
+    await act(flush);
+    expect(text(renderer!)).toContain("8 on deck");
+    expect(text(renderer!)).toContain("1 worker hidden on 1 offline host");
+    expect(engine.starts[0]!.scene.sailors).toHaveLength(8);
+    expect(renderer!.root.findByProps({ accessibilityRole: "image" }).props.accessibilityLabel).toContain("1 worker hidden on 1 offline host");
+    await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Show workers on disconnected hosts for this session" }).props.onPress());
+    expect(text(renderer!)).toContain("9 on deck");
+    expect(text(renderer!)).toContain("out of reach: greyed where last seen");
+    expect(text(renderer!)).not.toContain("hidden on");
+    expect(engine.drawings[0]!.updates.at(-1)!.sailors.find(s => s.key === "offline")?.stale).toBe(true);
+    await act(async () => { renderer!.unmount(); renderer = create(createElement(ShipDeckView, { ...props, setting: "another-pack" }), { createNodeMock: () => fakeHost() }); });
+    await act(flush);
+    expect(text(renderer!)).toContain("9 on deck");
+    expect(displaySettings.schema.parse({})).toEqual(settingsBefore);
+    await act(async () => renderer!.update(createElement(ShipDeckView, { ...props, hostId: "another-host" })));
+    expect(text(renderer!)).toContain("1 worker hidden on 1 offline host");
+  });
+
+  it("restores offline workers automatically when their host reconnects, and keeps today's greyed view with the setting off", async () => {
+    const offline = card("offline", "working", { remote: {} });
+    offline.remote!.online = false;
+    const engine = viewEngine(), props = { cards: [offline], theme, engine, hostId: "reconnect-test" };
+    await act(async () => { renderer = create(createElement(ShipDeckView, props), { createNodeMock: () => fakeHost() }); });
+    await act(flush);
+    expect(text(renderer!)).toContain("0 on deck");
+    const online = { ...offline, remote: { ...offline.remote!, online: true } };
+    await act(async () => renderer!.update(createElement(ShipDeckView, { ...props, cards: [online] })));
+    expect(text(renderer!)).toContain("1 on deck");
+    expect(text(renderer!)).not.toContain("hidden on");
+    await act(async () => renderer!.update(createElement(ShipDeckView, { ...props, hideDisconnectedWorkers: false })));
+    expect(text(renderer!)).toContain("1 on deck");
+    expect(text(renderer!)).toContain("One sailor's host is out of reach: greyed where last seen.");
+    expect(text(renderer!)).not.toContain("hidden on");
+  });
+
   it("opens every decision indicator through the same action, preserving the server counts and revision", async () => {
     const engine = viewEngine(), open = vi.fn();
     const snapshot = attentionSnapshot([attentionRequest("w1"), attentionRequest("unassigned", "seen")]);

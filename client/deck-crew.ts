@@ -271,10 +271,16 @@ function place(crew: Crew, walker: Walker): void {
 export function applyCrew(
   crew: Crew,
   sailors: readonly DeckSailor[],
-  options: { snap: boolean; departures?: Readonly<Record<string, DeckDeparture>> },
+  options: { snap: boolean; departures?: Readonly<Record<string, DeckDeparture>>; hidden?: ReadonlySet<string> | undefined },
 ): void {
   const snap = options.snap || !crew.started;
   const seen = new Set(sailors.map((sailor) => sailor.key));
+  // A disconnected host is a visibility change, never an ended task or a trip to the plank.
+  if (options.hidden?.size) {
+    for (const key of options.hidden) crew.walkers.delete(key);
+    crew.queue = crew.queue.filter(key => !options.hidden!.has(key));
+    crew.departures = crew.departures.filter(departure => !options.hidden!.has(departure.walker.key));
+  }
   // Release absent workers' reservations before newcomers choose posts in this same poll.
   for (const walker of [...crew.walkers.values()]) {
     if (!seen.has(walker.key)) depart(crew, walker, options.departures?.[walker.key] ?? "removed", snap);

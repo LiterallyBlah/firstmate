@@ -679,9 +679,17 @@ native art size; it has no per-effect scale. Flight evidence is kept outside the
   plank is a piece of the pack, drawn just in front of the near rail it stands `over`; off its end the sailor, the shark and the splash are in
   the `overboard` layer over the near sea, outside the bob. Under reduced motion a departure fades where it
   stood, redrawn by a timer only while something fades.
-- **Stale never reads idle.** A failing fleet load (`fleet.error`) greys the whole crew, a remote host
-  offline greys its workers: the last state stays, the sprite greys, the mark goes hollow, idle motion
-  stops, and the pane says the feed is lost.
+- **Disconnected workers are hidden by default.** `display.hideDisconnectedWorkers` is a host display
+  setting, default true, beside Deck setting in Settings. `deckScene` uses only the existing
+  `remote.online === false` out-of-reach decision, never worker status or a failing fleet load.
+  Hidden workers leave the visible scene/counts immediately, with no departure animation; a short
+  worker/host count offers Show. `client/deck-offline.ts` keeps that reveal per daemon on `globalThis`
+  for this app session, shared by Home/Deck and scene remounts, without saving settings. Reconnection
+  restores workers automatically. Hidden workers' decisions stay accessible with the reserved first
+  mate and the unchanged ledger total. Crew is the backlog List, so Crew/List/Board stay unchanged.
+- **Stale never reads idle.** A failing fleet load (`fleet.error`) greys the visible crew. With hiding
+  off or Show selected, an offline host greys its workers: the last state stays, the sprite greys,
+  the mark goes hollow, idle motion stops, and the pane says the feed is lost.
 - **When it draws** (`deckAnimator`): `requestAnimationFrame`, capped at 30 fps; nothing at all while
   `document.hidden` or the pane has no size; no loop under `prefers-reduced-motion: reduce`, where the
   deck is drawn once per change with everyone at their anchor; 12 fps with no sea drift or gulls on a

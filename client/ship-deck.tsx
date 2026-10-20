@@ -37,6 +37,7 @@ import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { DECK_MOVE_WORDS, deckDecisionDestination, deckDecisionLabel } from "./deck-decisions";
 import type { OpenDecision } from "./decision-action";
 import { FIRST_MATE_KEY } from "./deck-first-mate";
+import { disconnectedReveals, hiddenWorkersText } from "./deck-offline";
 import { useRpc } from "@getpaseo/plugin/client";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
@@ -204,8 +205,11 @@ export function deckStatusText(status: DeckStatus, presentation: DeckPresentatio
 }
 
 /** A changed pack id starts a fresh mount, including focus, hover, pending loads and the engine closure. */
-export function ShipDeckView(props: Parameters<typeof DeckView>[0]) {
-  return <DeckView key={props.setting ?? DEFAULT_DECK_SETTING} {...props} />;
+export function ShipDeckView({ hostId = "", ...props }: Omit<Parameters<typeof DeckView>[0], "onShowDisconnected"> & { hostId?: string }) {
+  const revealed = useSyncExternalStore(disconnectedReveals.subscribe, () => disconnectedReveals.has(hostId));
+  return <DeckView key={props.setting ?? DEFAULT_DECK_SETTING} {...props}
+    hideDisconnectedWorkers={props.hideDisconnectedWorkers !== false && !revealed}
+    onShowDisconnected={() => disconnectedReveals.show(hostId)} />;
 }
 
 function DeckView({
@@ -225,7 +229,11 @@ function DeckView({
   conversationOpen = false,
   needsYou,
   onOpenDecision,
+  hideDisconnectedWorkers = true,
+  onShowDisconnected,
 }: {
+  hideDisconnectedWorkers?: boolean;
+  onShowDisconnected?: () => void;
   needsYou?: NeedsYouSnapshot | undefined;
   onOpenDecision?: OpenDecision | undefined;
   cards: readonly FleetCard[];
@@ -270,7 +278,7 @@ function DeckView({
   // A reply the file has dropped is forgotten, so one that comes back later is offered again.
   useEffect(() => answeredReplies.keepOnly(suggestions), [suggestions]);
   const asking = useMemo(() => new Set([...replies.keys(), ...(needsYou === undefined && carrierMode ? cards.filter(needsResponse).map(card => card.key) : [])]), [replies, cards, carrierMode, needsYou]);
-  const scene = useMemo(() => ({ ...deckScene(cards, theme, { feedStale: stale, asking, needsYou }), hasSuggestions: suggestions.length > 0, suggestionsOpen }), [cards, theme, stale, asking, suggestions, suggestionsOpen, needsYou]);
+  const scene = useMemo(() => ({ ...deckScene(cards, theme, { feedStale: stale, asking, needsYou, hideDisconnectedWorkers }), hasSuggestions: suggestions.length > 0, suggestionsOpen }), [cards, theme, stale, asking, suggestions, suggestionsOpen, needsYou, hideDisconnectedWorkers]);
   // One engine for the view's life, so a new `useRpc` function on a re-render never restarts the canvas.
   const loadEngine = useRpc(loadDeckEngine);
   const loadSetting = useRpc(loadDeckSetting);
@@ -502,12 +510,13 @@ function DeckView({
   const decisionStale = decisionSnapshot?.freshness.status === "stale";
   const legendStates = needsYou === undefined ? DECK_STATES : (["waiting", "working", "idle"] as const);
   const crew = scene.sailors.length;
+  const hidden = scene.hidden?.workers ? hiddenWorkersText(scene.hidden.workers, scene.hidden.hosts) : null;
   const lost = scene.stale === 0 ? "" : decisionStale ? ", decisions from the last good read" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
   const asked = speakers.size === 0 ? "" : `, ${speakers.size} with ${speakers.size === 1 ? "a reply" : "replies"} for you to pick`;
   const words = (state: (typeof DECK_STATES)[number]) => needsYou === undefined ? state : DECK_MOVE_WORDS[state];
   const decisionLabel = deckDecisionLabel(needsYou, stale);
   const total = needsYou === undefined ? "" : `${decisionLabel}. `;
-  const summary = `${total}${legendStates.map((state) => `${scene.counts[state]} ${words(state)}`).join(", ")}${asked}${lost}`;
+  const summary = `${total}${legendStates.map((state) => `${scene.counts[state]} ${words(state)}`).join(", ")}${asked}${lost}${hidden === null ? "" : `. ${hidden}`}`;
   const note = deckStatusText(status, presentation);
   // A sailor with replies waiting speaks in its bubble instead of wearing the label.
   const hovered =
@@ -533,6 +542,15 @@ function DeckView({
         </Text>
         {captionActions ? <View style={{ marginLeft: "auto" }}>{captionActions}</View> : null}
       </View>
+      {hidden === null ? null : (
+        <View testID="firstmate-deck-hidden-workers" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 4 }}>
+          <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{hidden} ·</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Show workers on disconnected hosts for this session"
+            onPress={onShowDisconnected} style={{ minHeight: 44, minWidth: 44, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: colors.foreground, fontSize: 12, textDecorationLine: "underline" }}>Show</Text>
+          </Pressable>
+        </View>
+      )}
       {scene.stale === 0 || decisionStale ? null : (
         <Text style={{ color: colors.statusWarning, fontSize: 12 }}>
           {stale

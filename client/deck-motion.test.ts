@@ -369,6 +369,24 @@ describe("the crew on deck", () => {
     expect(new Set(Array.from({ length: 40 }, (_, i) => idleMotion("working", "left", 0, i * 100).pose))).toEqual(new Set(["hauling", "hauling-pull"]));
   });
 
+  it.each([false, true])("hides disconnected workers immediately without departures (snap %s), freeing their posts", (snap) => {
+    const crew = createCrew(shipStage(), shipCast());
+    applyCrew(crew, [sailor("local", "working"), sailor("offline", "working")], { snap: true });
+    applyCrew(crew, [sailor("local", "working")], { snap, hidden: new Set(["offline"]) });
+    expect([...crew.walkers.keys()]).toEqual(["local"]);
+    expect(crew.departures).toEqual([]);
+    expect(crew.queue).toEqual([]);
+    expect(crewFigures(crew, 0, { still: true }).map(figure => figure.key)).toEqual(["local"]);
+    applyCrew(crew, [sailor("local", "working"), sailor("offline", "working")], { snap });
+    expect(crew.walkers.has("offline")).toBe(true);
+    // Also cancel an already-started departure if its host becomes hidden.
+    applyCrew(crew, [sailor("local", "working"), sailor("offline", "working")], { snap: true });
+    applyCrew(crew, [sailor("local", "working")], { snap: true });
+    expect(crew.departures).toHaveLength(1);
+    applyCrew(crew, [sailor("local", "working")], { snap, hidden: new Set(["offline"]) });
+    expect(crew.departures).toEqual([]);
+  });
+
   it("under reduced motion jumps every change, with no hatch, no walk and no sway, and still shows the state", () => {
     const crew = createCrew(shipStage(), shipCast());
     applyCrew(crew, [sailor("a", "working")], { snap: true });

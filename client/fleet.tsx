@@ -930,6 +930,8 @@ function FleetViewBody({
       conversationOpen={watching !== null}
       captionActions={home ? <DeckSceneSwitcher theme={theme} compact={compact || paneWidth < 638} /> : null}
       setting={values.deckSetting}
+      hostId={host.id}
+      hideDisconnectedWorkers={values.hideDisconnectedWorkers}
       cards={data.cards}
       theme={theme}
       stale={fleet.error !== null}
