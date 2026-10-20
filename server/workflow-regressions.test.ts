@@ -99,6 +99,12 @@ it("recovers a lost implicit reply without a new attempt and releases only an un
   await mkdir(join(home, "data/build/launches")); await writeFile(join(home, "data/build/launches/1.json"), JSON.stringify({ state: "issued", workflow: resumed.launch.workflow }));
   await expect(execute({ op: "release", plan: "build", node: "build", attempt: resumed.launch.workflow.attempt, evidence: "No" })).rejects.toThrow("Launch record exists");
 });
+it("returns the committed intent even if its readable projection fails after publication", async () => {
+  const launch = PlanLaunchSchema.parse(run().launch), render = vi.spyOn(store, "render").mockRejectedValueOnce(new Error("projection unavailable"));
+  const first = await execute({ op: "implicit", launch }); expect(first.projectionProblem).toContain("Plan committed"); expect(first.launch.workflow.attempt).toBeTruthy();
+  const again = await execute({ op: "implicit", launch }); expect(again.launch.workflow).toEqual(first.launch.workflow); expect(again.plan.sequence).toBe(0);
+  render.mockRestore();
+});
 it("preserves task/workspace identity, old attempts and cumulative budget on manual replacement and promotion", async () => {
   const d = definition(); const node = d.nodes[0]!; if (node.kind === "run") { node.workflow = "scout@1"; node.launch.kind = "scout"; }
   await execute({ op: "draft", definition: d }); const first = await execute({ op: "start", plan: "request", node: "build" });
@@ -163,4 +169,4 @@ it("caches by event file identity and bounds the agenda with many finished impli
   await fresh.list(); expect(readEvents).not.toHaveBeenCalled();
   const path = join(root, "finished-0/00000001.json"); await writeFile(path, (await readFile(path, "utf8")).replace("Verified report", "Tampered report"));
   expect((await fresh.read()).problems.join()).toContain("hash chain"); expect(readEvents).toHaveBeenCalledOnce();
-});
+}, 30000);

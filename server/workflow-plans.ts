@@ -201,7 +201,7 @@ export class WorkflowPlanStore {
       const id = command.op === "draft" || command.op === "revise" ? command.definition.id : command.op === "implicit" ? command.launch.id : command.plan;
       const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>(reduce, null);
       const replay = events.find(e => e.requestId === requestId);
-      if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); await this.render(previous!); return this.result(previous!, replay); }
+      if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); return this.renderedResult(previous!, replay); }
       const plans = await this.list();
       if (command.op === "draft" || command.op === "revise") {
         const removed = new Set([...(previous?.removed ?? []).map(r => r.node.id), ...(previous?.definition.nodes ?? []).filter(n => !command.definition.nodes.some(next => next.id === n.id)).map(n => n.id)]);
@@ -215,7 +215,7 @@ export class WorkflowPlanStore {
         if (digest(previous.nodes[id]?.launch) !== digest(command.launch)) throw new Error("Existing implicit intent has different content.");
         await this.assertUncreated(id, previous.nodes[id]!.attempt!);
         const original = events.find(e => e.command.op === "implicit")!;
-        await this.render(previous); return this.result(previous, original);
+        return this.renderedResult(previous, original);
       }
       if (command.op === "implicit" && plans.some(p => p.definition.nodes.some(n => n.id === id))) throw new Error("Task already belongs to a plan; use its recorded start intent.");
       if (command.op === "release") await this.assertUncreated(command.node, command.attempt);
@@ -249,8 +249,7 @@ export class WorkflowPlanStore {
       await publish(join(this.tips(id), `${String(event.sequence).padStart(8, "0")}.json`), { sequence: event.sequence, hash: event.hash });
       // Exclusive hard link is the cross-process compare-and-swap. A collision is never retried.
       await publish(join(this.directory(id), `${String(event.sequence).padStart(8, "0")}.json`), event);
-      await this.render(next);
-      return this.result(next, event);
+      return this.renderedResult(next, event);
     });
   }
   private async assertUncreated(id: string, attempt: string): Promise<void> {
@@ -262,13 +261,18 @@ export class WorkflowPlanStore {
       if (record.workflow?.attempt === attempt && record.state !== "dry-run") throw new Error("Launch record exists; reconcile without another create.");
     }
   }
-  private async result(plan: WorkflowPlan, event: Event) {
+  private async renderedResult(plan: WorkflowPlan, event: Event) {
+    let projectionProblem: string | undefined;
+    try { await this.render(plan); } catch { projectionProblem = "Plan committed; readable plan.md could not be refreshed. Re-read this intent rather than repeating a create."; }
+    return this.result(plan, event, projectionProblem);
+  }
+  private async result(plan: WorkflowPlan, event: Event, projectionProblem?: string) {
     const c = event.command, node = c.op === "start" ? c.node : c.op === "implicit" ? c.launch.id : null;
     const definition = plan.definition.nodes.find(n => n.id === node);
     let items: ReturnType<typeof parseBacklog> = [];
     try { items = parseBacklog(await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8")); }
-    catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
-    return { plan, worstCase: planWorstCase(plan.definition, plan.nodes), backlog: plan.definition.nodes.map(n => ({ node: n.id, section: backlogSection(n, plan.nodes[n.id]!.state), line: planBacklogLine(plan, n, items.find(i => samePlanItem(i, plan, n))) })),
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") projectionProblem = "Plan committed; backlog is unreadable. Reconcile it before applying any projection."; }
+    return { plan, worstCase: planWorstCase(plan.definition, plan.nodes), ...(projectionProblem ? { projectionProblem } : {}), backlog: projectionProblem ? [] : plan.definition.nodes.map(n => ({ node: n.id, section: backlogSection(n, plan.nodes[n.id]!.state), line: planBacklogLine(plan, n, items.find(i => samePlanItem(i, plan, n))) })),
       comingUp: plan.definition.nodes.filter(n => n.kind === "decision" && !plan.nodes[n.id]?.answer),
       ...(definition?.kind === "run" && node ? { launch: { ...(plan.nodes[node]!.launch ?? definition.launch), workflow: { plan: plan.definition.id, node, attempt: plan.nodes[node]!.attempt, briefHash: plan.nodes[node]!.briefHash } } } : {}) };
   }
