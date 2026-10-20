@@ -546,12 +546,21 @@ export class WorkflowPlanStore {
         if (current) add(current.agentId || removed.state.agentId ? "escalation" : "books", current.agentId ? 1 : 6,
           `removed:${removed.node.id}:${plan.revision}`, `Removed planned work: ${removed.node.title}. ${current.agentId ? "Inspect unexpected worker; do not discard its work." : "Remove only this plan's scoped backlog row."}`, removed.node.id, { section: "remove" });
       }
-      if (planFinished(plan)) add("tell", 5, `plan-finished:${plan.revision}`, `${plan.definition.title}: all planned nodes have reached an end. Check the recorded outcomes.`, undefined);
-      if (plan.status === "review" && !planFinished(plan)) add("tell", 5, `approval:${plan.revision}`, `Present ${plan.definition.title} for approval.`);
       for (const action of plan.captainEvents ?? []) {
         add("captain", 2, `captain:${action.id}`, `Captain: ${action.action}. ${action.text}`, action.node);
         if (action.action === "changes") add("replan", 3, `changes:${action.id}`, action.text);
       }
+      if (plan.status === "abandoned") {
+        for (const node of plan.definition.nodes) {
+          const current = items.find(i => i.id === node.id && i.plan === plan.definition.id);
+          if (!current) continue;
+          if (current.agentId) add("escalation", 1, `declined-worker:${node.id}`, `A declined node still names a worker. Reconcile ${node.title} and preserve its work.`, node.id);
+          else if (current.section === "queued") add("books", 6, `declined-books:${node.id}:${plan.revision}`, `Remove the declined Queued line for ${node.title}; retain the plan history.`, node.id, { section: "remove", line: "" });
+        }
+        continue;
+      }
+      if (planFinished(plan)) add("tell", 5, `plan-finished:${plan.revision}`, `${plan.definition.title}: all planned nodes have reached an end. Check the recorded outcomes.`, undefined);
+      if (plan.status === "review" && !planFinished(plan)) add("tell", 5, `approval:${plan.revision}`, `Present ${plan.definition.title} for approval.`);
       for (const node of plan.definition.nodes) {
         const state = plan.nodes[node.id]!;
         if (state.held) add("replan", 3, `held:${node.id}:${plan.revision}`, `${node.title}: ${state.held}`, node.id);

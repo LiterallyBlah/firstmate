@@ -45,7 +45,14 @@ export async function withWorkflowNeeds(snapshot: NeedsYouSnapshot, home: string
 export async function withWorkflowCards(cards: FleetCard[], home: string): Promise<FleetCard[]> {
   const result = [...cards];
   for (const plan of await workflowStore(home).list()) {
-    if (plan.definition.implicit || plan.status === "abandoned") continue;
+    if (plan.status === "abandoned") {
+      for (let i = result.length - 1; i >= 0; i--) {
+        const card = result[i]!;
+        if (card.backlog?.plan === plan.definition.id && card.column === "queued" && !card.agent && !card.remote?.worker && !card.backlog.agentId) result.splice(i, 1);
+      }
+      continue;
+    }
+    if (plan.definition.implicit) continue;
     for (const node of plan.definition.nodes) {
       if (node.kind !== "run") continue;
       const state = plan.nodes[node.id]!, existing = result.find(c => c.taskId === node.id);

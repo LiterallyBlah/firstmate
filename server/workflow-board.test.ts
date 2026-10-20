@@ -75,3 +75,13 @@ it("retains an old answer when changed assumptions route unstarted work through 
   expect((await workflowStore(home).get("scheduler"))?.nodes.database?.answer).toBe("sqlite");
   expect((await workflowStore(home).agenda()).some(i => i.kind === "start" && i.node === "build")).toBe(false);
 });
+it("keeps a decline on the agenda, removes pending projections and leaves backlog cleanup to the mate", async () => {
+  const cards = await withWorkflowCards([], home);
+  const backlog = "## In flight\n## Queued\n- [ ] trial - Database trial (plan: scheduler)\n- [ ] build - Build the scheduler (plan: scheduler)\n## Done\n";
+  await writeFile(join(home, "data/backlog.md"), backlog);
+  await act(await command("decline"));
+  const agenda = await workflowStore(home).agenda();
+  expect(agenda[0]?.kind).toBe("captain"); expect(agenda.filter(i => i.kind === "books" && i.section === "remove")).toHaveLength(2);
+  expect(await withWorkflowCards(cards, home)).toEqual([]); expect((await workflowSnapshot(home)).now).toEqual([]);
+  expect(await readFile(join(home, "data/backlog.md"), "utf8")).toBe(backlog);
+});
