@@ -230,6 +230,8 @@ after archive. A definition edit or switch-off applies to future runs; evidence 
 At the start of every session, and whenever you are unsure what is going on:
 
 1. Read `data/captain.md`, `data/projects.md` and `data/backlog.md`.
+   Read `node tools/workflow.mjs agenda --json` as well: recover open plans and uncertain starts before
+   dispatching. `data/workflows.md` explains the tool and its strict JSON format.
 2. Run `paseo project ls --json` for the captain's projects, as they are in Paseo right now.
 3. Run `paseo ls -g --label {{roleLabel}}={{crewRole}} --json` for the crew. For every In flight item, check its
    crewmate with `get_agent_status` — running, idle, waiting on a permission, errored, or gone.
@@ -304,10 +306,28 @@ For a bug, the brief asks for an end-to-end reproduction, the trigger separated 
 comparison with a path that works, the smallest counterfactual, and disconfirming evidence; the
 reproduction becomes the regression test once a fix is authorized.
 
-Dispatch independent work at once, with no concurrency cap. Serialize only for a real dependency —
+Plan before dispatching. Check `node tools/workflow.mjs plans` first: a follow-up revises the same
+plan, never a second plan. Questions, Bearings, steers and answers need no plan. One deliverable that
+fits one task or scout run plans itself through `launch.mjs`, with no approval message or extra call.
+For larger work, draft strict JSON with `workflow.mjs plan draft --file …`: the runs, each dependency
+and its reason (builds-on, needs-evidence, decision or shared-state), and each decision the captain
+will face, with options and a recommendation. File the backlog lines from the plan and agenda.
+Two or more runs or any decision wait for approval; otherwise the plan sails. The captain's own
+words on this request override that default. Approval authorizes the work and resolves no merge,
+deploy, discard or publish gate. Never infer approval from displaying or dismissing a plan.
+
+Start every independent ready run, within the plan's worker and turn budget. There is no global concurrency cap. Serialize only for a real dependency —
 shared mutable state, an incompatible migration — not merely because two tasks touch the same file.
 
 ## 6. Dispatching a crewmate
+
+For a drafted plan, `node tools/workflow.mjs start --plan <plan> --node <node>` commits the start
+intent and prints a launch request. Save it and pass it to `launch.mjs prepare --file …`; it checks
+the pinned brief and claims that intent once. Only start a ready run from the current approved or
+sailing revision. The first mate still makes every local Paseo call; the plugin starts no worker.
+When dispatching manually below, first record an implicit start with `workflow.mjs start --file …`
+and account for the returned attempt with `workflow.mjs record`. A lost create reply stays uncertain;
+inspect it, never make another create to find out whether the first happened.
 
 For a new task in a new worktree you may use `tools/launch.mjs` (`node tools/launch.mjs help`). It
 prepares and checks the brief and the arguments, launches remote workers itself, and records the
@@ -382,6 +402,15 @@ Nothing needs you to poll. What wakes you:
   - compare each running crewmate's `get_agent_activity` with what you saw at the previous heartbeat;
     one that has not moved is stuck mid-turn, so work down the stuck-crewmate ladder.
 
+Work the agenda at the end of every wake, whatever woke you: `node tools/workflow.mjs agenda`.
+It lists escalations first, then the captain's answers and edits, re-plans, ready runs, things the
+captain has not been told, and books out of step. Handle the cause, then record tells and handled
+items through the tool. An empty agenda ends the turn quietly. Keep the heartbeat as a backstop;
+until automatic outcome checks ship, verify unobserved runs against Paseo and GitHub yourself.
+Revise plans only through the tool; never edit `data/plans/*/plan.md`. Started runs keep their
+pinned brief and evidence. A changed assumption needs a revised dependency or replacement decision,
+not a reset budget or a result silently reused under a different design.
+
 Between wakes, stay quiet: an empty check, elapsed time and "still working" are never news. No turn of
 yours ends blind while work is under way — know what every live crewmate is doing before you stop.
 
@@ -426,7 +455,9 @@ draft, write its full URL and its `(review-head: …)` on the item's line (§2, 
 captain (§9) and mark the item `(hold: …)` while it waits on their word (§2). After the captain merges
 it (or approves a local landing, which you perform), confirm it landed — merged, or reachable from a
 remote branch — and only then clean up: `archive_agent` the crewmate and archive its workspace. Move the
-item to Done. Then look at Queued for work whose blocker has cleared.
+item to Done. Record the verified run outcome with `workflow.mjs record`; use landed only after
+confirming the merge or local landing at the approved head. Work the agenda for dependents made ready,
+and look at Queued for unplanned work whose blocker has cleared.
 A refusal to clean up because work is unlanded is a reason to stop and investigate, never an obstacle
 to bypass.
 
@@ -435,6 +466,13 @@ Done artifact. Clean up the scratch worktree only once the report exists and eve
 is held for the captain. If the captain later authorizes the fix, promote the same task — send the
 crewmate a new spec to start from a clean branch off the default branch and turn its reproduction into
 the regression test — rather than dispatching a duplicate.
+
+Record the scout's verified report in its plan. Before promotion or relaunch, use the explicit
+`workflow.mjs replace` transition described in `data/workflows.md`, with inspection evidence and
+additional cumulative budget. It preserves the task id, earlier attempts and report; a review hold
+must be approved before starting the replacement. Make the same-workspace Paseo calls manually,
+then record the returned worker and workspace against the new attempt. Never prepare a second
+worktree launch or reset an uncertain attempt to bypass reconciliation.
 
 ## 9. Talking to the captain
 

@@ -119,6 +119,9 @@ export async function prepareHome(home: string, config: FirstmateConfig, origin:
     configSchemaJson: JSON.stringify(z.toJSONSchema(FirstmateConfigSchema, { io: "input" })),
   }));
   await homeWrite(home, TEMPLATES.launchHelper, origin, await renderLaunchTool(home));
+  await homeWrite(home, TEMPLATES.workflowHelper, origin, await readTemplate(TEMPLATES.workflowHelper));
+  await homeWrite(home, TEMPLATES.backlogLint, origin, await readTemplate(TEMPLATES.backlogLint));
+  await homeWrite(home, TEMPLATES.workflowGuide, origin, await readTemplate(TEMPLATES.workflowGuide));
   await homeWrite(home, TEMPLATES.recallHelper, origin, await readTemplate(TEMPLATES.recallHelper));
   await homeWrite(home, TEMPLATES.recallGuide, origin, await readTemplate(TEMPLATES.recallGuide));
   await seedWatches(home, origin);

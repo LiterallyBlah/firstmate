@@ -1,10 +1,24 @@
 # FirstMate
 
+Workflows slices 1 and 2 begin with durable plans. A small launch records its one-run plan
+automatically; larger requests use `tools/workflow.mjs` to draft runs and decisions with real
+dependencies, then read one agenda on every wake. Plans survive restarts in a hash-linked log, with
+readable `data/plans/<id>/plan.md` projections. The first mate still makes all local worker calls;
+approval authorizes planned work and resolves no merge or deployment gate. See
+[the home tool guide](templates/data/workflows.md) for commands and the current one-step limits.
+
 **One conversation to coordinate a crew of coding agents in [Paseo](https://paseo.sh).**
 
 FirstMate gives a lead agent a persistent home, a charter and a view of its crew. Describe the work;
 the first mate prepares briefs, starts workers in separate git worktrees, follows their progress and
 brings back results and decisions. Workers remain ordinary Paseo agents, with their own conversations.
+
+Workflow plans are additive: legacy blocker prose and existing launch delivery modes keep working.
+Plans keep per-home, hash-linked history and independent expected tips; a damaged plan is isolated
+while healthy work remains readable. Ship deliverables wait for confirmed landing before Done.
+Recovery, evidence corrections and same-workspace replacements are explicit, budgeted operations in
+`data/workflows.md`. The first mate still makes every worker call. Slice 2 adds the review dialog;
+slice 1 can record the captain's approval from chat with its provenance.
 
 **Needs you** counts recorded decisions across all views, including tasks without a worker.
 Deck keeps its decision signal below the scene and on the first mate, with no extra header pill.

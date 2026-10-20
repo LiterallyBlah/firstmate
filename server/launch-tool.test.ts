@@ -10,6 +10,9 @@ import { CREW_LABELS, FirstmateConfigSchema } from "../shared/fleet";
 import { prepareHome } from "./home";
 import { briefParts } from "./launch-tool";
 import { commandArguments } from "./remotes";
+import { WorkflowPlanStore } from "./workflow-plans";
+import { processWorkflowRequests } from "./workflow-service";
+import { PlanDefinitionSchema } from "../shared/workflow-plans";
 import { fill, readTemplate, TEMPLATES } from "./templates";
 
 // These scenarios run real Node/git processes; loaded Windows runners need the same budget as local verification.
@@ -21,6 +24,7 @@ const digest = (value: string | Buffer) => createHash("sha256").update(value).di
 const workerId = "11111111-1111-4111-8111-111111111111";
 let scratch: string, home: string, statePath: string, logPath: string, configPath: string, cwd: string;
 let queueTimer: ReturnType<typeof setInterval> | undefined, pumping: Promise<void> | undefined;
+let workflowTimer: ReturnType<typeof setInterval> | undefined, workflowPumping: Promise<void> | undefined;
 let state: any;
 const save = () => writeFile(statePath, JSON.stringify(state));
 const reload = async () => { state = JSON.parse(await readFile(statePath, "utf8")); };
@@ -48,6 +52,8 @@ beforeEach(async () => {
   home = join(scratch, "plugin-data/firstmate/home"); configPath = join(scratch, "plugin-data/firstmate/config.json");
   await prepareHome(home, FirstmateConfigSchema.parse({}));
   await writeFile(configPath, JSON.stringify({ mateAgentId: "mate", home }));
+  const plans = new WorkflowPlanStore(join(scratch, "workflow-plans"), home);
+  workflowTimer = setInterval(() => { workflowPumping ??= processWorkflowRequests(home, plans, async actor => { const live = JSON.parse(await readFile(configPath, "utf8")); if (actor !== live.mateAgentId) throw new Error("Not mate"); }).finally(() => { workflowPumping = undefined; }); }, 10);
   await mkdir(join(home, "data/task"));
   cwd = join(home, "repo"); await mkdir(cwd);
   await execute("git", ["init", "--initial-branch=main", cwd]);
@@ -59,6 +65,7 @@ beforeEach(async () => {
   await writeFile(join(home, "tools/launch.mjs"), fill(await readTemplate(TEMPLATES.launchHelper), { launchConfigJson: JSON.stringify({ home, paseoHome: scratch, cli: { command: process.execPath, args: [cli, statePath, logPath], env: {} }, labels: CREW_LABELS, parts: await briefParts() }) }));
 });
 afterEach(async () => {
+  if (workflowTimer) clearInterval(workflowTimer); workflowTimer = undefined; await workflowPumping; workflowPumping = undefined;
   if (queueTimer) clearInterval(queueTimer); queueTimer = undefined; await pumping; pumping = undefined;
   await rm(scratch, { recursive: true, force: true });
 });
@@ -88,6 +95,43 @@ async function remoteFixture(behavior = "ok") {
 }
 
 describe("launch contract and assembly", () => {
+  it("prepares the conductor's exact dependent request after verified predecessor completion", async () => {
+    await mkdir(join(home, "data/predecessor")); await writeFile(join(home, "data/predecessor/brief.md"), "# Status line\ndone: report");
+    await writeFile(join(home, "data/task/brief.md"), "# Status line\ndone: task");
+    const launch = request({ brief: { file: "data/task/brief.md" } });
+    const plans = new WorkflowPlanStore(join(scratch, "workflow-plans"), home);
+    const definition = PlanDefinitionSchema.parse({ format: "firstmate.plan/1", id: "dependent", title: "Dependent", request: { text: "Build it", at: "2026-10-20T12:00:00Z", posture: "sail", quote: "Go" }, budget: { agents: 2, turns: 2 }, nodes: [
+      { id: "predecessor", title: "Trial", summary: "Trial", kind: "run", workflow: "scout@1", launch: { ...launch, id: "predecessor", kind: "scout", brief: { file: "data/predecessor/brief.md" } } },
+      { id: "task", title: "Build", summary: "Build", kind: "run", workflow: "task@1", launch, after: [{ node: "predecessor", on: "done", reason: "needs-evidence" }] },
+    ] });
+    await plans.execute({ op: "draft", definition }, "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa", "mate");
+    const first: any = await plans.execute({ op: "start", plan: "dependent", node: "predecessor" }, "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb", "mate");
+    await plans.execute({ op: "record", plan: "dependent", node: "predecessor", attempt: first.launch.workflow.attempt, state: "done", evidence: "Verified report" }, "cccccccc-cccc-4ccc-accc-cccccccccccc", "mate");
+    const second: any = await plans.execute({ op: "start", plan: "dependent", node: "task" }, "dddddddd-dddd-4ddd-addd-dddddddddddd", "mate");
+    await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n- [ ] task - Build (project: project) (plan: dependent) (blocked-by: predecessor)\n## Done\n");
+    expect(await prepare(second.launch)).toMatchObject({ ok: true, workflow: { plan: "dependent" } });
+  });
+  it("refuses a changed bound brief before claiming the committed start", async () => {
+    await writeFile(join(home, "data/task/brief.md"), "# Status line\ndone: original");
+    const launch = request({ brief: { file: "data/task/brief.md" } }), plans = new WorkflowPlanStore(join(scratch, "workflow-plans"), home);
+    const definition = PlanDefinitionSchema.parse({ format: "firstmate.plan/1", id: "bound", title: "Bound", request: { text: "Build", at: "2026-10-20T12:00:00Z" }, budget: { agents: 1, turns: 1 }, nodes: [{ id: "task", title: "Build", summary: "Build", kind: "run", workflow: "task@1", launch }] });
+    await plans.execute({ op: "draft", definition }, "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa", "mate");
+    const started: any = await plans.execute({ op: "start", plan: "bound", node: "task" }, "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb", "mate");
+    await writeFile(join(home, "data/task/brief.md"), "# Status line\ndone: changed");
+    expect(await prepare(started.launch)).toMatchObject({ code: "brief-changed" });
+    expect((await plans.get("bound"))?.nodes.task?.claimed).toBe(false);
+  });
+  it("claims a drafted plan's already-filed Queued line without another adoption request", async () => {
+    await writeFile(join(home, "data/task/brief.md"), "Implement the planned task.\n\n# Status line\nEnd every turn with done: <result> or blocked: <reason>.\n");
+    const launch = request({ brief: { file: "data/task/brief.md" } });
+    const plans = new WorkflowPlanStore(join(scratch, "workflow-plans"), home);
+    const definition = PlanDefinitionSchema.parse({ format: "firstmate.plan/1", id: "planned", title: "Planned task", request: { text: "Build it", at: "2026-10-20T12:00:00Z" }, budget: { agents: 1, turns: 1 }, nodes: [{ id: "task", title: "Fix the thing", summary: "Implement the requested fix", kind: "run", workflow: "task@1", launch }] });
+    await plans.execute({ op: "draft", definition }, "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa", "mate");
+    const started: any = await plans.execute({ op: "start", plan: "planned", node: "task" }, "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb", "mate");
+    await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n- [ ] task - Fix the thing (project: project) (plan: planned)\n## Done\n");
+    const result = await prepare(started.launch); expect(result, JSON.stringify(result)).toMatchObject({ ok: true }); expect(result.workflow.plan).toBe("planned");
+    expect(result.backlog.line).toContain("(plan: planned)"); expect((await plans.get("planned"))?.nodes.task?.claimed).toBe(true);
+  });
   it("emits exact local MCP arguments with baseBranch and never creates locally", async () => {
     const result = await prepare(); expect(result.ok).toBe(true);
     expect(result.createWorkspace).toEqual({ isolation: "worktree", path: cwd, branchName: "fm/task", baseBranch: "main", worktreeSlug: "task", title: "Fix the thing" });
@@ -158,14 +202,14 @@ describe("attempts and current-role recovery", () => {
     const results = await Promise.all([run(["prepare", "--file", "data/task/request.json"]), run(["prepare", "--file", "data/task/request.json"])]);
     expect(results.filter(item => item.ok)).toHaveLength(1); expect((await entries()).filter(name => /^\d+\.json$/.test(name))).toEqual(["1.json"]);
   });
-  it("blocks issued/unresolved, then allows an explicit abandoned next attempt and watches late workers", async () => {
+  it("blocks issued/unresolved, retains an abandoned plan for deliberate replanning and watches late workers", async () => {
     await prepare();
     expect((await prepare(request({ backlog: { existing: "adopt" } })))).toMatchObject({ code: "attempt-open" });
     expect(await run(["unresolved", "task", "--attempt", "1", "--error", "Lost answer"])).toMatchObject({ state: "unresolved" });
     expect((await prepare(request({ backlog: { existing: "adopt" } })))).toMatchObject({ code: "attempt-open" });
     expect((await run(["abandon", "task", "--attempt", "1"])).ok).toBe(false);
     expect(await run(["abandon", "task", "--attempt", "1", "--reason", "Inspected; duplicate risk accepted"])).toMatchObject({ state: "abandoned" });
-    expect(await prepare()).toMatchObject({ attempt: 2, state: "issued" });
+    expect(await prepare()).toMatchObject({ ok: false, error: expect.stringContaining("already belongs to a plan") });
     await addWorker();
     expect((await run(["status", "task"])).attempts[0]).toMatchObject({ state: "abandoned", duplicate: true, found: [workerId] });
   });
@@ -199,13 +243,13 @@ describe("attempts and current-role recovery", () => {
     await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n- [ ] task - Filed title\n## Done\n");
     expect((await prepare(request({ backlog: { existing: "adopt" } }))).code).toBe("cli-read-failed");
   });
-  it("tracks a relabelled recorded identity, allows recorded-and-gone, and forbids abandoning a recorded live worker", async () => {
+  it("tracks a relabelled recorded identity and requires a revised plan after the worker is gone", async () => {
     await prepare(); await addWorker(); await record();
     state.agents[0].labels = {}; await save();
     expect((await prepare()).code).toBe("unsupported-before-effects");
     expect((await run(["abandon", "task", "--attempt", "1", "--reason", "try again"])).code).toBe("unsupported-before-effects");
     state.agents[0].detail.Archived = true; await save();
-    expect(await prepare()).toMatchObject({ state: "issued", attempt: 2 });
+    expect(await prepare()).toMatchObject({ ok: false, error: expect.stringContaining("already belongs to a plan") });
   });
   it("does not treat a missing recorded identity as proof it is gone", async () => {
     await prepare(); await addWorker(); await record(); state.agents = []; await save();

@@ -12,6 +12,40 @@ compile time. This file covers only what is specific to `firstmate`.
 
 ## Orientation
 
+Plans (workflows slice 1) are additive. `shared/workflow-plans.ts` owns strict one-step `task@1` and
+`scout@1` contracts, dependency reasons, bounds and posture. `server/workflow-plans.ts` owns the
+hash-linked, exclusive-link event log under `workflow-plans/`, revisions, start intents, projections
+and read-only agenda. `server/workflow-service.ts` consumes the home tool's idempotent request files
+under the role/lifecycle lock. `templates/tools/workflow.mjs` is transport only; `data/workflows.md`
+documents commands. The first mate still makes every local worker call. No executor is installed.
+`launch.mjs` records an implicit start before exposing a launch, and pins/claims explicit starts once.
+An abandoned or archived attempt needs deliberate replanning; preparing the same task cannot reset
+its one-run budget. The existing role check is a behavioral guard, not authenticated filesystem IPC.
+Never treat arbitrary request-file identity as an independent security boundary.
+
+Backlog `(plan:)`, `(needed-by:)` and comma-separated `(blocked-by:)` are optional. Keep the lenient
+parser and strict Needs-you observation in step. The shipped `data/backlog-lint.js` calls the same
+daemon observer through the workflow transport; it cannot silently diverge. Legacy blocker prose
+remains opaque and valid. Only recognized ID lists populate `blockedByIds`.
+The agenda's outcome observations remain the first mate's job until slice 4. A worker status line
+cannot finish a run. Completion records must describe verified report/PR/head evidence.
+Ship done is deliverable-ready; only landed enters Done. Stores are namespaced by absolute home
+identity, with separate expected-tip/publication records and per-plan quarantine. These are local
+copies, not an independent trusted backup: coordinated loss of a log and all its metadata can hide
+truncation. New publication markers detect losing an exposed event and its tip together. Only an
+unpublished final anchor can be dropped automatically under the mutation lock, after validating the
+prefix and checking launch records for unknown attempts; an append-only recovery receipt records it
+in history. Old anchors without publication metadata still require deliberate reconciliation.
+Publication records also retain checked task/host ownership capsules, attempts and budget. Quarantine
+holds only conflicting scopes; non-plan names are reported warnings. `workflow.mjs retire` requires
+the current mate and inspected-file fingerprint, appends evidence without changing damaged files,
+and permanently retains the plan id, attempts, budget and scoped reservations. Legacy missing
+ownership metadata cannot identify unknown lost tasks; restore a backup rather than guessing.
+Reads cache event-file identity; finished implicit plans leave the agenda. Removal tombstones reconcile scoped backlog
+rows. Explicit release, invalidate/validate and replace transitions preserve history and cumulative
+budget; manual replacement/promotion keeps the workspace and task identity. Legacy unscoped logs
+and missing anchors require deliberate reconciliation, never an automatic budget reset.
+
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |
 | `index.server.ts`             | Wiring — the RPCs, the display settings document, the steer relay hook.                    |
