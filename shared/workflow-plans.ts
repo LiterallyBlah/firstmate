@@ -3,18 +3,21 @@ import { z } from "zod";
 
 export const PlanId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 const line = z.string().min(1).max(1000).regex(/^[^\x00-\x1f()]+$/);
+// Match launch.mjs's text contract, including opaque delivery modes and agent titles.
+const launchText = (max: number, delimiters = true) => z.string().min(1).max(max)
+  .refine(s => !!s.trim() && !/[\x00-\x1f\x7f]/.test(s) && (!delimiters || !/[()]/.test(s)));
 export const PlanDependencySchema = z.object({
   node: PlanId, reason: z.enum(["builds-on", "needs-evidence", "decision", "shared-state"]),
   on: z.enum(["done", "landed", "answered"]).default("done"),
 }).strict();
 export const PlanLaunchSchema = z.object({
-  id: PlanId, title: line.max(120), agentTitle: line.max(60), project: line.max(200), host: line.max(200),
-  baseBranch: line.max(200), kind: z.enum(["ship", "scout"]), mode: z.enum(["direct-PR", "reviewed-PR", "local-only"]),
+  id: PlanId, title: launchText(120), agentTitle: launchText(60, false), project: launchText(200), host: launchText(200),
+  baseBranch: launchText(200), kind: z.enum(["ship", "scout"]), mode: launchText(200),
   brief: z.object({ file: z.string().regex(/^data\/[a-z0-9][a-z0-9-]{0,63}\/brief\.md$/) }).strict(),
-  agent: z.object({ provider: z.string().regex(/^[\w-]+\/[^\s\x00-\x1f]+$/), modeId: line.max(100), thinkingOptionId: line.max(100).optional() }).strict(),
-  backlog: z.object({ existing: z.enum(["none", "adopt"]), note: line.optional(), tags: z.array(line.max(40)).max(12).optional() }).strict(),
-  dependency: z.object({ satisfiedBy: line }).strict().optional(),
-  captainAuthority: z.object({ hold: line, authority: line }).strict().optional(),
+  agent: z.object({ provider: z.string().regex(/^[\w-]+\/[^\s\x00-\x1f]+$/), modeId: launchText(100, false), thinkingOptionId: launchText(100, false).optional() }).strict(),
+  backlog: z.object({ existing: z.enum(["none", "adopt"]), note: launchText(10000).optional(), tags: z.array(launchText(40).refine(s => !s.includes(","))).max(12).optional() }).strict(),
+  dependency: z.object({ satisfiedBy: launchText(10000) }).strict().optional(),
+  captainAuthority: z.object({ hold: launchText(10000), authority: launchText(10000) }).strict().optional(),
 }).strict();
 export type PlanLaunch = z.infer<typeof PlanLaunchSchema>;
 const common = { id: PlanId, title: line.max(120), summary: z.string().min(1).max(5000), after: z.array(PlanDependencySchema).max(100).default([]) };
@@ -33,25 +36,36 @@ export const PlanDefinitionSchema = z.object({
 }).strict();
 export type PlanDefinition = z.infer<typeof PlanDefinitionSchema>;
 export type NodeState = "planned" | "starting" | "running" | "done" | "landed" | "failed" | "cancelled" | "unresolved";
-export interface PlanNodeState { state: NodeState; attempt?: string; claimed?: boolean; agentId?: string; workspaceId?: string; evidence?: string; briefHash?: string; answer?: string }
+export interface PlanNodeState { state: NodeState; attempt?: string; claimed?: boolean; agentId?: string; workspaceId?: string; evidence?: string; briefHash?: string; answer?: string;
+  launch?: PlanLaunch; held?: string; invalidated?: string;
+  priorAttempts?: PlanNodeState[]; spent?: number }
 export interface WorkflowPlan {
   definition: PlanDefinition; revision: number; sequence: number; hash: string; posture: "review" | "sail";
   status: "review" | "active" | "held" | "abandoned"; approvedBudget: { agents: number; turns: number };
   nodes: Record<string, PlanNodeState>; told: string[]; handled: string[];
   history: { revision: number; at: string; by: string; reason: string }[];
+  removed?: { node: PlanNode; state: PlanNodeState }[];
 }
 /** Completion is a fold over durable node outcomes, never inferred from a worker's status line. */
 export function planFinished(plan: WorkflowPlan): boolean {
-  return plan.definition.nodes.every(node => ["done", "landed", "failed", "cancelled"].includes(plan.nodes[node.id]?.state ?? ""));
+  return plan.definition.nodes.every(node => !plan.nodes[node.id]?.invalidated &&
+    (node.kind === "run" && node.launch.kind === "ship" ? ["landed", "failed", "cancelled"] : ["done", "landed", "failed", "cancelled"]).includes(plan.nodes[node.id]?.state ?? ""));
 }
 export const WorkflowCommandSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("plans"), all: z.boolean().optional() }).strict(),
   z.object({ op: z.literal("agenda") }).strict(),
+  z.object({ op: z.literal("lint") }).strict(),
   z.object({ op: z.literal("show"), plan: PlanId }).strict(),
   z.object({ op: z.literal("draft"), definition: PlanDefinitionSchema }).strict(),
   z.object({ op: z.literal("revise"), definition: PlanDefinitionSchema, expected: z.string().length(64), reason: z.string().min(1).max(5000) }).strict(),
   z.object({ op: z.literal("start"), plan: PlanId, node: PlanId }).strict(),
   z.object({ op: z.literal("implicit"), launch: PlanLaunchSchema }).strict(),
+  z.object({ op: z.literal("approve"), plan: PlanId, expected: z.string().length(64), quote: z.string().min(1).max(5000) }).strict(),
+  z.object({ op: z.literal("release"), plan: PlanId, node: PlanId, attempt: z.uuid(), evidence: z.string().min(1).max(10000) }).strict(),
+  z.object({ op: z.literal("invalidate"), plan: PlanId, node: PlanId, attempt: z.uuid(), evidence: z.string().min(1).max(10000) }).strict(),
+  z.object({ op: z.literal("validate"), plan: PlanId, node: PlanId, attempt: z.uuid(), expected: z.string().length(64), evidence: z.string().min(1).max(10000) }).strict(),
+  z.object({ op: z.literal("replace"), plan: PlanId, node: PlanId, attempt: z.uuid(), expected: z.string().length(64),
+    kind: z.enum(["relaunch", "promote"]), evidence: z.string().min(1).max(10000), budget: z.object({ agents: z.number().int().min(1).max(100), turns: z.number().int().min(1).max(100) }).strict() }).strict(),
   z.object({ op: z.literal("claim"), plan: PlanId, node: PlanId, attempt: z.uuid(), briefHash: z.string().length(64), launch: PlanLaunchSchema }).strict(),
   z.object({ op: z.literal("record"), plan: PlanId, node: PlanId, state: z.enum(["running", "done", "landed", "failed", "cancelled", "unresolved"]),
     attempt: z.string().uuid(), evidence: z.string().min(1).max(10000), agentId: line.optional(), workspaceId: line.optional() }).strict(),
@@ -61,7 +75,7 @@ export type WorkflowCommand = z.infer<typeof WorkflowCommandSchema>;
 export interface AgendaItem { id: string; priority: number; kind: "escalation" | "captain" | "replan" | "start" | "tell" | "books"; plan: string; node?: string; text: string; line?: string; section?: string }
 
 /** References include other plans; cycles and duplicate task identities fail before publication. */
-export function planProblems(plan: PlanDefinition, others: readonly WorkflowPlan[] = []): string[] {
+export function planProblems(plan: PlanDefinition, others: readonly WorkflowPlan[] = [], removed: ReadonlySet<string> = new Set()): string[] {
   const problems: string[] = [], nodes = new Map<string, PlanNode>();
   for (const p of [...others.filter(p => p.definition.id !== plan.id).map(p => p.definition), plan]) {
     for (const node of p.nodes) { if (nodes.has(node.id)) problems.push(`Duplicate node: ${node.id}`); nodes.set(node.id, node); }
@@ -82,7 +96,7 @@ export function planProblems(plan: PlanDefinition, others: readonly WorkflowPlan
     if (new Set(node.after.map(d => d.node)).size !== node.after.length) problems.push(`${node.id}: repeated dependency.`);
     for (const edge of node.after) {
       const target = nodes.get(edge.node);
-      if (!target) problems.push(`${node.id}: unknown dependency ${edge.node}.`);
+      if (!target) { if (!removed.has(edge.node)) problems.push(`${node.id}: unknown dependency ${edge.node}.`); }
       else if ((target.kind === "decision") !== (edge.reason === "decision" && edge.on === "answered")) problems.push(`${node.id}: decision dependencies must say reason decision, on answered.`);
       else if (target.kind === "run" && edge.on === "answered") problems.push(`${node.id}: a run cannot be answered.`);
     }
@@ -93,7 +107,11 @@ export function planProblems(plan: PlanDefinition, others: readonly WorkflowPlan
   for (const id of nodes.keys()) visit(id);
   return problems;
 }
-export const planWorstCase = (p: PlanDefinition) => { const n = p.nodes.filter(n => n.kind === "run").length; return { agents: n, turns: n }; };
+export const planWorstCase = (p: PlanDefinition, states: Record<string, PlanNodeState> = {}) => {
+  const n = p.nodes.filter(n => n.kind === "run").reduce((count, node) => {
+    const s = states[node.id]; return count + Math.max(1, s?.spent ?? (s?.attempt ? 1 : 0)) + (s?.state === "planned" && !s.attempt && s.spent ? 1 : 0);
+  }, 0); return { agents: n, turns: n };
+};
 export function planPosture(p: PlanDefinition): "review" | "sail" {
   return p.request.posture ?? (p.nodes.filter(n => n.kind === "run").length >= 2 || p.nodes.some(n => n.kind === "decision") ? "review" : "sail");
 }

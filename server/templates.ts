@@ -74,6 +74,7 @@ export const TEMPLATES = {
   roleHelper: "tools/role.mjs",
   launchHelper: "tools/launch.mjs",
   workflowHelper: "tools/workflow.mjs",
+  backlogLint: "data/backlog-lint.js",
   workflowGuide: "data/workflows.md",
   workflowPlan: "parts/workflow-plan.md",
   workflowRun: "parts/workflow-run.md",

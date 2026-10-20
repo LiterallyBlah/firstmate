@@ -95,6 +95,32 @@ async function remoteFixture(behavior = "ok") {
 }
 
 describe("launch contract and assembly", () => {
+  it("prepares the conductor's exact dependent request after verified predecessor completion", async () => {
+    await mkdir(join(home, "data/predecessor")); await writeFile(join(home, "data/predecessor/brief.md"), "# Status line\ndone: report");
+    await writeFile(join(home, "data/task/brief.md"), "# Status line\ndone: task");
+    const launch = request({ brief: { file: "data/task/brief.md" } });
+    const plans = new WorkflowPlanStore(join(scratch, "workflow-plans"), home);
+    const definition = PlanDefinitionSchema.parse({ format: "firstmate.plan/1", id: "dependent", title: "Dependent", request: { text: "Build it", at: "2026-10-20T12:00:00Z", posture: "sail", quote: "Go" }, budget: { agents: 2, turns: 2 }, nodes: [
+      { id: "predecessor", title: "Trial", summary: "Trial", kind: "run", workflow: "scout@1", launch: { ...launch, id: "predecessor", kind: "scout", brief: { file: "data/predecessor/brief.md" } } },
+      { id: "task", title: "Build", summary: "Build", kind: "run", workflow: "task@1", launch, after: [{ node: "predecessor", on: "done", reason: "needs-evidence" }] },
+    ] });
+    await plans.execute({ op: "draft", definition }, "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa", "mate");
+    const first: any = await plans.execute({ op: "start", plan: "dependent", node: "predecessor" }, "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb", "mate");
+    await plans.execute({ op: "record", plan: "dependent", node: "predecessor", attempt: first.launch.workflow.attempt, state: "done", evidence: "Verified report" }, "cccccccc-cccc-4ccc-accc-cccccccccccc", "mate");
+    const second: any = await plans.execute({ op: "start", plan: "dependent", node: "task" }, "dddddddd-dddd-4ddd-addd-dddddddddddd", "mate");
+    await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n- [ ] task - Build (project: project) (plan: dependent) (blocked-by: predecessor)\n## Done\n");
+    expect(await prepare(second.launch)).toMatchObject({ ok: true, workflow: { plan: "dependent" } });
+  });
+  it("refuses a changed bound brief before claiming the committed start", async () => {
+    await writeFile(join(home, "data/task/brief.md"), "# Status line\ndone: original");
+    const launch = request({ brief: { file: "data/task/brief.md" } }), plans = new WorkflowPlanStore(join(scratch, "workflow-plans"), home);
+    const definition = PlanDefinitionSchema.parse({ format: "firstmate.plan/1", id: "bound", title: "Bound", request: { text: "Build", at: "2026-10-20T12:00:00Z" }, budget: { agents: 1, turns: 1 }, nodes: [{ id: "task", title: "Build", summary: "Build", kind: "run", workflow: "task@1", launch }] });
+    await plans.execute({ op: "draft", definition }, "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa", "mate");
+    const started: any = await plans.execute({ op: "start", plan: "bound", node: "task" }, "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb", "mate");
+    await writeFile(join(home, "data/task/brief.md"), "# Status line\ndone: changed");
+    expect(await prepare(started.launch)).toMatchObject({ code: "brief-changed" });
+    expect((await plans.get("bound"))?.nodes.task?.claimed).toBe(false);
+  });
   it("claims a drafted plan's already-filed Queued line without another adoption request", async () => {
     await writeFile(join(home, "data/task/brief.md"), "Implement the planned task.\n\n# Status line\nEnd every turn with done: <result> or blocked: <reason>.\n");
     const launch = request({ brief: { file: "data/task/brief.md" } });

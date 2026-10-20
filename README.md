@@ -13,6 +13,13 @@ FirstMate gives a lead agent a persistent home, a charter and a view of its crew
 the first mate prepares briefs, starts workers in separate git worktrees, follows their progress and
 brings back results and decisions. Workers remain ordinary Paseo agents, with their own conversations.
 
+Workflow plans are additive: legacy blocker prose and existing launch delivery modes keep working.
+Plans keep per-home, hash-linked history and independent expected tips; a damaged plan is isolated
+while healthy work remains readable. Ship deliverables wait for confirmed landing before Done.
+Recovery, evidence corrections and same-workspace replacements are explicit, budgeted operations in
+`data/workflows.md`. The first mate still makes every worker call. Slice 2 adds the review dialog;
+slice 1 can record the captain's approval from chat with its provenance.
+
 **Needs you** counts recorded decisions across all views, including tasks without a worker.
 Deck keeps its decision signal below the scene and on the first mate, with no extra header pill.
 The other views keep their Needs-you header indicator, including its empty state.

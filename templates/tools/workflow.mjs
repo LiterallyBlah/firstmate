@@ -15,7 +15,7 @@ async function inside(path) {
 }
 export async function submit(command, id = randomUUID()) {
   if (!/^[0-9a-f-]{36}$/.test(id)) throw new Error("Use a UUID request id.");
-  const readOnly = ["plans", "show", "agenda"].includes(command.op);
+  const readOnly = ["plans", "show", "agenda", "lint"].includes(command.op);
   if (!readOnly) {
     const role = await execute(process.execPath, [join(home, "tools/role.mjs")], { cwd: home, env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" }, windowsHide: true, timeout: 30000 });
     if (role.stdout.trim() !== "first-mate" || !process.env.PASEO_AGENT_ID) throw new Error("Only the current first mate may change a plan.");
@@ -46,13 +46,16 @@ export async function main(argv) {
   for (let i = 0; i < args.length; i++) {
     if (!args[i].startsWith("--")) { words.push(args[i]); continue; }
     const key = args[i].slice(2);
-    if (!["file", "plan", "node", "attempt", "state", "evidence", "agent", "workspace", "request-id", "expected", "reason", "told", "handled"].includes(key) || key in options || !args[i + 1] || args[i + 1].startsWith("--")) throw new Error("Invalid or repeated option.");
+    if (!["file", "plan", "node", "attempt", "state", "evidence", "agent", "workspace", "request-id", "expected", "reason", "told", "handled", "quote", "kind", "agents", "turns"].includes(key) || key in options || !args[i + 1] || args[i + 1].startsWith("--")) throw new Error("Invalid or repeated option.");
     options[key] = args[++i];
   }
   let command;
   const file = async () => JSON.parse((await readFile(await inside(options.file), "utf8")).replace(/^\uFEFF/, ""));
   if (includeClosed && words[0] !== "plans") throw new Error("--all applies only to plans.");
-  if (["plans", "agenda"].includes(words[0]) && words.length === 1) command = words[0] === "plans" ? { op: "plans", all: includeClosed } : { op: "agenda" };
+  if (["plans", "agenda", "lint"].includes(words[0]) && words.length === 1) command = words[0] === "plans" ? { op: "plans", all: includeClosed } : { op: words[0] };
+  else if (words[0] === "plan" && words[1] === "approve") command = { op: "approve", plan: options.plan, expected: options.expected, quote: options.quote };
+  else if (["release", "invalidate", "validate", "replace"].includes(words[0])) command = { op: words[0], plan: options.plan, node: options.node, attempt: options.attempt, evidence: options.evidence,
+    ...(words[0] === "validate" ? { expected: options.expected } : {}), ...(words[0] === "replace" ? { expected: options.expected, kind: options.kind, budget: { agents: Number(options.agents), turns: Number(options.turns) } } : {}) };
   else if (words[0] === "plan" && words[1] === "draft") command = { op: "draft", definition: await file() };
   else if (words[0] === "plan" && words[1] === "revise") command = { op: "revise", definition: await file(), expected: options.expected, reason: options.reason };
   else if (words[0] === "plan" && words.length === 2) command = { op: "show", plan: words[1] };

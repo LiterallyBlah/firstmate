@@ -180,7 +180,7 @@ export function observeNeedsYou(
       fields.set(name, match[2]!.trim());
     }
     const rest = line.replace(metadata, "");
-    for (const name of ["plan", "needed-by", "blocked-by"]) {
+    for (const name of ["plan", "needed-by"]) {
       const value = fields.get(name);
       if (value !== undefined && !(name === "plan" ? /^[a-z0-9][a-z0-9-]{0,63}$/ : /^[\w.-]{1,64}(?:\s*,\s*[\w.-]{1,64})*$/).test(value))
         rowProblems.push(`Could not read ${name} metadata.`);

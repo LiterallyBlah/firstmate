@@ -24,9 +24,17 @@ its one-run budget. The existing role check is a behavioral guard, not authentic
 Never treat arbitrary request-file identity as an independent security boundary.
 
 Backlog `(plan:)`, `(needed-by:)` and comma-separated `(blocked-by:)` are optional. Keep the lenient
-parser and strict Needs-you observation in step; no `backlog-lint.js` replica is shipped here.
+parser and strict Needs-you observation in step. The shipped `data/backlog-lint.js` calls the same
+daemon observer through the workflow transport; it cannot silently diverge. Legacy blocker prose
+remains opaque and valid. Only recognized ID lists populate `blockedByIds`.
 The agenda's outcome observations remain the first mate's job until slice 4. A worker status line
 cannot finish a run. Completion records must describe verified report/PR/head evidence.
+Ship done is deliverable-ready; only landed enters Done. Stores are namespaced by absolute home
+identity, with independent expected-tip records and per-plan quarantine. Reads cache event-file
+identity; finished implicit plans leave the agenda. Removal tombstones reconcile scoped backlog
+rows. Explicit release, invalidate/validate and replace transitions preserve history and cumulative
+budget; manual replacement/promotion keeps the workspace and task identity. Legacy unscoped logs
+and missing anchors require deliberate reconciliation, never an automatic budget reset.
 
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |

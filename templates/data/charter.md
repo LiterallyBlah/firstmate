@@ -316,7 +316,7 @@ Two or more runs or any decision wait for approval; otherwise the plan sails. Th
 words on this request override that default. Approval authorizes the work and resolves no merge,
 deploy, discard or publish gate. Never infer approval from displaying or dismissing a plan.
 
-Start every independent ready run, within the plan's worker and turn budget. Serialize only for a real dependency —
+Start every independent ready run, within the plan's worker and turn budget. There is no global concurrency cap. Serialize only for a real dependency —
 shared mutable state, an incompatible migration — not merely because two tasks touch the same file.
 
 ## 6. Dispatching a crewmate
@@ -456,7 +456,8 @@ captain (§9) and mark the item `(hold: …)` while it waits on their word (§2)
 it (or approves a local landing, which you perform), confirm it landed — merged, or reachable from a
 remote branch — and only then clean up: `archive_agent` the crewmate and archive its workspace. Move the
 item to Done. Record the verified run outcome with `workflow.mjs record`; use landed only after
-confirming the merge or local landing at the approved head. Work the agenda for dependents made ready.
+confirming the merge or local landing at the approved head. Work the agenda for dependents made ready,
+and look at Queued for unplanned work whose blocker has cleared.
 A refusal to clean up because work is unlanded is a reason to stop and investigate, never an obstacle
 to bypass.
 
@@ -466,8 +467,12 @@ is held for the captain. If the captain later authorizes the fix, promote the sa
 crewmate a new spec to start from a clean branch off the default branch and turn its reproduction into
 the regression test — rather than dispatching a duplicate.
 
-Record the scout's verified report in its plan. Promotion adds the ship run as a revision of that
-same plan, preserving the scout's evidence, identity and spent budget.
+Record the scout's verified report in its plan. Before promotion or relaunch, use the explicit
+`workflow.mjs replace` transition described in `data/workflows.md`, with inspection evidence and
+additional cumulative budget. It preserves the task id, earlier attempts and report; a review hold
+must be approved before starting the replacement. Make the same-workspace Paseo calls manually,
+then record the returned worker and workspace against the new attempt. Never prepare a second
+worktree launch or reset an uncertain attempt to bypass reconciliation.
 
 ## 9. Talking to the captain
 

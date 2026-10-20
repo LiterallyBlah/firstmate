@@ -97,6 +97,7 @@ export const BacklogItemSchema = z.object({
   plan: z.string().optional(),
   neededBy: z.array(z.string()).optional(),
   blockedByIds: z.array(z.string()).optional(),
+  reviewHead: z.string().optional(),
   since: z.string().nullable(),
   url: z.string().nullable(),
   reportPath: z.string().nullable(),

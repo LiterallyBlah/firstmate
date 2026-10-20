@@ -11,6 +11,11 @@ import { submit as workflowCommand } from "./workflow.mjs";
 const config = {{launchConfigJson}};
 const execute = promisify(execFile);
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
+// A retry before a launch record exists reuses the exact transport intent.
+const workflowRequestId = (id, number, op) => {
+  const value = hash(`${id}:${number}:${op}`);
+  return `${value.slice(0, 8)}-${value.slice(8, 12)}-4${value.slice(13, 16)}-a${value.slice(17, 20)}-${value.slice(20, 32)}`;
+};
 const now = () => new Date().toISOString();
 const ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const manual = "Use the charter's manual §6; panels: remote.mjs --request-file / create_agent in the existing workspace; promotion: send_agent_prompt / remote send; relaunch: charter §7.";
@@ -319,9 +324,9 @@ async function prepare(file, dryRun) {
     if (JSON.stringify(await attempts(request.id)) !== JSON.stringify(previous)) fail("attempt-changed", "Another prepare changed this task; inspect status");
     if (binding) {
       if (binding.briefHash !== brief.fileSha256) fail("brief-changed", "Brief changed since the plan start intent; replan before dispatch");
-      await workflowCommand({ op: "claim", ...binding, launch }); record.workflow = binding;
+      await workflowCommand({ op: "claim", ...binding, launch }, workflowRequestId(request.id, number, "claim")); record.workflow = binding;
     } else {
-      const planned = await workflowCommand({ op: "implicit", launch });
+      const planned = await workflowCommand({ op: "implicit", launch }, workflowRequestId(request.id, number, "implicit"));
       record.workflow = planned.launch.workflow;
     }
     await atomic(recordPath(request.id, number), record, true);

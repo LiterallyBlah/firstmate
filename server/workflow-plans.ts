@@ -1,24 +1,30 @@
 /** Append-only planning ledger. Reads have no effects; no method creates or prompts an agent. */
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, readdir, rename, writeFile, stat } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, writeFile, stat, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { PlanId, WorkflowCommandSchema, planFinished, planPosture, planProblems, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
+import { PlanId, PlanLaunchSchema, WorkflowCommandSchema, planFinished, planPosture, planProblems, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
 import { digest, publish } from "./submissions";
 import { serialized } from "./serialize";
 import { resolveInHome } from "./files";
 import { parseBacklog } from "./backlog";
+import { observeNeedsYou } from "./needs-you-detect";
 import { fill, readTemplate, TEMPLATES } from "./templates";
 
 const EventSchema = z.object({ version: z.literal(1), home: z.string().min(1), plan: PlanId, sequence: z.number().int().nonnegative(), previous: z.string().length(64).nullable(),
   requestId: z.uuid(), requestHash: z.string().length(64), at: z.iso.datetime(), by: z.string().min(1),
-  command: WorkflowCommandSchema, attempt: z.uuid().optional(), briefHash: z.string().length(64).optional(), hash: z.string().length(64) }).strict();
+  command: WorkflowCommandSchema, attempt: z.uuid().optional(), briefHash: z.string().length(64).optional(), launch: PlanLaunchSchema.optional(), hash: z.string().length(64) }).strict();
 type Event = z.infer<typeof EventSchema>;
 const checksum = ({ hash: _hash, ...event }: Event) => digest(event);
 const terminal = (state: string) => ["done", "landed", "failed", "cancelled"].includes(state);
+export const backlogSection = (node: PlanNode, state: string) => terminal(state) && !(node.kind === "run" && node.launch.kind === "ship" && state === "done") ? "done" : state === "planned" ? "queued" : "in-flight";
+export const samePlanItem = (item: ReturnType<typeof parseBacklog>[number], plan: WorkflowPlan, node: PlanNode) =>
+  item.id === node.id && (node.kind === "decision" ? !item.project && !item.host : item.project === node.launch.project && (item.host ?? "local").toLowerCase() === node.launch.host.toLowerCase()) &&
+  (plan.definition.implicit || item.plan === plan.definition.id);
 export function dependenciesMet(node: PlanNode, plans: readonly WorkflowPlan[]): boolean {
   return node.after.every(edge => {
     const state = plans.flatMap(p => Object.entries(p.nodes)).find(([id]) => id === edge.node)?.[1];
+    if (state?.held || state?.invalidated) return false;
     return edge.on === "answered" ? !!state?.answer : edge.on === "landed" ? state?.state === "landed" : state?.state === "done" || state?.state === "landed";
   });
 }
@@ -44,23 +50,64 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
       if (next.nodes[old.id]?.state !== "planned" && digest(c.definition.nodes.find(n => n.id === old.id)) !== digest(old)) throw new Error(`Started node ${old.id} is pinned; preserve it and replan separately.`);
       if (old.kind === "decision" && next.nodes[old.id]?.answer && digest(c.definition.nodes.find(n => n.id === old.id)) !== digest(old)) throw new Error("Answered decisions are immutable; add a replacement decision and hold affected work.");
     }
+    const removed = next.definition.nodes.filter(n => !c.definition.nodes.some(newNode => newNode.id === n.id));
+    next.removed = [...(next.removed ?? []), ...removed.map(node => ({ node, state: next!.nodes[node.id]! }))].filter(r => !c.definition.nodes.some(n => n.id === r.node.id));
     next.definition = c.definition; next.revision++;
     next.nodes = Object.fromEntries(c.definition.nodes.map(n => [n.id, next!.nodes[n.id] ?? { state: "planned" as const }]));
-    const worst = planWorstCase(c.definition);
+    for (const node of next.definition.nodes) {
+      if (node.after.some(e => next!.removed?.some(r => r.node.id === e.node))) next.nodes[node.id]!.held = "Prerequisite removed; replan before starting.";
+      else if (next.nodes[node.id]!.held === "Prerequisite removed; replan before starting.") delete next.nodes[node.id]!.held;
+    }
+    const worst = planWorstCase(c.definition, next.nodes);
+    if (worst.agents > c.definition.budget.agents || worst.turns > c.definition.budget.turns) throw new Error("Revision exceeds cumulative spent and remaining budget.");
     // Scope and changed choices require review; counts never reset by revision.
     next.posture = planPosture(c.definition);
     next.status = next.posture === "review" || worst.agents > next.approvedBudget.agents * 1.5 || worst.turns > next.approvedBudget.turns * 1.5 ? "review" : next.status;
     next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: c.reason });
   }
+  if (c.op === "approve") {
+    if (c.expected !== previous?.hash || next.status === "abandoned") throw new Error("Stale plan approval.");
+    next.status = "active"; next.approvedBudget = planWorstCase(next.definition, next.nodes);
+    next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: `Recorded from chat: ${c.quote}` });
+  }
   if (c.op === "start" || c.op === "implicit") {
     const id = c.op === "start" ? c.node : c.launch.id;
     if (next.status !== "active" || next.nodes[id]?.state !== "planned" || !event.attempt || !event.briefHash) throw new Error("Run is held, already started or has no pinned brief.");
-    next.nodes[id] = { state: "starting", attempt: event.attempt, briefHash: event.briefHash, claimed: c.op === "implicit" };
+    const state = next.nodes[id]!;
+    const launch = next.definition.nodes.find(n => n.id === id);
+    const spent = Object.values(next.nodes).reduce((n, s) => n + (s.spent ?? (s.attempt ? 1 : 0)), 0) + (state.attempt ? 0 : 1);
+    if (state.held || spent > next.definition.budget.agents || spent > next.definition.budget.turns) throw new Error("Run is held or cumulative budget is exhausted.");
+    next.nodes[id] = { ...state, state: "starting", attempt: event.attempt, briefHash: event.briefHash, claimed: c.op === "implicit",
+      spent: (state.spent ?? 0) + (state.attempt ? 0 : 1), ...(launch?.kind === "run" ? { launch: event.launch ?? launch.launch } : {}) };
   }
   if (c.op === "claim") {
     const node = next.definition.nodes.find(n => n.id === c.node), state = next.nodes[c.node];
-    if (next.status !== "active" || node?.kind !== "run" || state?.state !== "starting" || state.claimed || state.attempt !== c.attempt || state.briefHash !== c.briefHash || digest(node.launch) !== digest(c.launch)) throw new Error("Launch does not match an unclaimed start intent; reconcile it without another create.");
+    if (next.status !== "active" || node?.kind !== "run" || state?.state !== "starting" || state.claimed || state.attempt !== c.attempt || state.briefHash !== c.briefHash || digest(state.launch ?? node.launch) !== digest(c.launch)) throw new Error("Launch does not match an unclaimed start intent; reconcile it without another create.");
     state.claimed = true;
+  }
+  if (c.op === "release" || c.op === "invalidate" || c.op === "validate" || c.op === "replace") {
+    const node = next.definition.nodes.find(n => n.id === c.node), state = next.nodes[c.node];
+    if (node?.kind !== "run" || !state?.attempt || state.attempt !== c.attempt) throw new Error("Transition does not match a committed start intent.");
+    if (c.op === "release") {
+      if (state.state !== "starting" || state.agentId) throw new Error("Only an uncreated start can be released.");
+      next.nodes[c.node] = { ...state, state: "planned", claimed: false, evidence: c.evidence };
+    } else if (c.op === "invalidate") {
+      next.nodes[c.node] = { ...state, invalidated: c.evidence, evidence: c.evidence };
+    } else if (c.op === "validate") {
+      if (!state.invalidated || !terminal(state.state) || c.expected !== previous?.hash) throw new Error("Renewal requires current invalidated completed evidence.");
+      const { invalidated: _invalidated, ...valid } = state;
+      next.nodes[c.node] = { ...valid, evidence: c.evidence };
+    } else {
+      if (c.expected !== previous?.hash || !state.agentId || !state.workspaceId || state.invalidated || (c.kind === "promote" && (node.launch.kind !== "scout" || state.state !== "done"))) throw new Error("Replacement requires the current accounted worker and verified promotion/relaunch evidence.");
+      const spent = Object.values(next.nodes).reduce((n, s) => n + (s.spent ?? (s.attempt ? 1 : 0)), 0);
+      if (c.budget.agents < spent + 1 || c.budget.turns < spent + 1) throw new Error("Replacement needs additional cumulative budget.");
+      next.definition.budget = c.budget;
+      if (c.kind === "promote") { node.launch.kind = "ship"; node.workflow = "task@1"; }
+      const { priorAttempts, ...prior } = state;
+      next.nodes[c.node] = { state: "planned", spent: state.spent ?? 1, priorAttempts: [...(priorAttempts ?? []), prior], evidence: c.evidence };
+      next.revision++; next.status = spent + 1 > next.approvedBudget.agents * 1.5 || spent + 1 > next.approvedBudget.turns * 1.5 ? "review" : next.status;
+      next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: `${c.kind}: ${c.evidence}` });
+    }
   }
   if (c.op === "record") {
     const node = next.definition.nodes.find(n => n.id === c.node), state = next.nodes[c.node];
@@ -68,6 +115,8 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     if (terminal(state.state) && !(state.state === "done" && c.state === "landed")) throw new Error("Completed run history is immutable.");
     if (c.state === "running" && (!c.agentId || !c.workspaceId)) throw new Error("A running record needs agent and workspace identities.");
     if (state.agentId && c.agentId && state.agentId !== c.agentId) throw new Error("Cannot replace an accounted worker.");
+    const priorWorkspace = state.priorAttempts?.at(-1)?.workspaceId;
+    if (priorWorkspace && c.workspaceId && c.workspaceId !== priorWorkspace) throw new Error("Manual replacement must preserve the workspace identity.");
     next.nodes[c.node] = { ...state, state: c.state, evidence: c.evidence, ...(c.agentId ? { agentId: c.agentId } : {}), ...(c.workspaceId ? { workspaceId: c.workspaceId } : {}) };
   }
   if (c.op === "ack") next[c.kind] = [...new Set([...next[c.kind], ...c.ids])];
@@ -75,33 +124,60 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
 }
 
 export class WorkflowPlanStore {
+  private static cache = new Map<string, { identity: string; plan: WorkflowPlan | null }>();
   constructor(readonly root: string, readonly home: string) {}
   private directory(id: string) { return join(this.root, PlanId.parse(id)); }
+  private tips(id: string) { return join(this.root, ".tips", PlanId.parse(id)); }
   private async events(id: string): Promise<Event[]> {
     let files: string[];
-    try { files = await readdir(this.directory(id)); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return []; throw e; }
+    try { files = await readdir(this.directory(id)); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; files = []; }
+    let tips: string[] = [];
+    try { tips = (await readdir(this.tips(id))).filter(f => /^\d{8}\.json$/.test(f)).sort(); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
+    const names = files.filter(f => /^\d{8}\.json$/.test(f)).sort();
+    if (tips.length && (tips.length !== names.length || tips.some((f, n) => f !== names[n]))) throw new Error(`Plan log ${id} lost its published tail; reconcile its expected tip.`);
+    if (names.length && !tips.length) throw new Error(`Plan log ${id} has no expected tip; explicit legacy reconciliation is required.`);
     if (files.some(f => !/^\d{8}\.json(?:\.[\w-]+\.tmp)?$/.test(f))) throw new Error(`Unknown file in plan log ${id}.`);
     const events: Event[] = []; let previous: string | null = null;
     for (const name of files.filter(f => /^\d{8}\.json$/.test(f)).sort()) {
       if (name !== `${String(events.length).padStart(8, "0")}.json`) throw new Error(`Plan log ${id} has a gap.`);
       const path = join(this.directory(id), name);
       if ((await stat(path)).size > 512000) throw new Error("Plan event too large.");
-      const event = EventSchema.parse(JSON.parse(await readFile(path, "utf8")));
-      if (event.home !== resolve(this.home) || event.plan !== id || event.sequence !== events.length || event.previous !== previous || checksum(event) !== event.hash || event.requestHash !== digest(event.command)) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
+      // Hash the committed bytes' object before schema defaults/transforms are applied.
+      const raw = JSON.parse(await readFile(path, "utf8"));
+      if (checksum(raw) !== raw.hash || raw.requestHash !== digest(raw.command)) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
+      const event = EventSchema.parse(raw);
+      const tip = JSON.parse(await readFile(join(this.tips(id), name), "utf8"));
+      const identity = (home: string) => process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home);
+      if (identity(event.home) !== identity(this.home) || event.plan !== id || event.sequence !== events.length || event.previous !== previous || tip.hash !== event.hash || tip.sequence !== event.sequence) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
       previous = event.hash; events.push(event);
     }
     return events;
   }
-  async get(id: string): Promise<WorkflowPlan | null> { return (await this.events(id)).reduce<WorkflowPlan | null>(reduce, null); }
-  async list(): Promise<WorkflowPlan[]> {
-    let entries;
-    try { entries = await readdir(this.root, { withFileTypes: true }); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return []; throw e; }
-    const plans: WorkflowPlan[] = [];
-    for (const entry of entries) { if (!entry.isDirectory()) throw new Error("Unexpected file in workflow-plans."); const plan = await this.get(entry.name); if (plan) plans.push(plan); }
-    // Concurrent publications into different plan directories must not make duplicate tasks executable.
-    for (const plan of plans) { const problems = planProblems(plan.definition, plans); if (problems.length) throw new Error(problems.join("\n")); }
-    return plans.sort((a, b) => a.definition.id.localeCompare(b.definition.id));
+  async get(id: string): Promise<WorkflowPlan | null> {
+    const key = `${resolve(this.root)}:${resolve(this.home)}:${id}`, identities: unknown[] = [];
+    for (const directory of [this.directory(id), this.tips(id)]) {
+      let names: string[]; try { names = (await readdir(directory)).sort(); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; names = []; }
+      for (const name of names) { const s = await stat(join(directory, name)); identities.push([directory, name, s.ino, s.size, s.mtimeMs, s.ctimeMs]); }
+    }
+    const identity = digest(identities), cached = WorkflowPlanStore.cache.get(key);
+    if (cached?.identity === identity) return structuredClone(cached.plan);
+    const plan = (await this.events(id)).reduce<WorkflowPlan | null>(reduce, null);
+    if (WorkflowPlanStore.cache.size > 2000) WorkflowPlanStore.cache.clear();
+    WorkflowPlanStore.cache.set(key, { identity, plan }); return structuredClone(plan);
   }
+  async read(): Promise<{ plans: WorkflowPlan[]; problems: string[] }> {
+    let entries;
+    try { entries = await readdir(this.root, { withFileTypes: true }); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return { plans: [], problems: [] }; return { plans: [], problems: [String(e)] }; }
+    const plans: WorkflowPlan[] = [], problems: string[] = [];
+    const ids = new Set(entries.filter(e => e.name !== ".tips").map(e => e.name));
+    try { for (const id of await readdir(join(this.root, ".tips"))) ids.add(id); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") problems.push(String(e)); }
+    for (const id of ids) {
+      try { const plan = await this.get(id); if (plan) plans.push(plan); else problems.push(`Plan ${id}: empty or stray plan entry.`); }
+      catch (error) { problems.push(`Plan ${id}: ${error instanceof Error ? error.message : String(error)}`); }
+    }
+    return { plans: plans.sort((a, b) => a.definition.id.localeCompare(b.definition.id)), problems };
+  }
+  async list(): Promise<WorkflowPlan[]> { return (await this.read()).plans; }
   async brief(node: PlanNode): Promise<{ hash: string; text: string }> {
     if (node.kind !== "run") throw new Error("Decisions cannot start workers.");
     const path = await resolveInHome(this.home, node.launch.brief.file);
@@ -114,6 +190,7 @@ export class WorkflowPlanStore {
     if (command.op === "plans") return (await this.list()).filter(p => command.all || (!planFinished(p) && p.status !== "abandoned"));
     if (command.op === "show") { const plan = await this.get(command.plan); return plan ? { ...plan, finished: planFinished(plan) } : null; }
     if (command.op === "agenda") return this.agenda();
+    if (command.op === "lint") return observeNeedsYou(await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8"), null);
     return serialized(resolve(this.root), async () => {
       const id = command.op === "draft" || command.op === "revise" ? command.definition.id : command.op === "implicit" ? command.launch.id : command.plan;
       const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>(reduce, null);
@@ -121,32 +198,70 @@ export class WorkflowPlanStore {
       if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); await this.render(previous!); return this.result(previous!, replay); }
       const plans = await this.list();
       if (command.op === "draft" || command.op === "revise") {
-        const problems = planProblems(command.definition, plans); if (problems.length) throw new Error(problems.join("\n"));
+        const removed = new Set([...(previous?.removed ?? []).map(r => r.node.id), ...(previous?.definition.nodes ?? []).filter(n => !command.definition.nodes.some(next => next.id === n.id)).map(n => n.id)]);
+        // Cross-plan dependents still prevent removing their referenced node; only this
+        // plan's surviving dependents may retain a missing prerequisite under a hold.
+        const problems = planProblems(command.definition, plans, removed);
+        for (const p of plans.filter(p => p.definition.id !== id)) for (const n of p.definition.nodes) for (const edge of n.after) if (removed.has(edge.node)) problems.push(`${n.id}: unknown dependency ${edge.node}.`);
+        if (problems.length) throw new Error(problems.join("\n"));
+      }
+      if (command.op === "implicit" && previous?.definition.implicit && previous.nodes[id]?.state === "starting") {
+        if (digest(previous.nodes[id]?.launch) !== digest(command.launch)) throw new Error("Existing implicit intent has different content.");
+        await this.assertUncreated(id, previous.nodes[id]!.attempt!);
+        const original = events.find(e => e.command.op === "implicit")!;
+        await this.render(previous); return this.result(previous, original);
       }
       if (command.op === "implicit" && plans.some(p => p.definition.nodes.some(n => n.id === id))) throw new Error("Task already belongs to a plan; use its recorded start intent.");
+      if (command.op === "release") await this.assertUncreated(command.node, command.attempt);
+      if (command.op === "claim") {
+        const node = previous?.definition.nodes.find(n => n.id === command.node);
+        if (!node || !dependenciesMet(node, plans)) throw new Error("Run dependencies changed since start; reconcile before dispatch.");
+        if ((await this.brief(node)).hash !== command.briefHash) throw new Error("Brief changed since start; replan before dispatch.");
+      }
       let briefHash: string | undefined;
+      let launch: z.infer<typeof PlanLaunchSchema> | undefined;
       if (command.op === "start") {
         const node = previous?.definition.nodes.find(n => n.id === command.node);
         if (!node || !dependenciesMet(node, plans)) throw new Error("Run dependencies are not satisfied.");
         briefHash = (await this.brief(node)).hash;
+        if (node.kind === "run") {
+          launch = structuredClone(node.launch);
+          if (node.after.length) launch.dependency = { satisfiedBy: node.after.map(edge => {
+            const source = plans.find(p => p.nodes[edge.node]);
+            return `${edge.node}: ${edge.on}; plan ${source!.definition.id} at ${source!.hash}`;
+          }).join("; ") };
+        }
       } else if (command.op === "implicit") briefHash = (await this.brief({ kind: "run", id, title: command.launch.title, summary: command.launch.title, after: [], workflow: command.launch.kind === "scout" ? "scout@1" : "task@1", launch: command.launch })).hash;
       const event: Event = { version: 1, home: resolve(this.home), plan: id, sequence: events.length, previous: previous?.hash ?? null, requestId, requestHash: digest(command), at: new Date().toISOString(), by, command,
-        ...(briefHash ? { briefHash, attempt: randomUUID() } : {}), hash: "" };
+        ...(briefHash ? { briefHash, attempt: command.op === "start" ? previous?.nodes[command.node]?.attempt ?? randomUUID() : randomUUID() } : {}), ...(launch ? { launch } : {}), hash: "" };
       event.hash = checksum(event); const next = reduce(previous, event);
       if (event.sequence > 99999999) throw new Error("Plan event capacity exceeded.");
       await mkdir(this.directory(id), { recursive: true });
+      await mkdir(this.tips(id), { recursive: true });
+      // Publish the expected high-water mark first. A crash in this gap holds this plan
+      // for reconciliation rather than silently recovering a shorter, executable history.
+      await publish(join(this.tips(id), `${String(event.sequence).padStart(8, "0")}.json`), { sequence: event.sequence, hash: event.hash });
       // Exclusive hard link is the cross-process compare-and-swap. A collision is never retried.
       await publish(join(this.directory(id), `${String(event.sequence).padStart(8, "0")}.json`), event);
       await this.render(next);
       return this.result(next, event);
     });
   }
+  private async assertUncreated(id: string, attempt: string): Promise<void> {
+    let names: string[];
+    const directory = (await resolveInHome(this.home, `data/${id}/launches`)).absolute;
+    try { names = await readdir(directory); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return; throw e; }
+    for (const name of names.filter(n => /^[1-9]\d*\.json$/.test(n))) {
+      const record = JSON.parse(await readFile(join(directory, name), "utf8"));
+      if (record.workflow?.attempt === attempt && record.state !== "dry-run") throw new Error("Launch record exists; reconcile without another create.");
+    }
+  }
   private result(plan: WorkflowPlan, event: Event) {
     const c = event.command, node = c.op === "start" ? c.node : c.op === "implicit" ? c.launch.id : null;
     const definition = plan.definition.nodes.find(n => n.id === node);
-    return { plan, worstCase: planWorstCase(plan.definition), backlog: plan.definition.nodes.map(n => ({ node: n.id, section: terminal(plan.nodes[n.id]!.state) ? "done" : plan.nodes[n.id]!.state === "planned" ? "queued" : "in-flight", line: planBacklogLine(plan, n) })),
+    return { plan, worstCase: planWorstCase(plan.definition, plan.nodes), backlog: plan.definition.nodes.map(n => ({ node: n.id, section: backlogSection(n, plan.nodes[n.id]!.state), line: planBacklogLine(plan, n) })),
       comingUp: plan.definition.nodes.filter(n => n.kind === "decision" && !plan.nodes[n.id]?.answer),
-      ...(definition?.kind === "run" && node ? { launch: { ...definition.launch, workflow: { plan: plan.definition.id, node, attempt: plan.nodes[node]!.attempt, briefHash: plan.nodes[node]!.briefHash } } } : {}) };
+      ...(definition?.kind === "run" && node ? { launch: { ...(plan.nodes[node]!.launch ?? definition.launch), workflow: { plan: plan.definition.id, node, attempt: plan.nodes[node]!.attempt, briefHash: plan.nodes[node]!.briefHash } } } : {}) };
   }
   async render(plan: WorkflowPlan): Promise<void> {
     const path = await resolveInHome(this.home, `data/plans/${plan.definition.id}/plan.md`);
@@ -162,15 +277,16 @@ export class WorkflowPlanStore {
     })));
     const content = fill(await readTemplate(TEMPLATES.workflowPlan), {
       title: plan.definition.title, request: plan.definition.request.text, revision: String(plan.revision), posture: plan.posture, state: planFinished(plan) ? "finished" : plan.status,
-      budget: JSON.stringify(planWorstCase(plan.definition)),
+      budget: JSON.stringify(planWorstCase(plan.definition, plan.nodes)),
       nodes: nodes.join("\n\n"),
       history: plan.history.map(h => `- ${h.revision} · ${h.at} · ${h.by} · ${h.reason}`).join("\n"),
     });
     const temporary = `${path.absolute}.${randomUUID()}.tmp`;
-    await writeFile(temporary, content, { flag: "wx" }); await rename(temporary, path.absolute);
+    try { await writeFile(temporary, content, { flag: "wx" }); await rename(temporary, path.absolute); }
+    finally { await rm(temporary, { force: true }); }
   }
   async agenda(): Promise<AgendaItem[]> {
-    const plans = await this.list(), result: AgendaItem[] = [];
+    const { plans, problems } = await this.read(), result: AgendaItem[] = problems.map((text, n) => ({ id: `plan-problem:${n}`, kind: "escalation", priority: 1, plan: "unavailable", text }));
     let backlog = ""; try { backlog = await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8"); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
     const items = parseBacklog(backlog);
     for (const plan of plans) {
@@ -180,11 +296,18 @@ export class WorkflowPlanStore {
         result.push({ id, kind, priority, plan: plan.definition.id, text, ...(node ? { node } : {}), ...extra });
       };
       if (plan.status === "abandoned") continue;
+      if (plan.definition.implicit && planFinished(plan)) continue;
+      for (const removed of plan.removed ?? []) {
+        const current = items.find(i => samePlanItem(i, plan, removed.node));
+        if (current) add(current.agentId || removed.state.agentId ? "escalation" : "books", current.agentId ? 1 : 6,
+          `removed:${removed.node.id}:${plan.revision}`, `Removed planned work: ${removed.node.title}. ${current.agentId ? "Inspect unexpected worker; do not discard its work." : "Remove only this plan's scoped backlog row."}`, removed.node.id, { section: "remove" });
+      }
       if (planFinished(plan)) add("tell", 5, `plan-finished:${plan.revision}`, `${plan.definition.title}: all planned nodes have reached an end. Check the recorded outcomes.`, undefined);
       if (plan.status === "review" && !planFinished(plan)) add("tell", 5, `approval:${plan.revision}`, `Present ${plan.definition.title} for approval.`);
       for (const node of plan.definition.nodes) {
         const state = plan.nodes[node.id]!;
-        if (state.state === "unresolved") add("escalation", 1, `uncertain:${node.id}:${state.attempt}`, `Reconcile ${node.title}; never create or send again blindly.`, node.id);
+        if (state.held) add("replan", 3, `held:${node.id}:${plan.revision}`, `${node.title}: ${state.held}`, node.id);
+        if (state.state === "unresolved" || state.invalidated) add("escalation", 1, `uncertain:${node.id}:${state.attempt}:${digest(state.invalidated ?? null)}`, `Reconcile ${node.title}; never create or send again blindly. ${state.invalidated ?? ""}`, node.id);
         if (!terminal(state.state) && node.after.some(d => plans.some(p => ["failed", "cancelled"].includes(p.nodes[d.node]?.state ?? "")))) add("replan", 3, `dependency:${node.id}:${plan.revision}`, `${node.title} has a failed or cancelled dependency.`, node.id);
         const ready = dependenciesMet(node, plans);
         if (node.kind === "run" && state.state === "planned" && plan.status === "active" && ready) {
@@ -195,20 +318,23 @@ export class WorkflowPlanStore {
         if (terminal(state.state)) add("tell", 5, `finished:${node.id}:${state.state}`, `${node.title}: ${state.state}. ${state.evidence ?? ""}`, node.id);
         // Until slice 4, live facts must be checked by the mate. A worker's status never completes a run.
         if (["running", "starting"].includes(state.state)) add("replan", 3, `observe:${node.id}:${state.attempt}`, `Verify ${node.title} against Paseo and its delivery evidence; outcome is unobserved.`, node.id);
-        const line = planBacklogLine(plan, node), section = terminal(state.state) ? "done" : state.state === "planned" ? "queued" : "in-flight";
-        const current = items.find(i => i.id === node.id);
-        if (!current || current.section !== section || (!plan.definition.implicit && current.plan !== plan.definition.id) || (state.agentId && current.agentId !== state.agentId)) add("books", 6, `books:${node.id}:${digest({ line, section }).slice(0, 12)}`, `Reconcile ${node.title} in ${section}.`, node.id, { line, section });
+        const section = backlogSection(node, state.state), current = items.find(i => samePlanItem(i, plan, node));
+        const line = planBacklogLine(plan, node, current);
+        if (!current && section === "done") continue;
+        const expected = parseBacklog(`## ${section === "in-flight" ? "In flight" : section === "done" ? "Done" : "Queued"}\n${line}`)[0]!;
+        if (!current || current.section !== section || (state.agentId && current.agentId !== state.agentId) || current.blockedBy !== expected.blockedBy || digest(current.neededBy ?? []) !== digest(expected.neededBy ?? [])) add("books", 6, `books:${node.id}:${digest({ line, section }).slice(0, 12)}`, `Reconcile ${node.title} in ${section}.`, node.id, { line, section });
       }
     }
     return result.sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id));
   }
 }
 
-export function planBacklogLine(plan: WorkflowPlan, node: PlanNode): string {
+export function planBacklogLine(plan: WorkflowPlan, node: PlanNode, current?: ReturnType<typeof parseBacklog>[number]): string {
   const state = plan.nodes[node.id]!;
   const needed = plan.definition.nodes.filter(n => n.after.some(d => d.node === node.id)).map(n => n.id);
-  return `- [${terminal(state.state) ? "x" : " "}] ${node.id} - ${node.title}` +
+  return `- [${backlogSection(node, state.state) === "done" ? "x" : " "}] ${node.id} - ${node.title}` +
     (node.kind === "run" ? ` (project: ${node.launch.project}) (kind: ${node.launch.kind}) (mode: ${node.launch.mode})${node.launch.host === "local" ? "" : ` (host: ${node.launch.host})`}` : " (kind: captain)") +
     (plan.definition.implicit ? "" : ` (plan: ${plan.definition.id})`) + (node.after.length ? ` (blocked-by: ${node.after.map(d => d.node).join(", ")})` : "") +
-    (needed.length ? ` (needed-by: ${needed.join(", ")})` : "") + (state.agentId ? ` (agent: ${state.agentId})` : "");
+    (needed.length ? ` (needed-by: ${needed.join(", ")})` : "") + (state.agentId ? ` (agent: ${state.agentId})` : "") +
+    (current?.hold ? ` (hold: ${current.hold})` : "") + (current?.reviewHead ? ` (review-head: ${current.reviewHead})` : "") + (current?.url ? ` ${current.url}` : "");
 }

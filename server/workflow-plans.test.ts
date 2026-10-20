@@ -38,7 +38,7 @@ describe("plan journal", () => {
     await draft(); const path = join(root, "request/00000000.json"), bytes = await readFile(path, "utf8");
     await writeFile(path + ".crash.tmp", "torn"); expect(await store.get("request")).toBeTruthy();
     await writeFile(path, bytes.replace("Build it", "Ship it")); await expect(store.get("request")).rejects.toThrow("hash chain");
-    await writeFile(path, bytes); await writeFile(join(root, "request/00000002.json"), bytes); await expect(store.get("request")).rejects.toThrow("gap");
+    await writeFile(path, bytes); await writeFile(join(root, "request/00000002.json"), bytes); await expect(store.get("request")).rejects.toThrow(/gap|tail/);
   });
   it("refuses competing creates and stale revisions without overwriting", async () => {
     const results = await Promise.allSettled([draft(), draft()]); expect(results.filter(r => r.status === "fulfilled")).toHaveLength(1);
@@ -61,7 +61,7 @@ describe("plan journal", () => {
   });
   it("closes a completed plan in the open list, retains history and tells its completion once", async () => {
     await draft(); const { launch }: any = await store.execute({ op: "start", plan: "request", node: "build" }, randomUUID(), "mate");
-    await store.execute({ op: "record", plan: "request", node: "build", attempt: launch.workflow.attempt, state: "done", evidence: "Verified the promised deliverable." }, randomUUID(), "mate");
+    await store.execute({ op: "record", plan: "request", node: "build", attempt: launch.workflow.attempt, state: "landed", evidence: "Verified the promised deliverable landed." }, randomUUID(), "mate");
     expect(await store.execute({ op: "plans" }, randomUUID(), "mate")).toEqual([]);
     expect(await store.execute({ op: "plans", all: true }, randomUUID(), "mate")).toHaveLength(1);
     const finished = (await store.agenda()).find(i => i.id === "request:plan-finished:1")!; expect(finished.kind).toBe("tell");
@@ -109,7 +109,8 @@ describe("backlog compatibility and charter", () => {
     const markdown = "## In flight\n## Queued\n- [ ] choose - Choose (kind: captain) (hold: Pick) (plan: example) (needed-by: build, test) (blocked-by: design, trial)\n## Done\n";
     expect(parseBacklog(markdown)[0]).toMatchObject({ plan: "example", neededBy: ["build", "test"], blockedByIds: ["design", "trial"] });
     expect(observeNeedsYou(markdown, null)).toMatchObject({ valid: true, problems: [] });
-    expect(observeNeedsYou(markdown.replace("design, trial", "design,,trial"), null).problems.length).toBeGreaterThan(0);
+    expect(observeNeedsYou(markdown.replace("design, trial", "waiting for evidence"), null).problems).toEqual([]);
+    expect(parseBacklog(markdown.replace("design, trial", "waiting for evidence"))[0]?.blockedByIds).toBeUndefined();
     const old = markdown.replace(" (plan: example) (needed-by: build, test) (blocked-by: design, trial)", "");
     expect(observeNeedsYou(old, null)).toMatchObject({ valid: true, problems: [] }); expect(parseBacklog(old)[0]?.plan).toBeUndefined();
   });
