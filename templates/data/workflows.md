@@ -69,9 +69,23 @@ external backup: coordinated loss of the log and its tips/publication metadata c
 truncated history, especially in older logs. Restore a known backup and reconcile worker/launch
 identities after such loss; never treat it as permission to restart work.
 
-Until every quarantined history is reconciled,
-new plans, identity edits, replacements, implicit launches, starts and claims are held: an unreadable
-plan may still own a live worker. Verified outcomes for healthy existing work can still be recorded.
+Only names matching the plan-id format are considered plans. Other root entries, including
+`desktop.ini` and `Thumbs.db`, are reported as ignored warnings in the agenda and do not hold work.
+A quarantined plan holds only conflicting task/host scopes. Publication records retain checked
+ownership capsules (scopes, attempts, worker/workspace identities and budget), even if the first
+event becomes unreadable. Older logs use their verified prefix. If all ownership metadata was lost,
+only the known plan/task id can be held, across hosts; restore a known backup to recover other lost
+identities. Unrelated launches and verified outcome records remain available.
+
+To retire an unreadable plan, inspect `node tools/workflow.mjs plan <id>` first. Its `quarantined`
+record gives the file fingerprint, problem, retained scopes and attempts. After inspecting any
+workers and launch records, run `node tools/workflow.mjs retire --plan <id> --expected <fingerprint>
+--evidence <inspection> --request-id <uuid>`. Both transport and daemon require the current first mate.
+Changed files require another inspection. Retirement appends a receipt under `.retired/`, with the
+evidence, author and retained inventory; it preserves all log, anchor and publication files. It
+closes the quarantine escalation, not the worker. The plan id and its task/host reservations stay
+retired permanently: retirement never refunds budget, resets attempts or permits a fresh duplicate.
+Restore backups for investigation, or plan genuinely new work with a new task identity.
 
 `release --plan <id> --node <id> --attempt <uuid> --evidence <inspection>` releases only a starting
 intent with no accounted worker and no issued launch record (a dry-run record is harmless). Restarting

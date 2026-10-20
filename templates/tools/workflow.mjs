@@ -54,6 +54,7 @@ export async function main(argv) {
   if (includeClosed && words[0] !== "plans") throw new Error("--all applies only to plans.");
   if (["plans", "agenda", "lint"].includes(words[0]) && words.length === 1) command = words[0] === "plans" ? { op: "plans", all: includeClosed } : { op: words[0] };
   else if (words[0] === "plan" && words[1] === "approve") command = { op: "approve", plan: options.plan, expected: options.expected, quote: options.quote };
+  else if (words[0] === "retire" && words.length === 1) command = { op: "retire", plan: options.plan, expected: options.expected, evidence: options.evidence };
   else if (["release", "invalidate", "validate", "replace"].includes(words[0])) command = { op: words[0], plan: options.plan, node: options.node, attempt: options.attempt, evidence: options.evidence,
     ...(words[0] === "validate" ? { expected: options.expected } : {}), ...(words[0] === "replace" ? { expected: options.expected, kind: options.kind, budget: { agents: Number(options.agents), turns: Number(options.turns) } } : {}) };
   else if (words[0] === "plan" && words[1] === "draft") command = { op: "draft", definition: await file() };

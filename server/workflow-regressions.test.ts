@@ -141,39 +141,55 @@ it("keeps a quarantined running owner's task reserved against a differently name
 
   await expect(execute({ op: "draft", definition: definition("fresh-plan") })).rejects.toThrow("ownership");
   await expect(execute({ op: "implicit", launch: PlanLaunchSchema.parse(run().launch) })).rejects.toThrow("ownership");
-  await expect(execute({ op: "start", plan: "fresh-plan", node: "build" })).rejects.toThrow("ownership");
-  await expect(execute({ op: "claim", plan: "fresh-plan", node: "build", attempt: randomUUID(), briefHash: started.launch.workflow.briefHash, launch: run().launch })).rejects.toThrow("ownership");
+  await expect(execute({ op: "start", plan: "fresh-plan", node: "build" })).rejects.toThrow();
+  await expect(execute({ op: "claim", plan: "fresh-plan", node: "build", attempt: randomUUID(), briefHash: started.launch.workflow.briefHash, launch: run().launch })).rejects.toThrow();
   expect(await store.get("fresh-plan")).toBeNull();
   expect(await readFile(join(root, "plan/00000002.json"), "utf8")).toBe("{");
 });
-it("holds new starts, claims and identity edits on healthy plans until ownership can be established", async () => {
+it("holds only conflicting task/host work while unrelated healthy starts and claims remain available", async () => {
   await execute({ op: "draft", definition: definition("plan") });
   const owner = await execute({ op: "start", plan: "plan", node: "build" });
   await execute({ op: "record", plan: "plan", node: "build", attempt: owner.launch.workflow.attempt, state: "running", agentId: "still-working", workspaceId: "original-space", evidence: "Verified live worker" });
   const healthy = definition("healthy", [run("next")]);
   await execute({ op: "draft", definition: healthy });
-  const original = await readFile(join(root, "plan/00000002.json"), "utf8");
   await writeFile(join(root, "plan/00000002.json"), "{");
-  await expect(execute({ op: "start", plan: "healthy", node: "next" })).rejects.toThrow("ownership");
   const p = (await store.get("healthy"))!;
   await expect(execute({ op: "revise", definition: definition("healthy", [run()]), expected: p.hash, reason: "Reuse task" })).rejects.toThrow("ownership");
 
-  // Repair only the fixture so an unclaimed intent can predate the quarantine.
-  await writeFile(join(root, "plan/00000002.json"), original);
   const intent = await execute({ op: "start", plan: "healthy", node: "next" });
-  await writeFile(join(root, "plan/00000002.json"), "{");
   const { workflow, ...launch } = intent.launch;
-  await expect(execute({ op: "claim", ...workflow, launch })).rejects.toThrow("ownership");
-  expect((await store.get("healthy"))?.nodes.next?.claimed).toBe(false);
+  await execute({ op: "claim", ...workflow, launch });
+  expect((await store.get("healthy"))?.nodes.next?.claimed).toBe(true);
   // Quarantine must still allow recording verified outcomes of existing healthy work.
   await execute({ op: "record", plan: "healthy", node: "next", attempt: workflow.attempt, state: "running", agentId: "known-worker", workspaceId: "known-space", evidence: "Reconciled existing create" });
   expect((await store.get("healthy"))?.nodes.next?.agentId).toBe("known-worker");
+  const remote = definition("remote-plan");
+  if (remote.nodes[0]!.kind !== "run") throw new Error("fixture"); remote.nodes[0]!.launch.host = "other-host";
+  await execute({ op: "draft", definition: remote });
+  const remoteStart = await execute({ op: "start", plan: "remote-plan", node: "build" });
+  const { workflow: remoteWorkflow, ...remoteLaunch } = remoteStart.launch;
+  await execute({ op: "claim", ...remoteWorkflow, launch: remoteLaunch });
+  expect((await store.get("remote-plan"))?.nodes.build?.claimed).toBe(true);
+});
+it.each(["desktop.ini", "Thumbs.db", ".DS_Store", "unfinished.tmp"])("reports and ignores non-plan root file %s without holding new work", async name => {
+  await execute({ op: "draft", definition: definition() }); await writeFile(join(root, name), "stray");
+  const read = await store.read(); expect(read.problems).toEqual([]); expect(read.quarantined).toEqual([]);
+  expect(read.warnings.join()).toContain(name);
+  expect((await execute({ op: "implicit", launch: PlanLaunchSchema.parse(run("next").launch) })).launch.workflow.attempt).toBeTruthy();
+  expect((await store.agenda()).some(i => i.kind === "books" && i.text.includes(name))).toBe(true);
+});
+it("retains scoped ownership from publication capsules even when the first event is unreadable", async () => {
+  await execute({ op: "draft", definition: definition("owner") });
+  await writeFile(join(root, "owner/00000000.json"), "{"); store = new WorkflowPlanStore(root, home);
+  expect((await store.read()).quarantined[0]?.inventory.scopes).toContainEqual({ node: "build", host: "local" });
+  await expect(execute({ op: "draft", definition: definition("duplicate") })).rejects.toThrow("ownership");
+  expect((await execute({ op: "implicit", launch: PlanLaunchSchema.parse(run("next").launch) })).launch.workflow.attempt).toBeTruthy();
 });
 it("quarantines a bad plan, interior gap and stray file without losing healthy plans or agenda", async () => {
   await execute({ op: "draft", definition: definition() });
   await mkdir(join(root, "broken")); await writeFile(join(root, "broken/00000000.json"), "{");
   await writeFile(join(root, "desktop.ini"), "stray");
-  const read = await store.read(); expect(read.plans).toHaveLength(1); expect(read.problems).toHaveLength(2);
+  const read = await store.read(); expect(read.plans).toHaveLength(1); expect(read.problems).toHaveLength(1); expect(read.warnings).toHaveLength(1);
   expect((await store.agenda()).some(i => i.kind === "start")).toBe(true);
 });
 const crashBeforeEvent = async (sequence: number, command: any) => {
@@ -206,6 +222,27 @@ it("refuses orphan-anchor repair when a launch record names an unknown attempt",
   await writeFile(join(home, "data/build/launches/1.json"), JSON.stringify({ workflow: { plan: "request", node: "build", attempt: randomUUID() } }));
   await expect(execute(command)).rejects.toThrow("unknown attempt");
   expect((await store.read()).problems.join()).toContain("tail");
+});
+it("never rolls back a legacy orphan anchor without publication metadata", async () => {
+  await execute({ op: "draft", definition: definition() });
+  const command = { op: "start", plan: "request", node: "build" };
+  await crashBeforeEvent(1, command);
+  const path = join(root, ".tips/request/00000001.json"), tip = JSON.parse(await readFile(path, "utf8"));
+  delete tip.publication; const bytes = JSON.stringify(tip); await writeFile(path, bytes);
+  store = new WorkflowPlanStore(root, home);
+  await expect(execute(command)).rejects.toThrow("tail");
+  expect(await readFile(path, "utf8")).toBe(bytes);
+  expect((await store.read()).problems.join()).toContain("tail");
+});
+it.each(["hash", "sequence"])("refuses a legacy publication marker whose %s does not match its event", async field => {
+  await execute({ op: "draft", definition: definition() });
+  const event = JSON.parse(await readFile(join(root, "request/00000000.json"), "utf8"));
+  // Older supported markers have no ownership capsule to mask the content guard.
+  const marker = { hash: event.hash, sequence: event.sequence, [field]: field === "hash" ? "0".repeat(64) : 99 };
+  await writeFile(join(root, ".published/request/00000000.json"), JSON.stringify(marker));
+  store = new WorkflowPlanStore(root, home);
+  await expect(store.get("request")).rejects.toThrow("publication marker");
+  await expect(execute({ op: "start", plan: "request", node: "build" })).rejects.toThrow("publication marker");
 });
 it("finishes publication after an event-before-marker crash without changing the committed attempt", async () => {
   await execute({ op: "draft", definition: definition() });

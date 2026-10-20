@@ -12,6 +12,7 @@ import { parseBacklog } from "./backlog";
 import { observeNeedsYou } from "./needs-you-detect";
 import { RemoteSnapshot } from "../shared/remotes";
 import { fill, readTemplate, TEMPLATES } from "./templates";
+import { mergeOwnership, ownershipCapsule, ownershipScope, planOwnership, readOwnershipCapsule, RetirementSchema, workflowHomeIdentity, type QuarantinedWorkflow, type WorkflowOwnership, type WorkflowRetirement } from "./workflow-ownership";
 
 const EventSchema = z.object({ version: z.literal(1), home: z.string().min(1), plan: PlanId, sequence: z.number().int().nonnegative(), previous: z.string().length(64).nullable(),
   requestId: z.uuid(), requestHash: z.string().length(64), at: z.iso.datetime(), by: z.string().min(1),
@@ -133,8 +134,67 @@ export class WorkflowPlanStore {
   private directory(id: string) { return join(this.root, PlanId.parse(id)); }
   private tips(id: string) { return join(this.root, ".tips", PlanId.parse(id)); }
   private published(id: string) { return join(this.root, ".published", PlanId.parse(id)); }
+  private retired(id: string) { return join(this.root, ".retired", PlanId.parse(id)); }
   private async names(directory: string): Promise<string[]> {
-    try { return (await readdir(directory)).sort(); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return []; throw e; }
+    try { return (await readdir(directory)).sort(); } catch (e) { if (["ENOENT", "ENOTDIR"].includes((e as NodeJS.ErrnoException).code ?? "")) return []; throw e; }
+  }
+  private async retirement(id: string): Promise<WorkflowRetirement | undefined> {
+    const names = (await this.names(this.retired(id))).filter(f => /^[a-f0-9-]{36}\.json$/.test(f));
+    if (!names.length) return;
+    if (names.length !== 1) throw new Error("Conflicting quarantine retirements require reconciliation.");
+    const record = RetirementSchema.parse(JSON.parse(await readFile(join(this.retired(id), names[0]!), "utf8")));
+    const { hash, ...body } = record;
+    if (digest(body) !== hash || body.home !== workflowHomeIdentity(this.home) || body.plan !== id || names[0] !== `${body.requestId}.json`) throw new Error("Invalid quarantine retirement receipt.");
+    return record;
+  }
+  private async quarantine(id: string, problem: string): Promise<QuarantinedWorkflow> {
+    try { return await this.quarantineEvidence(id, problem); }
+    catch (error) { return { plan: id, problem: `${problem} Ownership inspection failed: ${String(error)}`, fingerprint: digest([id, problem, String(error)]), inventory: { scopes: [{ node: id, host: null }], attempts: [], budget: { agents: 0, turns: 0 } } }; }
+  }
+  private async quarantineEvidence(id: string, problem: string): Promise<QuarantinedWorkflow> {
+    const identities: unknown[] = [], inventories: WorkflowOwnership[] = [];
+    // Published capsules remain usable when the event itself cannot be projected.
+    for (const directory of [this.directory(id), this.tips(id), this.published(id)]) for (const name of await this.names(directory)) {
+      const path = join(directory, name), info = await stat(path);
+      if (!info.isFile() || info.size > 512000) { identities.push([directory, name, info.size, info.mtimeMs]); continue; }
+      const bytes = await readFile(path); identities.push([directory, name, digest(bytes.toString("base64"))]);
+      if (directory === this.published(id) && /^\d{8}\.json$/.test(name)) {
+        try { const marker = JSON.parse(bytes.toString("utf8")); if (marker.ownership) inventories.push(readOwnershipCapsule(marker.ownership, this.home, id, marker.hash)); }
+        catch { /* A damaged capsule is never trusted as ownership evidence. */ }
+      }
+    }
+    // Pre-capsule logs retain the scopes and attempts from their verified prefix.
+    let prefix: WorkflowPlan | null = null;
+    for (const name of (await this.names(this.directory(id))).filter(f => /^\d{8}\.json$/.test(f))) {
+      try {
+        const raw = JSON.parse(await readFile(join(this.directory(id), name), "utf8")), event = EventSchema.parse(raw);
+        const tip = JSON.parse(await readFile(join(this.tips(id), name), "utf8"));
+        if (checksum(raw) !== raw.hash || raw.requestHash !== digest(raw.command) || workflowHomeIdentity(event.home) !== workflowHomeIdentity(this.home) || event.plan !== id || event.sequence !== (prefix ? prefix.sequence + 1 : 0) || event.previous !== (prefix?.hash ?? null) || tip.hash !== event.hash || tip.sequence !== event.sequence) break;
+        prefix = reduce(prefix, event); inventories.push(planOwnership(prefix));
+      } catch { break; }
+    }
+    const retirement = await this.retirement(id);
+    if (retirement) inventories.push(retirement.inventory);
+    const inventory = mergeOwnership(inventories);
+    // If all ownership evidence was lost, reserve the known plan/task id, never the whole home.
+    if (!inventory.scopes.length) inventory.scopes.push({ node: id, host: null });
+    return { plan: id, problem, fingerprint: digest(identities), inventory, ...(retirement ? { retirement } : {}) };
+  }
+  private async retire(command: Extract<WorkflowCommand, { op: "retire" }>, requestId: string, by: string) {
+    const existing = await this.retirement(command.plan);
+    if (existing) {
+      if (existing.requestId !== requestId || existing.requestHash !== digest(command)) throw new Error("Quarantine is already retired; its history and reservations remain retained.");
+      return existing;
+    }
+    const read = await this.read(), quarantined = read.quarantined.find(q => q.plan === command.plan);
+    if (!quarantined) throw new Error("Only a quarantined plan can be retired.");
+    if (quarantined.fingerprint !== command.expected) throw new Error("Quarantined files changed since inspection; inspect again before retirement.");
+    const body = { version: 1 as const, home: workflowHomeIdentity(this.home), plan: command.plan, requestId, requestHash: digest(command), at: new Date().toISOString(), by,
+      expected: command.expected, evidence: command.evidence, inventory: quarantined.inventory };
+    await mkdir(this.retired(command.plan), { recursive: true });
+    const receipt = { ...body, hash: digest(body) };
+    await publish(join(this.retired(command.plan), `${requestId}.json`), receipt);
+    return receipt;
   }
   private async events(id: string, unpublishedTip?: string, allowUnpublished = false): Promise<Event[]> {
     let files: string[];
@@ -161,6 +221,7 @@ export class WorkflowPlanStore {
       if (published.includes(name)) {
         const marker = JSON.parse(await readFile(join(this.published(id), name), "utf8"));
         if (marker.hash !== event.hash || marker.sequence !== event.sequence) throw new Error(`Plan log ${id} failed its publication marker.`);
+        if (marker.ownership) readOwnershipCapsule(marker.ownership, this.home, id, event.hash);
       }
       const identity = (home: string) => process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home);
       if (identity(event.home) !== identity(this.home) || event.plan !== id || event.sequence !== events.length || event.previous !== previous || tip.hash !== event.hash || tip.sequence !== event.sequence) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
@@ -182,7 +243,8 @@ export class WorkflowPlanStore {
         const tip = JSON.parse(await readFile(join(this.tips(id), name), "utf8"));
         if (tip.publication === 1 && !published.includes(name)) {
           await mkdir(this.published(id), { recursive: true });
-          await publish(join(this.published(id), name), { sequence: event.sequence, hash: event.hash });
+          const plan = events.slice(0, event.sequence + 1).reduce<WorkflowPlan | null>(reduce, null)!;
+          await publish(join(this.published(id), name), { sequence: event.sequence, hash: event.hash, ownership: ownershipCapsule(this.home, plan) });
         }
       }
       return;
@@ -232,6 +294,7 @@ export class WorkflowPlanStore {
     return plan;
   }
   async get(id: string): Promise<WorkflowPlan | null> {
+    if (await this.retirement(id)) throw new Error(`Plan ${id} is retired; its history, budget and task reservations remain retained.`);
     const key = `${resolve(this.root)}:${resolve(this.home)}:${id}`, identities: unknown[] = [];
     for (const directory of [this.directory(id), this.tips(id), this.published(id)]) {
       let names: string[]; try { names = (await readdir(directory)).sort(); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; names = []; }
@@ -244,13 +307,15 @@ export class WorkflowPlanStore {
     if (WorkflowPlanStore.cache.size > 2000) WorkflowPlanStore.cache.clear();
     WorkflowPlanStore.cache.set(key, { identity, plan }); return structuredClone(plan);
   }
-  async read(): Promise<{ plans: WorkflowPlan[]; problems: string[] }> {
+  async read(): Promise<{ plans: WorkflowPlan[]; problems: string[]; warnings: string[]; quarantined: QuarantinedWorkflow[]; unavailable?: boolean }> {
     let entries;
-    try { entries = await readdir(this.root, { withFileTypes: true }); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return { plans: [], problems: [] }; return { plans: [], problems: [String(e)] }; }
-    const plans: WorkflowPlan[] = [], problems: string[] = [];
-    const ids = new Set(entries.filter(e => ![".tips", ".published"].includes(e.name)).map(e => e.name));
-    for (const directory of [".tips", ".published"]) {
-      try { for (const id of await readdir(join(this.root, directory))) ids.add(id); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") problems.push(String(e)); }
+    try { entries = await readdir(this.root, { withFileTypes: true }); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return { plans: [], problems: [], warnings: [], quarantined: [] }; return { plans: [], problems: [String(e)], warnings: [], quarantined: [], unavailable: true }; }
+    const plans: WorkflowPlan[] = [], problems: string[] = [], warnings: string[] = [], quarantined: QuarantinedWorkflow[] = [];
+    const ids = new Set<string>(), reserved = [".tips", ".published", ".retired"];
+    const consider = (name: string) => { if (PlanId.safeParse(name).success) ids.add(name); else warnings.push(`Ignored non-plan entry: ${name}.`); };
+    for (const entry of entries) if (!reserved.includes(entry.name)) consider(entry.name);
+    for (const directory of reserved) {
+      try { for (const id of await readdir(join(this.root, directory))) consider(id); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") return { plans, problems: [String(e)], warnings, quarantined, unavailable: true }; }
     }
     for (const id of ids) {
       try {
@@ -258,12 +323,18 @@ export class WorkflowPlanStore {
         if (plan) plans.push(plan);
         else {
           const recovered = await this.recoveries(id);
-          if (!recovered.length || recovered.some(r => r.sequence !== 0 || r.previous !== null)) problems.push(`Plan ${id}: empty or stray plan entry.`);
+          if (!recovered.length || recovered.some(r => r.sequence !== 0 || r.previous !== null)) throw new Error("Empty or stray plan entry.");
         }
       }
-      catch (error) { problems.push(`Plan ${id}: ${error instanceof Error ? error.message : String(error)}`); }
+      catch (error) {
+        const problem = `Plan ${id}: ${error instanceof Error ? error.message : String(error)}`;
+        const held = await this.quarantine(id, problem);
+        quarantined.push(held);
+        if (held.retirement) warnings.push(`Retired quarantine ${id}: ${held.retirement.evidence} Task reservations remain held.`);
+        else problems.push(problem);
+      }
     }
-    return { plans: plans.sort((a, b) => a.definition.id.localeCompare(b.definition.id)), problems };
+    return { plans: plans.sort((a, b) => a.definition.id.localeCompare(b.definition.id)), problems, warnings, quarantined };
   }
   async list(): Promise<WorkflowPlan[]> { return (await this.read()).plans; }
   async brief(node: PlanNode): Promise<{ hash: string; text: string }> {
@@ -276,7 +347,10 @@ export class WorkflowPlanStore {
   async execute(input: WorkflowCommand, requestId: string, by: string): Promise<unknown> {
     const command = WorkflowCommandSchema.parse(input); z.uuid().parse(requestId);
     if (command.op === "plans") return (await this.list()).filter(p => command.all || (!planFinished(p) && p.status !== "abandoned"));
-    if (command.op === "show") { const plan = await this.get(command.plan); return plan ? { ...plan, finished: planFinished(plan) } : null; }
+    if (command.op === "show") {
+      try { const plan = await this.get(command.plan); return plan ? { ...plan, finished: planFinished(plan) } : null; }
+      catch (error) { return { quarantined: await this.quarantine(command.plan, error instanceof Error ? error.message : String(error)) }; }
+    }
     if (command.op === "agenda") return this.agenda();
     if (command.op === "lint") {
       let catalog: z.infer<typeof RemoteSnapshot> | null = null;
@@ -285,16 +359,20 @@ export class WorkflowPlanStore {
       return observeNeedsYou(await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8"), catalog);
     }
     return serialized(resolve(this.root), async () => {
+      if (command.op === "retire") return this.retire(command, requestId, by);
       const id = command.op === "draft" || command.op === "revise" ? command.definition.id : command.op === "implicit" ? command.launch.id : command.plan;
+      if (await this.retirement(id)) throw new Error(`Plan ${id} is retired; its history, budget and task reservations remain retained.`);
       await this.recoverUnpublishedTip(id);
       const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>(reduce, null);
       const replay = events.find(e => e.requestId === requestId);
       if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); return this.renderedResult(previous!, replay); }
-      const { plans, problems: inventoryProblems } = await this.read();
-      // A quarantined history can still own a live worker. Its absence from the
-      // healthy projection cannot establish that a task identity is available.
-      if (inventoryProblems.length && ["draft", "revise", "implicit", "start", "claim", "replace"].includes(command.op)) {
-        throw new Error(`Cannot establish task ownership; reconcile quarantined plans before creating or dispatching work.\n${inventoryProblems.join("\n")}`);
+      const { plans, quarantined, unavailable } = await this.read();
+      const ownsWork = ["draft", "revise", "implicit", "start", "claim", "replace"].includes(command.op);
+      const candidates = command.op === "draft" || command.op === "revise" ? command.definition.nodes.map(ownershipScope) : command.op === "implicit" ? [{ node: command.launch.id, host: command.launch.host.trim().toLowerCase() }] :
+        ownsWork ? previous?.definition.nodes.filter(n => "node" in command && n.id === command.node).map(ownershipScope) ?? [] : [];
+      const conflicts = quarantined.filter(q => candidates.some(candidate => q.inventory.scopes.some(held => held.node === candidate.node && (held.host === null || held.host === candidate.host))));
+      if (ownsWork && (unavailable || conflicts.length)) {
+        throw new Error(`Cannot establish task ownership for this task/host scope; inspect or retire its quarantined plan without resetting its attempts.\n${conflicts.map(q => q.problem).join("\n")}`);
       }
       if (command.op === "draft" || command.op === "revise") {
         const removed = new Set([...(previous?.removed ?? []).map(r => r.node.id), ...(previous?.definition.nodes ?? []).filter(n => !command.definition.nodes.some(next => next.id === n.id)).map(n => n.id)]);
@@ -344,7 +422,7 @@ export class WorkflowPlanStore {
       await publish(join(this.directory(id), `${String(event.sequence).padStart(8, "0")}.json`), event);
       // This separate receipt is committed before returning any intent or result.
       await mkdir(this.published(id), { recursive: true });
-      await publish(join(this.published(id), `${String(event.sequence).padStart(8, "0")}.json`), { sequence: event.sequence, hash: event.hash });
+      await publish(join(this.published(id), `${String(event.sequence).padStart(8, "0")}.json`), { sequence: event.sequence, hash: event.hash, ownership: ownershipCapsule(this.home, next) });
       return this.renderedResult(next, event);
     });
   }
@@ -396,7 +474,10 @@ export class WorkflowPlanStore {
     finally { await rm(temporary, { force: true }); }
   }
   async agenda(): Promise<AgendaItem[]> {
-    const { plans, problems } = await this.read(), result: AgendaItem[] = problems.map((text, n) => ({ id: `plan-problem:${n}`, kind: "escalation", priority: 1, plan: "unavailable", text }));
+    const { plans, problems, warnings } = await this.read(), result: AgendaItem[] = [
+      ...problems.map((text, n): AgendaItem => ({ id: `plan-problem:${n}`, kind: "escalation", priority: 1, plan: "unavailable", text })),
+      ...warnings.map((text, n): AgendaItem => ({ id: `plan-warning:${n}`, kind: "books", priority: 6, plan: "unavailable", text })),
+    ];
     let backlog = ""; try { backlog = await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8"); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
     const items = parseBacklog(backlog);
     for (const plan of plans) {

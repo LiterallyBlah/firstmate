@@ -56,6 +56,7 @@ export const WorkflowCommandSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("agenda") }).strict(),
   z.object({ op: z.literal("lint") }).strict(),
   z.object({ op: z.literal("show"), plan: PlanId }).strict(),
+  z.object({ op: z.literal("retire"), plan: PlanId, expected: z.string().length(64), evidence: z.string().min(1).max(10000) }).strict(),
   z.object({ op: z.literal("draft"), definition: PlanDefinitionSchema }).strict(),
   z.object({ op: z.literal("revise"), definition: PlanDefinitionSchema, expected: z.string().length(64), reason: z.string().min(1).max(5000) }).strict(),
   z.object({ op: z.literal("start"), plan: PlanId, node: PlanId }).strict(),

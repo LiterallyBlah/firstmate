@@ -40,3 +40,33 @@ it("transports plans, an implicit start, records, read-only agenda and idempoten
   expect(await run(["start", "--file", "data/task/request.json"], "guest")).toMatchObject({ ok: false, error: expect.stringContaining("current first mate") });
   expect(await run(["start", "--file", "../outside.json"])).toMatchObject({ ok: false });
 });
+it("retires a quarantined plan through the first-mate tool while retaining files, attempts and scoped reservations", async () => {
+  const launch = { id: "task", title: "Task", agentTitle: "Task", project: "project", host: "local", baseBranch: "main", kind: "ship", mode: "direct-PR", brief: { file: "data/task/brief.md" }, agent: { provider: "codex/model", modeId: "full-access" }, backlog: { existing: "none" } };
+  await writeFile(join(home, "data/task/request.json"), JSON.stringify(launch));
+  const started = await run(["start", "--file", "data/task/request.json"]), attempt = started.result.launch.workflow.attempt;
+  await run(["record", "--plan", "task", "--node", "task", "--attempt", attempt, "--state", "running", "--agent", "worker", "--workspace", "space", "--evidence", "Inspected existing worker"]);
+  const first = await readFile(join(home, "ledger/task/00000000.json"), "utf8"), damaged = join(home, "ledger/task/00000001.json");
+  await writeFile(damaged, "{");
+  const inspection = (await run(["plan", "task"], "guest")).result.quarantined;
+  const requestId = randomUUID(), command = { op: "retire", plan: "task", expected: inspection.fingerprint, evidence: "Inspected worker; work remains accounted in its original workspace" };
+  const args = ["retire", "--plan", "task", "--expected", command.expected, "--evidence", command.evidence, "--request-id", requestId];
+  expect(await run(args, "guest")).toMatchObject({ ok: false, error: expect.stringContaining("current first mate") });
+  // A forged queued command must independently pass the daemon's current-role guard.
+  const forged = randomUUID();
+  await writeFile(join(home, `data/workflow-requests/${forged}.json`), JSON.stringify({ id: forged, actor: "former", command }));
+  await processWorkflowRequests(home, store, async actor => { if (actor !== "mate") throw new Error("Wrong role"); });
+  expect(JSON.parse(await readFile(join(home, `data/workflow-requests/${forged}.reply.json`), "utf8"))).toMatchObject({ ok: false, error: "Wrong role" });
+  await writeFile(damaged, "{ changed");
+  expect(await run(args)).toMatchObject({ ok: false, error: expect.stringContaining("changed since inspection") });
+  const current = (await run(["plan", "task"])).result.quarantined;
+  command.expected = current.fingerprint; args[4] = current.fingerprint; args[8] = randomUUID();
+  const retired = await run(args); expect(retired.ok).toBe(true); expect(await run(args)).toEqual(retired);
+  expect(await store.execute(command as any, args[8]!, "mate")).toEqual(retired.result);
+  expect(retired.result.inventory.attempts).toContainEqual({ node: "task", attempt, spent: 1, agentId: "worker", workspaceId: "space" });
+  expect(retired.result.inventory.budget).toEqual({ agents: 1, turns: 1 });
+  expect(await readFile(join(home, "ledger/task/00000000.json"), "utf8")).toBe(first); expect(await readFile(damaged, "utf8")).toBe("{ changed");
+  expect((await store.read()).problems).toEqual([]); expect((await store.read()).warnings.join()).toContain("Retired quarantine task");
+  expect(await run(["start", "--file", "data/task/request.json"])).toMatchObject({ ok: false, error: expect.stringContaining("retired") });
+  const clone = { format: "firstmate.plan/1", id: "clone", title: "Clone", request: { text: "Reuse task", at: "2026-10-20T12:00:00Z" }, budget: { agents: 1, turns: 1 }, nodes: [{ id: "task", title: "Task", summary: "Task", kind: "run", workflow: "task@1", launch }] };
+  await expect(store.execute({ op: "draft", definition: clone } as any, randomUUID(), "mate")).rejects.toThrow("ownership");
+});

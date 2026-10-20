@@ -36,8 +36,12 @@ truncation. New publication markers detect losing an exposed event and its tip t
 unpublished final anchor can be dropped automatically under the mutation lock, after validating the
 prefix and checking launch records for unknown attempts; an append-only recovery receipt records it
 in history. Old anchors without publication metadata still require deliberate reconciliation.
-Reads cache event-file
-identity; finished implicit plans leave the agenda. Removal tombstones reconcile scoped backlog
+Publication records also retain checked task/host ownership capsules, attempts and budget. Quarantine
+holds only conflicting scopes; non-plan names are reported warnings. `workflow.mjs retire` requires
+the current mate and inspected-file fingerprint, appends evidence without changing damaged files,
+and permanently retains the plan id, attempts, budget and scoped reservations. Legacy missing
+ownership metadata cannot identify unknown lost tasks; restore a backup rather than guessing.
+Reads cache event-file identity; finished implicit plans leave the agenda. Removal tombstones reconcile scoped backlog
 rows. Explicit release, invalidate/validate and replace transitions preserve history and cumulative
 budget; manual replacement/promotion keeps the workspace and task identity. Legacy unscoped logs
 and missing anchors require deliberate reconciliation, never an automatic budget reset.
