@@ -117,7 +117,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     if (state.agentId && c.agentId && state.agentId !== c.agentId) throw new Error("Cannot replace an accounted worker.");
     const priorWorkspace = state.priorAttempts?.at(-1)?.workspaceId;
     if (priorWorkspace && c.workspaceId && c.workspaceId !== priorWorkspace) throw new Error("Manual replacement must preserve the workspace identity.");
-    next.nodes[c.node] = { ...state, state: c.state, evidence: c.evidence, ...(c.agentId ? { agentId: c.agentId } : {}), ...(c.workspaceId ? { workspaceId: c.workspaceId } : {}) };
+    next.nodes[c.node] = { ...state, state: c.state, evidence: c.evidence, ...(terminal(c.state) ? { completedAt: event.at } : {}), ...(c.agentId ? { agentId: c.agentId } : {}), ...(c.workspaceId ? { workspaceId: c.workspaceId } : {}) };
   }
   if (c.op === "ack") next[c.kind] = [...new Set([...next[c.kind], ...c.ids])];
   return { ...next, hash: event.hash, sequence: event.sequence };

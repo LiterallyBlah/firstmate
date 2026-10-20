@@ -38,7 +38,7 @@ export type PlanDefinition = z.infer<typeof PlanDefinitionSchema>;
 export type NodeState = "planned" | "starting" | "running" | "done" | "landed" | "failed" | "cancelled" | "unresolved";
 export interface PlanNodeState { state: NodeState; attempt?: string; claimed?: boolean; agentId?: string; workspaceId?: string; evidence?: string; briefHash?: string; answer?: string;
   launch?: PlanLaunch; held?: string; invalidated?: string;
-  priorAttempts?: PlanNodeState[]; spent?: number }
+  priorAttempts?: PlanNodeState[]; spent?: number; completedAt?: string }
 export interface WorkflowPlan {
   definition: PlanDefinition; revision: number; sequence: number; hash: string; posture: "review" | "sail";
   status: "review" | "active" | "held" | "abandoned"; approvedBudget: { agents: number; turns: number };
