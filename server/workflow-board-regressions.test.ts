@@ -68,6 +68,25 @@ it("refuses a captain host edit into a quarantined task scope without holding an
   expect((await workflowStore(home).get("other-host"))?.hash).toBe(p.hash);
   expect((await execute({ op: "start", plan: "other-host", node: "broken-task" })).launch.workflow.attempt).toBeTruthy();
 });
+it("does not count a quarantined prerequisite as satisfied by another host's same-named result", async () => {
+  const source = workflowFixture(); source.id = "unreadable"; source.nodes = [source.nodes[0]!]; source.nodes[0]!.id = "broken-task";
+  if (source.nodes[0]!.kind !== "run") throw new Error("fixture");
+  source.nodes[0]!.launch.id = "broken-task"; source.nodes[0]!.launch.brief.file = "data/broken-task/brief.md";
+  await execute({ op: "draft", definition: source }); await writeFile(join(workflowStore(home).root, "unreadable/00000000.json"), "{");
+  source.id = "remote-result"; source.nodes[0]!.launch.host = "remote";
+  await execute({ op: "draft", definition: source }); const start = await execute({ op: "start", plan: "remote-result", node: "broken-task" });
+  await execute({ op: "record", plan: "remote-result", node: "broken-task", attempt: start.launch.workflow.attempt, state: "done", evidence: "Verified separate host's result" });
+  const follow = workflowFixture(); follow.id = "dependent"; follow.nodes.shift(); follow.request = { ...follow.request, posture: "sail", quote: "Choose after verified evidence" };
+  follow.nodes[0]!.id = "followup-choice"; follow.nodes[0]!.title = "Followup choice"; follow.nodes[0]!.after = [{ node: "broken-task", reason: "needs-evidence", on: "done" }];
+  const build = follow.nodes[1]!; build.id = "followup-build"; build.after = [{ node: "followup-choice", reason: "decision", on: "answered" }];
+  if (build.kind !== "run") throw new Error("fixture"); build.launch.id = build.id; build.launch.brief.file = `data/${build.id}/brief.md`;
+  await execute({ op: "draft", definition: follow });
+  const view = await workflowSnapshot(home);
+  expect(view.now.some(n => n.plan === "dependent")).toBe(false); expect(view.comingUp.some(n => n.node === "followup-choice")).toBe(true);
+  const needs = await withWorkflowNeeds({ actionCount: 0, newCount: 0, requests: [], parked: [], freshness: { status: "fresh" } } as any, home, view);
+  expect(needs.actionCount).toBe(1); // Only the original scheduler's plan approval is due.
+  expect((await workflowBearings(home)).split("Recently Landed")[0]).not.toContain("Followup choice");
+});
 it("counts a due cross-plan choice after its completed implicit prerequisite leaves presentation", async () => {
   // Use a separate home to reproduce an implicit trial followed by an explicit plan.
   home = join(home, "cross-plan");
