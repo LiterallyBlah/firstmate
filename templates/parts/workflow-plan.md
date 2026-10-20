@@ -13,3 +13,7 @@ These one-step runs are dispatched by the first mate. Approval authorizes work a
 ## Revisions
 
 {{history}}
+
+## Plan actions
+
+{{actions}}

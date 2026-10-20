@@ -60,6 +60,8 @@ export function watchSummary(trimmed: string): string | null {
  */
 export function injectedSummary(text: string, clientMessageId?: string): string | null {
   const trimmed = text.trim();
+  const plan = planNoteSummary(trimmed, clientMessageId);
+  if (plan) return plan;
   if (isWatchMessageId(clientMessageId)) {
     const watch = watchSummary(trimmed);
     if (watch !== null) return watch;
@@ -74,6 +76,18 @@ export function injectedSummary(text: string, clientMessageId?: string): string 
     return first ?? tag;
   }
   return null;
+}
+
+/** Only an owned, complete plan-action envelope can fold; pasted examples remain the captain's words. */
+export function planNoteSummary(text: string, clientMessageId?: string): string | null {
+  if (!/^firstmate-plan-[0-9a-f-]{36}$/.test(clientMessageId ?? "")) return null;
+  const body = /^<firstmate-plan>\r?\n([\s\S]*)\r?\n<\/firstmate-plan>$/.exec(text.trim())?.[1];
+  if (!body || /<\/?firstmate-plan>/.test(body)) return null;
+  try {
+    const action: unknown = JSON.parse(body.trim().split(/\r?\n/).at(-1)!);
+    if (!action || typeof action !== "object" || !("action" in action)) return null;
+    return ({ approve: "Plan approved", edit: "Plan approved with edits", changes: "Plan changes requested", hold: "Plan held", decline: "Plan declined", answer: "Plan decision answered" } as Record<string, string>)[String(action.action)] ?? null;
+  } catch { return null; }
 }
 
 /** One line, at most `max` characters. */

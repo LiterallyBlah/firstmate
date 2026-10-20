@@ -1,7 +1,7 @@
 import { decisionAnswerSummary, DECISION_ANSWER_KIND } from "./decision-answer-summary";
 import type { PluginTimelineTransformerContribution } from "@getpaseo/plugin/client";
 
-import { injectedSummary, watchSummary } from "./transcript-rows";
+import { injectedSummary, watchSummary, planNoteSummary } from "./transcript-rows";
 
 export const MACHINE_NOTE_KIND = "firstmate-machine-note";
 
@@ -10,7 +10,9 @@ export const MACHINE_NOTE_KIND = "firstmate-machine-note";
  * qualify; the existing Chat parser is deliberately more lenient and also knows
  * Paseo's system notes. Never apply that parser directly to arbitrary host rows.
  */
-export function nativeNoteSummary(text: string): string | null {
+export function nativeNoteSummary(text: string, clientMessageId?: string): string | null {
+  const plan = planNoteSummary(text, clientMessageId);
+  if (plan) return plan;
   if (text.startsWith("<firstmate-board>")) {
     if (!/^<firstmate-board>\s*\n[\s\S]*\n<\/firstmate-board>\s*$/.test(text)) return null;
     const body = text.slice("<firstmate-board>".length, text.lastIndexOf("</firstmate-board>"));
@@ -44,7 +46,7 @@ export const nativeChatTransformer: PluginTimelineTransformerContribution<"user_
   transform({ item }) {
     const answer = decisionAnswerSummary(item.text, item.clientMessageId);
     if (answer) return { items: [{ type: "plugin", kind: DECISION_ANSWER_KIND, version: 1, data: answer }] };
-    const summary = nativeNoteSummary(item.text);
+    const summary = nativeNoteSummary(item.text, item.clientMessageId);
     if (summary === null) return undefined;
     return {
       items: [{ type: "plugin", kind: MACHINE_NOTE_KIND, version: 1, data: { summary, original: item.text } }],

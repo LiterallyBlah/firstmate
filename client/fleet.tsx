@@ -766,7 +766,7 @@ function FleetViewBody({
       ) : null}
       {hostCards.length > 0 && filteredCards.length === 0 ? (
         <Text style={{ color: theme.colors.foregroundMuted, padding: 12 }}>
-          No items match the selected filters on this host.
+          {planFilter ? "No items match the selected plan and filters on this host." : "No items match the selected tags on this host."}
         </Text>
       ) : null}
       {crewView === "list" ? (

@@ -24,7 +24,7 @@ export async function queuePlanNotes(home: string): Promise<void> {
   for (const plan of await store.list()) for (const action of plan.captainEvents ?? []) {
     if (action.notified) continue;
     const id = `firstmate-plan-${action.id}`;
-    const text = await message(TEMPLATES.workflowNote, { action: JSON.stringify({ plan: plan.definition.id, ...action }) });
+    const text = await message(TEMPLATES.workflowNote, { action: JSON.stringify({ plan: plan.definition.id, ...action }).replace(/</g, "\\u003c") });
     await serialized("firstmate.mate.notes", async () => {
       const config = await readFirstmateConfig();
       if (resolveHome(config) !== home) throw new Error("Home changed while queuing a plan note.");

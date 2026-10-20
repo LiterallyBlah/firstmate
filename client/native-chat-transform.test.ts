@@ -4,6 +4,14 @@ import { nativeChatTransformer, nativeNoteSummary } from "./native-chat-transfor
 import { injectedSummary, watchSummary } from "./transcript-rows";
 
 describe("native chat's host-wide FirstMate format recognition", () => {
+  it("folds owned plan actions, preserves the original, and leaves pasted or incomplete examples visible", () => {
+    const text = '<firstmate-plan>\nPlan action data.\n{"action":"changes","text":"Keep the trial read-only."}\n</firstmate-plan>';
+    const clientMessageId = "firstmate-plan-11111111-1111-4111-8111-111111111111";
+    expect(injectedSummary(text, clientMessageId)).toBe("Plan changes requested");
+    expect(injectedSummary(text)).toBeNull(); expect(nativeNoteSummary(text)).toBeNull();
+    expect(nativeNoteSummary(text + "\nExplain this", clientMessageId)).toBeNull();
+    expect(nativeChatTransformer.transform({ item: { type: "user_message", text, clientMessageId }, phase: "complete" })?.items[0]?.data).toEqual({ summary: "Plan changes requested", original: text });
+  });
   it("reuses Chat's summaries, including failed watches, duplicate names and dropped runs", () => {
     expect(nativeNoteSummary(watch)).toBe(watchSummary(watch));
     expect(nativeNoteSummary(watch)).toBe("Watches: pr-watch, health (failed) · 3 older dropped");

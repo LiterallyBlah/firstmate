@@ -88,6 +88,10 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
     </View>)}
     <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Revision history</Text>
     {plan.history.map(h => <Text key={h.revision} style={{ color: colors.foregroundMuted }}>{h.revision} · {h.by} · {h.reason}</Text>)}
+    {plan.captainEvents?.length ? <>
+      <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Plan actions</Text>
+      {plan.captainEvents.map(a => <Text key={a.id} selectable style={{ color: colors.foregroundMuted }}>{new Date(a.at).toLocaleString()} · {a.action}{a.text ? ` · ${a.text}` : ""}</Text>)}
+    </> : null}
     {plan.status !== "abandoned" ? <>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         <Button theme={theme} label="Approve" disabled={disabled} onPress={() => void send("approve")} />

@@ -520,6 +520,7 @@ export class WorkflowPlanStore {
       budget: JSON.stringify(planWorstCase(plan.definition, plan.nodes)),
       nodes: nodes.join("\n\n"),
       history: plan.history.map(h => `- ${h.revision} · ${h.at} · ${h.by} · ${h.reason}`).join("\n"),
+      actions: (plan.captainEvents ?? []).map(a => `- ${a.at} · ${a.action}${a.text ? ` · ${a.text}` : ""}`).join("\n"),
     });
     const temporary = `${path.absolute}.${randomUUID()}.tmp`;
     try { await writeFile(temporary, content, { flag: "wx" }); await rename(temporary, path.absolute); }
