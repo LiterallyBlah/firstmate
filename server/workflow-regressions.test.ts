@@ -7,6 +7,7 @@ import { backlogSection, dependenciesMet, planBacklogLine, WorkflowPlanStore } f
 import { authorizeWorkflowActor, processWorkflowRequests, workflowStore } from "./workflow-service";
 import { observeNeedsYou } from "./needs-you-detect";
 import { parseBacklog } from "./backlog";
+import * as submissions from "./submissions";
 
 let home: string, root: string, store: WorkflowPlanStore;
 const run = (id = "build") => ({ id, title: id, summary: "Do the work", kind: "run", workflow: "task@1", after: [],
@@ -54,6 +55,19 @@ it("commits satisfied dependency evidence in the exact claimed launch", async ()
   const second = await execute({ op: "start", plan: "request", node: "next" });
   expect(second.launch.dependency.satisfiedBy).toContain("build: done");
   const { workflow, ...launch } = second.launch; await execute({ op: "claim", ...workflow, launch });
+});
+it("checks the current brief in the store itself before claiming an exact start", async () => {
+  await execute({ op: "draft", definition: definition() });
+  const intent = await execute({ op: "start", plan: "request", node: "build" });
+  const { workflow, ...launch } = intent.launch, before = (await store.get("request"))!;
+  const path = join(home, "data/build/brief.md"), original = await readFile(path, "utf8");
+  await writeFile(path, `${original}\nChanged assumptions`);
+  await expect(execute({ op: "claim", ...workflow, launch })).rejects.toThrow("Brief changed since start");
+  expect((await new WorkflowPlanStore(root, home).get("request"))?.hash).toBe(before.hash);
+  expect((await store.get("request"))?.nodes.build?.claimed).toBe(false);
+  await writeFile(path, original);
+  await execute({ op: "claim", ...workflow, launch });
+  expect((await store.get("request"))?.nodes.build?.claimed).toBe(true);
 });
 it("keeps unlanded ship completion in flight and preserves the existing captain hold and PR", async () => {
   await execute({ op: "draft", definition: definition() }); const started = await execute({ op: "start", plan: "request", node: "build" });
@@ -161,6 +175,64 @@ it("quarantines a bad plan, interior gap and stray file without losing healthy p
   await writeFile(join(root, "desktop.ini"), "stray");
   const read = await store.read(); expect(read.plans).toHaveLength(1); expect(read.problems).toHaveLength(2);
   expect((await store.agenda()).some(i => i.kind === "start")).toBe(true);
+});
+const crashBeforeEvent = async (sequence: number, command: any) => {
+  const original = submissions.publish, path = join(root, "request", `${String(sequence).padStart(8, "0")}.json`);
+  const fault = vi.spyOn(submissions, "publish").mockImplementation(async (file, body) => {
+    if (file === path) throw new Error("Simulated crash before event publication");
+    return original(file, body);
+  });
+  try { await expect(execute(command)).rejects.toThrow("Simulated crash"); } finally { fault.mockRestore(); }
+};
+it.each(["draft", "start"])("automatically repairs an unpublished %s anchor on retry and retains its recovery history", async op => {
+  if (op === "start") await execute({ op: "draft", definition: definition() });
+  const command = op === "start" ? { op, plan: "request", node: "build" } : { op, definition: definition() };
+  await crashBeforeEvent(op === "start" ? 1 : 0, command);
+  expect((await store.read()).problems.join()).toContain("tail");
+  store = new WorkflowPlanStore(root, home);
+  const result = await execute(command);
+  expect(result.plan.history.filter((h: any) => h.reason.includes("Recovered unpublished anchor"))).toHaveLength(1);
+  expect((await store.read()).problems).toEqual([]);
+  const reopened = (await new WorkflowPlanStore(root, home).get("request"))!;
+  expect(reopened.hash).toBe(result.plan.hash); expect(reopened.history).toEqual(result.plan.history);
+  if (op === "start") expect(result.launch.workflow.attempt).toBeTruthy();
+  expect(await readFile(join(home, "data/plans/request/plan.md"), "utf8")).toContain("Recovered unpublished anchor");
+});
+it("refuses orphan-anchor repair when a launch record names an unknown attempt", async () => {
+  await execute({ op: "draft", definition: definition() });
+  const command = { op: "start", plan: "request", node: "build" };
+  await crashBeforeEvent(1, command);
+  await mkdir(join(home, "data/build/launches"));
+  await writeFile(join(home, "data/build/launches/1.json"), JSON.stringify({ workflow: { plan: "request", node: "build", attempt: randomUUID() } }));
+  await expect(execute(command)).rejects.toThrow("unknown attempt");
+  expect((await store.read()).problems.join()).toContain("tail");
+});
+it("finishes publication after an event-before-marker crash without changing the committed attempt", async () => {
+  await execute({ op: "draft", definition: definition() });
+  const command = { op: "start" as const, plan: "request", node: "build" }, requestId = randomUUID();
+  const original = submissions.publish, path = join(root, ".published/request/00000001.json");
+  const fault = vi.spyOn(submissions, "publish").mockImplementation(async (file, body) => {
+    if (file === path) throw new Error("Simulated crash before exposure marker");
+    return original(file, body);
+  });
+  try { await expect(store.execute(command, requestId, "mate")).rejects.toThrow("Simulated crash"); } finally { fault.mockRestore(); }
+  expect((await store.read()).problems.join()).toContain("publication is incomplete");
+  const committed = JSON.parse(await readFile(join(root, "request/00000001.json"), "utf8"));
+  store = new WorkflowPlanStore(root, home);
+  const replay: any = await store.execute(command, requestId, "mate");
+  expect(replay.launch.workflow.attempt).toBe(committed.attempt);
+  expect(replay.plan.hash).toBe(committed.hash); expect(replay.plan.nodes.build.spent).toBe(1);
+  expect(JSON.parse(await readFile(path, "utf8")).hash).toBe(committed.hash);
+});
+it("detects losing an exposed event and its anchor together, including after restart", async () => {
+  await execute({ op: "draft", definition: definition() }); await execute({ op: "start", plan: "request", node: "build" });
+  await rm(join(root, "request/00000001.json")); await rm(join(root, ".tips/request/00000001.json"));
+  store = new WorkflowPlanStore(root, home);
+  await expect(store.get("request")).rejects.toThrow("tail");
+  await expect(execute({ op: "start", plan: "request", node: "build" })).rejects.toThrow("tail");
+  await rm(join(root, "request"), { recursive: true }); await rm(join(root, ".tips/request"), { recursive: true });
+  expect((await store.read()).problems.join()).toContain("tail");
+  await expect(execute({ op: "draft", definition: definition("fresh-plan") })).rejects.toThrow("ownership");
 });
 it("detects lost final events and emptied known plan directories after reopening", async () => {
   await execute({ op: "draft", definition: definition() }); await execute({ op: "start", plan: "request", node: "build" });

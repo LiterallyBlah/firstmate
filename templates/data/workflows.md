@@ -56,7 +56,20 @@ Home identity is the absolute path (case folded on Windows). Moving a home start
 switching back recovers its history. Old unscoped logs are never silently imported: reconcile them
 explicitly before reuse. Missing expected-tip files also require explicit reconciliation; no shorter
 history is treated as a fresh budget. A bad plan is quarantined and listed as an escalation while
-healthy plans and legacy decisions remain readable. Until every quarantined history is reconciled,
+healthy plans and legacy decisions remain readable. A retry of the original mutation automatically
+repairs a crash between a new expected anchor and its event, under the mutation lock: only one final
+unpublished anchor may be dropped, the entire surviving prefix must validate, and no launch record
+may name an attempt unknown to it. A durable recovery receipt remains in history. If the event exists
+but its publication marker was interrupted, retry completes that marker and reuses the committed
+attempt. Reads never repair files. Old anchors without publication metadata cannot be rolled back.
+
+Publication markers under `.published/` are written after the event and before any result is exposed.
+They detect losing the newest event and its anchor together. These local files are not a trusted
+external backup: coordinated loss of the log and its tips/publication metadata can still hide a
+truncated history, especially in older logs. Restore a known backup and reconcile worker/launch
+identities after such loss; never treat it as permission to restart work.
+
+Until every quarantined history is reconciled,
 new plans, identity edits, replacements, implicit launches, starts and claims are held: an unreadable
 plan may still own a live worker. Verified outcomes for healthy existing work can still be recorded.
 

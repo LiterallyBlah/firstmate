@@ -30,7 +30,13 @@ remains opaque and valid. Only recognized ID lists populate `blockedByIds`.
 The agenda's outcome observations remain the first mate's job until slice 4. A worker status line
 cannot finish a run. Completion records must describe verified report/PR/head evidence.
 Ship done is deliverable-ready; only landed enters Done. Stores are namespaced by absolute home
-identity, with independent expected-tip records and per-plan quarantine. Reads cache event-file
+identity, with separate expected-tip/publication records and per-plan quarantine. These are local
+copies, not an independent trusted backup: coordinated loss of a log and all its metadata can hide
+truncation. New publication markers detect losing an exposed event and its tip together. Only an
+unpublished final anchor can be dropped automatically under the mutation lock, after validating the
+prefix and checking launch records for unknown attempts; an append-only recovery receipt records it
+in history. Old anchors without publication metadata still require deliberate reconciliation.
+Reads cache event-file
 identity; finished implicit plans leave the agenda. Removal tombstones reconcile scoped backlog
 rows. Explicit release, invalidate/validate and replace transitions preserve history and cumulative
 budget; manual replacement/promotion keeps the workspace and task identity. Legacy unscoped logs

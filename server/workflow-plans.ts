@@ -1,5 +1,6 @@
 /** Append-only planning ledger. Reads have no effects; no method creates or prompts an agent. */
 import { createHash, randomUUID } from "node:crypto";
+import type { Dirent } from "node:fs";
 import { mkdir, readFile, readdir, rename, writeFile, stat, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
@@ -16,6 +17,8 @@ const EventSchema = z.object({ version: z.literal(1), home: z.string().min(1), p
   requestId: z.uuid(), requestHash: z.string().length(64), at: z.iso.datetime(), by: z.string().min(1),
   command: WorkflowCommandSchema, attempt: z.uuid().optional(), briefHash: z.string().length(64).optional(), launch: PlanLaunchSchema.optional(), hash: z.string().length(64) }).strict();
 type Event = z.infer<typeof EventSchema>;
+const RecoverySchema = z.object({ version: z.literal(1), home: z.string(), plan: PlanId, sequence: z.number().int().nonnegative(),
+  orphanHash: z.string().length(64), previous: z.string().length(64).nullable(), revision: z.number().int().positive(), at: z.iso.datetime(), hash: z.string().length(64) }).strict();
 const checksum = ({ hash: _hash, ...event }: Event) => digest(event);
 const terminal = (state: string) => ["done", "landed", "failed", "cancelled"].includes(state);
 export const backlogSection = (node: PlanNode, state: string) => terminal(state) && !(node.kind === "run" && node.launch.kind === "ship" && state === "done") ? "done" : state === "planned" ? "queued" : "in-flight";
@@ -129,12 +132,18 @@ export class WorkflowPlanStore {
   constructor(readonly root: string, readonly home: string) {}
   private directory(id: string) { return join(this.root, PlanId.parse(id)); }
   private tips(id: string) { return join(this.root, ".tips", PlanId.parse(id)); }
-  private async events(id: string): Promise<Event[]> {
+  private published(id: string) { return join(this.root, ".published", PlanId.parse(id)); }
+  private async names(directory: string): Promise<string[]> {
+    try { return (await readdir(directory)).sort(); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return []; throw e; }
+  }
+  private async events(id: string, unpublishedTip?: string, allowUnpublished = false): Promise<Event[]> {
     let files: string[];
     try { files = await readdir(this.directory(id)); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; files = []; }
     let tips: string[] = [];
-    try { tips = (await readdir(this.tips(id))).filter(f => /^\d{8}\.json$/.test(f)).sort(); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
+    try { tips = (await readdir(this.tips(id))).filter(f => /^\d{8}\.json$/.test(f) && f !== unpublishedTip).sort(); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
     const names = files.filter(f => /^\d{8}\.json$/.test(f)).sort();
+    const published = await this.names(this.published(id));
+    if (published.some(f => !names.includes(f))) throw new Error(`Plan log ${id} lost its published tail or anchor.`);
     if (tips.length && (tips.length !== names.length || tips.some((f, n) => f !== names[n]))) throw new Error(`Plan log ${id} lost its published tail; reconcile its expected tip.`);
     if (names.length && !tips.length) throw new Error(`Plan log ${id} has no expected tip; explicit legacy reconciliation is required.`);
     if (files.some(f => !/^\d{8}\.json(?:\.[\w-]+\.tmp)?$/.test(f))) throw new Error(`Unknown file in plan log ${id}.`);
@@ -148,21 +157,90 @@ export class WorkflowPlanStore {
       if (checksum(raw) !== raw.hash || raw.requestHash !== digest(raw.command)) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
       const event = EventSchema.parse(raw);
       const tip = JSON.parse(await readFile(join(this.tips(id), name), "utf8"));
+      if (tip.publication === 1 && !published.includes(name) && !allowUnpublished) throw new Error(`Plan log ${id} publication is incomplete; retry its original mutation.`);
+      if (published.includes(name)) {
+        const marker = JSON.parse(await readFile(join(this.published(id), name), "utf8"));
+        if (marker.hash !== event.hash || marker.sequence !== event.sequence) throw new Error(`Plan log ${id} failed its publication marker.`);
+      }
       const identity = (home: string) => process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home);
       if (identity(event.home) !== identity(this.home) || event.plan !== id || event.sequence !== events.length || event.previous !== previous || tip.hash !== event.hash || tip.sequence !== event.sequence) throw new Error(`Plan log ${id} failed its home identity or hash chain.`);
       previous = event.hash; events.push(event);
     }
     return events;
   }
+  /** Only mutations repair crash windows, under the same serialization boundary as append. */
+  private async recoverUnpublishedTip(id: string): Promise<void> {
+    const names = (await this.names(this.directory(id))).filter(f => /^\d{8}\.json$/.test(f));
+    const tips = (await this.names(this.tips(id))).filter(f => /^\d{8}\.json$/.test(f));
+    const published = await this.names(this.published(id));
+    if (tips.length === names.length && tips.every((f, n) => f === names[n])) {
+      // A crash after the event but before its exposure marker can complete publication.
+      if (published.length === names.length) return;
+      const events = await this.events(id, undefined, true);
+      for (const event of events) {
+        const name = `${String(event.sequence).padStart(8, "0")}.json`;
+        const tip = JSON.parse(await readFile(join(this.tips(id), name), "utf8"));
+        if (tip.publication === 1 && !published.includes(name)) {
+          await mkdir(this.published(id), { recursive: true });
+          await publish(join(this.published(id), name), { sequence: event.sequence, hash: event.hash });
+        }
+      }
+      return;
+    }
+    const orphan = tips.at(-1);
+    if (!orphan || tips.length !== names.length + 1 || names.some((f, n) => f !== tips[n]) || orphan !== `${String(names.length).padStart(8, "0")}.json` || published.includes(orphan)) return;
+    const tip = JSON.parse(await readFile(join(this.tips(id), orphan), "utf8"));
+    // Older anchors cannot prove whether a missing event was exposed. Never roll those back.
+    if (tip.publication !== 1 || tip.sequence !== names.length || !/^[a-f0-9]{64}$/.test(tip.hash)) return;
+    const events = await this.events(id, orphan), previous = events.reduce<WorkflowPlan | null>(reduce, null);
+    const attempts = new Set(events.map(e => e.attempt).filter(Boolean));
+    const data = (await resolveInHome(this.home, "data")).absolute;
+    let tasks: Dirent[];
+    try { tasks = await readdir(data, { withFileTypes: true }); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; tasks = []; }
+    for (const task of tasks) {
+      if (!task.isDirectory()) continue;
+      const launches = (await resolveInHome(this.home, `data/${task.name}/launches`)).absolute;
+      for (const name of (await this.names(launches)).filter(f => /^[1-9]\d*\.json$/.test(f))) {
+        const file = join(launches, name);
+        if ((await stat(file)).size > 512000) throw new Error("Launch record too large to reconcile.");
+        const record = JSON.parse(await readFile(file, "utf8"));
+        if (record.workflow?.plan === id && !attempts.has(record.workflow.attempt)) throw new Error(`Plan ${id} has a launch record for an unknown attempt; reconcile without another create.`);
+      }
+    }
+    const body = { version: 1 as const, home: resolve(this.home), plan: id, sequence: tip.sequence as number, orphanHash: tip.hash as string,
+      previous: previous?.hash ?? null, revision: previous?.revision ?? 1, at: new Date().toISOString() };
+    const receipt = join(this.tips(id), `recovered-${tip.hash}.json`);
+    // Durable audit precedes removal, so another crash cannot erase the recovery history.
+    if (!(await this.names(this.tips(id))).includes(`recovered-${tip.hash}.json`)) await publish(receipt, { ...body, hash: digest(body) });
+    await rm(join(this.tips(id), orphan));
+  }
+  private async recoveries(id: string) {
+    const receipts = [];
+    for (const name of (await this.names(this.tips(id))).filter(f => /^recovered-[a-f0-9]{64}\.json$/.test(f))) {
+      const { hash, ...receipt } = RecoverySchema.parse(JSON.parse(await readFile(join(this.tips(id), name), "utf8")));
+      const identity = (home: string) => process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home);
+      if (digest(receipt) !== hash || identity(receipt.home) !== identity(this.home) || receipt.plan !== id || name !== `recovered-${receipt.orphanHash}.json`) throw new Error("Invalid unpublished-anchor recovery receipt.");
+      receipts.push(receipt);
+    }
+    return receipts;
+  }
+  private async recoveryHistory(plan: WorkflowPlan): Promise<WorkflowPlan> {
+    for (const receipt of await this.recoveries(plan.definition.id)) {
+      plan.history.push({ revision: receipt.revision, at: receipt.at, by: "daemon:recovery", reason: `Recovered unpublished anchor ${receipt.sequence} (${receipt.orphanHash}); no launch was exposed.` });
+    }
+    plan.history.sort((a, b) => a.at.localeCompare(b.at));
+    return plan;
+  }
   async get(id: string): Promise<WorkflowPlan | null> {
     const key = `${resolve(this.root)}:${resolve(this.home)}:${id}`, identities: unknown[] = [];
-    for (const directory of [this.directory(id), this.tips(id)]) {
+    for (const directory of [this.directory(id), this.tips(id), this.published(id)]) {
       let names: string[]; try { names = (await readdir(directory)).sort(); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; names = []; }
       for (const name of names) { const s = await stat(join(directory, name)); identities.push([directory, name, s.ino, s.size, s.mtimeMs, s.ctimeMs]); }
     }
     const identity = digest(identities), cached = WorkflowPlanStore.cache.get(key);
     if (cached?.identity === identity) return structuredClone(cached.plan);
-    const plan = (await this.events(id)).reduce<WorkflowPlan | null>(reduce, null);
+    let plan = (await this.events(id)).reduce<WorkflowPlan | null>(reduce, null);
+    if (plan) plan = await this.recoveryHistory(plan);
     if (WorkflowPlanStore.cache.size > 2000) WorkflowPlanStore.cache.clear();
     WorkflowPlanStore.cache.set(key, { identity, plan }); return structuredClone(plan);
   }
@@ -170,10 +248,19 @@ export class WorkflowPlanStore {
     let entries;
     try { entries = await readdir(this.root, { withFileTypes: true }); } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return { plans: [], problems: [] }; return { plans: [], problems: [String(e)] }; }
     const plans: WorkflowPlan[] = [], problems: string[] = [];
-    const ids = new Set(entries.filter(e => e.name !== ".tips").map(e => e.name));
-    try { for (const id of await readdir(join(this.root, ".tips"))) ids.add(id); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") problems.push(String(e)); }
+    const ids = new Set(entries.filter(e => ![".tips", ".published"].includes(e.name)).map(e => e.name));
+    for (const directory of [".tips", ".published"]) {
+      try { for (const id of await readdir(join(this.root, directory))) ids.add(id); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") problems.push(String(e)); }
+    }
     for (const id of ids) {
-      try { const plan = await this.get(id); if (plan) plans.push(plan); else problems.push(`Plan ${id}: empty or stray plan entry.`); }
+      try {
+        const plan = await this.get(id);
+        if (plan) plans.push(plan);
+        else {
+          const recovered = await this.recoveries(id);
+          if (!recovered.length || recovered.some(r => r.sequence !== 0 || r.previous !== null)) problems.push(`Plan ${id}: empty or stray plan entry.`);
+        }
+      }
       catch (error) { problems.push(`Plan ${id}: ${error instanceof Error ? error.message : String(error)}`); }
     }
     return { plans: plans.sort((a, b) => a.definition.id.localeCompare(b.definition.id)), problems };
@@ -199,6 +286,7 @@ export class WorkflowPlanStore {
     }
     return serialized(resolve(this.root), async () => {
       const id = command.op === "draft" || command.op === "revise" ? command.definition.id : command.op === "implicit" ? command.launch.id : command.plan;
+      await this.recoverUnpublishedTip(id);
       const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>(reduce, null);
       const replay = events.find(e => e.requestId === requestId);
       if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); return this.renderedResult(previous!, replay); }
@@ -251,9 +339,12 @@ export class WorkflowPlanStore {
       await mkdir(this.tips(id), { recursive: true });
       // Publish the expected high-water mark first. A crash in this gap holds this plan
       // for reconciliation rather than silently recovering a shorter, executable history.
-      await publish(join(this.tips(id), `${String(event.sequence).padStart(8, "0")}.json`), { sequence: event.sequence, hash: event.hash });
+      await publish(join(this.tips(id), `${String(event.sequence).padStart(8, "0")}.json`), { sequence: event.sequence, hash: event.hash, publication: 1 });
       // Exclusive hard link is the cross-process compare-and-swap. A collision is never retried.
       await publish(join(this.directory(id), `${String(event.sequence).padStart(8, "0")}.json`), event);
+      // This separate receipt is committed before returning any intent or result.
+      await mkdir(this.published(id), { recursive: true });
+      await publish(join(this.published(id), `${String(event.sequence).padStart(8, "0")}.json`), { sequence: event.sequence, hash: event.hash });
       return this.renderedResult(next, event);
     });
   }
@@ -267,6 +358,7 @@ export class WorkflowPlanStore {
     }
   }
   private async renderedResult(plan: WorkflowPlan, event: Event) {
+    plan = await this.recoveryHistory(plan);
     let projectionProblem: string | undefined;
     try { await this.render(plan); } catch { projectionProblem = "Plan committed; readable plan.md could not be refreshed. Re-read this intent rather than repeating a create."; }
     return this.result(plan, event, projectionProblem);
