@@ -59,6 +59,15 @@ describe("plan journal", () => {
     const changed = fixture(); changed.nodes[0]!.summary = "Different work";
     await expect(store.execute({ op: "revise", definition: changed, expected: p.hash, reason: "scope" }, randomUUID(), "mate")).rejects.toThrow("pinned");
   });
+  it("refuses a different home and a revision that would break another plan's reference", async () => {
+    await draft(); await expect(new WorkflowPlanStore(root, home + "-other").get("request")).rejects.toThrow("home identity");
+    const second = fixture("second"); second.nodes[0]!.id = "consumer";
+    if (second.nodes[0]!.kind === "run") { second.nodes[0]!.launch.id = "consumer"; second.nodes[0]!.launch.brief.file = "data/consumer/brief.md"; }
+    second.nodes[0]!.after = [{ node: "build", reason: "builds-on", on: "done" }]; await draft(second);
+    const current = (await store.get("request"))!, replacement = fixture(); replacement.nodes[0]!.id = "replacement";
+    if (replacement.nodes[0]!.kind === "run") { replacement.nodes[0]!.launch.id = "replacement"; replacement.nodes[0]!.launch.brief.file = "data/replacement/brief.md"; }
+    await expect(store.execute({ op: "revise", definition: replacement, expected: current.hash, reason: "replace" }, randomUUID(), "mate")).rejects.toThrow("unknown dependency build");
+  });
 });
 describe("linter and agenda", () => {
   it("checks references, reason enums, cycles, models, strict fields and total bounds", () => {

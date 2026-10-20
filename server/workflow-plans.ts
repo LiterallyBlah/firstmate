@@ -45,7 +45,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
       if (old.kind === "decision" && next.nodes[old.id]?.answer && digest(c.definition.nodes.find(n => n.id === old.id)) !== digest(old)) throw new Error("Answered decisions are immutable; add a replacement decision and hold affected work.");
     }
     next.definition = c.definition; next.revision++;
-    for (const n of c.definition.nodes) next.nodes[n.id] ??= { state: "planned" };
+    next.nodes = Object.fromEntries(c.definition.nodes.map(n => [n.id, next!.nodes[n.id] ?? { state: "planned" as const }]));
     const worst = planWorstCase(c.definition);
     // Scope and changed choices require review; counts never reset by revision.
     next.posture = planPosture(c.definition);

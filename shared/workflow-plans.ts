@@ -66,7 +66,7 @@ export function planProblems(plan: PlanDefinition, others: readonly WorkflowPlan
   if (plan.implicit && (plan.nodes.length !== 1 || plan.nodes[0]?.kind !== "run" || plan.nodes[0].id !== plan.id)) problems.push("An implicit plan is its one run's task id.");
   const runs = plan.nodes.filter(n => n.kind === "run").length;
   if (runs > plan.budget.agents || runs > plan.budget.turns) problems.push(`Worst case ${runs} agents / ${runs} turns exceeds the plan budget.`);
-  for (const node of plan.nodes) {
+  for (const node of nodes.values()) {
     if (node.kind === "run") {
       if (node.launch.id !== node.id || node.launch.brief.file !== `data/${node.id}/brief.md`) problems.push(`${node.id}: launch and brief must name the node.`);
       if ((node.workflow === "scout@1") !== (node.launch.kind === "scout")) problems.push(`${node.id}: workflow and kind disagree.`);
