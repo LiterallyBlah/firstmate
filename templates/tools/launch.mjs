@@ -6,6 +6,7 @@ import { readFile, writeFile, mkdir, readdir, realpath, lstat, open, link, renam
 import { dirname, isAbsolute, join, relative, resolve, sep, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { submit as workflowCommand } from "./workflow.mjs";
 
 const config = {{launchConfigJson}};
 const execute = promisify(execFile);
@@ -109,7 +110,10 @@ async function update(record, changes) {
     if (current.revision !== record.revision) fail("record-changed", "Launch record changed; inspect status before continuing");
     const actor = handover(current, await role());
     const next = { ...current, ...changes, ...actor, revision: current.revision + 1, updatedAt: now(), history: [...current.history, { at: now(), state: changes.state ?? current.state, ...actor }] };
-    await atomic(recordPath(record.id, record.attempt), next); return next;
+    await atomic(recordPath(record.id, record.attempt), next);
+    if (next.workflow && ["unresolved", "failed", "abandoned"].includes(changes.state)) await workflowCommand({ op: "record", plan: next.workflow.plan, node: next.workflow.node, attempt: next.workflow.attempt,
+      state: changes.state === "failed" ? "failed" : "unresolved", evidence: changes.reason ?? changes.error ?? "Launch outcome requires inspection; no create may be repeated blindly." });
+    return next;
   });
 }
 
@@ -190,7 +194,8 @@ async function backlog(record, section, agent) {
 
 function validate(request) {
   if (request && typeof request === "object" && ["workspaceId", "workspace", "relaunch", "relaunchOf", "promotion", "promote", "agentId"].some(key => Object.hasOwn(request, key))) fail("unsupported-before-effects", manual);
-  strict(request, ["id", "title", "agentTitle", "project", "host", "baseBranch", "kind", "mode", "brief", "agent", "backlog", "dependency", "captainAuthority"], "request");
+  strict(request, ["id", "title", "agentTitle", "project", "host", "baseBranch", "kind", "mode", "brief", "agent", "backlog", "dependency", "captainAuthority", "workflow"], "request");
+  if (request.workflow) { strict(request.workflow, ["plan", "node", "attempt", "briefHash"], "workflow"); for (const key of ["plan", "node", "attempt", "briefHash"]) text(request.workflow[key], key, 100); }
   task(request.id); text(request.title, "title", 120, true); text(request.agentTitle, "agentTitle", 60);
   for (const key of ["project", "host", "baseBranch", "mode"]) text(request[key], key, 200, true);
   if (!/^[^\s~^:?*[\\]+$/.test(request.baseBranch) || request.baseBranch.startsWith("-") || request.baseBranch.includes("..") || request.baseBranch.includes("@{")) fail("invalid-request", "Invalid baseBranch");
@@ -304,11 +309,20 @@ async function prepare(file, dryRun) {
     launchedBy: await role(), createdAt: now(), history: [], queuedPreimage: existing?.content ?? null, brief: { path: brief.path, fileSha256: brief.fileSha256, payloadSha256: brief.payloadSha256, chars: brief.chars },
     checks: { baseBranch: "unknown: Paseo validates the requested base during creation", arming: "unknown", briefDelivery: "unknown" } };
   if (dryRun) return { ...output(record, brief.value), dryRun: true, state: "dry-run" };
+  if (!request.brief.file) await write(brief.path, brief.bytes);
+  const { workflow: binding, ...launchRequest } = resolved.request;
+  const launch = { ...launchRequest, brief: { file: brief.path } };
   await locked(`${directory(request.id)}/.lock`, async () => {
     if (JSON.stringify(await attempts(request.id)) !== JSON.stringify(previous)) fail("attempt-changed", "Another prepare changed this task; inspect status");
+    if (binding) {
+      if (binding.briefHash !== brief.fileSha256) fail("brief-changed", "Brief changed since the plan start intent; replan before dispatch");
+      await workflowCommand({ op: "claim", ...binding, launch }); record.workflow = binding;
+    } else {
+      const planned = await workflowCommand({ op: "implicit", launch });
+      record.workflow = planned.launch.workflow;
+    }
     await atomic(recordPath(request.id, number), record, true);
   });
-  if (!request.brief.file) await write(brief.path, brief.bytes);
   let saved = await backlog(record, "Queued");
   if (saved.backlog.error) return { ok: false, ...saved, next: uncertainty };
   if (saved.host === "local") return output(saved, brief.value);
@@ -370,6 +384,7 @@ async function recordWorker(record, agent, workspace, armed = false) {
   if (record.agent && (record.agent !== agent || record.workspace !== workspace)) fail("already-recorded", "This attempt already accounts for a different agent/workspace; reconcile manually without discarding it");
   const checks = await checksFor(record, agent, workspace);
   let saved = await update(record, { state: "recorded", agent, workspace, recordedAt: now(), checks, armed: { reported: armed, by: process.env.PASEO_AGENT_ID, verified: false }, briefDeliveredIntact: "unknown" });
+  if (saved.workflow) await workflowCommand({ op: "record", plan: saved.workflow.plan, node: saved.workflow.node, attempt: saved.workflow.attempt, state: "running", agentId: agent, workspaceId: workspace, evidence: "Launch helper inspected the recorded worker; checks remain attached to the launch record." });
   try { saved = await backlog(saved, "In flight", agent); }
   catch (error) { saved = await update(saved, { backlog: { ...saved.backlog, error: error.code ?? "backlog-write-failed" } }); }
   return { ok: true, ...saved, problems: Object.entries(checks).filter(([, value]) => value === "fail").map(([name]) => name) };

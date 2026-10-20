@@ -10,6 +10,8 @@ import { CREW_LABELS, FirstmateConfigSchema } from "../shared/fleet";
 import { prepareHome } from "./home";
 import { briefParts } from "./launch-tool";
 import { commandArguments } from "./remotes";
+import { WorkflowPlanStore } from "./workflow-plans";
+import { processWorkflowRequests } from "./workflow-service";
 import { fill, readTemplate, TEMPLATES } from "./templates";
 
 // These scenarios run real Node/git processes; loaded Windows runners need the same budget as local verification.
@@ -21,6 +23,7 @@ const digest = (value: string | Buffer) => createHash("sha256").update(value).di
 const workerId = "11111111-1111-4111-8111-111111111111";
 let scratch: string, home: string, statePath: string, logPath: string, configPath: string, cwd: string;
 let queueTimer: ReturnType<typeof setInterval> | undefined, pumping: Promise<void> | undefined;
+let workflowTimer: ReturnType<typeof setInterval> | undefined, workflowPumping: Promise<void> | undefined;
 let state: any;
 const save = () => writeFile(statePath, JSON.stringify(state));
 const reload = async () => { state = JSON.parse(await readFile(statePath, "utf8")); };
@@ -48,6 +51,8 @@ beforeEach(async () => {
   home = join(scratch, "plugin-data/firstmate/home"); configPath = join(scratch, "plugin-data/firstmate/config.json");
   await prepareHome(home, FirstmateConfigSchema.parse({}));
   await writeFile(configPath, JSON.stringify({ mateAgentId: "mate", home }));
+  const plans = new WorkflowPlanStore(join(scratch, "workflow-plans"), home);
+  workflowTimer = setInterval(() => { workflowPumping ??= processWorkflowRequests(home, plans, async actor => { const live = JSON.parse(await readFile(configPath, "utf8")); if (actor !== live.mateAgentId) throw new Error("Not mate"); }).finally(() => { workflowPumping = undefined; }); }, 10);
   await mkdir(join(home, "data/task"));
   cwd = join(home, "repo"); await mkdir(cwd);
   await execute("git", ["init", "--initial-branch=main", cwd]);
@@ -59,6 +64,7 @@ beforeEach(async () => {
   await writeFile(join(home, "tools/launch.mjs"), fill(await readTemplate(TEMPLATES.launchHelper), { launchConfigJson: JSON.stringify({ home, paseoHome: scratch, cli: { command: process.execPath, args: [cli, statePath, logPath], env: {} }, labels: CREW_LABELS, parts: await briefParts() }) }));
 });
 afterEach(async () => {
+  if (workflowTimer) clearInterval(workflowTimer); workflowTimer = undefined; await workflowPumping; workflowPumping = undefined;
   if (queueTimer) clearInterval(queueTimer); queueTimer = undefined; await pumping; pumping = undefined;
   await rm(scratch, { recursive: true, force: true });
 });
@@ -158,14 +164,14 @@ describe("attempts and current-role recovery", () => {
     const results = await Promise.all([run(["prepare", "--file", "data/task/request.json"]), run(["prepare", "--file", "data/task/request.json"])]);
     expect(results.filter(item => item.ok)).toHaveLength(1); expect((await entries()).filter(name => /^\d+\.json$/.test(name))).toEqual(["1.json"]);
   });
-  it("blocks issued/unresolved, then allows an explicit abandoned next attempt and watches late workers", async () => {
+  it("blocks issued/unresolved, retains an abandoned plan for deliberate replanning and watches late workers", async () => {
     await prepare();
     expect((await prepare(request({ backlog: { existing: "adopt" } })))).toMatchObject({ code: "attempt-open" });
     expect(await run(["unresolved", "task", "--attempt", "1", "--error", "Lost answer"])).toMatchObject({ state: "unresolved" });
     expect((await prepare(request({ backlog: { existing: "adopt" } })))).toMatchObject({ code: "attempt-open" });
     expect((await run(["abandon", "task", "--attempt", "1"])).ok).toBe(false);
     expect(await run(["abandon", "task", "--attempt", "1", "--reason", "Inspected; duplicate risk accepted"])).toMatchObject({ state: "abandoned" });
-    expect(await prepare()).toMatchObject({ attempt: 2, state: "issued" });
+    expect(await prepare()).toMatchObject({ ok: false, error: expect.stringContaining("already belongs to a plan") });
     await addWorker();
     expect((await run(["status", "task"])).attempts[0]).toMatchObject({ state: "abandoned", duplicate: true, found: [workerId] });
   });
@@ -199,13 +205,13 @@ describe("attempts and current-role recovery", () => {
     await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n- [ ] task - Filed title\n## Done\n");
     expect((await prepare(request({ backlog: { existing: "adopt" } }))).code).toBe("cli-read-failed");
   });
-  it("tracks a relabelled recorded identity, allows recorded-and-gone, and forbids abandoning a recorded live worker", async () => {
+  it("tracks a relabelled recorded identity and requires a revised plan after the worker is gone", async () => {
     await prepare(); await addWorker(); await record();
     state.agents[0].labels = {}; await save();
     expect((await prepare()).code).toBe("unsupported-before-effects");
     expect((await run(["abandon", "task", "--attempt", "1", "--reason", "try again"])).code).toBe("unsupported-before-effects");
     state.agents[0].detail.Archived = true; await save();
-    expect(await prepare()).toMatchObject({ state: "issued", attempt: 2 });
+    expect(await prepare()).toMatchObject({ ok: false, error: expect.stringContaining("already belongs to a plan") });
   });
   it("does not treat a missing recorded identity as proof it is gone", async () => {
     await prepare(); await addWorker(); await record(); state.agents = []; await save();

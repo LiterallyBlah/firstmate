@@ -12,6 +12,22 @@ compile time. This file covers only what is specific to `firstmate`.
 
 ## Orientation
 
+Plans (workflows slice 1) are additive. `shared/workflow-plans.ts` owns strict one-step `task@1` and
+`scout@1` contracts, dependency reasons, bounds and posture. `server/workflow-plans.ts` owns the
+hash-linked, exclusive-link event log under `workflow-plans/`, revisions, start intents, projections
+and read-only agenda. `server/workflow-service.ts` consumes the home tool's idempotent request files
+under the role/lifecycle lock. `templates/tools/workflow.mjs` is transport only; `data/workflows.md`
+documents commands. The first mate still makes every local worker call. No executor is installed.
+`launch.mjs` records an implicit start before exposing a launch, and pins/claims explicit starts once.
+An abandoned or archived attempt needs deliberate replanning; preparing the same task cannot reset
+its one-run budget. The existing role check is a behavioral guard, not authenticated filesystem IPC.
+Never treat arbitrary request-file identity as an independent security boundary.
+
+Backlog `(plan:)`, `(needed-by:)` and comma-separated `(blocked-by:)` are optional. Keep the lenient
+parser and strict Needs-you observation in step; no `backlog-lint.js` replica is shipped here.
+The agenda's outcome observations remain the first mate's job until slice 4. A worker status line
+cannot finish a run. Completion records must describe verified report/PR/head evidence.
+
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |
 | `index.server.ts`             | Wiring — the RPCs, the display settings document, the steer relay hook.                    |

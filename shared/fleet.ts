@@ -93,6 +93,10 @@ export const BacklogItemSchema = z.object({
   tags: z.array(z.string()).optional(),
   hold: z.string().nullable(),
   blockedBy: z.string().nullable(),
+  /** Optional planning metadata; old backlogs and servers need none of it. */
+  plan: z.string().optional(),
+  neededBy: z.array(z.string()).optional(),
+  blockedByIds: z.array(z.string()).optional(),
   since: z.string().nullable(),
   url: z.string().nullable(),
   reportPath: z.string().nullable(),

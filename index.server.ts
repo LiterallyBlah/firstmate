@@ -1,4 +1,5 @@
 import type { PluginServerContext } from "@getpaseo/plugin/server";
+import { startWorkflowService } from "./server/workflow-service";
 import { ensureSharedTerminal as ensureSharedTerminalRpc } from "./shared/native-tools";
 import { ensureSharedTerminal } from "./server/native-tools";
 
@@ -97,6 +98,7 @@ import {
 } from "./shared/remote-crew";
 
 export default function contribute(server: PluginServerContext) {
+  const stopWorkflows = startWorkflowService();
   server.handle(ensureSharedTerminalRpc, ({ workspaceId }, { paseo }) => ensureSharedTerminal(paseo, workspaceId));
   const updates = new UpdateService();
   server.handle(checkUpdate, () => updates.check());
@@ -322,6 +324,7 @@ export default function contribute(server: PluginServerContext) {
   });
 
   return async () => {
+    await stopWorkflows();
     unregisterRelay();
     unregisterCrewSeen();
     unregisterReceipts();
