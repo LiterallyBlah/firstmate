@@ -40,8 +40,12 @@ export interface WorkflowPlan {
   nodes: Record<string, PlanNodeState>; told: string[]; handled: string[];
   history: { revision: number; at: string; by: string; reason: string }[];
 }
+/** Completion is a fold over durable node outcomes, never inferred from a worker's status line. */
+export function planFinished(plan: WorkflowPlan): boolean {
+  return plan.definition.nodes.every(node => ["done", "landed", "failed", "cancelled"].includes(plan.nodes[node.id]?.state ?? ""));
+}
 export const WorkflowCommandSchema = z.discriminatedUnion("op", [
-  z.object({ op: z.literal("plans") }).strict(),
+  z.object({ op: z.literal("plans"), all: z.boolean().optional() }).strict(),
   z.object({ op: z.literal("agenda") }).strict(),
   z.object({ op: z.literal("show"), plan: PlanId }).strict(),
   z.object({ op: z.literal("draft"), definition: PlanDefinitionSchema }).strict(),

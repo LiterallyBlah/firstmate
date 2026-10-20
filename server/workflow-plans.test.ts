@@ -59,6 +59,16 @@ describe("plan journal", () => {
     const changed = fixture(); changed.nodes[0]!.summary = "Different work";
     await expect(store.execute({ op: "revise", definition: changed, expected: p.hash, reason: "scope" }, randomUUID(), "mate")).rejects.toThrow("pinned");
   });
+  it("closes a completed plan in the open list, retains history and tells its completion once", async () => {
+    await draft(); const { launch }: any = await store.execute({ op: "start", plan: "request", node: "build" }, randomUUID(), "mate");
+    await store.execute({ op: "record", plan: "request", node: "build", attempt: launch.workflow.attempt, state: "done", evidence: "Verified the promised deliverable." }, randomUUID(), "mate");
+    expect(await store.execute({ op: "plans" }, randomUUID(), "mate")).toEqual([]);
+    expect(await store.execute({ op: "plans", all: true }, randomUUID(), "mate")).toHaveLength(1);
+    const finished = (await store.agenda()).find(i => i.id === "request:plan-finished:1")!; expect(finished.kind).toBe("tell");
+    await store.execute({ op: "ack", plan: "request", kind: "told", ids: [finished.id] }, randomUUID(), "mate");
+    expect((await store.agenda()).some(i => i.id === finished.id)).toBe(false);
+    expect(await readFile(join(home, "data/plans/request/plan.md"), "utf8")).toContain("finished");
+  });
   it("refuses a different home and a revision that would break another plan's reference", async () => {
     await draft(); await expect(new WorkflowPlanStore(root, home + "-other").get("request")).rejects.toThrow("home identity");
     const second = fixture("second"); second.nodes[0]!.id = "consumer";

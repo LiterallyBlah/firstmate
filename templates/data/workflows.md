@@ -3,7 +3,9 @@
 Every work request has a plan. Read open plans before drafting another: a follow-up revises the same
 plan. Questions, Bearings, steers, answers and maintaining a plan do not need plans.
 
-`node tools/workflow.mjs plans` lists durable plans. `plan <id>` reads one. `agenda` lists what needs
+`node tools/workflow.mjs plans` lists open plans; `plans --all` includes completed and declined history.
+`plan <id>` reads one. A plan finishes when every node has a recorded terminal outcome; one agenda
+item reports that completion without dropping any evidence. `agenda` lists what needs
 handling, in priority order; it changes no business records. `--json` is accepted on every command.
 
 Draft strict JSON with `plan draft --file data/plans/<id>/draft.json`. The format is

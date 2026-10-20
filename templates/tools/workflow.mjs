@@ -41,7 +41,8 @@ export async function submit(command, id = randomUUID()) {
   throw new Error(`No reply. Request ${id} remains queued; inspect and reuse --request-id ${id}. Never repeat a create.`);
 }
 export async function main(argv) {
-  const args = argv.filter(a => a !== "--json"), words = [], options = {};
+  const includeClosed = argv.includes("--all");
+  const args = argv.filter(a => a !== "--json" && a !== "--all"), words = [], options = {};
   for (let i = 0; i < args.length; i++) {
     if (!args[i].startsWith("--")) { words.push(args[i]); continue; }
     const key = args[i].slice(2);
@@ -50,7 +51,8 @@ export async function main(argv) {
   }
   let command;
   const file = async () => JSON.parse((await readFile(await inside(options.file), "utf8")).replace(/^\uFEFF/, ""));
-  if (["plans", "agenda"].includes(words[0]) && words.length === 1) command = { op: words[0] };
+  if (includeClosed && words[0] !== "plans") throw new Error("--all applies only to plans.");
+  if (["plans", "agenda"].includes(words[0]) && words.length === 1) command = words[0] === "plans" ? { op: "plans", all: includeClosed } : { op: "agenda" };
   else if (words[0] === "plan" && words[1] === "draft") command = { op: "draft", definition: await file() };
   else if (words[0] === "plan" && words[1] === "revise") command = { op: "revise", definition: await file(), expected: options.expected, reason: options.reason };
   else if (words[0] === "plan" && words.length === 2) command = { op: "show", plan: words[1] };

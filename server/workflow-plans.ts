@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rename, writeFile, stat } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { PlanId, WorkflowCommandSchema, planPosture, planProblems, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
+import { PlanId, WorkflowCommandSchema, planFinished, planPosture, planProblems, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
 import { digest, publish } from "./submissions";
 import { serialized } from "./serialize";
 import { resolveInHome } from "./files";
@@ -111,8 +111,8 @@ export class WorkflowPlanStore {
   }
   async execute(input: WorkflowCommand, requestId: string, by: string): Promise<unknown> {
     const command = WorkflowCommandSchema.parse(input); z.uuid().parse(requestId);
-    if (command.op === "plans") return this.list();
-    if (command.op === "show") return this.get(command.plan);
+    if (command.op === "plans") return (await this.list()).filter(p => command.all || (!planFinished(p) && p.status !== "abandoned"));
+    if (command.op === "show") { const plan = await this.get(command.plan); return plan ? { ...plan, finished: planFinished(plan) } : null; }
     if (command.op === "agenda") return this.agenda();
     return serialized(resolve(this.root), async () => {
       const id = command.op === "draft" || command.op === "revise" ? command.definition.id : command.op === "implicit" ? command.launch.id : command.plan;
@@ -161,7 +161,7 @@ export class WorkflowPlanStore {
       after: n.after.map(d => `${d.node} (${d.reason}, ${d.on})`).join(", ") || "—", evidence: plan.nodes[n.id]?.evidence ?? "—",
     })));
     const content = fill(await readTemplate(TEMPLATES.workflowPlan), {
-      title: plan.definition.title, request: plan.definition.request.text, revision: String(plan.revision), posture: plan.posture, state: plan.status,
+      title: plan.definition.title, request: plan.definition.request.text, revision: String(plan.revision), posture: plan.posture, state: planFinished(plan) ? "finished" : plan.status,
       budget: JSON.stringify(planWorstCase(plan.definition)),
       nodes: nodes.join("\n\n"),
       history: plan.history.map(h => `- ${h.revision} · ${h.at} · ${h.by} · ${h.reason}`).join("\n"),
@@ -180,11 +180,12 @@ export class WorkflowPlanStore {
         result.push({ id, kind, priority, plan: plan.definition.id, text, ...(node ? { node } : {}), ...extra });
       };
       if (plan.status === "abandoned") continue;
-      if (plan.status === "review") add("tell", 5, `approval:${plan.revision}`, `Present ${plan.definition.title} for approval.`);
+      if (planFinished(plan)) add("tell", 5, `plan-finished:${plan.revision}`, `${plan.definition.title}: all planned nodes have reached an end. Check the recorded outcomes.`, undefined);
+      if (plan.status === "review" && !planFinished(plan)) add("tell", 5, `approval:${plan.revision}`, `Present ${plan.definition.title} for approval.`);
       for (const node of plan.definition.nodes) {
         const state = plan.nodes[node.id]!;
         if (state.state === "unresolved") add("escalation", 1, `uncertain:${node.id}:${state.attempt}`, `Reconcile ${node.title}; never create or send again blindly.`, node.id);
-        if (node.after.some(d => plans.some(p => ["failed", "cancelled"].includes(p.nodes[d.node]?.state ?? "")))) add("replan", 3, `dependency:${node.id}:${plan.revision}`, `${node.title} has a failed or cancelled dependency.`, node.id);
+        if (!terminal(state.state) && node.after.some(d => plans.some(p => ["failed", "cancelled"].includes(p.nodes[d.node]?.state ?? "")))) add("replan", 3, `dependency:${node.id}:${plan.revision}`, `${node.title} has a failed or cancelled dependency.`, node.id);
         const ready = dependenciesMet(node, plans);
         if (node.kind === "run" && state.state === "planned" && plan.status === "active" && ready) {
           try { await this.brief(node); add("start", 4, `start:${node.id}:${plan.revision}`, `Start ${node.title}.`, node.id); }
