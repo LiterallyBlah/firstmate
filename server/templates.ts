@@ -76,6 +76,8 @@ export const TEMPLATES = {
   workflowHelper: "tools/workflow.mjs",
   workflowGuide: "data/workflows.md",
   workflowPlan: "parts/workflow-plan.md",
+  workflowRun: "parts/workflow-run.md",
+  workflowDecision: "parts/workflow-decision.md",
   recallHelper: "tools/recall.mjs",
   recallGuide: "data/recall.md",
   briefIntro: "parts/brief-intro.md",

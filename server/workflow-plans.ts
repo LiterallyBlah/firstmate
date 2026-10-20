@@ -151,10 +151,19 @@ export class WorkflowPlanStore {
   async render(plan: WorkflowPlan): Promise<void> {
     const path = await resolveInHome(this.home, `data/plans/${plan.definition.id}/plan.md`);
     await mkdir(dirname(path.absolute), { recursive: true });
+    const nodes = await Promise.all(plan.definition.nodes.map(async n => fill(await readTemplate(n.kind === "run" ? TEMPLATES.workflowRun : TEMPLATES.workflowDecision), {
+      title: n.title, state: plan.nodes[n.id]?.state ?? "planned", summary: n.summary,
+      workflow: n.kind === "run" ? n.workflow : "", model: n.kind === "run" ? n.launch.agent.provider : "",
+      thinking: n.kind === "run" ? n.launch.agent.thinkingOptionId ?? "—" : "", host: n.kind === "run" ? n.launch.host : "",
+      options: n.kind === "decision" ? n.options.map(o => `- ${o.label}: ${o.consequence}`).join("\n") : "",
+      recommendation: n.kind === "decision" ? n.options.find(o => o.id === n.recommendation)?.label ?? "—" : "",
+      rationale: n.kind === "decision" ? n.rationale : "",
+      after: n.after.map(d => `${d.node} (${d.reason}, ${d.on})`).join(", ") || "—", evidence: plan.nodes[n.id]?.evidence ?? "—",
+    })));
     const content = fill(await readTemplate(TEMPLATES.workflowPlan), {
       title: plan.definition.title, request: plan.definition.request.text, revision: String(plan.revision), posture: plan.posture, state: plan.status,
       budget: JSON.stringify(planWorstCase(plan.definition)),
-      nodes: plan.definition.nodes.map(n => `- **${n.title}** — ${plan.nodes[n.id]?.state ?? "planned"}\n  ${n.summary}\n  ${n.kind === "run" ? `${n.workflow} · ${n.launch.agent.provider} · ${n.launch.agent.thinkingOptionId ?? "default thinking"} · ${n.launch.host}` : `${n.options.map(o => `${o.label}: ${o.consequence}`).join("; ")}\n  Recommended: ${n.recommendation ?? "none yet"} — ${n.rationale}`}\n  After: ${n.after.map(d => `${d.node} (${d.reason}, ${d.on})`).join(", ") || "ready"}${plan.nodes[n.id]?.evidence ? `\n  Evidence: ${plan.nodes[n.id]!.evidence}` : ""}`).join("\n\n"),
+      nodes: nodes.join("\n\n"),
       history: plan.history.map(h => `- ${h.revision} · ${h.at} · ${h.by} · ${h.reason}`).join("\n"),
     });
     const temporary = `${path.absolute}.${randomUUID()}.tmp`;
