@@ -1,5 +1,7 @@
 import type { PluginServerContext } from "@getpaseo/plugin/server";
-import { startWorkflowService } from "./server/workflow-service";
+import { startWorkflowService, workflowStore, queuePlanNotes } from "./server/workflow-service";
+import { workflowHomeId, workflowSnapshot, withWorkflowNeeds, withWorkflowCards } from "./server/workflow-board";
+import { readWorkflowPlans, actOnWorkflowPlan } from "./shared/workflow-rpc";
 import { ensureSharedTerminal as ensureSharedTerminalRpc } from "./shared/native-tools";
 import { ensureSharedTerminal } from "./server/native-tools";
 
@@ -125,7 +127,27 @@ export default function contribute(server: PluginServerContext) {
     home: readConfiguredDecisionHome,
     catalog: () => remotes.read(),
   });
-  registerNeedsYouRpc(server, decisions);
+  registerNeedsYouRpc(server, decisions, async snapshot => withWorkflowNeeds(snapshot, resolveHome(await readFirstmateConfig())));
+  server.handle(readWorkflowPlans, async () => workflowSnapshot(resolveHome(await readFirstmateConfig())));
+  server.handle(actOnWorkflowPlan, async ({ homeId, requestId, command }, { paseo }) => {
+    await oneAtATime(async () => {
+      const config = await readFirstmateConfig(); requireNoMigration(config);
+      const home = resolveHome(config);
+      if (homeId !== workflowHomeId(home)) throw new Error("The configured home changed. Refresh before acting.");
+      const targets = command.edits?.some(e => e.kind === "model") ? (await migrationTargets(paseo)).targets : [];
+      for (const edit of command.edits ?? []) {
+        if (edit.kind === "model") {
+          const target = targets.find(t => t.provider === edit.agent.provider);
+          if (!target || !target.modes.some(m => m.id === edit.agent.modeId) || (edit.agent.thinkingOptionId && !target.thinking.some(t => t.id === edit.agent.thinkingOptionId))) throw new Error("The chosen model, mode or thinking setting is no longer available.");
+        }
+        if (edit.kind === "host" && edit.host !== "local" && !(await remotes.read()).hosts.some(h => h.serverId === edit.host)) throw new Error("That saved host is no longer available.");
+      }
+      await workflowStore(home).execute(command, requestId, "board:captain");
+      await queuePlanNotes(home);
+    });
+    void flushMateNotes(paseo).catch(() => {});
+    return workflowSnapshot(resolveHome(await readFirstmateConfig()));
+  });
   server.handle(submitDecisionAnswer, (input, { paseo }) => answerDecision(paseo, decisions, input));
   decisions.start();
   server.handle(readRemotes, () => remotes.read());
@@ -161,6 +183,8 @@ export default function contribute(server: PluginServerContext) {
       () => remotes.read(),
       decisions,
     );
+    if (fleet.needsYou) fleet.needsYou = await withWorkflowNeeds(fleet.needsYou, fleet.home);
+    fleet.cards = await withWorkflowCards(fleet.cards, fleet.home);
     // A first mate launched before the plugin named its home gets its name the first time the board looks.
     const workspaceId = fleet.mate?.workspaceId ?? null;
     if (workspaceId !== null && fleet.mateInHome) nameHomeOnce(paseo, workspaceId, fleet.home);

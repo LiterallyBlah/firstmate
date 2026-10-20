@@ -52,6 +52,7 @@ import {
 } from "./web";
 import { useKeyboardOverlap } from "./keyboard";
 import { errorText } from "./format";
+import { PlanNeeds } from "./workflow-plans";
 
 export function DecisionButton({
   theme,
@@ -501,6 +502,7 @@ export function DecisionDrawer({
           style={{ flex: 1 }}
         >
           {chrome}
+          <PlanNeeds theme={theme} snapshot={snapshot} />
           {group(
             "Waiting for you",
             queue.filter((r) => r.state === "new" || r.state === "seen"),
@@ -564,6 +566,7 @@ export function DecisionDrawer({
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
           {chrome}
+          <PlanNeeds theme={theme} snapshot={snapshot} />
           <Text style={{ color: colors.foreground }}>
             {!sameHome
               ? "This decision belongs to another FirstMate home. Open its original host and home."

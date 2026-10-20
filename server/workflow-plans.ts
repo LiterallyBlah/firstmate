@@ -4,7 +4,7 @@ import type { Dirent } from "node:fs";
 import { mkdir, readFile, readdir, rename, writeFile, stat, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { PlanId, PlanLaunchSchema, WorkflowCommandSchema, planFinished, planPosture, planProblems, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
+import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, WorkflowCommandSchema, planFinished, planPosture, planProblems, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
 import { digest, publish } from "./submissions";
 import { serialized } from "./serialize";
 import { resolveInHome } from "./files";
@@ -22,6 +22,7 @@ const RecoverySchema = z.object({ version: z.literal(1), home: z.string(), plan:
   orphanHash: z.string().length(64), previous: z.string().length(64).nullable(), revision: z.number().int().positive(), at: z.iso.datetime(), hash: z.string().length(64) }).strict();
 const checksum = ({ hash: _hash, ...event }: Event) => digest(event);
 const terminal = (state: string) => ["done", "landed", "failed", "cancelled"].includes(state);
+export const planSubjectHash = (plan: WorkflowPlan) => digest({ definition: plan.definition, revision: plan.revision, status: plan.status, nodes: plan.nodes, captainActions: plan.captainEvents?.map(e => e.id) ?? [] });
 export const backlogSection = (node: PlanNode, state: string) => terminal(state) && !(node.kind === "run" && node.launch.kind === "ship" && state === "done") ? "done" : state === "planned" ? "queued" : "in-flight";
 export const samePlanItem = (item: ReturnType<typeof parseBacklog>[number], plan: WorkflowPlan, node: PlanNode) =>
   item.id === node.id && (node.kind === "decision" ? !item.project && !item.host : item.project === node.launch.project && (item.host ?? "local").toLowerCase() === node.launch.host.toLowerCase()) &&
@@ -50,6 +51,42 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
       history: [{ revision: 1, at: event.at, by: event.by, reason: "draft" }] };
   }
   if (!next) throw new Error("Plan log does not start with a draft.");
+  if (c.op === "captain") {
+    if (c.revision !== next.revision || c.subjectHash !== planSubjectHash(next)) throw new Error("This plan or decision changed on another device. Refresh and review it again.");
+    if (next.status === "abandoned") throw new Error("This plan was declined.");
+    if (c.action === "changes" && !c.text.trim()) throw new Error("Describe the requested changes.");
+    if (c.action === "answer") {
+      const node = next.definition.nodes.find(n => n.id === c.node), state = c.node ? next.nodes[c.node] : undefined;
+      if (node?.kind !== "decision" || !state || state.answer || !node.options.some(o => o.id === c.option)) throw new Error("Decision is already answered or the option changed.");
+      if (state.held) throw new Error("Review this held decision's dependencies before answering.");
+      state.answer = c.option!; state.state = "done"; state.evidence = c.text || node.options.find(o => o.id === c.option)!.label;
+    }
+    if (c.action === "edit") {
+      if (!c.edits?.length) throw new Error("Choose an edit before approving.");
+      for (const edit of c.edits) {
+        if (edit.kind === "posture") { next.posture = edit.posture; continue; }
+        const node = next.definition.nodes.find(n => n.id === edit.node);
+        if (!node || next.nodes[node.id]?.state !== "planned") throw new Error("Only unstarted, unanswered nodes can be edited.");
+        if (edit.kind === "remove") {
+          // Removing a prerequisite holds its dependents; it never silently releases them.
+          for (const dependent of next.definition.nodes.filter(n => n.after.some(d => d.node === node.id))) {
+            dependent.after = dependent.after.filter(d => d.node !== node.id); next.nodes[dependent.id]!.held = true;
+          }
+          next.definition.nodes = next.definition.nodes.filter(n => n.id !== node.id); delete next.nodes[node.id];
+        } else if (edit.kind === "dependencies") { node.after = edit.after; next.nodes[node.id]!.held = false; }
+        else { if (node.kind !== "run") throw new Error("A decision has no worker model or host."); if (edit.kind === "model") node.launch.agent = edit.agent; else node.launch.host = edit.host; }
+      }
+      next.definition = PlanDefinitionSchema.parse({ ...next.definition, implicit: false }); next.revision++;
+      next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: c.text || "Approved with structured edits" });
+    }
+    if (c.action === "approve" || c.action === "edit") { next.status = "active"; next.approvedBudget = planWorstCase(next.definition); }
+    if (c.action === "hold" || c.action === "changes") next.status = "held";
+    if (c.action === "decline") {
+      if (Object.values(next.nodes).some(n => n.state !== "planned")) throw new Error("A started plan cannot be declined. Hold it and preserve its work.");
+      next.status = "abandoned";
+    }
+    next.captainEvents ??= []; next.captainEvents.push({ id: event.requestId, action: c.action, text: c.text, ...(c.node ? { node: c.node } : {}), at: event.at });
+  }
   if (c.op === "revise") {
     if (c.expected !== previous?.hash || c.definition.id !== next.definition.id) throw new Error("Stale plan revision.");
     for (const old of next.definition.nodes) {
@@ -126,6 +163,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     next.nodes[c.node] = { ...state, state: c.state, evidence: c.evidence, ...(terminal(c.state) ? { completedAt: event.at } : {}), ...(c.agentId ? { agentId: c.agentId } : {}), ...(c.workspaceId ? { workspaceId: c.workspaceId } : {}) };
   }
   if (c.op === "ack") next[c.kind] = [...new Set([...next[c.kind], ...c.ids])];
+  if (c.op === "notified") { const action = next.captainEvents?.find(a => a.id === c.eventId); if (!action) throw new Error("Unknown captain event."); action.notified = true; }
   return { ...next, hash: event.hash, sequence: event.sequence };
 }
 
@@ -360,7 +398,7 @@ export class WorkflowPlanStore {
     const command = WorkflowCommandSchema.parse(input); z.uuid().parse(requestId);
     if (command.op === "plans") return (await this.list()).filter(p => command.all || (!planFinished(p) && p.status !== "abandoned"));
     if (command.op === "show") {
-      try { const plan = await this.get(command.plan); return plan ? { ...plan, finished: planFinished(plan) } : null; }
+      try { const plan = await this.get(command.plan); return plan ? { ...plan, finished: planFinished(plan), subjectHash: planSubjectHash(plan) } : null; }
       catch (error) { return { quarantined: await this.quarantine(command.plan, error instanceof Error ? error.message : String(error)) }; }
     }
     if (command.op === "agenda") return this.agenda();
@@ -425,6 +463,7 @@ export class WorkflowPlanStore {
       const event: Event = { version: 1, home: resolve(this.home), plan: id, sequence: events.length, previous: previous?.hash ?? null, requestId, requestHash: digest(command), at: new Date().toISOString(), by, command,
         ...(briefHash ? { briefHash, attempt: command.op === "start" ? previous?.nodes[command.node]?.attempt ?? randomUUID() : randomUUID() } : {}), ...(launch ? { launch } : {}), hash: "" };
       event.hash = checksum(event); const next = reduce(previous, event);
+      const problems = planProblems(next.definition, plans); if (problems.length) throw new Error(problems.join("\n"));
       if (event.sequence > 99999999) throw new Error("Plan event capacity exceeded.");
       await mkdir(this.directory(id), { recursive: true });
       await mkdir(this.tips(id), { recursive: true });
@@ -508,6 +547,10 @@ export class WorkflowPlanStore {
       }
       if (planFinished(plan)) add("tell", 5, `plan-finished:${plan.revision}`, `${plan.definition.title}: all planned nodes have reached an end. Check the recorded outcomes.`, undefined);
       if (plan.status === "review" && !planFinished(plan)) add("tell", 5, `approval:${plan.revision}`, `Present ${plan.definition.title} for approval.`);
+      for (const action of plan.captainEvents ?? []) {
+        add("captain", 2, `captain:${action.id}`, `Captain: ${action.action}. ${action.text}`, action.node);
+        if (action.action === "changes") add("replan", 3, `changes:${action.id}`, action.text);
+      }
       for (const node of plan.definition.nodes) {
         const state = plan.nodes[node.id]!;
         if (state.held) add("replan", 3, `held:${node.id}:${plan.revision}`, `${node.title}: ${state.held}`, node.id);
@@ -515,7 +558,7 @@ export class WorkflowPlanStore {
         if (!terminal(state.state) && node.after.some(d => plans.some(p => ["failed", "cancelled"].includes(p.nodes[d.node]?.state ?? "")))) add("replan", 3, `dependency:${node.id}:${plan.revision}`, `${node.title} has a failed or cancelled dependency.`, node.id);
         if (!terminal(state.state) && node.after.some(d => unavailableDependencies.has(d.node))) add("replan", 3, `quarantined:${node.id}:${digest([...unavailableDependencies])}`, `${node.title}: prerequisite task identity is quarantined; replan with unambiguous evidence.`, node.id);
         const ready = dependenciesMet(node, plans, unavailableDependencies);
-        if (node.kind === "run" && state.state === "planned" && plan.status === "active" && ready) {
+        if (node.kind === "run" && state.state === "planned" && !state.held && plan.status === "active" && ready) {
           try { await this.brief(node); add("start", 4, `start:${node.id}:${plan.revision}`, `Start ${node.title}.`, node.id); }
           catch { add("replan", 3, `brief:${node.id}:${plan.revision}`, `Supply the missing or unreadable brief for ${node.title}.`, node.id); }
         }

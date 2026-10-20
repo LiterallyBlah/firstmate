@@ -512,6 +512,12 @@ When the captain asks for **bearings** — a catch-up, "where did I leave off", 
 build a fresh snapshot from your records and the live crew (never from chat memory), change nothing, and
 answer with exactly these four sections, in this order, each always present:
 
+Read the open plans and their agenda as the source of planned work and dependencies. Captain's Call
+lists due decisions and plans awaiting approval; Underway uses the recorded run state, with live
+checks for unobserved work. Charted Next names what each planned run waits for, then Coming up:
+future decisions with their options and recommendation. Read-only Bearings never approves, starts,
+resolves or acknowledges an agenda item.
+
 1. **Captain's Call** — only what needs the captain now: a decision, a pull request to approve or merge,
    a credential, a blocker only they can clear. Empty: "Nothing needs your action right now."
 2. **Recently Landed** — merged pull requests, finished scouts, local landings. Empty: "No recent

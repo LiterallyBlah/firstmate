@@ -38,11 +38,13 @@ export function indicatorState(
   snapshot: NeedsYouSnapshot | undefined,
   offline = false,
 ) {
-  const count =
+  const recordedCount =
     snapshot?.freshness.status === "unknown" ||
     snapshot?.freshness.status === "disabled"
       ? null
       : (snapshot?.actionCount ?? null);
+  const partialPlans = recordedCount === null && (snapshot?.planNow?.length ?? 0) > 0;
+  const count = partialPlans ? snapshot!.planNow!.length : recordedCount;
   const fresh = !offline && snapshot?.freshness.status === "fresh";
   const newCount = snapshot?.newCount ?? 0;
   const status = offline ? "stale" : (snapshot?.freshness.status ?? "unknown");
@@ -86,10 +88,10 @@ export function indicatorState(
         ? "Can't read decisions"
         : count === 0 && fresh
           ? "✓ Nothing needs you"
-          : `Needs you · ${count}${!fresh && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}`,
-    badge: count === null ? "!" : String(count),
+          : `Needs you · ${count}${partialPlans ? "+ · plans only" : ""}${!fresh && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}`,
+    badge: count === null ? "!" : `${count}${partialPlans ? "+" : ""}`,
     extra,
-    accessibilityLabel: `Needs you, ${count === null ? "count unavailable" : `${count} decisions`}${extra ? `, ${extra}` : ""}${!fresh && count !== null && snapshot?.freshness.asOf != null ? `, as of ${decisionClock(snapshot.freshness.asOf)}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
+    accessibilityLabel: `Needs you, ${count === null ? "count unavailable" : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} decisions`}${extra ? `, ${extra}` : ""}${!fresh && count !== null && snapshot?.freshness.asOf != null ? `, as of ${decisionClock(snapshot.freshness.asOf)}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
   };
 }
 

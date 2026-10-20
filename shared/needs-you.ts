@@ -1,6 +1,7 @@
 /** Captain decisions, separate from native attention and the timing observer. */
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
+import { PlanNeedSchema } from "./workflow-rpc";
 
 const instant = z.number().int().nonnegative();
 const revision = z.number().int().positive();
@@ -103,6 +104,8 @@ export const NeedsYouFreshnessSchema = z.object({
   problems: z.array(z.string()),
 });
 export const NeedsYouSnapshotSchema = z.object({
+  planNow: z.array(PlanNeedSchema).optional(),
+  comingUp: z.array(PlanNeedSchema).optional(),
   homeId: z.string().nullable(),
   version: z.number().int().nonnegative(),
   /** null means unavailable, never a claim that the queue is empty. */

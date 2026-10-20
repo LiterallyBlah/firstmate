@@ -113,3 +113,26 @@ attempt. The launch helper deliberately remains limited to new worktree creation
 `node data/backlog-lint.js` uses the daemon's exact strict backlog observer through `workflow.mjs lint`.
 It accepts opaque legacy blocker prose; only recognized ID lists acquire dependency semantics.
 An unavailable daemon is a lint failure, never a clean result. No separate parser replica can drift.
+
+
+## Plans on the board
+
+Larger plans have a chip and a Plans filter. The dialog shows the runs, models, dependencies, worker
+and turn bounds, decision options and revision history. Approve authorizes work only. Approve with
+edits can change an unstarted run's model/thinking, saved host or dependencies, or remove it. Removing
+a prerequisite holds its dependents until the captain approves revised dependencies. Started runs
+stay pinned. Ask for changes records the captain's text and wakes the first mate to draft a revision;
+Hold stops new starts while preserving running work; Decline applies only before anything started.
+
+Now contains due decisions and plans awaiting approval. Coming up lists future choices with their
+dependencies, what needs them and the recommendation. Coming up contributes nothing to the badge.
+Decisions may be answered early. Every action carries the current plan revision and subject hash;
+a stale or second-device answer is refused. Viewing, closing or filtering is never approval.
+The Deck still contains real workers only. Multi-step rounds and merge gates arrive in later slices.
+
+A captain answer in chat may be recorded by the current first mate with `plan action --file …`:
+`{op: captain, plan, revision, subjectHash, action: approve|changes|hold|decline|answer, text}`.
+Quote the captain's actual words in text; answer also needs node and option. Read the subject hash
+from `plan <id>` or the board/read RPC, never invent it or treat a model's interpretation as the captain's answer.
+Bearings reads plans for Captain's Call, Underway and Charted Next, including Coming up, without
+changing any business records.

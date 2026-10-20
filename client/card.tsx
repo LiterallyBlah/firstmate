@@ -60,6 +60,7 @@ import { ItemTagEditor } from "./item-tags";
 import { taskPresentation, TASK_TITLES, TASK_REASON_ICONS, type TaskPresentation } from "./task-presentation";
 import { useOpenDecision, type OpenDecision } from "./decision-action";
 import { DecisionButton } from "./decision-drawer";
+import { PlanChip } from "./workflow-plans";
 
 /** A time a remote host reported, moved onto this machine's clock by the host's measured skew. */
 function hostTime(iso: string, skewSeconds: number | null): string {
@@ -572,6 +573,7 @@ export function CrewCard({
         </View>
       )}
 
+      {focus ? null : <PlanChip card={card} theme={theme} />}
       {plain && summary.request && decisionHomeId ? (
         <DecisionButton
           theme={theme}
