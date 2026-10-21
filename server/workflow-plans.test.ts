@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
-import { PlanDefinitionSchema, planProblems, planWorstCase, type PlanDefinition } from "../shared/workflow-plans";
-import { WorkflowPlanStore } from "./workflow-plans";
+import { PlanDefinitionSchema, planFinished, planProblems, planWorstCase, type PlanDefinition } from "../shared/workflow-plans";
+import { WorkflowPlanStore, dependenciesMet } from "./workflow-plans";
 import { observeNeedsYou } from "./needs-you-detect";
 import { parseBacklog } from "./backlog";
 import { renderCharter } from "./charter";
@@ -20,6 +20,53 @@ beforeEach(async () => {
 });
 const draft = (p = fixture(), id = randomUUID()) => store.execute({ op: "draft", definition: p }, id, "mate");
 describe("plan journal", () => {
+  it("closes a verified evidence-only ship append-only, without inventing landing or resetting its budget", async () => {
+    await draft(); const started: any = await store.execute({ op: "start", plan: "request", node: "build" }, randomUUID(), "mate");
+    const attempt = started.launch.workflow.attempt;
+    await store.execute({ op: "record", plan: "request", node: "build", attempt, state: "done", evidence: "Verified experiment report; branch is evidence only." }, randomUUID(), "mate");
+    const before = (await store.get("request"))!;
+    expect(planFinished(before)).toBe(false);
+    const bytes = await readFile(join(root, "request/00000002.json"), "utf8");
+    const close = { op: "close" as const, plan: "request", node: "build", attempt, expected: before.hash, evidence: "Inspected report and branch; the trial has no deliverable to merge or deploy." };
+    for (const invalid of [{ ...close, expected: "0".repeat(64) }, { ...close, attempt: randomUUID() }, { ...close, evidence: " " }]) {
+      await expect(store.execute(invalid, randomUUID(), "mate")).rejects.toThrow();
+      expect((await store.get("request"))?.hash).toBe(before.hash);
+    }
+    const request = randomUUID(), result: any = await store.execute(close, request, "mate");
+    expect(result.plan.nodes.build).toMatchObject({ ...before.nodes.build, closedWithoutLanding: { by: "mate", evidence: close.evidence } });
+    expect(planFinished(result.plan)).toBe(true);
+    expect(result.backlog[0]).toMatchObject({ section: "done" }); expect(result.backlog[0].line).toContain("- [x]");
+    expect(result.worstCase).toEqual(planWorstCase(before.definition, before.nodes));
+    expect(await readFile(join(root, "request/00000002.json"), "utf8")).toBe(bytes);
+    expect(await store.execute(close, request, "mate")).toEqual(result);
+    store = new WorkflowPlanStore(root, home);
+    expect((await store.get("request"))?.nodes.build?.closedWithoutLanding?.evidence).toBe(close.evidence);
+    expect(await store.execute({ op: "plans" }, randomUUID(), "mate")).toEqual([]);
+    expect(await store.execute({ op: "plans", all: true }, randomUUID(), "mate")).toHaveLength(1);
+    const source = before.definition.nodes[0]!;
+    expect(dependenciesMet({ ...source, after: [{ node: "build", reason: "needs-evidence", on: "done" }] }, [result.plan])).toBe(true);
+    expect(dependenciesMet({ ...source, after: [{ node: "build", reason: "builds-on", on: "landed" }] }, [result.plan])).toBe(false);
+    await expect(store.execute({ op: "record", plan: "request", node: "build", attempt, state: "landed", evidence: "Pretend it merged" }, randomUUID(), "mate")).rejects.toThrow("immutable");
+    expect(await readFile(join(home, "data/plans/request/plan.md"), "utf8")).toContain("closed without landing");
+  });
+  it("refuses closing live or invalidated work, and refuses closing when another run still needs landing", async () => {
+    await draft(); const { launch }: any = await store.execute({ op: "start", plan: "request", node: "build" }, randomUUID(), "mate");
+    const close = async () => store.execute({ op: "close", plan: "request", node: "build", attempt: launch.workflow.attempt, expected: (await store.get("request"))!.hash, evidence: "Trial, nothing to land" }, randomUUID(), "mate");
+    await expect(close()).rejects.toThrow("verified done ship");
+    await store.execute({ op: "record", plan: "request", node: "build", attempt: launch.workflow.attempt, state: "done", evidence: "Verified report" }, randomUUID(), "mate");
+    const dependent = fixture("dependent"), node = dependent.nodes[0]!; node.id = "consumer";
+    if (node.kind !== "run") throw new Error("fixture"); node.launch = { ...node.launch, id: node.id, brief: { file: "data/consumer/brief.md" } };
+    node.after = [{ node: "build", reason: "builds-on", on: "landed" }]; await draft(dependent);
+    await expect(close()).rejects.toThrow("requires this run to land");
+    node.after[0]!.on = "done";
+    await store.execute({ op: "revise", definition: dependent, expected: (await store.get("dependent"))!.hash, reason: "This consumer needs the report, not landed code." }, randomUUID(), "mate");
+    await store.execute({ op: "invalidate", plan: "request", node: "build", attempt: launch.workflow.attempt, evidence: "Report needs rechecking" }, randomUUID(), "mate");
+    await expect(close()).rejects.toThrow("verified done ship");
+    await store.execute({ op: "validate", plan: "request", node: "build", attempt: launch.workflow.attempt, expected: (await store.get("request"))!.hash, evidence: "Report rechecked" }, randomUUID(), "mate");
+    await close();
+    node.after[0]!.on = "landed";
+    await expect(store.execute({ op: "revise", definition: dependent, expected: (await store.get("dependent"))!.hash, reason: "Invent a landing" }, randomUUID(), "mate")).rejects.toThrow("closed without landing");
+  });
   it("is additive and read-only on an empty installation", async () => {
     expect(await store.list()).toEqual([]); expect(await store.agenda()).toEqual([]); await expect(readdir(root)).rejects.toMatchObject({ code: "ENOENT" });
   });

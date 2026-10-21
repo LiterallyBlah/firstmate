@@ -37,6 +37,9 @@ it("transports plans, an implicit start, records, read-only agenda and idempoten
   const attempt = started.result.launch.workflow.attempt;
   expect(await run(["record", "--plan", "task", "--node", "task", "--attempt", attempt, "--state", "running", "--agent", "worker", "--workspace", "space", "--evidence", "Inspected worker"])).toMatchObject({ ok: true });
   expect((await run(["plan", "task"])).result.nodes.task.agentId).toBe("worker");
+  await run(["record", "--plan", "task", "--node", "task", "--attempt", attempt, "--state", "done", "--evidence", "Verified evidence-only trial"]);
+  const current = (await store.get("task"))!;
+  expect(await run(["close", "--plan", "task", "--node", "task", "--attempt", attempt, "--expected", current.hash, "--evidence", "Verified trial report; no change is intended to land."])).toMatchObject({ ok: true, result: { plan: { nodes: { task: { state: "done", closedWithoutLanding: { by: "mate" } } } } } });
   expect(await run(["start", "--file", "data/task/request.json"], "guest")).toMatchObject({ ok: false, error: expect.stringContaining("current first mate") });
   expect(await run(["start", "--file", "../outside.json"])).toMatchObject({ ok: false });
 });

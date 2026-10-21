@@ -4,7 +4,7 @@
 shortcuts. It shares FleetSurface, WorkflowPlansView, the existing workflow snapshot and review
 dialog with Home. It follows the other fleet panels' home-workspace guard and attention rules.
 
-Plans start collapsed. A summary shows progress over primary steps (ship work must land), running
+Plans start collapsed. A summary shows progress over primary steps (ordinary ship work must land), running
 work, the next work and unmet prerequisites, and outstanding captain decisions. Expanded builds
 carry compact review chips. A scout is folded only when its name identifies a review and it has
 exactly one same-project build linked by a needs-evidence dependency. Ambiguous reviews and
@@ -36,3 +36,20 @@ Bundles, PNGs and `checks.json` are written only to ignored `.local/plans-panel/
 Reviewer captures and check output are copied to
 `C:\Users\micha\.paseo\plugin-data\firstmate\home\data\fm-plans-panel\evidence\`.
 Generated evidence is never committed.
+
+Bearings now uses `shared/workflow-plan-summary.ts`, also used by the browser. It sends bounded
+open-plan lines and due/upcoming decisions, without finished history or separate review rows.
+Its strict owned envelope keeps the visible captain request short; Home/Chat and native chat reuse
+the existing watch-note disclosure, collapsed until explicitly expanded. The message still carries
+the complete compact overview to the mate. Pasted or malformed envelopes are never hidden.
+
+Evidence-only ship trials use an explicit `workflow.mjs close` receipt after verified `done`, with
+current attempt/hash and explanatory evidence. This preserves outcome, identities and cumulative
+budget, without satisfying landing dependencies. Pending landing dependents require replanning.
+The fixture includes six such trials: they appear open in the baseline and as retained finished
+history with closure evidence afterward. Store tests cover append-only/restart/idempotency,
+refusal paths, unchanged reports/budget and done-versus-landed dependency behavior.
+
+Additional day/night desktop/phone captures show Bearings before/collapsed/expanded, retained trial
+history and its closure evidence, and Home with guest chats before/after removal of its warning.
+The role helper and guest guidance are unchanged. The raw compact Bearings text is also saved.

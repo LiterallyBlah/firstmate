@@ -99,7 +99,7 @@ it("summarizes progress, active reviews, the next work and upcoming captain deci
   const plans = compactPlansFixture(), [star] = plans;
   const summary = planSummary(star!, plans);
   expect(summary.progress).toBe("3 of 7 steps landed");
-  expect(summary.running).toContain("opus review of scheduler slice 13");
+  expect(summary.running).toContain("slice 13: invalidation and replay blocking reviews (Opus)");
   expect(summary.next).toContain("waiting on");
   expect(summary.decisions).toContain("Approve building the Postgres deployment");
   const review = planSteps(star!)[3]!.reviews[0]!;

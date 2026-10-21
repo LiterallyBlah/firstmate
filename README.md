@@ -19,6 +19,11 @@ Coming up before they are due; only current actions count in Needs you. An answe
 plan or another device is refused. Deck still shows real workers, and Bearings draws its next steps
 from the plans.
 
+**Bearings** keeps its visible request short and puts a compact plan overview behind an expandable
+line, like watch notifications. The mate receives that overview and can read full plans itself.
+Finished evidence-only experiments can be explicitly closed with `workflow.mjs close`, retaining
+their evidence and budget without claiming a merge. Ordinary ship work still waits for landing.
+
 **One conversation to coordinate a crew of coding agents in [Paseo](https://paseo.sh).**
 
 FirstMate gives a lead agent a persistent home, a charter and a view of its crew. Describe the work;
@@ -194,6 +199,7 @@ the manifest and base64 transport overhead are additional. See the [transport bu
 **Home** keeps the first-mate conversation beside **List**, **Board**, **Home files**, **Deck** or **Plans**.
 Compact layouts switch between these and **First mate**. The divider and view choices are saved.
 The view controls group **List / Board / Deck**, then **Home files / Plans**, wrapping at narrow widths.
+Other chats may share the home workspace without a warning banner; their guest role stays unchanged.
 **More** holds watches, provider transfer, layout controls, updates, refresh and settings.
 **Open** holds the workspace and native-tool shortcuts, keeping the desktop header to one row.
 Narrow desktop panes fold the view switcher into a menu and put status/counts under More.

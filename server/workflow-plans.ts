@@ -24,7 +24,7 @@ const RecoverySchema = z.object({ version: z.literal(1), home: z.string(), plan:
 const checksum = ({ hash: _hash, ...event }: Event) => digest(event);
 const terminal = (state: string) => ["done", "landed", "failed", "cancelled"].includes(state);
 export const planSubjectHash = (plan: WorkflowPlan) => digest({ definition: plan.definition, revision: plan.revision, status: plan.status, nodes: plan.nodes, captainActions: plan.captainEvents?.map(e => e.id) ?? [] });
-export const backlogSection = (node: PlanNode, state: string) => terminal(state) && !(node.kind === "run" && node.launch.kind === "ship" && state === "done") ? "done" : state === "planned" ? "queued" : "in-flight";
+export const backlogSection = (node: PlanNode, state: string, closedWithoutLanding = false) => terminal(state) && !(node.kind === "run" && node.launch.kind === "ship" && state === "done" && !closedWithoutLanding) ? "done" : state === "planned" ? "queued" : "in-flight";
 export const samePlanItem = (item: ReturnType<typeof parseBacklog>[number], plan: WorkflowPlan, node: PlanNode) =>
   item.id === node.id && (node.kind === "decision" ? !item.project && !item.host : item.project === node.launch.project && (item.host ?? "local").toLowerCase() === node.launch.host.toLowerCase()) &&
   (plan.definition.implicit || item.plan === plan.definition.id);
@@ -159,12 +159,19 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
   if (c.op === "record") {
     const node = next.definition.nodes.find(n => n.id === c.node), state = next.nodes[c.node];
     if (node?.kind !== "run" || !state?.attempt || state.attempt !== c.attempt) throw new Error("Record does not match a committed start intent.");
-    if (terminal(state.state) && !(state.state === "done" && c.state === "landed")) throw new Error("Completed run history is immutable.");
+    if (terminal(state.state) && !(state.state === "done" && c.state === "landed" && !state.closedWithoutLanding)) throw new Error("Completed run history is immutable.");
     if (c.state === "running" && (!c.agentId || !c.workspaceId)) throw new Error("A running record needs agent and workspace identities.");
     if (state.agentId && c.agentId && state.agentId !== c.agentId) throw new Error("Cannot replace an accounted worker.");
     const priorWorkspace = state.priorAttempts?.at(-1)?.workspaceId;
     if (priorWorkspace && c.workspaceId && c.workspaceId !== priorWorkspace) throw new Error("Manual replacement must preserve the workspace identity.");
     next.nodes[c.node] = { ...state, state: c.state, evidence: c.evidence, ...(terminal(c.state) ? { completedAt: event.at } : {}), ...(c.agentId ? { agentId: c.agentId } : {}), ...(c.workspaceId ? { workspaceId: c.workspaceId } : {}) };
+  }
+  if (c.op === "close") {
+    const node = next.definition.nodes.find(n => n.id === c.node), state = next.nodes[c.node];
+    if (node?.kind !== "run" || node.launch.kind !== "ship" || !state?.attempt || state.attempt !== c.attempt || c.expected !== previous?.hash ||
+      state.state !== "done" || state.invalidated || state.held || state.closedWithoutLanding) throw new Error("Closing without landing requires the current verified done ship attempt and fresh plan hash.");
+    state.closedWithoutLanding = { at: event.at, by: event.by, evidence: c.evidence };
+    next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: `Closed ${node.title} without landing: ${c.evidence}` });
   }
   if (c.op === "ack") next[c.kind] = [...new Set([...next[c.kind], ...c.ids])];
   if (c.op === "notified") { const action = next.captainEvents?.find(a => a.id === c.eventId); if (!action) throw new Error("Unknown captain event."); action.notified = true; }
@@ -457,6 +464,10 @@ export class WorkflowPlanStore {
       }
       if (command.op === "implicit" && plans.some(p => p.definition.nodes.some(n => n.id === id))) throw new Error("Task already belongs to a plan; use its recorded start intent.");
       if (command.op === "release") await this.assertUncreated(command.node, command.attempt);
+      if (command.op === "close" && plans.some(p => p.status !== "abandoned" && !planFinished(p) && p.definition.nodes.some(n =>
+        !terminal(p.nodes[n.id]?.state ?? "planned") && n.after.some(edge => edge.node === command.node && edge.on === "landed")))) {
+        throw new Error("A plan still requires this run to land; replan its dependents before closing without landing.");
+      }
       if (command.op === "claim") {
         const node = previous?.definition.nodes.find(n => n.id === command.node);
         if (!node || !dependenciesMet(node, plans, unavailableDependencies)) throw new Error("Run dependencies changed since start; reconcile before dispatch.");
@@ -519,7 +530,7 @@ export class WorkflowPlanStore {
     let items: ReturnType<typeof parseBacklog> = [];
     try { items = parseBacklog(await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8")); }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") projectionProblem = "Plan committed; backlog is unreadable. Reconcile it before applying any projection."; }
-    return { plan, worstCase: planWorstCase(plan.definition, plan.nodes), ...(projectionProblem ? { projectionProblem } : {}), backlog: projectionProblem ? [] : plan.definition.nodes.map(n => ({ node: n.id, section: backlogSection(n, plan.nodes[n.id]!.state), line: planBacklogLine(plan, n, items.find(i => samePlanItem(i, plan, n))) })),
+    return { plan, worstCase: planWorstCase(plan.definition, plan.nodes), ...(projectionProblem ? { projectionProblem } : {}), backlog: projectionProblem ? [] : plan.definition.nodes.map(n => ({ node: n.id, section: backlogSection(n, plan.nodes[n.id]!.state, !!plan.nodes[n.id]!.closedWithoutLanding), line: planBacklogLine(plan, n, items.find(i => samePlanItem(i, plan, n))) })),
       comingUp: plan.definition.nodes.filter(n => n.kind === "decision" && !plan.nodes[n.id]?.answer),
       ...(definition?.kind === "run" && node && plan.nodes[node]?.attempt ? { launch: { ...(plan.nodes[node]!.launch ?? definition.launch), workflow: { plan: plan.definition.id, node, attempt: plan.nodes[node]!.attempt, briefHash: plan.nodes[node]!.briefHash } } } : {}) };
   }
@@ -527,13 +538,13 @@ export class WorkflowPlanStore {
     const path = await resolveInHome(this.home, `data/plans/${plan.definition.id}/plan.md`);
     await mkdir(dirname(path.absolute), { recursive: true });
     const nodes = await Promise.all(plan.definition.nodes.map(async n => fill(await readTemplate(n.kind === "run" ? TEMPLATES.workflowRun : TEMPLATES.workflowDecision), {
-      title: n.title, state: plan.nodes[n.id]?.state ?? "planned", summary: n.summary,
+      title: n.title, state: plan.nodes[n.id]?.closedWithoutLanding ? "closed without landing" : plan.nodes[n.id]?.state ?? "planned", summary: n.summary,
       workflow: n.kind === "run" ? n.workflow : "", model: n.kind === "run" ? n.launch.agent.provider : "",
       thinking: n.kind === "run" ? n.launch.agent.thinkingOptionId ?? "—" : "", host: n.kind === "run" ? n.launch.host : "",
       options: n.kind === "decision" ? n.options.map(o => `- ${o.label}: ${o.consequence}`).join("\n") : "",
       recommendation: n.kind === "decision" ? n.options.find(o => o.id === n.recommendation)?.label ?? "—" : "",
       rationale: n.kind === "decision" ? n.rationale : "",
-      after: n.after.map(d => `${d.node} (${d.reason}, ${d.on})`).join(", ") || "—", evidence: plan.nodes[n.id]?.evidence ?? "—",
+      after: n.after.map(d => `${d.node} (${d.reason}, ${d.on})`).join(", ") || "—", evidence: [plan.nodes[n.id]?.evidence ?? "—", ...(plan.nodes[n.id]?.closedWithoutLanding ? [`Closed without landing: ${plan.nodes[n.id]!.closedWithoutLanding!.evidence}`] : [])].join("\n"),
     })));
     const content = fill(await readTemplate(TEMPLATES.workflowPlan), {
       title: plan.definition.title, request: plan.definition.request.text, revision: String(plan.revision), posture: plan.posture, state: planFinished(plan) ? "finished" : plan.status,
@@ -596,7 +607,7 @@ export class WorkflowPlanStore {
         if (terminal(state.state)) add("tell", 5, `finished:${node.id}:${state.state}`, `${node.title}: ${state.state}. ${state.evidence ?? ""}`, node.id);
         // Until slice 4, live facts must be checked by the mate. A worker's status never completes a run.
         if (["running", "starting"].includes(state.state)) add("replan", 3, `observe:${node.id}:${state.attempt}`, `Verify ${node.title} against Paseo and its delivery evidence; outcome is unobserved.`, node.id);
-        const section = backlogSection(node, state.state), current = items.find(i => samePlanItem(i, plan, node));
+        const section = backlogSection(node, state.state, !!state.closedWithoutLanding), current = items.find(i => samePlanItem(i, plan, node));
         const line = planBacklogLine(plan, node, current);
         if (!current && section === "done") continue;
         const expected = parseBacklog(`## ${section === "in-flight" ? "In flight" : section === "done" ? "Done" : "Queued"}\n${line}`)[0]!;
@@ -610,7 +621,7 @@ export class WorkflowPlanStore {
 export function planBacklogLine(plan: WorkflowPlan, node: PlanNode, current?: ReturnType<typeof parseBacklog>[number]): string {
   const state = plan.nodes[node.id]!;
   const needed = plan.definition.nodes.filter(n => n.after.some(d => d.node === node.id)).map(n => n.id);
-  return `- [${backlogSection(node, state.state) === "done" ? "x" : " "}] ${node.id} - ${node.title}` +
+  return `- [${backlogSection(node, state.state, !!state.closedWithoutLanding) === "done" ? "x" : " "}] ${node.id} - ${node.title}` +
     (node.kind === "run" ? ` (project: ${node.launch.project}) (kind: ${node.launch.kind}) (mode: ${node.launch.mode})${node.launch.host === "local" ? "" : ` (host: ${node.launch.host})`}` : " (kind: captain)") +
     (plan.definition.implicit ? "" : ` (plan: ${plan.definition.id})`) + (node.after.length ? ` (blocked-by: ${node.after.map(d => d.node).join(", ")})` : "") +
     (needed.length ? ` (needed-by: ${needed.join(", ")})` : "") + (state.agentId ? ` (agent: ${state.agentId})` : "") +

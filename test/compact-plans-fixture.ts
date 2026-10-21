@@ -61,3 +61,14 @@ export function compactPlansFixture(): WorkflowPlan[] {
   });
   return [star, reader, duplicate, ...prerequisites];
 }
+
+export function closedTrialsFixture(): WorkflowPlan[] {
+  return Array.from({ length: 6 }, (_, i) => {
+    const id = `evidence-trial-${i}`, title = `Evidence-only trial ${i + 1}`;
+    const p = plan(id, title, [run(id, title, "Experiments", [])]); p.definition.implicit = true;
+    p.definition.request.text = "Run an experiment and retain its branch and report as evidence; nothing is intended to land.";
+    p.nodes[id] = { state: "done", spent: 1, evidence: "Verified experiment report", completedAt: "2026-10-21T12:00:00Z",
+      closedWithoutLanding: { at: "2026-10-21T13:00:00Z", by: "mate", evidence: "Inspected branch and report. This completed trial has no deliverable to merge or deploy." } };
+    return p;
+  });
+}

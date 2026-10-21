@@ -35,6 +35,7 @@ import { lookupIn, recentCandidates } from "./file-links";
 import { useFollowEnd } from "./follow-end";
 import { isSendKey, type WebKeyPressEvent } from "./keys";
 import { MateControls } from "./mate-controls";
+import { MachineNoteDetails } from "./machine-note-details";
 import { ChatImage } from "./chat-image";
 import { MessageCopy } from "./message-copy";
 import { useMateSender } from "./mate-send";
@@ -397,6 +398,7 @@ export function MateChat({
                 {row.text}
               </Text>
             )}
+            {row.overview ? <MachineNoteDetails theme={theme} summary="Plan overview" original={row.overview} /> : null}
             {images.length > 0 ? <SentImages images={images} theme={theme} /> : null}
             {row.text === ATTACHMENTS_ONLY ? null : (
               <View style={{ alignItems: "flex-end" }}>

@@ -5,16 +5,28 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { View, Text, Pressable } from "react-native";
 import { Icon } from "../plans-view/stubs";
 import { registerFleetViews } from "../../client/workspace-panels";
-import { compactPlansFixture } from "../../test/compact-plans-fixture";
+import { compactPlansFixture, closedTrialsFixture } from "../../test/compact-plans-fixture";
+import { compactWorkflowBearings } from "../../shared/workflow-plan-summary";
+import { bearingsMessage } from "../../shared/bearings";
 import { theme as dark } from "../board-list/theme";
-import { fleet } from "../board-list/fixtures";
+import { fleet, entries } from "../board-list/fixtures";
 const params = new URLSearchParams(location.search);
 const theme = params.get("theme") === "light" ? { colors: { ...dark.colors, surface0: "#f6f8f7", surface1: "#ffffff", surface2: "#edf1ee", border: "#c9d2cc", foreground: "#16241b", foregroundMuted: "#52635a", statusWarning: "#8a5813" } } : dark;
 const plans = params.get("scenario") === "empty" ? [] : compactPlansFixture();
+if (params.has("trials")) plans.push(...closedTrialsFixture());
 Object.assign(window, { fixtureTheme: theme, plansScenario: params.get("scenario"), planActions: [], planReads: 0, navigationCalls: [], workflowFixture: {
   homeId: "fixture-home", version: "fixture-compact", plans, subjects: Object.fromEntries(plans.map(p => [p.definition.id, "b".repeat(64)])), now: [], comingUp: [],
   problems: params.get("scenario") === "partial" ? ["A damaged plan was isolated; healthy plans remain available."] : [],
 } });
+if (params.has("guests")) fleet.homeGuests = [{ ...fleet.mate, id: "guest-chat", title: "Planning notes" }];
+if (params.has("bearings")) {
+  window.workflowFixture.comingUp = plans.slice(0, 2).map(p => ({ plan: p.definition.id, node: p.definition.nodes.find(n => n.kind === "decision").id,
+    title: p.definition.title, question: p.definition.nodes.find(n => n.kind === "decision").title, waits: [p === plans[0] ? "Scheduler slice 13 landing" : "Reader route landing"], neededBy: [], recommendation: "Review the recorded evidence first." }));
+  const overview = compactWorkflowBearings(window.workflowFixture);
+  const text = bearingsMessage("Bearings, please.", overview);
+  window.bearingsPayload = text;
+  entries.push({ ...entries.at(-1), seqStart: 1000, seqEnd: 1000, item: { type: "user_message", text, clientMessageId: "firstmate-bearings-11111111-1111-4111-8111-111111111111" } });
+}
 fleet.mate.requiresAttention = true;
 if (params.has("adopted")) fleet.mateInHome = false;
 const screens = new Map(), panels = new Map();

@@ -91,8 +91,9 @@ including enforcement independent of native approvals, mutable mode, inherited t
   replayed. Inspect the reserved session in Paseo, then release the role before another launch.
   Release clears the reservation but does not archive the session. Migration retains its existing
   prepare/activate/send ordering. Adoption/release are reflected on the next role check.
-- Fleet and native agent panels identify other home chats as guests, including released mates carrying
+- Native agent panels identify other home chats as guests, including released mates carrying
   stale labels. Inspectors/advisers are excluded from adoption. Home guests add no authority or actions.
+  Home permits other chats without a warning banner; the role guard and guest guidance are unchanged.
 
 ## Submission core and remaining phase-1 integration
 
@@ -141,9 +142,10 @@ until their old prompt-during-create assumptions were replaced with ordered iden
 
 `node docs/topic-phase0/render.mjs` mounts the real fleet and guest panel through the existing synthetic
 host harness (dependencies: `npm ci --prefix docs/board-list`). Desktop/phone, light/dark screenshots
-and `render-results.json` are retained. A first phone render exposed a long-title button overflowing;
-`failed-long-guest-title.png` preserves it. Bounded, numbered guest labels fixed it; the harness checks
-each action's bounds and correct agent navigation. Native device behavior is not claimed.
+and `render-results.json` are now written only to ignored `.local/topic-phase0/`. The current harness
+checks that Home has no guest warning or guest-navigation buttons, while the guest panel retains its
+identity explanation. The older long-title/button overflow evidence is historical. Native device
+behavior is not claimed. `docs/plans-panel/render.mjs` has before/after warning-removal captures.
 
 Full repository commands: `npm run typecheck`, `npm test` (same commands as Linux/Windows CI).
 Final local result: typecheck passed; **535 tests passed, 3 existing tests skipped, 43 files passed**.

@@ -1,4 +1,5 @@
 import { decisionAnswerSummary, DECISION_ANSWER_KIND } from "./decision-answer-summary";
+import { readBearingsMessage } from "../shared/bearings";
 import type { PluginTimelineTransformerContribution } from "@getpaseo/plugin/client";
 
 import { injectedSummary, watchSummary, planNoteSummary } from "./transcript-rows";
@@ -44,6 +45,8 @@ export const nativeChatTransformer: PluginTimelineTransformerContribution<"user_
   id: MACHINE_NOTE_KIND,
   query: { itemType: "user_message" },
   transform({ item }) {
+    const bearings = readBearingsMessage(item.text, item.clientMessageId);
+    if (bearings) return { items: [{ type: "plugin", kind: MACHINE_NOTE_KIND, version: 1, data: { visible: bearings.visible, summary: "Plan overview", original: bearings.overview } }] };
     const answer = decisionAnswerSummary(item.text, item.clientMessageId);
     if (answer) return { items: [{ type: "plugin", kind: DECISION_ANSWER_KIND, version: 1, data: answer }] };
     const summary = nativeNoteSummary(item.text, item.clientMessageId);

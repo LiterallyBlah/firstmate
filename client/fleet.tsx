@@ -528,26 +528,6 @@ function FleetViewBody({
       />,
     );
   }
-  if ((data?.homeGuests?.length ?? 0) > 0) {
-    const guests = data!.homeGuests!;
-    banners.push(
-      <Banner
-        key="home-guests"
-        theme={theme}
-        tone="warning"
-        text={`${guests.length} other ${guests.length === 1 ? "chat is" : "chats are"} open in the FirstMate home. They are guests, not the configured first mate. Older chats may still remember the previous charter; the role guard does not revoke tool access.`}
-        actions={
-          navigation === undefined
-            ? []
-            : guests.slice(0, 3).map((guest, index) => ({
-                label: `${index + 1}: ${(guest.title ?? guest.id).slice(0, 24)}${(guest.title ?? guest.id).length > 24 ? "…" : ""}`,
-                icon: "ExternalLink" as const,
-                onPress: () => navigation.openAgent({ agentId: guest.id }),
-              }))
-        }
-      />,
-    );
-  }
   // The question itself is in the chat; the banner is for when the chat is
   // out of sight — folded away, or behind the Crew tab on a phone.
   const chatHidden = !chatIsVisible(view ?? "home", compact, shownTab, values.chatCollapsed);

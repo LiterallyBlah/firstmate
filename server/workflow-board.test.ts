@@ -8,6 +8,9 @@ import { workflowStore, queuePlanNotes } from "./workflow-service";
 import { planSubjectHash } from "./workflow-plans";
 import { workflowSnapshot, withWorkflowCards, withWorkflowNeeds, workflowBearings } from "./workflow-board";
 import { updateFirstmateConfig, readFirstmateConfig } from "./config";
+import { commandMessage } from "./mate";
+import { readBearingsMessage } from "../shared/bearings";
+import { planGroups } from "../shared/workflow-plan-summary";
 
 let home: string;
 const daemonRoot = process.env.PASEO_HOME!;
@@ -24,6 +27,27 @@ async function command(action: PlanCaptainCommand["action"], extra: Partial<Plan
   return { op: "captain", plan: "scheduler", revision: p.revision, subjectHash: planSubjectHash(p), action, text: "", ...extra };
 }
 const act = async (c: PlanCaptainCommand, id = randomUUID()) => workflowStore(home).execute(c, id, "board:captain");
+it("sends a compact owned Bearings envelope and moves six explicitly closed trials into history", async () => {
+  const template = workflowFixture().nodes[2]!; if (template.kind !== "run") throw new Error("fixture");
+  for (let i = 0; i < 6; i++) {
+    const id = `evidence-trial-${i}`; await mkdir(join(home, `data/${id}`)); await writeFile(join(home, `data/${id}/brief.md`), "Run an experiment and retain its report.");
+    const started: any = await workflowStore(home).execute({ op: "implicit", launch: { ...template.launch, id, title: `Evidence-only trial ${i}`, brief: { file: `data/${id}/brief.md` } } }, randomUUID(), "mate");
+    await workflowStore(home).execute({ op: "record", plan: id, node: id, attempt: started.launch.workflow.attempt, state: "done", evidence: "Verified trial report" }, randomUUID(), "mate");
+    const before = (await workflowStore(home).get(id))!;
+    expect((await workflowStore(home).execute({ op: "plans" }, randomUUID(), "mate") as any[]).some(p => p.definition.id === id)).toBe(true);
+    await workflowStore(home).execute({ op: "close", plan: id, node: id, attempt: started.launch.workflow.attempt, expected: before.hash, evidence: "Inspected experiment branch and report; there is no deliverable to land." }, randomUUID(), "mate");
+  }
+  const snapshot = await workflowSnapshot(home);
+  expect(planGroups(snapshot.plans).finished).toHaveLength(6);
+  expect(planGroups(snapshot.plans).open).toHaveLength(1);
+  const message = await commandMessage("bearings", "");
+  const folded = readBearingsMessage(message.text, message.messageId)!;
+  expect(folded.visible).toBe("Bearings, please."); expect(folded.overview).toContain("Open plans");
+  expect(folded.overview).not.toContain("evidence-trial-");
+  expect(folded.overview.split("\n").filter(line => line.startsWith("- scheduler —"))).toHaveLength(1);
+  expect(folded.overview).not.toContain("Independent astra review");
+  expect((await withWorkflowCards([], home, snapshot)).some(c => c.taskId?.startsWith("evidence-trial-"))).toBe(false);
+}, 20000);
 it("applies D2, keeps Coming up outside the urgent count and exposes worker-less planned cards", async () => {
   const snapshot = await workflowSnapshot(home); expect(snapshot.now).toHaveLength(1); expect(snapshot.comingUp).toHaveLength(1);
   const base: any = { actionCount: 0, newCount: 0, requests: [], parked: [], freshness: { status: "fresh" } };
@@ -83,7 +107,7 @@ it("holds new starts, refuses to decline started work, and builds read-only Bear
   await workflowStore(home).execute({ op: "revise", definition: current.definition, expected: current.hash, reason: "Review the remaining work." }, randomUUID(), "mate");
   await expect(act(await command("edit", { edits: [{ kind: "model", node: "trial", agent: { provider: "claude/opus", modeId: "plan" } }] }))).rejects.toThrow("unstarted");
   await act(await command("hold")); const before = await readdir(join(workflowStore(home).root, "scheduler"));
-  const bearings = await workflowBearings(home); expect(bearings).toContain("Underway\n- Scheduler · Database trial: starting"); expect(bearings).toContain("Coming up");
+  const bearings = await workflowBearings(home); expect(bearings).toContain("running: Database trial (starting)"); expect(bearings).toContain("Coming up");
   expect(await readdir(join(workflowStore(home).root, "scheduler"))).toEqual(before);
   expect(await readFile(join(home, "data/plans/scheduler/plan.md"), "utf8")).toContain("held");
 });

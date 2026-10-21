@@ -29,7 +29,7 @@ daemon observer through the workflow transport; it cannot silently diverge. Lega
 remains opaque and valid. Only recognized ID lists populate `blockedByIds`.
 The agenda's outcome observations remain the first mate's job until slice 4. A worker status line
 cannot finish a run. Completion records must describe verified report/PR/head evidence.
-Ship done is deliverable-ready; only landed enters Done. Stores are namespaced by absolute home
+Ship done is deliverable-ready; landing or an explicit evidence-only `close` receipt enters Done. Stores are namespaced by absolute home
 identity, with separate expected-tip/publication records and per-plan quarantine. These are local
 copies, not an independent trusted backup: coordinated loss of a log and all its metadata can hide
 truncation. New publication markers detect losing an exposed event and its tip together. Only an
@@ -66,7 +66,7 @@ request quotes override it, unreadable/absent blocks use D2, and invalid entries
 Home's Plans destination is `homePane: "plans"`, alongside List/Board, Home files and Deck on wide
 and compact layouts. `client/workflow-plan-browser.tsx` consumes WorkflowSurface's existing
 `readWorkflowPlans` snapshot and opens its existing dialog; searching, folding and paging never
-act on a plan. `client/workflow-plan-list.ts` owns open/finished grouping, completion ordering,
+act on a plan. `shared/workflow-plan-summary.ts` (re-exported by `client/workflow-plan-list.ts`) owns open/finished grouping, completion ordering,
 displayed run states and cumulative budget usage (including removed runs, without recounting
 prior attempts). Open plans precede finished history; automatic one-run plans have counted folds,
 expanded for matching searches or awaiting approval, with ten rows per page. The same snapshot
@@ -77,7 +77,17 @@ and captain decisions. Expanded steps fold a named scout review into its single 
 build; ambiguous reviews and standalone probes remain independent. Dependency labels require the
 recorded done/landed/answered outcome and refuse held, invalidated or missing evidence. Worker/host
 details appear only while running. Automatic one-run copies are hidden before search by exact task,
-project and normalized host identity. These are presentation rules; durable plans and actions stay intact.
+project and normalized host identity. These display rules do not change durable plans or actions.
+Bearings uses the same pure summary: one bounded line per open plan and per due/upcoming decision,
+without step lists, review rows or finished history. `shared/bearings.ts` wraps it in an owned, strict
+`firstmate-bearings` envelope. Home/Chat preserve the captain's request and reuse `MachineNoteDetails`,
+the native watch-note disclosure, collapsed by default. Native chat uses the same parser and renderer.
+Pasted, partial, nested or trailing-text envelopes stay visible. The mate receives the full compact overview.
+The explicit workflow `close` transition requires the current verified done ship attempt, expected
+plan hash and evidence that this trial has nothing to land. Its `closedWithoutLanding` receipt retains
+the outcome, report, identities and spent budget. Pending landing dependents must be replanned first;
+future landing prerequisites cannot name a closed trial. It satisfies done, never landed. History,
+backlog/card projections and the plan dialog label it closed without landing, without dispatch or cleanup.
 `node docs/plans-panel/render.mjs` checks registered panels, both layouts and compact real-shaped
 Starpath/reader-pass plans against the previous flat browser. Evidence lives only in ignored `.local/plans-panel/`.
 `node docs/plans-view/render.mjs` adapts the existing workflow render harness for before/after
@@ -459,7 +469,8 @@ charter, including a customized one. The generated helper uses the daemon's rend
 config's actual input schema and the same current/legacy precedence as `dataPath`. Missing,
 unreadable or conflicting identity is a guest; environment/labels alone never grant the role.
 Canonical paths include Windows case and junction aliases. This is behavioral guidance, not
-revocation of a guest's native tools. The board and native agent panel identify other home chats.
+revocation of a guest's native tools. Other home chats are allowed without a warning banner;
+the contextual native agent panel still identifies a guest. Role detection and guest guidance are unchanged.
 
 **Launch has a durable reservation.** `mateLaunch` saves ID, setup and opening before unprompted
 creation. Only after checking the prepared session does config activate its identity and send the

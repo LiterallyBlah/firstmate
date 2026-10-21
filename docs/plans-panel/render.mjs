@@ -10,6 +10,7 @@ const here = dirname(fileURLToPath(import.meta.url)), root = resolve(here, "../.
 const { build } = local("esbuild"), { chromium } = local("playwright");
 const out = resolve(root, ".local/plans-panel"), baseline = "200e73e05da3293718d41db95298b07634403d28";
 await mkdir(out, { recursive: true });
+const baselineFiles = new Set(execFileSync("git", ["ls-tree", "-r", "--name-only", baseline], { cwd: root, encoding: "utf8" }).split(/\r?\n/));
 for (const mode of ["before", "after"]) await build({ entryPoints: [resolve(here, "panel.jsx")], outfile: resolve(out, `${mode}.js`), bundle: true, jsx: "automatic", define: { "process.env.NODE_ENV": '"development"' }, logLevel: "warning", plugins: [{ name: "host-fixtures-and-baseline", setup(b) {
   b.onResolve({ filter: /^@getpaseo\/plugin$/ }, () => ({ path: resolve(root, "docs/board-list/contracts.js") }));
   b.onResolve({ filter: /^@getpaseo\/plugin\// }, () => ({ path: resolve(root, "docs/plans-view/stubs.jsx") }));
@@ -18,7 +19,7 @@ for (const mode of ["before", "after"]) await build({ entryPoints: [resolve(here
   b.onResolve({ filter: /^react-native($|-web$)/ }, () => ({ path: local.resolve("react-native-web") }));
   if (mode === "before") b.onLoad({ filter: /\.(ts|tsx)$/ }, a => {
     const path = relative(root, a.path).split(sep).join("/");
-    if (!/^(client|shared)\//.test(path)) return;
+    if (!/^(client|shared)\//.test(path) || !baselineFiles.has(path)) return;
     return { contents: execFileSync("git", ["show", `${baseline}:${path}`], { cwd: root, encoding: "utf8" }), loader: path.endsWith("tsx") ? "tsx" : "ts", resolveDir: dirname(a.path) };
   });
 } }] });
@@ -116,6 +117,38 @@ try {
     await view.getByText(scenario === "empty" ? /No plans yet/ : scenario === "error" ? /Plans could not be refreshed/ : /Some plans are unavailable/).waitFor();
     if (scenario === "error") { const before = await page.evaluate(() => window.planReads); await view.getByRole("button", { name: "Refresh plans", exact: true }).click(); await page.waitForFunction(n => window.planReads > n, before); }
     await shot(page, scenario); await page.close(); results.push({ scenario, passed: true });
+  }
+  for (const theme of ["light", "dark"]) for (const [device, width, height] of [["desktop", 1440, 1000], ["phone", 390, 844]]) {
+    const page = await pageAt(`/before?theme=${theme}&guests=1`, width, height);
+    await page.getByText(/other chat is open in the FirstMate home/).waitFor(); await shot(page, `${theme}-${device}-guests-before`);
+    await page.goto(`${origin}/after?theme=${theme}&guests=1`);
+    await page.getByRole("button", { name: "Open", exact: true }).waitFor();
+    assert.equal(await page.getByText(/other chat is open in the FirstMate home/).count(), 0);
+    await shot(page, `${theme}-${device}-guests-after`);
+    await page.goto(`${origin}/before?theme=${theme}&bearings=1`);
+    await page.getByText(/<firstmate-bearings>/).waitFor(); await shot(page, `${theme}-${device}-bearings-before`);
+    await page.goto(`${origin}/after?theme=${theme}&bearings=1`);
+    await page.getByText("Bearings, please.", { exact: true }).waitFor();
+    const disclosure = page.getByRole("button", { name: "Show original: Plan overview", exact: true }); await disclosure.waitFor();
+    assert.equal(await disclosure.getAttribute("aria-expanded"), "false");
+    assert.equal(await page.getByText(/^Open plans/).count(), 0); await shot(page, `${theme}-${device}-bearings-collapsed`);
+    await disclosure.click(); await page.getByText(/^Open plans/).waitFor(); await shot(page, `${theme}-${device}-bearings-expanded`);
+    await page.getByRole("button", { name: "Hide original: Plan overview", exact: true }).click();
+    const payload = await page.evaluate(() => window.bearingsPayload);
+    assert(payload.includes("3 of 7 steps landed")); assert(!payload.includes("Independent astra review"));
+    await writeFile(resolve(out, `bearings-${theme}-${device}.txt`), payload);
+    await page.goto(`${origin}/before?theme=${theme}&trials=1`, { waitUntil: "domcontentloaded" }); await inlinePlans(page, width);
+    await page.getByRole("textbox", { name: "Search plans" }).fill("Evidence-only trial");
+    await page.getByRole("button", { name: "Open plan: Evidence-only trial 1", exact: true }).waitFor(); await shot(page, `${theme}-${device}-trials-before`);
+    await page.goto(`${origin}/after?theme=${theme}&view=plans&trials=1`);
+    await page.getByRole("textbox", { name: "Search plans" }).fill("Evidence-only trial");
+    await page.getByText("Recently finished · 6", { exact: true }).waitFor();
+    assert.equal(await page.getByText(/^Open plans ·/).count(), 0);
+    await page.getByRole("button", { name: "Open plan: Evidence-only trial 1", exact: true }).waitFor(); await shot(page, `${theme}-${device}-trials-history`);
+    await page.getByRole("button", { name: "Open plan: Evidence-only trial 1", exact: true }).click();
+    await page.getByRole("dialog", { name: "Evidence-only trial 1", exact: true }).getByText(/Closed without landing: Inspected branch/).waitFor();
+    await shot(page, `${theme}-${device}-trial-closure-evidence`); await page.close();
+    results.push({ theme, device, guestsQuiet: true, bearingsCollapsed: true, overviewPreserved: true, closedTrialsInHistory: true });
   }
   assert.deepEqual(errors, []);
   await writeFile(resolve(out, "checks.json"), JSON.stringify({ baseline, results, errors }, null, 2));

@@ -5,6 +5,7 @@ import type { PlanNeed, WorkflowSnapshot } from "../shared/workflow-rpc";
 import type { Fleet, FleetCard } from "../shared/fleet";
 import { RemoteSnapshot } from "../shared/remotes";
 import { planFinished, type WorkflowPlan } from "../shared/workflow-plans";
+import { compactWorkflowBearings } from "../shared/workflow-plan-summary";
 import { workflowNodeOwnsCard } from "../shared/workflow-identity";
 import { dependenciesMet, planSubjectHash, planBacklogLine, backlogSection, samePlanItem } from "./workflow-plans";
 import { workflowStore } from "./workflow-service";
@@ -70,13 +71,13 @@ export async function withWorkflowCards(cards: FleetCard[], home: string, workfl
     for (const node of plan.definition.nodes) {
       if (node.kind !== "run") continue;
       const state = plan.nodes[node.id]!, existing = result.find(c => workflowNodeOwnsCard(plan, node, c));
-      const column = state.invalidated || state.state === "unresolved" ? "ready" : state.state === "failed" ? "failed" : backlogSection(node, state.state) === "done" ? "done" : state.state === "done" ? "ready" : state.state === "planned" ? "queued" : "working";
+      const column = state.invalidated || state.state === "unresolved" ? "ready" : state.state === "failed" ? "failed" : backlogSection(node, state.state, !!state.closedWithoutLanding) === "done" ? "done" : state.state === "done" ? "ready" : state.state === "planned" ? "queued" : "working";
       if (!existing && column === "done") continue;
       const item = parseBacklog(`## ${column === "done" ? "Done" : column === "queued" ? "Queued" : "In flight"}\n${planBacklogLine(plan, node, existing?.backlog ?? undefined)}`)[0]!;
-      const note = state.invalidated ? "Evidence needs renewed verification" : state.held ? "Dependencies need review" : plan.status === "review" ? "awaiting your approval" : plan.status === "held" ? "plan held" : state.state === "planned" ? node.after.length ? `after ${node.after.map(d => d.node).join(", ")}` : "planned" : state.state === "done" ? "Deliverable ready; landing unconfirmed" : state.state;
+      const note = state.invalidated ? "Evidence needs renewed verification" : state.held ? "Dependencies need review" : state.closedWithoutLanding ? "Closed without landing; evidence retained" : plan.status === "review" ? "awaiting your approval" : plan.status === "held" ? "plan held" : state.state === "planned" ? node.after.length ? `after ${node.after.map(d => d.node).join(", ")}` : "planned" : state.state === "done" ? "Deliverable ready; landing unconfirmed" : state.state;
       if (existing) {
         existing.backlog = { ...(existing.backlog ?? item), ...item };
-        if (state.state === "done" && node.launch.kind === "ship" && existing.column === "done") { existing.column = "ready"; existing.note = note; }
+        if (state.state === "done" && !state.closedWithoutLanding && node.launch.kind === "ship" && existing.column === "done") { existing.column = "ready"; existing.note = note; }
         if (!existing.agent && !existing.remote?.worker) { existing.column = column; existing.note = note; }
       } else {
         const host = resolveHost(node.launch.host, hosts);
@@ -93,20 +94,7 @@ export async function withWorkflowFleet(fleet: Fleet): Promise<Fleet> {
   return { ...fleet, cards: await withWorkflowCards(fleet.cards, fleet.home, view), ...(fleet.needsYou ? { needsYou: await withWorkflowNeeds(fleet.needsYou, fleet.home, view) } : {}),
     warnings: [...fleet.warnings, ...[...(view.problems ?? []), ...(view.warnings ?? [])].map(p => `Workflow: ${p}`)] };
 }
-export async function workflowBearings(home: string, nowMs = Date.now()): Promise<string> {
+export async function workflowBearings(home: string): Promise<string> {
   const snapshot = await workflowSnapshot(home);
-  const plans = snapshot.plans.filter(p => !p.definition.implicit || !planFinished(p));
-  if (!plans.length && !snapshot.problems?.length && !snapshot.warnings?.length) return "";
-  const now = snapshot.now.map(n => `- ${n.title}: ${n.question}. Recommended: ${n.recommendation}`);
-  const done: { line: string; at: string }[] = [], running: string[] = [], queued: string[] = [];
-  for (const plan of plans) for (const node of plan.definition.nodes) {
-    if (node.kind === "decision") continue;
-    const state = plan.nodes[node.id]!, line = `- ${plan.definition.title} · ${node.title}: ${state.state}${state.evidence ? ` · ${state.evidence}` : ""}`;
-    if (state.invalidated) running.push(`${line}. Evidence unresolved: ${state.invalidated}`);
-    else if (backlogSection(node, state.state) === "done") {
-      if (state.completedAt && nowMs - Date.parse(state.completedAt) < 7 * 86400000) done.push({ line, at: state.completedAt });
-    } else if (state.state !== "planned") running.push(line);
-    else if (plan.status !== "abandoned") queued.push(`${line}. After: ${node.after.map(d => d.node).join(", ") || (plan.status === "review" ? "plan approval" : "ready")}`);
-  }
-  return ["Captain's Call", ...now, ...(snapshot.problems ?? []).map(p => `- Plans unavailable: ${p}`), "Recently Landed", ...done.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10).map(d => d.line), "Underway", ...running, "Charted Next", ...queued, "Coming up", ...snapshot.comingUp.map(n => `- ${n.question}. After ${n.waits.join(", ")}. Recommended: ${n.recommendation}`), ...(snapshot.warnings ?? []).map(p => `- Workflow note: ${p}`)].join("\n");
+  return compactWorkflowBearings(snapshot);
 }
