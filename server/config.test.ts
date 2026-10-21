@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { defaultHome, migrateLegacyFiles, readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./config";
+import { defaultHome, migrateLegacyFiles, readConfigWithTenure, readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./config";
 import { legacyPluginDir, pluginDir } from "./data-dir";
 import { FirstmateConfigSchema, writeConfig } from "../shared/fleet";
 
@@ -33,7 +33,7 @@ describe("the config.write contract", () => {
     // Lifecycle journals, history and delivery queues are owned by the server, never a settings save.
     expect(Object.keys(writeConfig.input.shape).sort()).toEqual(
       Object.keys(FirstmateConfigSchema.shape)
-        .filter((key) => !["migration", "mateLaunch", "previousMateIds", "mateNotes"].includes(key)).sort(),
+        .filter((key) => !["migration", "mateLaunch", "previousMateIds", "mateNotes", "mateSince"].includes(key)).sort(),
     );
 
     await updateFirstmateConfig({ mateAgentId: "mate-1", disabledWatches: ["pr-watch"] });
@@ -56,6 +56,33 @@ describe("updateFirstmateConfig", () => {
       mateModeId: "plan",
     });
     expect(await readdir(pluginDir())).toEqual(["config.json"]);
+  });
+
+  it("records when each first mate takes the helm, keeps it across other saves, and clears it on release", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-21T10:00:00.000Z"));
+      expect((await updateFirstmateConfig({ mateAgentId: "first" })).mateSince).toBe("2026-10-21T10:00:00.000Z");
+      vi.setSystemTime(new Date("2026-10-21T11:00:00.000Z"));
+      expect((await updateFirstmateConfig({ mateProvider: "codex/gpt-5" })).mateSince).toBe("2026-10-21T10:00:00.000Z");
+      expect((await updateFirstmateConfig({ mateAgentId: "first" })).mateSince).toBe("2026-10-21T10:00:00.000Z");
+      // Adoption or a handover: the new first mate's tenure starts now, not the old one's.
+      expect((await updateFirstmateConfig({ mateAgentId: "adopted" })).mateSince).toBe("2026-10-21T11:00:00.000Z");
+      expect((await updateFirstmateConfig({ mateAgentId: "" })).mateSince).toBe("");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("records a tenure for a first mate saved before tenures existed, from now", async () => {
+    await mkdir(pluginDir(), { recursive: true });
+    await writeFile(join(pluginDir(), "config.json"), JSON.stringify({ mateAgentId: "older" }));
+    expect((await readFirstmateConfig()).mateSince).toBe("");
+    const before = Date.now();
+    const config = await readConfigWithTenure();
+    expect(Date.parse(config.mateSince!)).toBeGreaterThanOrEqual(before);
+    expect((await readFirstmateConfig()).mateSince).toBe(config.mateSince);
+    expect((await readConfigWithTenure()).mateSince).toBe(config.mateSince);
   });
 
   it("still applies an update queued behind one that failed", async () => {

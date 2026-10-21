@@ -864,6 +864,7 @@ function FleetViewBody({
       key={mate.id}
       imageContext={{ serverId: host?.id, home: data.home }}
       mate={mate}
+      mateSince={data.mateSince ?? null}
       theme={theme}
       compact={compact}
       onChanged={refresh}

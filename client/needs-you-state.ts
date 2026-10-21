@@ -216,6 +216,10 @@ export interface DecisionSession {
   drafts: Map<string, string>;
 }
 const slot = Symbol.for("paseo.firstmate.decisions.v2");
+/** A decision's draft, by home, request and revision: the drawer's and the chat card's alike. */
+export function decisionDraftKey(homeId: string | null, request: Pick<NeedsYouRequest, "id" | "revision">) {
+  return JSON.stringify([homeId, request.id, request.revision]);
+}
 export function decisionSession(
   owner: object,
   root: object = globalThis,

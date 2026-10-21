@@ -10,6 +10,7 @@ import { checkResilience } from "./resilience-checks.mjs";
 import { checkPolish } from "./polish-checks.mjs";
 import { checkHeaders } from "./header-checks.mjs";
 import { checkAnswers } from "./answer-checks.mjs";
+import { checkRaised } from "./raised-checks.mjs";
 const here = dirname(fileURLToPath(import.meta.url)),
   root = resolve(here, "../..");
 const harness = createRequire(join(root, "docs/board-list/package.json")),
@@ -107,20 +108,23 @@ async function pageAt(query, width = 1440) {
   return page;
 }
 try {
-  const headers = await checkHeaders(pageAt, output);
-  const polish = await checkPolish(pageAt, output);
-  const answers = await checkAnswers(pageAt, output);
+  const only = process.env.RAISED_ONLY;
+  const raised = process.env.POLISH_ONLY ? [] : await checkRaised(pageAt, output);
+  const headers = only ? [] : await checkHeaders(pageAt, output);
+  const polish = only ? [] : await checkPolish(pageAt, output);
+  const answers = only ? [] : await checkAnswers(pageAt, output);
   const { checkDrawer } = await import("./drawer-checks.mjs");
-  const layouts = process.env.POLISH_ONLY ? [] : await checkDrawer(pageAt, output);
-  if (!process.env.POLISH_ONLY) await checkResilience(pageAt, output);
-  const taskViews = process.env.POLISH_ONLY ? [] : await checkTaskViews(pageAt, output);
+  const layouts = only || process.env.POLISH_ONLY ? [] : await checkDrawer(pageAt, output);
+  if (!only && !process.env.POLISH_ONLY) await checkResilience(pageAt, output);
+  const taskViews = only || process.env.POLISH_ONLY ? [] : await checkTaskViews(pageAt, output);
   assert.deepEqual(errors, []);
   await writeFile(
     join(output, "results.json"),
-    JSON.stringify({ headers, polish, answers, layouts, taskViews, errors }, null, 2),
+    JSON.stringify({ raised, headers, polish, answers, layouts, taskViews, errors }, null, 2),
   );
   console.log(
     JSON.stringify({
+      raised: raised.length,
       headers: headers.length,
       layouts: layouts.length,
       taskViews: taskViews.length,

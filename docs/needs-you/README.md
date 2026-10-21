@@ -54,6 +54,38 @@ the answer, recorded question, Open the decision, and Show what was sent. Malfor
 partial, quoted or unidentified envelopes remain ordinary text. Existing envelopes without
 a title use the task id. The original message is retained exactly.
 
+## Decisions raised in the chat
+
+The plugin's chat shows each decision the first mate raises once, as a card (`client/decision-raised.ts`,
+`client/decision-raised-card.tsx`). The chat keeps no copy: the card is the Needs-you snapshot's
+request, read afresh on every poll. It lists the title, question and the brief's recommendation (the drawer's
+`DecisionSummary`). It also shows the bound `answerOptions` the drawer offers for that revision, and
+Open the decision. A button goes through the drawer's answer path: the same RPC, send gate and
+content-bound action id. Answered (sent or uncertain) and resolved decisions show as settled, without
+buttons or recommendation.
+
+A card is placed at the request's `detectedAt`, before the first transcript row recorded after it, or
+at the end. The daemon observes the backlog every few seconds, so this is just after the first mate
+writes the hold. Only non-baseline requests detected in this first mate's tenure appear. The tenure is
+the config's `mateSince`, stamped whenever `mateAgentId` changes (launch, restart, adoption, handover).
+An adopted agent's earlier history, and anything the ledger saw before it, is another first mate's, and
+never gets a card. A first mate saved before tenures existed gets one from its first fleet load
+(`readConfigWithTenure`); until then no cards show. Within the tenure, a decision before the first
+loaded entry waits for that history to load. A reworded question keeps its card; a re-raised one (a
+new generation) gets its own.
+
+Stale, disabled, unknown or offline decision data, or this task's own unreadable line (quarantined),
+keeps the last known question and recommendation, with the drawer's warning beside them
+(`raisedWarning`); its answers are disabled. A card answer saves its exact words under the drawer's
+revision-bound draft key (`decisionDraftKey`) before sending, and clears them once accepted. After an
+uncertain delivery, the drawer's Send again… resends those words.
+Paseo's native timeline has no item to transform for a raised decision, so only the plugin's chat
+shows the card.
+
+`raised-checks.mjs` renders it at 390 and 1440 in both themes. It checks that a previous first mate's
+decision stays out and shows the quarantine warning, then answers through the card and settles it.
+`RAISED_ONLY=1 node docs/needs-you/render.mjs` runs just those checks.
+
 ## Bound one-press answers
 
 Optional `data/<task-id>/decision.md` briefs are read through home containment (64 KiB per file,

@@ -29,6 +29,7 @@ import {
   decisionQueue,
   decisionProblems,
   decisionSession,
+  decisionDraftKey,
   type DecisionDestination,
 } from "./needs-you-state";
 import {
@@ -675,11 +676,7 @@ function DecisionDetails({
   chrome: ReactNode;
 }) {
   const session = decisionSession(useQueryClient());
-  const draftKey = JSON.stringify([
-    snapshot.homeId,
-    request.id,
-    request.revision,
-  ]);
+  const draftKey = decisionDraftKey(snapshot.homeId, request);
   const [draft, setDraft] = useState(() => session.drafts.get(draftKey) ?? "");
   const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");

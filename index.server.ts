@@ -5,7 +5,7 @@ import { readWorkflowPlans, actOnWorkflowPlan } from "./shared/workflow-rpc";
 import { ensureSharedTerminal as ensureSharedTerminalRpc } from "./shared/native-tools";
 import { ensureSharedTerminal } from "./server/native-tools";
 
-import { migrateLegacyFiles, readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./server/config";
+import { migrateLegacyFiles, readConfigWithTenure, readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./server/config";
 import { nameHomeOnce } from "./server/home-name";
 import {
   CaptainSteers,
@@ -177,7 +177,7 @@ export default function contribute(server: PluginServerContext) {
     void flushMateNotes(paseo).catch((error: unknown) => console.error("[firstmate] crew notes await delivery:", error));
     const fleet = await loadFleet(
       paseo,
-      await readFirstmateConfig(),
+      await readConfigWithTenure(),
       reports,
       () => watches.summaries(),
       () => remotes.read(),

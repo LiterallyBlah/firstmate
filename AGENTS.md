@@ -222,7 +222,13 @@ id and the existing send gate. The retained draft supplies the words; after a fr
 be entered again. `I answered in chat` records accepted delivery without sending anything.
 `decision-answer-summary.ts` folds only complete identified answer envelopes in both chats, preserving
 the exact original for disclosure and the home/request/revision for reopening. New envelopes include
-the authored title; old envelopes fall back to their task id. The drawer consumes optional server-bound
+the authored title; old envelopes fall back to their task id. `decision-raised.ts` places each
+non-baseline decision detected in the current first mate's tenure once in the plugin chat, at its `detectedAt`.
+The tenure is config `mateSince`, stamped by `updateFirstmateConfig` whenever `mateAgentId` changes, so an
+adopted mate's older history never shows another mate's decisions. An unrecorded tenure shows none.
+`decision-raised-card.tsx` draws it from the live snapshot with the drawer's summary, bound answers and
+send path. It shows the drawer's stale/quarantine warning beside retained content, and keeps a card answer's
+words in the drawer's draft (`decisionDraftKey`) for Send again…. It shows as settled once answered or resolved. The drawer consumes optional server-bound
 `answerOptions`, `specPath` and `notesPath` additively; their production belongs to the options slice.
 Render evidence lives in ignored `.local/needs-you-drawer/`, never in tracked docs.
 The standalone Deck omits the Needs-you header pill in every state; its scene legend and first mate
