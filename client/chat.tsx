@@ -1,4 +1,7 @@
 import { DecisionAnswerBubble } from "./decision-answer-bubble";
+import { DecisionRaisedCard } from "./decision-raised-card";
+import { withRaisedDecisions } from "./decision-raised";
+import { useNeedsYou } from "./needs-you-query";
 /**
  * The conversation with the first mate: its transcript, folded to the words,
  * and a composer. The whole session — every tool call and its output — is
@@ -122,7 +125,13 @@ export function MateChat({
   /** Shared with the surface's suggestion buttons: one message on its way at a time — see `./mate-send`. */
   const { sending, send, command: sendMateCommand } = useMateSender(mate.id);
   const timeline = useAgentTimeline(mate.id, `${mate.updatedAt}:${mate.pendingPermissions}`);
-  const rows = useMemo(() => transcriptRows(timeline.entries), [timeline.entries]);
+  /** Decisions the first mate raised show once, as cards from the Needs-you snapshot — see `./decision-raised`. */
+  const decisions = useNeedsYou();
+  // Placement depends only on the ledger's requests, which change only with its version; each poll is a new object.
+  const rows = useMemo(
+    () => withRaisedDecisions(transcriptRows(timeline.entries), timeline.entries, decisions.data),
+    [timeline.entries, decisions.data?.homeId, decisions.data?.version],
+  );
   // Redraws a captain's row when the images kept for it change; see `./sent-images`.
   useSyncExternalStore(sentImages.subscribe, sentImages.version);
   const groups = useMemo(() => groupRows(rows), [rows]);
@@ -362,6 +371,20 @@ export function MateChat({
     const row = group.row;
     switch (row.kind) {
       case "decision-answer": return <View key={row.key} style={styles.captain}><DecisionAnswerBubble theme={theme} answer={row.answer} /></View>;
+      case "decision-raised": {
+        const request = decisions.data?.requests.find((entry) => entry.id === row.requestId);
+        return request && decisions.data ? (
+          <DecisionRaisedCard
+            key={row.key}
+            theme={theme}
+            request={request}
+            snapshot={decisions.data}
+            mateId={mate.id}
+            compact={compact}
+            offline={decisions.error !== null}
+          />
+        ) : null;
+      }
       case "captain": {
         const images = sentImages.get(row.messageId);
         return (

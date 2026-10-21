@@ -222,7 +222,10 @@ id and the existing send gate. The retained draft supplies the words; after a fr
 be entered again. `I answered in chat` records accepted delivery without sending anything.
 `decision-answer-summary.ts` folds only complete identified answer envelopes in both chats, preserving
 the exact original for disclosure and the home/request/revision for reopening. New envelopes include
-the authored title; old envelopes fall back to their task id. The drawer consumes optional server-bound
+the authored title; old envelopes fall back to their task id. `decision-raised.ts` places each
+non-baseline decision detected during the loaded conversation once in the plugin chat, at its `detectedAt`.
+`decision-raised-card.tsx` draws it from the live snapshot with the drawer's summary, bound answers and
+send path, and shows it as settled once answered or resolved. The drawer consumes optional server-bound
 `answerOptions`, `specPath` and `notesPath` additively; their production belongs to the options slice.
 Render evidence lives in ignored `.local/needs-you-drawer/`, never in tracked docs.
 The standalone Deck omits the Needs-you header pill in every state; its scene legend and first mate

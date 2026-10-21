@@ -48,6 +48,9 @@ the current brief before sending. All shows full questions and recommendations i
 sections; long titles expand on selection. Back returns to the Deck, List or Board that opened it.
 Unambiguous host/project moves retain the decision identity and drafts. Missing tasks stay blocked
 until their records return, without blocking other answers.
+A decision the first mate raises shows once in its chat, where it was raised, as a card with its
+title, question, recommendation, the drawer's answer buttons and Open the decision. The card reads
+the same decision data, so its reply can be one line. Answered or lifted decisions show as settled.
 
 The signal stays amber while a decision waits and fills while any are new. Opening a decision marks
 it Seen without reducing the count. Answer in your own words or use a supplied answer, snooze from

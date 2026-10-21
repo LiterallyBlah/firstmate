@@ -21,6 +21,8 @@ type ToolCallItem = Extract<TimelineItem, { type: "tool_call" }>;
 
 export type TranscriptRow =
   | { key: string; kind: "decision-answer"; text: string; answer: DecisionAnswerSummary }
+  /** A decision the first mate raised, placed by `./decision-raised`; drawn from the Needs-you snapshot. */
+  | { key: string; kind: "decision-raised"; text: string; requestId: string }
   /** `messageId` is the message's `clientMessageId`, under which the chat keeps the images it carried. */
   | { key: string; kind: "captain"; text: string; messageId?: string }
   | { key: string; kind: "mate"; text: string }

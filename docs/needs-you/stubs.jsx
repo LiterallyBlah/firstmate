@@ -249,3 +249,33 @@ Atlas. Keep Light for Ariadne.
 
 This binds the answer to the recorded question, not to a verified PR head or report digest. Review current material and keep the usual review checks. Reconcile the backlog explicitly after acting; sending an answer alone does not prove the task is complete.` }, timestamp: at, seqStart: 999, seqEnd: 999, sourceSeqRanges: [], collapsed: [] });
 }
+if (new URLSearchParams(location.search).has("raised-chat")) {
+  // A decision the first mate raised mid-conversation, with its brief and the options the drawer offers.
+  const long = new URLSearchParams(location.search).has("repeated");
+  const raised = {
+    ...request("host", "new", at + 2500),
+    source: {
+      ...request("host", "new", at).source,
+      title: "Choose the Windows host (waiting for the captain)",
+      ask: "Which machine should run the Windows build: Light or Atlas?",
+      url: null,
+    },
+  };
+  window.attentionSnapshot.requests = [raised];
+  window.attentionSnapshot.actionCount = 1;
+  window.attentionSnapshot.newCount = 1;
+  window.attentionSnapshot.snoozedCount = 0;
+  window.attentionSnapshot.pendingAnswerCount = 0;
+  window.attentionSnapshot.briefs = [{ requestId: "host", recordRevision: 1, path: "data/host/decision.md", content:
+    "## Background\nLight is shared with Ariadne's nightly runs; Atlas is idle.\n\n## Options\n1. **Atlas (recommended)** — free today, a cold cache on the first build.\n2. **Light** — warm cache, but it queues behind Ariadne.\n\n## Recommendation\nAtlas, so Light stays free for Ariadne." }];
+  const bound = (n, label) => ({ label, prompt: `For host: I choose option ${n}.`, decision: { homeId: "fixture-home", requestId: "host", recordRevision: 1, actionId: `brief:${n}` } });
+  window.attentionSnapshot.answerOptions = [bound(1, "Atlas"), bound(2, "Light")];
+  const said = (type, text, ms, seq) => entries.push({ provider: "codex", item: type === "tool_call"
+    ? { type, callId: `raised-${seq}`, name: text, detail: { type: "unknown", input: {}, output: {} }, status: "completed", error: null }
+    : { type, text }, timestamp: new Date(at + ms).toISOString(), seqStart: seq, seqEnd: seq, sourceSeqRanges: [], collapsed: [] });
+  said("user_message", "Which machine should take the Windows build?", 1000, 990);
+  said("tool_call", "Write data/host/decision.md", 2000, 991);
+  said("assistant_message", long
+    ? "Captain, one call for you: **which machine should run the Windows build?**\n\n**Background.** Light is shared with Ariadne's nightly runs; Atlas is idle.\n\n**Options.**\n1. **Atlas** — free today, a cold cache on the first build.\n2. **Light** — warm cache, but it queues behind Ariadne.\n\n**Recommendation.** Atlas, so Light stays free for Ariadne. It's in Needs you as well."
+    : "Captain, one call for you on the Windows host.", 3000, 992);
+}

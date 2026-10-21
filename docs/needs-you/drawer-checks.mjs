@@ -348,7 +348,12 @@ export async function checkDrawer(pageAt, output) {
       await page
         .getByText("<firstmate-decision-answer>", { exact: false })
         .waitFor();
-      await button(page, "Open the decision").click();
+      // The fixture's raised decisions have their own cards and links in the chat.
+      await page
+        .getByText("Your answer to «Choose the Windows host»", { exact: true })
+        .locator("..")
+        .getByRole("button", { name: "Open the decision", exact: true })
+        .click();
       await heading(page, "Decision a").waitFor();
       await page.close();
     }

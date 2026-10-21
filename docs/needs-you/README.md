@@ -54,6 +54,27 @@ the answer, recorded question, Open the decision, and Show what was sent. Malfor
 partial, quoted or unidentified envelopes remain ordinary text. Existing envelopes without
 a title use the task id. The original message is retained exactly.
 
+## Decisions raised in the chat
+
+The plugin's chat shows each decision the first mate raises once, as a card (`client/decision-raised.ts`,
+`client/decision-raised-card.tsx`). The chat keeps no copy: the card is the Needs-you snapshot's
+request, read afresh on every poll. It lists the title, question and the brief's recommendation (the drawer's
+`DecisionSummary`). It also shows the bound `answerOptions` the drawer offers for that revision, and
+Open the decision. A button goes through the drawer's answer path: the same RPC, send gate and
+content-bound action id. Answered (sent or uncertain) and resolved decisions show as settled, without
+buttons or recommendation.
+
+A card is placed at the request's `detectedAt`, before the first transcript row recorded after it, or
+at the end. The daemon observes the backlog every few seconds, so this is just after the first mate
+writes the hold. Only non-baseline requests detected no earlier than the first loaded timeline entry
+appear. Earlier ones belong to older history or a previous first mate, and appear when that history is
+loaded. A reworded question keeps its card; a re-raised one (a new generation) gets its own.
+Paseo's native timeline has no item to transform for a raised decision, so only the plugin's chat
+shows the card.
+
+`raised-checks.mjs` renders it at 390 and 1440 in both themes, answers through it and settles it.
+`RAISED_ONLY=1 node docs/needs-you/render.mjs` runs just those checks.
+
 ## Bound one-press answers
 
 Optional `data/<task-id>/decision.md` briefs are read through home containment (64 KiB per file,
