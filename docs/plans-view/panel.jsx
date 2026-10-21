@@ -19,6 +19,7 @@ function plan(id, implicit = false, finished = false) {
   return { definition, revision: 1, sequence: 0, hash: "a".repeat(64), posture: implicit ? "sail" : "review", status: implicit || finished ? "active" : "review", approvedBudget: definition.budget, nodes, told: [], handled: [], history: [{ revision: 1, at: definition.request.at, by: "mate", reason: "Drafted plan" }] };
 }
 const scenario = params.get("scenario"), plans = scenario === "empty" ? [] : [plan("scheduler"), plan("documentation", false, true), ...Array.from({ length: 26 }, (_, i) => plan(`automatic-${i.toString().padStart(2, "0")}`, true)), ...Array.from({ length: 13 }, (_, i) => plan(`finished-${i}`, true, true))];
+if (scenario === "active" || scenario === "held") plans[0].status = scenario;
 Object.assign(window, { fixtureTheme: theme, plansScenario: scenario, planActions: [], planReads: 0, workflowFixture: {
   homeId: "fixture-home", version: "fixture-1", plans, subjects: Object.fromEntries(plans.map(p => [p.definition.id, "b".repeat(64)])), now: [], comingUp: [],
   problems: scenario === "partial" ? ["A damaged plan was isolated; healthy plans remain available."] : [],

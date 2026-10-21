@@ -73,6 +73,10 @@ expanded for matching searches or awaiting approval, with ten rows per page. The
 now retains completed implicit history; agenda, due counts, Bearings and task-card rules stay unchanged.
 `node docs/plans-view/render.mjs` adapts the existing workflow render harness for before/after
 Home checks in both themes and widths, writing only to `.local/plans-view/`.
+Approve, approve-with-edits and request-changes require `planAwaitingReview` in both the dialog and
+the store's append handler. Active/held plans remain browsable with decision and lifecycle controls;
+an open review form disappears if review ends. The status guard follows request-id replay and
+revision/subject checks, and never runs during ledger replay, preserving previously accepted history.
 
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |

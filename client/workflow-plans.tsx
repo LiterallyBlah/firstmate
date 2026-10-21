@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { actOnWorkflowPlan, readWorkflowPlans, WorkflowSnapshotSchema, type WorkflowSnapshot, type PlanNeed } from "../shared/workflow-rpc";
-import { planFinished, planWorstCase, type PlanCaptainCommand, type WorkflowPlan } from "../shared/workflow-plans";
+import { planAwaitingReview, planFinished, planWorstCase, type PlanCaptainCommand, type WorkflowPlan } from "../shared/workflow-plans";
 import { migrationTargets, type FleetCard } from "../shared/fleet";
 import { readRemotes } from "../shared/remotes";
 import { OptionPicker } from "./option-picker";
@@ -68,6 +68,7 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
   const [mode, setMode] = useState<"changes" | "edit" | null>(null), [text, setText] = useState("");
   const [edits, setEdits] = useState<NonNullable<PlanCaptainCommand["edits"]>>([]);
   const colors = theme.colors, worst = planWorstCase(plan.definition, plan.nodes), disabled = busy || stale;
+  const awaitingReview = planAwaitingReview(plan);
   const missingMode = edits.some(e => e.kind === "model" && !models.find(m => m.provider === e.agent.provider)?.modes.some(m => m.id === e.agent.modeId));
   const send = (action: PlanCaptainCommand["action"], extra: Partial<PlanCaptainCommand> = {}) => onAct({ op: "captain", plan: plan.definition.id, revision: plan.revision, subjectHash, action, text, ...extra });
   return <View testID="workflow-plan-dialog" style={{ gap: 16 }}>
@@ -97,13 +98,15 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
     </> : null}
     {plan.status !== "abandoned" && !planFinished(plan) ? <>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-        <Button theme={theme} label="Approve" disabled={disabled} onPress={() => void send("approve")} />
-        <Button theme={theme} label="Approve with edits" disabled={disabled} onPress={() => setMode("edit")} />
-        <Button theme={theme} label="Ask for changes" disabled={disabled} onPress={() => setMode("changes")} />
+        {awaitingReview ? <>
+          <Button theme={theme} label="Approve" disabled={disabled} onPress={() => void send("approve")} />
+          <Button theme={theme} label="Approve with edits" disabled={disabled} onPress={() => setMode("edit")} />
+          <Button theme={theme} label="Ask for changes" disabled={disabled} onPress={() => setMode("changes")} />
+        </> : null}
         <Button theme={theme} label="Hold" disabled={disabled} onPress={() => void send("hold")} />
         <Button theme={theme} label="Decline" disabled={disabled || plan.definition.nodes.some(n => n.kind === "run" && plan.nodes[n.id]?.state !== "planned")} onPress={() => void send("decline")} />
       </View>
-      {mode ? <View style={{ gap: 8 }}>
+      {awaitingReview && mode ? <View style={{ gap: 8 }}>
         <TextInput accessibilityLabel="Requested plan changes" placeholder="Describe the changes" value={text} onChangeText={setText} multiline style={{ minHeight: 80 }} />
         {mode === "edit" ? <>
           <Text style={{ color: colors.foregroundMuted }}>Edits apply to unstarted work. Scope or acceptance changes go to the first mate.</Text>

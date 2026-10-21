@@ -18,6 +18,7 @@ Plans browser and plan dialog through react-native-web with synthetic data and h
 The baseline is commit `1685ff6`, before the Plans view. Wide/narrow desktop and phone-browser captures
 cover both themes, grouping, paging, search, opening/closing without actions, requesting changes,
 approving through the existing dialog and saving the Home pane.
+Active/held plan fixtures also verify review controls are absent while decision and lifecycle controls remain.
 Empty, offline/retry and partially quarantined states have separate captures. The fixture never
 contacts a daemon or creates a native resource. It is not an installed desktop/native-device test.
 

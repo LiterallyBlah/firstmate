@@ -4,7 +4,7 @@ import type { Dirent } from "node:fs";
 import { mkdir, readFile, readdir, rename, writeFile, stat, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, planFinished, planPosture, planProblems, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
+import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, planAwaitingReview, planFinished, planPosture, planProblems, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
 import { readPlanPosture } from "./workflow-posture";
 import { digest, publish } from "./submissions";
 import { serialized } from "./serialize";
@@ -421,7 +421,11 @@ export class WorkflowPlanStore {
       const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>(reduce, null);
       const replay = events.find(e => e.requestId === requestId);
       if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); return this.renderedResult(previous!, replay); }
-      if (command.op === "captain" && (!previous || command.revision !== previous.revision || command.subjectHash !== planSubjectHash(previous))) throw new Error("This plan changed since you opened it. Refresh and review it again.");
+      if (command.op === "captain") {
+        if (!previous || command.revision !== previous.revision || command.subjectHash !== planSubjectHash(previous)) throw new Error("This plan changed since you opened it. Refresh and review it again.");
+        // Check new presses only; committed history and accepted request retries still replay.
+        if (["approve", "edit", "changes"].includes(command.action) && !planAwaitingReview(previous)) throw new Error("This plan is not awaiting review. The first mate must submit a revised plan before another review.");
+      }
       const postureDefinition = command.op === "draft" || command.op === "revise" ? command.definition : command.op === "implicit" ? PlanDefinitionSchema.parse({
         format: "firstmate.plan/1", id, title: command.launch.title, request: { text: command.launch.title, at: new Date().toISOString() }, implicit: true,
         budget: { agents: 1, turns: 1 }, nodes: [{ id, title: command.launch.title, summary: command.launch.title, kind: "run", workflow: command.launch.kind === "scout" ? "scout@1" : "task@1", launch: command.launch }],

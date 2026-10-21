@@ -63,9 +63,11 @@ it("refuses a captain host edit into a quarantined task scope without holding an
   d.nodes[0]!.launch.id = "broken-task"; d.nodes[0]!.launch.brief.file = "data/broken-task/brief.md";
   await execute({ op: "draft", definition: d }); await writeFile(join(workflowStore(home).root, "broken/00000000.json"), "{");
   d.id = "other-host"; d.nodes[0]!.launch.host = "remote";
+  d.request = { ...d.request, posture: "review", quote: "Review this host before starting." };
   await execute({ op: "draft", definition: d }); const p = (await workflowStore(home).get("other-host"))!;
   await expect(execute({ op: "captain", plan: "other-host", revision: p.revision, subjectHash: planSubjectHash(p), action: "edit", text: "Move to local", edits: [{ kind: "host", node: "broken-task", host: "local" }] })).rejects.toThrow("ownership");
   expect((await workflowStore(home).get("other-host"))?.hash).toBe(p.hash);
+  await execute({ op: "captain", plan: "other-host", revision: p.revision, subjectHash: planSubjectHash(p), action: "approve", text: "Keep the verified remote host." });
   expect((await execute({ op: "start", plan: "other-host", node: "broken-task" })).launch.workflow.attempt).toBeTruthy();
 });
 it("does not count a quarantined prerequisite as satisfied by another host's same-named result", async () => {
@@ -153,6 +155,13 @@ it("replays committed captain actions across derived-state additions while check
   Object.assign(before.nodes.trial!, { upgradeDefault: "new derived field" });
   expect(planSubjectHash(before)).not.toBe(event.command.subjectHash);
   expect(replayWorkflowEvent(before, event).status).toBe("held");
+});
+it("retains historical changes requests outside review when replaying an existing ledger", async () => {
+  const before = (await workflowStore(home).get("scheduler"))!;
+  await act("changes", { text: "Revise the scope." });
+  const event = JSON.parse(await readFile(join(workflowStore(home).root, "scheduler/00000001.json"), "utf8"));
+  // Older versions accepted this event in active plans. New append rules must not quarantine that history.
+  expect(replayWorkflowEvent({ ...before, status: "active" }, event).status).toBe("held");
 });
 it("refuses dependency-free starts in held and declined plans", async () => {
   await act("hold"); await expect(execute({ op: "start", plan: "scheduler", node: "trial" })).rejects.toThrow("held");

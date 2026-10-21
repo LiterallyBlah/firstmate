@@ -93,5 +93,17 @@ try {
     if (scenario === "error") { const before = await page.evaluate(() => window.planReads); await view.getByRole("button", { name: "Refresh plans", exact: true }).click(); await page.waitForFunction(n => window.planReads > n, before); }
     await page.screenshot({ path: resolve(out, `${scenario}.png`) }); results.push({ scenario, passed: true }); await page.close();
   }
+  for (const scenario of ["active", "held"]) {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    page.setDefaultTimeout(15000); page.setDefaultNavigationTimeout(15000);
+    await page.goto(`${origin}/after?theme=dark&scenario=${scenario}`); await selectPlans(page, 1440);
+    await page.getByTestId("workflow-plans-view").getByRole("button", { name: "Open plan: Scheduler", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Scheduler", exact: true }); await dialog.waitFor();
+    for (const name of ["Approve", "Approve with edits", "Ask for changes"]) assert.equal(await dialog.getByRole("button", { name, exact: true }).count(), 0);
+    assert(await dialog.getByRole("button", { name: "Hold", exact: true }).isEnabled());
+    assert(await dialog.getByRole("button", { name: "SQLite", exact: true }).isEnabled());
+    assert.equal(await page.evaluate(() => window.planActions.length), 0);
+    await page.screenshot({ path: resolve(out, `${scenario}-plan.png`) }); results.push({ scenario, reviewActionsAbsent: true, lifecycleAndDecisionControls: true }); await page.close();
+  }
   await writeFile(resolve(out, "checks.json"), JSON.stringify(results, null, 2)); console.log(JSON.stringify(results));
 } finally { await browser.close(); server.close(); }

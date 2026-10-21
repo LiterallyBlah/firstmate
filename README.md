@@ -11,10 +11,11 @@ finished history below, with runs, worker/host assignments, dependency reasons, 
 and recommendations, and budget used against approved. Automatic one-run plans have their own
 counted, folded groups; each group shows ten at a time. Search by title, worker or host expands
 matching automatic groups. Opening a plan uses the existing review dialog. Larger plans also
-have a Plans filter in List and Board. Approve, edit, hold or decline the plan, or ask the
-first mate for changes. Decisions appear under Coming up before they are due; only current actions
-count in Needs you. An answer from an outdated plan or another device is refused. Deck still shows
-real workers, and Bearings draws its next steps from the plans.
+have a Plans filter in List and Board. Plans awaiting review offer approval, edits and requests for
+changes; active and held plans keep their decision and lifecycle controls. Decisions appear under
+Coming up before they are due; only current actions count in Needs you. An answer from an outdated
+plan or another device is refused. Deck still shows real workers, and Bearings draws its next steps
+from the plans.
 
 **One conversation to coordinate a crew of coding agents in [Paseo](https://paseo.sh).**
 
