@@ -1,7 +1,8 @@
 import { expect, it } from "vitest";
 import { workflowFixture } from "../test/workflow-fixture";
 import type { NodeState, WorkflowPlan } from "../shared/workflow-plans";
-import { dependencyText, planBudgetUsed, planGroups, planStatus, runState } from "./workflow-plan-list";
+import { dependencyText, planBudgetUsed, planGroups, planStatus, runState, planSteps, planSummary, stepState, reviewStatus } from "./workflow-plan-list";
+import { compactPlansFixture } from "../test/compact-plans-fixture";
 
 function plan(id: string, state: NodeState = "planned"): WorkflowPlan {
   const definition = workflowFixture(); definition.id = id; definition.title = id;
@@ -49,4 +50,76 @@ it("resolves cross-plan dependency reasons and preserves missing identifiers", (
   expect(dependencyText({ node: "build", reason: "builds-on", on: "landed" }, [p])).toContain("needs its code; after landing");
   expect(dependencyText({ node: "database", reason: "decision", on: "answered" }, [p])).toContain("needs your answer; once answered");
   expect(dependencyText({ node: "missing", reason: "shared-state", on: "done" }, [p])).toBe("missing — shares mutable state; once done");
+});
+
+it("groups the seven Starpath builds with their fourteen reviews, retaining reader probes and decisions", () => {
+  const [star, reader] = compactPlansFixture();
+  const steps = planSteps(star!);
+  expect(steps.filter(s => s.node.kind === "run")).toHaveLength(7);
+  expect(steps.flatMap(s => s.reviews)).toHaveLength(14);
+  expect(steps[0]!.reviews.map(n => n.id)).toEqual(["starpath-scheduler-slice10-review-astra", "starpath-scheduler-slice10-review-opus"]);
+  expect(planSteps(reader!).filter(s => s.node.kind === "run")).toHaveLength(6);
+  expect(planSteps(reader!).filter(s => s.node.kind === "decision")).toHaveLength(2);
+  expect(planSteps(reader!).flatMap(s => s.reviews)).toHaveLength(8);
+});
+
+it("leaves ambiguously linked reviews and ordinary investigations as independent steps", () => {
+  const [p] = compactPlansFixture(), review = p!.definition.nodes[1]!;
+  review.after.push({ node: "starpath-scheduler-slice11", on: "done", reason: "needs-evidence" });
+  expect(planSteps(p!).some(s => s.node.id === review.id)).toBe(true);
+  review.after.pop(); review.title = "Investigate performance after the build";
+  expect(planSteps(p!).some(s => s.node.id === review.id)).toBe(true);
+});
+
+it("derives readiness from done, landed and answered prerequisites, including cross-plan, held, invalidated and missing evidence", () => {
+  const p = plan("dependencies"), trial = p.definition.nodes[0]!, decision = p.definition.nodes[1]!, build = p.definition.nodes[2]!;
+  expect(stepState(p, decision, [p])).toBe("waiting on Database trial");
+  p.nodes.trial!.state = "done";
+  expect(stepState(p, decision, [p])).toBe("waiting for your decision");
+  expect(stepState(p, build, [p])).toBe("waiting on Choose the database (answer)");
+  p.nodes.database!.answer = "sqlite";
+  expect(stepState(p, build, [p])).toBe("ready");
+  p.nodes.database!.invalidated = "stale";
+  expect(stepState(p, build, [p])).toContain("waiting on");
+  trial.after = [{ node: "external", reason: "builds-on", on: "landed" }];
+  const other = plan("external"); other.definition.nodes = [{ ...trial, id: "external", title: "Earlier slice", after: [] }]; other.nodes = { external: { state: "done" } };
+  p.nodes.trial!.state = "planned";
+  expect(stepState(p, trial, [p, other])).toBe("waiting on Earlier slice (landing)");
+  other.nodes.external!.state = "landed";
+  expect(stepState(p, trial, [p, other])).toBe("ready");
+  other.nodes.external!.held = true;
+  expect(stepState(p, trial, [p, other])).toContain("waiting on");
+  expect(stepState(p, trial, [p])).toBe("waiting on external (landing)");
+  p.status = "review"; trial.after = [];
+  expect(stepState(p, trial, [p])).toBe("awaiting plan approval");
+  p.status = "held"; expect(stepState(p, trial, [p])).toBe("on hold");
+});
+
+it("summarizes progress, active reviews, the next work and upcoming captain decisions without claiming done ship work landed", () => {
+  const plans = compactPlansFixture(), [star] = plans;
+  const summary = planSummary(star!, plans);
+  expect(summary.progress).toBe("3 of 7 steps landed");
+  expect(summary.running).toContain("opus review of scheduler slice 13");
+  expect(summary.next).toContain("waiting on");
+  expect(summary.decisions).toContain("Approve building the Postgres deployment");
+  const review = planSteps(star!)[3]!.reviews[0]!;
+  expect(reviewStatus(star!, review, plans)).toBe("✓");
+  star!.nodes[review.id]!.invalidated = "Evidence changed";
+  expect(reviewStatus(star!, review, plans)).toBe("uncertain");
+  expect(reviewStatus(star!, planSteps(star!)[4]!.reviews[0]!, plans)).toBe("pending");
+});
+
+it("hides automatic copies before searching, preserving different project/host tasks and the original snapshot", () => {
+  const plans = compactPlansFixture(), duplicate = plans[2]!;
+  duplicate.definition.title = "Only the automatic copy has these words";
+  const before = JSON.stringify(plans);
+  expect(planGroups(plans).open.map(p => p.definition.id)).not.toContain(duplicate.definition.id);
+  expect(planGroups(plans, "Only the automatic copy").open).toEqual([]);
+  const node = duplicate.definition.nodes[0]!; if (node.kind !== "run") throw new Error("fixture");
+  expect(JSON.stringify(plans)).toBe(before);
+  // A shared task id alone must not erase an unrelated host/project's work.
+  duplicate.definition.nodes = [{ ...node, launch: { ...node.launch, host: "Another host" } }];
+  expect(planGroups(plans).open.map(p => p.definition.id)).toContain(duplicate.definition.id);
+  duplicate.definition.nodes = [{ ...node, launch: { ...node.launch, project: "Another project" } }];
+  expect(planGroups(plans).open.map(p => p.definition.id)).toContain(duplicate.definition.id);
 });

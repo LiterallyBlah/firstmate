@@ -2,6 +2,7 @@ import { act, createElement } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import type { PluginTheme } from "@getpaseo/plugin";
+import { compactPlansFixture } from "../test/compact-plans-fixture";
 import { workflowFixture } from "../test/workflow-fixture";
 import type { WorkflowPlan } from "../shared/workflow-plans";
 import type { WorkflowSnapshot } from "../shared/workflow-rpc";
@@ -17,9 +18,12 @@ beforeAll(() => { (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; });
 afterEach(() => { act(() => renderer?.unmount()); vi.clearAllMocks(); });
 function plan(id = "scheduler", implicit = false): WorkflowPlan {
   const definition = workflowFixture(); definition.id = id; definition.title = id; definition.implicit = implicit;
-  if (implicit) definition.nodes = [definition.nodes[0]!];
+  if (implicit) {
+    const node = definition.nodes[0]!; if (node.kind !== "run") throw new Error("fixture");
+    definition.nodes = [{ ...node, id, launch: { ...node.launch, id, brief: { file: `data/${id}/brief.md` } } }];
+  }
   return { definition, revision: 1, sequence: 0, hash: "a".repeat(64), posture: "review", status: "active", approvedBudget: { agents: 2, turns: 2 },
-    nodes: { trial: { state: "planned" }, database: { state: "planned" }, build: { state: "planned" } }, told: [], handled: [], history: [] };
+    nodes: implicit ? { [id]: { state: "planned" } } : { trial: { state: "planned" }, database: { state: "planned" }, build: { state: "planned" } }, told: [], handled: [], history: [] };
 }
 const snapshot = (plans: WorkflowPlan[], extra = {}): WorkflowSnapshot => ({ homeId: "fixture", version: "one", plans, subjects: {}, now: [], comingUp: [], ...extra });
 const renderedText = () => JSON.stringify(renderer.toJSON());
@@ -34,7 +38,8 @@ it("shows posture, runs, worker and host, dependencies, decisions and budget; op
   const p = plan(); p.status = "review";
   p.nodes.trial = { state: "running", agentId: "worker-42", attempt: "one", spent: 1 };
   const { onOpen } = await mount(snapshot([p]));
-  for (const text of ["Awaiting approval", "Posture: ", "Review before starting", "running", "Worker: ", "worker-42", "Host: ", "This machine", "needs its evidence", "needs your answer", "SQLite", "Postgres", "Recommendation: ", "Budget used / approved: "]) expect(renderedText()).toContain(text);
+  await act(async () => button("Expand plan: scheduler").props.onPress());
+  for (const text of ["Awaiting approval", "Posture: ", "Review before starting", "running", "Worker: ", "worker-42", "Host: ", "This machine", "waiting on Database trial", "waiting on Choose the database", "SQLite", "Recommended", "Budget used / approved: "]) expect(renderedText()).toContain(text);
   expect(onOpen).not.toHaveBeenCalled();
   await act(async () => button("Open plan: scheduler").props.onPress());
   expect(onOpen).toHaveBeenCalledExactlyOnceWith("scheduler");
@@ -88,4 +93,26 @@ it("distinguishes loading, empty, failed and partial snapshots, keeping stale re
   expect(renderedText()).toContain("Showing the last received plans"); expect(button("Open plan: scheduler")).toBeTruthy();
   await act(async () => renderer.root.findByType("TextInput" as any).props.onChangeText("missing"));
   expect(renderedText()).toContain("No plans match this search");
+});
+
+it("starts with one summary per plan, expands reviews as chips, hides unstarted worker details and opens the existing dialog only on demand", async () => {
+  const plans = compactPlansFixture(), star = plans[0]!, onOpen = vi.fn();
+  const snapshot = { homeId: "fixture", version: "1", plans, subjects: {}, now: [], comingUp: [] };
+  await act(async () => { renderer = create(createElement(WorkflowPlanBrowser, { theme, snapshot, loading: false, error: null, onRefresh() {}, onOpen })); });
+  const json = () => JSON.stringify(renderer!.toJSON());
+  expect(renderer!.root.findAll(n => n.props.testID?.startsWith("workflow-step-"))).toHaveLength(0);
+  expect(json()).toContain("3 of 7 steps landed");
+  expect(json()).not.toContain("Worker:");
+  expect(renderer!.root.findAll(n => n.props.testID === "workflow-plan-ariadne-reader-pass-s4")).toHaveLength(0);
+  await act(async () => button(`Expand plan: ${star.definition.title}`).props.onPress());
+  expect(renderer!.root.findAll(n => n.props.testID?.startsWith("workflow-step-"))).toHaveLength(8); // Seven builds and a decision.
+  expect(renderer!.root.findAll(n => n.props.testID?.includes("workflow-step-") && n.props.testID?.includes("review-"))).toHaveLength(0);
+  expect(json()).toContain("Astra"); expect(json()).toContain("✓"); expect(json()).toContain("pending");
+  expect(json()).toContain("fixture-opus"); expect(json()).not.toContain("unassigned");
+  expect(json()).toContain("waiting on Build scheduler slice 13");
+  expect(onOpen).not.toHaveBeenCalled();
+  await act(async () => button(`Collapse plan: ${star.definition.title}`).props.onPress());
+  expect(json()).not.toContain("Worker:");
+  await act(async () => button(`Open plan: ${star.definition.title}`).props.onPress());
+  expect(onOpen).toHaveBeenCalledExactlyOnceWith(star.definition.id);
 });

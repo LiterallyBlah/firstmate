@@ -2,11 +2,11 @@ import type { PluginTheme } from "@getpaseo/plugin";
 import { TextInput } from "@getpaseo/plugin/client/react-native";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import type { WorkflowPlan } from "../shared/workflow-plans";
+import type { PlanNode, WorkflowPlan } from "../shared/workflow-plans";
 import type { WorkflowSnapshot } from "../shared/workflow-rpc";
 import { IconButton } from "./ui";
 import { useWorkflowPlans } from "./workflow-plans";
-import { dependencyText, PLAN_PAGE_SIZE, planBudgetUsed, planGroups, planStatus, runState } from "./workflow-plan-list";
+import { PLAN_PAGE_SIZE, planBudgetUsed, planGroups, planStatus, planSteps, planSummary, reviewLabel, reviewStatus, stepState } from "./workflow-plan-list";
 
 export function WorkflowPlansView({ theme }: { theme: PluginTheme }) {
   const { snapshot, loading, error, refresh, open } = useWorkflowPlans();
@@ -27,7 +27,7 @@ export function WorkflowPlanBrowser({ theme, snapshot, loading, error, onRefresh
         <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", flex: 1 }}>Plans</Text>
         <IconButton theme={theme} icon="RefreshCw" label="Refresh plans" onPress={onRefresh} />
       </View>
-      <Text style={meta}>Open plans first. Automatic one-run plans are grouped separately; each group shows ten at a time.</Text>
+      <Text style={meta}>Open plans first. Expand a plan for its steps and reviews, or open it to make a decision.</Text>
       <TextInput accessibilityLabel="Search plans" placeholder="Search title, worker or host" value={search} onChangeText={setSearch}
         style={{ color: colors.foreground, fontSize: 13, padding: 8, minHeight: 36, borderWidth: 1, borderColor: colors.border, borderRadius: 7, backgroundColor: colors.surface1 }} />
     </View>
@@ -76,27 +76,46 @@ function PlanGroup({ plans, allPlans, theme, onOpen, automatic, searching }: {
 }
 
 function PlanRow({ plan, plans, theme, onOpen }: { plan: WorkflowPlan; plans: readonly WorkflowPlan[]; theme: PluginTheme; onOpen(id: string): void }) {
+  const [expanded, setExpanded] = useState(false);
   const colors = theme.colors, used = planBudgetUsed(plan);
+  const summary = planSummary(plan, plans);
   const meta = { color: colors.foregroundMuted, fontSize: 12 };
   return <View testID={`workflow-plan-${plan.definition.id}`} style={{ gap: 6, padding: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.surface1 }}>
-    <Pressable accessibilityRole="button" accessibilityLabel={`Open plan: ${plan.definition.title}`} onPress={() => onOpen(plan.definition.id)} style={{ gap: 3, paddingVertical: 3 }}>
-      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>{plan.definition.title} ›</Text>
-      <Text style={meta}>{planStatus(plan)} · Posture: {plan.posture === "review" ? "Review before starting" : "Sail within approved work"}</Text>
-    </Pressable>
-    <Text style={meta}>Budget used / approved: {used.agents} / {plan.approvedBudget.agents} workers · {used.turns} / {plan.approvedBudget.turns} turns</Text>
-    {plan.definition.nodes.map(node => {
-      const state = plan.nodes[node.id], launch = state?.launch ?? (node.kind === "run" ? node.launch : null);
-      return <View key={node.id} style={{ gap: 3, paddingTop: 5, borderTopWidth: 1, borderColor: colors.border }}>
-        <Text style={{ color: colors.foreground, fontSize: 12 }}>
-          {node.title} · {node.kind === "run" ? runState(state) : state?.answer ? "answered" : "decision"}{state?.held ? " · held" : ""}
-        </Text>
-        {launch ? <Text selectable style={meta}>Worker: {launch.agentTitle}{state?.agentId ? ` (${state.agentId})` : " · unassigned"} · Host: {launch.host === "local" ? "This machine" : launch.host}</Text> : null}
-        {node.after.map(edge => <Text key={edge.node} style={meta}>After {dependencyText(edge, plans)}</Text>)}
-        {node.kind === "decision" ? <>
-          {node.options.map(option => <Text key={option.id} style={meta}>{option.id === state?.answer ? "Chosen: " : option.id === node.recommendation ? "Recommended: " : "Option: "}{option.label} — {option.consequence}</Text>)}
-          <Text style={meta}>Recommendation: {node.options.find(o => o.id === node.recommendation)?.label ?? "None yet"} · {node.rationale}</Text>
-        </> : null}
-      </View>;
-    })}
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Open plan: ${plan.definition.title}`} onPress={() => onOpen(plan.definition.id)} style={{ flex: 1, gap: 3, paddingVertical: 3 }}>
+        <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>{plan.definition.title} ›</Text>
+        <Text style={meta}>{planStatus(plan)} · {summary.progress}</Text>
+      </Pressable>
+      <IconButton theme={theme} icon={expanded ? "ChevronUp" : "ChevronDown"} label={`${expanded ? "Collapse" : "Expand"} plan: ${plan.definition.title}`}
+        onPress={() => setExpanded(value => !value)} />
+    </View>
+    <Text style={meta}>Running: {summary.running}</Text>
+    <Text style={meta}>Next: {summary.next}</Text>
+    {summary.decisions ? <Text style={{ ...meta, color: colors.foreground }}>Captain: {summary.decisions}</Text> : null}
+    {expanded ? <>
+      <Text style={meta}>Posture: {plan.posture === "review" ? "Review before starting" : "Sail within approved work"} · Budget used / approved: {used.agents} / {plan.approvedBudget.agents} workers · {used.turns} / {plan.approvedBudget.turns} turns</Text>
+      {planSteps(plan).map(({ node, reviews }) => <View key={node.id} testID={`workflow-step-${node.id}`} style={{ gap: 5, paddingTop: 8, borderTopWidth: 1, borderColor: colors.border }}>
+        <Text style={{ color: colors.foreground, fontSize: 12 }}>{node.title} · {stepState(plan, node, plans)}</Text>
+        <RunningDetails plan={plan} node={node} theme={theme} />
+        {reviews.length ? <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5 }}>
+          <Text style={meta}>Reviews:</Text>
+          {reviews.map(review => <Text key={review.id} accessibilityLabel={`${reviewLabel(review, plan.nodes[review.id])} review: ${stepState(plan, review, plans)}`}
+            style={{ ...meta, paddingHorizontal: 6, paddingVertical: 3, borderWidth: 1, borderColor: colors.border, borderRadius: 6 }}>
+            {reviewLabel(review, plan.nodes[review.id])} {reviewStatus(plan, review, plans)}
+          </Text>)}
+        </View> : null}
+        {reviews.map(review => <RunningDetails key={review.id} plan={plan} node={review} theme={theme} />)}
+        {node.kind === "decision" ? <Text style={meta}>{plan.nodes[node.id]?.answer ? "Chosen" : "Recommended"}: {node.options.find(o => o.id === (plan.nodes[node.id]?.answer ?? node.recommendation))?.label ?? "None yet"}</Text> : null}
+      </View>)}
+    </> : null}
   </View>;
+}
+
+function RunningDetails({ plan, node, theme }: { plan: WorkflowPlan; node: PlanNode; theme: PluginTheme }) {
+  const state = plan.nodes[node.id];
+  if (node.kind !== "run" || state?.state !== "running") return null;
+  const launch = state.launch ?? node.launch;
+  return <Text selectable style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
+    Worker: {launch.agentTitle}{state.agentId ? ` (${state.agentId})` : ""} · Host: {launch.host === "local" ? "This machine" : launch.host}
+  </Text>;
 }

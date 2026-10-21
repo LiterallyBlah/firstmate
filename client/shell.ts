@@ -7,6 +7,7 @@ export const FLEET_PANELS = {
   board: { id: "firstmate-board", title: "Board", icon: "Columns3" },
   crew: { id: "firstmate-crew", title: "Crew", icon: "Users" },
   chat: { id: "firstmate-chat", title: "Chat", icon: "MessageSquare" },
+  plans: { id: "firstmate-plans", title: "Plans", icon: "ListTodo" },
 } as const;
 
 export type FleetView = keyof typeof FLEET_PANELS;

@@ -71,6 +71,15 @@ displayed run states and cumulative budget usage (including removed runs, withou
 prior attempts). Open plans precede finished history; automatic one-run plans have counted folds,
 expanded for matching searches or awaiting approval, with ten rows per page. The same snapshot
 now retains completed implicit history; agenda, due counts, Bearings and task-card rules stay unchanged.
+Plans also has the fixed workspace destination `firstmate-plans` (`ListTodo`), sharing this browser,
+snapshot and dialog. Each plan starts collapsed with progress, current/next work, unmet dependencies
+and captain decisions. Expanded steps fold a named scout review into its single evidence-linked
+build; ambiguous reviews and standalone probes remain independent. Dependency labels require the
+recorded done/landed/answered outcome and refuse held, invalidated or missing evidence. Worker/host
+details appear only while running. Automatic one-run copies are hidden before search by exact task,
+project and normalized host identity. These are presentation rules; durable plans and actions stay intact.
+`node docs/plans-panel/render.mjs` checks registered panels, both layouts and compact real-shaped
+Starpath/reader-pass plans against the previous flat browser. Evidence lives only in ignored `.local/plans-panel/`.
 `node docs/plans-view/render.mjs` adapts the existing workflow render harness for before/after
 Home checks in both themes and widths, writing only to `.local/plans-view/`.
 Approve, approve-with-edits and request-changes require `planAwaitingReview` in both the dialog and
@@ -152,7 +161,7 @@ revision/subject checks, and never runs during ledger replay, preserving previou
 | `server/serialize.ts`         | Runs the config update and each home file's save one at a time, per file.                  |
 | `server/host-types.ts`        | Paseo types projected out of `@getpaseo/plugin`; see the root AGENTS.md.                    |
 | `client/fleet.tsx`            | The screen: header, banners, chat/board split, compact tabs, the shared fleet query.       |
-| `client/workspace-panels.tsx`, `shell.ts`, `hub-launcher.tsx` | Home registration, the Deck/Board/Crew workspace destinations and Home's jump-shortcuts. |
+| `client/workspace-panels.tsx`, `shell.ts`, `hub-launcher.tsx` | Home registration, the Deck/Board/Crew/Chat/Plans workspace destinations and Home's jump-shortcuts. |
 | `client/fleet-query.ts`       | The shared fleet request and cache, used by Home, workspace panels and the sidebar.       |
 | `shared/native-tools.ts`, `server/native-tools.ts`, `client/native-tools.tsx` | The shared terminal's identity and explicit creation/reuse, and the native browser URL dialog. |
 | `client/screen.ts`            | The screen's id, and the count of working, ready and idle crewmates on its sidebar row. Pure. |
@@ -238,7 +247,7 @@ toast suppression. `docs/needs-you/header-checks.mjs` checks both states in ligh
 
 ## Home and the workspace tabs (shell phase 1)
 
-Home's header keeps the title, mate status and task counts together, with the List/Board/Home files/Deck/Plans switch
+Home's header keeps the title, mate status and task counts together, with the List/Board/Deck and Home files/Plans switches
 and **More** beside them. The top-left cluster follows the right-hand controls: Needs you is drawn like
 `IconButton` (28 points, 8-point corners, 12-point label, a Check/Bell/TriangleAlert icon; its outline and
 fill carry the signal), while "First mate *state*" and the counts are plain text split by thin rules, so
@@ -251,14 +260,17 @@ Recovery/failing-watch attention colours the More trigger. All layouts keep work
 the desktop view switcher uses its own menu and status/counts move into More. On compact layouts status and counts share one
 quiet row under the title. The existing compact rule (host compact layout or less than 638 points)
 also applies to a narrowed desktop pane. Shortcut capability explanations live in tooltips and the browser dialog.
+The view choices use two existing segmented controls separated by an eight-point gap: List, Board,
+Deck, then Home files, Plans. The narrow Home view menu wraps those groups; compact Home keeps
+First mate as a separate segment and wraps the same task and record groups. Pane ids and saved choices stay the same.
 
 The sidebar's `fleet` screen is **Home**: one first-mate chat, a List/Board task overview, Home files and a
 launcher. Home uses the saved `crewView`, defaulting to List; the two views share the same cards,
 host/tag filters, actions and open worker conversation. Switching views preserves a draft; pressing
 the selected view again returns from the conversation to its tasks. Compact Home exposes First mate,
-List, Board, Files, Deck and Plans in the existing tab row. The standalone Crew (List), Board and Deck destinations
+List, Board, Deck, Files and Plans in the existing tab row. The standalone Crew (List), Board, Deck and Plans destinations
 keep their own layouts. `client/workspace-panels.tsx` registers `firstmate-deck`, `firstmate-board`,
-`firstmate-crew` and `firstmate-chat` through `addWorkspacePanel`, workspace location only. The older
+`firstmate-crew`, `firstmate-chat` and `firstmate-plans` through `addWorkspacePanel`, workspace location only. The older
 contextual workspace and agent panels are titled **FirstMate here**, with an **Open chat** shortcut.
 `client/shell.ts` holds the fixed identities and home-workspace rule.
 The callbacks are closed over the contributing installation, never a global navigation singleton.
@@ -266,7 +278,7 @@ The callbacks are closed over the contributing installation, never a global navi
 Paseo owns tab creation/focus/deduplication, closing, splits, ordering and layout persistence. The
 launcher calls `client.openPanel` with that fixed panel id and the configured first mate's home
 workspace. An adopted mate outside the home never lends its workspace to this launcher. Paseo lists
-plugin panels in all workspaces; Deck/Board/Crew opened elsewhere explain that and link to the correct home.
+plugin panels in all workspaces; Deck/Board/Crew/Plans opened elsewhere explain that and link to the correct home.
 Chat works in any workspace and always reads the configured first mate from the shared fleet query,
 including its launch/adopt state when none exists. A home file opened from Chat uses a dialog.
 Until a mate has a verified home workspace, the shortcuts are disabled. No tabs, terminals, browsers

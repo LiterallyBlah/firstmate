@@ -6,9 +6,11 @@ dependencies, then read one agenda on every wake. Plans survive restarts in a ha
 readable `data/plans/<id>/plan.md` projections. The first mate still makes all local worker calls;
 approval authorizes planned work and resolves no merge or deployment gate. See
 [the home tool guide](templates/data/workflows.md) for commands and the current one-step limits.
-Home's **Plans** tab sits beside List, Board, Home files and Deck. It shows open plans first and
-finished history below, with runs, worker/host assignments, dependency reasons, decision options
-and recommendations, and budget used against approved. Automatic one-run plans have their own
+Home's **Plans** tab sits beside List, Board, Home files and Deck, and **Plans** in Paseo's **+** menu
+opens the same view as a workspace tab. Plans start collapsed, showing progress, running work,
+the next steps and their blockers, and captain decisions. Expand a plan for build steps with compact
+review chips and its budget; worker/host details appear only for running steps. Automatic copies of
+tasks already in an authored plan are hidden. Open plans precede finished history. Automatic one-run plans have their own
 counted, folded groups; each group shows ten at a time. Search by title, worker or host expands
 matching automatic groups. Opening a plan uses the existing review dialog. Larger plans also
 have a Plans filter in List and Board. Plans awaiting review offer approval, edits and requests for
@@ -189,14 +191,16 @@ the manifest and base64 transport overhead are additional. See the [transport bu
 
 ![FirstMate Home with a synthetic conversation beside the Deck view](docs/readme/home-deck.webp)
 
-**Home** keeps the first-mate conversation beside **List**, **Board**, **Home files** or **Deck**.
+**Home** keeps the first-mate conversation beside **List**, **Board**, **Home files**, **Deck** or **Plans**.
 Compact layouts switch between these and **First mate**. The divider and view choices are saved.
+The view controls group **List / Board / Deck**, then **Home files / Plans**, wrapping at narrow widths.
 **More** holds watches, provider transfer, layout controls, updates, refresh and settings.
 **Open** holds the workspace and native-tool shortcuts, keeping the desktop header to one row.
 Narrow desktop panes fold the view switcher into a menu and put status/counts under More.
 
-The shortcuts open dedicated **Deck**, **Board**, **Crew** (the grouped List) and **Chat** tabs in the
-home workspace. Paseo handles tab order, splits and closing. Chat and Home share the same mate,
+The shortcuts and Paseo's **+** menu open dedicated **Deck**, **Board**, **Crew** (the grouped List),
+**Chat** and **Plans** tabs in the home workspace. Plans reuses Home's browser and review dialog.
+Paseo handles tab order, splits and closing. Chat and Home share the same mate,
 draft and attachments; **Full conversation** opens its native Paseo session.
 
 **Shared terminal** reuses a terminal named **FirstMate shared**, or creates one when none exists.

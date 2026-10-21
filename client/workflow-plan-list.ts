@@ -12,7 +12,7 @@ export function planActivity(plan: WorkflowPlan): number {
 
 export function planGroups(plans: readonly WorkflowPlan[], search = "") {
   const term = search.trim().toLowerCase();
-  const matches = plans.filter(p => !term || [p.definition.id, p.definition.title, ...p.definition.nodes.flatMap(n => {
+  const matches = uniquePlans(plans).filter(p => !term || [p.definition.id, p.definition.title, ...p.definition.nodes.flatMap(n => {
     const state = p.nodes[n.id];
     const launch = state?.launch ?? (n.kind === "run" ? n.launch : null);
     return [n.title, state?.agentId ?? "", launch?.agentTitle ?? "", launch?.host ?? ""];
@@ -21,6 +21,108 @@ export function planGroups(plans: readonly WorkflowPlan[], search = "") {
   return {
     open: matches.filter(p => !planClosed(p)).sort((a, b) => Number(b.status === "review") - Number(a.status === "review") || recent(a, b)),
     finished: matches.filter(planClosed).sort(recent),
+  };
+}
+
+type RunNode = Extract<PlanNode, { kind: "run" }>;
+const taskIdentity = (plan: WorkflowPlan, node: RunNode) => {
+  const launch = plan.nodes[node.id]?.launch ?? node.launch;
+  return JSON.stringify([node.id, launch.project, launch.host.trim().toLowerCase()]);
+};
+
+/** Authored steps own their automatic one-run copies, even when a search matches only the copy. */
+export function uniquePlans(plans: readonly WorkflowPlan[]): WorkflowPlan[] {
+  const byId = new Map<string, WorkflowPlan>();
+  for (const plan of plans) {
+    const previous = byId.get(plan.definition.id);
+    if (!previous || plan.sequence > previous.sequence) byId.set(plan.definition.id, plan);
+  }
+  const ordered = [...byId.values()].sort((a, b) => Number(a.definition.implicit) - Number(b.definition.implicit));
+  const tasks = new Set<string>();
+  return ordered.filter(plan => {
+    const runs = plan.definition.nodes.filter((n): n is RunNode => n.kind === "run");
+    const duplicate = plan.definition.implicit && runs.length === 1 && tasks.has(taskIdentity(plan, runs[0]!));
+    for (const node of runs) tasks.add(taskIdentity(plan, node));
+    return !duplicate;
+  });
+}
+
+export interface PlanStep { node: PlanNode; reviews: RunNode[] }
+
+/** No role field exists in v1: require both a review name and one explicit evidence-linked build. */
+export function planSteps(plan: WorkflowPlan): PlanStep[] {
+  const rows = plan.definition.nodes.map(node => ({ node, reviews: [] as RunNode[] }));
+  const folded = new Set<string>();
+  for (const node of plan.definition.nodes) {
+    if (node.kind !== "run" || node.launch.kind !== "scout" || !/\breview\b/i.test(node.title)) continue;
+    const builds = rows.filter(row => row.node.kind === "run" && row.node.launch.kind === "ship" &&
+      row.node.launch.project === node.launch.project && node.after.some(edge => edge.node === row.node.id && edge.reason === "needs-evidence"));
+    if (builds.length !== 1) continue; // An ambiguous or independent investigation stays visible.
+    builds[0]!.reviews.push(node);
+    folded.add(node.id);
+  }
+  return rows.filter(row => !folded.has(row.node.id));
+}
+
+function dependencyState(edge: PlanNode["after"][number], plan: WorkflowPlan, plans: readonly WorkflowPlan[]) {
+  // Resolve inside the owning plan first; an automatic copy must not override its durable evidence.
+  return plan.nodes[edge.node] ?? plans.find(p => p.definition.nodes.some(n => n.id === edge.node))?.nodes[edge.node];
+}
+
+export function unmetDependencies(plan: WorkflowPlan, node: PlanNode, plans: readonly WorkflowPlan[]) {
+  return node.after.filter(edge => {
+    const state = dependencyState(edge, plan, plans);
+    if (!state || state.held || state.invalidated) return true;
+    return !(edge.on === "answered" ? !!state.answer : edge.on === "landed" ? state.state === "landed" : ["done", "landed"].includes(state.state));
+  });
+}
+
+function dependencyName(edge: PlanNode["after"][number], plan: WorkflowPlan, plans: readonly WorkflowPlan[]) {
+  const target = plan.definition.nodes.find(n => n.id === edge.node) ?? plans.flatMap(p => p.definition.nodes).find(n => n.id === edge.node);
+  return `${target?.title ?? edge.node}${edge.on === "landed" ? " (landing)" : edge.on === "answered" ? " (answer)" : ""}`;
+}
+
+export function stepState(plan: WorkflowPlan, node: PlanNode, plans: readonly WorkflowPlan[]): string {
+  const state = plan.nodes[node.id];
+  if (!state || state.invalidated) return "uncertain";
+  if (state.held) return "on hold";
+  if (node.kind === "decision" && state.answer) return "answered";
+  if (state.state !== "planned") return runState(state);
+  const waits = unmetDependencies(plan, node, plans);
+  if (waits.length) return `waiting on ${waits.map(edge => dependencyName(edge, plan, plans)).join(", ")}`;
+  if (plan.status === "abandoned") return "declined";
+  if (plan.status === "held") return "on hold";
+  if (plan.status === "review") return "awaiting plan approval";
+  return node.kind === "decision" ? "waiting for your decision" : "ready";
+}
+
+export function reviewLabel(node: RunNode, state?: PlanNodeState): string {
+  const provider = (state?.launch ?? node.launch).agent.provider;
+  return /astra/i.test(provider) ? "Astra" : /opus/i.test(provider) ? "Opus" : provider.split("/").at(-1) ?? node.launch.agentTitle;
+}
+
+export function reviewStatus(plan: WorkflowPlan, node: RunNode, plans: readonly WorkflowPlan[]): string {
+  const state = stepState(plan, node, plans);
+  return ["done", "landed"].includes(state) ? "✓" : state === "ready" || state.startsWith("waiting on ") || state === "awaiting plan approval" ? "pending" : state;
+}
+
+const compactNames = (names: string[]) => names.slice(0, 2).join("; ") + (names.length > 2 ? `; +${names.length - 2} more` : "");
+export function planSummary(plan: WorkflowPlan, plans: readonly WorkflowPlan[]) {
+  const runs = planSteps(plan).map(row => row.node).filter((n): n is RunNode => n.kind === "run");
+  const completed = runs.filter(node => {
+    const state = plan.nodes[node.id];
+    return state && !state.held && !state.invalidated && (node.launch.kind === "ship" ? state.state === "landed" : ["done", "landed"].includes(state.state));
+  }).length;
+  const running = plan.definition.nodes.filter(n => ["running", "starting"].includes(stepState(plan, n, plans)));
+  const pending = plan.definition.nodes.filter(n => n.kind === "run" && plan.nodes[n.id]?.state === "planned");
+  const next = pending.filter(n => !unmetDependencies(plan, n, plans).length).slice(0, 2);
+  if (!next.length && pending[0]) next.push(pending[0]);
+  const decisions = plan.definition.nodes.filter(n => n.kind === "decision" && !plan.nodes[n.id]?.answer);
+  return {
+    progress: `${completed} of ${runs.length} steps ${runs.length && runs.every(n => n.launch.kind === "ship") ? "landed" : "complete"}`,
+    running: compactNames(running.map(n => `${n.title}${plan.nodes[n.id]?.state === "starting" ? " (starting)" : ""}`)) || "none",
+    next: compactNames(next.map(n => `${n.title} — ${stepState(plan, n, plans)}`)) || "no queued steps",
+    decisions: compactNames(decisions.map(n => `${n.title} — ${stepState(plan, n, plans)}`)),
   };
 }
 
