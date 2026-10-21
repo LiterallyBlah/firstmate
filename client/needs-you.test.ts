@@ -6,6 +6,7 @@ import { attentionSnapshot, attentionTheme } from "../test/attention-deck-fixtur
 import { decisionSession, newDecisionBatch } from "./needs-you-state";
 
 vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View" }));
+vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: "Icon" }));
 vi.mock("./web", () => ({
   webAttributes: () => ({}),
   webSurfaceVisible: (target: { visible: boolean } | null) => !!target?.visible,
