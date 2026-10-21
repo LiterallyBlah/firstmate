@@ -194,8 +194,11 @@ retained across restart. Ambiguous labels stay unresolved. See `docs/needs-you-f
 
 The decision drawer marks a visible open question Seen through the revision-bound RPC; this never
 reduces the action count. `Mark as new` is an explicit menu action. Its session order is append-only,
-and answering/snoozing advances to the next waiting question with a receipt. Below 1,600 points it
-covers Home's task pane (`DecisionPane`) while preserving the chat/header; below 638 or host compact
+and answering advances to the next unanswered question in that order, or closes to the opening view
+when none remain (including answers selected through All). Accepted answers stay out of navigation
+while their source holds linger; All retains their record. A brief, quiet confirmation accompanies
+the next question; failed or uncertain sends stay put. Snoozing still advances with a receipt.
+Below 1,600 points it covers Home's task pane (`DecisionPane`) while preserving the chat/header; below 638 or host compact
 it covers the surface and pins the answer bar with keyboard/safe-area support. Only the full cover
 traps focus. Heading focus and opener return are deliberate. All groups use human state names.
 Uncertain delivery is never retried on render: `It arrived` records the existing submission;

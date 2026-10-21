@@ -46,6 +46,17 @@ it("retains the session order across acknowledgement, snooze, answer, and new ar
   expect(nextWaitingDecision(["a", "b", "c"], "a", after)?.id).toBe("c");
   expect(nextWaitingDecision(["c", "a"], "a", after)?.id).toBe("c");
 });
+it("keeps an accepted answer handled when observation rereads the same lingering hold", () => {
+  const before = ledger(), request = before.requests[0]!;
+  const answered = mutateNeedsYou(before, {
+    homeId: before.homeId, id: request.id, revision: request.revision,
+  }, { kind: "answer", submissionId: "sent", outcome: "accepted" }, 2000);
+  const reread = reconcileNeedsYou(answered, observeNeedsYou(document, null), 3000);
+  const snapshot = needsYouSnapshot(reread, { status: "fresh", asOf: 3000, checkedAt: 3000, problems: [] });
+  expect(snapshot.actionCount).toBe(0);
+  expect(snapshot.requests[0]!.state).toBe("answer-sent");
+  expect(nextWaitingDecision([request.id], request.id, snapshot.requests)).toBeUndefined();
+});
 it("uses local future evening times and clamps clock skew in relative labels", () => {
   expect(relativeDecisionTime(120000, 60000)).toBe("just now");
   expect(relativeDecisionTime(0, 26 * 60000)).toBe("26 min");

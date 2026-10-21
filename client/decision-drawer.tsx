@@ -199,7 +199,7 @@ export function DecisionDrawer({
   const ids = order.current.ids;
   const queue = ids
     .map((id) => snapshot?.requests.find((r) => r.id === id))
-    .filter((r): r is NeedsYouRequest => !!r);
+    .filter((r): r is NeedsYouRequest => r?.state === "new" || r?.state === "seen");
   const sameHome =
     !destination.homeId || destination.homeId === snapshot?.homeId;
   const request = sameHome
@@ -210,6 +210,7 @@ export function DecisionDrawer({
   const [receipt, setReceipt] = useState<{
     text: string;
     target: DecisionDestination;
+    answered: boolean;
   } | null>(null);
   const [file, setFile] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -219,6 +220,11 @@ export function DecisionDrawer({
   const keyboard = useKeyboardOverlap(root);
   const headingId = `decisions-heading-${useId()}`;
   const sender = useMateSender(mateId ?? "none");
+  useEffect(() => {
+    if (!receipt?.answered) return;
+    const timer = setTimeout(() => setReceipt(null), 3000);
+    return () => clearTimeout(timer);
+  }, [receipt]);
   useEffect(() => {
     if (!request || all) focusWebElement(headingId);
   }, [request?.id, all, headingId]);
@@ -240,9 +246,10 @@ export function DecisionDrawer({
     });
     setAll(false);
   }
-  function completed(next: NeedsYouSnapshot, text: string) {
+  function completed(next: NeedsYouSnapshot, text: string, answered = false) {
     setReceipt({
       text,
+      answered,
       target: {
         homeId: snapshot!.homeId!,
         requestId: request!.id,
@@ -251,8 +258,13 @@ export function DecisionDrawer({
     });
     if (selected.current !== request!.id || next.homeId !== snapshot?.homeId)
       return;
-    const following = nextWaitingDecision(ids, request!.id, next.requests);
+    const following = nextWaitingDecision(
+      stableDecisionOrder(order.current.ids, decisionQueue(next.requests)),
+      request!.id,
+      next.requests,
+    );
     if (following) select(following);
+    else if (answered) onClose();
   }
   const colors = theme.colors;
   const scopedRows = (snapshot?.quarantined ?? []).filter(row => all || !request || quarantinesSource([row], request.source));
@@ -467,7 +479,11 @@ export function DecisionDrawer({
           </>
         ) : null}
       </View>
-      {receipt ? (
+      {receipt?.answered ? (
+        <Text accessibilityLiveRegion="polite" style={{ color: colors.foregroundMuted, fontSize: 12, paddingHorizontal: 16, paddingTop: 8 }}>
+          {receipt.text}
+        </Text>
+      ) : receipt ? (
         <View
           accessibilityLiveRegion="polite"
           style={{
@@ -655,7 +671,7 @@ function DecisionDetails({
   suggestions: readonly Suggestion[];
   compact: boolean;
   onOpenChat?: (() => void) | undefined;
-  onCompleted(snapshot: NeedsYouSnapshot, receipt: string): void;
+  onCompleted(snapshot: NeedsYouSnapshot, receipt: string, answered?: boolean): void;
   chrome: ReactNode;
 }) {
   const session = decisionSession(useQueryClient());
@@ -735,7 +751,7 @@ function DecisionDetails({
   async function mutate(
     task: () => Promise<NeedsYouSnapshot>,
     receipt?: string,
-    allowPending = false,
+    { allowPending = false, answered = false } = {},
   ) {
     if (!(allowPending ? fresh && !busy : writable)) return;
     setBusy(true);
@@ -743,7 +759,7 @@ function DecisionDetails({
     try {
       const result = await task();
       changed(result);
-      if (receipt) onCompleted(result, receipt);
+      if (receipt) onCompleted(result, receipt, answered);
     } catch (error) {
       setNotice(errorText(error));
       changed();
@@ -790,7 +806,8 @@ function DecisionDetails({
           }
           onCompleted(
             result.snapshot,
-            `Answer sent on ${decisionTitle(request.source.title)}. The first mate will lift the hold.`,
+            "Answer sent.",
+            true,
           );
         } else
           setNotice(
@@ -857,7 +874,8 @@ function DecisionDetails({
                     submissionId: submissionId(),
                     outcome: "accepted",
                   }),
-                `Answer recorded on ${decisionTitle(request.source.title)}. Waiting for the first mate.`,
+                "Answer recorded.",
+                { answered: true },
               ),
             !writable,
           )
@@ -1010,7 +1028,7 @@ function DecisionDetails({
                         outcome: "accepted",
                       }),
                     `Delivery confirmed on ${decisionTitle(request.source.title)}.`,
-                    true,
+                    { allowPending: true, answered: true },
                   ),
                 !fresh || busy || !latest,
               )}
@@ -1170,7 +1188,8 @@ function DecisionDetails({
                           submissionId: submissionId(),
                           outcome: "accepted",
                         }),
-                      `Answer recorded on ${decisionTitle(request.source.title)}. Waiting for the first mate.`,
+                      "Answer recorded.",
+                      { answered: true },
                     );
                   },
                   !writable,

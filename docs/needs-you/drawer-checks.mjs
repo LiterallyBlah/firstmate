@@ -145,7 +145,7 @@ export async function checkDrawer(pageAt, output) {
       await button(page, "Send answer").click();
       await heading(page, "Decision b").waitFor();
       await page
-        .getByText("Answer sent on Decision a.", { exact: false })
+        .getByText("Answer sent.", { exact: true })
         .waitFor();
       assert.equal(await button(page, "Next decision").isDisabled(), false);
       const sent = await calls(page, "answer");
@@ -168,7 +168,7 @@ export async function checkDrawer(pageAt, output) {
       await button(page, "Snooze until selected time").click();
       await heading(page, "Decision seen").waitFor();
       assert.equal((await calls(page, "snooze"))[0].input.id, "b");
-      assert.equal(await button(page, "Next decision").isDisabled(), false);
+      assert.equal(await button(page, "Next decision").isDisabled(), true);
       await button(page, "All decisions").click();
       for (const label of [
         "Waiting for you",

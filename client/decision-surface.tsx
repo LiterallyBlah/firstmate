@@ -121,7 +121,9 @@ export function DecisionSurface({
     )
       return;
     if (destination.homeId && destination.homeId !== query.data.homeId) return;
-    const next = decisionQueue(query.data.requests)[0];
+    const next = decisionQueue(query.data.requests).find(
+      (r) => r.state === "new" || r.state === "seen",
+    );
     setDestination({
       homeId: query.data.homeId,
       requestId: next?.id ?? "empty",
