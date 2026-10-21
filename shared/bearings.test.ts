@@ -5,6 +5,7 @@ import { compactPlansFixture } from "../test/compact-plans-fixture";
 import { nativeChatTransformer } from "../client/native-chat-transform";
 import { transcriptRows, type TimelineEntry } from "../client/transcript-rows";
 import { planProblems } from "./workflow-plans";
+import type { PlanNodeState } from "./workflow-plans";
 const messageId = "firstmate-bearings-11111111-1111-4111-8111-111111111111";
 it("folds only complete owned Bearings envelopes, preserving captain words and the full overview", () => {
   const overview = "Open plans\n- scheduler: running; next: review.", text = bearingsMessage("Bearings, please.", overview);
@@ -48,4 +49,36 @@ it("retains terminal consumers as history when a prerequisite is closed, while r
   expect(planProblems(source!.definition, [source!, consumer!]).filter(p => p.includes("closed without landing"))).toEqual([]);
   consumer!.nodes[next.id] = { state: "planned" };
   expect(planProblems(source!.definition, [source!, consumer!]).some(p => p.includes("closed without landing"))).toBe(true);
+});
+it.each([
+  [{ state: "unresolved" }, "unresolved"],
+  [{ state: "landed", invalidated: "Head changed" }, "evidence uncertain"],
+  [{ state: "failed" }, "failed"],
+  [{ state: "done" }, "awaiting landing"],
+] satisfies [PlanNodeState, string][])("exposes %j work in both plan-summary and Bearings attention", (state, label) => {
+  const plans = compactPlansFixture(), plan = plans[0]!, build = plan.definition.nodes[0]!;
+  plan.nodes[build.id] = state;
+  expect(planSummary(plan, plans).attention).toContain(`${build.title} — ${label}`);
+  const text = compactWorkflowBearings({ homeId: "fixture", version: "1", plans, subjects: {}, now: [], comingUp: [] });
+  expect(text).toContain(`attention: slice 10 — ${label}`);
+});
+it("groups troubled reviews under their build in attention instead of listing review titles separately", () => {
+  const plans = compactPlansFixture(), plan = plans[0]!, review = plan.definition.nodes[1]!;
+  plan.nodes[review.id] = { state: "failed" };
+  const attention = planSummary(plan, plans, true).attention;
+  expect(attention).toContain("slice 10 reviews (Astra failed)");
+  expect(attention).not.toContain(review.title);
+});
+it("omits empty decision sections after filtering copied, finished and missing plans", () => {
+  const plans = compactPlansFixture(), hidden = plans[2]!;
+  const need = (plan: string) => ({ plan, title: "Question", question: "Decide", waits: [], neededBy: [], recommendation: "Wait" });
+  const text = compactWorkflowBearings({ homeId: "fixture", version: "1", plans, subjects: {},
+    now: [need(hidden.definition.id), need(plans[3]!.definition.id), need("missing")], comingUp: [need(hidden.definition.id)] });
+  expect(text).toContain("Open plans");
+  expect(text.split("\n")).not.toContain("Due");
+  expect(text.split("\n")).not.toContain("Coming up");
+});
+it.each(["Failed to read ledger", "Plans unavailable: Failed to read ledger"])("adds the unavailable prefix once to %s", problem => {
+  const text = compactWorkflowBearings({ homeId: "fixture", version: "1", plans: [], subjects: {}, now: [], comingUp: [], problems: [problem] });
+  expect(text).toBe("Open plans\n- Plans unavailable: Failed to read ledger");
 });

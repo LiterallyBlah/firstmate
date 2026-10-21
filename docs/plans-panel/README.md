@@ -5,13 +5,15 @@ shortcuts. It shares FleetSurface, WorkflowPlansView, the existing workflow snap
 dialog with Home. It follows the other fleet panels' home-workspace guard and attention rules.
 
 Plans start collapsed. A summary shows progress over primary steps (ordinary ship work must land), running
-work, the next work and unmet prerequisites, and outstanding captain decisions. Expanded builds
+work, the next work and unmet prerequisites, outstanding captain decisions, and attention for
+unresolved, invalidated, failed, held or awaiting-landing work. Expanded builds
 carry compact review chips. A scout is folded only when its name identifies a review and it has
 exactly one same-project build linked by a needs-evidence dependency. Ambiguous reviews and
 independent investigations remain separate. A check mark means a recorded done/landed outcome,
 not a new approval. Worker/host details show only for running steps. Held, invalidated, missing or
 unsatisfied prerequisites cannot produce a ready label. Automatic one-run copies are suppressed
-before searching, using task/project/host identity; unrelated host/project tasks stay visible.
+before searching, using task/project/host identity, only while planned or when the owner has recorded
+work beyond planned; unaccounted automatic work and unrelated host/project tasks stay visible.
 No source plans, budget, agenda, counts or approval behavior are changed by these display rules.
 
 Run `npm ci --prefix docs/board-list`, then `node docs/plans-panel/render.mjs`.
@@ -45,7 +47,9 @@ the complete compact overview to the mate. Pasted or malformed envelopes are nev
 
 Evidence-only ship trials use an explicit `workflow.mjs close` receipt after verified `done`, with
 current attempt/hash and explanatory evidence. This preserves outcome, identities and cumulative
-budget, without satisfying landing dependencies. Pending landing dependents require replanning.
+budget, without satisfying landing dependencies. Pending landing dependents, including retained
+declined plans, require replanning. Close refuses incomplete dependency inventories, including
+unretired quarantined plans, so repaired records cannot invalidate the home's later commands.
 The fixture includes six such trials: they appear open in the baseline and as retained finished
 history with closure evidence afterward. Store tests cover append-only/restart/idempotency,
 refusal paths, unchanged reports/budget and done-versus-landed dependency behavior.
@@ -53,3 +57,8 @@ refusal paths, unchanged reports/budget and done-versus-landed dependency behavi
 Additional day/night desktop/phone captures show Bearings before/collapsed/expanded, retained trial
 history and its closure evidence, and Home with guest chats before/after removal of its warning.
 The role helper and guest guidance are unchanged. The raw compact Bearings text is also saved.
+
+`node docs/plans-panel/render.mjs --review` runs only the attention regression captures against
+PR head `7568147`, writing to ignored `.local/plans-panel-review/`. Both themes at desktop/phone
+widths show unresolved, invalidated, failed and awaiting-landing steps in the collapsed summary
+and compact Bearings, with the existing disclosure still collapsed initially.

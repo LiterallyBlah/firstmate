@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { workflowFixture } from "../test/workflow-fixture";
 import type { NodeState, WorkflowPlan } from "../shared/workflow-plans";
-import { dependencyText, planBudgetUsed, planGroups, planStatus, runState, planSteps, planSummary, stepState, reviewStatus } from "./workflow-plan-list";
+import { dependencyText, planBudgetUsed, planGroups, planStatus, runState, planSteps, planSummary, stepState, reviewStatus, uniquePlans } from "./workflow-plan-list";
 import { compactPlansFixture } from "../test/compact-plans-fixture";
 
 function plan(id: string, state: NodeState = "planned"): WorkflowPlan {
@@ -122,4 +122,19 @@ it("hides automatic copies before searching, preserving different project/host t
   expect(planGroups(plans).open.map(p => p.definition.id)).toContain(duplicate.definition.id);
   duplicate.definition.nodes = [{ ...node, launch: { ...node.launch, project: "Another project" } }];
   expect(planGroups(plans).open.map(p => p.definition.id)).toContain(duplicate.definition.id);
+});
+it.each(["starting", "running", "done", "failed", "unresolved"] as const)("retains an automatic %s run until its owner has recorded an outcome or start", state => {
+  const plans = compactPlansFixture(), owner = plans[1]!, automatic = plans[2]!, node = automatic.definition.nodes[0]!;
+  automatic.nodes[node.id] = { state, agentId: "automatic-worker", attempt: "automatic-attempt" };
+  owner.nodes[node.id] = { state: "planned" };
+  expect(uniquePlans(plans)).toContain(automatic);
+  delete owner.nodes[node.id];
+  expect(uniquePlans(plans)).toContain(automatic);
+  owner.nodes[node.id] = { state: "running", agentId: "automatic-worker", attempt: "automatic-attempt" };
+  expect(uniquePlans(plans)).not.toContain(automatic);
+});
+it("still hides a merely planned automatic copy when the owner has no recorded start", () => {
+  const plans = compactPlansFixture(), owner = plans[1]!, automatic = plans[2]!, node = automatic.definition.nodes[0]!;
+  owner.nodes[node.id] = { state: "planned" }; automatic.nodes[node.id] = { state: "planned" };
+  expect(uniquePlans(plans)).not.toContain(automatic);
 });

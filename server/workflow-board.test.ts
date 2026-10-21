@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { beforeEach, expect, it } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import { workflowFixture } from "../test/workflow-fixture";
 import { type PlanCaptainCommand } from "../shared/workflow-plans";
 import { workflowStore, queuePlanNotes } from "./workflow-service";
-import { planSubjectHash } from "./workflow-plans";
+import { planSubjectHash, WorkflowPlanStore } from "./workflow-plans";
 import { workflowSnapshot, withWorkflowCards, withWorkflowNeeds, workflowBearings } from "./workflow-board";
 import { updateFirstmateConfig, readFirstmateConfig } from "./config";
 import { commandMessage } from "./mate";
@@ -27,6 +27,13 @@ async function command(action: PlanCaptainCommand["action"], extra: Partial<Plan
   return { op: "captain", plan: "scheduler", revision: p.revision, subjectHash: planSubjectHash(p), action, text: "", ...extra };
 }
 const act = async (c: PlanCaptainCommand, id = randomUUID()) => workflowStore(home).execute(c, id, "board:captain");
+it("shows a plan read failure in Bearings with one unavailable prefix", async () => {
+  const read = vi.spyOn(WorkflowPlanStore.prototype, "read").mockRejectedValueOnce(new Error("Ledger offline"));
+  try {
+    const text = await workflowBearings(home);
+    expect(text).toBe("Open plans\n- Plans unavailable: Error: Ledger offline");
+  } finally { read.mockRestore(); }
+});
 it("sends a compact owned Bearings envelope and moves six explicitly closed trials into history", async () => {
   const template = workflowFixture().nodes[2]!; if (template.kind !== "run") throw new Error("fixture");
   for (let i = 0; i < 6; i++) {

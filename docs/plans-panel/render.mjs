@@ -8,7 +8,9 @@ import { createServer } from "node:http";
 import assert from "node:assert/strict";
 const here = dirname(fileURLToPath(import.meta.url)), root = resolve(here, "../.."), local = createRequire(resolve(root, "docs/board-list/package.json")), repo = createRequire(resolve(root, "package.json"));
 const { build } = local("esbuild"), { chromium } = local("playwright");
-const out = resolve(root, ".local/plans-panel"), baseline = "200e73e05da3293718d41db95298b07634403d28";
+const reviewOnly = process.argv.includes("--review");
+const out = resolve(root, reviewOnly ? ".local/plans-panel-review" : ".local/plans-panel");
+const baseline = reviewOnly ? "756814715d364e982f65df514a783f1d3389ff25" : "200e73e05da3293718d41db95298b07634403d28";
 await mkdir(out, { recursive: true });
 const baselineFiles = new Set(execFileSync("git", ["ls-tree", "-r", "--name-only", baseline], { cwd: root, encoding: "utf8" }).split(/\r?\n/));
 for (const mode of ["before", "after"]) await build({ entryPoints: [resolve(here, "panel.jsx")], outfile: resolve(out, `${mode}.js`), bundle: true, jsx: "automatic", define: { "process.env.NODE_ENV": '"development"' }, logLevel: "warning", plugins: [{ name: "host-fixtures-and-baseline", setup(b) {
@@ -48,6 +50,35 @@ async function shot(page, name) {
   await page.screenshot({ path: resolve(out, `${name}.png`) });
 }
 try {
+  if (reviewOnly) {
+    for (const theme of ["light", "dark"]) for (const [device, width, height] of [["desktop", 1440, 1000], ["phone", 390, 844]]) {
+      const page = await pageAt(`/before?theme=${theme}&view=plans&attention=1`, width, height);
+      await page.getByRole("textbox", { name: "Search plans" }).fill("Starpath");
+      assert.equal(await page.getByText(/^Attention:/).count(), 0);
+      await shot(page, `${theme}-${device}-attention-before`);
+      await page.goto(`${origin}/after?theme=${theme}&view=plans&attention=1`);
+      await page.getByRole("textbox", { name: "Search plans" }).fill("Starpath");
+      const attention = page.getByText(/^Attention:/); await attention.waitFor();
+      for (const state of ["unresolved", "evidence uncertain", "failed", "awaiting landing"]) assert((await attention.textContent()).includes(state));
+      assert.equal(await page.locator('[data-testid^="workflow-step-"]').count(), 0);
+      await shot(page, `${theme}-${device}-attention-after`);
+      for (const mode of ["before", "after"]) {
+        await page.goto(`${origin}/${mode}?theme=${theme}&bearings=1&attention=1`);
+        const button = page.getByRole("button", { name: "Show original: Plan overview", exact: true }); await button.waitFor();
+        if (mode === "after") { assert.equal(await button.getAttribute("aria-expanded"), "false"); await shot(page, `${theme}-${device}-bearings-collapsed`); }
+        await button.click(); await page.getByText(/^Open plans/).waitFor();
+        const payload = await page.evaluate(() => window.bearingsPayload);
+        assert.equal(payload.includes("attention:"), mode === "after");
+        if (mode === "after") {
+          for (const state of ["unresolved", "evidence uncertain", "failed", "awaiting landing"]) assert(payload.includes(state));
+          await writeFile(resolve(out, `${theme}-${device}-bearings.txt`), payload);
+        }
+        await shot(page, `${theme}-${device}-bearings-${mode}`);
+      }
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await page.close(); results.push({ theme, device, attentionCollapsed: true, attentionInBearings: true, disclosureCollapsed: true });
+    }
+  } else {
   for (const theme of ["light", "dark"]) for (const [device, width, height] of [["desktop", 1440, 1000], ["narrow", 900, 1000], ["phone", 390, 844]]) {
     console.log(`Rendering ${theme} ${device}`);
     const page = await pageAt(`/before?theme=${theme}`, width, height);
@@ -149,6 +180,7 @@ try {
     await page.getByRole("dialog", { name: "Evidence-only trial 1", exact: true }).getByText(/Closed without landing: Inspected branch/).waitFor();
     await shot(page, `${theme}-${device}-trial-closure-evidence`); await page.close();
     results.push({ theme, device, guestsQuiet: true, bearingsCollapsed: true, overviewPreserved: true, closedTrialsInHistory: true });
+  }
   }
   assert.deepEqual(errors, []);
   await writeFile(resolve(out, "checks.json"), JSON.stringify({ baseline, results, errors }, null, 2));

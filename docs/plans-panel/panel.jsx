@@ -13,6 +13,11 @@ import { fleet, entries } from "../board-list/fixtures";
 const params = new URLSearchParams(location.search);
 const theme = params.get("theme") === "light" ? { colors: { ...dark.colors, surface0: "#f6f8f7", surface1: "#ffffff", surface2: "#edf1ee", border: "#c9d2cc", foreground: "#16241b", foregroundMuted: "#52635a", statusWarning: "#8a5813" } } : dark;
 const plans = params.get("scenario") === "empty" ? [] : compactPlansFixture();
+if (params.has("attention")) {
+  const builds = plans[0].definition.nodes.filter(n => n.kind === "run" && n.launch.kind === "ship");
+  [{ state: "unresolved" }, { state: "landed", invalidated: "Head changed" }, { state: "failed" }, { state: "done" }]
+    .forEach((state, i) => { plans[0].nodes[builds[i].id] = state; });
+}
 if (params.has("trials")) plans.push(...closedTrialsFixture());
 Object.assign(window, { fixtureTheme: theme, plansScenario: params.get("scenario"), planActions: [], planReads: 0, navigationCalls: [], workflowFixture: {
   homeId: "fixture-home", version: "fixture-compact", plans, subjects: Object.fromEntries(plans.map(p => [p.definition.id, "b".repeat(64)])), now: [], comingUp: [],

@@ -31,7 +31,7 @@ const taskIdentity = (plan: WorkflowPlan, node: RunNode) => {
   return JSON.stringify([node.id, launch.project, launch.host.trim().toLowerCase()]);
 };
 
-/** Authored steps own their automatic one-run copies, even when a search matches only the copy. */
+/** Hide planned copies or copies whose owner records work; never erase an unaccounted live run. */
 export function uniquePlans(plans: readonly WorkflowPlan[]): WorkflowPlan[] {
   const byId = new Map<string, WorkflowPlan>();
   for (const plan of plans) {
@@ -39,11 +39,13 @@ export function uniquePlans(plans: readonly WorkflowPlan[]): WorkflowPlan[] {
     if (!previous || plan.sequence > previous.sequence) byId.set(plan.definition.id, plan);
   }
   const ordered = [...byId.values()].sort((a, b) => Number(a.definition.implicit) - Number(b.definition.implicit));
-  const tasks = new Set<string>();
+  const tasks = new Map<string, PlanNodeState | undefined>();
   return ordered.filter(plan => {
     const runs = plan.definition.nodes.filter((n): n is RunNode => n.kind === "run");
-    const duplicate = plan.definition.implicit && runs.length === 1 && tasks.has(taskIdentity(plan, runs[0]!));
-    for (const node of runs) tasks.add(taskIdentity(plan, node));
+    const run = runs[0], identity = run ? taskIdentity(plan, run) : "", owner = tasks.get(identity);
+    const duplicate = plan.definition.implicit && runs.length === 1 && tasks.has(identity) &&
+      (plan.nodes[run!.id]?.state === "planned" || !!owner && owner.state !== "planned");
+    for (const node of runs) if (!tasks.has(taskIdentity(plan, node))) tasks.set(taskIdentity(plan, node), plan.nodes[node.id]);
     return !duplicate;
   });
 }
@@ -123,13 +125,23 @@ export function planSummary(plan: WorkflowPlan, plans: readonly WorkflowPlan[], 
     ...(active(node) ? [`${label(node)}${plan.nodes[node.id]?.state === "starting" ? " (starting)" : ""}`] : []),
     ...(reviews.some(active) ? [`${label(node)} reviews (${reviews.filter(active).map(r => reviewLabel(r, plan.nodes[r.id])).join(", ")})`] : []),
   ]);
-  const pending = plan.definition.nodes.filter(n => n.kind === "run" && plan.nodes[n.id]?.state === "planned");
+  const needsAttention = (node: PlanNode) => {
+    const state = plan.nodes[node.id];
+    return state?.invalidated ? "evidence uncertain" : state?.state === "unresolved" ? "unresolved" : state?.state === "failed" ? "failed" : state?.held ? "on hold" :
+      node.kind === "run" && node.launch.kind === "ship" && state?.state === "done" && !state.closedWithoutLanding ? "awaiting landing" : "";
+  };
+  const attention = steps.flatMap(({ node, reviews }) => [
+    ...(needsAttention(node) ? [`${label(node)} — ${needsAttention(node)}`] : []),
+    ...(reviews.some(needsAttention) ? [`${label(node)} reviews (${reviews.filter(needsAttention).map(r => `${reviewLabel(r, plan.nodes[r.id])} ${needsAttention(r)}`).join(", ")})`] : []),
+  ]);
+  const pending = plan.definition.nodes.filter(n => n.kind === "run" && plan.nodes[n.id]?.state === "planned" && !needsAttention(n));
   const next = pending.filter(n => !unmetDependencies(plan, n, plans).length).slice(0, 2);
   if (!next.length && pending[0]) next.push(pending[0]);
   const decisions = plan.definition.nodes.filter(n => n.kind === "decision" && !plan.nodes[n.id]?.answer);
   return {
     progress: `${completed} of ${runs.length} steps ${runs.length && runs.every(n => n.launch.kind === "ship" && !plan.nodes[n.id]?.closedWithoutLanding) ? "landed" : "complete"}`,
     running: compactNames(running) || "none",
+    attention: attention.join("; "),
     next: compactNames(next.map(n => {
       const row = steps.find(s => s.reviews.some(r => r.id === n.id));
       const name = row ? `${label(row.node)} reviews` : label(n);
@@ -178,10 +190,11 @@ export function compactWorkflowBearings(snapshot: WorkflowSnapshot): string {
   const line = (text: string, max = 180) => { const textLine = text.replace(/\s+/g, " ").trim(); return textLine.length > max ? textLine.slice(0, max - 1) + "…" : textLine; };
   const overview = plans.map(plan => {
     const summary = planSummary(plan, snapshot.plans, true);
-    return `- ${plan.definition.id} — ${line(plan.definition.title)}: ${summary.progress}; running: ${line(summary.running)}; next: ${line(summary.next, 220)}.`;
+    return `- ${plan.definition.id} — ${line(plan.definition.title)}: ${summary.progress}; running: ${line(summary.running)}${summary.attention ? `; attention: ${line(summary.attention, 220)}` : ""}; next: ${line(summary.next, 220)}.`;
   });
   const decisions = (needs: WorkflowSnapshot["now"]) => needs.filter(n => plans.some(p => p.definition.id === n.plan)).map(n =>
     `- ${n.plan}${n.node ? `/${n.node}` : ""}: ${line(n.question)}${n.waits.length ? `; waits: ${line(n.waits.join(", "))}` : ""}${n.recommendation ? `; recommended: ${line(n.recommendation, 160)}` : ""}`);
-  return ["Open plans", ...overview, ...(snapshot.now.length ? ["Due", ...decisions(snapshot.now)] : []), ...(snapshot.comingUp.length ? ["Coming up", ...decisions(snapshot.comingUp)] : []),
-    ...(snapshot.problems ?? []).map(p => `- Plans unavailable: ${line(p)}`), ...(snapshot.warnings ?? []).map(p => `- Workflow note: ${line(p)}`)].join("\n");
+  const due = decisions(snapshot.now), upcoming = decisions(snapshot.comingUp);
+  return ["Open plans", ...overview, ...(due.length ? ["Due", ...due] : []), ...(upcoming.length ? ["Coming up", ...upcoming] : []),
+    ...(snapshot.problems ?? []).map(p => `- Plans unavailable: ${line(p.replace(/^Plans unavailable:\s*/i, ""))}`), ...(snapshot.warnings ?? []).map(p => `- Workflow note: ${line(p)}`)].join("\n");
 }

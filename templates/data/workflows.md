@@ -62,10 +62,14 @@ deploy, use `close --plan <id> --node <id> --attempt <uuid> --expected <current 
 receipt to a verified `done` ship attempt. It preserves the original outcome, report, attempt,
 worker/workspace and budget; it does not invent a merge, archive a worker, or permit another run.
 Running, stale, invalidated or individually held work cannot be closed. Replan any pending landing-dependent
-work first. A closed trial satisfies `done` evidence dependencies, never `landed` dependencies.
+work first, including in declined plans: declining preserves their original prerequisites.
+If a plan is quarantined or the dependency inventory is unreadable, repair it or explicitly retire
+the quarantined plan first; its hidden dependency edges cannot be assumed absent.
+A closed trial satisfies `done` evidence dependencies, never `landed` dependencies.
 It leaves open Plans and Bearings and stays in finished history, labelled **Closed without landing**.
 
 Bearings sends only a compact overview: one line per open plan, plus due and upcoming decisions.
+An attention field names uncertain, failed, held and awaiting-landing steps; reviews stay grouped.
 The captain sees the short request and a collapsed Plan overview disclosure; the mate receives the
 overview and reads full plans with `plan <id>` when needed. Browsing or requesting Bearings records no outcome.
 

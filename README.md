@@ -8,9 +8,11 @@ approval authorizes planned work and resolves no merge or deployment gate. See
 [the home tool guide](templates/data/workflows.md) for commands and the current one-step limits.
 Home's **Plans** tab sits beside List, Board, Home files and Deck, and **Plans** in Paseo's **+** menu
 opens the same view as a workspace tab. Plans start collapsed, showing progress, running work,
-the next steps and their blockers, and captain decisions. Expand a plan for build steps with compact
+the next steps and their blockers, captain decisions, and attention for uncertain/failed work or a
+ship deliverable awaiting landing. Expand a plan for build steps with compact
 review chips and its budget; worker/host details appear only for running steps. Automatic copies of
-tasks already in an authored plan are hidden. Open plans precede finished history. Automatic one-run plans have their own
+tasks already in an authored plan are hidden only while planned or when the owning step records its
+own work. An unaccounted automatic run stays visible. Open plans precede finished history. Automatic one-run plans have their own
 counted, folded groups; each group shows ten at a time. Search by title, worker or host expands
 matching automatic groups. Opening a plan uses the existing review dialog. Larger plans also
 have a Plans filter in List and Board. Plans awaiting review offer approval, edits and requests for

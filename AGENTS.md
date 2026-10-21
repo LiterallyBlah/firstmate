@@ -73,11 +73,15 @@ expanded for matching searches or awaiting approval, with ten rows per page. The
 now retains completed implicit history; agenda, due counts, Bearings and task-card rules stay unchanged.
 Plans also has the fixed workspace destination `firstmate-plans` (`ListTodo`), sharing this browser,
 snapshot and dialog. Each plan starts collapsed with progress, current/next work, unmet dependencies
-and captain decisions. Expanded steps fold a named scout review into its single evidence-linked
+and captain decisions. Attention names unresolved, invalidated, failed, held and awaiting-landing
+steps; troubled reviews stay grouped under their build in both the browser and Bearings.
+Expanded steps fold a named scout review into its single evidence-linked
 build; ambiguous reviews and standalone probes remain independent. Dependency labels require the
 recorded done/landed/answered outcome and refuse held, invalidated or missing evidence. Worker/host
 details appear only while running. Automatic one-run copies are hidden before search by exact task,
-project and normalized host identity. These display rules do not change durable plans or actions.
+project and normalized host identity, only while planned or when the owner records its own state
+beyond planned. Live or completed automatic work with a merely planned/missing owner stays visible.
+These display rules do not change durable plans or actions.
 Bearings uses the same pure summary: one bounded line per open plan and per due/upcoming decision,
 without step lists, review rows or finished history. `shared/bearings.ts` wraps it in an owned, strict
 `firstmate-bearings` envelope. Home/Chat preserve the captain's request and reuse `MachineNoteDetails`,
@@ -85,8 +89,10 @@ the native watch-note disclosure, collapsed by default. Native chat uses the sam
 Pasted, partial, nested or trailing-text envelopes stay visible. The mate receives the full compact overview.
 The explicit workflow `close` transition requires the current verified done ship attempt, expected
 plan hash and evidence that this trial has nothing to land. Its `closedWithoutLanding` receipt retains
-the outcome, report, identities and spent budget. Pending landing dependents must be replanned first;
-future landing prerequisites cannot name a closed trial. It satisfies done, never landed. History,
+the outcome, report, identities and spent budget. Pending landing dependents, including retained
+declined plans, must be replanned first, matching global validation. Close refuses an incomplete
+dependency inventory while any unretired plan is quarantined; repair or explicitly retire it first.
+Future landing prerequisites cannot name a closed trial. It satisfies done, never landed. History,
 backlog/card projections and the plan dialog label it closed without landing, without dispatch or cleanup.
 `node docs/plans-panel/render.mjs` checks registered panels, both layouts and compact real-shaped
 Starpath/reader-pass plans against the previous flat browser. Evidence lives only in ignored `.local/plans-panel/`.

@@ -90,6 +90,7 @@ function PlanRow({ plan, plans, theme, onOpen }: { plan: WorkflowPlan; plans: re
         onPress={() => setExpanded(value => !value)} />
     </View>
     <Text style={meta}>Running: {summary.running}</Text>
+    {summary.attention ? <Text style={{ ...meta, color: colors.statusWarning }}>Attention: {summary.attention}</Text> : null}
     <Text style={meta}>Next: {summary.next}</Text>
     {summary.decisions ? <Text style={{ ...meta, color: colors.foreground }}>Captain: {summary.decisions}</Text> : null}
     {expanded ? <>

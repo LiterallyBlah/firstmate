@@ -116,3 +116,18 @@ it("starts with one summary per plan, expands reviews as chips, hides unstarted 
   await act(async () => button(`Open plan: ${star.definition.title}`).props.onPress());
   expect(onOpen).toHaveBeenCalledExactlyOnceWith(star.definition.id);
 });
+it("shows unresolved, invalidated, failed and awaiting-landing steps in collapsed attention", async () => {
+  const plans = compactPlansFixture(), p = plans[0]!;
+  const builds = p.definition.nodes.filter(n => n.kind === "run" && n.launch.kind === "ship").slice(0, 4);
+  builds.forEach((node, i) => { node.title = ["Lost worker", "Stale evidence", "Failed build", "Ready change"][i]!; });
+  p.nodes[builds[0]!.id] = { state: "unresolved" };
+  p.nodes[builds[1]!.id] = { state: "landed", invalidated: "Head changed" };
+  p.nodes[builds[2]!.id] = { state: "failed" };
+  p.nodes[builds[3]!.id] = { state: "done" };
+  await mount(snapshot(plans));
+  expect(renderer.root.findAll(n => String(n.props.testID ?? "").startsWith("workflow-step-"))).toHaveLength(0);
+  const attention = renderer.root.find(n => n.type === ("Text" as any) && n.props.children?.[0] === "Attention: ");
+  for (const text of ["Lost worker — unresolved", "Stale evidence — evidence uncertain", "Failed build — failed", "Ready change — awaiting landing"]) {
+    expect(attention.props.children[1]).toContain(text);
+  }
+});

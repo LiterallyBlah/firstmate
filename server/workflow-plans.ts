@@ -464,9 +464,16 @@ export class WorkflowPlanStore {
       }
       if (command.op === "implicit" && plans.some(p => p.definition.nodes.some(n => n.id === id))) throw new Error("Task already belongs to a plan; use its recorded start intent.");
       if (command.op === "release") await this.assertUncreated(command.node, command.attempt);
-      if (command.op === "close" && plans.some(p => p.status !== "abandoned" && !planFinished(p) && p.definition.nodes.some(n =>
-        !terminal(p.nodes[n.id]?.state ?? "planned") && n.after.some(edge => edge.node === command.node && edge.on === "landed")))) {
-        throw new Error("A plan still requires this run to land; replan its dependents before closing without landing.");
+      if (command.op === "close") {
+        // Quarantine inventories retain identities, not dependency edges. An unreadable
+        // plan could hide a landing consumer that would invalidate later commands on repair.
+        if (unavailable || quarantined.some(p => !p.retirement)) throw new Error("Plan dependencies are unavailable; repair or retire quarantined plans before closing without landing.");
+        // Match planProblems, including retained declined plans. Declining is not a
+        // rewrite of their dependencies; remove that prerequisite explicitly first.
+        if (plans.some(p => p.definition.nodes.some(n => !terminal(p.nodes[n.id]?.state ?? "planned") &&
+          n.after.some(edge => edge.node === command.node && edge.on === "landed")))) {
+          throw new Error("A plan still requires this run to land; replan its dependents before closing without landing.");
+        }
       }
       if (command.op === "claim") {
         const node = previous?.definition.nodes.find(n => n.id === command.node);
