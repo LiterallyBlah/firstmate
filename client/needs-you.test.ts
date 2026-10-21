@@ -6,6 +6,7 @@ import { attentionSnapshot, attentionTheme } from "../test/attention-deck-fixtur
 import { decisionSession, newDecisionBatch } from "./needs-you-state";
 
 vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View" }));
+vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: "Icon" }));
 vi.mock("./web", () => ({
   webAttributes: () => ({}),
   webSurfaceVisible: (target: { visible: boolean } | null) => !!target?.visible,
@@ -50,7 +51,7 @@ it.each([false, true])("keeps other views' empty and counted pills clickable (co
   let renderer!: ReactTestRenderer;
   await act(async () => { renderer = create(tree(true)); });
   try {
-    expect(JSON.stringify(renderer.toJSON())).toContain("✓ Nothing needs you");
+    expect(JSON.stringify(renderer.toJSON())).toContain("Nothing needs you");
     renderer.root.findByProps({ accessibilityRole: "button" }).props.onPress();
     expect(onOpen).toHaveBeenLastCalledWith({ requestId: "next", homeId: "sample-home" }, expect.any(String));
     await act(async () => renderer.update(tree(false)));

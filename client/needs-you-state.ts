@@ -88,7 +88,7 @@ export function indicatorState(
       count === null
         ? "Can't read decisions"
         : count === 0 && fresh
-          ? "✓ Nothing needs you"
+          ? "Nothing needs you"
           : `Needs you · ${count}${unavailablePlans ? "+ · some plans unavailable" : partialPlans ? "+ · plans only" : ""}${!fresh && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}`,
     badge: count === null ? "!" : `${count}${partialPlans || unavailablePlans ? "+" : ""}`,
     extra,
