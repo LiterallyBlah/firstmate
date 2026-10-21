@@ -64,7 +64,7 @@ import { DeckSceneSwitcher } from "./deck-scene-switcher";
 import { TaskList } from "./task-list";
 import { TaskToolbar } from "./task-toolbar";
 import { matchesTags, tagScopeCards } from "../shared/item-tags";
-import { Banner, Chip, IconButton, Segmented, errorText } from "./ui";
+import { Banner, IconButton, Segmented, errorText } from "./ui";
 import { focusWebElement, webAttributes } from "./web";
 import { HubLauncher } from "./hub-launcher";
 import { chatIsVisible, FLEET_PANELS, homeWorkspace, type FleetShell, type FleetView } from "./shell";
@@ -325,6 +325,11 @@ function FleetViewBody({
       },
       spacer: { flex: 1 },
       meta: { color: colors.foregroundMuted, fontSize: 12 },
+      readout: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6, flexShrink: 0 },
+      readoutDot: { width: 7, height: 7, borderRadius: 4 },
+      readoutText: { color: colors.foreground, fontSize: 12, fontWeight: "500" as const },
+      count: { color: colors.foreground, fontWeight: "600" as const },
+      rule: { width: 1, height: 16, backgroundColor: colors.border },
       banners: { paddingHorizontal: compact ? 12 : 16, paddingTop: 8, gap: 6 },
       split: { flex: 1, minHeight: 0, flexDirection: "row" as const },
       rail: {
@@ -635,16 +640,32 @@ function FleetViewBody({
     );
   }
 
+  // Facts, not controls: no outline, so they never read as one of the header's buttons.
   const mateStatus =
-    mate === null ? null : <Chip theme={theme} text={agentStatusLabel(mate)} color={agentStatusTone(theme, mate)} />;
+    mate === null ? null : (
+      <View style={styles.readout}>
+        <View style={[styles.readoutDot, { backgroundColor: agentStatusTone(theme, mate) }]} />
+        <Text style={styles.readoutText} numberOfLines={1}>
+          <Text style={styles.meta}>First mate </Text>
+          {agentStatusLabel(mate)}
+        </Text>
+      </View>
+    );
   const taskCounts =
     data === null ? null : (
-      <Text style={[styles.meta, { flexShrink: 1, fontSize: compact ? 11 : 12 }]} numberOfLines={1}>
-        {[
-          activeCrewCount(data.cards) + " in hand",
-          data.cards.filter((card) => taskPresentation(card, decisions.data).group === "later").length + " later",
-          data.cards.filter((card) => taskPresentation(card, decisions.data).group === "done").length + " done",
-        ].join(" · ")}
+      <Text style={[styles.meta, { flexShrink: 1 }]} numberOfLines={1}>
+        {(
+          [
+            [activeCrewCount(data.cards), "in hand"],
+            [data.cards.filter((card) => taskPresentation(card, decisions.data).group === "later").length, "later"],
+            [data.cards.filter((card) => taskPresentation(card, decisions.data).group === "done").length, "done"],
+          ] as const
+        ).map(([count, word], index) => (
+          <Text key={word}>
+            {index === 0 ? "" : " · "}
+            <Text style={styles.count}>{count}</Text> {word}
+          </Text>
+        ))}
       </Text>
     );
   const narrowHeader = !compact && width < 1000;
@@ -663,10 +684,12 @@ function FleetViewBody({
     <View ref={node => { deckAttentionRef.current = node; }} style={[styles.header, { paddingTop: 8, gap: 6 }]} nativeID="firstmate-home-header">
       <View style={[styles.headerRow, { flexWrap: "nowrap" }]}>
         <Icon name="Ship" size={16} color={theme.colors.foreground} />
-        <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "nowrap" }}>
+        <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "nowrap" }}>
           <Text style={[styles.title, { fontSize: 17 }]}>FirstMate</Text>
           {compact ? null : attention}
+          {compact || narrowHeader || attention === null || mateStatus === null ? null : <View style={styles.rule} />}
           {compact || narrowHeader ? null : mateStatus}
+          {compact || narrowHeader || mateStatus === null || taskCounts === null ? null : <View style={styles.rule} />}
           {compact || narrowHeader ? null : taskCounts}
         </View>
         {home && !compact && mate !== null && data !== null && !values.boardCollapsed ? (
@@ -702,8 +725,9 @@ function FleetViewBody({
       </View>
       {compact ? attention : null}
       {compact && (mate !== null || data !== null) ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: 12, rowGap: 4 }}>
           {mateStatus}
+          {mateStatus === null || taskCounts === null ? null : <View style={styles.rule} />}
           {taskCounts}
         </View>
       ) : null}

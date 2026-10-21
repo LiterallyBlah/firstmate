@@ -50,7 +50,7 @@ it.each([false, true])("keeps other views' empty and counted pills clickable (co
   let renderer!: ReactTestRenderer;
   await act(async () => { renderer = create(tree(true)); });
   try {
-    expect(JSON.stringify(renderer.toJSON())).toContain("✓ Nothing needs you");
+    expect(JSON.stringify(renderer.toJSON())).toContain("Nothing needs you");
     renderer.root.findByProps({ accessibilityRole: "button" }).props.onPress();
     expect(onOpen).toHaveBeenLastCalledWith({ requestId: "next", homeId: "sample-home" }, expect.any(String));
     await act(async () => renderer.update(tree(false)));

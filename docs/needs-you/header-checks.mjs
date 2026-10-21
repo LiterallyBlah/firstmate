@@ -59,7 +59,7 @@ export async function checkHeaders(pageAt, output) {
             }
           } else {
             assert.equal(await pill.count(), 1, `${view} keeps its header pill`);
-            await pill.getByText(state === "empty" ? "✓ Nothing needs you" : "Needs you · 3 · 2 new", { exact: true }).waitFor();
+            await pill.getByText(state === "empty" ? "Nothing needs you" : "Needs you · 3 · 2 new", { exact: true }).waitFor();
           }
           if (state !== "restored") {
             await page.screenshot({ path: join(output, `header-${view}-${state}-${width}-${light ? "light" : "dark"}.png`) });

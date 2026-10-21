@@ -2,6 +2,7 @@ import type { PluginTheme } from "@getpaseo/plugin";
 import { Pressable, Text, View } from "react-native";
 import { useEffect, useId, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Icon } from "@getpaseo/plugin/client/react-native";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { indicatorState, decisionSession } from "./needs-you-state";
 import { webAttributes, webSurfaceVisible } from "./web";
@@ -40,11 +41,16 @@ export function NeedsYouIndicator({
   const ref = useDecisionVisibility();
   const id = `needs-you-${useId()}`;
   const state = indicatorState(snapshot, offline);
-  const color = state.unavailable
+  // Drawn like the header's buttons (`IconButton`): 8-point corners, a 12-point label. The
+  // signal is the outline, the fill and the icon; the words keep the foreground colour.
+  const signal = state.unavailable
     ? theme.colors.statusDanger
     : state.amber
       ? theme.colors.statusWarning
-      : theme.colors.foregroundMuted;
+      : null;
+  const ink = state.filled
+    ? decisionSignalInk(theme.colors.surface0, theme.colors.foreground)
+    : theme.colors.foreground;
   return (
     <Pressable
       ref={(node) => {
@@ -64,29 +70,37 @@ export function NeedsYouIndicator({
         )
       }
       style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        flexShrink: 0,
         minHeight: compact ? 44 : 28,
-        paddingHorizontal: 12,
-        paddingVertical: 7,
+        paddingHorizontal: compact ? 12 : 10,
+        paddingVertical: 5,
         borderWidth: 1,
-        borderColor: color,
-        borderRadius: 18,
+        borderColor: signal ?? theme.colors.border,
+        borderRadius: 8,
         borderStyle: state.stale ? "dashed" : "solid",
         backgroundColor: state.filled
           ? theme.colors.statusWarning
           : theme.colors.surface1,
-        justifyContent: "center",
         ...(compact
           ? { alignSelf: "stretch" as const, width: "100%" as const }
           : {}),
       }}
     >
+      <Icon
+        name={state.unavailable ? "TriangleAlert" : state.amber ? "Bell" : "Check"}
+        size={14}
+        color={state.filled ? ink : (signal ?? theme.colors.foregroundMuted)}
+      />
       <Text
+        numberOfLines={compact ? 2 : 1}
         style={{
-          color: state.filled
-            ? decisionSignalInk(theme.colors.surface0, theme.colors.foreground)
-            : color,
-          fontSize: 13,
-          fontWeight: "600",
+          flexShrink: 1,
+          color: ink,
+          fontSize: compact ? 13 : 12,
+          fontWeight: signal === null ? "500" : "600",
         }}
       >
         {state.label}
