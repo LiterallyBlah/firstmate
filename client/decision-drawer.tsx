@@ -758,8 +758,8 @@ function DecisionDetails({
     setNotice("");
     try {
       const result = await task();
-      changed(result);
-      if (receipt) onCompleted(result, receipt, answered);
+      const current = changed(result) ?? result;
+      if (receipt) onCompleted(current, receipt, answered);
     } catch (error) {
       setNotice(errorText(error));
       changed();
@@ -798,14 +798,14 @@ function DecisionDetails({
           : {}),
       },
       (result) => {
-        changed(result.snapshot);
+        const current = changed(result.snapshot) ?? result.snapshot;
         if (result.outcome === "accepted") {
           if (session.drafts.get(draftKey) === text) {
             session.drafts.delete(draftKey);
             setDraft("");
           }
           onCompleted(
-            result.snapshot,
+            current,
             "Answer sent.",
             true,
           );

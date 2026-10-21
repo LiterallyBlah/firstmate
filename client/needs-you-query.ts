@@ -20,11 +20,14 @@ export function useNeedsYou() {
 export function useDecisionChanged() {
   const client = useQueryClient();
   return (snapshot?: NeedsYouSnapshot) => {
-    if (snapshot)
-      client.setQueryData<NeedsYouSnapshot>(NEEDS_YOU_QUERY_KEY, (old) =>
-        mergeDecisionSnapshot(old, snapshot),
-      );
+    const merged = snapshot
+      ? client.setQueryData<NeedsYouSnapshot>(NEEDS_YOU_QUERY_KEY, (old) =>
+          mergeDecisionSnapshot(old, snapshot),
+        )
+      : undefined;
     void client.invalidateQueries({ queryKey: NEEDS_YOU_QUERY_KEY });
     void client.invalidateQueries({ queryKey: FLEET_QUERY_KEY });
+    // Completion navigation must retain arrivals already observed by a newer poll.
+    return merged;
   };
 }

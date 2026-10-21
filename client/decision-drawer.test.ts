@@ -11,6 +11,7 @@ const rpc = vi.hoisted(() => ({
   snapshot: null as NeedsYouSnapshot | null,
   outcome: "accepted" as "accepted" | "failed" | "uncertain" | "refused",
   calls: [] as string[],
+  delay: null as Promise<void> | null,
 }));
 vi.mock("react-native", () => Object.fromEntries(
   ["View", "Text", "Pressable", "ScrollView", "TextInput", "SafeAreaView"].map(name => [name, name]),
@@ -28,6 +29,7 @@ vi.mock("@getpaseo/plugin/client", () => ({
       snapshot.version++;
     }
     rpc.snapshot = snapshot;
+    if (rpc.delay) await rpc.delay;
     return { outcome: rpc.outcome, snapshot };
   },
 }));
@@ -59,6 +61,7 @@ async function mount(ids = ["a", "b", "c"]) {
   close.mockClear();
   rpc.calls = [];
   rpc.outcome = "accepted";
+  rpc.delay = null;
   rpc.snapshot = attentionSnapshot(ids.map(id => attentionRequest(id)));
   selectedId = rpc.snapshot.requests[0]!.id;
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -120,6 +123,29 @@ it("closes after the last answer and restores the opening view", async () => {
   await answer();
   expect(close).toHaveBeenCalledOnce();
   expect(words()).toContain("Original Board");
+});
+
+it("uses the newer same-home poll when the last answer's accepted response arrives late", async () => {
+  await mount(["a"]);
+  let release!: () => void;
+  rpc.delay = new Promise<void>(resolve => { release = resolve; });
+  await answer();
+  expect(selectedId).toBe("local:a");
+  expect(close).not.toHaveBeenCalled();
+
+  const newer = structuredClone(rpc.snapshot!);
+  newer.requests.push(attentionRequest("b"));
+  newer.actionCount = 1;
+  newer.version++;
+  newer.freshness.checkedAt++;
+  rpc.snapshot = newer;
+  await act(async () => { await client.invalidateQueries({ queryKey: NEEDS_YOU_QUERY_KEY }); });
+  await act(async () => { release(); });
+
+  expect(client.getQueryData(NEEDS_YOU_QUERY_KEY)).toEqual(newer);
+  expect(close).not.toHaveBeenCalled();
+  expect(selectedId).toBe("local:b");
+  expect(words()).toContain("Answer sent.");
 });
 
 it.each([false, true])("advances or closes after selecting a question in All (last=%s)", async last => {
