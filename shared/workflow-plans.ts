@@ -55,6 +55,7 @@ export function planFinished(plan: WorkflowPlan): boolean {
   return plan.definition.nodes.every(node => !plan.nodes[node.id]?.invalidated &&
     (node.kind === "run" && node.launch.kind === "ship" ? ["landed", "failed", "cancelled"] : ["done", "landed", "failed", "cancelled"]).includes(plan.nodes[node.id]?.state ?? ""));
 }
+export const planAwaitingReview = (plan: WorkflowPlan): boolean => plan.status === "review" && !planFinished(plan);
 export const PlanEditSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("model"), node: PlanId, agent: PlanLaunchSchema.shape.agent }).strict(),
   z.object({ kind: z.literal("host"), node: PlanId, host: line }).strict(),

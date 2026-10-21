@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { actOnWorkflowPlan, readWorkflowPlans, WorkflowSnapshotSchema, type WorkflowSnapshot, type PlanNeed } from "../shared/workflow-rpc";
-import { planFinished, planWorstCase, type PlanCaptainCommand, type WorkflowPlan } from "../shared/workflow-plans";
+import { planAwaitingReview, planFinished, planWorstCase, type PlanCaptainCommand, type WorkflowPlan } from "../shared/workflow-plans";
 import { migrationTargets, type FleetCard } from "../shared/fleet";
 import { readRemotes } from "../shared/remotes";
 import { OptionPicker } from "./option-picker";
@@ -16,7 +16,7 @@ import { errorText } from "./format";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 
 export const WORKFLOW_QUERY_KEY = ["firstmate", "workflow-plans"] as const;
-const Plans = createContext<{ snapshot?: WorkflowSnapshot; open(id: string): void }>({ open() {} });
+const Plans = createContext<{ snapshot?: WorkflowSnapshot; loading: boolean; error: string | null; refresh(): void; open(id: string): void }>({ loading: true, error: null, refresh() {}, open() {} });
 export function useWorkflowPlans() { return useContext(Plans); }
 function Button({ theme, label, onPress, disabled = false, quiet = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean; quiet?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} accessibilityState={{ disabled }} onPress={onPress}
@@ -46,7 +46,7 @@ export function WorkflowSurface({ theme, children }: { theme: PluginTheme; child
     } catch (e) { setError(errorText(e)); void query.refetch(); }
     finally { gate.current = false; setBusy(false); }
   }
-  return <Plans.Provider value={{ ...(snapshot ? { snapshot } : {}), open }}>
+  return <Plans.Provider value={{ ...(snapshot ? { snapshot } : {}), loading: query.isPending, error: query.error ? errorText(query.error) : null, refresh: () => { void query.refetch(); }, open }}>
     {children}
     <Modal title={plan?.definition.title ?? "Plan"} open={selected !== null} onOpenChange={value => { if (!value && !busy) setSelected(null); }}>
       <Modal.Content>
@@ -68,6 +68,7 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
   const [mode, setMode] = useState<"changes" | "edit" | null>(null), [text, setText] = useState("");
   const [edits, setEdits] = useState<NonNullable<PlanCaptainCommand["edits"]>>([]);
   const colors = theme.colors, worst = planWorstCase(plan.definition, plan.nodes), disabled = busy || stale;
+  const awaitingReview = planAwaitingReview(plan);
   const missingMode = edits.some(e => e.kind === "model" && !models.find(m => m.provider === e.agent.provider)?.modes.some(m => m.id === e.agent.modeId));
   const send = (action: PlanCaptainCommand["action"], extra: Partial<PlanCaptainCommand> = {}) => onAct({ op: "captain", plan: plan.definition.id, revision: plan.revision, subjectHash, action, text, ...extra });
   return <View testID="workflow-plan-dialog" style={{ gap: 16 }}>
@@ -97,13 +98,15 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
     </> : null}
     {plan.status !== "abandoned" && !planFinished(plan) ? <>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-        <Button theme={theme} label="Approve" disabled={disabled} onPress={() => void send("approve")} />
-        <Button theme={theme} label="Approve with edits" disabled={disabled} onPress={() => setMode("edit")} />
-        <Button theme={theme} label="Ask for changes" disabled={disabled} onPress={() => setMode("changes")} />
+        {awaitingReview ? <>
+          <Button theme={theme} label="Approve" disabled={disabled} onPress={() => void send("approve")} />
+          <Button theme={theme} label="Approve with edits" disabled={disabled} onPress={() => setMode("edit")} />
+          <Button theme={theme} label="Ask for changes" disabled={disabled} onPress={() => setMode("changes")} />
+        </> : null}
         <Button theme={theme} label="Hold" disabled={disabled} onPress={() => void send("hold")} />
         <Button theme={theme} label="Decline" disabled={disabled || plan.definition.nodes.some(n => n.kind === "run" && plan.nodes[n.id]?.state !== "planned")} onPress={() => void send("decline")} />
       </View>
-      {mode ? <View style={{ gap: 8 }}>
+      {awaitingReview && mode ? <View style={{ gap: 8 }}>
         <TextInput accessibilityLabel="Requested plan changes" placeholder="Describe the changes" value={text} onChangeText={setText} multiline style={{ minHeight: 80 }} />
         {mode === "edit" ? <>
           <Text style={{ color: colors.foregroundMuted }}>Edits apply to unstarted work. Scope or acceptance changes go to the first mate.</Text>

@@ -47,6 +47,26 @@ it("replays one action once, records requested changes in agenda order and queue
   const agenda = await workflowStore(home).agenda(); expect(agenda[0]?.kind).toBe("captain"); expect(agenda[1]?.kind).toBe("replan");
   expect((await workflowStore(home).get("scheduler"))?.status).toBe("held");
 });
+it.each(["active", "held"] as const)("rejects new review actions on a fresh %s plan without changing its ledger", async status => {
+  await act(await command(status === "active" ? "approve" : "hold"));
+  const store = workflowStore(home), before = (await store.get("scheduler"))!;
+  const files = await readdir(join(store.root, "scheduler"));
+  for (const action of ["approve", "edit", "changes"] as const) {
+    const attempted = await command(action, { text: "Change the scope.", ...(action === "edit" ? { edits: [{ kind: "posture", posture: "sail" }] } : {}) });
+    await expect(act(attempted)).rejects.toThrow("not awaiting review");
+    expect(await store.get("scheduler")).toEqual(before);
+    expect(await readdir(join(store.root, "scheduler"))).toEqual(files);
+  }
+});
+it("replays an accepted approval after the plan becomes active without recording it twice", async () => {
+  const accepted = await command("approve"), id = randomUUID();
+  await act(accepted, id);
+  const before = (await workflowStore(home).get("scheduler"))!;
+  expect(before.status).toBe("active");
+  await act(accepted, id);
+  expect(await workflowStore(home).get("scheduler")).toEqual(before);
+  expect(before.captainEvents?.filter(e => e.id === id)).toHaveLength(1);
+});
 it("applies edits atomically, pins in-flight runs and holds a removed prerequisite's dependents", async () => {
   const before = (await workflowStore(home).get("scheduler"))!;
   await expect(act(await command("edit", { edits: [{ kind: "dependencies", node: "trial", after: [{ node: "build", reason: "builds-on", on: "done" }] }] }))).rejects.toThrow("cycle");
@@ -59,6 +79,8 @@ it("applies edits atomically, pins in-flight runs and holds a removed prerequisi
 it("holds new starts, refuses to decline started work, and builds read-only Bearings from plans", async () => {
   await act(await command("approve")); await workflowStore(home).execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), "mate");
   await expect(act(await command("decline"))).rejects.toThrow("started plan");
+  const current = (await workflowStore(home).get("scheduler"))!;
+  await workflowStore(home).execute({ op: "revise", definition: current.definition, expected: current.hash, reason: "Review the remaining work." }, randomUUID(), "mate");
   await expect(act(await command("edit", { edits: [{ kind: "model", node: "trial", agent: { provider: "claude/opus", modeId: "plan" } }] }))).rejects.toThrow("unstarted");
   await act(await command("hold")); const before = await readdir(join(workflowStore(home).root, "scheduler"));
   const bearings = await workflowBearings(home); expect(bearings).toContain("Underway\n- Scheduler · Database trial: starting"); expect(bearings).toContain("Coming up");

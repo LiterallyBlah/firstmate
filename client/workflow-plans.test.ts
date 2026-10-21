@@ -24,6 +24,30 @@ it("renders without acting and binds approval to the displayed revision and subj
   await act(async () => button("Approve").props.onPress());
   expect(onAct).toHaveBeenCalledWith(expect.objectContaining({ action: "approve", revision: 1, subjectHash: "b".repeat(64) }));
 });
+it.each(["active", "held"] as const)("keeps %s plans browsable without review actions, preserving decisions and lifecycle controls", async status => {
+  const p = plan(); p.status = status;
+  const onAct = vi.fn();
+  await act(async () => { renderer = create(createElement(PlanDialog, { theme, plan: p, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct, onRefresh() {} })); });
+  for (const label of ["Approve", "Approve with edits", "Ask for changes"]) {
+    expect(renderer!.root.findAll(n => n.type === ("Pressable" as any) && n.props.accessibilityLabel === label)).toHaveLength(0);
+  }
+  expect(button("Hold").props.disabled).toBe(false);
+  expect(button("Decline").props.disabled).toBe(false);
+  expect(button("SQLite").props.disabled).toBe(false);
+  expect(onAct).not.toHaveBeenCalled();
+});
+it.each(["active", "held"] as const)("closes an open review form when a plan becomes %s", async status => {
+  const p = plan(), onAct = vi.fn();
+  const props = { theme, plan: p, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct, onRefresh() {} };
+  await act(async () => { renderer = create(createElement(PlanDialog, props)); });
+  await act(async () => button("Ask for changes").props.onPress());
+  await act(async () => renderer!.root.findByType("TextInput" as any).props.onChangeText("Change the scope."));
+  expect(button("Send changes to first mate").props.disabled).toBe(false);
+  await act(async () => renderer!.update(createElement(PlanDialog, { ...props, plan: { ...p, status } })));
+  expect(renderer!.root.findAllByType("TextInput" as any)).toHaveLength(0);
+  expect(renderer!.root.findAll(n => n.type === ("Pressable" as any) && n.props.accessibilityLabel === "Send changes to first mate")).toHaveLength(0);
+  expect(onAct).not.toHaveBeenCalled();
+});
 it("keeps stale actions disabled and forwards requested changes as text", async () => {
   const onAct = vi.fn().mockResolvedValue(undefined), refresh = vi.fn();
   const props = { theme, plan: plan(), subjectHash: "b".repeat(64), homeId: "home", stale: true, busy: false, error: null, onAct, onRefresh: refresh };

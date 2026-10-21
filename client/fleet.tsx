@@ -78,6 +78,7 @@ import { TaskBoard } from "./task-board";
 import { useTaskLayout } from "./task-layout";
 import { taskPresentation } from "./task-presentation";
 import { WorkflowSurface, PlansControl, useWorkflowPlans } from "./workflow-plans";
+import { WorkflowPlansView } from "./workflow-plan-browser";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 
 export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
@@ -104,7 +105,7 @@ const DEFAULT_DISPLAY: DisplaySettings = displaySettings.schema.parse({});
 const SAVE_DELAY_MS = 400;
 
 function paneName(pane: RightPane, crewView: CrewView): string {
-  return pane === "files" ? "Home files" : pane === "deck" ? "Deck" : crewView === "list" ? "List" : "Board";
+  return pane === "files" ? "Home files" : pane === "deck" ? "Deck" : pane === "plans" ? "Plans" : crewView === "list" ? "List" : "Board";
 }
 
 type FleetSurfaceProps = PluginScreenProps & {
@@ -277,10 +278,10 @@ function FleetViewBody({
   }
 
   /** List and Board are presentations of the same tasks, filters and open conversation. */
-  function selectHomePane(next: CrewView | "files" | "deck"): void {
+  function selectHomePane(next: CrewView | "files" | "deck" | "plans"): void {
     const changingView = (next === "list" || next === "board") && next !== crewView;
     if (changingView) save({ crewView: next });
-    const destination = next === "files" || next === "deck" ? next : "board";
+    const destination = next === "files" || next === "deck" || next === "plans" ? next : "board";
     setRightPane(destination, changingView);
     if (compact) setTab(destination, changingView);
   }
@@ -654,6 +655,7 @@ function FleetViewBody({
         { value: "board", label: "Board", tooltip: "Show the same tasks in status columns." },
         { value: "files", label: "Home files", tooltip: "Browse and edit files in the FirstMate home." },
         { value: "deck", label: "Deck", tooltip: "Show the crew on deck beside the first mate." },
+        { value: "plans", label: "Plans", tooltip: "Browse workflow runs, decisions, dependencies and budgets." },
       ]}
       onChange={value => { selectHomePane(value); setViewMenu(false); }} />
   );
@@ -1045,6 +1047,7 @@ function FleetViewBody({
       { id: "board", label: "Board" },
       { id: "files", label: "Files" },
       { id: "deck", label: "Deck" },
+      { id: "plans", label: "Plans" },
     ] as const;
     const selected = shownTab === "board" ? crewView : shownTab;
     return (
@@ -1074,6 +1077,8 @@ function FleetViewBody({
             crew
           ) : shownTab === "deck" ? (
             inlineDeck
+          ) : shownTab === "plans" ? (
+            <WorkflowPlansView theme={theme} />
           ) : (
             <FilesView theme={theme} compact request={filesRequest} />
           )}
@@ -1133,6 +1138,8 @@ function FleetViewBody({
               crew
             ) : pane === "deck" ? (
               inlineDeck
+            ) : pane === "plans" ? (
+              <WorkflowPlansView theme={theme} />
             ) : (
               <FilesView theme={theme} compact={false} request={filesRequest} />
             )}</DecisionPane>

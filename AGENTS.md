@@ -63,6 +63,21 @@ card chips and filters require the explicit plan association plus host/project/t
 The posture reader consumes only `plan-posture` in a fenced `standing-orders` block at draft/revise;
 request quotes override it, unreadable/absent blocks use D2, and invalid entries require review.
 
+Home's Plans destination is `homePane: "plans"`, alongside List/Board, Home files and Deck on wide
+and compact layouts. `client/workflow-plan-browser.tsx` consumes WorkflowSurface's existing
+`readWorkflowPlans` snapshot and opens its existing dialog; searching, folding and paging never
+act on a plan. `client/workflow-plan-list.ts` owns open/finished grouping, completion ordering,
+displayed run states and cumulative budget usage (including removed runs, without recounting
+prior attempts). Open plans precede finished history; automatic one-run plans have counted folds,
+expanded for matching searches or awaiting approval, with ten rows per page. The same snapshot
+now retains completed implicit history; agenda, due counts, Bearings and task-card rules stay unchanged.
+`node docs/plans-view/render.mjs` adapts the existing workflow render harness for before/after
+Home checks in both themes and widths, writing only to `.local/plans-view/`.
+Approve, approve-with-edits and request-changes require `planAwaitingReview` in both the dialog and
+the store's append handler. Active/held plans remain browsable with decision and lifecycle controls;
+an open review form disappears if review ends. The status guard follows request-id replay and
+revision/subject checks, and never runs during ledger replay, preserving previously accepted history.
+
 | File                          | What it owns                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------- |
 | `index.server.ts`             | Wiring — the RPCs, the display settings document, the steer relay hook.                    |
@@ -214,7 +229,7 @@ toast suppression. `docs/needs-you/header-checks.mjs` checks both states in ligh
 
 ## Home and the workspace tabs (shell phase 1)
 
-Home's header keeps the title, mate status and task counts together, with the List/Board/Home files switch
+Home's header keeps the title, mate status and task counts together, with the List/Board/Home files/Deck/Plans switch
 and **More** beside them. `client/header-actions.tsx` puts provider migration, watches, pane visibility,
 the full conversation, updates, refresh, settings and the full home path behind More's host modal.
 Migration and Watches open sibling dialogs after More closes, with web focus returning to More.
@@ -228,7 +243,7 @@ The sidebar's `fleet` screen is **Home**: one first-mate chat, a List/Board task
 launcher. Home uses the saved `crewView`, defaulting to List; the two views share the same cards,
 host/tag filters, actions and open worker conversation. Switching views preserves a draft; pressing
 the selected view again returns from the conversation to its tasks. Compact Home exposes First mate,
-List, Board and Files in the existing tab row. The standalone Crew (List), Board and Deck destinations
+List, Board, Files, Deck and Plans in the existing tab row. The standalone Crew (List), Board and Deck destinations
 keep their own layouts. `client/workspace-panels.tsx` registers `firstmate-deck`, `firstmate-board`,
 `firstmate-crew` and `firstmate-chat` through `addWorkspacePanel`, workspace location only. The older
 contextual workspace and agent panels are titled **FirstMate here**, with an **Open chat** shortcut.
