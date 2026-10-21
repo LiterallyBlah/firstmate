@@ -87,7 +87,8 @@ it("does not count a quarantined prerequisite as satisfied by another host's sam
   expect(view.now.some(n => n.plan === "dependent")).toBe(false); expect(view.comingUp.some(n => n.node === "followup-choice")).toBe(true);
   const needs = await withWorkflowNeeds({ actionCount: 0, newCount: 0, requests: [], parked: [], freshness: { status: "fresh" } } as any, home, view);
   expect(needs.actionCount).toBe(1); // Only the original scheduler's plan approval is due.
-  expect((await workflowBearings(home)).split("Recently Landed")[0]).not.toContain("Followup choice");
+  expect((await workflowBearings(home)).split("Due")[1]?.split("Coming up")[0]).not.toContain("Followup choice");
+  expect((await workflowBearings(home)).split("Coming up")[1]).toContain("Followup choice");
 });
 it("retains completed implicit history without adding due actions or task cards", async () => {
   // Use a separate home to reproduce an implicit trial followed by an explicit plan.
@@ -115,7 +116,7 @@ it("retains completed implicit history without adding due actions or task cards"
   const base: any = { actionCount: 0, newCount: 0, requests: [], parked: [], freshness: { status: "fresh" } };
   const needs = await withWorkflowNeeds(base, home, view);
   expect(needs.actionCount).toBe(1); expect(needs.planNow?.map(n => n.node)).toEqual(["choose"]);
-  expect((await workflowBearings(home)).split("Recently Landed")[0]).toContain("Choose");
+  expect((await workflowBearings(home)).split("Coming up")[0]).toContain("Choose");
 });
 it("never suppresses same-slug holds on another host/project or attaches their chips/cards", async () => {
   const p = (await workflowStore(home).get("scheduler"))!;
@@ -189,8 +190,8 @@ it("bounds Bearings and the agenda after many completed plans, retaining verifia
     await execute({ op: "record", plan: id, node: id, attempt: started.launch.workflow.attempt, state: "done", evidence: "Verified report" });
   }
   const snapshot = await workflowSnapshot(home); expect(snapshot.plans).toHaveLength(31); // All histories and the open scheduler share one read snapshot.
-  const bearings = await workflowBearings(home); expect(bearings.split("\n").filter(l => l.startsWith("- finished-"))).toHaveLength(10);
-  expect(await workflowBearings(home, Date.now() + 8 * 86400000)).not.toContain("- finished-");
+  const bearings = await workflowBearings(home); expect(bearings).not.toContain("- finished-");
+  expect(bearings).not.toContain("Recently Landed");
   expect((await workflowStore(home).agenda()).filter(i => i.plan.startsWith("finished-")).every(i => i.kind === "tell")).toBe(true);
   expect(await withWorkflowCards([], home)).toHaveLength(2);
   expect(await workflowStore(home).list()).toHaveLength(31);

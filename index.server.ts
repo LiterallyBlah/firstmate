@@ -37,7 +37,7 @@ import { isHomeReady, prepareHome, removeSuggestion } from "./server/home";
 import {
   adoptMate,
   askMate,
-  commandText,
+  commandMessage,
   compactMate,
   launchMate,
   listCandidates,
@@ -223,7 +223,7 @@ export default function contribute(server: PluginServerContext) {
   server.handle(listCandidatesRpc, (_input, { paseo }) => listCandidates(paseo));
   server.handle(askMateRpc, async (message, { paseo }) => ({ agentId: await askMate(paseo, message) }));
   server.handle(askMateCommandRpc, async ({ command, args }, { paseo }) => ({
-    agentId: await askMate(paseo, { text: await commandText(command, args) }),
+    agentId: await askMate(paseo, await commandMessage(command, args)),
   }));
   server.handle(markMateSeenRpc, (_input, { paseo }) => markMateSeen(paseo));
   server.handle(toggleWatch, async ({ name, enabled }, { paseo }) => {

@@ -79,7 +79,7 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
     {plan.postureSource ? <Text style={{ color: colors.foregroundMuted }}>Posture from {plan.postureSource.source}: {plan.postureSource.detail}{plan.postureSource.warning ? ` ${plan.postureSource.warning}` : ""}</Text> : null}
     {stale ? <View style={{ gap: 6 }}><Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>This plan changed or could not be refreshed. Review the latest version before acting.</Text><Button theme={theme} label="Review latest plan" disabled={busy} onPress={onRefresh} /></View> : null}
     {plan.definition.nodes.map(node => <View key={node.id} style={{ gap: 6, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 8 }}>
-      <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>{node.title} · {plan.nodes[node.id]?.answer ? "Answered" : plan.nodes[node.id]?.held ? "Held" : plan.nodes[node.id]?.state === "planned" ? "Queued" : plan.nodes[node.id]?.state}</Text>
+      <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>{node.title} · {plan.nodes[node.id]?.closedWithoutLanding ? "Closed without landing" : plan.nodes[node.id]?.answer ? "Answered" : plan.nodes[node.id]?.held ? "Held" : plan.nodes[node.id]?.state === "planned" ? "Queued" : plan.nodes[node.id]?.state}</Text>
       <Text style={{ color: colors.foreground }}>{node.summary}</Text>
       {node.after.length ? <Text style={{ color: colors.foregroundMuted }}>After {node.after.map(d => `${plan.definition.nodes.find(n => n.id === d.node)?.title ?? d.node} (${d.reason === "needs-evidence" ? "needs its evidence" : d.reason === "decision" ? "needs your answer" : d.reason === "shared-state" ? "shares mutable state" : "needs its code"}${d.on === "landed" ? ", after landing" : ""})`).join(", ")}</Text> : null}
       {node.kind === "run" ? <Text style={{ color: colors.foregroundMuted }}>{node.workflow === "scout@1" ? "Investigation" : "Task"} · {node.launch.agent.provider} · {node.launch.agent.thinkingOptionId ?? "default thinking"} · {node.launch.host === "local" ? "This machine" : node.launch.host} · one worker turn</Text> : <>
@@ -89,6 +89,7 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
         </View>)}
       </>}
       {plan.nodes[node.id]?.evidence ? <Text selectable style={{ color: colors.foregroundMuted }}>{plan.nodes[node.id]!.evidence}</Text> : null}
+      {plan.nodes[node.id]?.closedWithoutLanding ? <Text selectable style={{ color: colors.foregroundMuted }}>Closed without landing: {plan.nodes[node.id]!.closedWithoutLanding!.evidence}</Text> : null}
     </View>)}
     <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Revision history</Text>
     {plan.history.map((h, i) => <Text key={`${h.revision}:${i}`} style={{ color: colors.foregroundMuted }}>{h.revision} · {h.by === "board:captain" ? "You" : "First mate"} · {h.reason}</Text>)}

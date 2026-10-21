@@ -14,7 +14,7 @@ describe("the home workspace is never inferred from an unrelated agent", () => {
 });
 
 it("only a visible first-mate chat can clear attention", () => {
-  for (const view of ["deck", "board", "crew"] as const) {
+  for (const view of ["deck", "board", "crew", "plans"] as const) {
     expect(chatIsVisible(view, false, "chat", false)).toBe(false);
     expect(chatIsVisible(view, true, "chat", false)).toBe(false);
   }

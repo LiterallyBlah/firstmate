@@ -38,7 +38,8 @@ export type PlanDefinition = z.infer<typeof PlanDefinitionSchema>;
 export type NodeState = "planned" | "starting" | "running" | "done" | "landed" | "failed" | "cancelled" | "unresolved";
 export interface PlanNodeState { state: NodeState; attempt?: string | undefined; claimed?: boolean | undefined; agentId?: string | undefined; workspaceId?: string | undefined; evidence?: string | undefined; briefHash?: string | undefined; answer?: string | undefined;
   launch?: PlanLaunch | undefined; held?: string | boolean | undefined; invalidated?: string | undefined;
-  priorAttempts?: PlanNodeState[] | undefined; spent?: number | undefined; completedAt?: string | undefined }
+  priorAttempts?: PlanNodeState[] | undefined; spent?: number | undefined; completedAt?: string | undefined;
+  closedWithoutLanding?: { at: string; by: string; evidence: string } | undefined }
 export const PlanPostureSourceSchema = z.object({ posture: z.enum(["review", "sail"]), source: z.enum(["request", "standing-orders", "default"]), detail: z.string(), warning: z.string().optional() });
 export type PlanPostureSource = z.infer<typeof PlanPostureSourceSchema>;
 export interface WorkflowPlan {
@@ -53,7 +54,8 @@ export interface WorkflowPlan {
 /** Completion is a fold over durable node outcomes, never inferred from a worker's status line. */
 export function planFinished(plan: WorkflowPlan): boolean {
   return plan.definition.nodes.every(node => !plan.nodes[node.id]?.invalidated &&
-    (node.kind === "run" && node.launch.kind === "ship" ? ["landed", "failed", "cancelled"] : ["done", "landed", "failed", "cancelled"]).includes(plan.nodes[node.id]?.state ?? ""));
+    ((node.kind === "run" && node.launch.kind === "ship" ? ["landed", "failed", "cancelled"] : ["done", "landed", "failed", "cancelled"]).includes(plan.nodes[node.id]?.state ?? "") ||
+      (node.kind === "run" && node.launch.kind === "ship" && plan.nodes[node.id]?.state === "done" && !!plan.nodes[node.id]?.closedWithoutLanding)));
 }
 export const planAwaitingReview = (plan: WorkflowPlan): boolean => plan.status === "review" && !planFinished(plan);
 export const PlanEditSchema = z.discriminatedUnion("kind", [
@@ -83,6 +85,7 @@ export const WorkflowCommandSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("approve"), plan: PlanId, expected: z.string().length(64), quote: z.string().min(1).max(5000) }).strict(),
   z.object({ op: z.literal("release"), plan: PlanId, node: PlanId, attempt: z.uuid(), evidence: z.string().min(1).max(10000) }).strict(),
   z.object({ op: z.literal("invalidate"), plan: PlanId, node: PlanId, attempt: z.uuid(), evidence: z.string().min(1).max(10000) }).strict(),
+  z.object({ op: z.literal("close"), plan: PlanId, node: PlanId, attempt: z.uuid(), expected: z.string().length(64), evidence: z.string().trim().min(1).max(10000) }).strict(),
   z.object({ op: z.literal("validate"), plan: PlanId, node: PlanId, attempt: z.uuid(), expected: z.string().length(64), evidence: z.string().min(1).max(10000) }).strict(),
   z.object({ op: z.literal("replace"), plan: PlanId, node: PlanId, attempt: z.uuid(), expected: z.string().length(64),
     kind: z.enum(["relaunch", "promote"]), evidence: z.string().min(1).max(10000), budget: z.object({ agents: z.number().int().min(1).max(100), turns: z.number().int().min(1).max(100) }).strict() }).strict(),
@@ -117,6 +120,8 @@ export function planProblems(plan: PlanDefinition, others: readonly WorkflowPlan
     if (new Set(node.after.map(d => d.node)).size !== node.after.length) problems.push(`${node.id}: repeated dependency.`);
     for (const edge of node.after) {
       const target = nodes.get(edge.node);
+      const recorded = others.find(p => p.nodes[node.id])?.nodes[node.id];
+      if (edge.on === "landed" && others.some(p => p.nodes[edge.node]?.closedWithoutLanding) && !["done", "landed", "failed", "cancelled"].includes(recorded?.state ?? "")) problems.push(`${node.id}: ${edge.node} was closed without landing; replan this prerequisite.`);
       if (!target) { if (!removed.has(edge.node)) problems.push(`${node.id}: unknown dependency ${edge.node}.`); }
       else if ((target.kind === "decision") !== (edge.reason === "decision" && edge.on === "answered")) problems.push(`${node.id}: decision dependencies must say reason decision, on answered.`);
       else if (target.kind === "run" && edge.on === "answered") problems.push(`${node.id}: a run cannot be answered.`);

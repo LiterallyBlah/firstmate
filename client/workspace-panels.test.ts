@@ -26,16 +26,17 @@ function installation() {
   return { addScreen, addWorkspacePanel, openPanel, openScreen };
 }
 
-it("registers four fixed workspace destinations and a single Home screen", () => {
+it("registers five fixed workspace destinations and a single Home screen", () => {
   const host = installation();
   expect(host.addScreen).toHaveBeenCalledTimes(1);
   expect(
-    host.addWorkspacePanel.mock.calls.map(([panel]) => [panel.id, panel.title, panel.context, panel.locations]),
+    host.addWorkspacePanel.mock.calls.map(([panel]) => [panel.id, panel.title, panel.icon, panel.context, panel.locations]),
   ).toEqual([
-    ["firstmate-deck", "Deck", "workspace", ["workspace"]],
-    ["firstmate-board", "Board", "workspace", ["workspace"]],
-    ["firstmate-crew", "Crew", "workspace", ["workspace"]],
-    ["firstmate-chat", "Chat", "workspace", ["workspace"]],
+    ["firstmate-deck", "Deck", "Ship", "workspace", ["workspace"]],
+    ["firstmate-board", "Board", "Columns3", "workspace", ["workspace"]],
+    ["firstmate-crew", "Crew", "Users", "workspace", ["workspace"]],
+    ["firstmate-chat", "Chat", "MessageSquare", "workspace", ["workspace"]],
+    ["firstmate-plans", "Plans", "ListTodo", "workspace", ["workspace"]],
   ]);
   for (const [panel] of host.addWorkspacePanel.mock.calls) {
     const component = panel.Component as (props: PluginWorkspacePanelProps) => ReactElement<Surface>;
@@ -68,6 +69,12 @@ it("loans each installation its own navigation and asks Paseo to focus the same 
     workspaceId: "home-b",
     location: "workspace",
   });
+  home(a).openView("plans", "home-a");
+  home(a).openView("plans", "home-a");
+  expect(a.openPanel.mock.calls.slice(-2)).toEqual(
+    Array(2).fill(["firstmate-plans", { workspaceId: "home-a", location: "workspace" }]),
+  );
+  expect(b.openPanel).toHaveBeenCalledTimes(1);
   home(a).openHome();
   expect(a.openScreen).toHaveBeenCalledWith({
     screenId: "fleet",

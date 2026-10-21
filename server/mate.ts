@@ -8,6 +8,7 @@
  */
 import { randomUUID } from "node:crypto";
 import type { CaptainMessage } from "../shared/attachments";
+import { BEARINGS_MESSAGE_PREFIX, bearingsMessage } from "../shared/bearings";
 import { CREW_LABELS, type AgentSummary, type FirstmateConfig, type MateCommand } from "../shared/fleet";
 import { readFirstmateConfig, resolveHome, updateFirstmateConfig } from "./config";
 import { fetchLiveAgent, listAgents, resolveMate, sameDirectory, summarizeAgent } from "./fleet";
@@ -267,7 +268,11 @@ export async function commandText(command: MateCommand, args: string): Promise<s
   if (command !== "bearings") return text;
   const { workflowBearings } = await import("./workflow-board");
   const plans = await workflowBearings(resolveHome(await readFirstmateConfig()));
-  return plans ? `${text}\n\n${await message(TEMPLATES.workflowBearings, { plans })}` : text;
+  return plans ? bearingsMessage(text, await message(TEMPLATES.workflowBearings, { plans })) : text;
+}
+
+export async function commandMessage(command: MateCommand, args: string): Promise<CaptainMessage> {
+  return { text: await commandText(command, args), ...(command === "bearings" ? { messageId: `${BEARINGS_MESSAGE_PREFIX}${randomUUID()}` } : {}) };
 }
 
 /**

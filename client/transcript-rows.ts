@@ -1,4 +1,5 @@
 import { decisionAnswerSummary, type DecisionAnswerSummary } from "./decision-answer-summary";
+import { readBearingsMessage } from "../shared/bearings";
 /**
  * The first mate's timeline, turned into the rows the chat pane draws.
  *
@@ -24,7 +25,7 @@ export type TranscriptRow =
   /** A decision the first mate raised, placed by `./decision-raised`; drawn from the Needs-you snapshot. */
   | { key: string; kind: "decision-raised"; text: string; requestId: string }
   /** `messageId` is the message's `clientMessageId`, under which the chat keeps the images it carried. */
-  | { key: string; kind: "captain"; text: string; messageId?: string }
+  | { key: string; kind: "captain"; text: string; messageId?: string; overview?: string }
   | { key: string; kind: "mate"; text: string }
   | { key: string; kind: "event"; text: string }
   | { key: string; kind: "tool"; text: string; status: ToolCallItem["status"] }
@@ -192,6 +193,8 @@ export function transcriptRows(entries: readonly TimelineEntry[]): TranscriptRow
     const item = entry.item;
     switch (item.type) {
       case "user_message": {
+        const bearings = readBearingsMessage(item.text, item.clientMessageId);
+        if (bearings) { rows.push({ key, kind: "captain", text: bearings.visible, overview: bearings.overview, messageId: item.clientMessageId! }); break; }
         const answer = decisionAnswerSummary(item.text, item.clientMessageId);
         if (answer) { rows.push({ key, kind: "decision-answer", text: item.text, answer }); break; }
         const summary = injectedSummary(item.text, item.clientMessageId);

@@ -7,9 +7,26 @@ import { board, watch } from "../docs/native-chat-format/fixtures";
 vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View" }));
 import { MachineNote, machineNoteSchema, registerNativeChat } from "./native-chat";
 import { nativeChatTransformer, nativeNoteSummary } from "./native-chat-transform";
+import { bearingsMessage } from "../shared/bearings";
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+});
+
+it("shows only the Bearings request and collapsed watch-style disclosure until expanded", () => {
+  const overview = "Open plans\n- scheduler: 1 of 2 complete; running: build; next: review.", text = bearingsMessage("Bearings, please.", overview);
+  const data = nativeChatTransformer.transform({ item: { type: "user_message", text, clientMessageId: "firstmate-bearings-11111111-1111-4111-8111-111111111111" }, phase: "complete" })!.items[0]!.data;
+  const props = { item: { data }, theme: { colors: { foreground: "#fff", foregroundMuted: "#aaa", surface1: "#111", surface2: "#222" } } } as PluginTimelineItemProps<{ summary: string; original: string; visible?: string }>;
+  let rendered!: ReturnType<typeof create>;
+  act(() => { rendered = create(createElement(MachineNote, props)); });
+  try {
+    expect(JSON.stringify(rendered.toJSON())).toContain("Bearings, please.");
+    expect(JSON.stringify(rendered.toJSON())).not.toContain("Open plans");
+    const button = rendered.root.find(n => (n.type as unknown) === "Pressable");
+    expect(button.props.accessibilityState).toEqual({ expanded: false });
+    act(() => button.props.onPress()); expect(JSON.stringify(rendered.toJSON())).toContain("Open plans");
+    act(() => button.props.onPress()); expect(JSON.stringify(rendered.toJSON())).not.toContain("Open plans");
+  } finally { act(() => rendered.unmount()); }
 });
 
 it.each([watch, board])(

@@ -6,9 +6,13 @@ dependencies, then read one agenda on every wake. Plans survive restarts in a ha
 readable `data/plans/<id>/plan.md` projections. The first mate still makes all local worker calls;
 approval authorizes planned work and resolves no merge or deployment gate. See
 [the home tool guide](templates/data/workflows.md) for commands and the current one-step limits.
-Home's **Plans** tab sits beside List, Board, Home files and Deck. It shows open plans first and
-finished history below, with runs, worker/host assignments, dependency reasons, decision options
-and recommendations, and budget used against approved. Automatic one-run plans have their own
+Home's **Plans** tab sits beside List, Board, Home files and Deck, and **Plans** in Paseo's **+** menu
+opens the same view as a workspace tab. Plans start collapsed, showing progress, running work,
+the next steps and their blockers, captain decisions, and attention for uncertain/failed work or a
+ship deliverable awaiting landing. Expand a plan for build steps with compact
+review chips and its budget; worker/host details appear only for running steps. Automatic copies of
+tasks already in an authored plan are hidden only while planned or when the owning step records its
+own work. An unaccounted automatic run stays visible. Open plans precede finished history. Automatic one-run plans have their own
 counted, folded groups; each group shows ten at a time. Search by title, worker or host expands
 matching automatic groups. Opening a plan uses the existing review dialog. Larger plans also
 have a Plans filter in List and Board. Plans awaiting review offer approval, edits and requests for
@@ -16,6 +20,11 @@ changes; active and held plans keep their decision and lifecycle controls. Decis
 Coming up before they are due; only current actions count in Needs you. An answer from an outdated
 plan or another device is refused. Deck still shows real workers, and Bearings draws its next steps
 from the plans.
+
+**Bearings** keeps its visible request short and puts a compact plan overview behind an expandable
+line, like watch notifications. The mate receives that overview and can read full plans itself.
+Finished evidence-only experiments can be explicitly closed with `workflow.mjs close`, retaining
+their evidence and budget without claiming a merge. Ordinary ship work still waits for landing.
 
 **One conversation to coordinate a crew of coding agents in [Paseo](https://paseo.sh).**
 
@@ -189,14 +198,17 @@ the manifest and base64 transport overhead are additional. See the [transport bu
 
 ![FirstMate Home with a synthetic conversation beside the Deck view](docs/readme/home-deck.webp)
 
-**Home** keeps the first-mate conversation beside **List**, **Board**, **Home files** or **Deck**.
+**Home** keeps the first-mate conversation beside **List**, **Board**, **Home files**, **Deck** or **Plans**.
 Compact layouts switch between these and **First mate**. The divider and view choices are saved.
+The view controls group **List / Board / Deck**, then **Home files / Plans**, wrapping at narrow widths.
+Other chats may share the home workspace without a warning banner; their guest role stays unchanged.
 **More** holds watches, provider transfer, layout controls, updates, refresh and settings.
 **Open** holds the workspace and native-tool shortcuts, keeping the desktop header to one row.
 Narrow desktop panes fold the view switcher into a menu and put status/counts under More.
 
-The shortcuts open dedicated **Deck**, **Board**, **Crew** (the grouped List) and **Chat** tabs in the
-home workspace. Paseo handles tab order, splits and closing. Chat and Home share the same mate,
+The shortcuts and Paseo's **+** menu open dedicated **Deck**, **Board**, **Crew** (the grouped List),
+**Chat** and **Plans** tabs in the home workspace. Plans reuses Home's browser and review dialog.
+Paseo handles tab order, splits and closing. Chat and Home share the same mate,
 draft and attachments; **Full conversation** opens its native Paseo session.
 
 **Shared terminal** reuses a terminal named **FirstMate shared**, or creates one when none exists.

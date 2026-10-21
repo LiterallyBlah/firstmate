@@ -1,6 +1,6 @@
 /**
  * FirstMate Home (chat, list/board/deck overview, home files and launcher) and its
- * dedicated workspace views. Paseo owns the Deck, Board and Crew tabs.
+ * dedicated workspace views. Paseo owns the Deck, Board, Crew, Chat and Plans tabs.
  *
  * Everything on it comes from one RPC, `firstmate.fleet.load`, polled at the
  * interval in the display settings and refetched right after any action. The
@@ -29,7 +29,7 @@ import { useRpc, useSettings } from "@getpaseo/plugin/client";
 import { Icon, Modal, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, ScrollView, Text, View } from "react-native";
 
 import {
   acknowledgeCharter,
@@ -190,7 +190,7 @@ function FleetViewBody({
   const deck = deckOffered(Platform.OS, compact);
   const pane: RightPane = rightPane;
   useDecisionOrigin(home ? (compact && tab === "chat" ? "First mate" : paneName(compact ? (tab === "chat" ? "board" : tab) : pane, crewView))
-    : view === "deck" ? "Deck" : view === "crew" ? "List" : view === "board" ? "Board" : "Chat");
+    : view === "deck" ? "Deck" : view === "crew" ? "List" : view === "board" ? "Board" : view === "plans" ? "Plans" : "Chat");
   /** The drawer sits beside the list or board, rather than over it, on a wide pane with room for both. */
   const onDeck = view === "deck" || (home && (compact ? shownTab : pane) === "deck");
   const docked = !compact && drawerDocks(paneWidth);
@@ -341,18 +341,9 @@ function FleetViewBody({
       },
       tabs: {
         flexDirection: "row" as const,
+        flexWrap: "wrap" as const,
         margin: 10,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: 8,
-        overflow: "hidden" as const,
-      },
-      tab: { flex: 1, paddingVertical: 7, alignItems: "center" as const },
-      tabActive: { backgroundColor: colors.accent },
-      tabText: { color: colors.foreground, fontSize: 13 },
-      tabTextActive: {
-        color: colors.accentForeground,
-        fontWeight: "600" as const,
+        gap: 8,
       },
       loading: { color: colors.foregroundMuted, fontSize: 13, padding: 20 },
     };
@@ -537,26 +528,6 @@ function FleetViewBody({
       />,
     );
   }
-  if ((data?.homeGuests?.length ?? 0) > 0) {
-    const guests = data!.homeGuests!;
-    banners.push(
-      <Banner
-        key="home-guests"
-        theme={theme}
-        tone="warning"
-        text={`${guests.length} other ${guests.length === 1 ? "chat is" : "chats are"} open in the FirstMate home. They are guests, not the configured first mate. Older chats may still remember the previous charter; the role guard does not revoke tool access.`}
-        actions={
-          navigation === undefined
-            ? []
-            : guests.slice(0, 3).map((guest, index) => ({
-                label: `${index + 1}: ${(guest.title ?? guest.id).slice(0, 24)}${(guest.title ?? guest.id).length > 24 ? "…" : ""}`,
-                icon: "ExternalLink" as const,
-                onPress: () => navigation.openAgent({ agentId: guest.id }),
-              }))
-        }
-      />,
-    );
-  }
   // The question itself is in the chat; the banner is for when the chat is
   // out of sight — folded away, or behind the Crew tab on a phone.
   const chatHidden = !chatIsVisible(view ?? "home", compact, shownTab, values.chatCollapsed);
@@ -669,16 +640,25 @@ function FleetViewBody({
       </Text>
     );
   const narrowHeader = !compact && width < 1000;
-  const homeViewControl = (
-    <Segmented theme={theme} value={pane === "board" ? crewView : pane}
+  const homeViewSegments = (selected: Tab | CrewView) => <>
+    <Segmented theme={theme} value={selected}
       options={[
         { value: "list", label: "List", tooltip: "Show the tasks as a list grouped by urgency." },
         { value: "board", label: "Board", tooltip: "Show the same tasks in status columns." },
-        { value: "files", label: "Home files", tooltip: "Browse and edit files in the FirstMate home." },
         { value: "deck", label: "Deck", tooltip: "Show the crew on deck beside the first mate." },
+      ]}
+      onChange={value => { if (value !== "chat") selectHomePane(value); setViewMenu(false); }} />
+    <Segmented theme={theme} value={selected}
+      options={[
+        { value: "files", label: compact ? "Files" : "Home files", tooltip: "Browse and edit files in the FirstMate home." },
         { value: "plans", label: "Plans", tooltip: "Browse workflow runs, decisions, dependencies and budgets." },
       ]}
-      onChange={value => { selectHomePane(value); setViewMenu(false); }} />
+      onChange={value => { if (value !== "chat") selectHomePane(value); setViewMenu(false); }} />
+  </>;
+  const homeViewControl = (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+      {homeViewSegments(pane === "board" ? crewView : pane)}
+    </View>
   );
   const header = (
     <View ref={node => { deckAttentionRef.current = node; }} style={[styles.header, { paddingTop: 8, gap: 6 }]} nativeID="firstmate-home-header">
@@ -1051,7 +1031,9 @@ function FleetViewBody({
           />
         )}
         <View style={{ flex: 1, minHeight: 0 }} onLayout={(event) => setPaneWidth(event.nativeEvent.layout.width)}>
-          <DecisionPane>{view !== "deck" ? (
+          <DecisionPane>{view === "plans" ? (
+            <WorkflowPlansView theme={theme} />
+          ) : view !== "deck" ? (
             crew
           ) : !deck ? (
             <Text style={styles.loading}>
@@ -1066,34 +1048,14 @@ function FleetViewBody({
   }
 
   if (compact) {
-    const tabs = [
-      { id: "chat", label: "First mate" },
-      { id: "list", label: "List" },
-      { id: "board", label: "Board" },
-      { id: "files", label: "Files" },
-      { id: "deck", label: "Deck" },
-      { id: "plans", label: "Plans" },
-    ] as const;
     const selected = shownTab === "board" ? crewView : shownTab;
     return (
       <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         {header}
         {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
         <View style={styles.tabs}>
-          {tabs.map(({ id, label }) => (
-            <Pressable
-              key={id}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: selected === id }}
-              aria-selected={selected === id}
-              style={[styles.tab, selected === id ? styles.tabActive : null]}
-              onPress={() => (id === "chat" ? setTab("chat") : selectHomePane(id))}
-            >
-              <Text style={[styles.tabText, selected === id ? styles.tabTextActive : null]} numberOfLines={1}>
-                {label}
-              </Text>
-            </Pressable>
-          ))}
+          <Segmented theme={theme} value={selected} options={[{ value: "chat", label: "First mate" }]} onChange={() => setTab("chat")} />
+          {homeViewSegments(selected)}
         </View>
         <View style={{ flex: 1, minHeight: 0 }}>
           {shownTab === "chat" ? (

@@ -5,7 +5,8 @@ plan. Questions, Bearings, steers, answers and maintaining a plan do not need pl
 
 `node tools/workflow.mjs plans` lists open plans; `plans --all` includes completed and declined history.
 `plan <id>` reads one. A plan finishes when every node has a recorded terminal outcome; one agenda
-item reports that completion without dropping any evidence. Ship done stays in flight until landed;
+item reports that completion without dropping any evidence. Ship done stays in flight until landed
+or explicitly closed without landing as an evidence-only experiment (see `close` below);
 finished implicit plans leave the agenda entirely. `agenda` lists what needs
 handling, in priority order; it changes no business records. `--json` is accepted on every command.
 
@@ -53,6 +54,24 @@ both identities. Check the actual report or PR and head/checks before recording 
 status line is never proof. Ship done means its deliverable is verified; landed requires the existing
 merge/local landing checks. Cleanup remains the charter's separate decision. These slices do not run
 PR/CI checks for the first mate: the agenda marks running/starting work as unobserved until handled.
+
+An evidence-only experiment may have been started as a ship run even though its branch is only a
+record of the trial. After inspecting its report and confirming there is no deliverable to merge or
+deploy, use `close --plan <id> --node <id> --attempt <uuid> --expected <current plan hash>
+--evidence <why this verified trial has nothing to land>`. This appends a close-without-landing
+receipt to a verified `done` ship attempt. It preserves the original outcome, report, attempt,
+worker/workspace and budget; it does not invent a merge, archive a worker, or permit another run.
+Running, stale, invalidated or individually held work cannot be closed. Replan any pending landing-dependent
+work first, including in declined plans: declining preserves their original prerequisites.
+If a plan is quarantined or the dependency inventory is unreadable, repair it or explicitly retire
+the quarantined plan first; its hidden dependency edges cannot be assumed absent.
+A closed trial satisfies `done` evidence dependencies, never `landed` dependencies.
+It leaves open Plans and Bearings and stays in finished history, labelled **Closed without landing**.
+
+Bearings sends only a compact overview: one line per open plan, plus due and upcoming decisions.
+An attention field names uncertain, failed, held and awaiting-landing steps; reviews stay grouped.
+The captain sees the short request and a collapsed Plan overview disclosure; the mate receives the
+overview and reads full plans with `plan <id>` when needed. Browsing or requesting Bearings records no outcome.
 
 `record --plan <id> --told <agenda-id,...>` records a message already delivered to the captain;
 `--handled <agenda-id,...>` acknowledges other items after their cause was handled. Never acknowledge

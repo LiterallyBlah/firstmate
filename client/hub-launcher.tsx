@@ -97,7 +97,7 @@ export function HubLauncher({
               label="Open"
               showLabel
               nativeID={triggerId}
-              tooltip="Open Deck, Board, Crew, Chat or workspace tools."
+              tooltip="Open Deck, Board, Crew, Chat, Plans or workspace tools."
               tooltipSide="bottom"
               tooltipAlign="end"
               onPress={() => setOpened(true)}

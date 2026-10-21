@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 const here = dirname(fileURLToPath(import.meta.url)), root = resolve(here, "../..");
 const req = createRequire(resolve(root, "package.json")), fixture = createRequire(resolve(here, "../board-list/package.json"));
 const { build } = fixture("esbuild"), { chromium } = fixture("playwright");
+const evidence = resolve(root, ".local/topic-phase0"); await mkdir(evidence, { recursive: true });
 await mkdir(resolve(here, ".generated"), { recursive: true });
 await build({ entryPoints: [resolve(here, "panel.jsx")], outfile: resolve(here, ".generated/panel.js"), bundle: true, jsx: "automatic", define: { "process.env.NODE_ENV": '"development"' }, plugins: [{ name: "host", setup(b) {
   b.onResolve({ filter: /^@getpaseo\/plugin$/ }, () => ({ path: resolve(here, "../board-list/contracts.js") }));
@@ -23,28 +24,22 @@ const server = createServer(async (request, response) => {
 await new Promise(done => server.listen(0, "127.0.0.1", done));
 const browser = await chromium.launch({ channel: "msedge", headless: true });
 const results = [], errors = [];
-const fleetGuestLabel = "1: A guest conversation abo…";
 try {
   for (const width of [1440, 390]) for (const theme of ["dark", "light"]) {
     const page = await browser.newPage({ viewport: { width, height: width === 390 ? 844 : 1000 } });
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error(error.message); });
     await page.goto(`http://127.0.0.1:${server.address().port}/?theme=${theme}`);
-    await page.getByText(/other chats are open in the FirstMate home/).waitFor();
-    const button = page.getByRole("button", { name: fleetGuestLabel, exact: true });
-    await button.click();
-    assert.equal(await page.evaluate(() => window.openedGuest), "guest-1");
+    await page.getByText("FirstMate", { exact: true }).waitFor();
+    assert.equal(await page.getByText(/other chats are open in the FirstMate home/).count(), 0);
     const overflow = await page.evaluate(() => document.body.scrollWidth > innerWidth);
     assert.equal(overflow, false);
-    for (const guest of await page.getByRole("button", { name: /^[12]: / }).all()) {
-      const box = await guest.boundingBox();
-      assert(box.x >= 0 && box.x + box.width <= width, "Guest action must stay inside the viewport");
-    }
-    await page.screenshot({ path: resolve(here, `guests-${width}-${theme}.png`) });
+    assert.equal(await page.getByRole("button", { name: /^[12]: / }).count(), 0);
+    await page.screenshot({ path: resolve(evidence, `guests-${width}-${theme}.png`) });
     await page.goto(`http://127.0.0.1:${server.address().port}/?theme=${theme}&panel=guest`);
     await page.getByText(/This is a guest chat/).waitFor();
-    await page.screenshot({ path: resolve(here, `identity-${width}-${theme}.png`) });
-    results.push({ width, theme, opensCorrectGuest: true, overflow }); await page.close();
+    await page.screenshot({ path: resolve(evidence, `identity-${width}-${theme}.png`) });
+    results.push({ width, theme, homeHasNoGuestWarning: true, guestIdentityRetained: true, overflow }); await page.close();
   }
   assert.deepEqual(errors, []);
-  await writeFile(resolve(here, "render-results.json"), JSON.stringify(results, null, 2) + "\n");
+  await writeFile(resolve(evidence, "render-results.json"), JSON.stringify(results, null, 2) + "\n");
 } finally { await browser.close(); await new Promise(done => server.close(done)); }

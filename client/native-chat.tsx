@@ -8,8 +8,8 @@ import type {
   PluginClientContext,
   PluginTimelineItemProps,
 } from "@getpaseo/plugin/client";
-import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { MachineNoteDetails } from "./machine-note-details";
+import { Text, View } from "react-native";
 import { z } from "zod";
 
 import {
@@ -18,66 +18,14 @@ import {
 } from "./native-chat-transform";
 
 export const machineNoteSchema = z.object({
+  visible: z.string().optional(),
   summary: z.string(),
   original: z.string(),
 });
 
-export function MachineNote({
-  item,
-  theme,
-}: PluginTimelineItemProps<z.infer<typeof machineNoteSchema>>) {
-  const [expanded, setExpanded] = useState(false);
-  const { summary, original } = item.data;
-  const colors = theme.colors;
-  return (
-    <View style={{ paddingVertical: 6, gap: 6 }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${expanded ? "Hide" : "Show"} original: ${summary}`}
-        accessibilityState={{ expanded }}
-        aria-expanded={expanded}
-        onPress={() => setExpanded((value) => !value)}
-        style={({ pressed }) => ({
-          paddingVertical: 8,
-          paddingHorizontal: 10,
-          minHeight: 44,
-          borderRadius: 6,
-          backgroundColor: pressed ? colors.surface2 : colors.surface1,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 10,
-        })}
-      >
-        <Text
-          numberOfLines={2}
-          style={{
-            color: colors.foregroundMuted,
-            fontSize: 13,
-            lineHeight: 18,
-            flex: 1,
-          }}
-        >
-          {summary}
-        </Text>
-        <Text style={{ color: colors.foreground, fontSize: 12 }}>
-          {expanded ? "Hide original" : "Show original"}
-        </Text>
-      </Pressable>
-      {expanded ? (
-        <Text
-          selectable
-          style={{
-            color: colors.foreground,
-            fontSize: 13,
-            lineHeight: 20,
-            paddingHorizontal: 10,
-          }}
-        >
-          {original}
-        </Text>
-      ) : null}
-    </View>
-  );
+export function MachineNote({ item, theme }: PluginTimelineItemProps<z.infer<typeof machineNoteSchema>>) {
+  const details = <MachineNoteDetails theme={theme} summary={item.data.summary} original={item.data.original} />;
+  return item.data.visible ? <View style={{ gap: 6 }}><Text selectable style={{ color: theme.colors.foreground, fontSize: 14 }}>{item.data.visible}</Text>{details}</View> : details;
 }
 
 export function registerNativeChat(client: PluginClientContext): () => void {
