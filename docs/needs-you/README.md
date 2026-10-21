@@ -25,9 +25,13 @@ synthetic quarantined and unavailable snapshots; images go under `.local/`.
 Opening a visible decision marks it Seen through the current home/request/revision,
 without reducing the waiting count. Polling and opening All do not acknowledge unseen
 questions. Mark as new lives in the actions menu. The drawer's session order stays
-stable across state changes and appends new arrivals; Previous/Next wrap so they remain
-usable after an action. Answering, recording an answer, and snoozing show a receipt and
-advance to the next waiting decision. Drafts stay keyed by home, request and revision.
+stable across state changes and appends new arrivals; Previous/Next wrap among unanswered questions.
+An accepted answer or recorded answer advances in that order, or closes the drawer back to its
+opening view when none remain, including questions selected through All. A quiet confirmation on
+the next question clears after three seconds. Accepted answers remain handled while the source
+hold lingers and are still available in All and the chat's existing answer card. Failed or uncertain
+sends stay on the question with their draft/recovery controls. Snoozing advances with a receipt.
+Drafts stay keyed by home, request and revision.
 
 The question comes first, then reading links and supplied answer choices, then an accent
 Send answer and Snooze / Discuss first / I answered in chat. Snooze offers an hour,
@@ -113,6 +117,9 @@ The harness mounts real components with synthetic host APIs at 320, 390, 637, 63
 append-only navigation, retained drafts, pinned phone input, pane cover, answer/snooze
 receipts, All, quarantined data, recovery cancellation/confirmation and readable chat.
 Screenshots and results go to ignored .local/needs-you-drawer/ and CI artifacts.
+`answer-checks.mjs` covers next/last answers, selection through All, failed sends, and lingering holds
+at 390 and 1440 pixels in both themes. `client/decision-drawer.test.ts` covers those transitions in
+the suite, including definite failures and uncertain delivery.
 This is fixture evidence, not an installed desktop or native-device test.
 `header-checks.mjs` adds 40 captures across Deck, Home/List, Board, Crew and Chat at 390 and
 1440 pixels in both themes. It checks empty and non-empty states, count restoration, unchanged

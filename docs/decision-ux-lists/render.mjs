@@ -85,7 +85,7 @@ try {
     const before = await page.evaluate(() => window.fixtureCalls.filter(c => c.name.startsWith("firstmate.needs-you.") && c.name !== "firstmate.needs-you.read"));
     assert.ok(before.length > 0 && before.every(c => c.name === "firstmate.needs-you.seen" && c.input.id === "a" && c.input.revision === 1));
     await drawer.getByRole("button", { name: "Send this draft", exact: true }).click();
-    await drawer.getByText("Answer sent on Choose the reply to the maintainer.", { exact: false }).waitFor();
+    await drawer.getByText("Answer sent.", { exact: true }).waitFor();
     const answers = await page.evaluate(() => window.fixtureCalls.filter(c => c.name === "firstmate.needs-you.answer"));
     assert.equal(answers.length, 1);
     assert.equal(answers[0].input.text, "For a: Send data/review/draft-reply.md as written.");

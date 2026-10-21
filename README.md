@@ -51,7 +51,10 @@ until their records return, without blocking other answers.
 
 The signal stays amber while a decision waits and fills while any are new. Opening a decision marks
 it Seen without reducing the count. Answer in your own words or use a supplied answer, snooze from
-the calendar picker, or discuss it in chat. The drawer keeps its order and advances with a receipt;
+the calendar picker, or discuss it in chat. After an accepted answer, the drawer opens the next
+unanswered question in order, or closes back to its opening view when none remain. Answered questions
+stay handled while the first mate lifts their holds; failed sends keep the question and draft open.
+All keeps the answer history, and the chat keeps “Your answer to…” and “Show what was sent”.
 Home keeps its chat beside the task pane, and phones keep the answer bar at the bottom. Answers appear
 as readable chat bubbles. Unconfirmed delivery offers chat inspection, **It arrived**, and a confirmed
 **Send again…** action. Nothing retries automatically.
