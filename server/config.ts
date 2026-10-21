@@ -159,10 +159,34 @@ export function updateFirstmateConfig(patch: FirstmateConfigPatch): Promise<Firs
   return serialized(configPath(), () => applyConfigPatch(patch));
 }
 
+/**
+ * The config, with the current first mate's tenure recorded if it has none yet: a config saved
+ * before `mateSince` existed gets it on its first read here, from now, and never earlier.
+ */
+export async function readConfigWithTenure(): Promise<FirstmateConfig> {
+  const config = await readFirstmateConfig();
+  if (config.mateAgentId === "" || config.mateSince !== "") return config;
+  try {
+    return await updateFirstmateConfig({});
+  } catch (error) {
+    // Unrecorded, the chat shows no raised decisions; the board must still load.
+    console.error("[firstmate] could not record the first mate's tenure:", error);
+    return config;
+  }
+}
+
 async function applyConfigPatch(patch: FirstmateConfigPatch): Promise<FirstmateConfig> {
   const defined = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined));
   const previous = await readFirstmateConfig();
   const next = FirstmateConfigSchema.parse({ ...previous, ...defined });
+  // A new first mate's tenure starts now; one already at the helm with no record (saved before
+  // this existed) starts now too, so nothing from before it is ever claimed as its own.
+  next.mateSince =
+    next.mateAgentId === ""
+      ? ""
+      : next.mateAgentId === previous.mateAgentId && previous.mateSince !== ""
+        ? previous.mateSince
+        : new Date().toISOString();
   // Validated before it is saved, so a relative home is refused rather than stored.
   const home = resolveHome(next);
   if (previous.mateLaunch !== null && home !== resolveHome(previous)) {

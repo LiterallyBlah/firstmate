@@ -101,6 +101,7 @@ function useHomeFileLinks(rows: readonly TranscriptRow[]) {
 
 export function MateChat({
   mate,
+  mateSince = null,
   theme,
   compact,
   onChanged,
@@ -109,6 +110,8 @@ export function MateChat({
   imageContext,
 }: {
   mate: AgentSummary;
+  /** When this first mate took the helm; decisions raised before it are not its own. */
+  mateSince?: string | null;
   theme: PluginTheme;
   compact: boolean;
   /** After a compact or a restart, so the board catches up without waiting for its poll. */
@@ -129,8 +132,8 @@ export function MateChat({
   const decisions = useNeedsYou();
   // Placement depends only on the ledger's requests, which change only with its version; each poll is a new object.
   const rows = useMemo(
-    () => withRaisedDecisions(transcriptRows(timeline.entries), timeline.entries, decisions.data),
-    [timeline.entries, decisions.data?.homeId, decisions.data?.version],
+    () => withRaisedDecisions(transcriptRows(timeline.entries), timeline.entries, decisions.data, mateSince),
+    [timeline.entries, decisions.data?.homeId, decisions.data?.version, mateSince],
   );
   // Redraws a captain's row when the images kept for it change; see `./sent-images`.
   useSyncExternalStore(sentImages.subscribe, sentImages.version);

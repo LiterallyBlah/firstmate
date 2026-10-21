@@ -51,6 +51,9 @@ until their records return, without blocking other answers.
 A decision the first mate raises shows once in its chat, where it was raised, as a card with its
 title, question, recommendation, the drawer's answer buttons and Open the decision. The card reads
 the same decision data, so its reply can be one line. Answered or lifted decisions show as settled.
+Only decisions raised since the current first mate took the helm appear, so an adopted or
+replacement first mate never shows its predecessor's. Out-of-date or unreadable decision data
+carries the drawer's warning, with answers disabled.
 
 The signal stays amber while a decision waits and fills while any are new. Opening a decision marks
 it Seen without reducing the count. Answer in your own words or use a supplied answer, snooze from

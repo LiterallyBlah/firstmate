@@ -1,4 +1,5 @@
 import type { PluginTheme } from "@getpaseo/plugin";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import {
@@ -11,9 +12,10 @@ import { useOpenDecision, type OpenDecision } from "./decision-action";
 import { DecisionSummary } from "./decision-brief";
 import { decisionTitle } from "./decision-copy";
 import { DecisionButton } from "./decision-drawer";
-import { raisedChoices, raisedStatus } from "./decision-raised";
+import { raisedChoices, raisedStatus, raisedWarning } from "./decision-raised";
 import { useMateSender } from "./mate-send";
 import { useDecisionChanged } from "./needs-you-query";
+import { decisionDraftKey, decisionSession } from "./needs-you-state";
 
 function submissionId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
@@ -44,10 +46,13 @@ export function DecisionRaisedCard({
   const open = useOpenDecision();
   const sender = useMateSender(mateId ?? "none");
   const changed = useDecisionChanged();
+  const session = decisionSession(useQueryClient());
+  const draftKey = decisionDraftKey(snapshot.homeId, request);
   const submission = useRef<{ text: string; id: string } | null>(null);
   const [notice, setNotice] = useState("");
   const colors = theme.colors;
   const status = raisedStatus(request);
+  const warning = raisedWarning(snapshot, request, offline);
   const fresh =
     !offline &&
     snapshot.freshness.status === "fresh" &&
@@ -60,6 +65,8 @@ export function DecisionRaisedCard({
     const text = option.prompt.trim();
     // A failure to confirm keeps the id, so pressing again asks about the same submission.
     if (submission.current?.text !== text) submission.current = { text, id: submissionId() };
+    // The drawer's draft, by revision: an uncertain delivery's Send again… there resends these exact words.
+    session.drafts.set(draftKey, text);
     setNotice("");
     const started = sender.answer(
       {
@@ -72,6 +79,7 @@ export function DecisionRaisedCard({
       },
       (result) => {
         changed(result.snapshot);
+        if (result.outcome === "accepted" && session.drafts.get(draftKey) === text) session.drafts.delete(draftKey);
         setNotice(result.outcome === "failed" ? "The answer was not sent." : "");
       },
       () => {
@@ -114,6 +122,21 @@ export function DecisionRaisedCard({
       >
         {decisionTitle(request.source.title)}
       </Text>
+      {warning ? (
+        <View
+          testID="decision-raised-warning"
+          style={{ gap: 4, padding: 10, borderWidth: 1, borderColor: colors.statusWarning, borderRadius: 8 }}
+        >
+          <Text accessibilityRole="alert" style={{ color: colors.statusWarning, fontSize: 12, fontWeight: "600" }}>
+            {warning.headline}
+          </Text>
+          {warning.details.map((detail, i) => (
+            <Text key={i} style={{ color: colors.foreground, fontSize: 12, lineHeight: 18 }}>
+              {detail}
+            </Text>
+          ))}
+        </View>
+      ) : null}
       {status.settled ? (
         <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12, lineHeight: 18 }}>
           {request.source.ask}

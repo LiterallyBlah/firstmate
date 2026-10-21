@@ -66,13 +66,24 @@ buttons or recommendation.
 
 A card is placed at the request's `detectedAt`, before the first transcript row recorded after it, or
 at the end. The daemon observes the backlog every few seconds, so this is just after the first mate
-writes the hold. Only non-baseline requests detected no earlier than the first loaded timeline entry
-appear. Earlier ones belong to older history or a previous first mate, and appear when that history is
-loaded. A reworded question keeps its card; a re-raised one (a new generation) gets its own.
+writes the hold. Only non-baseline requests detected in this first mate's tenure appear. The tenure is
+the config's `mateSince`, stamped whenever `mateAgentId` changes (launch, restart, adoption, handover).
+An adopted agent's earlier history, and anything the ledger saw before it, is another first mate's, and
+never gets a card. A first mate saved before tenures existed gets one from its first fleet load
+(`readConfigWithTenure`); until then no cards show. Within the tenure, a decision before the first
+loaded entry waits for that history to load. A reworded question keeps its card; a re-raised one (a
+new generation) gets its own.
+
+Stale, disabled, unknown or offline decision data, or this task's own unreadable line (quarantined),
+keeps the last known question and recommendation, with the drawer's warning beside them
+(`raisedWarning`); its answers are disabled. A card answer saves its exact words under the drawer's
+revision-bound draft key (`decisionDraftKey`) before sending, and clears them once accepted. After an
+uncertain delivery, the drawer's Send again… resends those words.
 Paseo's native timeline has no item to transform for a raised decision, so only the plugin's chat
 shows the card.
 
-`raised-checks.mjs` renders it at 390 and 1440 in both themes, answers through it and settles it.
+`raised-checks.mjs` renders it at 390 and 1440 in both themes. It checks that a previous first mate's
+decision stays out and shows the quarantine warning, then answers through the card and settles it.
 `RAISED_ONLY=1 node docs/needs-you/render.mjs` runs just those checks.
 
 ## Bound one-press answers

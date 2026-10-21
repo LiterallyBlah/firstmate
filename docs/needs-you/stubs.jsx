@@ -262,8 +262,14 @@ if (new URLSearchParams(location.search).has("raised-chat")) {
     },
   };
   window.attentionSnapshot.requests = [raised];
-  window.attentionSnapshot.actionCount = 1;
-  window.attentionSnapshot.newCount = 1;
+  // This first mate took the helm before the conversation; a decision raised before that is not its own.
+  fleet.mateSince = new Date(at).toISOString();
+  window.attentionSnapshot.requests.push({
+    ...request("earlier", "new", at - 1000),
+    source: { ...request("earlier", "new", at).source, title: "A previous first mate's decision" },
+  });
+  window.attentionSnapshot.actionCount = 2;
+  window.attentionSnapshot.newCount = 2;
   window.attentionSnapshot.snoozedCount = 0;
   window.attentionSnapshot.pendingAnswerCount = 0;
   window.attentionSnapshot.briefs = [{ requestId: "host", recordRevision: 1, path: "data/host/decision.md", content:

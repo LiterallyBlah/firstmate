@@ -23,6 +23,24 @@ export async function checkRaised(pageAt, output) {
       });
       assert.ok(order.every((at) => at >= 0) && order[0] < order[1] && order[1] < order[2], `order ${order}`);
       await page.screenshot({ path: join(output, `raised-${width}-${theme}.png`) });
+      // Raised before this first mate took the helm: another first mate's, never in this chat.
+      assert.equal(await page.getByText("A previous first mate's decision", { exact: false }).count(), 0);
+
+      // An unreadable hold keeps the last known question, with the drawer's warning beside it.
+      const quarantine = (rows) => page.evaluate((rows) => {
+        window.attentionSnapshot.quarantined = rows;
+        window.attentionSnapshot.version++;
+        window.attentionSnapshot.freshness.checkedAt = Date.now();
+        return window.refreshDecisions();
+      }, rows);
+      await quarantine([{ line: 7, taskId: "host", key: null, hasHold: true, problem: "Line 7, task host: Could not read metadata; check parentheses." }]);
+      await card(page).getByText("Some backlog lines need repair", { exact: true }).waitFor();
+      await card(page).getByText("Couldn't read this task: host. Check the Board and data/backlog.md, line 7.", { exact: true }).waitFor();
+      await card(page).getByText("Which machine should run the Windows build: Light or Atlas?", { exact: true }).waitFor();
+      assert.equal(await button(page, "Choose: Atlas").isDisabled(), true);
+      await page.screenshot({ path: join(output, `raised-quarantined-${width}-${theme}.png`) });
+      await quarantine([]);
+      await card(page).getByText("Some backlog lines need repair", { exact: true }).waitFor({ state: "detached" });
 
       await button(page, "Choose: Atlas").click();
       await card(page).getByText("Answered · waiting for the first mate", { exact: true }).waitFor();

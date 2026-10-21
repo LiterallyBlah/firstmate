@@ -410,6 +410,7 @@ export async function loadFleet(
     homeReady,
     homeGuests,
     mate: mate.agent === null ? null : summarizeAgent(mate.agent),
+    mateSince: mate.agent === null || config.mateSince === "" ? null : config.mateSince,
     mateMissing: mate.missing,
     mateInHome: mate.agent === null ? true : await sameDirectory(mate.agent.cwd, home),
     cards: withItemTags(buildCards(backlog, crew, remotes), await readItemTags(home).catch((error: unknown) => {

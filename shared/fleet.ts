@@ -268,6 +268,8 @@ export const FleetSchema = z.object({
   /** False until the first launch has written the charter and records. */
   homeReady: z.boolean(),
   mate: AgentSummarySchema.nullable(),
+  /** When `mate` took the helm (ISO); null when unknown. Absent on older servers. */
+  mateSince: z.string().nullable().optional(),
   /** A first mate is configured but Paseo no longer has it (archived, deleted). */
   mateMissing: z.boolean(),
   /**
@@ -326,6 +328,12 @@ export const FirstmateConfigSchema = z.object({
   home: z.string().default(""),
   /** The Paseo agent that is the first mate; empty until one is launched or adopted. */
   mateAgentId: z.string().default(""),
+  /**
+   * When `mateAgentId` took the helm (ISO), stamped by every config write that changes it; empty without
+   * a first mate. The chat shows only decisions raised in this tenure, never an earlier first mate's.
+   * A plain string, not nullable: `tools/role.mjs` validates the config and refuses unfamiliar shapes.
+   */
+  mateSince: z.string().default(""),
   /** Reserved before creation; a send of uncertain outcome is never replayed automatically. */
   mateLaunch: z.object({
     agentId: z.string(), home: z.string(), target: MateTargetSchema,
