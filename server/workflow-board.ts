@@ -18,8 +18,8 @@ export const workflowHomeId = (home: string) => digest(process.platform === "win
 export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> {
   let read: { plans: WorkflowPlan[]; problems: string[]; warnings?: string[]; quarantined?: QuarantinedWorkflow[] };
   try { read = await workflowStore(home).read(); } catch (e) { read = { plans: [], problems: [`Plans unavailable: ${String(e)}`] }; }
-  // Completed implicit plans leave presentation, but remain evidence for other plans.
-  const allPlans = read.plans, plans = allPlans.filter(p => !(p.definition.implicit && planFinished(p))), now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
+  // The browser retains all history; due actions below still exclude finished plans.
+  const allPlans = read.plans, plans = allPlans, now: PlanNeed[] = [], comingUp: PlanNeed[] = [];
   const unavailableDependencies = quarantinedDependencyIds(read.quarantined ?? []);
   for (const plan of plans) {
     if (plan.status === "abandoned" || planFinished(plan)) continue;
@@ -95,10 +95,11 @@ export async function withWorkflowFleet(fleet: Fleet): Promise<Fleet> {
 }
 export async function workflowBearings(home: string, nowMs = Date.now()): Promise<string> {
   const snapshot = await workflowSnapshot(home);
-  if (!snapshot.plans.length && !snapshot.problems?.length && !snapshot.warnings?.length) return "";
+  const plans = snapshot.plans.filter(p => !p.definition.implicit || !planFinished(p));
+  if (!plans.length && !snapshot.problems?.length && !snapshot.warnings?.length) return "";
   const now = snapshot.now.map(n => `- ${n.title}: ${n.question}. Recommended: ${n.recommendation}`);
   const done: { line: string; at: string }[] = [], running: string[] = [], queued: string[] = [];
-  for (const plan of snapshot.plans) for (const node of plan.definition.nodes) {
+  for (const plan of plans) for (const node of plan.definition.nodes) {
     if (node.kind === "decision") continue;
     const state = plan.nodes[node.id]!, line = `- ${plan.definition.title} · ${node.title}: ${state.state}${state.evidence ? ` · ${state.evidence}` : ""}`;
     if (state.invalidated) running.push(`${line}. Evidence unresolved: ${state.invalidated}`);

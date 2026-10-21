@@ -16,7 +16,7 @@ import { errorText } from "./format";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 
 export const WORKFLOW_QUERY_KEY = ["firstmate", "workflow-plans"] as const;
-const Plans = createContext<{ snapshot?: WorkflowSnapshot; open(id: string): void }>({ open() {} });
+const Plans = createContext<{ snapshot?: WorkflowSnapshot; loading: boolean; error: string | null; refresh(): void; open(id: string): void }>({ loading: true, error: null, refresh() {}, open() {} });
 export function useWorkflowPlans() { return useContext(Plans); }
 function Button({ theme, label, onPress, disabled = false, quiet = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean; quiet?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} accessibilityState={{ disabled }} onPress={onPress}
@@ -46,7 +46,7 @@ export function WorkflowSurface({ theme, children }: { theme: PluginTheme; child
     } catch (e) { setError(errorText(e)); void query.refetch(); }
     finally { gate.current = false; setBusy(false); }
   }
-  return <Plans.Provider value={{ ...(snapshot ? { snapshot } : {}), open }}>
+  return <Plans.Provider value={{ ...(snapshot ? { snapshot } : {}), loading: query.isPending, error: query.error ? errorText(query.error) : null, refresh: () => { void query.refetch(); }, open }}>
     {children}
     <Modal title={plan?.definition.title ?? "Plan"} open={selected !== null} onOpenChange={value => { if (!value && !busy) setSelected(null); }}>
       <Modal.Content>
