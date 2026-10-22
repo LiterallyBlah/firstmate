@@ -108,6 +108,8 @@ try {
     await page.getByRole("button", { name: "New workspace tab", exact: true }).click();
     await shot(page, `${theme}-${device}-menu-after`);
     await page.getByRole("button", { name: "New tab: Plans", exact: true }).click();
+    // Keep this historical compact-list fixture; the graph has its own render harness.
+    await view.getByRole("tab", { name: "List", exact: true }).click();
     for (const [name, title, count] of [["starpath", titles[0], 8], ["reader-pass", titles[1], 8]]) {
       await view.getByRole("textbox", { name: "Search plans" }).fill(title);
       await shot(page, `${theme}-${device}-${name}-after`);

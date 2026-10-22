@@ -97,6 +97,16 @@ details appear only while running. Automatic one-run copies are hidden before se
 project and normalized host identity, only while planned or when the owner records its own state
 beyond planned. Live or completed automatic work with a merely planned/missing owner stays visible.
 These display rules do not change durable plans or actions.
+Expanded Plans now default to the read-only Graph, with the existing List behind a segmented toggle.
+`client/workflow-plan-graph.ts` computes longest-path levels over every local node and its external
+ancestors, preserving dependency reason/outcome and routing long edges outside the cards. The graph
+shows reviews as independent nodes; only List folds them into build chips. `workflow-plan-graph-view.tsx`
+uses native primitives and the host Modal for details, with the existing open-plan handler. Same-level
+nodes have no dependency path and are labelled parallel, conditional on prerequisites/approval;
+missing prerequisites suppress that claim. Cycles, more than 60 nodes (including external ancestors),
+or more than 120 edges offer List instead. No graph interaction records an action.
+`node docs/plans-graph/render.mjs` checks both themes and desktop/phone browser widths against the
+previous list, using the existing plans-panel fixtures. Evidence stays in ignored `.local/plans-graph/`.
 Bearings uses the same pure summary: one bounded line per open plan and per due/upcoming decision,
 without step lists, review rows or finished history. `shared/bearings.ts` wraps it in an owned, strict
 `firstmate-bearings` envelope. Home/Chat preserve the captain's request and reuse `MachineNoteDetails`,

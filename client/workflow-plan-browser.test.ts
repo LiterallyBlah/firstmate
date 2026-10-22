@@ -4,15 +4,17 @@ import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import type { PluginTheme } from "@getpaseo/plugin";
 import { compactPlansFixture } from "../test/compact-plans-fixture";
 import { workflowFixture } from "../test/workflow-fixture";
+import { planGraphFixture } from "../test/plan-graph-fixture";
 import type { WorkflowPlan } from "../shared/workflow-plans";
 import type { WorkflowSnapshot } from "../shared/workflow-rpc";
 vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View", ScrollView: "ScrollView" }));
-vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput" }));
-vi.mock("./ui", () => ({ IconButton: ({ label, onPress }: any) => createElement("Pressable", { accessibilityLabel: label, onPress }) }));
+vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput", Modal: Object.assign(({ open, children }: any) => open ? children : null, { Content: ({ children }: any) => children }) }));
+vi.mock("./ui", () => ({ IconButton: ({ label, onPress }: any) => createElement("Pressable", { accessibilityLabel: label, onPress }),
+  Segmented: ({ options, onChange }: any) => createElement("View", {}, options.map((o: any) => createElement("Pressable", { key: o.value, accessibilityLabel: o.label, onPress: () => onChange(o.value) }))) }));
 vi.mock("./workflow-plans", () => ({ useWorkflowPlans: vi.fn() }));
 import { WorkflowPlanBrowser, WorkflowPlansView } from "./workflow-plan-browser";
 import { useWorkflowPlans } from "./workflow-plans";
-const theme = { colors: { foreground: "#fff", foregroundMuted: "#aaa", border: "#333", surface1: "#222", statusWarning: "#ff0", statusDanger: "#f00" } } as PluginTheme;
+const theme = { colors: { foreground: "#fff", foregroundMuted: "#aaa", border: "#333", surface0: "#111", surface1: "#222", accent: "#080", statusSuccess: "#0f0", statusWarning: "#ff0", statusDanger: "#f00" } } as PluginTheme;
 let renderer: ReactTestRenderer;
 beforeAll(() => { (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; });
 afterEach(() => { act(() => renderer?.unmount()); vi.clearAllMocks(); });
@@ -38,6 +40,7 @@ it("shows posture, runs, worker and host, dependencies, decisions and budget; op
   const p = plan(); p.status = "review";
   p.nodes.trial = { state: "running", agentId: "worker-42", attempt: "one", spent: 1 };
   const { onOpen } = await mount(snapshot([p]));
+  await act(async () => button("List").props.onPress());
   await act(async () => button("Expand plan: scheduler").props.onPress());
   for (const text of ["Awaiting approval", "Posture: ", "Review before starting", "running", "Worker: ", "worker-42", "Host: ", "This machine", "waiting on Database trial", "waiting on Choose the database", "SQLite", "Recommended", "Budget used / approved: "]) expect(renderedText()).toContain(text);
   expect(onOpen).not.toHaveBeenCalled();
@@ -99,6 +102,7 @@ it("starts with one summary per plan, expands reviews as chips, hides unstarted 
   const plans = compactPlansFixture(), star = plans[0]!, onOpen = vi.fn();
   const snapshot = { homeId: "fixture", version: "1", plans, subjects: {}, now: [], comingUp: [] };
   await act(async () => { renderer = create(createElement(WorkflowPlanBrowser, { theme, snapshot, loading: false, error: null, onRefresh() {}, onOpen })); });
+  await act(async () => button("List").props.onPress());
   const json = () => JSON.stringify(renderer!.toJSON());
   expect(renderer!.root.findAll(n => n.props.testID?.startsWith("workflow-step-"))).toHaveLength(0);
   expect(json()).toContain("3 of 7 steps landed");
@@ -130,4 +134,46 @@ it("shows unresolved, invalidated, failed and awaiting-landing steps in collapse
   for (const text of ["Lost worker — unresolved", "Stale evidence — evidence uncertain", "Failed build — failed", "Ready change — awaiting landing"]) {
     expect(attention.props.children[1]).toContain(text);
   }
+});
+
+it("defaults to graph, exposes parallelism and edge reasons, opens step details and preserves the list toggle without actions", async () => {
+  const plan = planGraphFixture(), before = JSON.stringify(plan);
+  const { onOpen } = await mount(snapshot([plan]));
+  await act(async () => button(`Expand plan: ${plan.definition.title}`).props.onPress());
+  expect(renderer.root.findAll(n => n.props.testID?.startsWith("workflow-node-"))).toHaveLength(5);
+  expect(renderer.root.findAll(n => n.props.testID?.startsWith("workflow-edge-"))).toHaveLength(5);
+  for (const text of ["2 can run in parallel", "builds-on", "needs-evidence", "shared-state", "decision", "running", "done", "landed", "Decision", "Scout / review"]) expect(renderedText()).toContain(text);
+  await act(async () => button("Step: Choose the rollout · waiting on Build the independent adapter").props.onPress());
+  expect(renderedText()).toContain("Recommended"); expect(renderedText()).toContain("SQLite");
+  expect(renderedText()).toContain("shares mutable state"); expect(renderedText()).toContain("once done");
+  expect(onOpen).not.toHaveBeenCalled();
+  await act(async () => button("Open plan details").props.onPress());
+  expect(onOpen).toHaveBeenCalledExactlyOnceWith("diamond");
+  await act(async () => button("List").props.onPress());
+  expect(renderer.root.findAll(n => n.props.testID?.startsWith("workflow-node-"))).toHaveLength(0);
+  expect(renderer.root.findAll(n => n.props.testID?.startsWith("workflow-step-"))).toHaveLength(5);
+  await act(async () => button("Graph").props.onPress());
+  expect(renderer.root.findAll(n => n.props.testID?.startsWith("workflow-node-"))).toHaveLength(5);
+  expect(JSON.stringify(plan)).toBe(before);
+});
+
+it("renders held, invalidated, failed and planned states, and falls back without losing step access", async () => {
+  const plan = planGraphFixture(); plan.nodes.left = { state: "done", held: true }; plan.nodes.right = { state: "failed" };
+  plan.nodes.root = { state: "landed", invalidated: "Evidence changed" };
+  await mount(snapshot([plan]));
+  await act(async () => button(`Expand plan: ${plan.definition.title}`).props.onPress());
+  for (const text of ["on hold", "failed", "uncertain", "waiting on"]) expect(renderedText()).toContain(text);
+  for (const [label, ink] of [["on hold", theme.colors.statusWarning], ["uncertain", theme.colors.statusWarning], ["failed", theme.colors.statusDanger]]) {
+    expect(renderer.root.find(n => n.type === ("Text" as any) && n.props.children === label).props.style.color).toBe(ink);
+  }
+  plan.definition.nodes[0]!.after = [{ node: "missing", reason: "builds-on", on: "landed" }];
+  await mount(snapshot([plan]));
+  await act(async () => button(`Expand plan: ${plan.definition.title}`).props.onPress());
+  expect(renderedText()).toContain("Parallelism cannot be confirmed"); expect(renderedText()).not.toContain("can run in parallel");
+  plan.definition.nodes[0]!.after = [{ node: "finish", reason: "builds-on", on: "landed" }];
+  await mount(snapshot([plan]));
+  await act(async () => button(`Expand plan: ${plan.definition.title}`).props.onPress());
+  expect(renderedText()).toContain("cycle prevents a graph");
+  await act(async () => button("Show steps as list").props.onPress());
+  expect(renderer.root.findAll(n => n.props.testID?.startsWith("workflow-step-"))).toHaveLength(5);
 });

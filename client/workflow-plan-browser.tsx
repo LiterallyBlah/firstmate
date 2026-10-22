@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import type { PlanNode, WorkflowPlan } from "../shared/workflow-plans";
 import type { WorkflowSnapshot } from "../shared/workflow-rpc";
-import { IconButton } from "./ui";
+import { IconButton, Segmented } from "./ui";
+import { WorkflowPlanGraph } from "./workflow-plan-graph-view";
 import { useWorkflowPlans } from "./workflow-plans";
 import { PLAN_PAGE_SIZE, planBudgetUsed, planGroups, planStatus, planSteps, planSummary, reviewLabel, reviewStatus, stepState } from "./workflow-plan-list";
 
@@ -19,12 +20,14 @@ export function WorkflowPlanBrowser({ theme, snapshot, loading, error, onRefresh
   onRefresh(): void; onOpen(id: string): void;
 }) {
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"graph" | "list">("graph");
   const groups = planGroups(snapshot?.plans ?? [], search), colors = theme.colors;
   const meta = { color: colors.foregroundMuted, fontSize: 12 };
   return <View testID="workflow-plans-view" style={{ flex: 1, minHeight: 0 }}>
     <View style={{ padding: 12, gap: 8, borderBottomWidth: 1, borderColor: colors.border }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", flex: 1 }}>Plans</Text>
+        <Segmented theme={theme} value={view} options={[{ value: "graph", label: "Graph" }, { value: "list", label: "List" }]} onChange={setView} />
         <IconButton theme={theme} icon="RefreshCw" label="Refresh plans" onPress={onRefresh} />
       </View>
       <Text style={meta}>Open plans first. Expand a plan for its steps and reviews, or open it to make a decision.</Text>
@@ -39,14 +42,15 @@ export function WorkflowPlanBrowser({ theme, snapshot, loading, error, onRefresh
       {!snapshot ? <Text style={meta}>{loading ? "Loading plans…" : error ? "Use Refresh plans to try again." : "Plans are unavailable."}</Text> :
         !snapshot.plans.length && !snapshot.problems?.length ? <Text style={meta}>No plans yet. Work started by the first mate will appear here.</Text> :
         !groups.open.length && !groups.finished.length && search.trim() ? <Text style={meta}>No plans match this search.</Text> : <>
-          <PlanSection key={`open:${search}`} title="Open plans" plans={groups.open} allPlans={snapshot.plans} theme={theme} onOpen={onOpen} searching={!!search.trim()} />
-          <PlanSection key={`finished:${search}`} title="Recently finished" plans={groups.finished} allPlans={snapshot.plans} theme={theme} onOpen={onOpen} searching={!!search.trim()} />
+          <PlanSection key={`open:${search}`} title="Open plans" plans={groups.open} allPlans={snapshot.plans} theme={theme} onOpen={onOpen} searching={!!search.trim()} view={view} onList={() => setView("list")} />
+          <PlanSection key={`finished:${search}`} title="Recently finished" plans={groups.finished} allPlans={snapshot.plans} theme={theme} onOpen={onOpen} searching={!!search.trim()} view={view} onList={() => setView("list")} />
         </>}
     </ScrollView>
   </View>;
 }
 
-function PlanSection({ title, plans, ...props }: { title: string; plans: WorkflowPlan[]; allPlans: readonly WorkflowPlan[]; theme: PluginTheme; onOpen(id: string): void; searching: boolean }) {
+type StepView = { view: "graph" | "list"; onList(): void };
+function PlanSection({ title, plans, ...props }: { title: string; plans: WorkflowPlan[]; allPlans: readonly WorkflowPlan[]; theme: PluginTheme; onOpen(id: string): void; searching: boolean } & StepView) {
   if (!plans.length) return null;
   return <View style={{ gap: 8 }}>
     <Text accessibilityRole="header" style={{ color: props.theme.colors.foreground, fontSize: 13, fontWeight: "600" }}>{title} · {plans.length}</Text>
@@ -55,9 +59,9 @@ function PlanSection({ title, plans, ...props }: { title: string; plans: Workflo
   </View>;
 }
 
-function PlanGroup({ plans, allPlans, theme, onOpen, automatic, searching }: {
+function PlanGroup({ plans, allPlans, theme, onOpen, automatic, searching, view, onList }: {
   plans: WorkflowPlan[]; allPlans: readonly WorkflowPlan[]; theme: PluginTheme; onOpen(id: string): void; automatic: boolean; searching: boolean;
-}) {
+} & StepView) {
   const awaitingReview = plans.some(p => p.status === "review");
   const [expanded, setExpanded] = useState(!automatic || searching || awaitingReview);
   useEffect(() => { if (awaitingReview) setExpanded(true); }, [awaitingReview]);
@@ -69,13 +73,13 @@ function PlanGroup({ plans, allPlans, theme, onOpen, automatic, searching }: {
       <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{expanded ? "▾" : "▸"} Automatic one-run plans · {plans.length}</Text>
     </Pressable> : null}
     {expanded ? <>
-      {plans.slice(0, limit).map(plan => <PlanRow key={plan.definition.id} plan={plan} plans={allPlans} theme={theme} onOpen={onOpen} />)}
+      {plans.slice(0, limit).map(plan => <PlanRow key={plan.definition.id} plan={plan} plans={allPlans} theme={theme} onOpen={onOpen} view={view} onList={onList} />)}
       {limit < plans.length ? <IconButton theme={theme} icon="ChevronDown" label={`Show ${Math.min(PLAN_PAGE_SIZE, plans.length - limit)} more plans (${plans.length - limit} remaining)`} showLabel onPress={() => setLimit(n => n + PLAN_PAGE_SIZE)} /> : null}
     </> : null}
   </View>;
 }
 
-function PlanRow({ plan, plans, theme, onOpen }: { plan: WorkflowPlan; plans: readonly WorkflowPlan[]; theme: PluginTheme; onOpen(id: string): void }) {
+function PlanRow({ plan, plans, theme, onOpen, view, onList }: { plan: WorkflowPlan; plans: readonly WorkflowPlan[]; theme: PluginTheme; onOpen(id: string): void } & StepView) {
   const [expanded, setExpanded] = useState(false);
   const colors = theme.colors, used = planBudgetUsed(plan);
   const summary = planSummary(plan, plans);
@@ -95,7 +99,7 @@ function PlanRow({ plan, plans, theme, onOpen }: { plan: WorkflowPlan; plans: re
     {summary.decisions ? <Text style={{ ...meta, color: colors.foreground }}>Captain: {summary.decisions}</Text> : null}
     {expanded ? <>
       <Text style={meta}>Posture: {plan.posture === "review" ? "Review before starting" : "Sail within approved work"} · Budget used / approved: {used.agents} / {plan.approvedBudget.agents} workers · {used.turns} / {plan.approvedBudget.turns} turns</Text>
-      {planSteps(plan).map(({ node, reviews }) => <View key={node.id} testID={`workflow-step-${node.id}`} style={{ gap: 5, paddingTop: 8, borderTopWidth: 1, borderColor: colors.border }}>
+      {view === "graph" ? <WorkflowPlanGraph plan={plan} plans={plans} theme={theme} onOpen={onOpen} onList={onList} /> : planSteps(plan).map(({ node, reviews }) => <View key={node.id} testID={`workflow-step-${node.id}`} style={{ gap: 5, paddingTop: 8, borderTopWidth: 1, borderColor: colors.border }}>
         <Text style={{ color: colors.foreground, fontSize: 12 }}>{node.title} · {stepState(plan, node, plans)}</Text>
         <RunningDetails plan={plan} node={node} theme={theme} />
         {reviews.length ? <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5 }}>
