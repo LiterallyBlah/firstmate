@@ -1,5 +1,4 @@
 /** Engine-owned attention and the pack's one independently placed suggestion target. No timers or scripts. */
-import type { FleetCard } from "../shared/fleet";
 import type { SettingManifest } from "../shared/deck-setting";
 import type { DeckFit, DeckHover } from "./deck-hover";
 
@@ -22,11 +21,6 @@ export function carrierRipples(carrier: AttentionCarrier, ms: number, moving: bo
     { x: inset + 7 + phase, y: row + 2, width: Math.max(1, Math.floor(width / 4)), back: false, foam: true },
     { x: width - inset - 16, y: row + 2, width: 7, back: false, foam: true },
   ];
-}
-
-/** Blocked is the board's request for the captain; Ready and a failed job alone are not. */
-export function needsResponse(card: FleetCard): boolean {
-  return card.column === "blocked" || (card.agent?.pendingPermissions ?? card.remote?.worker?.pendingPermissions ?? 0) > 0;
 }
 
 export function carrierAt(carrier: AttentionCarrier, ms: number, moving: boolean) {

@@ -14,6 +14,7 @@ import { FLEET_QUERY_KEY } from "./fleet-query";
 import { NEEDS_YOU_QUERY_KEY } from "./needs-you-query";
 import { errorText } from "./format";
 import { workflowOwnsCard } from "../shared/workflow-identity";
+import { ToolbarButton } from "./task-toolbar";
 
 export const WORKFLOW_QUERY_KEY = ["firstmate", "workflow-plans"] as const;
 export function workflowRequestId() {
@@ -164,7 +165,9 @@ export function PlansControl({ theme, selected, onSelect }: { theme: PluginTheme
   const { snapshot, open } = useWorkflowPlans(), [shown, setShown] = useState(false);
   const plans = snapshot?.plans.filter(p => !p.definition.implicit || p.status === "review") ?? [];
   if (!plans.length) return null;
-  return <><Button theme={theme} label={selected ? `Plans: ${plans.find(p => p.definition.id === selected)?.definition.title ?? "selected"}` : "Plans"} onPress={() => setShown(true)} />
+  const label = selected ? `Plans: ${plans.find(p => p.definition.id === selected)?.definition.title ?? "selected"}` : "Plans";
+  return <><ToolbarButton theme={theme} icon="ListTodo" text={label} label={label}
+    hint="Filter tasks by plan or open a plan's details." active={selected !== null} open={shown} onPress={() => setShown(true)} />
     <Modal title="Plans" open={shown} onOpenChange={setShown}><Modal.Content>
       <Button theme={theme} label="All plans and tasks" onPress={() => { onSelect(null); setShown(false); }} />
       {plans.map(p => <View key={p.definition.id} style={{ gap: 6 }}><Button theme={theme} label={`Filter: ${p.definition.title}`} onPress={() => { onSelect(p.definition.id); setShown(false); }} />

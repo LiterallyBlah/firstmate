@@ -174,7 +174,7 @@ revision/subject checks, and never runs during ledger replay, preserving previou
 | `client/deck-badges.ts`       | Each state's pixel badge over a sailor's head and in the legend; its ink; an idle sailor's z; the reply marker's pixels and bob. Pure. |
 | `client/deck-hover.ts`        | The sailor under the pointer, by the box it is drawn in; canvas ↔ deck coordinates; where its label goes; where each reply marker hangs (`askMarks`). Pure. |
 | `client/deck-replies.ts`      | Which suggestions are a sailor's replies (`cardReplies`), the replies already picked (`answeredReplies`), where the speech bubble hangs. Pure but for that store. |
-| `client/reply-bubble.tsx`     | The speech bubble over a sailor with its replies as chips, the focus panel's replies, the marker in the legend. |
+| `client/reply-bubble.tsx`     | Shared shark/Needs-you popover chrome, the first mate's count-only bubble and the worker focus panel's replies. |
 | `client/deck-stage.ts`        | A setting's stage compiled from its pack: size and fit box, the floor, the zones each state sends a worker to, the entry, the exits' marks, the props, the pieces' rows, the veil and stale tint. Pure, per pack. |
 | `client/deck-parts.ts`        | A setting's stage furniture compiled from its pack: the parts drawn (fallbacks and needs resolved, as the ambience's), the backdrop's cutout, the pieces and what stands in for one, the lights — and the bob, sway, duty cycle and flicker as functions of a clock. Pure, per pack. |
 | `client/deck-cast.ts`         | A setting's cast compiled from its pack: each lane's poses and feet, the looks and who wears which (`lookFor`, by agent id), the roles — stand, walk cycles, each state's settled pose and mirroring — each state's fidget keyframes and the at-ease breath. Pure, per pack. |
@@ -387,8 +387,16 @@ select a brief. `shared/decision-brief.ts` reads Markdown section labels and num
 the drawer renders all prose, highlights recommendations and binds clear options to the whole brief's
 content hash. Sending rereads the file through the existing answer path. All keeps full questions and
 recommendations in counted section blocks; parked titles expand in place. The drawer captures its
-opening view for the back label. Deck retains the header pill and bow tag, with one short legend link;
-the pill alone carries decision staleness.
+opening view for the back label. Deck has no header pill: its first mate alone wears a count-only
+speech bubble, with a dashed outline for stale data, and the legend retains the total and next link.
+Clicking the officer or its bubble opens all current Needs-you items in the shark's shared popover
+chrome. Opening sends and acknowledges nothing; picking a decision carries its exact id, home and
+revision into the existing drawer. Due plan decisions use the shared presentation adapter; plan
+reviews open their existing plan dialog. Counted items absent from the rows (including unreadable
+held tasks) retain a counted footer opening All in Needs you, with repair controls visible even when
+healthy decisions also wait. The client-only `all` destination never selects or acknowledges the next
+decision; Back returns to the opening surface. Zero/unavailable counts show no bubble. Escape, outside
+clicks, the close button and another officer click dismiss it. Shark and officer popovers are exclusive.
 
 Missing tasks are retained as per-task quarantines, never inferred resolved and never freezing healthy
 answers. A unique task id moving scope migrates its source while keeping request ids, revisions,
@@ -790,8 +798,9 @@ native art size; it has no per-effect scale. Flight evidence is kept outside the
   active workers and reachable by the pointer. Its label hangs below the hull when there is room.
 - **The suggestion shark** (`docs/deck-shark-suggestions/README.md`) uses generic `attention-carrier@1`.
   Its body and the legend's keyboard button open all first-mate suggestions in file order, through the
-  board's existing `suggest` handler. It never selects a worker. Sailors keep their own markers, focus and
-  linked reply bubbles. Sent suggestions remain visible but disabled until the file changes; send failures
+  board's existing `suggest` handler. It never selects a worker. Sailors keep their focus actions and
+  linked replies in the focus panel, without sprite bubbles or reply markers. Sent suggestions remain
+  visible but disabled until the file changes; send failures
   restore them through `answeredReplies`. Escape, outside clicks and another shark click dismiss the list.
   The carrier stays with no suggestions or crew; `bubbleHeight` names the sprite's top marker-only rows,
   hidden when the list is empty. Its body remains clickable for the empty-state bubble. Lite/reduced motion
@@ -859,17 +868,16 @@ native art size; it has no per-effect scale. Flight evidence is kept outside the
   badge keys the legend. An idle sailor breathes out a z under motion. The badge stands in for state poses
   the art lacks; a pixel artist's moving poses would carry state better (`docs/ship-deck-art/README.md`). The
   canvas harness's 2D reference draws the badges too, so the still comparison stays exact.
-- **Replies hang over the crewmate they name** (`client/deck-replies.ts`, `docs/ship-deck-replies/README.md`).
+- **Replies stay in the crewmate's focus panel** (`client/deck-replies.ts`).
   A first mate's suggestion whose label or prompt names a card's task id, pull request or agent id is that
-  sailor's reply: it wears a marker (a white speech bubble over its badge), and pointing at it or focusing it
-  shows a speech bubble with each reply as a chip. Nothing new is read or sent: a chip calls the screen's
-  `suggest`, the strip's own send, which marks the reply answered (`answeredReplies`, module scope) so the
-  deck clears the sailor at once, and unmarks it if the send fails. `askMarks` places each marker where it
-  covers no other sailor or marker — over the badge, beside it, else as the badge's white edge — so a crowd
-  never hides anyone's state. While a sailor with replies is focused, `onHover` reports where it stands, so
-  the bubble follows the camera. The bubble listens with a `View`'s `onPointerEnter`/`onPointerLeave`, not a
-  `Pressable`'s hover: react-native-web ends a `Pressable`'s hover when the pointer reaches a `Pressable`
-  inside it, which applies to any hover card with buttons in it.
+  sailor's reply. Its panel retains `ReplyOptions` and the existing `suggest` handler, send gate,
+  `answeredReplies` suppression and failure recovery. `ShipDeckView` never marks worker sprites as
+  asking and never mounts hover reply bubbles. Only the engine's reserved first-mate anchor reaches the
+  count bubble, whose live component also rejects worker keys. `DeckAskMarker` is only the reply icon
+  inside focus panels. Historical marker geometry stays covered by its pure regression tests.
+  `node docs/fm-ui-polish/render.mjs` adapts the existing attention-deck and Plans render harnesses for
+  before/after toolbar and Deck checks in both themes, exact-item routing, dismissal, scrolling, zero
+  and all shipped scenes. Evidence stays in ignored `.local/fm-ui-polish/`; no daemon is touched.
 - **Ambient life has no shaders**: whole-pixel bob and sway, a sea tile that scrolls, three lanterns, a
   gull now and then, so a software renderer pays only for sprites. The masthead sways because the hull is
   drawn in slices round the cutout of the parts drawn in its place (`client/deck-parts.ts`): the tall mast's, or the
@@ -1425,6 +1433,9 @@ the last suggestion leaves a stable return-focus target. The button opens a host
 `SuggestionList` cards show the start of each prompt and compare their folded and full heights
 (`client/suggestion-fold.ts`) to decide whether to offer expansion. Only the main button sends;
 expand and delete are always siblings, so neither sends accidentally.
+The filter-row Plans control uses the same `ToolbarButton` as Machines, Suggestions and Tags, with
+`ListTodo`, a tooltip and selected/open state. Its existing filter/details modal is unchanged; Home's
+Plans destination remains a separate header tab.
 
 ## The home is called FirstMate in the sidebar, with a ship for its icon
 

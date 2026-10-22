@@ -92,6 +92,7 @@ vi.mock("./decision-context", () => ({ DecisionAsk: ({ source }: { source: { ask
 vi.mock("./decision-snooze", () => ({ DecisionSnooze: () => null }));
 
 import { DecisionDrawer } from "./decision-drawer";
+import { NeedsYouBubbles } from "./reply-bubble";
 import { NEEDS_YOU_QUERY_KEY } from "./needs-you-query";
 
 let renderer: ReactTestRenderer;
@@ -150,6 +151,38 @@ function words() { return visibleText(renderer.toJSON()); }
 afterEach(async () => {
   await act(async () => renderer?.unmount());
   client?.clear();
+});
+
+it("opens the mixed healthy-and-unreadable footer directly in All with repair controls", async () => {
+  rpc.snapshot = attentionSnapshot([attentionRequest("healthy")]);
+  rpc.snapshot.actionCount = 2;
+  rpc.snapshot.quarantined = [{ line: 5, taskId: "damaged-task", key: null, hasHold: true, problem: "Task scope could not be read." }];
+  rpc.snapshot.freshness.problems = [rpc.snapshot.quarantined[0]!.problem];
+  rpc.calls = [];
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  function FromDeck() {
+    const [destination, select] = useState<DecisionDestination | null>(null);
+    return destination ? createElement(DecisionDrawer, {
+      theme: attentionTheme, snapshot: rpc.snapshot!, offline: false, destination, onSelect: select,
+      onClose: () => select(null), mateId: "mate", suggestions: [], compact: false, returnLabel: "Deck",
+    }) : createElement(NeedsYouBubbles, {
+      snapshot: rpc.snapshot!, theme: attentionTheme,
+      place: { left: 0, top: 0, width: 280, maxHeight: 400, side: "below", tail: 140 },
+      holdRef: null, onClose() {}, onOpen: select,
+    });
+  }
+  await act(async () => { renderer = create(createElement(QueryClientProvider, { client }, createElement(FromDeck))); });
+  expect(button("Open decision: healthy")).toBeDefined();
+  expect(button("Open Needs you: 1 more item")).toBeDefined();
+  await press("Open Needs you: 1 more item");
+  expect(renderer.root.findAll(node => (node.type as unknown) === "Text" && node.props.accessibilityRole === "header").some(node => node.children.join("") === "All")).toBe(true);
+  expect(words()).toContain("Couldn't read this task: damaged-task.");
+  expect(button("Ask the first mate to fix it")).toBeDefined();
+  expect(renderer.root.findAllByType(TextInput)).toHaveLength(0);
+  expect(button("Send answer")).toBeUndefined();
+  expect(rpc.calls).toEqual([]);
+  await press("Back to Deck");
+  expect(button("Open Needs you: 1 more item")).toBeDefined();
 });
 
 it("advances in session order and keeps answered holds out of navigation after a refresh", async () => {

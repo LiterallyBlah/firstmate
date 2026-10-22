@@ -1,25 +1,99 @@
 /**
- * The replies a sailor offers the captain (`client/deck-replies.ts`), as the deck shows them: a speech bubble
- * hung over the sailor, its replies as chips, and the same replies as roomier buttons in the focused sailor's
- * panel. Both send through the caller's `onReply`, which is the board's own `suggest` — the strip's send, gate
- * and failure toast — so nothing here sends anything itself.
- *
- * The bubble is the sailor speaking, not the sky's clouds: a plain rounded box in the theme's surface with an
- * accent border, and a tail down to the sailor's marker (up to it when it hangs below). It says who is asking,
- * the card's line at rest — "Captain's call: …", a status line — in two lines at most, and a chip per reply.
- * While a reply cannot go — no first mate aboard, or another message on its way — the chips are disabled and
- * the bubble says why, as the chips' tooltip does.
+ * Shared Deck popovers and speech-bubble chrome. Only the reserved first mate wears a count bubble;
+ * workers retain linked replies in their focus panels. Suggestions still send through the board's own
+ * handler, gate and failure toast. Opening a popover never sends or acknowledges anything.
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useSyncExternalStore, type ReactNode, type Ref } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type { Suggestion } from "../shared/fleet";
+import type { NeedsYouSnapshot } from "../shared/needs-you";
+import { decisionCardSnapshot } from "../shared/plan-decisions";
+import { decisionQueue, indicatorState, type DecisionDestination } from "./needs-you-state";
+import { deckDecisionDestination } from "./deck-decisions";
+import type { DeckHover } from "./deck-hover";
+import { useWorkflowPlans } from "./workflow-plans";
+import { FIRST_MATE_KEY } from "./deck-first-mate";
 import { ASK_PAPER, askPixels, ASK_SIZE, hexColour } from "./deck-badges";
 import { answeredReplies, type BubblePlacement } from "./deck-replies";
 import { suggestionRemovals } from "./suggestion-removals";
-import type { DeckSailor } from "./deck-scene";
 import { webTitle } from "./web";
+
+/** The same anchored, scrollable dialog for the shark and the first mate. */
+function DeckPopover({ title, label, testID, place, theme, holdRef, onClose, children }: {
+  title: string; label: string; testID: string; place: BubblePlacement; theme: PluginTheme;
+  holdRef: Ref<View>; onClose(): void; children: ReactNode;
+}) {
+  const { colors } = theme;
+  return <View ref={holdRef} role="dialog" aria-label={label} tabIndex={-1} testID={testID}
+    style={{ position: "absolute", left: place.left, width: place.width,
+      ...(place.top === undefined ? { bottom: place.bottom } : { top: place.top }),
+      maxHeight: place.maxHeight, padding: 8, gap: 8, borderRadius: 12,
+      borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.surface0 }}>
+    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+      <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{title}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Close ${title.toLowerCase()}`} onPress={onClose} style={{ padding: 4 }}>
+        <Text style={{ color: colors.foreground }}>×</Text>
+      </Pressable>
+    </View>
+    <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 10, paddingBottom: 5 }}>{children}</ScrollView>
+  </View>;
+}
+
+/** Only the reserved first mate gets this count; workers keep their state badges. */
+export function DecisionCountBubble({ snapshot, anchor, theme, holdRef, open, disabled, onPress }: {
+  snapshot: NeedsYouSnapshot; anchor: DeckHover; theme: PluginTheme; holdRef: Ref<View>;
+  open: boolean; disabled: boolean; onPress(): void;
+}) {
+  const state = indicatorState(snapshot), { colors } = theme;
+  if (anchor.key !== FIRST_MATE_KEY || state.count === null || state.count === 0) return null;
+  const width = Math.max(32, String(state.count).length * 8 + 18);
+  return <Pressable ref={holdRef} accessibilityRole="button" accessibilityLabel={state.accessibilityLabel}
+    accessibilityState={{ expanded: open, disabled }} aria-expanded={open} onPress={onPress} disabled={disabled}
+    testID="firstmate-deck-decision-tag"
+    style={{ position: "absolute", left: Math.max(4, Math.min(anchor.width - width - 4, anchor.x - width / 2)),
+      top: Math.max(4, anchor.top - 38), width, alignItems: "center", paddingVertical: 5,
+      borderWidth: 1, borderRadius: 8, borderStyle: state.stale ? "dashed" : "solid",
+      borderColor: colors.accent, backgroundColor: colors.surface0 }}>
+    <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{state.count}</Text>
+    <SpeechTail theme={theme} left={width / 2 - 4} />
+  </Pressable>;
+}
+
+/** All current decisions, including visible workers and due plan decisions, without acknowledging on open. */
+export function NeedsYouBubbles({ snapshot, place, theme, holdRef, onClose, onOpen }: {
+  snapshot: NeedsYouSnapshot; place: BubblePlacement; theme: PluginTheme; holdRef: Ref<View>;
+  onClose(): void; onOpen(destination: DecisionDestination): void;
+}) {
+  const plans = useWorkflowPlans();
+  const projected = decisionCardSnapshot(snapshot);
+  const requests = decisionQueue(projected.requests).filter(request => request.state === "new" || request.state === "seen");
+  const reviews = snapshot.planNow?.filter(need => !need.node) ?? [];
+  // The server also counts unreadable held tasks that cannot become ordinary decision rows.
+  const remaining = Math.max(0, (snapshot.actionCount ?? 0) - requests.length - reviews.length);
+  const { colors } = theme;
+  return <DeckPopover title="Needs you" label="First mate needs you" testID="firstmate-deck-needs-you"
+    place={place} theme={theme} holdRef={holdRef} onClose={onClose}>
+    {requests.map(request => <Pressable key={request.id} accessibilityRole="button" accessibilityLabel={`Open decision: ${request.source.title}`}
+      onPress={() => onOpen(deckDecisionDestination(projected, request.id))}
+      style={{ padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.surface1 }}>
+      <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{request.source.title}</Text>
+    </Pressable>)}
+    {reviews.map(need => <Pressable key={need.plan} accessibilityRole="button" accessibilityLabel={`Review plan: ${need.title}`}
+      onPress={() => { onClose(); plans.open(need.plan); }}
+      style={{ padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.surface1 }}>
+      <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{need.title}</Text>
+    </Pressable>)}
+    {remaining === 0 ? null : <Pressable accessibilityRole="button" accessibilityLabel={`Open Needs you: ${remaining} more item${remaining === 1 ? "" : "s"}`}
+      onPress={() => onOpen(deckDecisionDestination(snapshot, "all"))}
+      style={{ padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.surface1 }}>
+      <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{remaining} more {remaining === 1 ? "item" : "items"} · open Needs you</Text>
+      <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Open Needs you for the rest.</Text>
+    </Pressable>}
+    {requests.length || reviews.length || remaining ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Nothing needs you right now.</Text>}
+  </DeckPopover>;
+}
 
 /** The shark's full list, in strip order. Picked entries stay visible until the file changes. */
 export function SuggestionBubbles({ suggestions, place, theme, blocked, onReply, onRemove, holdRef, onClose }: {
@@ -36,19 +110,8 @@ export function SuggestionBubbles({ suggestions, place, theme, blocked, onReply,
   useSyncExternalStore(suggestionRemovals.subscribe, suggestionRemovals.version);
   const { colors } = theme;
   return (
-    <View ref={holdRef} role="dialog" aria-label="Shark suggestions" tabIndex={-1}
-      testID="firstmate-deck-suggestions"
-      style={{ position: "absolute", left: place.left, width: place.width,
-        ...(place.top === undefined ? { bottom: place.bottom } : { top: place.top }),
-        maxHeight: place.maxHeight, padding: 8, gap: 8, borderRadius: 12,
-        borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.surface0 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>Suggestions</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close suggestions" onPress={onClose} style={{ padding: 4 }}>
-          <Text style={{ color: colors.foreground }}>×</Text>
-        </Pressable>
-      </View>
-      <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 10, paddingBottom: 5 }}>
+    <DeckPopover title="Suggestions" label="Shark suggestions" testID="firstmate-deck-suggestions"
+      place={place} theme={theme} holdRef={holdRef} onClose={onClose}>
         {suggestions.length === 0 ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Nothing to suggest right now.</Text> : suggestions.map((suggestion, index) => {
           const reason = blocked ?? (suggestionRemovals.pending(suggestion) ? "This suggestion is being removed." : answeredReplies.has(suggestion) ? "Sent to the first mate." : null);
           const removing = suggestionRemovals.pending(suggestion);
@@ -76,12 +139,11 @@ export function SuggestionBubbles({ suggestions, place, theme, blocked, onReply,
               borderColor: colors.accent, borderRightWidth: 1, borderBottomWidth: 1 }} />
           </View>;
         })}
-      </ScrollView>
-    </View>
+    </DeckPopover>
   );
 }
 
-/** The reply marker, drawn as on deck, `pixel` points an art pixel: the legend's key to it. */
+/** Reply icon inside the worker focus panel; never mounted over a worker sprite. */
 export function DeckAskMarker({ accent, pixel = 2 }: { accent: string; pixel?: number }) {
   const paper = `#${ASK_PAPER.toString(16).padStart(6, "0")}`;
   const dot = `#${hexColour(accent).toString(16).padStart(6, "0")}`;
@@ -109,130 +171,16 @@ export function replyLabel(reply: Suggestion): string {
   return `${reply.label}: send "${reply.prompt}" to the first mate`;
 }
 
-/** One reply as a chip in the bubble. */
-function ReplyChip({ reply, theme, blocked, onReply }: { reply: Suggestion; theme: PluginTheme; blocked: string | null; onReply: (reply: Suggestion) => void }) {
-  const { colors } = theme;
-  const disabled = blocked !== null;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={replyLabel(reply)}
-      accessibilityHint={blocked ?? undefined}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={() => onReply(reply)}
-      {...webTitle(blocked ?? reply.prompt)}
-      style={{
-        maxWidth: "100%",
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: colors.accent,
-        backgroundColor: colors.surface1,
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
-      <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>
-        {reply.label}
-      </Text>
-    </Pressable>
-  );
-}
-
-/** The tail's square, turned to a point: its two bordered sides are the bubble's edge, carried out to the tip. */
-const TAIL = 12;
-
-/**
- * A sailor's speech bubble, laid over the canvas at `place`. `holdRef` is the bubble's element, for keeping
- * Tab inside the focused sailor's bubble and panel; `onHover` hears the pointer come and go, so the pane keeps
- * the bubble up while the pointer crosses from the sailor to its chips. The pointer is read with the DOM's own
- * enter and leave, which a child does not interrupt: react-native-web's Pressable ends its own hover when the
- * pointer reaches a Pressable inside it, here a chip, which took the bubble down just as it was used.
- */
-export function ReplyBubble({
-  sailor,
-  replies,
-  place,
-  theme,
-  blocked,
-  onReply,
-  onHover,
-  holdRef,
-}: {
-  sailor: DeckSailor;
-  replies: readonly Suggestion[];
-  place: BubblePlacement;
-  theme: PluginTheme;
-  blocked: string | null;
-  onReply: (reply: Suggestion) => void;
-  onHover: (over: boolean) => void;
-  holdRef?: Ref<View>;
-}) {
-  const { colors } = theme;
-  const above = place.side === "above";
-  const line = sailor.caption.line ?? sailor.caption.status;
-  return (
-    <View
-      onPointerEnter={() => onHover(true)}
-      onPointerLeave={() => onHover(false)}
-      testID="firstmate-deck-bubble"
-      style={{
-        position: "absolute",
-        left: place.left,
-        width: place.width,
-        ...(place.top === undefined ? { bottom: place.bottom } : { top: place.top }),
-      }}
-    >
-      <View
-        ref={holdRef}
-        role="group"
-        aria-label={`${sailor.caption.title} wants your reply`}
-        style={{
-          maxHeight: place.maxHeight,
-          borderRadius: 12,
-          borderWidth: 2,
-          borderColor: colors.accent,
-          backgroundColor: colors.surface0,
-          overflow: "hidden",
-        }}
-      >
-        <ScrollView style={{ maxHeight: Math.max(0, place.maxHeight - 4) }} contentContainerStyle={{ padding: 10, gap: 6 }}>
-          <Text numberOfLines={1} style={{ color: colors.foregroundMuted, fontSize: 11, fontWeight: "600" }}>
-            {sailor.caption.title}
-          </Text>
-          <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 13, lineHeight: 18 }}>
-            {line}
-          </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            {replies.map((reply) => (
-              <ReplyChip key={`${reply.label}\u0000${reply.prompt}`} reply={reply} theme={theme} blocked={blocked} onReply={onReply} />
-            ))}
-          </View>
-          {blocked === null ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>{blocked}</Text>}
-        </ScrollView>
-      </View>
-      <View
-        style={{
-          pointerEvents: "none",
-          position: "absolute",
-          left: place.tail - TAIL / 2,
-          ...(above ? { bottom: -TAIL / 2 + 1 } : { top: -TAIL / 2 + 1 }),
-          width: TAIL,
-          height: TAIL,
-          backgroundColor: colors.surface0,
-          borderColor: colors.accent,
-          ...(above ? { borderRightWidth: 2, borderBottomWidth: 2 } : { borderLeftWidth: 2, borderTopWidth: 2 }),
-          transform: [{ rotate: "45deg" }],
-        }}
-      />
-    </View>
-  );
+/** The count bubble's tail, in the same theme surface and accent as its outline. */
+function SpeechTail({ theme, left }: { theme: PluginTheme; left: number }) {
+  return <View style={{ pointerEvents: "none", position: "absolute", left, bottom: -3, width: 8, height: 8,
+    backgroundColor: theme.colors.surface0, borderColor: theme.colors.accent,
+    borderRightWidth: 1, borderBottomWidth: 1, transform: [{ rotate: "45deg" }] }} />;
 }
 
 /**
- * The focused sailor's replies in its panel: the roomy, keyboard route to the same sends as the bubble's
- * chips, each with the start of what it says. The card's own `extra`, under its glance.
+ * The focused sailor's replies in its panel, each with the start of what it says.
+ * These use the board's existing send handler and disabled reason.
  */
 export function ReplyOptions({
   replies,

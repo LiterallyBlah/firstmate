@@ -14,6 +14,7 @@ jobs:
       - run: npm ci
       - run: npm ci --prefix docs/board-list
       - run: node docs/attention-deck/render.mjs
+      - run: node docs/fm-ui-polish/render.mjs
       - run: node docs/decision-ux-lists/render.mjs
       - uses: actions/upload-artifact@v4
         with:
@@ -21,6 +22,8 @@ jobs:
           path: |
             .local/attention-deck/*.png
             .local/attention-deck/results.json
+            .local/fm-ui-polish/*.png
+            .local/fm-ui-polish/results.json
             .local/decision-ux-lists/*.png
             .local/decision-ux-lists/results.json
           include-hidden-files: true
