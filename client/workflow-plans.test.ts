@@ -4,7 +4,7 @@ import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import type { PluginTheme } from "@getpaseo/plugin";
 import { workflowFixture } from "../test/workflow-fixture";
 import type { WorkflowPlan } from "../shared/workflow-plans";
-vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View", Image: "Image", Platform: { OS: "web" } }));
+vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View", Image: "Image", Platform: { OS: "web", select: (options: { default: unknown }) => options.default } }));
 vi.mock("@getpaseo/plugin/client/ui", () => ({ SettingsRow: "SettingsRow" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: "Icon", TextInput: "TextInput", FlatList: "FlatList", Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
 import { PlanDialog, PlanNeeds } from "./workflow-plans";

@@ -195,7 +195,7 @@ export function TaskToolbar({
   );
 }
 
-function ToolbarButton({
+export function ToolbarButton({
   theme,
   icon,
   text,

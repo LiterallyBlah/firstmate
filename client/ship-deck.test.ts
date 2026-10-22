@@ -13,7 +13,7 @@ import { act, createElement } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-vi.mock("react-native", () => ({ Platform: { OS: "web" }, View: "View", Text: "Text", ScrollView: "ScrollView", Pressable: "Pressable" }));
+vi.mock("react-native", () => ({ Platform: { OS: "web", select: (options: { default: unknown }) => options.default }, View: "View", Text: "Text", ScrollView: "ScrollView", Pressable: "Pressable" }));
 const rpcLoads = vi.hoisted(() => ({ count: 0 }));
 vi.mock("@getpaseo/plugin/client", () => ({
   useRpc: () => () => {
@@ -58,7 +58,7 @@ import {
   type DeckScene,
 } from "./deck-scene";
 import { answeredReplies } from "./deck-replies";
-import { BUBBLE_LINGER_MS, ShipDeckView, deckKeyAction, deckStatusText } from "./ship-deck";
+import { ShipDeckView, deckKeyAction, deckStatusText } from "./ship-deck";
 import { focusLayout } from "./deck-camera";
 import { shipFile, shipImages, shipManifest, shipStage, shipViews } from "../test/ship-pack";
 
@@ -896,7 +896,7 @@ describe("the ship deck view", () => {
     expect(text(renderer!)).not.toContain("hidden on");
   });
 
-  it("opens every decision indicator through the same action, preserving the server counts and revision", async () => {
+  it("opens the mate popover before navigating to an exact decision, preserving counts and revision", async () => {
     const engine = viewEngine(), open = vi.fn();
     const snapshot = attentionSnapshot([attentionRequest("w1"), attentionRequest("unassigned", "seen")]);
     snapshot.requests[0]!.source.project = "ariadne";
@@ -909,11 +909,19 @@ describe("the ship deck view", () => {
     expect(text(root)).not.toContain("the first mate is waiting at the bow with them");
     await act(async () => engine.select?.("w1"));
     expect(open).toHaveBeenLastCalledWith({ requestId: "local:w1", homeId: snapshot.homeId, recordRevision: 7 });
-    await act(async () => engine.select?.("@first-mate"));
-    expect(open).toHaveBeenLastCalledWith({ requestId: "local:unassigned", homeId: snapshot.homeId, recordRevision: 1 });
+    open.mockClear();
     await act(async () => engine.firstMate?.({ key: "@first-mate", x: 300, top: 160, bottom: 200, width: 640, height: 300, floor: null }));
-    await act(async () => root.root.findByProps({ testID: "firstmate-deck-decision-tag" }).props.onPress());
+    await act(async () => engine.select?.("@first-mate"));
+    expect(open).not.toHaveBeenCalled();
+    const tag = root.root.find(node => (node.type as unknown) === "Pressable" && node.props.testID === "firstmate-deck-decision-tag");
+    expect(tag.find(node => (node.type as unknown) === "Text").children.join("")).toBe("2");
+    expect(root.root.findAllByProps({ accessibilityLabel: "Open decision: w1" }).length).toBeGreaterThan(0);
+    await act(async () => root.root.findByProps({ accessibilityLabel: "Open decision: unassigned" }).props.onPress());
     expect(open).toHaveBeenLastCalledWith({ requestId: "local:unassigned", homeId: snapshot.homeId, recordRevision: 1 });
+    expect(root.root.findAllByProps({ testID: "firstmate-deck-needs-you" })).toHaveLength(0);
+    await act(async () => tag.props.onPress());
+    await act(async () => root.root.findByProps({ accessibilityLabel: "Open decision: w1" }).props.onPress());
+    expect(open).toHaveBeenLastCalledWith({ requestId: "local:w1", homeId: snapshot.homeId, recordRevision: 7 });
     await act(async () => root.root.findByProps({ accessibilityLabel: "Answer the next" }).props.onPress());
     expect(open).toHaveBeenLastCalledWith({ requestId: "next", homeId: snapshot.homeId });
     expect(snapshot).toEqual(before); // Viewing, focus and clicking cannot acknowledge locally.
@@ -928,6 +936,30 @@ describe("the ship deck view", () => {
     expect(text(renderer!)).not.toContain("0 needs you");
     await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Open decisions" }).props.onPress());
     expect(open).toHaveBeenCalledWith({ requestId: "next", homeId: snapshot.homeId });
+  });
+  it.each(["clear", "unknown", "disabled"] as const)("keeps the first mate quiet when decisions are %s", async state => {
+    const engine = viewEngine(), open = vi.fn(), snapshot = attentionSnapshot([]);
+    if (state !== "clear") { snapshot.actionCount = null; snapshot.freshness.status = state; }
+    await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, needsYou: snapshot, onOpenDecision: open }), { createNodeMock: () => fakeHost() }); });
+    await act(flush);
+    await act(async () => engine.firstMate?.({ key: "@first-mate", x: 300, top: 160, bottom: 200, width: 640, height: 300, floor: null }));
+    await act(async () => engine.select?.("@first-mate"));
+    expect(renderer!.root.findAllByProps({ testID: "firstmate-deck-decision-tag" })).toHaveLength(0);
+    expect(renderer!.root.findAllByProps({ testID: "firstmate-deck-needs-you" })).toHaveLength(0);
+    expect(open).not.toHaveBeenCalled();
+  });
+  it("includes due plan decisions in the mate's popover and preserves their exact revision", async () => {
+    const engine = viewEngine(), open = vi.fn(), snapshot = attentionSnapshot([]);
+    snapshot.actionCount = 1;
+    snapshot.planNow = [{ plan: "voyage", node: "choice", title: "Voyage", question: "Choose a store", waits: [], neededBy: [], recommendation: "sqlite",
+      decision: { homeId: snapshot.homeId!, revision: 9, subjectHash: "a".repeat(64), ask: "Which store?", at: "2026-10-22T12:00:00Z", options: [] } }];
+    await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, needsYou: snapshot, onOpenDecision: open }), { createNodeMock: () => fakeHost() }); });
+    await act(flush);
+    await act(async () => engine.firstMate?.({ key: "@first-mate", x: 300, top: 160, bottom: 200, width: 640, height: 300, floor: null }));
+    await act(async () => engine.select?.("@first-mate"));
+    expect(open).not.toHaveBeenCalled();
+    await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Open decision: Choose a store" }).props.onPress());
+    expect(open).toHaveBeenCalledWith({ requestId: "plan-decision:voyage:choice", homeId: snapshot.homeId, recordRevision: 9 });
   });
   it("keeps the server total but leaves stale detail to the header pill", async () => {
     const snapshot = attentionSnapshot([]);
@@ -1312,8 +1344,6 @@ describe("the ship deck view", () => {
     const land = { label: "Land b1", prompt: "Merge agent-b1's branch, captain's word." };
     const coffee = { label: "Coffee", prompt: "Make coffee." };
     const bubbles = (root: ReactTestRenderer) => root.root.findAll((node) => node.props.testID === "firstmate-deck-bubble" && typeof node.props.onPointerEnter === "function");
-    const chips = (root: ReactTestRenderer) =>
-      bubbles(root)[0]?.findAll((node) => node.props.accessibilityRole === "button" && typeof node.props.onPress === "function") ?? [];
     const where = { x: 300, top: 200, bottom: 260, width: 900, height: 500, floor: null };
     afterEach(() => answeredReplies.keepOnly([]));
 
@@ -1344,92 +1374,21 @@ describe("the ship deck view", () => {
       return { engine, root, picked, focusReplies };
     }
 
-    it("marks the sailor a suggestion names, and says so in the legend and to a screen reader", async () => {
-      const { engine, root } = await mounted();
-      const scene = engine.drawings[0]!.updates.at(-1) ?? engine.starts[0]!.scene;
-      expect(scene.sailors.filter((sailor) => sailor.asks === true).map((sailor) => sailor.key)).toEqual(["b1"]);
-      expect(text(root)).toContain("1 with a reply for you");
-      const canvasHost = root.root.find((node) => node.props.accessibilityRole === "image");
-      expect(canvasHost.props.accessibilityLabel).toContain("1 with a reply for you to pick");
-    });
-
-    it("speaks in a bubble on hover instead of the label, its chips sending through the board's own send", async () => {
-      const { engine, root, picked } = await mounted();
-      await act(async () => engine.hover?.({ key: "b1", ...where }));
-      expect(bubbles(root)).toHaveLength(1);
-      expect(root.root.findAll((node) => node.props.accessibilityRole === "text")).toHaveLength(0);
-      expect(text(root)).toContain("Task b1");
-      expect(chips(root).map((chip) => chip.props.accessibilityLabel)).toEqual([`Land b1: send "${land.prompt}" to the first mate`]);
-      // Over the sailor, by its bottom, inside the canvas.
-      expect(bubbles(root)[0]!.props.style).toMatchObject({ position: "absolute", bottom: 500 - 200 + 8 });
-      await act(async () => chips(root)[0]!.props.onPress());
-      expect(picked).toEqual([land]);
-      // Another sailor under the pointer: its own label, and the bubble comes down.
-      await act(async () => engine.hover?.({ key: "w1", ...where }));
-      expect(bubbles(root)).toHaveLength(0);
-      expect(root.root.findAll((node) => node.props.accessibilityRole === "text")).toHaveLength(1);
-    });
-
-    it("lingers while the pointer crosses to its chips, and stays while it is over them", async () => {
-      const { engine, root } = await mounted();
-      await act(async () => engine.hover?.({ key: "b1", ...where }));
-      await act(async () => engine.hover?.(null));
-      expect(bubbles(root)).toHaveLength(1);
-      await act(async () => bubbles(root)[0]!.props.onPointerEnter());
-      await act(() => new Promise((resolve) => setTimeout(resolve, BUBBLE_LINGER_MS + 50)));
-      expect(bubbles(root)).toHaveLength(1);
-      await act(async () => bubbles(root)[0]!.props.onPointerLeave());
-      await act(() => new Promise((resolve) => setTimeout(resolve, BUBBLE_LINGER_MS + 50)));
-      expect(bubbles(root)).toHaveLength(0);
-    });
-
-    it("clears the marker and the bubble once a reply is picked, and offers it again if the send fails", async () => {
-      const { engine, root } = await mounted();
-      await act(async () => engine.hover?.({ key: "b1", ...where }));
-      await act(async () => answeredReplies.mark(land.prompt));
-      expect(bubbles(root)).toHaveLength(0);
-      expect(engine.drawings[0]!.updates.at(-1)!.sailors.some((sailor) => sailor.asks === true)).toBe(false);
-      expect(text(root)).not.toContain("with a reply for you");
-      await act(async () => answeredReplies.unmark(land.prompt));
-      expect(engine.drawings[0]!.updates.at(-1)!.sailors.find((sailor) => sailor.key === "b1")?.asks).toBe(true);
-    });
-
-    it("lets go of a bubble answered under the pointer, so it never comes back without one", async () => {
-      const { engine, root } = await mounted();
-      await act(async () => engine.hover?.({ key: "b1", ...where }));
-      await act(async () => bubbles(root)[0]!.props.onPointerEnter());
-      await act(async () => engine.hover?.(null));
-      // The chip is pressed: the bubble goes with the pointer still on it, so no leave is heard.
-      await act(async () => answeredReplies.mark(land.prompt));
-      expect(bubbles(root)).toHaveLength(0);
-      await act(async () => answeredReplies.unmark(land.prompt));
-      expect(bubbles(root)).toHaveLength(0);
-    });
-
-    it("disables its chips and says why while a reply cannot go", async () => {
-      const { engine, root, picked } = await mounted({ replyBlocked: "A message to the first mate is on its way; wait for it to go." });
-      await act(async () => engine.hover?.({ key: "b1", ...where }));
-      expect(chips(root).map((chip) => [chip.props.disabled, chip.props.accessibilityHint])).toEqual([
-        [true, "A message to the first mate is on its way; wait for it to go."],
-      ]);
-      expect(text(root)).toContain("on its way");
-      expect(picked).toHaveLength(0);
-    });
-
-    it("focused, speaks over the sailor where the canvas reports it and hands its card the same replies", async () => {
+    it("never puts a suggestion bubble or marker on a worker, on hover or focus", async () => {
       const { engine, root, focusReplies } = await mounted();
+      for (const key of fixture.map(card => card.key)) {
+        await act(async () => engine.hover?.({ key, ...where }));
+        expect(bubbles(root)).toHaveLength(0);
+      }
+      expect((engine.drawings[0]!.updates.at(-1) ?? engine.starts[0]!.scene).sailors.some(sailor => sailor.asks)).toBe(false);
       await act(async () => engine.select?.("b1"));
-      expect(focusReplies.at(-1)).not.toBeNull();
-      // The canvas reports where the focused sailor stands: the bubble hangs there, inside the panel's room.
-      await act(async () => engine.hover?.({ key: "b1", ...where, x: 290 }));
-      expect(bubbles(root)).toHaveLength(1);
-      const style = bubbles(root)[0]!.props.style as { left: number; width: number };
-      const panel = focusLayout({ width: 900, height: 500 }).panel as { left: number };
-      expect(style.left + style.width).toBeLessThanOrEqual(panel.left);
-      await act(async () => engine.select?.(null));
-      await act(async () => engine.select?.("w1"));
-      expect(focusReplies.at(-1)).toBeNull();
+      await act(async () => engine.hover?.({ key: "b1", ...where }));
       expect(bubbles(root)).toHaveLength(0);
+      expect(focusReplies.at(-1)).not.toBeNull(); // Existing replies remain in the worker's details.
+      await act(async () => answeredReplies.mark(land.prompt));
+      expect(focusReplies.at(-1)).toBeNull();
+      await act(async () => answeredReplies.unmark(land.prompt));
+      expect(focusReplies.at(-1)).not.toBeNull();
     });
 
     it("offers nothing without a way to send", async () => {

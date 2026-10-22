@@ -63,6 +63,9 @@ try {
     if (tree === "after") {
       assert.equal(await page.getByTestId("firstmate-deck-decision-legend").getByText("2 need you ·", { exact: true }).count(), 1);
       const tag = page.getByTestId("firstmate-deck-decision-tag"); await tag.click();
+      assert.equal(await tag.textContent(), "2");
+      assert.deepEqual(await page.evaluate(() => window.decisionActions), []);
+      await page.getByRole("button", { name: "Open decision: Pick the next project", exact: true }).click();
       assert.deepEqual(await page.evaluate(() => window.decisionActions.at(-1)), { requestId: "local:Pick the next project", homeId: "sample-home", recordRevision: 1 });
       await page.getByRole("button", { name: "Answer the next", exact: true }).press("Enter");
       assert.deepEqual(await page.evaluate(() => window.decisionActions.at(-1)), { requestId: "next", homeId: "sample-home" });
@@ -75,6 +78,7 @@ try {
           return { x: canvas.left + bounds.x + bounds.width / 2, y: canvas.top + bounds.y + bounds.height / 2 };
         }, key);
         await page.mouse.click(point.x, point.y);
+        if (key === "@first-mate") await page.getByRole("button", { name: "Open decision: Pick the next project", exact: true }).click();
         assert.deepEqual(await page.evaluate(() => window.decisionActions.at(-1)), { requestId: decision, homeId: "sample-home", recordRevision: 1 });
       }
       await page.mouse.move(0, 0);
@@ -90,7 +94,7 @@ try {
       await page.evaluate(() => window.setDecisionSnapshot(snapshot => ({ ...snapshot, actionCount: 6, newCount: 0,
         requests: Array.from({ length: 6 }, (_, i) => ({ ...snapshot.requests[1], id: `workerless-${i}`,
           source: { ...snapshot.requests[1].source, taskId: `workerless-${i}` } })) })));
-      await tag.getByText("6 need you", { exact: true }).waitFor();
+      await tag.getByText("6", { exact: true }).waitFor();
       assert.deepEqual(await mateAt(), manifest.firstMate.asking.at);
       await page.screenshot({ path: join(out, `six-workerless-${setting}.png`) });
       await page.evaluate(() => window.setDecisionSnapshot(snapshot => ({ ...snapshot, actionCount: 0, requests: [] })));
@@ -141,6 +145,7 @@ try {
   await page.mouse.click(point.x, point.y);
   await checkDrawer("Choose the release", "Which release should sail?", "bow");
   await page.getByTestId("firstmate-deck-decision-tag").click();
+  await page.getByRole("button", { name: "Open decision: Pick the next project", exact: true }).click();
   await checkDrawer("Pick the next project", "Which project should the first mate start next?", "first-mate");
   await page.getByRole("button", { name: "Answer the next", exact: true }).click();
   await checkDrawer("Choose the release", "Which release should sail?", "legend");

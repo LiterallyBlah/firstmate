@@ -45,7 +45,9 @@ Recovery, evidence corrections and same-workspace replacements are explicit, bud
 slice 1 can record the captain's approval from chat with its provenance.
 
 **Needs you** counts recorded decisions across all views, including tasks without a worker.
-Deck keeps its decision signal below the scene and on the first mate, with no extra header pill.
+Deck keeps its decision signal below the scene and as a number-only speech bubble on the first mate.
+Click the first mate or its bubble to list all current Needs-you items, then choose one to open that
+specific decision. Other crew keep their state badges and hover labels without speech bubbles.
 The other views keep their Needs-you header indicator, including its empty state.
 An unreadable or missing task is isolated so other decisions stay current; its last good gate is retained,
 and a suspected hold still counts. The decision drawer and indicator explain problems with line
@@ -249,7 +251,8 @@ and stalled workers are shown explicitly.
 
 **Suggestions** opens the first mate's proposed next requests. Inspect the full prompt, send it, or
 remove it. **Tags** adds another way to organize tasks; filtering requires all selected tags and
-combines with the **Machines** filter when remote hosts are present. List and Board share these controls.
+combines with the **Machines** filter when remote hosts are present. **Plans** uses the same chip
+style and opens its existing filter and details choices. List and Board share these controls.
 
 [Task tags](docs/item-tags/README.md) · [List and Board design](docs/board-list/README.md)
 
