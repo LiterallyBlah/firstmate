@@ -537,7 +537,7 @@ export function CrewCard({
                     </Text>
                     {statusLine}
                   </View>
-                  {compact ? null : <View style={styles.rowTags}>{tags}<PlanChip card={card} theme={theme} /></View>}
+                  {compact ? null : <View style={styles.rowTags}>{tags}</View>}
                   {compact || when === null || when === "" ? null : (
                     <Text style={[styles.time, { marginLeft: 0, flexShrink: 0 }]} numberOfLines={1}>
                       {when}
@@ -545,7 +545,7 @@ export function CrewCard({
                   )}
                   <Icon name={expanded ? "ChevronUp" : "ChevronDown"} size={12} color={theme.colors.foregroundMuted} />
                 </View>
-                {compact ? <View style={styles.rowTags}>{tags}<PlanChip card={card} theme={theme} />{when ? <Text style={styles.time}>{when}</Text> : null}</View> : null}
+                {compact ? <View style={styles.rowTags}>{tags}{when ? <Text style={styles.time}>{when}</Text> : null}</View> : null}
               </>
             ) : (
               <>
@@ -567,15 +567,17 @@ export function CrewCard({
                 <View style={styles.chips}>
                   {tags}
                   {when ? <Text style={styles.meta}>{when}</Text> : null}
-                  <PlanChip card={card} theme={theme} />
                 </View>
                 {statusLine}
               </>
             )}
           </Pressable>
+          <PlanChip card={card} theme={theme} inHeader />
           {converseButton}
         </View>
       )}
+
+      {drawer ? <View style={styles.chips}><PlanChip card={card} theme={theme} /></View> : null}
 
       {plain && summary.request && decisionHomeId ? (
         <DecisionButton
