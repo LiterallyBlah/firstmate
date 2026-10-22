@@ -78,7 +78,7 @@ export function DecisionRaisedCard({
         borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.surface1,
         alignSelf: "flex-start", maxWidth: 560, width: "100%" }}>
       <Text numberOfLines={2} style={{ flex: 1, color: colors.foregroundMuted, fontSize: 12, lineHeight: 18 }}>
-        {status.label}: {decisionTitle(request.source.title)}
+        <Text style={{ color: colors.foregroundMuted }}>{status.label}</Text>: {decisionTitle(request.source.title)}
       </Text>
       {openButton}
     </View>
