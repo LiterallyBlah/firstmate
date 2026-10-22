@@ -6,6 +6,8 @@ import type { WorkflowPlan } from "../shared/workflow-plans";
 import { dependencyText, stepState } from "../shared/workflow-plan-summary";
 import { IconButton } from "./ui";
 import { GRAPH_CARD, planGraph, type GraphEdge } from "./workflow-plan-graph";
+import { updatePlanBrowse, usePlanBrowse } from "./workflow-plan-state";
+import { WorkflowTaskActions } from "./workflow-task-actions";
 
 const reasons = ["builds-on", "needs-evidence", "decision", "shared-state"] as const;
 type Reason = typeof reasons[number];
@@ -38,12 +40,18 @@ function Edge({ edge, theme, active, dim }: { edge: GraphEdge; theme: PluginThem
   </View>;
 }
 
-export function WorkflowPlanGraph({ plan, plans, theme, onOpen, onList }: {
-  plan: WorkflowPlan; plans: readonly WorkflowPlan[]; theme: PluginTheme; onOpen(id: string): void; onList(): void;
+export function WorkflowPlanGraph({ plan, plans, theme, onOpen, onList, sessionKey = null }: {
+  plan: WorkflowPlan; plans: readonly WorkflowPlan[]; theme: PluginTheme; onOpen(id: string): void; onList(): void; sessionKey?: string | null;
 }) {
   const graph = useMemo(() => planGraph(plan, plans), [plan, plans]);
   const scroller = useRef<ScrollView>(null), [viewportWidth, setViewportWidth] = useState(0);
-  useEffect(() => { scroller.current?.scrollTo({ x: Math.max(0, (graph.width - viewportWidth) / 2), animated: false }); }, [graph.width, viewportWidth]);
+  const savedX = usePlanBrowse(sessionKey, state => state.graphX[plan.definition.id]);
+  const restored = useRef(false);
+  useEffect(() => {
+    if (!viewportWidth || restored.current) return;
+    scroller.current?.scrollTo({ x: savedX ?? Math.max(0, (graph.width - viewportWidth) / 2), animated: false });
+    restored.current = true;
+  }, [graph.width, viewportWidth, savedX]);
   const [selected, setSelected] = useState<string | null>(null), [details, setDetails] = useState(false);
   const current = graph.nodes.find(n => n.id === selected);
   const colors = theme.colors, meta = { color: colors.foregroundMuted, fontSize: 12 };
@@ -52,15 +60,9 @@ export function WorkflowPlanGraph({ plan, plans, theme, onOpen, onList }: {
     <IconButton theme={theme} icon="List" label="Show steps as list" showLabel onPress={onList} />
   </View>;
   return <View testID={`workflow-graph-${plan.definition.id}`} style={{ gap: 8 }}>
-    <Text style={meta}>Prerequisites ↓ dependents. {graph.incomplete ? "Steps are arranged by dependency depth." : "Steps in the same level can run in parallel when prerequisites and approval allow."} Select a step for details; scroll sideways for wider levels.</Text>
     {graph.incomplete ? <Text style={{ ...meta, color: colors.statusWarning }}>Some prerequisites are unavailable. Parallelism cannot be confirmed from this snapshot.</Text> : null}
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-      {reasons.map(reason => <View key={reason} style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-        <View style={{ width: 18, borderTopWidth: 2, borderColor: edgeInk(reason, theme), borderStyle: edgeStyle(reason) }} />
-        <Text style={meta}>{reason}</Text>
-      </View>)}
-    </View>
-    <ScrollView ref={scroller} horizontal nestedScrollEnabled onLayout={event => setViewportWidth(event.nativeEvent.layout.width)}
+    <ScrollView ref={scroller} horizontal nestedScrollEnabled onLayout={event => setViewportWidth(event.nativeEvent.layout.width)} scrollEventThrottle={100}
+      onScroll={event => { if (restored.current) updatePlanBrowse(sessionKey, state => ({ graphX: { ...state.graphX, [plan.definition.id]: event.nativeEvent.contentOffset.x } })); }}
       accessibilityLabel={`Dependency graph: ${plan.definition.title}`} contentContainerStyle={{ flexGrow: 1 }}>
       <View testID={`workflow-graph-canvas-${plan.definition.id}`} style={{ width: graph.width, height: graph.height, marginHorizontal: "auto" }}>
         {graph.levels.map((level, i) => <Text key={i} numberOfLines={2} style={{ ...meta, position: "absolute", lineHeight: 14,
@@ -84,6 +86,13 @@ export function WorkflowPlanGraph({ plan, plans, theme, onOpen, onList }: {
         })}
       </View>
     </ScrollView>
+    <Text style={meta}>Prerequisites ↓ dependents. {graph.incomplete ? "Arranged by dependency depth." : "Same-level steps can run in parallel when prerequisites and approval allow."}</Text>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+      {reasons.map(reason => <View key={reason} style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+        <View style={{ width: 18, borderTopWidth: 2, borderColor: edgeInk(reason, theme), borderStyle: edgeStyle(reason) }} />
+        <Text style={meta}>{reason}</Text>
+      </View>)}
+    </View>
     <Modal title={current?.title ?? "Step details"} open={details && !!current} onOpenChange={setDetails}>
       <Modal.Content>
         {current?.node && current.plan ? <View style={{ gap: 10 }}>
@@ -93,6 +102,7 @@ export function WorkflowPlanGraph({ plan, plans, theme, onOpen, onList }: {
           {!current.removed && current.node.kind === "run" && current.plan.nodes[current.id]?.state === "running" ? <Text selectable style={meta}>
             Worker: {(current.plan.nodes[current.id]?.launch ?? current.node.launch).agentTitle} {current.plan.nodes[current.id]?.agentId ?? ""} · Host: {(current.plan.nodes[current.id]?.launch ?? current.node.launch).host}
           </Text> : null}
+          {!current.removed ? <WorkflowTaskActions plan={current.plan} node={current.node} theme={theme} onNavigate={() => setDetails(false)} /> : null}
           {current.node.kind === "decision" ? <Text style={meta}>
             {current.plan.nodes[current.id]?.answer ? "Chosen" : "Recommended"}: {current.node.options.find(o => o.id === (current.plan!.nodes[current.id]?.answer ?? (current.node?.kind === "decision" ? current.node.recommendation : null)))?.label ?? "None yet"}
           </Text> : null}

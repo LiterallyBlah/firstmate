@@ -1,26 +1,38 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
-import { Modal, TextInput } from "@getpaseo/plugin/client/react-native";
+import { Icon, Modal, TextInput } from "@getpaseo/plugin/client/react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, useContext, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { actOnWorkflowPlan, readWorkflowPlans, WorkflowSnapshotSchema, type WorkflowSnapshot } from "../shared/workflow-rpc";
 import { planAwaitingReview, planFinished, planWorstCase, type PlanCaptainCommand, type WorkflowPlan } from "../shared/workflow-plans";
-import { migrationTargets, type FleetCard } from "../shared/fleet";
+import { migrationTargets, type FleetCard, type Fleet } from "../shared/fleet";
 import { readRemotes } from "../shared/remotes";
 import { OptionPicker } from "./option-picker";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { FLEET_QUERY_KEY } from "./fleet-query";
+import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 import { NEEDS_YOU_QUERY_KEY } from "./needs-you-query";
 import { errorText } from "./format";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 import { ToolbarButton } from "./task-toolbar";
+import type { FleetShell, FleetView } from "./shell";
+import { planSessionKey, updatePlanBrowse, usePlanBrowse } from "./workflow-plan-state";
+import { routeWorkflowTask, type WorkflowTaskRequest } from "./workflow-task-navigation";
+import { WorkflowTaskActions } from "./workflow-task-actions";
+import { planSummary } from "./workflow-plan-list";
 
 export const WORKFLOW_QUERY_KEY = ["firstmate", "workflow-plans"] as const;
 export function workflowRequestId() {
   return globalThis.crypto?.randomUUID?.() ?? "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const n = Math.floor(Math.random() * 16); return (c === "x" ? n : (n & 3) | 8).toString(16); });
 }
-const Plans = createContext<{ snapshot?: WorkflowSnapshot; loading: boolean; error: string | null; refresh(): void; open(id: string): void }>({ loading: true, error: null, refresh() {}, open() {} });
+type PlansContext = {
+  snapshot?: WorkflowSnapshot; loading: boolean; error: string | null; refresh(): void; open(id: string): void;
+  scope?: string | null; fleet?: Fleet | undefined; fleetOffline?: boolean; canNavigate?: boolean;
+  planFilter?: string | null; setPlanFilter?(id: string | null): void;
+  taskRequest?: WorkflowTaskRequest | null; navigationNotice?: string | null;
+  navigate?(request: WorkflowTaskRequest): void; finishNavigation?(problem?: string): void;
+};
+const Plans = createContext<PlansContext>({ loading: true, error: null, refresh() {}, open() {} });
 export function useWorkflowPlans() { return useContext(Plans); }
 function Button({ theme, label, onPress, disabled = false, quiet = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean; quiet?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} accessibilityState={{ disabled }} onPress={onPress}
@@ -28,13 +40,23 @@ function Button({ theme, label, onPress, disabled = false, quiet = false }: { th
     <Text style={{ color: quiet ? theme.colors.foregroundMuted : theme.colors.foreground, fontSize: 13 }}>{label}</Text>
   </Pressable>;
 }
-export function WorkflowSurface({ theme, children }: { theme: PluginTheme; children: ReactNode }) {
+export function WorkflowSurface({ theme, children, hostId, view, shell, params = {} }: {
+  theme: PluginTheme; children: ReactNode; hostId?: string | undefined; view?: FleetView | undefined; shell?: FleetShell | undefined; params?: Readonly<Record<string, string>> | undefined;
+}) {
   const read = useRpc(readWorkflowPlans), act = useRpc(actOnWorkflowPlan), cache = useQueryClient();
   const catalog = useRpc(migrationTargets), readHosts = useRpc(readRemotes);
   const query = useQuery({ queryKey: WORKFLOW_QUERY_KEY, queryFn: async () => WorkflowSnapshotSchema.parse(await read({})), refetchInterval: 5000 });
   const [selected, setSelected] = useState<{ id: string; hash: string } | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
   const gate = useRef(false), pending = useRef<{ id: string; serialized: string } | null>(null);
   const snapshot = query.data, plan = snapshot?.plans.find(p => p.definition.id === selected?.id);
+  const fleet = useFleet(5), data = fleet.isPlaceholderData ? undefined : fleet.data;
+  const scope = planSessionKey(hostId, data?.home, data?.mate?.id, snapshot?.homeId);
+  const planFilter = usePlanBrowse(scope, state => state.filter);
+  const [taskRequest, setTaskRequest] = useState(() => routeWorkflowTask(params));
+  const [navigationNotice, setNavigationNotice] = useState<{ scope: string | null; text: string } | null>(null);
+  useEffect(() => { setSelected(null); }, [scope]);
+  const route = JSON.stringify([routeWorkflowTask(params), params.taskHandoff]);
+  useEffect(() => { setTaskRequest(routeWorkflowTask(params)); setNavigationNotice(null); }, [route]);
   const models = useQuery({ queryKey: ["firstmate", "plan-models"], queryFn: () => catalog({}), enabled: selected !== null });
   const hosts = useQuery({ queryKey: ["firstmate", "plan-hosts"], queryFn: () => readHosts({}), enabled: selected !== null });
   const open = (id: string) => { if (!snapshot?.subjects[id]) return; pending.current = null; setError(null); setSelected({ id, hash: snapshot.subjects[id]! }); };
@@ -50,7 +72,16 @@ export function WorkflowSurface({ theme, children }: { theme: PluginTheme; child
     } catch (e) { setError(errorText(e)); void query.refetch(); }
     finally { gate.current = false; setBusy(false); }
   }
-  return <Plans.Provider value={{ ...(snapshot ? { snapshot } : {}), loading: query.isPending, error: query.error ? errorText(query.error) : null, refresh: () => { void query.refetch(); }, open }}>
+  return <Plans.Provider value={{ ...(snapshot ? { snapshot } : {}), loading: query.isPending, error: query.error ? errorText(query.error) : null, refresh: () => { void query.refetch(); }, open,
+    scope, fleet: data, fleetOffline: !!fleet.error, canNavigate: !!scope && (!view || !!shell?.openTask), planFilter,
+    setPlanFilter: filter => updatePlanBrowse(scope, { filter }), taskRequest, navigationNotice: navigationNotice?.scope === scope ? navigationNotice.text : null,
+    finishNavigation: problem => { setTaskRequest(null); setNavigationNotice(problem ? { scope, text: problem } : null); },
+    navigate: request => {
+      setSelected(null); setNavigationNotice(null);
+      if (!view) setTaskRequest({ ...request });
+      else shell?.openTask?.(request);
+    },
+  }}>
     {children}
     <Modal title={plan?.definition.title ?? "Plan"} open={selected !== null} onOpenChange={value => { if (!value && !busy) setSelected(null); }}>
       <Modal.Content>
@@ -92,6 +123,7 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
           <Button theme={theme} label={plan.nodes[node.id]?.answer === option.id ? `Chosen: ${option.label}` : option.label} disabled={disabled || !!plan.nodes[node.id]?.answer || !!plan.nodes[node.id]?.held || plan.status === "abandoned"} onPress={() => void send("answer", { node: node.id, option: option.id })} />
         </View>)}
       </>}
+      <WorkflowTaskActions plan={plan} node={node} theme={theme} disabled={busy} />
       {plan.nodes[node.id]?.evidence ? <Text selectable style={{ color: colors.foregroundMuted }}>{plan.nodes[node.id]!.evidence}</Text> : null}
       {plan.nodes[node.id]?.closedWithoutLanding ? <Text selectable style={{ color: colors.foregroundMuted }}>Closed without landing: {plan.nodes[node.id]!.closedWithoutLanding!.evidence}</Text> : null}
     </View>)}
@@ -156,15 +188,20 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
 }
 
 export function PlanChip({ card, theme }: { card: FleetCard; theme: PluginTheme }) {
-  const { snapshot, open } = useWorkflowPlans(), plan = snapshot?.plans.find(p => (!p.definition.implicit || p.status === "review") && workflowOwnsCard(p, card));
-  if (!plan) return null;
-  const done = Object.values(plan.nodes).filter(n => n.state === "done" || n.state === "landed").length;
-  return <Button theme={theme} label={`${plan.definition.title} · ${done} of ${plan.definition.nodes.length}${plan.status === "review" && !planFinished(plan) ? " · awaiting approval" : ""}`} onPress={() => open(plan.definition.id)} />;
+  const { snapshot, open, planFilter } = useWorkflowPlans(), plan = snapshot?.plans.find(p => (!p.definition.implicit || p.status === "review") && workflowOwnsCard(p, card));
+  if (!plan || planFilter === plan.definition.id) return null;
+  const label = `${plan.definition.title} · ${planSummary(plan, snapshot?.plans ?? []).progress}${plan.status === "review" && !planFinished(plan) ? " · awaiting approval" : ""}`;
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Open plan: ${label}`} onPress={event => { event.stopPropagation(); open(plan.definition.id); }}
+    style={{ alignSelf: "flex-start", minWidth: 0, maxWidth: "100%", flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 6, paddingVertical: 3,
+      borderRadius: 5, borderWidth: 1, borderColor: theme.colors.border }}>
+    <Icon name="ListTodo" size={11} color={theme.colors.foregroundMuted} />
+    <Text numberOfLines={1} style={{ color: theme.colors.foregroundMuted, fontSize: 11, flexShrink: 1 }}>{label}</Text>
+  </Pressable>;
 }
 export function PlansControl({ theme, selected, onSelect }: { theme: PluginTheme; selected: string | null; onSelect(id: string | null): void }) {
   const { snapshot, open } = useWorkflowPlans(), [shown, setShown] = useState(false);
   const plans = snapshot?.plans.filter(p => !p.definition.implicit || p.status === "review") ?? [];
-  if (!plans.length) return null;
+  if (!plans.length && !selected) return null;
   const label = selected ? `Plans: ${plans.find(p => p.definition.id === selected)?.definition.title ?? "selected"}` : "Plans";
   return <><ToolbarButton theme={theme} icon="ListTodo" text={label} label={label}
     hint="Filter tasks by plan or open a plan's details." active={selected !== null} open={shown} onPress={() => setShown(true)} />

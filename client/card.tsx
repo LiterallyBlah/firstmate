@@ -33,7 +33,7 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
 import { Icon, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { exitCrew, interruptCrew, relaunchCrew, steerCrew, type ColumnId, type FleetCard } from "../shared/fleet";
@@ -155,6 +155,7 @@ export function CrewCard({
   summary: suppliedSummary,
   decisionHomeId,
   onOpenDecision,
+  reveal,
 }: {
   card: FleetCard;
   theme: PluginTheme;
@@ -182,6 +183,7 @@ export function CrewCard({
   decisionHomeId?: string | null | undefined;
   /** Installation-owned opener for contextual panels outside a FleetSurface. */
   onOpenDecision?: OpenDecision;
+  reveal?: object | undefined;
 }) {
   const steer = useRpc(steerCrew);
   const interrupt = useRpc(interruptCrew);
@@ -194,6 +196,7 @@ export function CrewCard({
 
   const memory = useCardMemory(card.key, startExpanded, card.column);
   const { setExpanded, draft, setDraft } = memory;
+  useEffect(() => { if (reveal) setExpanded(true); }, [reveal]);
   const focus = presentation === "focus";
   const drawer = presentation === "drawer";
   const summary = suppliedSummary ?? taskPresentation(card);
@@ -536,7 +539,7 @@ export function CrewCard({
                     </Text>
                     {statusLine}
                   </View>
-                  {compact ? null : <View style={styles.rowTags}>{tags}</View>}
+                  {compact ? null : <View style={styles.rowTags}>{tags}<PlanChip card={card} theme={theme} /></View>}
                   {compact || when === null || when === "" ? null : (
                     <Text style={[styles.time, { marginLeft: 0, flexShrink: 0 }]} numberOfLines={1}>
                       {when}
@@ -544,7 +547,7 @@ export function CrewCard({
                   )}
                   <Icon name={expanded ? "ChevronUp" : "ChevronDown"} size={12} color={theme.colors.foregroundMuted} />
                 </View>
-                {compact ? <View style={styles.rowTags}>{tags}{when ? <Text style={styles.time}>{when}</Text> : null}</View> : null}
+                {compact ? <View style={styles.rowTags}>{tags}<PlanChip card={card} theme={theme} />{when ? <Text style={styles.time}>{when}</Text> : null}</View> : null}
               </>
             ) : (
               <>
@@ -566,6 +569,7 @@ export function CrewCard({
                 <View style={styles.chips}>
                   {tags}
                   {when ? <Text style={styles.meta}>{when}</Text> : null}
+                  <PlanChip card={card} theme={theme} />
                 </View>
                 {statusLine}
               </>
@@ -575,7 +579,6 @@ export function CrewCard({
         </View>
       )}
 
-      {focus ? null : <PlanChip card={card} theme={theme} />}
       {plain && summary.request && decisionHomeId ? (
         <DecisionButton
           theme={theme}

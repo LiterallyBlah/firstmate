@@ -97,3 +97,14 @@ it("hands a discussion or unreadable hold to Home through public params, without
   expect(host.openScreen.mock.calls.at(-1)![0].params).toEqual({ decision: "all", decisionHome: "home-a", decisionBoard: "show", decisionHandoff: "3" });
   expect(host.openPanel).not.toHaveBeenCalled();
 });
+
+it("hands a plan task to its installation's Home through public screen params", () => {
+  const host = installation(), other = installation();
+  const component = host.addScreen.mock.calls[0]![0].Component as (props: PluginScreenProps) => ReactElement<Surface>;
+  const request = { scope: "host/home/mate", plan: "plan", node: "step", card: "card", worker: "remote:saved-host:worker" };
+  component({} as PluginScreenProps).props.shell.openTask!(request);
+  expect(host.openScreen).toHaveBeenCalledWith({ screenId: "fleet", params: {
+    taskScope: request.scope, taskPlan: "plan", taskNode: "step", taskCard: "card", taskWorker: request.worker, taskHandoff: "1",
+  } });
+  expect(other.openScreen).not.toHaveBeenCalled(); expect(host.openPanel).not.toHaveBeenCalled();
+});

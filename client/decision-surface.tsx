@@ -25,6 +25,7 @@ import type { FleetShell, FleetView } from "./shell";
 import { MIN_SPLIT_WIDTH } from "./resize-layout";
 import { decisionCardSnapshot } from "../shared/plan-decisions";
 import { discussionRequest, prepareDiscussion, routeDiscussion, type DecisionDiscussion } from "./decision-discussion";
+import { useWorkflowPlans } from "./workflow-plans";
 
 const DecisionHandoffContext = createContext<{
   discussion: DecisionDiscussion | null;
@@ -96,9 +97,10 @@ export function DecisionSurface({
   const query = useNeedsYou(),
     fleet = useFleet(5);
   const display = useSettings(displaySettings);
+  const { planFilter } = useWorkflowPlans();
   const filtered =
-    display.status === "ready" &&
-    (display.values.hostTab !== "all" || display.values.tagFilter.length > 0);
+    !!planFilter || (display.status === "ready" &&
+    (display.values.hostTab !== "all" || display.values.tagFilter.length > 0));
   const mateId = fleet.data?.mate?.id ?? null;
   const [destination, setDestination] = useState<DecisionDestination | null>(
     () => params.decisionBoard === "show" ? null : routeDecision(params),
