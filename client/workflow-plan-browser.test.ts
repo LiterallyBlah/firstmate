@@ -7,7 +7,7 @@ import { workflowFixture } from "../test/workflow-fixture";
 import { planGraphFixture } from "../test/plan-graph-fixture";
 import type { WorkflowPlan } from "../shared/workflow-plans";
 import type { WorkflowSnapshot } from "../shared/workflow-rpc";
-vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View", ScrollView: "ScrollView" }));
+vi.mock("react-native", () => ({ Platform: { OS: "web" }, Pressable: "Pressable", Text: "Text", View: "View", ScrollView: "ScrollView" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput", Modal: Object.assign(({ open, children }: any) => open ? children : null, { Content: ({ children }: any) => children }) }));
 vi.mock("./ui", () => ({ IconButton: ({ label, onPress }: any) => createElement("Pressable", { accessibilityLabel: label, onPress }),
   Segmented: ({ options, onChange }: any) => createElement("View", {}, options.map((o: any) => createElement("Pressable", { key: o.value, accessibilityLabel: o.label, onPress: () => onChange(o.value) }))) }));
