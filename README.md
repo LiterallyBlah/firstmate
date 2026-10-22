@@ -9,8 +9,16 @@ approval authorizes planned work and resolves no merge or deployment gate. See
 Home's **Plans** tab sits beside List, Board, Home files and Deck, and **Plans** in Paseo's **+** menu
 opens the same view as a workspace tab. Plans start collapsed, showing progress, running work,
 the next steps and their blockers, captain decisions, and attention for uncertain/failed work or a
-ship deliverable awaiting landing. Expand a plan for build steps with compact
-review chips and its budget; worker/host details appear only for running steps. Automatic copies of
+ship deliverable awaiting landing. Expand a plan for a dependency graph and its budget. Every build,
+review and decision is a node; arrows lead from prerequisites to dependent steps, with dependency
+reasons distinguished in the legend and step details. Steps at the same level can run in parallel
+when their prerequisites and approval allow. Prerequisites from other plans are included and labelled.
+Removed prerequisites retain their titles and are labelled removed. Level counts describe independent
+steps, including completed work; separate connector routes preserve each recorded dependency.
+Select a node for its full state, summary and dependencies, or open the existing plan dialog.
+The **Graph / List** toggle keeps the compact list with review chips available for dense plans;
+graphs over 60 nodes or 120 dependencies offer a List fallback. Wider graphs scroll sideways,
+including on phones. Worker/host details appear only for running steps. Automatic copies of
 tasks already in an authored plan are hidden only while planned or when the owning step records its
 own work. An unaccounted automatic run stays visible. Open plans precede finished history. Automatic one-run plans have their own
 counted, folded groups; each group shows ten at a time. Search by title, worker or host expands
