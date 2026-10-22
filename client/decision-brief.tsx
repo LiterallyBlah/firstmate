@@ -7,6 +7,7 @@ import { parseDecisionBrief } from "../shared/decision-brief";
 import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
 import { Markdown } from "./markdown";
 import { errorText } from "./format";
+import { planDecisionFor } from "../shared/plan-decisions";
 
 function BriefMarkdown({
   source,
@@ -132,22 +133,22 @@ export function DecisionSummary({
   theme,
   snapshot,
   request,
+  showQuestion = true,
 }: {
   theme: PluginTheme;
   snapshot?: NeedsYouSnapshot | undefined;
   request: NeedsYouRequest;
+  showQuestion?: boolean;
 }) {
   const brief = briefFor(snapshot, request);
-  const recommendation = brief
-    ? parseDecisionBrief(brief.content).recommendation
-    : "";
+  const recommendation = (brief ? parseDecisionBrief(brief.content).recommendation : "") || planDecisionFor(snapshot, request.id)?.recommendation || "";
   return (
     <View style={{ gap: 6 }}>
-      <Text
+      {showQuestion ? <Text
         style={{ color: theme.colors.foreground, fontSize: 12, lineHeight: 18 }}
       >
         {request.source.ask}
-      </Text>
+      </Text> : null}
       {recommendation ? (
         <View
           style={{

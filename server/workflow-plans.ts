@@ -48,7 +48,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     };
     const posture = event.postureSource?.posture ?? planPosture(definition);
     next = { definition, revision: 1, sequence: 0, hash: "", posture, status: posture === "review" ? "review" : "active",
-      approvedBudget: planWorstCase(definition), nodes: Object.fromEntries(definition.nodes.map(n => [n.id, { state: "planned" as const }])), told: [], handled: [],
+      approvedBudget: planWorstCase(definition), nodes: Object.fromEntries(definition.nodes.map(n => [n.id, { state: "planned" as const, ...(n.kind === "decision" ? { introducedAt: event.at } : {}) }])), told: [], handled: [],
       history: [{ revision: 1, at: event.at, by: event.by, reason: "draft" }], ...(event.postureSource ? { postureSource: event.postureSource } : {}) };
   }
   if (!next) throw new Error("Plan log does not start with a draft.");
@@ -61,6 +61,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
       if (node?.kind !== "decision" || !state || state.answer || !node.options.some(o => o.id === c.option)) throw new Error("Decision is already answered or the option changed.");
       if (state.held) throw new Error("Review this held decision's dependencies before answering.");
       state.answer = c.option!; state.state = "done"; state.evidence = c.text || node.options.find(o => o.id === c.option)!.label;
+      state.readyAt = { done: event.at, answered: event.at };
     }
     if (c.action === "edit") {
       if (!c.edits?.length) throw new Error("Choose an edit before approving.");
@@ -75,7 +76,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
             dependent.after = dependent.after.filter(d => d.node !== node.id); next.nodes[dependent.id]!.held = true;
           }
           next.definition.nodes = next.definition.nodes.filter(n => n.id !== node.id); delete next.nodes[node.id];
-        } else if (edit.kind === "dependencies") { node.after = edit.after; next.nodes[node.id]!.held = false; }
+        } else if (edit.kind === "dependencies") { node.after = edit.after; next.nodes[node.id]!.held = false; if (node.kind === "decision") next.nodes[node.id]!.introducedAt = event.at; }
         else { if (node.kind !== "run") throw new Error("A decision has no worker model or host."); if (edit.kind === "model") node.launch.agent = edit.agent; else node.launch.host = edit.host; }
       }
       next.definition = PlanDefinitionSchema.parse({ ...next.definition, implicit: false }); next.revision++;
@@ -97,8 +98,10 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     }
     const removed = next.definition.nodes.filter(n => !c.definition.nodes.some(newNode => newNode.id === n.id));
     next.removed = [...(next.removed ?? []), ...removed.map(node => ({ node, state: next!.nodes[node.id]! }))].filter(r => !c.definition.nodes.some(n => n.id === r.node.id));
+    const oldDefinition = next.definition;
     next.definition = c.definition; next.revision++;
-    next.nodes = Object.fromEntries(c.definition.nodes.map(n => [n.id, next!.nodes[n.id] ?? { state: "planned" as const }]));
+    next.nodes = Object.fromEntries(c.definition.nodes.map(n => [n.id, { ...(next!.nodes[n.id] ?? { state: "planned" as const }),
+      ...(n.kind === "decision" && (!next!.nodes[n.id] || digest(oldDefinition.nodes.find(old => old.id === n.id)?.after) !== digest(n.after)) ? { introducedAt: event.at } : {}) }]));
     for (const node of next.definition.nodes) {
       if (node.after.some(e => next!.removed?.some(r => r.node.id === e.node))) next.nodes[node.id]!.held = "Prerequisite removed; replan before starting.";
       else if (next.nodes[node.id]!.held === "Prerequisite removed; replan before starting.") delete next.nodes[node.id]!.held;
@@ -143,7 +146,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     } else if (c.op === "validate") {
       if (!state.invalidated || !terminal(state.state) || c.expected !== previous?.hash) throw new Error("Renewal requires current invalidated completed evidence.");
       const { invalidated: _invalidated, ...valid } = state;
-      next.nodes[c.node] = { ...valid, evidence: c.evidence };
+      next.nodes[c.node] = { ...valid, evidence: c.evidence, availableAt: event.at };
     } else {
       if (c.expected !== previous?.hash || !state.agentId || !state.workspaceId || state.invalidated || (c.kind === "promote" && (node.launch.kind !== "scout" || state.state !== "done"))) throw new Error("Replacement requires the current accounted worker and verified promotion/relaunch evidence.");
       const spent = Object.values(next.nodes).reduce((n, s) => n + (s.spent ?? (s.attempt ? 1 : 0)), 0);
@@ -164,7 +167,10 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     if (state.agentId && c.agentId && state.agentId !== c.agentId) throw new Error("Cannot replace an accounted worker.");
     const priorWorkspace = state.priorAttempts?.at(-1)?.workspaceId;
     if (priorWorkspace && c.workspaceId && c.workspaceId !== priorWorkspace) throw new Error("Manual replacement must preserve the workspace identity.");
-    next.nodes[c.node] = { ...state, state: c.state, evidence: c.evidence, ...(terminal(c.state) ? { completedAt: event.at } : {}), ...(c.agentId ? { agentId: c.agentId } : {}), ...(c.workspaceId ? { workspaceId: c.workspaceId } : {}) };
+    // Landing satisfies done too, but must not move an earlier done condition's readiness.
+    const readiness = c.state === "done" || c.state === "landed"
+      ? { readyAt: { ...state.readyAt, done: state.readyAt?.done ?? event.at, ...(c.state === "landed" ? { landed: event.at } : {}) } } : {};
+    next.nodes[c.node] = { ...state, state: c.state, evidence: c.evidence, ...readiness, ...(terminal(c.state) ? { completedAt: event.at } : {}), ...(c.agentId ? { agentId: c.agentId } : {}), ...(c.workspaceId ? { workspaceId: c.workspaceId } : {}) };
   }
   if (c.op === "close") {
     const node = next.definition.nodes.find(n => n.id === c.node), state = next.nodes[c.node];

@@ -17,7 +17,7 @@ export async function checkAnswers(pageAt, output) {
     await page.getByRole("button", { name: /^Needs you, 3 decisions/ }).click();
     await heading(page, "Decision a").waitFor();
     await button(page, "All decisions").click();
-    await button(page, /^Decision b · New$/).click();
+    await button(page, /^Answer: Decision b\./).first().click();
     await answer(page);
     await heading(page, "Decision seen").waitFor();
     await page.getByText("Answer sent.", { exact: true }).waitFor();
@@ -60,7 +60,7 @@ export async function checkAnswers(pageAt, output) {
     await last.getByRole("button", { name: /^Needs you, 1 decisions/ }).click();
     await heading(last, "Decision a").waitFor();
     await button(last, "All decisions").click();
-    await button(last, /^Decision a · Waiting/).click();
+    await button(last, /^Answer: Decision a\./).first().click();
     await answer(last);
     await drawer(last).waitFor({ state: "detached" });
     await heading(last, "Board").waitFor();

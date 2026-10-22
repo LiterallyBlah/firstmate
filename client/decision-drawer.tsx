@@ -20,7 +20,11 @@ import {
   type NeedsYouSnapshot,
   type NeedsYouRequest,
   quarantinesSource,
+  readNeedsYou,
 } from "../shared/needs-you";
+import { actOnWorkflowPlan, type PlanNeed } from "../shared/workflow-rpc";
+import { decisionCardSnapshot, planDecisionFor } from "../shared/plan-decisions";
+import { parseDecisionBrief } from "../shared/decision-brief";
 import type { Suggestion } from "../shared/fleet";
 import { useMateSender } from "./mate-send";
 import { useDecisionChanged } from "./needs-you-query";
@@ -53,7 +57,8 @@ import {
 } from "./web";
 import { useKeyboardOverlap } from "./keyboard";
 import { errorText } from "./format";
-import { PlanNeeds } from "./workflow-plans";
+import { PlanNeeds, WORKFLOW_QUERY_KEY, workflowRequestId } from "./workflow-plans";
+import { DecisionTask } from "./decision-tasks";
 
 export function DecisionButton({
   theme,
@@ -154,7 +159,7 @@ function ParkedTitle({ title, theme }: { title: string; theme: PluginTheme }) {
 
 export function DecisionDrawer({
   theme,
-  snapshot,
+  snapshot: sourceSnapshot,
   offline,
   destination,
   onSelect,
@@ -185,6 +190,7 @@ export function DecisionDrawer({
   loading?: boolean;
   returnLabel?: string;
 }) {
+  const snapshot = sourceSnapshot ? decisionCardSnapshot(sourceSnapshot) : undefined;
   const order = useRef<{ home: string | null; ids: string[] }>({
     home: null,
     ids: [],
@@ -204,7 +210,7 @@ export function DecisionDrawer({
   const sameHome =
     !destination.homeId || destination.homeId === snapshot?.homeId;
   const request = sameHome
-    ? snapshot?.requests.find((r) => r.id === destination.requestId)
+    ? snapshot?.requests.find((r) => r.id === destination.requestId) ?? (["next", "empty"].includes(destination.requestId) ? queue[0] : undefined)
     : undefined;
   const index = queue.findIndex((r) => r.id === request?.id);
   const [all, setAll] = useState(false);
@@ -215,6 +221,7 @@ export function DecisionDrawer({
   } | null>(null);
   const [file, setFile] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [planNotice, setPlanNotice] = useState<{ home: string | null; id: string; text: string } | null>(null);
   const selected = useRef(destination.requestId);
   selected.current = destination.requestId;
   const root = useRef<View>(null);
@@ -247,7 +254,8 @@ export function DecisionDrawer({
     });
     setAll(false);
   }
-  function completed(next: NeedsYouSnapshot, text: string, answered = false) {
+  function completed(result: NeedsYouSnapshot, text: string, answered = false) {
+    const next = decisionCardSnapshot(result);
     setReceipt({
       text,
       answered,
@@ -257,7 +265,7 @@ export function DecisionDrawer({
         recordRevision: request!.revision,
       },
     });
-    if (selected.current !== request!.id || next.homeId !== snapshot?.homeId)
+    if (selected.current !== destination.requestId || next.homeId !== snapshot?.homeId)
       return;
     const following = nextWaitingDecision(
       stableDecisionOrder(order.current.ids, decisionQueue(next.requests)),
@@ -364,6 +372,11 @@ export function DecisionDrawer({
     return (
       <DecisionGroup theme={theme} label={label} count={rows.length} key={label}>
         {rows.map((r) => (
+          r.state === "new" || r.state === "seen" ? <View key={r.id} style={{ paddingVertical: 12, gap: 8 }}>
+            <DecisionTask request={r} snapshot={snapshot!} theme={theme} compact={compact} presentation="card"
+              onAnswer={() => select(r)} onConverse={() => {}} onChanged={() => {}} />
+            <DecisionSummary theme={theme} snapshot={snapshot} request={r} showQuestion={false} />
+          </View> :
           <Pressable
             key={r.id}
             accessibilityRole="button"
@@ -385,10 +398,9 @@ export function DecisionDrawer({
                 fontSize: 13,
               }}
             >
-              {r.state === "new" ? "NEW · " : ""}
               {decisionTitle(r.source.title)}
             </Text>
-            {r.state === "new" || r.state === "seen" ? <DecisionSummary theme={theme} snapshot={snapshot} request={r} /> : <Text
+            <Text
               style={{
                 color:
                   r.state === "delivery-uncertain"
@@ -398,7 +410,7 @@ export function DecisionDrawer({
               }}
             >
               {decisionStateLabel(r)}
-            </Text>}
+            </Text>
           </Pressable>
         ))}
       </DecisionGroup>
@@ -518,12 +530,13 @@ export function DecisionDrawer({
           contentContainerStyle={{ padding: 16, gap: 24 }}
           style={{ flex: 1 }}
         >
-          {chrome}
-          <PlanNeeds theme={theme} snapshot={snapshot} />
+          {failure ? chrome : null}
           {group(
             "Waiting for you",
             queue.filter((r) => r.state === "new" || r.state === "seen"),
           )}
+          {!failure ? chrome : null}
+          <PlanNeeds theme={theme} snapshot={snapshot} />
           {group(
             "Answered · waiting for the first mate",
             snapshot?.requests.filter(
@@ -565,6 +578,12 @@ export function DecisionDrawer({
             ) ?? [],
           )}
         </ScrollView>
+      ) : request && planDecisionFor(snapshot, request.id) ? (
+        <PlanDecisionDetails key={`${snapshot!.homeId}:${request.id}:${planDecisionFor(snapshot, request.id)!.decision!.subjectHash}`}
+          theme={theme} request={request} snapshot={snapshot!} need={planDecisionFor(snapshot, request.id)!}
+          offline={offline} compact={compact} onCompleted={completed} chrome={chrome} warning={!!failure}
+          notice={planNotice?.home === snapshot!.homeId && planNotice.id === request.id ? planNotice.text : ""}
+          onNotice={text => setPlanNotice({ home: snapshot!.homeId, id: request.id, text })} />
       ) : request ? (
         <DecisionDetails
           key={`${snapshot!.homeId}:${request.id}:${request.revision}`}
@@ -650,6 +669,71 @@ function submissionId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** Uses the same captain action as Plans, never the backlog-answer transport. */
+function PlanDecisionDetails({ theme, request, snapshot, need, offline, compact, onCompleted, chrome, warning, notice, onNotice: setNotice }: {
+  theme: PluginTheme; request: NeedsYouRequest; snapshot: NeedsYouSnapshot; need: PlanNeed;
+  offline: boolean; compact: boolean; chrome: ReactNode;
+  warning: boolean; notice: string; onNotice(text: string): void;
+  onCompleted(snapshot: NeedsYouSnapshot, receipt: string, answered?: boolean): void;
+}) {
+  const act = useRpc(actOnWorkflowPlan), read = useRpc(readNeedsYou), cache = useQueryClient(), changed = useDecisionChanged();
+  const [busy, setBusy] = useState(false), [accepted, setAccepted] = useState(false);
+  const [file, setFile] = useState<string | null>(null);
+  const gate = useRef(false), pending = useRef<{ option: string; id: string } | null>(null);
+  const heading = `plan-decision-heading-${useId()}`;
+  useEffect(() => { focusWebElement(heading); }, [heading]);
+  const decision = need.decision!, colors = theme.colors;
+  const disabled = offline || snapshot.freshness.status === "stale" || !!snapshot.planProblems?.length || !!decision.held || busy || accepted;
+  async function answer(option: string) {
+    if (gate.current || disabled) return;
+    gate.current = true; setBusy(true); setNotice("");
+    if (pending.current?.option !== option) pending.current = { option, id: workflowRequestId() };
+    try {
+      const next = await act({ homeId: decision.homeId, requestId: pending.current.id,
+        command: { op: "captain", plan: need.plan, revision: decision.revision, subjectHash: decision.subjectHash,
+          action: "answer", node: need.node!, option, text: "" } });
+      setAccepted(true);
+      cache.setQueryData(WORKFLOW_QUERY_KEY, next);
+      await advance();
+    } catch (error) {
+      setNotice(errorText(error)); changed();
+    } finally { gate.current = false; setBusy(false); }
+  }
+  async function advance() {
+    try {
+      const next = await read({});
+      onCompleted(changed(next) ?? next, "Answer recorded.", true);
+    } catch {
+      changed(); setNotice("Answer recorded. Refresh decisions to continue.");
+    }
+  }
+  const brief = briefFor(snapshot, request);
+  // Authored prose is context; only the current plan's options authorize an answer.
+  const recommendation = brief ? parseDecisionBrief(brief.content).recommendation : "";
+  return <>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: compact ? 16 : 20, gap: 16, paddingBottom: 24 }}>
+      {warning ? chrome : null}
+      <Text nativeID={heading} {...webAttributes({ tabindex: "-1" })} accessibilityRole="header"
+        style={{ color: colors.foreground, fontSize: 18, fontWeight: "600" }}>{request.source.title}</Text>
+      {brief ? <DecisionBrief theme={theme} content={brief.content} answer={() => null} /> :
+        <DecisionAsk theme={theme} source={request.source} homeId={snapshot.homeId!} onOpenFile={setFile} compact={compact} />}
+      {!recommendation ? <View style={{ borderLeftWidth: 3, borderLeftColor: colors.accent, backgroundColor: colors.surface2, padding: 12, gap: 6, borderRadius: 8 }}>
+        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "700" }}>Recommendation</Text>
+        <Text style={{ color: colors.foreground, fontSize: 13 }}>{need.recommendation}</Text>
+      </View> : null}
+      {decision.options.map(option => <View key={option.id} style={{ gap: 8, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 8 }}>
+        <Text style={{ color: colors.foreground, fontSize: 13 }}>{option.consequence}</Text>
+        <DecisionButton theme={theme} compact={compact} label={option.label} disabled={disabled} onPress={() => void answer(option.id)} />
+      </View>)}
+      {!warning ? chrome : null}
+      {decision.held ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>This decision is on hold. Review its dependencies in Plans before answering.</Text> : null}
+      {notice ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>{notice}</Text> : null}
+      {accepted ? <DecisionButton theme={theme} label="Refresh decisions" onPress={() => void advance()} /> : null}
+    </ScrollView>
+    <SourceFile theme={theme} compact={compact} path={file} onClose={() => setFile(null)} />
+  </>;
+}
+
 function DecisionDetails({
   theme,
   request,
@@ -680,6 +764,8 @@ function DecisionDetails({
   const [draft, setDraft] = useState(() => session.drafts.get(draftKey) ?? "");
   const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");
+  const [answered, setAnswered] = useState(false);
+  const read = useRpc(readNeedsYou);
   const [file, setFile] = useState<string | null>(null),
     [menu, setMenu] = useState(false),
     [snoozing, setSnoozing] = useState(false),
@@ -706,7 +792,7 @@ function DecisionDetails({
     !offline &&
     snapshot.freshness.status === "fresh" &&
     !quarantinesSource(snapshot.quarantined ?? [], request.source);
-  const writable = fresh && !pending && request.state !== "resolved" && !busy;
+  const writable = fresh && !pending && request.state !== "resolved" && !busy && !answered;
   useEffect(() => {
     focusWebElement(headingId);
   }, [headingId]);
@@ -794,24 +880,29 @@ function DecisionDetails({
             }
           : {}),
       },
-      (result) => {
-        const current = changed(result.snapshot) ?? result.snapshot;
+      async (result) => {
         if (result.outcome === "accepted") {
+          setAnswered(true);
           if (session.drafts.get(draftKey) === text) {
             session.drafts.delete(draftKey);
             setDraft("");
           }
-          onCompleted(
-            current,
-            "Answer sent.",
-            true,
-          );
-        } else
+          try {
+            // The answer transport returns only the backlog ledger. Navigation needs plans too.
+            const combined = await read({});
+            onCompleted(changed(combined) ?? combined, "Answer sent.", true);
+          } catch {
+            setNotice("Answer sent. Refresh decisions to continue.");
+            changed();
+          }
+        } else {
+          changed(result.snapshot);
           setNotice(
             result.outcome === "uncertain"
               ? ""
               : "The answer was not sent. The draft is retained.",
           );
+        }
       },
       () => {
         setNotice(

@@ -4,6 +4,18 @@ import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
 import { displaySettings } from "../shared/settings";
 import { DEFAULT_TASK_LAYOUT, moveTaskColumn, orderedTaskColumns, taskLayoutSettings } from "../shared/task-layout";
 import { activeDecisions, presentedTasks, requestForCard, taskPresentation, taskSourceKey, waitingOver30Minutes } from "./task-presentation";
+import { attentionSnapshot } from "../test/attention-deck-fixture";
+import { planDecisionNeed } from "../test/plan-decision-fixture";
+
+it("shares one due plan item with the drawer and keeps future decisions out of List/Board", () => {
+  const snapshot = { ...attentionSnapshot([]), actionCount: 1, planNow: [planDecisionNeed()], comingUp: [{ ...planDecisionNeed(), node: "future" }] };
+  expect(activeDecisions(snapshot).map(r => r.source.title)).toEqual(["Spoiler and foreshadowing checks"]);
+  expect(snapshot.actionCount).toBe(1);
+  expect(snapshot.requests).toEqual([]); // No ledger request was invented.
+  const planCard = card({ taskId: "checks", project: null, backlog: { ...card().backlog!, id: "checks", project: null } });
+  expect(taskPresentation(planCard, snapshot).group).toBe("needs-you");
+  expect(presentedTasks([planCard], snapshot)).toEqual([]);
+});
 
 function card(extra: Partial<FleetCard> = {}): FleetCard {
   return {

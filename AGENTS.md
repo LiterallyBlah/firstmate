@@ -56,6 +56,21 @@ array; Coming up never enters any count. A disabled legacy detector reports plan
 bound (`1+`, plans only), never a fresh complete count. `withWorkflowCards` draws pending runs while
 the backlog catches up, with no invented agent identity. Deck continues to use real workers only.
 The visual fixture `node docs/workflows/render.mjs` writes exclusively to `.local/workflows/`.
+`shared/plan-decisions.ts` adapts due plan needs into the shared presentation queue without writing
+backlog-ledger requests. The drawer, List and Board reuse `DecisionTask`; a plan answer uses only
+`firstmate.workflow.act` with the displayed revision and subject hash, then rereads Needs you before
+advancing or closing. Backlog answer responses are ledger-only: the drawer rereads the combined
+snapshot before navigating and keeps a confirmed answer disabled if that read fails. Optional plan briefs use the same confined reader, ambiguity checks and shared
+512 KiB snapshot budget. Plan approvals remain separate. All puts waiting cards before plan review
+and the collapsed Coming up line; expanded future rows show only their own title and a plain waiting
+reason, opening Plans for details. Warnings remain above the cards, both kinds use the same All-card
+style, and plan refusal notices survive a changed-subject remount. Waiting time comes from committed
+decision introduction and the first time each dependency condition was met, not the authored
+request date. Landing preserves an earlier done time; renewed verification or changed decision
+dependencies restart the clock. These optional projection fields are rebuilt on ledger replay.
+All omits worker-absence claims when it has no fleet inventory. List/Board omit Coming up entirely. `node docs/plan-decisions/render.mjs`
+compares all four views against its pinned baseline in both themes and desktop/phone browser widths;
+renders and checks stay in ignored `.local/plan-decisions/`.
 Plan actions retain author provenance: a captain press and a mate-recorded chat action are distinct.
 Subject/revision checks run at append, never against a changing historical projection on replay.
 Fleet/Needs-you/Bearings isolate plan failures and label incomplete counts. Decision projections,

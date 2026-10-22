@@ -79,7 +79,7 @@ export function TaskList(props: TaskListProps) {
             onChanged={props.onChanged}
           />
         ))}
-        <PlanNeeds theme={theme} snapshot={snapshot} />
+        <PlanNeeds theme={theme} snapshot={snapshot} showUpcoming={false} />
         {snapshot?.actionCount === 0 && snapshot.freshness.status === "fresh" && !snapshot.planProblems?.length && !props.offline ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
       </View>
       <View testID="task-group-in-hand" style={{ gap: 8 }}>

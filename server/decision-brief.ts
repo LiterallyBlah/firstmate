@@ -5,13 +5,17 @@ import {
   quarantinesSource,
   type NeedsYouSnapshot,
   type DecisionAnswerOption,
+  type NeedsYouRequest,
 } from "../shared/needs-you";
 import { resolveInHome } from "./files";
 
 /** Conventional task briefs are optional. Ambiguous task ids cannot select a home file. */
-export async function decisionBriefs(home: string, snapshot: NeedsYouSnapshot) {
+export async function decisionBriefs(home: string, snapshot: {
+  requests: readonly Pick<NeedsYouRequest, "id" | "revision" | "source">[];
+  parked: NeedsYouSnapshot["parked"];
+}, budget = 512 * 1024) {
   const briefs: NonNullable<NeedsYouSnapshot["briefs"]> = [];
-  let remaining = 512 * 1024;
+  let remaining = budget;
   for (const request of snapshot.requests) {
     const id = request.source.taskId;
     if (
