@@ -305,6 +305,7 @@ function FleetViewBody({
       plans.finishNavigation?.("This task or worker is no longer available for this home. Refresh Plans and select the step again.");
       return;
     }
+    handoff.revealTask();
     setPlanFilter(request.plan);
     // The explicit handoff reveals the selected task even when other filters/folds hid it.
     save({ hostTab: target.card.remote ? target.card.remote.serverId ?? "all" : "local", tagFilter: [], boardCollapsed: false });
@@ -530,6 +531,9 @@ function FleetViewBody({
   }
 
   const banners: ReactNode[] = [];
+  if (home && plans.navigationNotice) {
+    banners.push(<Text key="workflow-navigation" accessibilityRole="alert" style={{ color: theme.colors.foregroundMuted }}>{plans.navigationNotice}</Text>);
+  }
   if (fleet.error !== null) {
     banners.push(<Banner key="error" theme={theme} tone="danger" text={errorText(fleet.error)} />);
   }
@@ -822,7 +826,6 @@ function FleetViewBody({
           Task layout settings could not be read. Saved settings have not been changed.
         </Text>
       ) : null}
-      {plans.navigationNotice ? <Text accessibilityRole="alert" style={{ color: theme.colors.foregroundMuted, padding: 12 }}>{plans.navigationNotice}</Text> : null}
       {hostCards.length > 0 && filteredCards.length === 0 ? (
         <Text style={{ color: theme.colors.foregroundMuted, padding: 12 }}>
           {planFilter ? "No items match the selected plan and filters on this host." : "No items match the selected tags on this host."}

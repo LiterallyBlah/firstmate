@@ -12,6 +12,8 @@ import { DEFAULT_TASK_LAYOUT } from "../shared/task-layout";
 import { workflowTaskRoute } from "./workflow-task-navigation";
 import { planSessionKey } from "./workflow-plan-state";
 import type { FleetShell, FleetView } from "./shell";
+import { drafts } from "./draft";
+import { pendingAttachments } from "./attachments";
 
 const state = vi.hoisted(() => ({ values: {} as DisplaySettings, fleet: null as Fleet | null, snapshot: {} as WorkflowSnapshot, save: vi.fn(async () => true), rpc: vi.fn() }));
 vi.mock("react-native", () => ({ Platform: { OS: "web" }, View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView" }));
@@ -31,7 +33,8 @@ vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: () => null, TextI
 }));
 vi.mock("./fleet-query", () => ({ FLEET_QUERY_KEY: ["fleet"], useFleet: () => ({ data: state.fleet, error: null, isFetching: false }) }));
 vi.mock("./needs-you-query", () => ({ NEEDS_YOU_QUERY_KEY: ["needs"], useNeedsYou: () => ({ data: state.fleet?.needsYou, error: null, isLoading: false }) }));
-vi.mock("./decision-drawer", () => ({ DecisionDrawer: (props: object) => createElement("DecisionDrawer", props) }));
+vi.mock("./decision-drawer", () => ({ DecisionDrawer: (props: ComponentProps<typeof import("./decision-drawer").DecisionDrawer>) =>
+  createElement("DecisionDrawer", props, createElement(PlanNeeds, { theme: props.theme, snapshot: props.snapshot })) }));
 vi.mock("./chat", () => ({ MateChat: (props: object) => createElement("MateChat", props) }));
 vi.mock("./ui", () => ({
   IconButton: (props: { label: string; onPress(): void; disabled?: boolean }) => createElement("Pressable", { accessibilityLabel: props.label, onPress: props.onPress, disabled: props.disabled }),
@@ -59,7 +62,7 @@ vi.mock("./resize-handle", () => ({ ResizeHandle: () => null }));
 vi.mock("./deck-setting-view", () => ({ SelectedDeckView: () => null }));
 vi.mock("./deck-scene-switcher", () => ({ DeckSceneSwitcher: () => null }));
 import { FleetSurface } from "./fleet";
-import { PlanChip, useWorkflowPlans, WorkflowSurface } from "./workflow-plans";
+import { PlanChip, PlanNeeds, useWorkflowPlans, WorkflowSurface } from "./workflow-plans";
 
 let renderer: ReactTestRenderer, client: QueryClient;
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
@@ -85,7 +88,11 @@ async function mount(width: number, options: { host?: string; view?: FleetView; 
   });
 }
 async function unmount() { await act(async () => renderer?.unmount()); client?.clear(); }
-afterEach(async () => { await unmount(); vi.clearAllMocks(); });
+const draftKeys = ["agent-mate", "converse:remote:lab-server-id:agent-task-worker"];
+afterEach(async () => {
+  await unmount(); vi.clearAllMocks();
+  for (const key of draftKeys) { drafts.set(key, ""); pendingAttachments.set(key, []); }
+});
 const list = () => renderer.root.findByType("TaskList" as never).props;
 const button = (label: string) => renderer.root.find(node => node.type === ("Pressable" as never) && node.props.accessibilityLabel === label);
 async function press(label: string) { await act(async () => button(label).props.onPress()); }
@@ -179,4 +186,77 @@ it("suppresses a card's duplicate plan link while that plan is the active filter
   expect(renderer.root.findAll(node => node.type === ("Pressable" as never) && node.props.accessibilityLabel?.startsWith("Open plan:"))).toHaveLength(0);
   await act(async () => renderer.root.findByType("Probe" as never).props.select(null));
   expect(renderer.root.findAll(node => node.type === ("Pressable" as never) && node.props.accessibilityLabel?.startsWith("Open plan:"))).toHaveLength(1);
+});
+
+function expectUsable(node: ReturnType<ReactTestRenderer["root"]["findByType"]>) {
+  for (let current: typeof node | null = node; current; current = current.parent) {
+    expect(current.props.pointerEvents).not.toBe("none");
+    expect(current.props["aria-hidden"]).not.toBe(true);
+    expect(current.props.accessibilityElementsHidden).not.toBe(true);
+    expect(current.props.importantForAccessibility).not.toBe("no-hide-descendants");
+    const styles = Array.isArray(current.props.style) ? current.props.style : [current.props.style];
+    expect(styles.some(style => style?.display === "none")).toBe(false);
+  }
+}
+function preserveUnsentMessages() {
+  const files = [{ id: "kept", kind: "file" as const, fileName: "notes.txt", mimeType: "text/plain", size: 5, data: "aGVsbG8=" }];
+  for (const key of draftKeys) { drafts.set(key, `Unsent ${key}\n`); pendingAttachments.set(key, files); }
+  return () => {
+    for (const key of draftKeys) { expect(drafts.get(key)).toBe(`Unsent ${key}\n`); expect(pendingAttachments.get(key)).toBe(files); }
+  };
+}
+
+it.each([[390, "Show task"], [1440, "Show task"], [390, "Converse"], [1440, "Converse"]] as const)(
+  "%s points: %s from a plan in Needs you reveals usable work without answering or clearing unsent messages", async (width, action) => {
+    const { plan, card } = fixture(), preserved = preserveUnsentMessages();
+    plan.status = "review";
+    state.fleet!.needsYou!.planNow = [{ plan: plan.definition.id, title: plan.definition.title, question: "Review this plan", waits: [], neededBy: [], recommendation: "Review" }];
+    const decisions = structuredClone(state.fleet!.needsYou);
+    await mount(width, { host: `needs-plan-${width}-${action}`, params: { decision: "all", decisionHome: "sample-home" } });
+    expect(renderer.root.findAllByType("DecisionDrawer" as never)).toHaveLength(1);
+    await press(`Review plan: ${plan.definition.title}`);
+    await press(action);
+    expect(list().reveal.card).toBe(card.key);
+    expect(renderer.root.findAllByType("DecisionDrawer" as never)).toHaveLength(0);
+    if (action === "Converse") {
+      const conversation = renderer.root.findByType("ConverseDrawer" as never);
+      expect(conversation.props.watchKey).toBe("remote:lab-server-id:agent-task-worker");
+      expectUsable(conversation);
+    } else {
+      expect(renderer.root.findAllByType("ConverseDrawer" as never)).toHaveLength(0);
+      expectUsable(renderer.root.findByType("TaskList" as never));
+    }
+    expect(state.fleet!.needsYou).toEqual(decisions); preserved();
+    expect(state.rpc.mock.calls.flat().every(name => ["firstmate.workflow.read", "firstmate.mate.targets", "firstmate.remotes.read"].includes(name))).toBe(true);
+  },
+);
+
+it("Show task from ordinary Home Plans remains usable without a decision drawer", async () => {
+  const { plan, card } = fixture(); await mount(390, { host: "ordinary-plan-control" });
+  await act(async () => renderer.root.findAll(node => node.type === ("Pressable" as never) && node.props.accessibilityLabel === "Plans")[0]!.props.onPress());
+  await press(`Open plan: ${plan.definition.title}`); await press("Show task");
+  expect(list().reveal.card).toBe(card.key);
+  expect(renderer.root.findAllByType("DecisionDrawer" as never)).toHaveLength(0);
+  expectUsable(renderer.root.findByType("TaskList" as never));
+});
+
+it.each([390, 1440])("a stale worker handoff shows recovery on the current Home Plans view at %s points", async width => {
+  fixture(); const host = `stale-on-plans-${width}`, request = workerRequest(host), preserved = preserveUnsentMessages();
+  state.values = { ...state.values, homePane: "plans" };
+  state.fleet!.cards[0]!.remote!.worker!.id = "replacement-worker";
+  await mount(width, { host, params: workflowTaskRoute(request).params });
+  expect(renderer.root.findAllByType("ConverseDrawer" as never)).toHaveLength(0);
+  expect(renderer.root.findAllByType("TaskList" as never)).toHaveLength(0);
+  const notice = renderer.root.find(node => node.type === ("Text" as never) && typeof node.props.children === "string" && node.props.children.includes("no longer available"));
+  expectUsable(notice); preserved();
+});
+
+it("the same stale worker handoff remains explained on Home List", async () => {
+  fixture(); const host = "stale-on-list-control", request = workerRequest(host);
+  state.values = { ...state.values, homePane: "board", crewView: "list" };
+  state.fleet!.cards[0]!.remote!.worker!.id = "replacement-worker";
+  await mount(390, { host, params: workflowTaskRoute(request).params });
+  expect(renderer.root.findAllByType("ConverseDrawer" as never)).toHaveLength(0);
+  const notice = renderer.root.find(node => node.type === ("Text" as never) && typeof node.props.children === "string" && node.props.children.includes("no longer available"));
+  expectUsable(notice);
 });
