@@ -49,7 +49,7 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
   const [selected, setSelected] = useState<{ id: string; hash: string } | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
   const gate = useRef(false), pending = useRef<{ id: string; serialized: string } | null>(null);
   const snapshot = query.data, plan = snapshot?.plans.find(p => p.definition.id === selected?.id);
-  const fleet = useFleet(5), data = fleet.isPlaceholderData ? undefined : fleet.data;
+  const fleet = useFleet(5, !!hostId), data = fleet.isPlaceholderData ? undefined : fleet.data;
   const scope = planSessionKey(hostId, data?.home, data?.mate?.id, snapshot?.homeId);
   const planFilter = usePlanBrowse(scope, state => state.filter);
   const [taskRequest, setTaskRequest] = useState(() => routeWorkflowTask(params));
@@ -187,12 +187,12 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
   </View>;
 }
 
-export function PlanChip({ card, theme }: { card: FleetCard; theme: PluginTheme }) {
+export function PlanChip({ card, theme, inHeader = false }: { card: FleetCard; theme: PluginTheme; inHeader?: boolean }) {
   const { snapshot, open, planFilter } = useWorkflowPlans(), plan = snapshot?.plans.find(p => (!p.definition.implicit || p.status === "review") && workflowOwnsCard(p, card));
   if (!plan || planFilter === plan.definition.id) return null;
   const label = `${plan.definition.title} · ${planSummary(plan, snapshot?.plans ?? []).progress}${plan.status === "review" && !planFinished(plan) ? " · awaiting approval" : ""}`;
-  return <Pressable accessibilityRole="button" accessibilityLabel={`Open plan: ${label}`} onPress={event => { event.stopPropagation(); open(plan.definition.id); }}
-    style={{ alignSelf: "flex-start", minWidth: 0, maxWidth: "100%", flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 6, paddingVertical: 3,
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Open plan: ${label}`} onPress={() => open(plan.definition.id)}
+    style={{ alignSelf: inHeader ? "center" : "flex-start", minWidth: 0, maxWidth: inHeader ? "35%" : "100%", flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 6, paddingVertical: 3,
       borderRadius: 5, borderWidth: 1, borderColor: theme.colors.border }}>
     <Icon name="ListTodo" size={11} color={theme.colors.foregroundMuted} />
     <Text numberOfLines={1} style={{ color: theme.colors.foregroundMuted, fontSize: 11, flexShrink: 1 }}>{label}</Text>
