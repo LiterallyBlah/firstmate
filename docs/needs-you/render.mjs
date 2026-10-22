@@ -103,7 +103,7 @@ async function pageAt(query, width = 1440) {
     await page.getByRole("heading", { name: "Deck", exact: true }).waitFor();
   else
     await page
-      .getByRole("button", { name: /^Needs you, \d+ decisions/ })
+      .getByRole("button", { name: /^Needs you, \d+ items/ })
       .waitFor();
   return page;
 }
