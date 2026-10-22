@@ -40,7 +40,7 @@ export async function checkPolish(pageAt, output) {
       assert.ok((await header.boundingBox()).height < 65, "desktop Home header occupies one row");
       assert.equal(await button(page, "Open Deck").count(), 0);
       await button(page, "Open").click();
-      for (const label of ["Open Deck", "Open Board", "Open Crew", "Open Chat", "Shared terminal", "New browser", "Terminal & browser"])
+      for (const label of ["Open Deck", "Open Board", "Open List", "Open Chat", "Shared terminal", "New browser", "Terminal & browser"])
         await button(page, label).waitFor();
       await page.getByRole("dialog", { name: "FirstMate workspace" }).getByRole("button", { name: "Close", exact: true }).click();
     }

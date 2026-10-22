@@ -34,7 +34,7 @@ export async function checkAnswers(pageAt, output) {
     assert.equal(await button(page, "Next decision").isDisabled(), true);
     await answer(page);
     await drawer(page).waitFor({ state: "detached" });
-    await heading(page, "Crew").waitFor();
+    await heading(page, "List").waitFor();
     await page.waitForFunction(() => document.activeElement?.id.startsWith("needs-you-"));
     await page.screenshot({ path: join(output, `last-answer-${suffix}.png`) });
     const sent = await page.evaluate(() => window.fixtureCalls.filter(c => c.name.endsWith(".answer")));
