@@ -10,6 +10,7 @@ import { converseKey, conversingWith } from "./converse-layout";
 import { activeDecisions, presentedTasks, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
 import { DecisionTask, DecisionQueueNote } from "./decision-tasks";
 import { PlanNeeds } from "./workflow-plans";
+import { webAttributes } from "./web";
 
 export interface TaskListProps {
   cards: readonly FleetCard[];
@@ -62,6 +63,7 @@ export function TaskList(props: TaskListProps) {
       <View testID="task-group-needs-you" style={{ gap: 6 }}>
         <Text
           accessibilityRole="header"
+          {...webAttributes({ "aria-level": "2" })}
           style={[heading, { color: snapshot?.actionCount ? theme.colors.statusWarning : theme.colors.foregroundMuted }]}
         >
           Needs you · {decisionCountText(snapshot, props.offline)}
@@ -83,14 +85,14 @@ export function TaskList(props: TaskListProps) {
         {snapshot?.actionCount === 0 && snapshot.freshness.status === "fresh" && !snapshot.planProblems?.length && !props.offline ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
       </View>
       <View testID="task-group-in-hand" style={{ gap: 8 }}>
-        <Text accessibilityRole="header" style={heading}>
+        <Text accessibilityRole="header" {...webAttributes({ "aria-level": "2" })} style={heading}>
           In hand · {tasks.filter((entry) => entry.summary.group === "in-hand").length}
         </Text>
         {(["first-mate", "worker", "parked", "unknown"] as TaskOwner[]).map((owner) => {
           const entries = tasks.filter((entry) => entry.summary.group === "in-hand" && entry.summary.owner === owner);
           return entries.length ? (
             <View key={owner}>
-              <Text accessibilityRole="header" style={{ ...heading, fontSize: 12, paddingVertical: 8 }}>
+              <Text accessibilityRole="header" {...webAttributes({ "aria-level": "3" })} style={{ ...heading, fontSize: 12, paddingVertical: 8 }}>
                 {OWNER_LABELS[owner]} · {entries.length}
                 {waitingOver30Minutes(entries) ? <Text style={{ color: theme.colors.statusWarning }}> · {waitingOver30Minutes(entries)} waiting over 30m</Text> : null}
               </Text>
@@ -104,19 +106,21 @@ export function TaskList(props: TaskListProps) {
           show = group === "done" ? props.showDone : props.showLater === true;
         return (
           <View key={group} testID={`task-group-${group}`}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${TASK_TITLES[group]} · ${entries.length}. ${show ? "Hide" : "Show"} tasks`}
-              accessibilityState={{ expanded: show, disabled: props.layoutDisabled === true }}
-              aria-expanded={show}
-              disabled={props.layoutDisabled === true}
-              onPress={() => (group === "done" ? props.onShowDone(!show) : props.onShowLater?.(!show))}
-              style={{ minHeight: 44, justifyContent: "center" }}
-            >
-              <Text style={heading}>
-                {TASK_TITLES[group]} · {entries.length} · {show ? "Hide" : "Show"}
-              </Text>
-            </Pressable>
+            <View accessibilityRole="header" {...webAttributes({ "aria-level": "2" })}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${TASK_TITLES[group]} · ${entries.length}. ${show ? "Hide" : "Show"} tasks`}
+                accessibilityState={{ expanded: show, disabled: props.layoutDisabled === true }}
+                aria-expanded={show}
+                disabled={props.layoutDisabled === true}
+                onPress={() => (group === "done" ? props.onShowDone(!show) : props.onShowLater?.(!show))}
+                style={{ minHeight: 44, justifyContent: "center" }}
+              >
+                <Text style={heading}>
+                  {TASK_TITLES[group]} · {entries.length} · {show ? "Hide" : "Show"}
+                </Text>
+              </Pressable>
+            </View>
             {show ? renderTasks(entries) : null}
           </View>
         );

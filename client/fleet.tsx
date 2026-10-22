@@ -641,14 +641,14 @@ function FleetViewBody({
     );
   const narrowHeader = !compact && width < 1000;
   const homeViewSegments = (selected: Tab | CrewView) => <>
-    <Segmented theme={theme} value={selected}
+    <Segmented theme={theme} compact={compact} value={selected}
       options={[
         { value: "list", label: "List", tooltip: "Show the tasks as a list grouped by urgency." },
         { value: "board", label: "Board", tooltip: "Show the same tasks in status columns." },
         { value: "deck", label: "Deck", tooltip: "Show the crew on deck beside the first mate." },
       ]}
       onChange={value => { if (value !== "chat") selectHomePane(value); setViewMenu(false); }} />
-    <Segmented theme={theme} value={selected}
+    <Segmented theme={theme} compact={compact} value={selected}
       options={[
         { value: "files", label: compact ? "Files" : "Home files", tooltip: "Browse and edit files in the FirstMate home." },
         { value: "plans", label: "Plans", tooltip: "Browse workflow runs, decisions, dependencies and budgets." },
@@ -665,7 +665,7 @@ function FleetViewBody({
       <View style={[styles.headerRow, { flexWrap: "nowrap" }]}>
         <Icon name="Ship" size={16} color={theme.colors.foreground} />
         <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "nowrap" }}>
-          <Text style={[styles.title, { fontSize: 17 }]}>FirstMate</Text>
+          <Text accessibilityRole="header" style={[styles.title, { fontSize: 17 }]}>FirstMate</Text>
           {compact ? null : attention}
           {compact || narrowHeader || attention === null || mateStatus === null ? null : <View style={styles.rule} />}
           {compact || narrowHeader ? null : mateStatus}
@@ -681,7 +681,7 @@ function FleetViewBody({
           </> : homeViewControl
         ) : null}
         {shell !== undefined ? (
-          <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} compact />
+          <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} compact phone={compact} />
         ) : null}
         <HeaderActions
           theme={theme}
@@ -866,9 +866,9 @@ function FleetViewBody({
             {mateStatus}
             <View style={styles.spacer} />
             {shell === undefined ? null : (
-              <IconButton theme={theme} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
+              <IconButton theme={theme} compact={compact} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
             )}
-            <IconButton theme={theme} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
+            <IconButton theme={theme} compact={compact} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
           </View>
           {compact ? attention : null}
         </View>
@@ -1004,9 +1004,9 @@ function FleetViewBody({
             <View style={styles.spacer} />
             {view === "deck" && deck ? <DeckSceneSwitcher theme={theme} compact={compact || width < 900} /> : null}
             {shell === undefined ? null : (
-              <IconButton theme={theme} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
+              <IconButton theme={theme} compact={compact} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
             )}
-            <IconButton theme={theme} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
+            <IconButton theme={theme} compact={compact} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
           </View>
           {compact ? attention : null}
         </View>
@@ -1032,12 +1032,12 @@ function FleetViewBody({
         )}
         <View style={{ flex: 1, minHeight: 0 }} onLayout={(event) => setPaneWidth(event.nativeEvent.layout.width)}>
           <DecisionPane>{view === "plans" ? (
-            <WorkflowPlansView theme={theme} showHeading={false} />
+            <WorkflowPlansView theme={theme} showHeading={false} compact={compact} />
           ) : view !== "deck" ? (
             crew
           ) : !deck ? (
             <Text style={styles.loading}>
-              Deck needs a wide web or desktop window. Open List or Board from FirstMate Home on this device.
+              Deck needs a web renderer. Open FirstMate Home’s List or Board on this device, or Home’s Deck in a web browser.
             </Text>
           ) : (
             inlineDeck
@@ -1054,7 +1054,7 @@ function FleetViewBody({
         {header}
         {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
         <View style={styles.tabs}>
-          <Segmented theme={theme} value={selected} options={[{ value: "chat", label: "First mate" }]} onChange={() => setTab("chat")} />
+          <Segmented theme={theme} compact value={selected} options={[{ value: "chat", label: "First mate" }]} onChange={() => setTab("chat")} />
           {homeViewSegments(selected)}
         </View>
         <View style={{ flex: 1, minHeight: 0 }}>
@@ -1065,7 +1065,7 @@ function FleetViewBody({
           ) : shownTab === "deck" ? (
             inlineDeck
           ) : shownTab === "plans" ? (
-            <WorkflowPlansView theme={theme} />
+            <WorkflowPlansView theme={theme} compact />
           ) : (
             <FilesView theme={theme} compact request={filesRequest} />
           )}

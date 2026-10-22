@@ -141,7 +141,7 @@ function DecisionGroup({ theme, label, count, children }: { theme: PluginTheme; 
   const colors = theme.colors;
   return <View testID="decision-group" style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, overflow: "hidden" }}>
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 12, backgroundColor: colors.surface2 }}>
-      <Text accessibilityRole="header" style={{ flex: 1, color: colors.foreground, fontSize: 14, fontWeight: "700" }}>{label}</Text>
+      <Text accessibilityRole="header" {...webAttributes({ "aria-level": "3" })} style={{ flex: 1, color: colors.foreground, fontSize: 14, fontWeight: "700" }}>{label}</Text>
       <Text accessibilityLabel={`${count} ${label}`} style={{ color: colors.foreground, fontSize: 13, fontWeight: "700",
         backgroundColor: colors.surface0, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 }}>{count}</Text>
     </View>
@@ -436,6 +436,7 @@ export function DecisionDrawer({
       <View
         style={{
           flexDirection: "row",
+          flexWrap: compact ? "wrap" : "nowrap",
           alignItems: "center",
           padding: compact ? 12 : 10,
           gap: 8,
@@ -448,25 +449,31 @@ export function DecisionDrawer({
           compact={compact}
           icon="ChevronLeft"
           label={nestedAll ? "Back to Needs you" : `Back to ${returnLabel}`}
-          text={nestedAll ? "Needs you" : returnLabel}
+          text={nestedAll ? "Needs you" : compact && returnLabel === "Home files" ? "Files" : returnLabel}
           onPress={nestedAll ? () => setAll(false) : onClose}
         />
-        <Text
-          nativeID={headingId}
-          {...webAttributes({ tabindex: "-1" })}
-          accessibilityRole="header"
-          style={{
-            color: colors.statusWarning,
-            fontSize: 13,
-            fontWeight: "600",
-            flex: 1,
-          }}
-        >
-          {all ? "All" : "Decisions"}
-          {!all && index >= 0 ? `  ${index + 1} of ${queue.length}` : ""}
-        </Text>
+        <View style={{ flex: 1, minWidth: compact ? 100 : undefined, flexDirection: compact ? "column" : "row", gap: compact ? 2 : 6 }}>
+          <Text
+            nativeID={headingId}
+            {...webAttributes({ tabindex: "-1", "aria-level": "2" })}
+            accessibilityRole="header"
+            style={{
+              color: colors.statusWarning,
+              fontSize: 13,
+              fontWeight: "600",
+              // This non-interactive heading takes focus to announce a new page.
+              // Button/input focus indicators remain owned by the renderer.
+              outlineWidth: 0,
+            }}
+          >
+            {all ? "All" : "Decisions"}
+          </Text>
+          {!all && index >= 0 ? <Text style={{ color: colors.statusWarning, fontSize: 13 }}>
+            {`${index + 1} of ${queue.length}`}
+          </Text> : null}
+        </View>
         {!all ? (
-          <>
+          <View style={{ flexDirection: "row", gap: 8, marginLeft: "auto" }}>
             <DecisionButton
               theme={theme}
               compact={compact}
@@ -492,7 +499,7 @@ export function DecisionDrawer({
               text="All"
               onPress={() => setAll(true)}
             />
-          </>
+          </View>
         ) : null}
       </View>
       {!all && planReviews > 0 ? (
@@ -721,8 +728,8 @@ function PlanDecisionDetails({ theme, request, snapshot, need, offline, compact,
   return <>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: compact ? 16 : 20, gap: 16, paddingBottom: 24 }}>
       {warning ? chrome : null}
-      <Text nativeID={heading} {...webAttributes({ tabindex: "-1" })} accessibilityRole="header"
-        style={{ color: colors.foreground, fontSize: 18, fontWeight: "600" }}>{request.source.title}</Text>
+      <Text nativeID={heading} {...webAttributes({ tabindex: "-1", "aria-level": "3" })} accessibilityRole="header"
+        style={{ color: colors.foreground, fontSize: 18, fontWeight: "600", outlineWidth: 0 }}>{request.source.title}</Text>
       {brief ? <DecisionBrief theme={theme} content={brief.content} answer={() => null} /> :
         <DecisionAsk theme={theme} source={request.source} homeId={snapshot.homeId!} onOpenFile={setFile} compact={compact} />}
       {!recommendation ? <View style={{ borderLeftWidth: 3, borderLeftColor: colors.accent, backgroundColor: colors.surface2, padding: 12, gap: 6, borderRadius: 8 }}>
@@ -1061,12 +1068,13 @@ function DecisionDetails({
         <View ref={heading}>
           <Text
             nativeID={headingId}
-            {...webAttributes({ tabindex: "-1" })}
+            {...webAttributes({ tabindex: "-1", "aria-level": "3" })}
             accessibilityRole="header"
             style={{
               color: colors.foreground,
               fontSize: 18,
               fontWeight: "600",
+              outlineWidth: 0,
             }}
           >
             {request.source.title}

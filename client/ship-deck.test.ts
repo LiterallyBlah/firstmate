@@ -416,11 +416,13 @@ describe("the deck's art", () => {
 });
 
 describe("the Deck on the screen", () => {
-  it("is offered in a web renderer on the wide layout, and nowhere else, with no switch to set", () => {
+  it("is offered on compact and wide web, with no native canvas support claimed", () => {
     expect(deckOffered("web", false)).toBe(true);
     expect(deckOffered("ios", false)).toBe(false);
     expect(deckOffered("android", false)).toBe(false);
-    expect(deckOffered("web", true)).toBe(false);
+    expect(deckOffered("web", true)).toBe(true);
+    expect(deckOffered("ios", true)).toBe(false);
+    expect(deckOffered("android", true)).toBe(false);
   });
 });
 

@@ -146,6 +146,7 @@ export function IconButton({
   tooltipAlign = "start",
   tooltipSide = "top",
   nativeID,
+  compact = false,
 }: {
   icon: string;
   label: string;
@@ -161,6 +162,8 @@ export function IconButton({
   tooltipSide?: "top" | "bottom";
   /** The element's id on the web, so focus can be handed back to it (`focusWebElement`). */
   nativeID?: string;
+  /** Use the shared 44-point phone target without changing desktop density. */
+  compact?: boolean;
 }) {
   const colors = theme.colors;
   const color =
@@ -170,6 +173,9 @@ export function IconButton({
       button: {
         flexDirection: "row" as const,
         alignItems: "center" as const,
+        justifyContent: compact ? "center" as const : undefined,
+        minHeight: compact ? 44 : undefined,
+        minWidth: compact ? 44 : undefined,
         gap: 6,
         paddingHorizontal: showLabel ? 10 : 7,
         paddingVertical: 6,
@@ -181,7 +187,7 @@ export function IconButton({
       },
       label: { color, fontSize: 12, fontWeight: "500" as const },
     }),
-    [colors, tone, disabled, showLabel, color],
+    [colors, tone, disabled, showLabel, color, compact],
   );
   return (
     <ControlTooltip
@@ -213,19 +219,21 @@ export function IconButton({
 
 /**
  * A two-or-more-way switch, drawn to sit in a row of `IconButton`s: the same
- * 28-point height (a 14-point icon, 6 points of padding each side, a 1-point
- * border), radius and border, with the selected segment in the accent colour.
+ * 28-point desktop height, or 44-point phone targets, with the selected segment
+ * in the accent colour.
  */
 export function Segmented<Value extends string>({
   theme,
   value,
   options,
   onChange,
+  compact = false,
 }: {
   theme: PluginTheme;
   value: Value;
   options: ReadonlyArray<{ value: Value; label: string; tooltip?: string; }>;
   onChange: (value: Value) => void;
+  compact?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -234,14 +242,16 @@ export function Segmented<Value extends string>({
     () => ({
       frame: {
         flexDirection: "row" as const,
-        height: 28,
+        height: compact ? 46 : 28,
         borderRadius: 8,
         borderWidth: 1,
         borderColor: colors.border,
         backgroundColor: colors.surface1,
       },
       segment: {
-        height: 26,
+        height: compact ? 44 : 26,
+        minWidth: compact ? 44 : undefined,
+        alignItems: "center" as const,
         justifyContent: "center" as const,
         paddingHorizontal: 12,
       },
@@ -249,7 +259,7 @@ export function Segmented<Value extends string>({
       label: { color: colors.foreground, fontSize: 12, fontWeight: "500" as const },
       labelSelected: { color: colors.accentForeground, fontWeight: "600" as const },
     }),
-    [colors],
+    [colors, compact],
   );
   return (
     <View

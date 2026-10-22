@@ -1,8 +1,7 @@
 /**
  * The ship deck: the crew as sailors on hull C's deck, drawn from the generated art by PixiJS on a WebGL
- * canvas in the right-hand pane. A standard part of the screen in the desktop app's wide layout
- * (`deckOffered`); a phone or a narrow window is not offered it, and a display without WebGL is told why
- * in words.
+ * canvas in the task pane or standalone Deck tab, on compact and wide web layouts
+ * (`deckOffered`). Native and displays without WebGL are told why they cannot draw it in words.
  *
  * It draws from the cards the board already has — `FleetSurface` passes them in from the shared fleet
  * query — so it polls nothing of its own. When that query fails, `stale` greys the whole crew: each

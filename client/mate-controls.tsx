@@ -21,6 +21,7 @@ import { focusWebElement } from "./web";
 
 export function MateControls({
   theme,
+  compact = false,
   onOpenConversation,
   usedTokens,
   maxTokens,
@@ -28,6 +29,7 @@ export function MateControls({
   onChanged,
 }: {
   theme: PluginTheme;
+  compact?: boolean;
   onOpenConversation?: (() => void) | undefined;
   usedTokens: number | null | undefined;
   maxTokens: number | null | undefined;
@@ -76,6 +78,7 @@ export function MateControls({
       <IconButton
         icon="Ellipsis"
         label="Session actions"
+        compact={compact}
         theme={theme}
         nativeID={triggerId}
         tooltip="Full conversation, Compact and Restart."

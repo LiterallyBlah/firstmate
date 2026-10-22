@@ -61,7 +61,7 @@ import { Markdown } from "./markdown";
 import { PermissionCard, usePendingRequests } from "./permission-card";
 import { Chip, IconButton, JumpToEnd, MONOSPACE, Segmented, Spinner, Tag, errorText } from "./ui";
 import { useAgentTimeline } from "./use-timeline";
-import { bindWebKeys } from "./web";
+import { bindWebKeys, webAttributes } from "./web";
 
 /** How much of a crewmate's history is read: its tail, this many entries long. */
 const TIMELINE_LIMIT = 200;
@@ -105,10 +105,11 @@ export function ConverseDrawer(props: DrawerProps) {
   const worker = target.kind === "thread" ? (workerKey === null ? null : converseTarget(workerKey)) : target;
   const itemKey = target.kind === "thread" ? target.itemKey : props.card === null ? null : itemTagKey(props.card);
   return (
-    <View style={{ flex: 1, minHeight: 0, backgroundColor: props.theme.colors.surface0 }}>
+    <View role="complementary" aria-label={`Conversation with ${props.card?.title ?? "Item conversation"}`}
+      style={{ flex: 1, minHeight: 0, backgroundColor: props.theme.colors.surface0 }}>
       {worker === null || itemKey === null ? null : (
         <View style={{ padding: 8 }}>
-          <Segmented theme={props.theme} value={discussion ? "discussion" : "worker"} options={[
+          <Segmented theme={props.theme} compact={props.compact} value={discussion ? "discussion" : "worker"} options={[
             { value: "worker", label: "Worker", tooltip: "Read and steer the worker." },
             { value: "discussion", label: "Item discussion", tooltip: "The saved discussion with the first mate." },
           ]} onChange={(value) => setDiscussion(value === "discussion")} />
@@ -311,7 +312,7 @@ function LocalConverse({ agentId, ...props }: DrawerProps & { agentId: string })
   return (
     <DrawerShell
       {...props}
-      transcriptSwitch={<TranscriptSwitch theme={theme} mode={mode} onChange={setMode} />}
+      transcriptSwitch={<TranscriptSwitch theme={theme} compact={compact} mode={mode} onChange={setMode} />}
       composer={
         card === null ? (
           <ComposerNote theme={theme} text="Ended. Its worktree is kept; ask the first mate to relaunch it." />
@@ -591,22 +592,21 @@ function DrawerShell({
   return (
     <View
       ref={root}
-      role="complementary"
-      aria-label={`Conversation with ${title}`}
       style={[styles.screen, { paddingBottom: keyboard }]}
     >
       <View style={styles.head}>
         <View style={styles.bar}>
           {docked ? null : (
-            <IconButton icon="ChevronLeft" label={backLabel} tooltip={`Back to ${backLabel} (Esc).`} showLabel theme={theme} onPress={onClose} />
+            <IconButton icon="ChevronLeft" label={backLabel} compact={compact} tooltip={`Back to ${backLabel} (Esc).`} showLabel theme={theme} onPress={onClose} />
           )}
-          <Text accessibilityRole="header" style={styles.title} numberOfLines={2}>
+          <Text accessibilityRole="header" {...webAttributes({ "aria-level": "2" })} style={styles.title} numberOfLines={2}>
             {title}
           </Text>
           {card === null ? null : (
             <IconButton
               icon="Ellipsis"
               label={details ? "Hide details and actions" : "Show details and actions"}
+              compact={compact}
               tooltip={details ? "Hide its details and actions." : "Its details, and Interrupt, Relaunch and End."}
               tooltipAlign="end"
               tooltipSide="bottom"
@@ -665,6 +665,7 @@ function DrawerShell({
             <IconButton
               icon="ExternalLink"
               label="Open in its own tab"
+              compact={compact}
               showLabel
               tooltip="Open this worker's native Paseo conversation tab. The Deck stays open. Messages sent there are not relayed to the first mate."
               tooltipAlign="end"
@@ -683,10 +684,12 @@ function DrawerShell({
 
 function TranscriptSwitch({
   theme,
+  compact,
   mode,
   onChange,
 }: {
   theme: PluginTheme;
+  compact: boolean;
   mode: "conversation" | "activity";
   onChange: (mode: "conversation" | "activity") => void;
 }) {
@@ -694,6 +697,7 @@ function TranscriptSwitch({
     <View style={{ flexDirection: "row" }}>
       <Segmented
         theme={theme}
+        compact={compact}
         value={mode}
         options={[
           { value: "conversation", label: "Conversation", tooltip: "What was said, tool calls folded." },
@@ -801,6 +805,7 @@ function Composer({
         </Text>
         <View style={{ flexDirection: "row", alignItems: "flex-end", borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.surface1 }}>
           <GrowingChatInput theme={theme}
+            compact={compact}
             value={draft}
             onChangeText={setDraft}
             placeholder={placeholder}
@@ -822,11 +827,12 @@ function Composer({
           />
           <View style={{ flexDirection: "row", gap: 4, padding: 5 }}>
             {running ? (
-              <IconButton icon="Square" label="Interrupt" tooltip="Stop this worker's current turn." tooltipAlign="end" theme={theme} onPress={onInterrupt} />
+              <IconButton icon="Square" label="Interrupt" compact={compact} tooltip="Stop this worker's current turn." tooltipAlign="end" theme={theme} onPress={onInterrupt} />
             ) : null}
             <IconButton
               icon="Send"
               label={sendLabel}
+              compact={compact}
               tooltip={disabledReason ?? (sending ? "Wait for the message on its way." : sendTooltip)}
               tooltipAlign="end"
               tone="accent"

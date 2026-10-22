@@ -332,10 +332,10 @@ export function deckLayers(
 }
 
 /**
- * Whether the screen offers the Deck: in a web renderer (the desktop app), on the wide layout, where it
- * takes the right-hand pane. Not on a phone or in a narrow window; a renderer without WebGL is offered it
+ * Whether the screen offers the Deck: in a web renderer, including compact web. Native
+ * renderers cannot mount the canvas; a web renderer without WebGL is offered it
  * and says in words why it cannot draw (`deckStatusText`).
  */
-export function deckOffered(os: string, compact: boolean): boolean {
-  return os === "web" && !compact;
+export function deckOffered(os: string, _compact: boolean): boolean {
+  return os === "web";
 }

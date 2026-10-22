@@ -10,7 +10,7 @@ export const conversingWith = (card: FleetCard, key: string | null): boolean =>
 
 /** The drawer's width when it docks beside a surface, and the least that surface keeps beside it. */
 export const DRAWER_WIDTH = 380;
-export const DRAWER_MIN_SURFACE = 300;
+export const DRAWER_MIN_SURFACE = 520;
 
 /** Whether a pane this wide fits the drawer beside its surface; otherwise the drawer takes the pane. */
 export function drawerDocks(paneWidth: number): boolean {

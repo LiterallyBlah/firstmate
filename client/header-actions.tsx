@@ -72,6 +72,7 @@ export function HeaderActions({
               theme={theme}
               icon="Ellipsis"
               label="More"
+              compact={compact}
               nativeID={triggerId}
               showLabel
               tone={recovering || attention.failing ? "danger" : "default"}

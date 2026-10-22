@@ -504,6 +504,7 @@ export function MateChat({
               <IconButton
                 icon="Compass"
                 label="Bearings"
+                compact={compact}
                 tooltip="Ask for a fresh fleet overview from saved records and live crew."
                 showLabel={toolbarWidth >= 400}
                 theme={theme}
@@ -513,6 +514,7 @@ export function MateChat({
               <IconButton
                 icon="Anchor"
                 label="Ahoy"
+                compact={compact}
                 tooltip="Recap this conversation and walk through open decisions. First contact gives Bearings."
                 showLabel={toolbarWidth >= 400}
                 theme={theme}
@@ -522,6 +524,7 @@ export function MateChat({
             </View>
             <MateControls
               theme={theme}
+              compact={compact}
               onOpenConversation={
                 navigation === undefined ? undefined : () => navigation.openAgent({ agentId: mate.id })
               }
@@ -538,6 +541,7 @@ export function MateChat({
                   key={attachment.id}
                   attachment={attachment}
                   theme={theme}
+                  compact={compact}
                   onRemove={() =>
                     setAttachments(pendingAttachments.get(mate.id).filter((kept) => kept.id !== attachment.id))
                   }
@@ -548,6 +552,8 @@ export function MateChat({
           <View style={styles.inputRow}>
             <GrowingChatInput
               theme={theme}
+              compact={compact}
+              accessibilityLabel="Message the first mate"
               value={draft}
               onChangeText={setDraft}
               placeholder={placeholder}
@@ -567,11 +573,12 @@ export function MateChat({
             />
             <View style={styles.inputActions}>
               {canAttachFiles ? (
-                <IconButton icon="Paperclip" label="Attach files or images" theme={theme} onPress={openPicker} />
+                <IconButton icon="Paperclip" label="Attach files or images" compact={compact} theme={theme} onPress={openPicker} />
               ) : null}
               <IconButton
                 icon="Send"
                 label="Send"
+                compact={compact}
                 tone="accent"
                 theme={theme}
                 disabled={sending || !hasContent(draft, attachments)}
@@ -618,10 +625,12 @@ function SentImages({ images, theme }: { images: readonly ImagePart[]; theme: Pl
 function AttachmentChip({
   attachment,
   theme,
+  compact,
   onRemove,
 }: {
   attachment: PendingAttachment;
   theme: PluginTheme;
+  compact: boolean;
   onRemove: () => void;
 }) {
   const { colors } = theme;
@@ -652,9 +661,10 @@ function AttachmentChip({
       text: { flexShrink: 1 },
       name: { color: colors.foreground, fontSize: 12 },
       size: { color: colors.foregroundMuted, fontSize: 10 },
-      remove: { padding: 4 },
+      remove: { padding: 4, minHeight: compact ? 44 : undefined, minWidth: compact ? 44 : undefined,
+        alignItems: "center" as const, justifyContent: "center" as const },
     }),
-    [colors],
+    [colors, compact],
   );
   return (
     <View style={styles.chip}>
