@@ -70,3 +70,28 @@ original `.local/tabs-review/` and its screenshots are untouched. Its copied pre
 in this worktree bundles the current real components with synthetic host APIs:
 `node .local/tabs-review/serve.mjs 48843`. It makes no daemon calls or real sends.
 No plugin was installed/reloaded and Paseo was not restarted.
+
+The initial independent Astra review found one P2 recovery case at
+`5a9cd97bed0d7dbc24e3cc97538b90844552defc`: compact Home's List with a worker's
+Converse open selected Board after unreadable-hold Open Board, but retained Converse
+and left the task board hidden. The unchanged review probe reproduced that failure
+here; its Board-with-Converse and List-without-Converse controls passed. The added
+committed regression also failed only for List with Converse before the fix.
+
+The explicit Board handoff now calls the existing conversation-close helper. This
+clears both the active and remembered selection; ordinary List/Board switching is
+unchanged. The three cases now pass. A fourth focused test checks ordinary switches
+retain the worker conversation, recovery/remount keep it closed, the Done choice
+survives, the same worker can reopen, and existing worker/mate draft text and shared
+attachment entries remain intact. The attachment check covers store preservation,
+not a claim that Converse exposes an attachment picker.
+
+The narrow follow-up passes all 88 affected tests across the same seven files,
+typecheck, and the Paseo 0.11.0 / RN Hermes bundle check (1,008,021 client bytes,
+zero class syntax). Self-review covered the complete follow-up diff: one production
+state-helper call, the regression cases and this evidence. The prior independent
+review evidence and unrelated Windows timeout baseline remain valid and preserved;
+no broader suite or general review was repeated. Before/after probe and regression
+logs, affected checks, typecheck, bundle and rebuilt synthetic preview evidence are
+in `.local/tabs-discuss/p2-converse/`. Fresh captures remain deferred as above; no
+browser attempt, install, reload or merge was made for this correction.

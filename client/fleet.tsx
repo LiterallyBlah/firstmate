@@ -285,6 +285,7 @@ function FleetViewBody({
     if (openedBoardRequest.current === handoff.boardRequest) return;
     openedBoardRequest.current = handoff.boardRequest;
     selectHomePane("board");
+    setWatching(null);
     // A narrowed desktop may not have measured its compact width yet.
     setTab("board", true);
     if (values.boardCollapsed) save({ boardCollapsed: false });
