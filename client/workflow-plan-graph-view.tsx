@@ -63,14 +63,14 @@ export function WorkflowPlanGraph({ plan, plans, theme, onOpen, onList }: {
     <ScrollView ref={scroller} horizontal nestedScrollEnabled onLayout={event => setViewportWidth(event.nativeEvent.layout.width)}
       accessibilityLabel={`Dependency graph: ${plan.definition.title}`} contentContainerStyle={{ flexGrow: 1 }}>
       <View testID={`workflow-graph-canvas-${plan.definition.id}`} style={{ width: graph.width, height: graph.height, marginHorizontal: "auto" }}>
-        {graph.levels.map((level, i) => <Text key={i} style={{ ...meta, position: "absolute", zIndex: 1, backgroundColor: colors.surface1, paddingRight: 6,
-          top: i * GRAPH_CARD.stage + 6, left: Math.max(0, (graph.width - viewportWidth) / 2) }}>
-          Level {i + 1}{level.length > 1 && !graph.incomplete ? ` · ${level.length} can run in parallel` : ""}
+        {graph.levels.map((level, i) => <Text key={i} numberOfLines={2} style={{ ...meta, position: "absolute", lineHeight: 14,
+          top: i * GRAPH_CARD.stage + 2, left: level[Math.floor((level.length - 1) / 2)]!.x + GRAPH_CARD.width / 2 + 8, width: GRAPH_CARD.width / 2 - 8 }}>
+          Level {i + 1}{level.length > 1 && !graph.incomplete ? `\n${level.length} independent` : ""}
         </Text>)}
         {[...graph.edges].sort((a, b) => Number(a.node === selected || a.to === selected) - Number(b.node === selected || b.to === selected)).map(edge =>
           <Edge key={`${edge.node}:${edge.to}`} edge={edge} theme={theme} active={edge.node === selected || edge.to === selected} dim={!!selected && edge.node !== selected && edge.to !== selected} />)}
         {graph.nodes.map(entry => {
-          const state = entry.node && entry.plan ? stepState(entry.plan, entry.node, plans) : "unavailable";
+          const state = entry.removed ? "removed" : entry.node && entry.plan ? stepState(entry.plan, entry.node, plans) : "unavailable";
           const kind = !entry.node ? "Prerequisite" : entry.node.kind === "decision" ? "Decision" : entry.node.launch.kind === "scout" ? "Scout / review" : "Build";
           return <Pressable key={entry.id} testID={`workflow-node-${entry.id}`} accessibilityRole="button"
             accessibilityLabel={`Step: ${entry.title} · ${state}`} accessibilityHint="Show step details and dependencies"
@@ -87,10 +87,10 @@ export function WorkflowPlanGraph({ plan, plans, theme, onOpen, onList }: {
     <Modal title={current?.title ?? "Step details"} open={details && !!current} onOpenChange={setDetails}>
       <Modal.Content>
         {current?.node && current.plan ? <View style={{ gap: 10 }}>
-          <Text style={{ color: stateInk(stepState(current.plan, current.node, plans), theme), fontSize: 13 }}>{stepState(current.plan, current.node, plans)}</Text>
+          <Text style={{ color: stateInk(current.removed ? "removed" : stepState(current.plan, current.node, plans), theme), fontSize: 13 }}>{current.removed ? "Removed from this plan; retained as a prerequisite." : stepState(current.plan, current.node, plans)}</Text>
           <Text selectable style={{ color: colors.foreground, fontSize: 13 }}>{current.node.summary}</Text>
           {current.external ? <Text style={meta}>From plan: {current.plan.definition.title}</Text> : null}
-          {current.node.kind === "run" && current.plan.nodes[current.id]?.state === "running" ? <Text selectable style={meta}>
+          {!current.removed && current.node.kind === "run" && current.plan.nodes[current.id]?.state === "running" ? <Text selectable style={meta}>
             Worker: {(current.plan.nodes[current.id]?.launch ?? current.node.launch).agentTitle} {current.plan.nodes[current.id]?.agentId ?? ""} · Host: {(current.plan.nodes[current.id]?.launch ?? current.node.launch).host}
           </Text> : null}
           {current.node.kind === "decision" ? <Text style={meta}>

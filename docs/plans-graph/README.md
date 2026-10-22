@@ -5,9 +5,14 @@ steps at the same depth have no dependency path and can run in parallel when the
 and approval permit. Reviews and decisions remain separate nodes. External ancestors are included
 and labelled Other plan, so a path through another plan cannot create false parallelism.
 Unavailable prerequisites are explicit, and parallel claims are suppressed for incomplete topology.
+Removed prerequisites use their retained title and a removed label, without treating their historical
+dependencies as current routes. Level counts say "independent" even for completed or external work.
 
 Native View borders draw directed connectors without extra runtime dependencies. Reason colours
-and line patterns share a legend; selecting a node highlights its incident edges and opens a host
+and line patterns share a legend. Each source has its own horizontal routing height, long-edge arrivals
+have separate heights, and incoming ports spread across the left half of their target; unrelated routes
+cannot merge into shared segments or align entry/exit stubs. Level labels occupy the right half of a
+card header, clear of those incoming ports. Selecting a node highlights its incident edges and opens a host
 dialog containing its full state, summary, dependency reasons and required outcomes, recommendation
 or answer, and running worker/host details. Open plan details uses the existing plan dialog.
 Browsing reads the existing WorkflowSurface snapshot and records no action.

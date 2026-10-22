@@ -100,7 +100,11 @@ These display rules do not change durable plans or actions.
 Expanded Plans now default to the read-only Graph, with the existing List behind a segmented toggle.
 `client/workflow-plan-graph.ts` computes longest-path levels over every local node and its external
 ancestors, preserving dependency reason/outcome and routing long edges outside the cards. The graph
-shows reviews as independent nodes; only List folds them into build chips. `workflow-plan-graph-view.tsx`
+separates source exit heights, long-edge arrival heights and target ports to avoid false shared buses.
+Level labels sit in the right half of a card's header, away from the left-half incoming ports, and
+count independent steps rather than claiming landed/external work can run now. Removed prerequisites
+keep their retained title and a removed label; their historical edges are not current routes.
+The graph shows reviews as independent nodes; only List folds them into build chips. `workflow-plan-graph-view.tsx`
 uses native primitives and the host Modal for details, with the existing open-plan handler. Same-level
 nodes have no dependency path and are labelled parallel, conditional on prerequisites/approval;
 missing prerequisites suppress that claim. Cycles, more than 60 nodes (including external ancestors),

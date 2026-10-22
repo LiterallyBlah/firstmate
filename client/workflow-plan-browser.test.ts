@@ -142,7 +142,7 @@ it("defaults to graph, exposes parallelism and edge reasons, opens step details 
   await act(async () => button(`Expand plan: ${plan.definition.title}`).props.onPress());
   expect(renderer.root.findAll(n => n.props.testID?.startsWith("workflow-node-"))).toHaveLength(5);
   expect(renderer.root.findAll(n => n.props.testID?.startsWith("workflow-edge-"))).toHaveLength(5);
-  for (const text of ["2 can run in parallel", "builds-on", "needs-evidence", "shared-state", "decision", "running", "done", "landed", "Decision", "Scout / review"]) expect(renderedText()).toContain(text);
+  for (const text of ["2 independent", "builds-on", "needs-evidence", "shared-state", "decision", "running", "done", "landed", "Decision", "Scout / review"]) expect(renderedText()).toContain(text);
   await act(async () => button("Step: Choose the rollout · waiting on Build the independent adapter").props.onPress());
   expect(renderedText()).toContain("Recommended"); expect(renderedText()).toContain("SQLite");
   expect(renderedText()).toContain("shares mutable state"); expect(renderedText()).toContain("once done");
@@ -176,4 +176,15 @@ it("renders held, invalidated, failed and planned states, and falls back without
   expect(renderedText()).toContain("cycle prevents a graph");
   await act(async () => button("Show steps as list").props.onPress());
   expect(renderer.root.findAll(n => n.props.testID?.startsWith("workflow-step-"))).toHaveLength(5);
+});
+
+it("names removed prerequisites and opens their retained details without an unavailable-data warning", async () => {
+  const plan = planGraphFixture(), node = plan.definition.nodes.shift()!;
+  plan.removed = [{ node, state: plan.nodes[node.id]! }]; delete plan.nodes[node.id];
+  const { onOpen } = await mount(snapshot([plan]));
+  await act(async () => button(`Expand plan: ${plan.definition.title}`).props.onPress());
+  expect(renderedText()).not.toContain("Parallelism cannot be confirmed");
+  await act(async () => button(`Step: ${node.title} · removed`).props.onPress());
+  expect(renderedText()).toContain("Removed from this plan; retained as a prerequisite.");
+  expect(onOpen).not.toHaveBeenCalled();
 });

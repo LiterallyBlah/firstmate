@@ -13,6 +13,8 @@ ship deliverable awaiting landing. Expand a plan for a dependency graph and its 
 review and decision is a node; arrows lead from prerequisites to dependent steps, with dependency
 reasons distinguished in the legend and step details. Steps at the same level can run in parallel
 when their prerequisites and approval allow. Prerequisites from other plans are included and labelled.
+Removed prerequisites retain their titles and are labelled removed. Level counts describe independent
+steps, including completed work; separate connector routes preserve each recorded dependency.
 Select a node for its full state, summary and dependencies, or open the existing plan dialog.
 The **Graph / List** toggle keeps the compact list with review chips available for dense plans;
 graphs over 60 nodes or 120 dependencies offer a List fallback. Wider graphs scroll sideways,

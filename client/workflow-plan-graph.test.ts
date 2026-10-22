@@ -1,7 +1,42 @@
 import { expect, it } from "vitest";
 import { planGraphFixture } from "../test/plan-graph-fixture";
 import { compactPlansFixture } from "../test/compact-plans-fixture";
-import { GRAPH_CARD, planGraph } from "./workflow-plan-graph";
+import { GRAPH_CARD, planGraph, type GraphEdge } from "./workflow-plan-graph";
+
+const segments = (edge: GraphEdge) => edge.points.slice(1).map((b, i) => ({ a: edge.points[i]!, b }));
+function sharesSegment(first: GraphEdge, second: GraphEdge) {
+  const overlap = (a: number, b: number, c: number, d: number) => Math.min(Math.max(a, b), Math.max(c, d)) - Math.max(Math.min(a, b), Math.min(c, d)) > 0.001;
+  return segments(first).some(p => segments(second).some(q =>
+    p.a.y === p.b.y && q.a.y === q.b.y && p.a.y === q.a.y && overlap(p.a.x, p.b.x, q.a.x, q.b.x) ||
+    p.a.x === p.b.x && q.a.x === q.b.x && p.a.x === q.a.x && overlap(p.a.y, p.b.y, q.a.y, q.b.y)));
+}
+
+it("keeps crossed independent chains from sharing connector segments", () => {
+  const plan = planGraphFixture(), source = plan.definition.nodes[0]!;
+  plan.definition.nodes = ["a", "b", "c", "d"].map(id => ({ ...source, id, after: id === "c" || id === "d" ?
+    [{ node: id === "c" ? "b" : "a", reason: "builds-on", on: "done" }] : [] }));
+  const graph = planGraph(plan, [plan]);
+  expect(graph.edges).toHaveLength(2);
+  expect(sharesSegment(graph.edges[0]!, graph.edges[1]!)).toBe(false);
+});
+
+it("keeps Starpath routes from different sources separate, including aligned entry and exit stubs", () => {
+  const plans = compactPlansFixture(), graph = planGraph(plans[0]!, plans);
+  for (const edge of graph.edges) for (const other of graph.edges) if (edge.node !== other.node) {
+    expect(sharesSegment(edge, other), `${edge.node} → ${edge.to} shares ${other.node} → ${other.to}`).toBe(false);
+    expect(edge.points.at(-1)!.x, `${edge.node} → ${edge.to} enters on ${other.node}'s exit`).not.toBeCloseTo(other.points[0]!.x);
+  }
+});
+
+it("retains a removed prerequisite's title and identifies it without marking the graph incomplete", () => {
+  const plan = planGraphFixture(), node = plan.definition.nodes.shift()!, state = plan.nodes[node.id]!;
+  node.after = [{ node: "historical", reason: "builds-on", on: "done" }];
+  plan.removed = [{ node, state }]; delete plan.nodes[node.id];
+  const graph = planGraph(plan, [plan]);
+  expect(graph.nodes.find(n => n.id === node.id)).toMatchObject({ title: node.title, removed: true, node });
+  expect(graph.incomplete).toBe(false);
+  expect(graph.nodes.some(n => n.id === "historical")).toBe(false);
+});
 
 it("layers an out-of-order diamond by longest prerequisite path and preserves directed reasons/outcomes", () => {
   const plan = planGraphFixture(); plan.definition.nodes.reverse();
