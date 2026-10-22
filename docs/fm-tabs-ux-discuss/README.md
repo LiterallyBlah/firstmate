@@ -36,7 +36,14 @@ Verification:
 - No local full suite: the captain's 12 October standing rule specifies affected
   tests, typecheck and repository CI for this UI batch. CI configuration is unchanged.
 
-Fresh visual verification is **pending**. Paseo `browser_new_tab` returned structured
+The first CI push run caught a frame/content mistake in this change: the drawer's
+outer cover had been capped at 760 points. The existing geometry assertion expected
+the whole 900-point pane. The cap now applies to scroll content while the outer cover
+keeps its full pane width. That assertion and all check limits are unchanged; the
+original failure is retained in `.local/tabs-discuss/ci-push-failure.log`.
+
+Fresh visual verification is **pending**, deferred by the captain until later rather
+than waived. Paseo `browser_new_tab` returned structured
 `browser_no_host` / `No browser automation host is connected.` twice, and again on the
 single fresh attempt authorized after desktop connection was confirmed. No tab was
 created. No Playwright fallback was used. The unchanged audit screenshots are baseline

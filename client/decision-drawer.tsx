@@ -60,6 +60,8 @@ import { errorText } from "./format";
 import { PlanNeeds, WORKFLOW_QUERY_KEY, workflowRequestId } from "./workflow-plans";
 import { DecisionTask } from "./decision-tasks";
 
+const readableContent = { width: "100%" as const, maxWidth: 760, alignSelf: "center" as const };
+
 export function DecisionButton({
   theme,
   label,
@@ -426,9 +428,6 @@ export function DecisionDrawer({
       style={{
         flex: 1,
         minHeight: 0,
-        width: "100%",
-        maxWidth: 760,
-        alignSelf: "center",
         paddingBottom: keyboard,
         backgroundColor: colors.surface0,
         borderLeftWidth: 1,
@@ -532,7 +531,7 @@ export function DecisionDrawer({
       ) : null}
       {all ? (
         <ScrollView
-          contentContainerStyle={{ padding: 16, gap: 24 }}
+          contentContainerStyle={{ ...readableContent, padding: 16, gap: 24 }}
           style={{ flex: 1 }}
         >
           {failure ? chrome : null}
@@ -605,7 +604,7 @@ export function DecisionDrawer({
           chrome={chrome}
         />
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+        <ScrollView contentContainerStyle={{ ...readableContent, padding: 16, gap: 16 }}>
           {chrome}
           <PlanNeeds theme={theme} snapshot={snapshot} />
           {sameHome && snapshot?.freshness.status === "fresh" && !offline &&
@@ -716,7 +715,7 @@ function PlanDecisionDetails({ theme, request, snapshot, need, offline, compact,
   // Authored prose is context; only the current plan's options authorize an answer.
   const recommendation = brief ? parseDecisionBrief(brief.content).recommendation : "";
   return <>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: compact ? 16 : 20, gap: 16, paddingBottom: 24 }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ ...readableContent, padding: compact ? 16 : 20, gap: 16, paddingBottom: 24 }}>
       {warning ? chrome : null}
       <Text nativeID={heading} {...webAttributes({ tabindex: "-1" })} accessibilityRole="header"
         style={{ color: colors.foreground, fontSize: 18, fontWeight: "600" }}>{request.source.title}</Text>
@@ -1024,6 +1023,7 @@ function DecisionDetails({
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
+          ...readableContent,
           padding: compact ? 16 : 20,
           gap: 16,
           paddingBottom: 24,
