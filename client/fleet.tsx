@@ -80,6 +80,7 @@ import { taskPresentation } from "./task-presentation";
 import { WorkflowSurface, PlansControl, useWorkflowPlans } from "./workflow-plans";
 import { WorkflowPlansView } from "./workflow-plan-browser";
 import { workflowOwnsCard } from "../shared/workflow-identity";
+import { workflowTaskTarget } from "./workflow-task-navigation";
 
 export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
@@ -118,7 +119,7 @@ type FleetSurfaceProps = PluginScreenProps & {
 export function FleetSurface(props: FleetSurfaceProps) {
   const key = JSON.stringify([props.host?.id, props.workspaceId, props.view ?? "home"]);
   return (
-    <WorkflowSurface theme={props.theme}><DecisionSurface shell={props.shell} view={props.view} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
+    <WorkflowSurface key={key} theme={props.theme} hostId={props.host?.id} view={props.view} shell={props.shell} params={props.params}><DecisionSurface shell={props.shell} view={props.view} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
       <FleetViewBody {...props} stateKey={key} />
     </DecisionSurface></WorkflowSurface>
   );
@@ -137,7 +138,10 @@ function FleetViewBody({
 }: FleetSurfaceProps & { stateKey: string }) {
   const home = view === undefined;
   const plans = useWorkflowPlans();
-  const [planFilter, setPlanFilter] = useState<string | null>(null);
+  const planFilter = plans.planFilter ?? null;
+  const setPlanFilter = (id: string | null) => plans.setPlanFilter?.(id);
+  const [revealedTask, setRevealedTask] = useState<{ card: string; request: object } | null>(null);
+  useEffect(() => { setRevealedTask(null); }, [plans.scope]);
   const decisionOpen = useDecisionPaneOpen();
   const handoff = useDecisionHandoff();
   const discussionReturnTab = useRef<Tab>(cachedTab);
@@ -290,6 +294,26 @@ function FleetViewBody({
     setTab("board", true);
     if (values.boardCollapsed) save({ boardCollapsed: false });
   }, [home, handoff.boardRequest, display.status]);
+
+  useEffect(() => {
+    const request = plans.taskRequest;
+    if (!home || !request || display.status !== "ready" || !plans.scope || !plans.snapshot || !data) return;
+    const plan = plans.snapshot.plans.find(plan => plan.definition.id === request.plan);
+    const node = plan?.definition.nodes.find(node => node.id === request.node);
+    const target = plan && node ? workflowTaskTarget(plan, node, data.cards) : null;
+    if (request.scope !== plans.scope || plans.error || fleet.error || target?.card?.key !== request.card || (request.worker && target.worker !== request.worker)) {
+      plans.finishNavigation?.("This task or worker is no longer available for this home. Refresh Plans and select the step again.");
+      return;
+    }
+    setPlanFilter(request.plan);
+    // The explicit handoff reveals the selected task even when other filters/folds hid it.
+    save({ hostTab: target.card.remote?.serverId ?? "local", tagFilter: [], boardCollapsed: false });
+    selectHomePane("list");
+    setTab("board", true);
+    setRevealedTask({ card: request.card, request });
+    setWatching(request.worker ?? null);
+    plans.finishNavigation?.();
+  }, [home, plans.taskRequest, plans.scope, plans.snapshot, display.status, data, fleet.error]);
 
   function setTab(next: Tab, keepConversation = false): void {
     if (next === "board" && tab === "board" && !keepConversation) setWatching(null);
@@ -798,6 +822,7 @@ function FleetViewBody({
           Task layout settings could not be read. Saved settings have not been changed.
         </Text>
       ) : null}
+      {plans.navigationNotice ? <Text accessibilityRole="alert" style={{ color: theme.colors.foregroundMuted, padding: 12 }}>{plans.navigationNotice}</Text> : null}
       {hostCards.length > 0 && filteredCards.length === 0 ? (
         <Text style={{ color: theme.colors.foregroundMuted, padding: 12 }}>
           {planFilter ? "No items match the selected plan and filters on this host." : "No items match the selected tags on this host."}
@@ -807,7 +832,8 @@ function FleetViewBody({
         <TaskList
           cards={filteredCards}
           allCards={data.cards}
-          filtered={hostTab !== "all" || values.tagFilter.length > 0}
+          filtered={hostTab !== "all" || values.tagFilter.length > 0 || planFilter !== null}
+          reveal={revealedTask}
           snapshot={decisions.data}
           offline={decisions.error !== null}
           showLater={!taskLayout.values.laterCollapsed}
@@ -829,7 +855,7 @@ function FleetViewBody({
         <TaskBoard
           cards={filteredCards}
           allCards={data.cards}
-          filtered={hostTab !== "all" || values.tagFilter.length > 0}
+          filtered={hostTab !== "all" || values.tagFilter.length > 0 || planFilter !== null}
           snapshot={decisions.data}
           offline={decisions.error !== null}
           theme={theme}

@@ -1,13 +1,14 @@
 /** One scroll container; ledger decisions are global, ordinary tasks remain filtered. */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
 import type { FleetCard } from "../shared/fleet";
 import type { BoardDensity } from "../shared/settings";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { decisionCountText } from "./needs-you-state";
 import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
-import { activeDecisions, presentedTasks, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
+import { activeDecisions, presentedTasks, taskSourceKey, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
 import { DecisionTask, DecisionQueueNote } from "./decision-tasks";
 import { PlanNeeds } from "./workflow-plans";
 
@@ -28,32 +29,50 @@ export interface TaskListProps {
   onShowLater?(show: boolean): void;
   layoutDisabled?: boolean;
   filtered?: boolean;
+  reveal?: { card: string; request: object } | null;
 }
 export function TaskList(props: TaskListProps) {
   const { cards, snapshot, theme, compact } = props;
   const requests = activeDecisions(snapshot),
     tasks = presentedTasks(cards, snapshot);
   const heading = { color: theme.colors.foregroundMuted, fontSize: 13, fontWeight: "600" as const };
+  const scroller = useRef<ScrollView>(null), target = useRef<View>(null), scrolled = useRef<object | null>(null);
+  function scrollToTask() {
+    if (!props.reveal || scrolled.current === props.reveal.request || !target.current || !scroller.current) return;
+    const request = props.reveal.request;
+    target.current.measureLayout(scroller.current.getInnerViewNode(), (_x, y) => {
+      scroller.current?.scrollTo({ y: Math.max(0, y - 8), animated: false }); scrolled.current = request;
+    }, () => {});
+  }
+  useEffect(scrollToTask, [props.reveal]);
+  const revealed = (props.allCards ?? cards).find(card => card.key === props.reveal?.card);
+  const revealGroup = tasks.find(entry => entry.card.key === props.reveal?.card)?.summary.group ?? null;
+  const [revealedGroup, setRevealedGroup] = useState(revealGroup);
+  useEffect(() => { setRevealedGroup(revealGroup); }, [props.reveal?.request, revealGroup]);
   function renderTasks(entries: typeof tasks) {
     return entries.map(({ card, summary }) => (
-      <CrewCard
-        key={card.key}
-        card={card}
-        summary={summary}
-        decisionHomeId={snapshot?.homeId}
-        theme={theme}
-        compact={compact}
-        density={props.density}
-        presentation="row"
-        opener={null}
-        onConverse={() => props.onConverse(converseKey(card))}
-        conversing={conversingWith(card, props.conversing)}
-        onChanged={props.onChanged}
-      />
+      <View key={card.key} ref={card.key === props.reveal?.card ? target : undefined} collapsable={card.key !== props.reveal?.card} onLayout={scrollToTask}>
+        <CrewCard
+          card={card}
+          summary={summary}
+          decisionHomeId={snapshot?.homeId}
+          theme={theme}
+          compact={compact}
+          density={props.density}
+          presentation="row"
+          opener={null}
+          onConverse={() => props.onConverse(converseKey(card))}
+          conversing={conversingWith(card, props.conversing)}
+          onChanged={props.onChanged}
+          reveal={card.key === props.reveal?.card ? props.reveal.request : undefined}
+        />
+      </View>
     ));
   }
   return (
     <ScrollView
+      ref={scroller}
+      onContentSizeChange={scrollToTask}
       testID="firstmate-task-list"
       style={{ flex: 1 }}
       contentContainerStyle={{ padding: compact ? 12 : 16, gap: 18, paddingBottom: 24 }}
@@ -67,18 +86,21 @@ export function TaskList(props: TaskListProps) {
           Needs you · {decisionCountText(snapshot, props.offline)}
         </Text>
         <DecisionQueueNote theme={theme} snapshot={snapshot} offline={props.offline} filtered={props.filtered} />
-        {requests.map((request) => (
-          <DecisionTask
-            key={request.id}
-            request={request}
-            snapshot={snapshot!}
-            cards={props.allCards ?? cards}
-            theme={theme}
-            compact={compact}
-            onConverse={props.onConverse}
-            onChanged={props.onChanged}
-          />
-        ))}
+        {requests.map((request) => {
+          const reveal = revealed && taskSourceKey(revealed) === request.source.key ? props.reveal?.request : undefined;
+          return <View key={request.id} ref={reveal ? target : undefined} collapsable={!reveal} onLayout={scrollToTask}>
+            <DecisionTask
+              request={request}
+              snapshot={snapshot!}
+              cards={props.allCards ?? cards}
+              theme={theme}
+              compact={compact}
+              onConverse={props.onConverse}
+              onChanged={props.onChanged}
+              reveal={reveal}
+            />
+          </View>;
+        })}
         <PlanNeeds theme={theme} snapshot={snapshot} showUpcoming={false} />
         {snapshot?.actionCount === 0 && snapshot.freshness.status === "fresh" && !snapshot.planProblems?.length && !props.offline ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
       </View>
@@ -101,7 +123,7 @@ export function TaskList(props: TaskListProps) {
       </View>
       {(["later", "done"] as const).map((group) => {
         const entries = tasks.filter((entry) => entry.summary.group === group),
-          show = group === "done" ? props.showDone : props.showLater === true;
+          show = (group === "done" ? props.showDone : props.showLater === true) || revealedGroup === group;
         return (
           <View key={group} testID={`task-group-${group}`}>
             <Pressable
@@ -110,7 +132,7 @@ export function TaskList(props: TaskListProps) {
               accessibilityState={{ expanded: show, disabled: props.layoutDisabled === true }}
               aria-expanded={show}
               disabled={props.layoutDisabled === true}
-              onPress={() => (group === "done" ? props.onShowDone(!show) : props.onShowLater?.(!show))}
+              onPress={() => { setRevealedGroup(null); if (group === "done") props.onShowDone(!show); else props.onShowLater?.(!show); }}
               style={{ minHeight: 44, justifyContent: "center" }}
             >
               <Text style={heading}>

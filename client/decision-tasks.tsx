@@ -1,6 +1,6 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { Icon } from "@getpaseo/plugin/client/react-native";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import type { FleetCard } from "../shared/fleet";
 import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
@@ -21,9 +21,11 @@ export function DecisionTask({
   onChanged,
   presentation = "row",
   onAnswer,
+  reveal,
 }: {
   presentation?: "row" | "card";
   onAnswer?: (() => void) | undefined;
+  reveal?: object | undefined;
   request: NeedsYouRequest;
   snapshot: NeedsYouSnapshot;
   cards?: readonly FleetCard[];
@@ -35,6 +37,7 @@ export function DecisionTask({
   const open = useOpenDecision(),
     id = `decision-task-${useId()}`;
   const [details, setDetails] = useState(false);
+  useEffect(() => { if (reveal) setDetails(true); }, [reveal]);
   const matchingCards = (cards ?? []).filter((card) => taskSourceKey(card) === request.source.key);
   const colors = theme.colors, isNew = request.state === "new", row = presentation === "row";
   const title = decisionTitle(request.source.title);

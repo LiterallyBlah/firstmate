@@ -1,22 +1,25 @@
 import { act, createElement } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
-import { afterEach, beforeAll, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import type { PluginTheme } from "@getpaseo/plugin";
 import { compactPlansFixture } from "../test/compact-plans-fixture";
 import { workflowFixture } from "../test/workflow-fixture";
 import { planGraphFixture } from "../test/plan-graph-fixture";
 import type { WorkflowPlan } from "../shared/workflow-plans";
 import type { WorkflowSnapshot } from "../shared/workflow-rpc";
+import { workflowTaskFixture } from "../test/workflow-task-fixture";
 vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View", ScrollView: "ScrollView" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput", Modal: Object.assign(({ open, children }: any) => open ? children : null, { Content: ({ children }: any) => children }) }));
 vi.mock("./ui", () => ({ IconButton: ({ label, onPress }: any) => createElement("Pressable", { accessibilityLabel: label, onPress }),
   Segmented: ({ options, onChange }: any) => createElement("View", {}, options.map((o: any) => createElement("Pressable", { key: o.value, accessibilityLabel: o.label, onPress: () => onChange(o.value) }))) }));
-vi.mock("./workflow-plans", () => ({ useWorkflowPlans: vi.fn() }));
+vi.mock("./workflow-plans", () => ({ useWorkflowPlans: vi.fn(() => ({ loading: false, error: null, refresh() {}, open() {} })) }));
 import { WorkflowPlanBrowser, WorkflowPlansView } from "./workflow-plan-browser";
 import { useWorkflowPlans } from "./workflow-plans";
 const theme = { colors: { foreground: "#fff", foregroundMuted: "#aaa", border: "#333", surface0: "#111", surface1: "#222", accent: "#080", statusSuccess: "#0f0", statusWarning: "#ff0", statusDanger: "#f00" } } as PluginTheme;
 let renderer: ReactTestRenderer;
+const scrollHandles = new Map<string, { scrollTo: ReturnType<typeof vi.fn> }>();
 beforeAll(() => { (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; });
+beforeEach(() => { vi.mocked(useWorkflowPlans).mockReturnValue({ loading: false, error: null, refresh() {}, open() {} }); });
 afterEach(() => { act(() => renderer?.unmount()); vi.clearAllMocks(); });
 function plan(id = "scheduler", implicit = false): WorkflowPlan {
   const definition = workflowFixture(); definition.id = id; definition.title = id; definition.implicit = implicit;
@@ -33,7 +36,12 @@ const button = (label: string) => renderer.root.find(n => n.type === ("Pressable
 async function mount(data: WorkflowSnapshot | undefined, extra = {}) {
   act(() => renderer?.unmount());
   const onOpen = vi.fn(), onRefresh = vi.fn();
-  await act(async () => { renderer = create(createElement(WorkflowPlanBrowser, { theme, snapshot: data, loading: false, error: null, onRefresh, onOpen, ...extra })); });
+  await act(async () => { renderer = create(createElement(WorkflowPlanBrowser, { theme, snapshot: data, loading: false, error: null, onRefresh, onOpen, ...extra }), {
+    createNodeMock: node => {
+      if (node.type !== "ScrollView") return null;
+      const handle = { scrollTo: vi.fn() }; scrollHandles.set((node.props as { accessibilityLabel?: string }).accessibilityLabel ?? "plans", handle); return handle;
+    },
+  }); });
   return { onOpen, onRefresh };
 }
 it("shows posture, runs, worker and host, dependencies, decisions and budget; opens the existing surface by id", async () => {
@@ -187,4 +195,60 @@ it("names removed prerequisites and opens their retained details without an unav
   await act(async () => button(`Step: ${node.title} · removed`).props.onPress());
   expect(renderedText()).toContain("Removed from this plan; retained as a prerequisite.");
   expect(onOpen).not.toHaveBeenCalled();
+});
+
+it("retains search, expanded plans and List mode after leaving and reopening the same home", async () => {
+  const data = snapshot([plan()]), extra = { sessionKey: "audit-round-trip" };
+  await mount(data, extra);
+  await act(async () => renderer.root.findByType("TextInput" as any).props.onChangeText("scheduler"));
+  await act(async () => button("List").props.onPress());
+  await act(async () => button("Expand plan: scheduler").props.onPress());
+  expect(renderer.root.findAll(n => n.props.testID === "workflow-step-trial")).toHaveLength(1);
+  await mount(data, extra);
+  expect(renderer.root.findByType("TextInput" as any).props.value).toBe("scheduler");
+  expect(renderer.root.findAll(n => n.props.testID === "workflow-step-trial")).toHaveLength(1);
+});
+
+it("links graph details and List rows to the exact task and saved remote conversation", async () => {
+  const { plan, node, card, worker } = workflowTaskFixture(true), navigate = vi.fn();
+  const state = { snapshot: snapshot([plan]), loading: false, error: null, refresh() {}, open() {}, scope: "scope", canNavigate: true, navigate,
+    fleet: { cards: [card] } as any };
+  vi.mocked(useWorkflowPlans).mockReturnValue(state);
+  await mount(state.snapshot);
+  await act(async () => button(`Expand plan: ${plan.definition.title}`).props.onPress());
+  await act(async () => button(`Step: ${node.title} · running`).props.onPress());
+  await act(async () => button("Show task").props.onPress());
+  expect(navigate).toHaveBeenLastCalledWith({ scope: "scope", plan: plan.definition.id, node: node.id, card: card.key });
+  await act(async () => button(`Step: ${node.title} · running`).props.onPress());
+  await act(async () => button("Converse").props.onPress());
+  expect(navigate).toHaveBeenLastCalledWith({ scope: "scope", plan: plan.definition.id, node: node.id, card: card.key, worker: `remote:lab-server-id:${worker.id}` });
+  await act(async () => button("List").props.onPress());
+  await act(async () => button("Show task").props.onPress());
+  expect(navigate).toHaveBeenCalledTimes(3);
+});
+
+it("restores graph and browser scroll, folds and paging in the same session and starts fresh in another", async () => {
+  const p = planGraphFixture(), data = snapshot([p, ...Array.from({ length: 12 }, (_, i) => plan(`auto-${i}`, true))]);
+  const scope = { sessionKey: "scroll-and-pages" };
+  await mount(data, scope);
+  await act(async () => button(`Expand plan: ${p.definition.title}`).props.onPress());
+  await act(async () => button("Automatic one-run plans (12)").props.onPress());
+  await act(async () => button("Show 2 more plans (2 remaining)").props.onPress());
+  const graphLabel = `Dependency graph: ${p.definition.title}`;
+  const graph = () => renderer.root.find(n => n.type === ("ScrollView" as any) && n.props.accessibilityLabel === graphLabel);
+  const browser = () => renderer.root.find(n => n.type === ("ScrollView" as any) && !n.props.horizontal);
+  await act(async () => graph().props.onLayout({ nativeEvent: { layout: { width: 350 } } }));
+  await act(async () => graph().props.onScroll({ nativeEvent: { contentOffset: { x: 127, y: 0 } } }));
+  await act(async () => browser().props.onContentSizeChange());
+  await act(async () => browser().props.onScroll({ nativeEvent: { contentOffset: { x: 0, y: 512 } } }));
+  await mount(data, scope);
+  await act(async () => graph().props.onLayout({ nativeEvent: { layout: { width: 350 } } }));
+  await act(async () => browser().props.onContentSizeChange());
+  expect(scrollHandles.get(graphLabel)!.scrollTo).toHaveBeenLastCalledWith({ x: 127, animated: false });
+  expect(scrollHandles.get("plans")!.scrollTo).toHaveBeenLastCalledWith({ y: 512, animated: false });
+  expect(button("Open plan: auto-11")).toBeTruthy();
+  expect(button(`Collapse plan: ${p.definition.title}`)).toBeTruthy();
+  await mount(data, { sessionKey: "another-home" });
+  expect(button(`Expand plan: ${p.definition.title}`)).toBeTruthy();
+  expect(renderer.root.findAll(n => n.props.testID === "workflow-plan-auto-11")).toHaveLength(0);
 });
