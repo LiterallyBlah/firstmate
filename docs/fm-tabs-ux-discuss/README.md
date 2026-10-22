@@ -21,7 +21,8 @@ continues to work without preparing another answer. Open Board for unreadable ho
 selects and reveals Home's Board instead of creating another Board workspace tab.
 
 Self-review covered the complete diff: only client navigation/state/presentation,
-focused regression tests and this evidence note. The contextual panel adapters ignore
+focused regression tests, the render assertion for the new Board destination and
+this evidence note. The contextual panel adapters ignore
 their return-focus argument when invoking the extended Home navigation callback.
 There are no new server mutations, native-tab APIs, sidebar policy changes or sends.
 
@@ -39,8 +40,17 @@ Verification:
 The first CI push run caught a frame/content mistake in this change: the drawer's
 outer cover had been capped at 760 points. The existing geometry assertion expected
 the whole 900-point pane. The cap now applies to scroll content while the outer cover
-keeps its full pane width. That assertion and all check limits are unchanged; the
+keeps its full pane width. That geometry assertion and all check limits are unchanged; the
 original failure is retained in `.local/tabs-discuss/ci-push-failure.log`.
+
+The old Open Board render assertion expected the standalone Board heading. It now
+requires Home's header, the selected Board tab, the visible task board and a closed
+decision drawer. All subsequent repair/answer assertions and timeouts are retained.
+One Windows CI run timed out at 5,000 ms in the unchanged server workflow-board
+"missing interior" case (2,114 other tests passed). The exact same test bytes and its
+server/shared dependencies are unchanged from the base; the isolated case passes on
+both an archived base and the current head. Logs and matched SHA-256 evidence remain
+in `.local/tabs-discuss/`. No timeout or server code was changed.
 
 Fresh visual verification is **pending**, deferred by the captain until later rather
 than waived. Paseo `browser_new_tab` returned structured

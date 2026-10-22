@@ -76,7 +76,10 @@ export async function checkResilience(pageAt, output) {
       await drawer
         .getByRole("button", { name: "Open Board", exact: true })
         .click();
-      await page.getByRole("heading", { name: "Board", exact: true }).waitFor();
+      await page.locator("#firstmate-home-header").waitFor();
+      await page.getByRole("tab", { name: "Board", exact: true, selected: true }).waitFor();
+      await page.getByTestId("firstmate-task-board").waitFor();
+      assert.equal(await drawer.count(), 0);
       await page.evaluate(async () => {
         const snapshot = window.attentionSnapshot;
         snapshot.version++;
