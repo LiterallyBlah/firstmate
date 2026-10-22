@@ -6,8 +6,12 @@ import { decisionRoute } from "./needs-you-state";
 
 /** Capabilities stay bound to this installation/host, including when several hosts are open. */
 export function registerFleetViews(client: PluginClientContext): FleetShell {
+  let handoff = 0;
   const shell: FleetShell = {
-    openDecision(destination) { client.openScreen(decisionRoute(destination)); },
+    openDecision(destination, intent) {
+      const route = decisionRoute(destination, intent);
+      client.openScreen(intent ? { ...route, params: { ...route.params, decisionHandoff: String(++handoff) } } : route);
+    },
     openView(view, workspaceId) {
       client.openPanel(FLEET_PANELS[view].id, {
         workspaceId,

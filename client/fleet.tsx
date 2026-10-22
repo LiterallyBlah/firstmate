@@ -69,7 +69,7 @@ import { focusWebElement, webAttributes } from "./web";
 import { HubLauncher } from "./hub-launcher";
 import { chatIsVisible, FLEET_PANELS, homeWorkspace, type FleetShell, type FleetView } from "./shell";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
-import { DecisionSurface, DecisionPane, useDecisionPaneOpen, useDecisionOrigin } from "./decision-surface";
+import { DecisionSurface, DecisionPane, useDecisionPaneOpen, useDecisionOrigin, useDecisionHandoff } from "./decision-surface";
 import { NeedsYouIndicator, useDecisionVisibility } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
 import { useOpenDecision } from "./decision-action";
@@ -118,7 +118,7 @@ type FleetSurfaceProps = PluginScreenProps & {
 export function FleetSurface(props: FleetSurfaceProps) {
   const key = JSON.stringify([props.host?.id, props.workspaceId, props.view ?? "home"]);
   return (
-    <WorkflowSurface theme={props.theme}><DecisionSurface shell={props.shell} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
+    <WorkflowSurface theme={props.theme}><DecisionSurface shell={props.shell} view={props.view} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
       <FleetViewBody {...props} stateKey={key} />
     </DecisionSurface></WorkflowSurface>
   );
@@ -139,6 +139,10 @@ function FleetViewBody({
   const plans = useWorkflowPlans();
   const [planFilter, setPlanFilter] = useState<string | null>(null);
   const decisionOpen = useDecisionPaneOpen();
+  const handoff = useDecisionHandoff();
+  const discussionReturnTab = useRef<Tab>(cachedTab);
+  const openedDiscussion = useRef(handoff.discussion);
+  const openedBoardRequest = useRef<object | null>(null);
   const [viewMenu, setViewMenu] = useState(false);
   const remembered = viewState.get(stateKey);
   const [width, setWidth] = useState(0);
@@ -263,6 +267,26 @@ function FleetViewBody({
     setTab("chat");
     if (values.chatCollapsed) save({ chatCollapsed: false });
   }, [home, params?.chat, display.status]);
+
+  useEffect(() => {
+    if (!handoff.discussion || handoff.discussion.mateId !== data?.mate?.id) return;
+    if (openedDiscussion.current !== handoff.discussion) {
+      discussionReturnTab.current = tab;
+      openedDiscussion.current = handoff.discussion;
+    }
+    if (home) {
+      setTab("chat");
+      if (display.status === "ready" && values.chatCollapsed) save({ chatCollapsed: false });
+    }
+  }, [home, handoff.discussion, data?.mate?.id, display.status]);
+
+  useEffect(() => {
+    if (!home || !handoff.boardRequest || display.status !== "ready") return;
+    if (openedBoardRequest.current === handoff.boardRequest) return;
+    openedBoardRequest.current = handoff.boardRequest;
+    selectHomePane("board");
+    if (values.boardCollapsed) save({ boardCollapsed: false });
+  }, [home, handoff.boardRequest, display.status]);
 
   function setTab(next: Tab, keepConversation = false): void {
     if (next === "board" && tab === "board" && !keepConversation) setWatching(null);
@@ -850,6 +874,11 @@ function FleetViewBody({
       onChanged={refresh}
       onOpenFile={openFile}
       navigation={navigation}
+      discussion={handoff.discussion}
+      onReturnDecision={() => {
+        if (handoff.resume() && home && compact) setTab(discussionReturnTab.current);
+      }}
+      onDismissDiscussion={handoff.dismiss}
     />
   );
   // Chat always follows the configured mate, even in another project's workspace.

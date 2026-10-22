@@ -82,3 +82,18 @@ it("loans each installation its own navigation and asks Paseo to focus the same 
   });
   expect(b.openScreen).not.toHaveBeenCalled();
 });
+
+it("hands a discussion or unreadable hold to Home through public params, without opening a native tab", () => {
+  const host = installation();
+  const component = host.addScreen.mock.calls[0]![0].Component as (props: PluginScreenProps) => ReactElement<Surface>;
+  const shell = component({} as PluginScreenProps).props.shell;
+  const destination = { homeId: "home-a", requestId: "request-a", recordRevision: 7 };
+  shell.openDecision(destination, { discussWith: "mate-a" });
+  shell.openDecision(destination, { discussWith: "mate-a" });
+  expect(host.openScreen.mock.calls.map(([route]) => route)).toEqual([1, 2].map(n => ({ screenId: "fleet", params: {
+    decision: "request-a", decisionHome: "home-a", decisionRevision: "7", discussMate: "mate-a", chat: "show", decisionHandoff: String(n),
+  } })));
+  shell.openDecision({ requestId: "all", homeId: "home-a" }, { board: true });
+  expect(host.openScreen.mock.calls.at(-1)![0].params).toEqual({ decision: "all", decisionHome: "home-a", decisionBoard: "show", decisionHandoff: "3" });
+  expect(host.openPanel).not.toHaveBeenCalled();
+});

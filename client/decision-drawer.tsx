@@ -185,7 +185,7 @@ export function DecisionDrawer({
   compact: boolean;
   modal?: boolean;
   onOpenBoard?: (() => void) | undefined;
-  onOpenChat?: (() => void) | undefined;
+  onOpenChat?: ((destination: DecisionDestination) => void) | undefined;
   filtered?: boolean;
   loading?: boolean;
   returnLabel?: string;
@@ -426,6 +426,9 @@ export function DecisionDrawer({
       style={{
         flex: 1,
         minHeight: 0,
+        width: "100%",
+        maxWidth: 760,
+        alignSelf: "center",
         paddingBottom: keyboard,
         backgroundColor: colors.surface0,
         borderLeftWidth: 1,
@@ -757,7 +760,7 @@ function DecisionDetails({
   mateId: string | null;
   suggestions: readonly Suggestion[];
   compact: boolean;
-  onOpenChat?: (() => void) | undefined;
+  onOpenChat?: ((destination: DecisionDestination) => void) | undefined;
   onCompleted(snapshot: NeedsYouSnapshot, receipt: string, answered?: boolean): void;
   chrome: ReactNode;
 }) {
@@ -944,7 +947,7 @@ function DecisionDetails({
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {button("Snooze ▾", () => setSnoozing(true), !writable)}
-        {button("Discuss first", () => onOpenChat?.(), !onOpenChat)}
+        {button("Discuss first", () => onOpenChat?.({ homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision }), !onOpenChat || !writable)}
         {compact ? (
           <DecisionButton
             theme={theme}
@@ -1103,7 +1106,7 @@ function DecisionDetails({
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
               {button(
                 "Open the first mate’s chat",
-                () => onOpenChat?.(),
+                () => onOpenChat?.({ homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision }),
                 !onOpenChat,
                 true,
               )}
