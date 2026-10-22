@@ -30,9 +30,10 @@ import { useWorkflowPlans } from "./workflow-plans";
 const DecisionHandoffContext = createContext<{
   discussion: DecisionDiscussion | null;
   boardRequest: object | null;
+  revealTask(): void;
   resume(): boolean;
   dismiss(): void;
-}>({ discussion: null, boardRequest: null, resume: () => false, dismiss() {} });
+}>({ discussion: null, boardRequest: null, revealTask() {}, resume: () => false, dismiss() {} });
 export function useDecisionHandoff() { return useContext(DecisionHandoffContext); }
 
 const DecisionPaneContext = createContext<{
@@ -210,6 +211,7 @@ export function DecisionSurface({
   return (
     <DecisionActionContext.Provider value={open}>
       <DecisionHandoffContext.Provider value={{ discussion, boardRequest,
+        revealTask: () => { setDestination(null); setDiscussion(null); },
         dismiss: () => { setDiscussion(null); if (suspended) setDestination(null); },
         resume: () => {
           if (!discussionRequest(discussion, query.data, mateId, query.error !== null)) return false;

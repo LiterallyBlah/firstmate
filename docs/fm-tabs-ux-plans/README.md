@@ -50,6 +50,22 @@ its previous read-only RPC set; its optional navigation fleet observer is disabl
 Final affected tests, typecheck and Paseo compiler/Hermes results are recorded in
 the PR and ignored local evidence. No server/shared workflow contract changed.
 
+The initial independent Astra review at
+`50d9bf00581ef48c81f0ca84aa6beab4f723ec15` identified two accepted navigation
+defects. Six component assertions reproduced them: Show task/Converse from a plan
+inside Needs you left its decision drawer covering the work at 390 and 1440 points;
+a stale worker handoff had no visible recovery on Home Plans at either width.
+Ordinary Home Plans navigation and stale recovery on List passed their controls.
+The follow-up closes the decision presentation only after a task handoff passes
+the existing identity checks, and renders rejection text in Home's shared banner
+area rather than only inside List/Board. It leaves rejected identities refused,
+records and unsent messages intact, and normal conversation retention unchanged.
+The committed regressions check the intended visible target (task or conversation),
+pointer/accessibility availability, unchanged decision data and stored drafts and
+attachments. Before/after checks and a separate final-head bundle are retained in
+`.local/tabs-plans/p2-navigation/`; earlier evidence is preserved. This follow-up
+addresses those two findings only, with no new general review or broad local suite.
+
 Fresh visual verification is **pending**, deferred by the captain rather than
 waived. The original audit screenshots remain baseline evidence only. The copied
 actual-component synthetic preview and all before/after check evidence are kept
