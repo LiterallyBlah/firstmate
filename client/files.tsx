@@ -14,7 +14,7 @@
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
-import { Icon, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
+import { copyText, Icon, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
@@ -87,7 +87,9 @@ export function FilesView({
   const [preview, setPreviewState] = useState(memory.preview);
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<{ text: string; conflict: boolean } | null>(null);
+  const [error, setError] = useState<{ text: string; conflict: boolean; path?: string } | null>(null);
+  const opening = useRef<string | null>(null);
+  const writing = useRef(false);
   /** An action held back because the open file has unsaved changes. */
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [newName, setNewName] = useState<string | null>(null);
@@ -123,10 +125,13 @@ export function FilesView({
   }
 
   function load(path: string, options: { quiet?: boolean } = {}): void {
+    if (opening.current === path) return;
+    opening.current = path;
     if (options.quiet !== true) setLoadingPath(path);
     setError(null);
     read({ path })
       .then((result) => {
+        if (opening.current !== path) return;
         if (result.content === null) {
           setOpen({
             kind: "unreadable",
@@ -144,13 +149,14 @@ export function FilesView({
           draft: result.content,
         });
       })
-      .catch((caught: unknown) => setError({ text: errorText(caught), conflict: false }))
-      .finally(() => setLoadingPath(null));
+      .catch((caught: unknown) => { if (opening.current === path) setError({ text: errorText(caught), conflict: false, path }); })
+      .finally(() => { if (opening.current === path) { opening.current = null; setLoadingPath(null); } });
   }
 
   function save(force: boolean, then?: PendingAction): void {
-    if (open?.kind !== "text" || saving) return;
+    if (open?.kind !== "text" || writing.current) return;
     const file = open;
+    writing.current = true;
     setSaving(true);
     setError(null);
     write({ path: file.path, content: file.draft, expectedModifiedMs: file.modifiedMs, force })
@@ -169,12 +175,14 @@ export function FilesView({
         const text = errorText(caught);
         setError({ text, conflict: /changed since|deleted since/.test(text) });
       })
-      .finally(() => setSaving(false));
+      .finally(() => { writing.current = false; setSaving(false); });
   }
 
   function create(): void {
     const name = newName?.trim() ?? "";
-    if (name === "") return;
+    if (name === "" || writing.current) return;
+    writing.current = true;
+    setSaving(true);
     const path = dir === "" ? name : `${dir}/${name}`;
     write({ path, content: "", expectedModifiedMs: null, force: false })
       .then(() => {
@@ -182,7 +190,8 @@ export function FilesView({
         void queryClient.invalidateQueries({ queryKey: LIST_QUERY });
         load(path);
       })
-      .catch((caught: unknown) => toast.error(errorText(caught)));
+      .catch((caught: unknown) => toast.error(errorText(caught)))
+      .finally(() => { writing.current = false; setSaving(false); });
   }
 
   // The first mate changed the open file on disk. Unedited, it is simply
@@ -257,6 +266,7 @@ export function FilesView({
       },
       editorTitle: { flexShrink: 1, color: colors.foreground, fontSize: 13, fontFamily: MONOSPACE },
       editorStatus: { flex: 1, color: colors.foregroundMuted, fontSize: 11 },
+      compactStatus: { color: colors.foregroundMuted, fontSize: 11, paddingHorizontal: 10, paddingVertical: 6 },
       notices: { paddingHorizontal: 10, paddingTop: 8, gap: 6 },
       editor: {
         flex: 1,
@@ -267,6 +277,10 @@ export function FilesView({
         padding: 12,
         textAlignVertical: "top" as const,
         backgroundColor: colors.surface0,
+        margin: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: 6,
       },
       preview: { padding: 14, paddingBottom: 32 },
       confirm: {
@@ -286,6 +300,11 @@ export function FilesView({
   }, [theme, compact]);
 
   const crumbs = dir === "" ? [] : dir.split("/");
+  const errorBanner = error === null || error.conflict ? null : (
+    <Banner theme={theme} tone="danger" text={error.text}
+      {...(error.path ? { action: { label: "Retry", icon: "RefreshCw", disabled: loadingPath !== null,
+        onPress: () => guarded(`open ${error.path}`, () => load(error.path!)) } } : {})} />
+  );
 
   const listPane = (
     <View style={styles.listPane}>
@@ -328,6 +347,7 @@ export function FilesView({
           ) : (
             <>
               <TextInput
+                accessibilityLabel="New file name"
                 value={newName}
                 onChangeText={setNewName}
                 placeholder="name.md"
@@ -338,16 +358,19 @@ export function FilesView({
                 onSubmitEditing={create}
                 style={styles.newInput}
               />
-              <IconButton icon="Check" label="Create" tone="accent" theme={theme} onPress={create} />
+              <IconButton icon="Check" label="Create" tone="accent" theme={theme} disabled={saving} onPress={create} />
               <IconButton icon="X" label="Cancel" theme={theme} onPress={() => setNewName(null)} />
             </>
           )}
         </View>
       </View>
       <ScrollView automaticallyAdjustKeyboardInsets>
-        {listing.error !== null ? <Text style={styles.muted}>{errorText(listing.error)}</Text> : null}
+        {compact && open === null ? errorBanner : null}
+        {listing.error !== null ? <Banner theme={theme} tone="danger" text={errorText(listing.error)}
+          action={{ label: "Retry", icon: "RefreshCw", disabled: listing.isFetching,
+            onPress: () => { void listing.refetch({ cancelRefetch: false }); } }} /> : null}
         {dir === "" ? null : (
-          <Pressable style={styles.entry} accessibilityRole="button" onPress={() => setDir(parentOf(dir))}>
+          <Pressable style={styles.entry} accessibilityRole="button" accessibilityLabel="Up to home" onPress={() => setDir(parentOf(dir))}>
             <Icon name="ArrowLeft" size={14} color={theme.colors.foregroundMuted} />
             <Text style={styles.entryName}>..</Text>
           </Pressable>
@@ -491,13 +514,13 @@ export function FilesView({
               <Text style={styles.editorTitle} numberOfLines={1}>
                 {open.path}
               </Text>
-              <Text style={styles.editorStatus} numberOfLines={1}>
+              {compact ? null : <Text style={styles.editorStatus} numberOfLines={1}>
                 {open.kind !== "text"
                   ? ""
                   : dirty
                     ? "Unsaved changes"
                     : `Saved · ${relativeTime(new Date(open.modifiedMs).toISOString())}`}
-              </Text>
+              </Text>}
               {open.kind === "text" && isMarkdown(open.path) ? (
                 <IconButton
                   icon={preview ? "Pencil" : "Eye"}
@@ -529,10 +552,13 @@ export function FilesView({
           )}
         </View>
       )}
+      {compact && open?.kind === "text" ? <Text style={styles.compactStatus}>
+        {saving ? "Saving…" : dirty ? "Unsaved changes" : `Saved · ${relativeTime(new Date(open.modifiedMs).toISOString())}`}
+      </Text> : null}
       {confirmBar}
-      {open === null ? null : (
+      {open === null && error === null ? null : (
         <View style={styles.notices}>
-          {REWRITTEN.has(open.path) ? (
+          {open && REWRITTEN.has(open.path) ? (
             <Banner
               theme={theme}
               tone="info"
@@ -543,22 +569,23 @@ export function FilesView({
               }
             />
           ) : null}
-          {changedOnDisk && dirty ? (
+          {open && ((changedOnDisk && dirty) || error?.conflict) ? (
             <Banner
               theme={theme}
               tone="warning"
-              text="This file changed on disk while you were editing it — the first mate may have written it."
-              action={{ label: "Load theirs", icon: "RefreshCw", onPress: () => load(open.path) }}
+              text={error?.conflict ? error.text : "This file changed on disk while you were editing it — the first mate may have written it."}
+              actions={[
+                { label: "Copy my text", icon: "Copy", onPress: () => {
+                  if (open.kind === "text") void copyText(open.draft)
+                    .then(() => toast.show("Copied your text", { variant: "success" }))
+                    .catch((caught: unknown) => toast.error(errorText(caught)));
+                } },
+                { label: "Load theirs", icon: "RefreshCw", disabled: loadingPath !== null, onPress: () => load(open.path) },
+                ...(error?.conflict ? [{ label: "Overwrite", icon: "Save", disabled: saving, onPress: () => save(true) }] : []),
+              ]}
             />
           ) : null}
-          {error === null ? null : (
-            <Banner
-              theme={theme}
-              tone="danger"
-              text={error.text}
-              {...(error.conflict ? { action: { label: "Overwrite", icon: "Save", onPress: () => save(true) } } : {})}
-            />
-          )}
+          {errorBanner}
         </View>
       )}
       {editorBody}

@@ -59,6 +59,30 @@ export function DecisionRaisedCard({
     !quarantinesSource(snapshot.quarantined ?? [], request.source);
   const choices = status.settled ? [] : raisedChoices(snapshot, request);
   const writable = fresh && !status.settled && !!mateId && !sender.sending;
+  const openButton = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Open the decision"
+      onPress={() => (onOpen ?? open)({ homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision })}
+      style={{ minHeight: compact ? 44 : 32, justifyContent: "center", alignSelf: "flex-start" }}
+    >
+      <Text style={{ color: colors.foreground, textDecorationLine: "underline", fontSize: 12 }}>
+        {status.settled ? "Open" : "Open the decision"}
+      </Text>
+    </Pressable>
+  );
+
+  if (status.settled) return (
+    <View testID="decision-raised" accessibilityLabel={`${status.label}: ${decisionTitle(request.source.title)}`}
+      style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingVertical: 2,
+        borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.surface1,
+        alignSelf: "flex-start", maxWidth: 560, width: "100%" }}>
+      <Text numberOfLines={2} style={{ flex: 1, color: colors.foregroundMuted, fontSize: 12, lineHeight: 18 }}>
+        {status.label}: {decisionTitle(request.source.title)}
+      </Text>
+      {openButton}
+    </View>
+  );
 
   function choose(option: DecisionAnswerOption) {
     if (!writable) return;
@@ -137,13 +161,7 @@ export function DecisionRaisedCard({
           ))}
         </View>
       ) : null}
-      {status.settled ? (
-        <Text selectable style={{ color: colors.foregroundMuted, fontSize: 12, lineHeight: 18 }}>
-          {request.source.ask}
-        </Text>
-      ) : (
-        <DecisionSummary theme={theme} snapshot={snapshot} request={request} />
-      )}
+      <DecisionSummary theme={theme} snapshot={snapshot} request={request} />
       {choices.length ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
           {choices.map((choice) => (
@@ -163,22 +181,7 @@ export function DecisionRaisedCard({
           {notice}
         </Text>
       ) : null}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Open the decision"
-        onPress={() =>
-          (onOpen ?? open)({
-            homeId: snapshot.homeId!,
-            requestId: request.id,
-            recordRevision: request.revision,
-          })
-        }
-        style={{ minHeight: 32, justifyContent: "center", alignSelf: "flex-start" }}
-      >
-        <Text style={{ color: colors.foreground, textDecorationLine: "underline", fontSize: 12 }}>
-          Open the decision
-        </Text>
-      </Pressable>
+      {openButton}
     </View>
   );
 }

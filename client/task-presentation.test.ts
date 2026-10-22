@@ -309,3 +309,14 @@ it("never claims an unreadable hold is with the first mate", () => {
   const c = card(); c.backlog!.hold = "Choose the release";
   expect(taskPresentation(c)).toMatchObject({ owner: "unknown", reason: "unknown", line: "Decision unavailable: Choose the release" });
 });
+it("describes an unreachable worker's observed activity as last seen, while keeping decisions current", () => {
+  const c = card({ remote: { serverId: "r", host: "Remote", online: true, clockSkewSeconds: null,
+    worker: { ...worker, status: "running" } }, report: { state: "working", text: "Running checks" } });
+  expect(taskPresentation(c).line).toBe("Working: Running checks");
+  c.remote!.online = false;
+  expect(taskPresentation(c).line).toBe("Last seen working: Running checks");
+  expect(taskPresentation(c, snapshot([request(c)]))).toMatchObject({ group: "needs-you", line: "Approve the current question?" });
+  c.remote!.worker!.status = "idle";
+  c.remote!.worker!.pendingPermissions = 1;
+  expect(taskPresentation(c).line).toMatch(/^Last seen /);
+});

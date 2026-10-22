@@ -7,7 +7,7 @@ import { moveTaskColumn, orderedTaskColumns, type TaskColumn, type TaskLayout } 
 import { decisionCountText } from "./needs-you-state";
 import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
-import { activeDecisions, presentedTasks, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
+import { activeDecisions, matchingDecisionMessage, presentedTasks, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
 import { DecisionQueueNote, DecisionTask } from "./decision-tasks";
 import { PlanNeeds } from "./workflow-plans";
 
@@ -32,6 +32,7 @@ export function TaskBoard(props: {
   const tasks = presentedTasks(props.cards, snapshot),
     requests = activeDecisions(snapshot);
   const order = orderedTaskColumns(layout.order);
+  const matchingNotice = props.filtered ? matchingDecisionMessage(props.cards, snapshot) : null;
   function control(label: string, onPress: () => void, disabled = false) {
     return (
       <Pressable
@@ -77,6 +78,7 @@ export function TaskBoard(props: {
       id === "needs-you" ? (
         <>
           <DecisionQueueNote theme={theme} snapshot={snapshot} offline={props.offline} filtered={props.filtered} />
+          {matchingNotice ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{matchingNotice}</Text> : null}
           {requests.map((request) => (
             <DecisionTask
               key={request.id}
@@ -93,6 +95,10 @@ export function TaskBoard(props: {
           <PlanNeeds theme={theme} snapshot={snapshot} showUpcoming={false} />
           {count === 0 ? <Text style={{ color: ink }}>Nothing needs a decision now.</Text> : null}
         </>
+      ) : entries.length === 0 ? (
+        <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
+          {id === "in-hand" ? "No tasks in hand." : id === "later" ? "No tasks waiting for later." : "No completed tasks."}
+        </Text>
       ) : id === "in-hand" ? (
         (["first-mate", "worker", "parked", "unknown"] as TaskOwner[]).map((owner) => {
           const owned = entries.filter((entry) => entry.summary.owner === owner);
