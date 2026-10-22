@@ -6,10 +6,11 @@ export const FLEET_QUERY_KEY = ["firstmate", "fleet"] as const;
 let cachedFleet: Fleet | null = null;
 
 /** All fleet surfaces use the installation's query cache and the same request key. */
-export function useFleet(pollSeconds: number) {
+export function useFleet(pollSeconds: number, enabled = true) {
   const load = useRpc(loadFleet);
   return useQuery({
     queryKey: FLEET_QUERY_KEY,
+    enabled,
     queryFn: function () {
       return load({}).then((fleet) => {
         cachedFleet = fleet;

@@ -41,6 +41,14 @@ scroll/fold/page restoration, existing dialogue recovery, and actual TaskList /
 CrewCard expansion and measurement for in-hand, Later, Done and decision rows.
 The measurement test uses synthetic native refs; it is not a browser/device test.
 
+Self-review covered the complete delta, scoped navigation and recovery paths,
+card/decision reveal, session identity, filter warnings and preserved plan guards.
+Compact plan links are siblings of the card toggle, retaining the reverse link
+in Converse details. A standalone WorkflowSurface without host identity keeps
+its previous read-only RPC set; its optional navigation fleet observer is disabled.
+Final affected tests, typecheck and Paseo compiler/Hermes results are recorded in
+the PR and ignored local evidence. No server/shared workflow contract changed.
+
 Fresh visual verification is **pending**, deferred by the captain rather than
 waived. The original audit screenshots remain baseline evidence only. The copied
 actual-component synthetic preview and all before/after check evidence are kept

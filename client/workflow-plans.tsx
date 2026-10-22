@@ -49,7 +49,7 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
   const [selected, setSelected] = useState<{ id: string; hash: string } | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
   const gate = useRef(false), pending = useRef<{ id: string; serialized: string } | null>(null);
   const snapshot = query.data, plan = snapshot?.plans.find(p => p.definition.id === selected?.id);
-  const fleet = useFleet(5), data = fleet.isPlaceholderData ? undefined : fleet.data;
+  const fleet = useFleet(5, !!hostId), data = fleet.isPlaceholderData ? undefined : fleet.data;
   const scope = planSessionKey(hostId, data?.home, data?.mate?.id, snapshot?.homeId);
   const planFilter = usePlanBrowse(scope, state => state.filter);
   const [taskRequest, setTaskRequest] = useState(() => routeWorkflowTask(params));
