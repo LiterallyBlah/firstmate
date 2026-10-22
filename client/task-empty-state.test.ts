@@ -18,7 +18,7 @@ it.each(["List", "Board"] as const)("explains decision-only filter matches and r
   const matching = attentionRequest("match"); matching.source.key = taskSourceKey(card)!;
   const snapshot = attentionSnapshot([matching, attentionRequest("other-host", "new", "elsewhere")]);
   let tree: ReactTestRenderer;
-  const props = { cards: [card], allCards: [card], snapshot, filtered: true, theme: attentionTheme, compact: false,
+  const props = { cards: [card, { ...card, key: "second-worker-for-same-task" }], allCards: [card], snapshot, filtered: true, theme: attentionTheme, compact: false,
     offline: false, density: "comfortable" as const, conversing: null, onConverse() {}, onChanged() {},
     showDone: false, onShowDone() {}, layout: { ...DEFAULT_TASK_LAYOUT, collapsed: [] }, layoutDisabled: false, onLayout() {} };
   const render = (cards = props.cards) => view === "List" ? createElement(TaskList, { ...props, cards }) : createElement(TaskBoard, { ...props, cards });

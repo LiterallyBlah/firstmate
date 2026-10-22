@@ -14,6 +14,7 @@ vi.mock("./files", () => ({ FilesView: () => null }));
 import { FleetLoadRecovery } from "./fleet-load-recovery";
 
 it("recovers only the configured live mate, sharing config/SDK reads across surfaces", async () => {
+  rpc.config.mockReset(); rpc.refresh.mockReset();
   rpc.config.mockResolvedValue({ config: { mateAgentId: "known-mate", mateSince: "tenure" }, resolvedHome: "/synthetic-home" });
   let finish!: (value: object) => void;
   rpc.refresh.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
@@ -31,5 +32,21 @@ it("recovers only the configured live mate, sharing config/SDK reads across surf
   expect(chats).toHaveLength(2);
   expect(chats[0]!.props.mate.id).toBe("known-mate");
   expect(chats[0]!.props.imageContext.home).toBe("/synthetic-home");
+  await act(async () => tree!.unmount()); client.clear();
+});
+
+it.each(["unconfigured", "archived"])("does not invent a usable mate when %s", async state => {
+  rpc.config.mockReset(); rpc.refresh.mockReset();
+  rpc.config.mockResolvedValue({ config: { mateAgentId: state === "unconfigured" ? "" : "former-mate", mateSince: "tenure" }, resolvedHome: "/synthetic-home" });
+  rpc.refresh.mockResolvedValue({ agent: { ...attentionCard("former-mate", "idle").agent, pendingPermissions: [], archivedAt: "archived" } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  let tree: ReactTestRenderer;
+  await act(async () => { tree = create(createElement(QueryClientProvider, { client }, createElement(FleetLoadRecovery, {
+    theme: attentionTheme, compact: false, onChanged() {},
+  }))); });
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+  expect(tree!.root.findAllByType("MateChat" as never)).toHaveLength(0);
+  if (state === "unconfigured") expect(rpc.refresh).not.toHaveBeenCalled();
+  else expect(rpc.refresh).toHaveBeenCalledExactlyOnceWith("former-mate");
   await act(async () => tree!.unmount()); client.clear();
 });

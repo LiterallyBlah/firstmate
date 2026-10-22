@@ -88,7 +88,7 @@ export function FilesView({
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<{ text: string; conflict: boolean; path?: string } | null>(null);
-  const opening = useRef<string | null>(null);
+  const opening = useRef<{ path: string } | null>(null);
   const writing = useRef(false);
   /** An action held back because the open file has unsaved changes. */
   const [pending, setPending] = useState<PendingAction | null>(null);
@@ -125,13 +125,14 @@ export function FilesView({
   }
 
   function load(path: string, options: { quiet?: boolean } = {}): void {
-    if (opening.current === path) return;
-    opening.current = path;
+    if (opening.current?.path === path) return;
+    const request = { path };
+    opening.current = request;
     if (options.quiet !== true) setLoadingPath(path);
     setError(null);
     read({ path })
       .then((result) => {
-        if (opening.current !== path) return;
+        if (opening.current !== request) return;
         if (result.content === null) {
           setOpen({
             kind: "unreadable",
@@ -149,8 +150,8 @@ export function FilesView({
           draft: result.content,
         });
       })
-      .catch((caught: unknown) => { if (opening.current === path) setError({ text: errorText(caught), conflict: false, path }); })
-      .finally(() => { if (opening.current === path) { opening.current = null; setLoadingPath(null); } });
+      .catch((caught: unknown) => { if (opening.current === request) setError({ text: errorText(caught), conflict: false, path }); })
+      .finally(() => { if (opening.current === request) { opening.current = null; setLoadingPath(null); } });
   }
 
   function save(force: boolean, then?: PendingAction): void {
