@@ -65,8 +65,10 @@ snapshot before navigating and keeps a confirmed answer disabled if that read fa
 and the collapsed Coming up line; expanded future rows show only their own title and a plain waiting
 reason, opening Plans for details. Warnings remain above the cards, both kinds use the same All-card
 style, and plan refusal notices survive a changed-subject remount. Waiting time comes from committed
-decision introduction and dependency completion/answer/renewed-verification times, not the authored
-request date; these optional projection fields are rebuilt on ledger replay. List/Board omit Coming up entirely. `node docs/plan-decisions/render.mjs`
+decision introduction and the first time each dependency condition was met, not the authored
+request date. Landing preserves an earlier done time; renewed verification or changed decision
+dependencies restart the clock. These optional projection fields are rebuilt on ledger replay.
+All omits worker-absence claims when it has no fleet inventory. List/Board omit Coming up entirely. `node docs/plan-decisions/render.mjs`
 compares all four views against its pinned baseline in both themes and desktop/phone browser widths;
 renders and checks stay in ignored `.local/plan-decisions/`.
 Plan actions retain author provenance: a captain press and a mate-recorded chat action are distinct.

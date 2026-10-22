@@ -217,6 +217,59 @@ it("dates a newly introduced decision from its revision, without resetting it on
   expect(await due()).toBe("2026-10-29T12:00:00.000Z");
 });
 
+it("keeps the done decision's due time when its prerequisite later lands, with a separate landed due time", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));
+  const store = workflowStore(home), current = (await store.get("scheduler"))!, definition = structuredClone(current.definition);
+  const trial = definition.nodes.find(n => n.id === "trial")!;
+  if (trial.kind !== "run") throw new Error("fixture");
+  trial.launch.kind = "ship"; trial.workflow = "task@1";
+  const decision = definition.nodes.find(n => n.id === "database")!;
+  definition.nodes.push({ ...decision, id: "landed-choice", title: "Decide after landing", after: [{ node: "trial", on: "landed", reason: "builds-on" }] });
+  definition.nodes.find(n => n.id === "build")!.after.push({ node: "landed-choice", on: "answered", reason: "decision" });
+  await store.execute({ op: "revise", definition, expected: current.hash, reason: "Decide at two separate delivery milestones." }, randomUUID(), "mate");
+  await act(await command("approve"));
+  const started = await store.execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), "mate") as any;
+  const record = (state: "done" | "landed") => store.execute({ op: "record", plan: "scheduler", node: "trial", attempt: started.launch.workflow.attempt, state, evidence: `Verified ${state} evidence.` }, randomUUID(), "mate");
+  const due = () => workflowSnapshot(home).then(s => Object.fromEntries(s.now.filter(n => n.decision).map(n => [n.node, n.decision!.at])));
+  vi.setSystemTime(new Date("2026-10-26T12:00:00Z"));
+  await record("done");
+  expect(await due()).toEqual({ database: "2026-10-26T12:00:00.000Z" });
+  vi.setSystemTime(new Date("2026-10-27T12:00:00Z"));
+  await record("landed");
+  expect(await due()).toEqual({ database: "2026-10-26T12:00:00.000Z", "landed-choice": "2026-10-27T12:00:00.000Z" });
+  vi.setSystemTime(new Date("2026-10-28T12:00:00Z"));
+  await store.execute({ op: "invalidate", plan: "scheduler", node: "trial", attempt: started.launch.workflow.attempt, evidence: "Verify the changed evidence." }, randomUUID(), "mate");
+  expect(await due()).toEqual({});
+  const invalidated = (await store.get("scheduler"))!;
+  await store.execute({ op: "validate", plan: "scheduler", node: "trial", attempt: started.launch.workflow.attempt, expected: invalidated.hash, evidence: "Renewed delivery verification." }, randomUUID(), "mate");
+  expect(await due()).toEqual({ database: "2026-10-28T12:00:00.000Z", "landed-choice": "2026-10-28T12:00:00.000Z" });
+});
+
+it("restarts the waiting clock when a revision changes an existing decision's dependencies", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));
+  await act(await command("approve"));
+  const store = workflowStore(home), started = await store.execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), "mate") as any;
+  await store.execute({ op: "record", plan: "scheduler", node: "trial", attempt: started.launch.workflow.attempt, state: "done", evidence: "Verified storage trial." }, randomUUID(), "mate");
+  const due = () => workflowSnapshot(home).then(s => s.now.find(n => n.node === "database")?.decision?.at);
+  expect(await due()).toBe("2026-10-25T12:00:00.000Z");
+  vi.setSystemTime(new Date("2026-10-27T12:00:00Z"));
+  const current = (await store.get("scheduler"))!, definition = structuredClone(current.definition);
+  definition.nodes.find(n => n.id === "database")!.after = [];
+  await store.execute({ op: "revise", definition, expected: current.hash, reason: "Ask this decision independently of the trial." }, randomUUID(), "mate");
+  expect(await due()).toBe("2026-10-27T12:00:00.000Z");
+});
+
+it("restarts the waiting clock when the captain approves edited decision dependencies", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-27T12:00:00Z"));
+  expect((await workflowSnapshot(home)).comingUp.some(n => n.node === "database")).toBe(true);
+  await act(await command("edit", { edits: [{ kind: "dependencies", node: "database", after: [] }] }));
+  expect((await workflowStore(home).get("scheduler"))!.status).toBe("active");
+  expect((await workflowSnapshot(home)).now.find(n => n.node === "database")?.decision?.at).toBe("2026-10-27T12:00:00.000Z");
+});
+
 it("starts waiting when an earlier captain decision is answered", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));

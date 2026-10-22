@@ -373,7 +373,7 @@ export function DecisionDrawer({
       <DecisionGroup theme={theme} label={label} count={rows.length} key={label}>
         {rows.map((r) => (
           r.state === "new" || r.state === "seen" ? <View key={r.id} style={{ paddingVertical: 12, gap: 8 }}>
-            <DecisionTask request={r} snapshot={snapshot!} cards={[]} theme={theme} compact={compact} presentation="card"
+            <DecisionTask request={r} snapshot={snapshot!} theme={theme} compact={compact} presentation="card"
               onAnswer={() => select(r)} onConverse={() => {}} onChanged={() => {}} />
             <DecisionSummary theme={theme} snapshot={snapshot} request={r} showQuestion={false} />
           </View> :

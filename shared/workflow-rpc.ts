@@ -4,6 +4,7 @@ import { PlanCaptainCommandSchema, PlanDefinitionSchema, PlanLaunchSchema, PlanN
 const NodeStateSchema: z.ZodType<PlanNodeState> = z.lazy(() => z.object({ state: z.enum(["planned", "starting", "running", "done", "landed", "failed", "cancelled", "unresolved"]), held: z.union([z.boolean(), z.string()]).optional(), attempt: z.string().optional(), claimed: z.boolean().optional(),
   agentId: z.string().optional(), workspaceId: z.string().optional(), evidence: z.string().optional(), briefHash: z.string().optional(), answer: z.string().optional(), launch: PlanLaunchSchema.optional(), invalidated: z.string().optional(), spent: z.number().optional(), completedAt: z.string().optional(), priorAttempts: z.array(NodeStateSchema).optional(),
   introducedAt: z.string().optional(), availableAt: z.string().optional(),
+  readyAt: z.object({ done: z.string().optional(), landed: z.string().optional(), answered: z.string().optional() }).optional(),
   closedWithoutLanding: z.object({ at: z.string(), by: z.string(), evidence: z.string() }).optional() }));
 export const WorkflowPlanSchema = z.object({ definition: PlanDefinitionSchema, revision: z.number(), sequence: z.number(), hash: z.string(), posture: z.enum(["review", "sail"]),
   status: z.enum(["review", "active", "held", "abandoned"]), approvedBudget: z.object({ agents: z.number(), turns: z.number() }), nodes: z.record(z.string(), NodeStateSchema), told: z.array(z.string()), handled: z.array(z.string()),

@@ -22,8 +22,7 @@ function decisionDueAt(plan: WorkflowPlan, node: WorkflowPlan["definition"]["nod
   const times = [plan.nodes[node.id]?.introducedAt ?? plan.history[0]?.at];
   for (const edge of node.after) {
     const owner = plans.find(p => p.nodes[edge.node]), state = owner?.nodes[edge.node];
-    times.push(state?.availableAt, state?.completedAt);
-    if (edge.on === "answered") times.push(owner?.captainEvents?.filter(e => e.action === "answer" && e.node === edge.node).at(-1)?.at);
+    times.push(state?.availableAt, state?.readyAt?.[edge.on]);
   }
   const latest = Math.max(...times.flatMap(at => at && Number.isFinite(Date.parse(at)) ? [Date.parse(at)] : []));
   return Number.isFinite(latest) ? new Date(latest).toISOString() : plan.definition.request.at;

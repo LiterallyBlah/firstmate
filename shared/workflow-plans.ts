@@ -38,6 +38,7 @@ export type PlanDefinition = z.infer<typeof PlanDefinitionSchema>;
 export type NodeState = "planned" | "starting" | "running" | "done" | "landed" | "failed" | "cancelled" | "unresolved";
 export interface PlanNodeState { state: NodeState; attempt?: string | undefined; claimed?: boolean | undefined; agentId?: string | undefined; workspaceId?: string | undefined; evidence?: string | undefined; briefHash?: string | undefined; answer?: string | undefined;
   introducedAt?: string | undefined; availableAt?: string | undefined;
+  readyAt?: { done?: string | undefined; landed?: string | undefined; answered?: string | undefined } | undefined;
   launch?: PlanLaunch | undefined; held?: string | boolean | undefined; invalidated?: string | undefined;
   priorAttempts?: PlanNodeState[] | undefined; spent?: number | undefined; completedAt?: string | undefined;
   closedWithoutLanding?: { at: string; by: string; evidence: string } | undefined }

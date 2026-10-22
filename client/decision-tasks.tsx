@@ -26,7 +26,7 @@ export function DecisionTask({
   onAnswer?: (() => void) | undefined;
   request: NeedsYouRequest;
   snapshot: NeedsYouSnapshot;
-  cards: readonly FleetCard[];
+  cards?: readonly FleetCard[];
   theme: PluginTheme;
   compact: boolean;
   onConverse(key: string): void;
@@ -35,7 +35,7 @@ export function DecisionTask({
   const open = useOpenDecision(),
     id = `decision-task-${useId()}`;
   const [details, setDetails] = useState(false);
-  const matchingCards = cards.filter((card) => taskSourceKey(card) === request.source.key);
+  const matchingCards = (cards ?? []).filter((card) => taskSourceKey(card) === request.source.key);
   const colors = theme.colors, isNew = request.state === "new", row = presentation === "row";
   const title = decisionTitle(request.source.title);
   const waiting = relativeDecisionTime(request.detectedAt);
@@ -103,9 +103,9 @@ export function DecisionTask({
                 />
               </View>
             ))
-          ) : (
+          ) : cards ? (
             <Text style={{ color: theme.colors.foregroundMuted }}>No worker card is attached to this decision.</Text>
-          )}
+          ) : null}
         </>
       ) : null}
     </View>

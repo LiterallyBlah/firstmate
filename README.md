@@ -75,6 +75,9 @@ the calendar picker, or discuss it in chat. After an accepted answer, the drawer
 unanswered question in order, or closes back to its opening view when none remain. Answered questions
 stay handled while the first mate lifts their holds; failed sends keep the question and draft open.
 All keeps the answer history, and the chat keeps “Your answer to…” and “Show what was sent”.
+Plan decisions wait from when their prerequisites first meet the required condition: landing later
+does not reset a decision already waiting on done. Renewed verification or changed decision
+dependencies start a new waiting period.
 Home keeps its chat beside the task pane, and phones keep the answer bar at the bottom. Answers appear
 as readable chat bubbles. Unconfirmed delivery offers chat inspection, **It arrived**, and a confirmed
 **Send again…** action. Nothing retries automatically.

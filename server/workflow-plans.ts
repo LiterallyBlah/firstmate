@@ -61,6 +61,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
       if (node?.kind !== "decision" || !state || state.answer || !node.options.some(o => o.id === c.option)) throw new Error("Decision is already answered or the option changed.");
       if (state.held) throw new Error("Review this held decision's dependencies before answering.");
       state.answer = c.option!; state.state = "done"; state.evidence = c.text || node.options.find(o => o.id === c.option)!.label;
+      state.readyAt = { done: event.at, answered: event.at };
     }
     if (c.action === "edit") {
       if (!c.edits?.length) throw new Error("Choose an edit before approving.");
@@ -166,7 +167,10 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     if (state.agentId && c.agentId && state.agentId !== c.agentId) throw new Error("Cannot replace an accounted worker.");
     const priorWorkspace = state.priorAttempts?.at(-1)?.workspaceId;
     if (priorWorkspace && c.workspaceId && c.workspaceId !== priorWorkspace) throw new Error("Manual replacement must preserve the workspace identity.");
-    next.nodes[c.node] = { ...state, state: c.state, evidence: c.evidence, ...(terminal(c.state) ? { completedAt: event.at } : {}), ...(c.agentId ? { agentId: c.agentId } : {}), ...(c.workspaceId ? { workspaceId: c.workspaceId } : {}) };
+    // Landing satisfies done too, but must not move an earlier done condition's readiness.
+    const readiness = c.state === "done" || c.state === "landed"
+      ? { readyAt: { ...state.readyAt, done: state.readyAt?.done ?? event.at, ...(c.state === "landed" ? { landed: event.at } : {}) } } : {};
+    next.nodes[c.node] = { ...state, state: c.state, evidence: c.evidence, ...readiness, ...(terminal(c.state) ? { completedAt: event.at } : {}), ...(c.agentId ? { agentId: c.agentId } : {}), ...(c.workspaceId ? { workspaceId: c.workspaceId } : {}) };
   }
   if (c.op === "close") {
     const node = next.definition.nodes.find(n => n.id === c.node), state = next.nodes[c.node];

@@ -8,6 +8,9 @@ next unanswered item, or closes when none remain. Backlog answers return a ledge
 the drawer rereads the combined snapshot before advancing so a remaining plan decision cannot be
 lost. No plan decision enters the backlog decision ledger. Refusals survive a refreshed plan card,
 and the waiting clock starts at committed readiness rather than the plan request's creation date.
+Each dependency condition keeps its first-ready timestamp: a later landing preserves an earlier
+done-based wait. Renewed verification and changed decision dependencies restart the waiting clock.
+All hides worker-absence text when no worker inventory was supplied.
 
 Stale/offline warnings stay above the cards. Otherwise All begins with Waiting for you, using the
 same card style for plan and backlog decisions, then plan review and a collapsed Coming up line. Expanded future

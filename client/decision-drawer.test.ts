@@ -24,6 +24,8 @@ const rpc = vi.hoisted(() => ({
   planHomes: [] as string[],
   answerSnapshot: null as NeedsYouSnapshot | null,
   refuseWithChange: false,
+  readFailure: false,
+  pollSnapshot: null as NeedsYouSnapshot | null,
 }));
 vi.mock("react-native", () => Object.fromEntries(
   ["View", "Text", "Pressable", "ScrollView", "TextInput", "SafeAreaView"].map(name => [name, name]),
@@ -32,7 +34,10 @@ vi.mock("@getpaseo/plugin/client", () => ({
   useSettings: () => ({ status: "ready", values: { hostTab: "all", tagFilter: [] } }),
   useRpc: (contract: { name: string }) => async (input: { homeId: string; requestId: string; command?: PlanCaptainCommand }) => {
     rpc.calls.push(contract.name);
-    if (contract.name === "firstmate.needs-you.read") return structuredClone(rpc.snapshot!);
+    if (contract.name === "firstmate.needs-you.read") {
+      if (rpc.readFailure) throw new Error("Snapshot unavailable");
+      return structuredClone(rpc.snapshot!);
+    }
     if (contract.name === "firstmate.workflow.act") {
       if (rpc.outcome === "refused") {
         if (rpc.refuseWithChange) {
@@ -102,6 +107,8 @@ async function mount(ids = ["a", "b", "c"], planDecision = false, configure?: (s
   rpc.planActions = [];
   rpc.planHomes = [];
   rpc.refuseWithChange = false;
+  rpc.readFailure = false;
+  rpc.pollSnapshot = null;
   rpc.snapshot = attentionSnapshot(ids.map(id => attentionRequest(id)));
   if (planDecision) {
     rpc.snapshot.planNow = [planDecisionNeed()];
@@ -114,7 +121,7 @@ async function mount(ids = ["a", "b", "c"], planDecision = false, configure?: (s
   function Origin() {
     const [destination, select] = useState<DecisionDestination>({ requestId: selectedId });
     const [open, setOpen] = useState(true);
-    const query = useQuery({ queryKey: NEEDS_YOU_QUERY_KEY, queryFn: async () => rpc.snapshot! });
+    const query = useQuery({ queryKey: NEEDS_YOU_QUERY_KEY, queryFn: async () => rpc.pollSnapshot ?? rpc.snapshot! });
     return open && query.data ? createElement(DecisionDrawer, {
       theme: attentionTheme, snapshot: query.data, offline: options.offline ?? false, filtered: options.filtered ?? false, destination,
       onSelect(next) { selectedId = next.requestId; select(next); },
@@ -169,6 +176,22 @@ it("closes after the last answer and restores the opening view", async () => {
   await answer();
   expect(close).toHaveBeenCalledOnce();
   expect(words()).toContain("Original Board");
+});
+
+it("keeps an accepted backlog reply disabled while the combined read fails and polling still shows the old gate", async () => {
+  await mount(["a"]);
+  rpc.pollSnapshot = structuredClone(rpc.snapshot!);
+  rpc.readFailure = true;
+  await answer();
+  await act(async () => { await client.invalidateQueries({ queryKey: NEEDS_YOU_QUERY_KEY }); });
+  expect(words()).toContain("Answer sent. Refresh decisions to continue.");
+  expect((client.getQueryData(NEEDS_YOU_QUERY_KEY) as NeedsYouSnapshot).requests[0]!.state).toBe("new");
+  expect(close).not.toHaveBeenCalled();
+  // A new draft removes the empty-input guard; only the accepted-answer gate can block this reply.
+  await act(async () => { renderer.root.findByType(TextInput).props.onChangeText("A second answer"); });
+  expect(button("Send answer").props.disabled).toBe(true);
+  await press("Send answer");
+  expect(rpc.calls.filter(name => name.endsWith(".answer"))).toHaveLength(1);
 });
 
 it("uses the newer same-home poll when the last answer's accepted response arrives late", async () => {
@@ -368,6 +391,14 @@ it("uses the same shared card component and style for plan and backlog decisions
   expect(renderer.root.findAllByType(DecisionTask)).toHaveLength(2);
   const cards = renderer.root.findAll(n => n.type === View && n.props.testID === "decision-task");
   expect(cards.map(c => [c.props.style.borderWidth, c.props.style.borderRadius, c.props.style.padding])).toEqual([[1, 8, 12], [1, 8, 12]]);
+});
+
+it("does not claim a backlog decision has no worker when All has no worker inventory", async () => {
+  await mount(["backlog"]);
+  await press("All decisions");
+  await press("Details for decision backlog");
+  expect(words()).toContain("Waiting since");
+  expect(words()).not.toContain("No worker card is attached to this decision.");
 });
 
 it.each(["List", "Board"])("omits Coming up from the real %s component", async view => {
