@@ -18,7 +18,6 @@ import { FIRST_MATE_KEY } from "./deck-first-mate";
 import { ASK_PAPER, askPixels, ASK_SIZE, hexColour } from "./deck-badges";
 import { answeredReplies, type BubblePlacement } from "./deck-replies";
 import { suggestionRemovals } from "./suggestion-removals";
-import type { DeckSailor } from "./deck-scene";
 import { webTitle } from "./web";
 
 /** The same anchored, scrollable dialog for the shark and the first mate. */
@@ -58,7 +57,7 @@ export function DecisionCountBubble({ snapshot, anchor, theme, holdRef, open, di
       borderWidth: 1, borderRadius: 8, borderStyle: state.stale ? "dashed" : "solid",
       borderColor: colors.accent, backgroundColor: colors.surface0 }}>
     <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{state.count}</Text>
-    <SpeechTail theme={theme} left={width / 2 - 4} above size={8} border={1} />
+    <SpeechTail theme={theme} left={width / 2 - 4} />
   </Pressable>;
 }
 
@@ -71,6 +70,8 @@ export function NeedsYouBubbles({ snapshot, place, theme, holdRef, onClose, onOp
   const projected = decisionCardSnapshot(snapshot);
   const requests = decisionQueue(projected.requests).filter(request => request.state === "new" || request.state === "seen");
   const reviews = snapshot.planNow?.filter(need => !need.node) ?? [];
+  // The server also counts unreadable held tasks that cannot become ordinary decision rows.
+  const remaining = Math.max(0, (snapshot.actionCount ?? 0) - requests.length - reviews.length);
   const { colors } = theme;
   return <DeckPopover title="Needs you" label="First mate needs you" testID="firstmate-deck-needs-you"
     place={place} theme={theme} holdRef={holdRef} onClose={onClose}>
@@ -84,7 +85,13 @@ export function NeedsYouBubbles({ snapshot, place, theme, holdRef, onClose, onOp
       style={{ padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.surface1 }}>
       <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{need.title}</Text>
     </Pressable>)}
-    {requests.length || reviews.length ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Nothing needs you right now.</Text>}
+    {remaining === 0 ? null : <Pressable accessibilityRole="button" accessibilityLabel={`Open Needs you: ${remaining} more item${remaining === 1 ? "" : "s"}`}
+      onPress={() => onOpen(deckDecisionDestination(snapshot, "next"))}
+      style={{ padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.surface1 }}>
+      <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{remaining} more {remaining === 1 ? "item" : "items"} · open Needs you</Text>
+      <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Review unreadable tasks and repair details.</Text>
+    </Pressable>}
+    {requests.length || reviews.length || remaining ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Nothing needs you right now.</Text>}
   </DeckPopover>;
 }
 
@@ -136,7 +143,7 @@ export function SuggestionBubbles({ suggestions, place, theme, blocked, onReply,
   );
 }
 
-/** The reply marker, drawn as on deck, `pixel` points an art pixel: the legend's key to it. */
+/** Reply icon inside the worker focus panel; never mounted over a worker sprite. */
 export function DeckAskMarker({ accent, pixel = 2 }: { accent: string; pixel?: number }) {
   const paper = `#${ASK_PAPER.toString(16).padStart(6, "0")}`;
   const dot = `#${hexColour(accent).toString(16).padStart(6, "0")}`;
@@ -164,128 +171,16 @@ export function replyLabel(reply: Suggestion): string {
   return `${reply.label}: send "${reply.prompt}" to the first mate`;
 }
 
-/** One reply as a chip in the bubble. */
-function ReplyChip({ reply, theme, blocked, onReply }: { reply: Suggestion; theme: PluginTheme; blocked: string | null; onReply: (reply: Suggestion) => void }) {
-  const { colors } = theme;
-  const disabled = blocked !== null;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={replyLabel(reply)}
-      accessibilityHint={blocked ?? undefined}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={() => onReply(reply)}
-      {...webTitle(blocked ?? reply.prompt)}
-      style={{
-        maxWidth: "100%",
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: colors.accent,
-        backgroundColor: colors.surface1,
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
-      <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>
-        {reply.label}
-      </Text>
-    </Pressable>
-  );
-}
-
-/** The tail's square, turned to a point: its two bordered sides are the bubble's edge, carried out to the tip. */
-const TAIL = 12;
-
-function SpeechTail({ theme, left, above, size = TAIL, border = 2 }: {
-  theme: PluginTheme; left: number; above: boolean; size?: number; border?: number;
-}) {
-  return <View style={{ pointerEvents: "none", position: "absolute", left,
-    ...(above ? { bottom: -size / 2 + 1 } : { top: -size / 2 + 1 }), width: size, height: size,
+/** The count bubble's tail, in the same theme surface and accent as its outline. */
+function SpeechTail({ theme, left }: { theme: PluginTheme; left: number }) {
+  return <View style={{ pointerEvents: "none", position: "absolute", left, bottom: -3, width: 8, height: 8,
     backgroundColor: theme.colors.surface0, borderColor: theme.colors.accent,
-    ...(above ? { borderRightWidth: border, borderBottomWidth: border } : { borderLeftWidth: border, borderTopWidth: border }),
-    transform: [{ rotate: "45deg" }] }} />;
+    borderRightWidth: 1, borderBottomWidth: 1, transform: [{ rotate: "45deg" }] }} />;
 }
 
 /**
- * A sailor's speech bubble, laid over the canvas at `place`. `holdRef` is the bubble's element, for keeping
- * Tab inside the focused sailor's bubble and panel; `onHover` hears the pointer come and go, so the pane keeps
- * the bubble up while the pointer crosses from the sailor to its chips. The pointer is read with the DOM's own
- * enter and leave, which a child does not interrupt: react-native-web's Pressable ends its own hover when the
- * pointer reaches a Pressable inside it, here a chip, which took the bubble down just as it was used.
- */
-export function ReplyBubble({
-  sailor,
-  replies,
-  place,
-  theme,
-  blocked,
-  onReply,
-  onHover,
-  holdRef,
-}: {
-  sailor: DeckSailor;
-  replies: readonly Suggestion[];
-  place: BubblePlacement;
-  theme: PluginTheme;
-  blocked: string | null;
-  onReply: (reply: Suggestion) => void;
-  onHover: (over: boolean) => void;
-  holdRef?: Ref<View>;
-}) {
-  if (sailor.key !== FIRST_MATE_KEY) return null;
-  const { colors } = theme;
-  const above = place.side === "above";
-  const line = sailor.caption.line ?? sailor.caption.status;
-  return (
-    <View
-      onPointerEnter={() => onHover(true)}
-      onPointerLeave={() => onHover(false)}
-      testID="firstmate-deck-bubble"
-      style={{
-        position: "absolute",
-        left: place.left,
-        width: place.width,
-        ...(place.top === undefined ? { bottom: place.bottom } : { top: place.top }),
-      }}
-    >
-      <View
-        ref={holdRef}
-        role="group"
-        aria-label={`${sailor.caption.title} wants your reply`}
-        style={{
-          maxHeight: place.maxHeight,
-          borderRadius: 12,
-          borderWidth: 2,
-          borderColor: colors.accent,
-          backgroundColor: colors.surface0,
-          overflow: "hidden",
-        }}
-      >
-        <ScrollView style={{ maxHeight: Math.max(0, place.maxHeight - 4) }} contentContainerStyle={{ padding: 10, gap: 6 }}>
-          <Text numberOfLines={1} style={{ color: colors.foregroundMuted, fontSize: 11, fontWeight: "600" }}>
-            {sailor.caption.title}
-          </Text>
-          <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 13, lineHeight: 18 }}>
-            {line}
-          </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            {replies.map((reply) => (
-              <ReplyChip key={`${reply.label}\u0000${reply.prompt}`} reply={reply} theme={theme} blocked={blocked} onReply={onReply} />
-            ))}
-          </View>
-          {blocked === null ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>{blocked}</Text>}
-        </ScrollView>
-      </View>
-      <SpeechTail theme={theme} left={place.tail - TAIL / 2} above={above} />
-    </View>
-  );
-}
-
-/**
- * The focused sailor's replies in its panel: the roomy, keyboard route to the same sends as the bubble's
- * chips, each with the start of what it says. The card's own `extra`, under its glance.
+ * The focused sailor's replies in its panel, each with the start of what it says.
+ * These use the board's existing send handler and disabled reason.
  */
 export function ReplyOptions({
   replies,

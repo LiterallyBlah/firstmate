@@ -937,6 +937,21 @@ describe("the ship deck view", () => {
     await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Open decisions" }).props.onPress());
     expect(open).toHaveBeenCalledWith({ requestId: "next", homeId: snapshot.homeId });
   });
+  it("keeps an unreadable-held-task-only count reachable through Needs you", async () => {
+    const engine = viewEngine(), open = vi.fn(), snapshot = attentionSnapshot([]);
+    snapshot.actionCount = 1;
+    snapshot.quarantined = [{ line: 5, taskId: "damaged-task", key: null, hasHold: true, problem: "Task scope could not be read." }];
+    await act(async () => { renderer = create(createElement(ShipDeckView, { cards: fixture, theme, engine, needsYou: snapshot, onOpenDecision: open }), { createNodeMock: () => fakeHost() }); });
+    await act(flush);
+    await act(async () => engine.firstMate?.({ key: "@first-mate", x: 300, top: 160, bottom: 200, width: 640, height: 300, floor: null }));
+    await act(async () => engine.select?.("@first-mate"));
+    const tag = renderer!.root.find(node => (node.type as unknown) === "Pressable" && node.props.testID === "firstmate-deck-decision-tag");
+    expect(tag.find(node => (node.type as unknown) === "Text").children.join("")).toBe("1");
+    expect(text(renderer!)).not.toContain("Nothing needs you right now.");
+    expect(open).not.toHaveBeenCalled();
+    await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Open Needs you: 1 more item" }).props.onPress());
+    expect(open).toHaveBeenCalledExactlyOnceWith({ requestId: "next", homeId: snapshot.homeId });
+  });
   it.each(["clear", "unknown", "disabled"] as const)("keeps the first mate quiet when decisions are %s", async state => {
     const engine = viewEngine(), open = vi.fn(), snapshot = attentionSnapshot([]);
     if (state !== "clear") { snapshot.actionCount = null; snapshot.freshness.status = state; }

@@ -378,7 +378,8 @@ speech bubble, with a dashed outline for stale data, and the legend retains the 
 Clicking the officer or its bubble opens all current Needs-you items in the shark's shared popover
 chrome. Opening sends and acknowledges nothing; picking a decision carries its exact id, home and
 revision into the existing drawer. Due plan decisions use the shared presentation adapter; plan
-reviews open their existing plan dialog. Zero/unavailable counts show no bubble. Escape, outside
+reviews open their existing plan dialog. Counted items absent from the rows (including unreadable
+held tasks) retain a counted footer linking to Needs you and its repair controls. Zero/unavailable counts show no bubble. Escape, outside
 clicks, the close button and another officer click dismiss it. Shark and officer popovers are exclusive.
 
 Missing tasks are retained as per-task quarantines, never inferred resolved and never freezing healthy
@@ -855,8 +856,9 @@ native art size; it has no per-effect scale. Flight evidence is kept outside the
   A first mate's suggestion whose label or prompt names a card's task id, pull request or agent id is that
   sailor's reply. Its panel retains `ReplyOptions` and the existing `suggest` handler, send gate,
   `answeredReplies` suppression and failure recovery. `ShipDeckView` never marks worker sprites as
-  asking and never mounts their hover reply bubbles; shared speech-bubble components also reject worker
-  keys. Historical marker geometry stays covered by its pure regression tests.
+  asking and never mounts hover reply bubbles. Only the engine's reserved first-mate anchor reaches the
+  count bubble, whose live component also rejects worker keys. `DeckAskMarker` is only the reply icon
+  inside focus panels. Historical marker geometry stays covered by its pure regression tests.
   `node docs/fm-ui-polish/render.mjs` adapts the existing attention-deck and Plans render harnesses for
   before/after toolbar and Deck checks in both themes, exact-item routing, dismissal, scrolling, zero
   and all shipped scenes. Evidence stays in ignored `.local/fm-ui-polish/`; no daemon is touched.
