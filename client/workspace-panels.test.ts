@@ -34,7 +34,7 @@ it("registers five fixed workspace destinations and a single Home screen", () =>
   ).toEqual([
     ["firstmate-deck", "Deck", "Ship", "workspace", ["workspace"]],
     ["firstmate-board", "Board", "Columns3", "workspace", ["workspace"]],
-    ["firstmate-crew", "Crew", "Users", "workspace", ["workspace"]],
+    ["firstmate-crew", "List", "Users", "workspace", ["workspace"]],
     ["firstmate-chat", "Chat", "MessageSquare", "workspace", ["workspace"]],
     ["firstmate-plans", "Plans", "ListTodo", "workspace", ["workspace"]],
   ]);

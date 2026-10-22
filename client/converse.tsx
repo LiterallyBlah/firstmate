@@ -366,6 +366,7 @@ function LocalConverse({ agentId, ...props }: DrawerProps & { agentId: string })
           <View key={request.id} onLayout={(event) => follow.reveal(request.id, event.nativeEvent.layout)}>
             <PermissionCard
               request={request}
+              asker="This worker"
               theme={theme}
               compact={compact}
               onRespond={(response) => respond(request.id, response)}

@@ -15,6 +15,7 @@ import { NEEDS_YOU_QUERY_KEY } from "./needs-you-query";
 import { errorText } from "./format";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 import { ToolbarButton } from "./task-toolbar";
+import { planSummary } from "./workflow-plan-list";
 
 export const WORKFLOW_QUERY_KEY = ["firstmate", "workflow-plans"] as const;
 export function workflowRequestId() {
@@ -158,17 +159,16 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
 export function PlanChip({ card, theme }: { card: FleetCard; theme: PluginTheme }) {
   const { snapshot, open } = useWorkflowPlans(), plan = snapshot?.plans.find(p => (!p.definition.implicit || p.status === "review") && workflowOwnsCard(p, card));
   if (!plan) return null;
-  const done = Object.values(plan.nodes).filter(n => n.state === "done" || n.state === "landed").length;
-  return <Button theme={theme} label={`${plan.definition.title} · ${done} of ${plan.definition.nodes.length}${plan.status === "review" && !planFinished(plan) ? " · awaiting approval" : ""}`} onPress={() => open(plan.definition.id)} />;
+  return <Button theme={theme} label={`${plan.definition.title} · ${planSummary(plan, snapshot!.plans).progress}${plan.status === "review" && !planFinished(plan) ? " · awaiting approval" : ""}`} onPress={() => open(plan.definition.id)} />;
 }
 export function PlansControl({ theme, selected, onSelect }: { theme: PluginTheme; selected: string | null; onSelect(id: string | null): void }) {
   const { snapshot, open } = useWorkflowPlans(), [shown, setShown] = useState(false);
   const plans = snapshot?.plans.filter(p => !p.definition.implicit || p.status === "review") ?? [];
   if (!plans.length) return null;
-  const label = selected ? `Plans: ${plans.find(p => p.definition.id === selected)?.definition.title ?? "selected"}` : "Plans";
+  const label = selected ? `Plan filter: ${plans.find(p => p.definition.id === selected)?.definition.title ?? "selected"}` : "Plan filter";
   return <><ToolbarButton theme={theme} icon="ListTodo" text={label} label={label}
     hint="Filter tasks by plan or open a plan's details." active={selected !== null} open={shown} onPress={() => setShown(true)} />
-    <Modal title="Plans" open={shown} onOpenChange={setShown}><Modal.Content>
+    <Modal title="Filter tasks by plan" open={shown} onOpenChange={setShown}><Modal.Content>
       <Button theme={theme} label="All plans and tasks" onPress={() => { onSelect(null); setShown(false); }} />
       {plans.map(p => <View key={p.definition.id} style={{ gap: 6 }}><Button theme={theme} label={`Filter: ${p.definition.title}`} onPress={() => { onSelect(p.definition.id); setShown(false); }} />
         <Button theme={theme} label={`Open plan: ${p.definition.title}`} onPress={() => { setShown(false); open(p.definition.id); }} /></View>)}

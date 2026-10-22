@@ -5,7 +5,7 @@ import type { DecisionDestination } from "./needs-you-state";
 export const FLEET_PANELS = {
   deck: { id: "firstmate-deck", title: "Deck", icon: "Ship" },
   board: { id: "firstmate-board", title: "Board", icon: "Columns3" },
-  crew: { id: "firstmate-crew", title: "Crew", icon: "Users" },
+  crew: { id: "firstmate-crew", title: "List", icon: "Users" },
   chat: { id: "firstmate-chat", title: "Chat", icon: "MessageSquare" },
   plans: { id: "firstmate-plans", title: "Plans", icon: "ListTodo" },
 } as const;

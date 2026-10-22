@@ -9,15 +9,15 @@ import { WorkflowPlanGraph } from "./workflow-plan-graph-view";
 import { useWorkflowPlans } from "./workflow-plans";
 import { PLAN_PAGE_SIZE, planBudgetUsed, planGroups, planStatus, planSteps, planSummary, reviewLabel, reviewStatus, stepState } from "./workflow-plan-list";
 
-export function WorkflowPlansView({ theme }: { theme: PluginTheme }) {
+export function WorkflowPlansView({ theme, showHeading = true }: { theme: PluginTheme; showHeading?: boolean }) {
   const { snapshot, loading, error, refresh, open } = useWorkflowPlans();
-  return <WorkflowPlanBrowser theme={theme} snapshot={snapshot} loading={loading} error={error} onRefresh={refresh} onOpen={open} />;
+  return <WorkflowPlanBrowser theme={theme} snapshot={snapshot} loading={loading} error={error} onRefresh={refresh} onOpen={open} showHeading={showHeading} />;
 }
 
 /** One shared RPC snapshot; browsing, folding and searching never record a captain action. */
-export function WorkflowPlanBrowser({ theme, snapshot, loading, error, onRefresh, onOpen }: {
+export function WorkflowPlanBrowser({ theme, snapshot, loading, error, onRefresh, onOpen, showHeading = true }: {
   theme: PluginTheme; snapshot: WorkflowSnapshot | undefined; loading: boolean; error: string | null;
-  onRefresh(): void; onOpen(id: string): void;
+  onRefresh(): void; onOpen(id: string): void; showHeading?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"graph" | "list">("graph");
@@ -25,10 +25,10 @@ export function WorkflowPlanBrowser({ theme, snapshot, loading, error, onRefresh
   const meta = { color: colors.foregroundMuted, fontSize: 12 };
   return <View testID="workflow-plans-view" style={{ flex: 1, minHeight: 0 }}>
     <View style={{ padding: 12, gap: 8, borderBottomWidth: 1, borderColor: colors.border }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", flex: 1 }}>Plans</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+        {showHeading ? <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", flex: 1 }}>Plans</Text> : null}
         <Segmented theme={theme} value={view} options={[{ value: "graph", label: "Graph" }, { value: "list", label: "List" }]} onChange={setView} />
-        <IconButton theme={theme} icon="RefreshCw" label="Refresh plans" onPress={onRefresh} />
+        {showHeading ? <IconButton theme={theme} icon="RefreshCw" label="Refresh plans" onPress={onRefresh} /> : null}
       </View>
       <Text style={meta}>Open plans first. Expand a plan for its steps and reviews, or open it to make a decision.</Text>
       <TextInput accessibilityLabel="Search plans" placeholder="Search title, worker or host" value={search} onChangeText={setSearch}
@@ -39,7 +39,7 @@ export function WorkflowPlanBrowser({ theme, snapshot, loading, error, onRefresh
         {snapshot ? <Text style={meta}>Showing the last received plans. Open a plan to review freshness before acting.</Text> : null}</View> : null}
       {snapshot?.problems?.length ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning, fontSize: 13 }}>Some plans are unavailable. This list is incomplete. {snapshot.problems.join(" ")}</Text> : null}
       {snapshot?.warnings?.map(warning => <Text key={warning} style={meta}>{warning}</Text>)}
-      {!snapshot ? <Text style={meta}>{loading ? "Loading plans…" : error ? "Use Refresh plans to try again." : "Plans are unavailable."}</Text> :
+      {!snapshot ? <Text style={meta}>{loading ? "Loading plans…" : error ? `Use ${showHeading ? "Refresh plans" : "Refresh"} to try again.` : "Plans are unavailable."}</Text> :
         !snapshot.plans.length && !snapshot.problems?.length ? <Text style={meta}>No plans yet. Work started by the first mate will appear here.</Text> :
         !groups.open.length && !groups.finished.length && search.trim() ? <Text style={meta}>No plans match this search.</Text> : <>
           <PlanSection key={`open:${search}`} title="Open plans" plans={groups.open} allPlans={snapshot.plans} theme={theme} onOpen={onOpen} searching={!!search.trim()} view={view} onList={() => setView("list")} />

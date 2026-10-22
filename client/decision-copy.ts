@@ -1,4 +1,5 @@
 import type { NeedsYouRequest } from "../shared/needs-you";
+import { contrastRatio } from "./contrast";
 
 /** Keep the authored title in details; remove only balanced trailing notes at rest. */
 export function decisionTitle(title: string): string {
@@ -60,21 +61,9 @@ export function decisionStateLabel(
   }
 }
 
-/** Pick the darker theme token for legible text on the filled amber signal in either theme. */
-export function decisionSignalInk(surface: string, foreground: string): string {
-  const luminance = (color: string) => {
-    const hex = color.replace("#", "");
-    const expanded =
-      hex.length === 3
-        ? hex
-            .split("")
-            .map((c) => c + c)
-            .join("")
-        : hex;
-    const rgb = [0, 2, 4].map((i) => parseInt(expanded.slice(i, i + 2), 16));
-    return rgb[0]! * 0.2126 + rgb[1]! * 0.7152 + rgb[2]! * 0.0722;
-  };
-  return luminance(surface) < luminance(foreground) ? surface : foreground;
+/** Choose between theme inks against the actual warning fill, which varies by palette. */
+export function decisionSignalInk(surface: string, foreground: string, warning: string): string {
+  return contrastRatio(surface, warning) > contrastRatio(foreground, warning) ? surface : foreground;
 }
 
 export function decisionLinkLabel(url: string): string {

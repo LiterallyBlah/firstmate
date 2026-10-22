@@ -213,6 +213,7 @@ export function DecisionDrawer({
     ? snapshot?.requests.find((r) => r.id === destination.requestId) ?? (["next", "empty"].includes(destination.requestId) ? queue[0] : undefined)
     : undefined;
   const index = queue.findIndex((r) => r.id === request?.id);
+  const planReviews = sourceSnapshot?.planNow?.filter(need => !need.node).length ?? 0;
   const [expandedAll, setAll] = useState(false);
   const all = destination.requestId === "all" || expandedAll;
   const nestedAll = all && destination.requestId !== "all";
@@ -461,7 +462,7 @@ export function DecisionDrawer({
             flex: 1,
           }}
         >
-          {all ? "All" : "Needs you"}
+          {all ? "All" : "Decisions"}
           {!all && index >= 0 ? `  ${index + 1} of ${queue.length}` : ""}
         </Text>
         {!all ? (
@@ -494,6 +495,11 @@ export function DecisionDrawer({
           </>
         ) : null}
       </View>
+      {!all && planReviews > 0 ? (
+        <Text style={{ color: colors.foregroundMuted, fontSize: 12, paddingHorizontal: 16, paddingTop: 8 }}>
+          {queue.length} decision{queue.length === 1 ? "" : "s"} in this queue · {planReviews} plan review{planReviews === 1 ? "" : "s"} in All
+        </Text>
+      ) : null}
       {receipt?.answered ? (
         <Text accessibilityLiveRegion="polite" style={{ color: colors.foregroundMuted, fontSize: 12, paddingHorizontal: 16, paddingTop: 8 }}>
           {receipt.text}

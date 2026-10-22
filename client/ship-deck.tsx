@@ -34,7 +34,7 @@
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { DECK_MOVE_WORDS, deckDecisionDestination, deckDecisionLabel } from "./deck-decisions";
+import { deckDecisionDestination, deckDecisionLabel } from "./deck-decisions";
 import type { OpenDecision } from "./decision-action";
 import { FIRST_MATE_KEY } from "./deck-first-mate";
 import { disconnectedReveals, hiddenWorkersText } from "./deck-offline";
@@ -196,8 +196,8 @@ export function deckStatusText(status: DeckStatus, presentation: DeckPresentatio
       return `${subject} could not start: ${status.message}`;
     case "unsupported":
       return status.reason === "no-webgl"
-        ? `This display has no WebGL, so ${noun} cannot draw. The Crew board shows everything it would.`
-        : `${subject} draws only in the Paseo desktop app. The Crew board shows everything it would.`;
+        ? `This display has no WebGL, so ${noun} cannot draw. List and Board show the tasks.`
+        : `${subject} draws only in the Paseo desktop app. List and Board show the tasks.`;
   }
 }
 
@@ -472,7 +472,7 @@ function DeckView({
   const crew = scene.sailors.length;
   const hidden = scene.hidden?.workers ? hiddenWorkersText(scene.hidden.workers, scene.hidden.hosts) : null;
   const lost = scene.stale === 0 ? "" : decisionStale ? ", decisions from the last good read" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
-  const words = (state: (typeof DECK_STATES)[number]) => needsYou === undefined ? state : DECK_MOVE_WORDS[state];
+  const words = (state: (typeof DECK_STATES)[number]) => places[state] || state;
   const decisionLabel = deckDecisionLabel(needsYou, stale);
   const total = needsYou === undefined ? "" : `${decisionLabel}. `;
   const summary = `${total}${legendStates.map((state) => `${scene.counts[state]} ${words(state)}`).join(", ")}${lost}${hidden === null ? "" : `. ${hidden}`}`;

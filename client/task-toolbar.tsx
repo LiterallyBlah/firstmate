@@ -103,10 +103,10 @@ export function TaskToolbar({
           open={panel === "tags"}
           onPress={() => setPanel("tags")}
         />
+        {planControl}
         {boardMode ? <View style={{ marginLeft: "auto" }}>
           <IconButton theme={theme} icon="Ellipsis" label="Board options" onPress={() => setPanel("board")} />
         </View> : null}
-        {planControl}
       </View>
       <Modal
         title={panel === "machines" ? "Machines" : panel === "suggestions" ? "Suggestions" : panel === "board" ? "Board options" : "Filter tags"}
@@ -123,7 +123,7 @@ export function TaskToolbar({
                   <Pressable
                     key={tab.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${tab.id === "all" ? "All machines" : tab.label}${tab.online === null ? "" : tab.online ? ", online" : ", unreachable"}, ${tab.working} working, ${tab.attention} need attention`}
+                    accessibilityLabel={`${tab.id === "all" ? "All machines" : tab.label}${tab.online === null ? "" : tab.online ? ", online" : ", unreachable"}, ${tab.working} working, ${tab.attention} blocked or failed`}
                     accessibilityState={{ selected: tab.id === hostTab }}
                     aria-pressed={tab.id === hostTab}
                     onPress={() => {
@@ -151,7 +151,7 @@ export function TaskToolbar({
                         }}
                       >
                         {tab.online === null ? "" : tab.online ? "Online · " : "Unreachable · "}
-                        {tab.working} working · {tab.attention} need attention
+                        {tab.working} working · {tab.attention} blocked or failed
                       </Text>
                     </View>
                   </Pressable>
@@ -243,7 +243,7 @@ export function ToolbarButton({
           }}
         >
           <Icon name={icon} size={13} color={color} />
-          <Text numberOfLines={1} style={{ color, fontSize: 12, flexShrink: 1 }}>
+          <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 12, flexShrink: 1 }}>
             {text}
           </Text>
         </Pressable>

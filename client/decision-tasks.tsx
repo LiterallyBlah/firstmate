@@ -65,7 +65,7 @@ export function DecisionTask({
         <Pressable accessibilityRole="button" accessibilityLabel={`Answer: ${request.source.title}. ${request.source.ask}`}
           onPress={openAnswer} style={{ flex: 1, minWidth: 0, gap: 3 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            {isNew ? <Text style={{ color: decisionSignalInk(colors.surface0, colors.foreground), backgroundColor: colors.statusWarning, borderRadius: 3,
+            {isNew ? <Text style={{ color: decisionSignalInk(colors.surface0, colors.foreground, colors.statusWarning), backgroundColor: colors.statusWarning, borderRadius: 3,
               paddingHorizontal: 4, paddingVertical: 1, fontSize: 10, fontWeight: "700" }}>NEW</Text> : null}
             <Text numberOfLines={row ? 1 : 2} style={{ flex: 1, color: colors.foreground, fontSize: 13, lineHeight: 18, fontWeight: "600" }}>{title}</Text>
           </View>

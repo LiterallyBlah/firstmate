@@ -5,6 +5,7 @@ import {
   stableDecisionOrder,
   nextWaitingDecision,
   thisEvening,
+  decisionSignalInk,
 } from "./decision-copy";
 import {
   emptyLedger,
@@ -21,6 +22,11 @@ const ledger = () =>
     observeNeedsYou(document, null),
     1000,
   );
+it("chooses signal ink against the actual warning fill in both Paseo palettes", () => {
+  // Paseo light has a dark warning fill; Paseo dark has a light warning fill.
+  expect(decisionSignalInk("#ffffff", "#1a1a1e", "#7b5d39")).toBe("#ffffff");
+  expect(decisionSignalInk("#181B1A", "#fafafa", "#c09664")).toBe("#181B1A");
+});
 it("trims only complete trailing parenthetical notes and keeps interior words", () => {
   expect(decisionTitle("Choose host (after review (Monday)) (notes)")).toBe(
     "Choose host",

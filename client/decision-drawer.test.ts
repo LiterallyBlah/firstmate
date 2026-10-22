@@ -153,6 +153,20 @@ afterEach(async () => {
   client?.clear();
 });
 
+it("names the decision queue separately from plan reviews without changing its navigation or total", async () => {
+  await mount(["a", "b", "c"], true, snapshot => {
+    snapshot.planNow!.push({ ...planDecisionNeed(), node: undefined, decision: undefined });
+    snapshot.actionCount!++;
+  });
+  expect(words()).toMatch(/Decisions\s+4 of 4/);
+  expect(words()).toContain("4 decisions in this queue · 1 plan review in All");
+  expect(rpc.snapshot!.actionCount).toBe(5);
+  expect(rpc.calls).toEqual([]);
+  await press("Next decision");
+  expect(words()).toMatch(/Decisions\s+1 of 4/);
+  expect(rpc.calls).toEqual([]);
+});
+
 it("opens the mixed healthy-and-unreadable footer directly in All with repair controls", async () => {
   rpc.snapshot = attentionSnapshot([attentionRequest("healthy")]);
   rpc.snapshot.actionCount = 2;
