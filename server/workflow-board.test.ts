@@ -18,6 +18,8 @@ let home: string;
 const daemonRoot = process.env.PASEO_HOME!;
 afterEach(() => { vi.useRealTimers(); });
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-22T12:00:00Z"));
   // Each test has its own daemon data as well as its own configured home.
   process.env.PASEO_HOME = join(daemonRoot, randomUUID()); home = join(process.env.PASEO_HOME!, "home");
   for (const id of ["trial", "build"]) { await mkdir(join(home, `data/${id}`), { recursive: true }); await writeFile(join(home, `data/${id}/brief.md`), `Instructions for ${id}.`); }
