@@ -6,19 +6,32 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { attentionRequest, attentionSnapshot, attentionTheme } from "../test/attention-deck-fixture";
 import type { DecisionDestination } from "./needs-you-state";
+import { planDecisionNeed } from "../test/plan-decision-fixture";
+import type { PlanCaptainCommand } from "../shared/workflow-plans";
 
 const rpc = vi.hoisted(() => ({
   snapshot: null as NeedsYouSnapshot | null,
   outcome: "accepted" as "accepted" | "failed" | "uncertain" | "refused",
   calls: [] as string[],
   delay: null as Promise<void> | null,
+  planActions: [] as PlanCaptainCommand[],
+  planHomes: [] as string[],
 }));
 vi.mock("react-native", () => Object.fromEntries(
   ["View", "Text", "Pressable", "ScrollView", "TextInput", "SafeAreaView"].map(name => [name, name]),
 ));
 vi.mock("@getpaseo/plugin/client", () => ({
-  useRpc: (contract: { name: string }) => async (input: { requestId: string }) => {
+  useRpc: (contract: { name: string }) => async (input: { homeId: string; requestId: string; command?: PlanCaptainCommand }) => {
     rpc.calls.push(contract.name);
+    if (contract.name === "firstmate.needs-you.read") return structuredClone(rpc.snapshot!);
+    if (contract.name === "firstmate.workflow.act") {
+      if (rpc.outcome === "refused") throw new Error("Plan changed");
+      rpc.planActions.push(input.command!);
+      rpc.planHomes.push(input.homeId);
+      rpc.snapshot!.planNow = [];
+      if (rpc.snapshot!.actionCount !== null) rpc.snapshot!.actionCount--;
+      return { homeId: rpc.snapshot!.homeId, plans: [], now: [], comingUp: [], subjects: {} };
+    }
     if (!contract.name.endsWith(".answer")) throw new Error(`Unexpected RPC: ${contract.name}`);
     if (rpc.outcome === "refused") throw new Error("Decision changed");
     const snapshot = structuredClone(rpc.snapshot!);
@@ -45,9 +58,11 @@ vi.mock("./web", () => ({
 }));
 vi.mock("./keyboard", () => ({ useKeyboardOverlap: () => 0 }));
 vi.mock("./files", () => ({ FilesView: () => null }));
-vi.mock("./workflow-plans", () => ({ PlanNeeds: () => null }));
-vi.mock("./decision-context", () => ({ DecisionAsk: () => null, DecisionMaterials: () => null }));
-vi.mock("./decision-brief", () => ({ briefFor: () => null, DecisionBrief: () => null, DecisionSummary: () => null }));
+vi.mock("./card", () => ({ CrewCard: () => null, watchOpener() {} }));
+vi.mock("./ui", () => ({ Tag: () => null }));
+vi.mock("./option-picker", () => ({ OptionPicker: () => null }));
+vi.mock("./markdown", () => ({ Markdown: ({ source }: { source: string }) => createElement("Text", null, source) }));
+vi.mock("./decision-context", () => ({ DecisionAsk: ({ source }: { source: { ask: string } }) => createElement("Text", null, source.ask), DecisionMaterials: () => null }));
 vi.mock("./decision-snooze", () => ({ DecisionSnooze: () => null }));
 
 import { DecisionDrawer } from "./decision-drawer";
@@ -57,13 +72,21 @@ let renderer: ReactTestRenderer;
 let client: QueryClient;
 let selectedId: string;
 const close = vi.fn();
-async function mount(ids = ["a", "b", "c"]) {
+async function mount(ids = ["a", "b", "c"], planDecision = false, configure?: (snapshot: NeedsYouSnapshot) => void) {
   close.mockClear();
   rpc.calls = [];
   rpc.outcome = "accepted";
   rpc.delay = null;
+  rpc.planActions = [];
+  rpc.planHomes = [];
   rpc.snapshot = attentionSnapshot(ids.map(id => attentionRequest(id)));
-  selectedId = rpc.snapshot.requests[0]!.id;
+  if (planDecision) {
+    rpc.snapshot.planNow = [planDecisionNeed()];
+    rpc.snapshot.comingUp = [{ ...planDecisionNeed(), node: "later", question: "Later decision" }];
+    rpc.snapshot.actionCount!++;
+  }
+  configure?.(rpc.snapshot);
+  selectedId = planDecision ? "plan-decision:reader-pass:checks" : rpc.snapshot.requests[0]!.id;
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   function Origin() {
     const [destination, select] = useState<DecisionDestination>({ requestId: selectedId });
@@ -174,4 +197,70 @@ it.each(["failed", "refused", "uncertain"] as const)("stays on the question with
     outcome === "refused" ? "Could not confirm this submission" : "Delivery not confirmed");
   if (outcome !== "uncertain")
     expect(renderer.root.findByType(TextInput).props.value).toBe("Choose the cautious option");
+});
+
+it.each([false, true])("renders and answers a due plan card through the plan action, then advances or closes (last=%s)", async last => {
+  await mount(last ? [] : ["backlog"], true);
+  expect(words()).toContain("Spoiler and foreshadowing checks");
+  expect(words()).toContain("Keep the reader pass spoiler-safe");
+  expect(words()).toContain("Recommended reader checks");
+  expect(button("Keep both checks")).toBeTruthy();
+  expect(rpc.calls).not.toContain("firstmate.needs-you.seen");
+  await press("Keep both checks");
+  expect(rpc.planActions).toEqual([expect.objectContaining({ op: "captain", action: "answer", plan: "reader-pass", node: "checks", option: "both", revision: 3, subjectHash: "b".repeat(64) })]);
+  expect(rpc.planHomes).toEqual(["workflow-home-hash"]); // The ledger's UUID is a different home identity.
+  expect(rpc.calls).not.toContain("firstmate.needs-you.answer");
+  if (last) expect(close).toHaveBeenCalledOnce();
+  else expect(selectedId).toBe("local:backlog");
+});
+
+it("puts the plan card once in Waiting for you in All, before folded future decisions, without changing the count", async () => {
+  await mount(["backlog"], true);
+  await press("All decisions");
+  expect(words()).toContain("Waiting for you");
+  expect(words()).not.toContain("Now · plans");
+  expect(words()).not.toContain("Later decision");
+  expect(rpc.snapshot!.actionCount).toBe(2);
+  const card = renderer.root.findAll(n => n.type === Pressable && n.props.accessibilityLabel === "Answer: Spoiler and foreshadowing checks. Keep the reader pass spoiler-safe");
+  expect(card).toHaveLength(2); // Title and Answer button on one shared DecisionTask card.
+  await act(async () => card[0]!.props.onPress());
+  await press("Keep both checks");
+  expect(selectedId).toBe("local:backlog");
+});
+
+it("keeps a stale or refused plan answer on the decision", async () => {
+  await mount([], true);
+  rpc.outcome = "refused";
+  await press("Keep both checks");
+  expect(words()).toContain("Plan changed");
+  expect(close).not.toHaveBeenCalled();
+  expect(rpc.planActions).toEqual([]);
+});
+
+it("uses the plan home identity when the backlog observer is disabled", async () => {
+  await mount([], true, snapshot => {
+    snapshot.homeId = null; snapshot.actionCount = null; snapshot.freshness.status = "disabled";
+  });
+  expect(button("Keep both checks").props.disabled).toBe(false);
+  await press("Keep both checks");
+  expect(rpc.planHomes).toEqual(["workflow-home-hash"]);
+  expect(close).toHaveBeenCalledOnce();
+});
+
+it("advances from a backlog answer to the remaining plan decision", async () => {
+  await mount(["backlog"], true);
+  await press("Next decision");
+  expect(selectedId).toBe("local:backlog");
+  await answer();
+  expect(selectedId).toBe("plan-decision:reader-pass:checks");
+  expect(button("Keep both checks")).toBeTruthy();
+  expect(close).not.toHaveBeenCalled();
+});
+
+it("uses the plan question and recommendation without an optional brief", async () => {
+  await mount([], true, snapshot => { delete snapshot.planNow![0]!.decision!.brief; });
+  expect(words()).toContain("Keep the reader pass spoiler-safe");
+  expect(words()).toContain("Keep both checks — preserve reader confidence.");
+  await press("Keep both checks");
+  expect(close).toHaveBeenCalledOnce();
 });

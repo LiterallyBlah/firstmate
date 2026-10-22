@@ -17,8 +17,13 @@ counted, folded groups; each group shows ten at a time. Search by title, worker 
 matching automatic groups. Opening a plan uses the existing review dialog. Larger plans also
 have a Plans filter in List and Board. Plans awaiting review offer approval, edits and requests for
 changes; active and held plans keep their decision and lifecycle controls. Decisions appear under
-Coming up before they are due; only current actions count in Needs you. An answer from an outdated
-plan or another device is refused. Deck still shows real workers, and Bearings draws its next steps
+Coming up before they are due; only current actions count in Needs you. Due plan decisions use the
+same Needs-you queue as backlog decisions, with their question, recommendation and answer options.
+Answering records the existing plan action and advances to the next decision, or closes the drawer.
+All puts waiting decisions first and folds future decisions into one **Coming up** line. Expand it
+for short titles and plain waiting reasons; open a plan for the full detail. List and Board show only
+due decisions in their usual rows/cards, leaving future decisions to the drawer and Plans.
+An answer from an outdated plan or another device is refused. Deck still shows real workers, and Bearings draws its next steps
 from the plans.
 
 **Bearings** keeps its visible request short and puts a compact plan overview behind an expandable

@@ -20,8 +20,10 @@ export function DecisionTask({
   onConverse,
   onChanged,
   presentation = "row",
+  onAnswer,
 }: {
   presentation?: "row" | "card";
+  onAnswer?: (() => void) | undefined;
   request: NeedsYouRequest;
   snapshot: NeedsYouSnapshot;
   cards: readonly FleetCard[];
@@ -37,7 +39,7 @@ export function DecisionTask({
   const colors = theme.colors, isNew = request.state === "new", row = presentation === "row";
   const title = decisionTitle(request.source.title);
   const waiting = relativeDecisionTime(request.detectedAt);
-  const openAnswer = () => open({ homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision }, id);
+  const openAnswer = onAnswer ?? (() => open({ homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision }, id));
   const metadata = <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
     {request.source.project ? <Tag theme={theme} text={request.source.project} /> : null}
     <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>{`waiting ${waiting}`}</Text>

@@ -14,6 +14,8 @@ import { parseBacklog } from "./backlog";
 import { resolveInHome } from "./files";
 import { resolveHost } from "./remote-cards";
 import { quarantinedDependencyIds, type QuarantinedWorkflow } from "./workflow-ownership";
+import { decisionBriefs } from "./decision-brief";
+import { planDecisionRequest } from "../shared/plan-decisions";
 
 export const workflowHomeId = (home: string) => digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home));
 export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> {
@@ -30,7 +32,9 @@ export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> 
       const need = { plan: plan.definition.id, node: node.id, title: plan.definition.title, question: node.title,
         waits: node.after.map(d => unavailableDependencies.has(d.node) ? `${d.node} (evidence unavailable)` : allPlans.flatMap(p => p.definition.nodes).find(n => n.id === d.node)?.title ?? d.node),
         neededBy: plan.definition.nodes.filter(n => n.after.some(d => d.node === node.id)).map(n => n.title),
-        recommendation: `${node.options.find(o => o.id === node.recommendation)?.label ?? "None yet"} — ${node.rationale}` };
+        recommendation: `${node.options.find(o => o.id === node.recommendation)?.label ?? "None yet"} — ${node.rationale}`,
+        waitingFor: node.after.some(d => d.on === "landed") ? "after earlier changes are landed" : node.after.some(d => d.on === "answered") ? "after an earlier decision is answered" : node.after.some(d => d.reason === "needs-evidence") ? "after the earlier review is complete" : "after earlier work is finished",
+        decision: { homeId: workflowHomeId(home), revision: plan.revision, subjectHash: planSubjectHash(plan), ask: node.summary, options: node.options, at: plan.definition.request.at, held: !!plan.nodes[node.id]?.held } };
       (dependenciesMet(node, allPlans, unavailableDependencies) ? now : comingUp).push(need);
     }
   }
@@ -50,10 +54,21 @@ export async function withWorkflowNeeds(snapshot: NeedsYouSnapshot, home: string
   const ids = new Set(view.plans.flatMap(p => p.definition.nodes.filter(n => n.kind === "decision" && items.some(i => samePlanItem(i, p, n))).map(n => n.id)));
   const owned = (source: { taskId: string; hostId: string; project: string | null }) => ids.has(source.taskId) && source.hostId === "local" && !source.project;
   const removed = snapshot.requests.filter(r => owned(r.source));
+  const candidates = view.now.flatMap(n => {
+    const request = planDecisionRequest(n);
+    return request ? [request] : [];
+  });
+  // Include every scope in the brief reader's ambiguity guard, replacing only owned projections.
+  const remaining = Math.max(0, 512 * 1024 - (snapshot.briefs ?? []).reduce((sum, b) => sum + Buffer.byteLength(b.content), 0));
+  const briefs = await decisionBriefs(home, { requests: [...candidates, ...snapshot.requests.filter(r => !owned(r.source))], parked: snapshot.parked.filter(r => !owned(r)) }, remaining);
+  const planNow = view.now.map(n => {
+    const request = planDecisionRequest(n), brief = briefs.find(b => b.requestId === request?.id && b.recordRevision === request?.revision);
+    return n.decision && brief ? { ...n, decision: { ...n.decision, brief: { path: brief.path, content: brief.content } } } : n;
+  });
   return { ...snapshot, requests: snapshot.requests.filter(r => !owned(r.source)), parked: snapshot.parked.filter(r => !owned(r)),
     actionCount: snapshot.actionCount === null ? null : Math.max(0, snapshot.actionCount - removed.filter(r => r.state === "new" || r.state === "seen").length) + view.now.length,
     newCount: snapshot.newCount === null ? null : Math.max(0, snapshot.newCount - removed.filter(r => r.state === "new").length),
-    planNow: view.now, comingUp: view.comingUp, planProblems: problems };
+    planNow, comingUp: view.comingUp, planProblems: problems };
 }
 
 /** Pending cards carry scope and no invented worker. Bad plans never affect unrelated cards. */

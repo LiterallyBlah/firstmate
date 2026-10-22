@@ -4,7 +4,7 @@ import { Modal, TextInput } from "@getpaseo/plugin/client/react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
-import { actOnWorkflowPlan, readWorkflowPlans, WorkflowSnapshotSchema, type WorkflowSnapshot, type PlanNeed } from "../shared/workflow-rpc";
+import { actOnWorkflowPlan, readWorkflowPlans, WorkflowSnapshotSchema, type WorkflowSnapshot } from "../shared/workflow-rpc";
 import { planAwaitingReview, planFinished, planWorstCase, type PlanCaptainCommand, type WorkflowPlan } from "../shared/workflow-plans";
 import { migrationTargets, type FleetCard } from "../shared/fleet";
 import { readRemotes } from "../shared/remotes";
@@ -16,6 +16,9 @@ import { errorText } from "./format";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 
 export const WORKFLOW_QUERY_KEY = ["firstmate", "workflow-plans"] as const;
+export function workflowRequestId() {
+  return globalThis.crypto?.randomUUID?.() ?? "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const n = Math.floor(Math.random() * 16); return (c === "x" ? n : (n & 3) | 8).toString(16); });
+}
 const Plans = createContext<{ snapshot?: WorkflowSnapshot; loading: boolean; error: string | null; refresh(): void; open(id: string): void }>({ loading: true, error: null, refresh() {}, open() {} });
 export function useWorkflowPlans() { return useContext(Plans); }
 function Button({ theme, label, onPress, disabled = false, quiet = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean; quiet?: boolean }) {
@@ -38,7 +41,7 @@ export function WorkflowSurface({ theme, children }: { theme: PluginTheme; child
     if (!snapshot || gate.current) return; gate.current = true; setBusy(true); setError(null);
     const serialized = JSON.stringify(command);
     // An uncertain request keeps its id and exact body until its result can be reconciled.
-    if (!pending.current || pending.current.serialized !== serialized) pending.current = { id: globalThis.crypto?.randomUUID?.() ?? "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const n = Math.floor(Math.random() * 16); return (c === "x" ? n : (n & 3) | 8).toString(16); }), serialized };
+    if (!pending.current || pending.current.serialized !== serialized) pending.current = { id: workflowRequestId(), serialized };
     try {
       const next = await act({ homeId: snapshot.homeId, requestId: pending.current.id, command });
       cache.setQueryData(WORKFLOW_QUERY_KEY, next); pending.current = null; setSelected(null);
@@ -168,14 +171,21 @@ export function PlansControl({ theme, selected, onSelect }: { theme: PluginTheme
         <Button theme={theme} label={`Open plan: ${p.definition.title}`} onPress={() => { setShown(false); open(p.definition.id); }} /></View>)}
     </Modal.Content></Modal></>;
 }
-export function PlanNeeds({ theme, snapshot }: { theme: PluginTheme; snapshot?: Pick<NeedsYouSnapshot, "planNow" | "comingUp" | "planProblems"> | undefined }) {
+export function PlanNeeds({ theme, snapshot, showUpcoming = true }: { theme: PluginTheme; snapshot?: Pick<NeedsYouSnapshot, "planNow" | "comingUp" | "planProblems"> | undefined; showUpcoming?: boolean }) {
   const { open } = useWorkflowPlans();
-  const group = (label: string, needs: readonly PlanNeed[], muted: boolean) => needs.length ? <View testID={muted ? "workflow-coming-up" : "workflow-now"} style={{ gap: 8, paddingVertical: 10 }}>
-    <Text accessibilityRole="header" style={{ color: muted ? theme.colors.foregroundMuted : theme.colors.foreground, fontSize: 13, fontWeight: "600" }}>{label}</Text>
-    {needs.map(n => <View key={`${n.plan}:${n.node ?? "approval"}`} style={{ gap: 4 }}>
-      <Button theme={theme} quiet={muted} label={`${n.title}: ${n.question}`} onPress={() => open(n.plan)} />
-      <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{n.waits.length ? `After ${n.waits.join(", ")}. ` : ""}{n.neededBy.length ? `Needed before ${n.neededBy.join(", ")}. ` : ""}Recommended: {n.recommendation}</Text>
-    </View>)}
-  </View> : null;
-  return <>{snapshot?.planProblems?.length ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Some plans are unavailable. The decision count is incomplete. {snapshot.planProblems.join(" ")}</Text> : null}{group("Now · plans", snapshot?.planNow ?? [], false)}{group("Coming up", snapshot?.comingUp ?? [], true)}</>;
+  const [expanded, setExpanded] = useState(false), later = snapshot?.comingUp ?? [];
+  return <>{snapshot?.planProblems?.length ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Some plans are unavailable. The decision count is incomplete. {snapshot.planProblems.join(" ")}</Text> : null}
+    {(snapshot?.planNow ?? []).filter(n => !n.node).map(n => <Button key={n.plan} theme={theme} label={`Review plan: ${n.title}`} onPress={() => open(n.plan)} />)}
+    {showUpcoming && later.length ? <View testID="workflow-coming-up" style={{ gap: 4 }}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Coming up: ${later.length} later decision${later.length === 1 ? "" : "s"}`}
+        accessibilityState={{ expanded }} aria-expanded={expanded} onPress={() => setExpanded(!expanded)} style={{ minHeight: 44, justifyContent: "center" }}>
+        <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Coming up: {later.length} later decision{later.length === 1 ? "" : "s"} {expanded ? "⌃" : "⌄"}</Text>
+      </Pressable>
+      {expanded ? later.map(n => <Pressable key={`${n.plan}:${n.node}`} accessibilityRole="button"
+        accessibilityLabel={`${n.question} · ${n.waitingFor ?? "after earlier work is finished"}`} onPress={() => open(n.plan)}
+        style={{ minHeight: 44, justifyContent: "center" }}>
+        <Text numberOfLines={1} style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{n.question} · {n.waitingFor ?? "after earlier work is finished"}</Text>
+      </Pressable>) : null}
+    </View> : null}
+  </>;
 }

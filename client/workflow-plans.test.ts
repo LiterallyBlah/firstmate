@@ -65,7 +65,12 @@ it("renders Coming up quietly without adding a count or an approval side effect"
   await act(async () => { renderer = create(createElement(PlanNeeds, { theme, snapshot: { planNow: [], comingUp: [{ plan: "scheduler", node: "database", title: "Scheduler", question: "Choose database", waits: ["Database trial"], neededBy: ["Build scheduler"], recommendation: "SQLite" }] } })); });
   expect(renderer!.root.findAll(n => n.props.testID === "workflow-now")).toHaveLength(0);
   expect(renderer!.root.findAll(n => n.props.testID === "workflow-coming-up")).toHaveLength(1);
-  expect(JSON.stringify(renderer!.toJSON())).toContain("Needed before Build scheduler");
+  expect(JSON.stringify(renderer!.toJSON())).not.toContain("Choose database");
+  await act(async () => button("Coming up: 1 later decision").props.onPress());
+  expect(JSON.stringify(renderer!.toJSON())).toContain("Choose database");
+  expect(JSON.stringify(renderer!.toJSON())).toContain("after earlier work is finished");
+  expect(JSON.stringify(renderer!.toJSON())).not.toContain("Needed before");
+  expect(JSON.stringify(renderer!.toJSON())).not.toContain("Scheduler:");
 });
 it("reports only a lower bound from plans when legacy decisions are unavailable, excluding Coming up", () => {
   const need = { plan: "scheduler", title: "Scheduler", question: "Approve", waits: [], neededBy: [], recommendation: "Review" };

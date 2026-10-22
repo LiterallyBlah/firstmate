@@ -6,11 +6,13 @@ import { workflowFixture } from "../test/workflow-fixture";
 import { type PlanCaptainCommand } from "../shared/workflow-plans";
 import { workflowStore, queuePlanNotes } from "./workflow-service";
 import { planSubjectHash, WorkflowPlanStore } from "./workflow-plans";
-import { workflowSnapshot, withWorkflowCards, withWorkflowNeeds, workflowBearings } from "./workflow-board";
+import { workflowHomeId, workflowSnapshot, withWorkflowCards, withWorkflowNeeds, workflowBearings } from "./workflow-board";
 import { updateFirstmateConfig, readFirstmateConfig } from "./config";
 import { commandMessage } from "./mate";
 import { readBearingsMessage } from "../shared/bearings";
 import { planGroups } from "../shared/workflow-plan-summary";
+import { attentionRequest, attentionSnapshot } from "../test/attention-deck-fixture";
+import { decisionCardSnapshot } from "../shared/plan-decisions";
 
 let home: string;
 const daemonRoot = process.env.PASEO_HOME!;
@@ -69,6 +71,40 @@ it("binds answers to revision and subject, refuses a second device, and permits 
   expect((await workflowStore(home).get("scheduler"))?.nodes.database?.answer).toBe("sqlite");
   const current = await command("answer", { node: "database", option: "postgres" }); await expect(act(current)).rejects.toThrow("already answered");
   const snapshot = await workflowSnapshot(home); expect(snapshot.comingUp).toEqual([]); expect(snapshot.now).toHaveLength(1); // Plan approval is separate.
+});
+
+it("projects a due plan decision once with its brief and options, records the existing captain action and wakes the mate", async () => {
+  const p = (await workflowStore(home).get("scheduler"))!, definition = structuredClone(p.definition);
+  definition.nodes.find(n => n.id === "database")!.after = [];
+  await workflowStore(home).execute({ op: "revise", definition, expected: p.hash, reason: "The storage evidence is ready." }, randomUUID(), "mate");
+  await act(await command("approve"));
+  await mkdir(join(home, "data/database"), { recursive: true });
+  await writeFile(join(home, "data/database/decision.md"), "## Question\nWhich database?\n\n## Recommendation\nUse SQLite.");
+  const projected = attentionRequest("database");
+  projected.source.project = null; projected.source.key = JSON.stringify([["local"], "", "database"]);
+  await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n- [ ] database - Choose database (kind: captain) (plan: scheduler) (hold: Which database?)\n## Done\n");
+  const base = attentionSnapshot([projected, attentionRequest("ordinary")]);
+  const view = await withWorkflowNeeds(base, home);
+  expect(view.actionCount).toBe(2); // One legacy + one plan, never the projected copy as well.
+  expect(view.requests.map(r => r.source.taskId)).toEqual(["ordinary"]);
+  expect(view.planNow).toEqual([expect.objectContaining({ node: "database", decision: expect.objectContaining({
+    ask: definition.nodes.find(n => n.id === "database")!.summary,
+    brief: { path: "data/database/decision.md", content: expect.stringContaining("Use SQLite.") },
+    options: expect.arrayContaining([expect.objectContaining({ id: "sqlite" })]),
+  }) })]);
+  expect(decisionCardSnapshot(view).requests).toHaveLength(2);
+  const need = view.planNow![0]!;
+  expect(need.decision!.homeId).toBe(workflowHomeId(home));
+  expect(need.decision!.homeId).not.toBe(view.homeId);
+  const id = randomUUID();
+  const action: PlanCaptainCommand = { op: "captain", plan: need.plan, revision: need.decision!.revision, subjectHash: need.decision!.subjectHash, action: "answer", node: need.node!, option: "sqlite", text: "" };
+  await act(action, id); await act(action, id); await queuePlanNotes(home);
+  const saved = (await workflowStore(home).get("scheduler"))!;
+  expect(saved.nodes.database?.answer).toBe("sqlite");
+  expect(saved.captainEvents?.filter(e => e.id === id)).toHaveLength(1);
+  expect((await readFirstmateConfig()).mateNotes.some(n => n.text.includes("<firstmate-plan>") && n.text.includes("answer"))).toBe(true);
+  const after = await withWorkflowNeeds(base, home);
+  expect(after.planNow).toEqual([]); expect(after.actionCount).toBe(1);
 });
 it("replays one action once, records requested changes in agenda order and queues a durable note once", async () => {
   const c = await command("changes", { text: "Keep the trial read-only." }), id = randomUUID(); await act(c, id); await act(c, id);

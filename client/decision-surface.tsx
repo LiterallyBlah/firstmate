@@ -23,6 +23,7 @@ import { focusWebElement, webAttributes } from "./web";
 import { useFleet } from "./fleet-query";
 import { homeWorkspace, type FleetShell } from "./shell";
 import { MIN_SPLIT_WIDTH } from "./resize-layout";
+import { decisionCardSnapshot } from "../shared/plan-decisions";
 
 const DecisionPaneContext = createContext<{
   drawer: ReactNode;
@@ -121,7 +122,7 @@ export function DecisionSurface({
     )
       return;
     if (destination.homeId && destination.homeId !== query.data.homeId) return;
-    const next = decisionQueue(query.data.requests).find(
+    const next = decisionQueue(decisionCardSnapshot(query.data).requests).find(
       (r) => r.state === "new" || r.state === "seen",
     );
     setDestination({

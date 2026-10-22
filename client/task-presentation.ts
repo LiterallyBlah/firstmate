@@ -3,6 +3,7 @@ import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
 import type { TaskColumn } from "../shared/task-layout";
 import { decisionQueue } from "./needs-you-state";
 import { doneCards } from "./format";
+import { decisionCardSnapshot } from "../shared/plan-decisions";
 
 export type TaskOwner = "first-mate" | "worker" | "parked" | "unknown";
 export const OWNER_LABELS: Record<TaskOwner, string> = {
@@ -50,10 +51,10 @@ export function taskSourceKey(card: FleetCard): string | null {
 }
 export function requestForCard(card: FleetCard, snapshot?: NeedsYouSnapshot): NeedsYouRequest | undefined {
   const key = taskSourceKey(card);
-  return snapshot?.requests.find((request) => request.source.key === key && request.state !== "resolved");
+  return snapshot && decisionCardSnapshot(snapshot).requests.find((request) => request.source.key === key && request.state !== "resolved");
 }
 export function activeDecisions(snapshot?: NeedsYouSnapshot): NeedsYouRequest[] {
-  return decisionQueue(snapshot?.requests ?? []).filter(
+  return decisionQueue(snapshot ? decisionCardSnapshot(snapshot).requests : []).filter(
     (request) => request.state === "new" || request.state === "seen",
   );
 }
