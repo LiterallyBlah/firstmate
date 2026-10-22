@@ -125,6 +125,15 @@ it("Show task closes the covering conversation and opens no native agent or tab"
   expect(list().reveal.card).toBe("task-worker"); expect(shell.openView).not.toHaveBeenCalled();
 });
 
+it("Show task keeps an unsaved remote host's card visible without opening a missing worker", async () => {
+  const { card } = fixture(); card.remote!.serverId = null; card.remote!.online = false; card.remote!.worker = null;
+  const host = "unsaved-host";
+  await mount(390, { host, params: workflowTaskRoute(workerRequest(host, false)).params });
+  expect(list().cards).toEqual([card]);
+  expect(list().reveal.card).toBe(card.key);
+  expect(renderer.root.findAllByType("ConverseDrawer" as never)).toHaveLength(0);
+});
+
 it("opens Home from the Plans workspace dialog with the same recorded worker and scope", async () => {
   const { plan } = fixture(); await mount(1440, { host: "plans-dialog", view: "plans" });
   await press(`Open plan: ${plan.definition.title}`);

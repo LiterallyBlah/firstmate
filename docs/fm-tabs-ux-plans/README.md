@@ -16,7 +16,8 @@ The additive `FleetShell.openTask` handoff uses the public Home screen params,
 following batch 2's installation-owned navigation. Its reference contains the
 session scope, plan, node, card key and optional existing conversation key.
 Home rechecks that reference before selecting List, the plan/host filters and
-the task. Show task closes a covering conversation, expands the real card and
+the task. An unsaved remote host uses All machines so its task stays visible.
+Show task closes a covering conversation, expands the real card and
 measures it within the native ScrollView; Converse opens the existing drawer.
 Done/Later and decision details can reveal a target without rewriting their saved
 fold choices. Navigation never submits a workflow or decision action.
