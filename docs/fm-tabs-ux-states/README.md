@@ -70,3 +70,23 @@ Fresh captures are explicitly deferred by the captain and still gate landing. No
 connection/reconnect attempt or direct Playwright fallback was made. Native phones, native tab
 focus, screen-reader output and installed-daemon behavior remain unproved. This batch does not
 install/reload, merge, or change product policy.
+
+## R1: lifecycle recovery identity
+
+The scoped Astra review at `7868158927883402853a28ad48f9bb1208fe947d` found that a successful
+Restart could leave the recovery chat on the retired mate while fleet reads kept failing. Its
+synthetic restart probe reproduced the mismatch; its config-refresh control passed. Both the
+original failing log and the passing comparison are retained under ignored `.local/r1/`.
+
+Recovery's lifecycle callback now resets and rereads the installation's config and known-mate
+queries before asking the fleet to refresh. The old composer is withdrawn during that identity
+check. The recovered chat is keyed by mate id, as the normal chat is, so a replacement cannot
+inherit the retired timeline's component state. Shared draft/attachment stores and the send gate
+are unchanged.
+
+`client/fleet-recovery-restart.test.ts` exercises real recovery, chat, session controls, streaming
+and send hooks with synthetic host APIs. It checks replacement while fleet remains failed,
+pending identity/timeline reads, Full conversation routing, per-mate draft/attachment retention,
+duplicate-send prevention across remount, and unconfigured/archived/missing mates. Only affected
+tests, typecheck, compiler/Hermes and final-head repository CI are required for this correction;
+previous broader evidence is retained. No browser check or further general review was performed.
