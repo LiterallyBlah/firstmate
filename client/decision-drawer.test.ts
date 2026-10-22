@@ -1,6 +1,6 @@
 import { act, createElement, useState } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
-import { Pressable, TextInput } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
@@ -8,6 +8,12 @@ import { attentionRequest, attentionSnapshot, attentionTheme } from "../test/att
 import type { DecisionDestination } from "./needs-you-state";
 import { planDecisionNeed } from "../test/plan-decision-fixture";
 import type { PlanCaptainCommand } from "../shared/workflow-plans";
+import { visibleText } from "../test/visible-text";
+import { DecisionTask } from "./decision-tasks";
+import { TaskList } from "./task-list";
+import { TaskBoard } from "./task-board";
+import { DEFAULT_TASK_LAYOUT } from "../shared/task-layout";
+import { DecisionSurface } from "./decision-surface";
 
 const rpc = vi.hoisted(() => ({
   snapshot: null as NeedsYouSnapshot | null,
@@ -16,16 +22,27 @@ const rpc = vi.hoisted(() => ({
   delay: null as Promise<void> | null,
   planActions: [] as PlanCaptainCommand[],
   planHomes: [] as string[],
+  answerSnapshot: null as NeedsYouSnapshot | null,
+  refuseWithChange: false,
 }));
 vi.mock("react-native", () => Object.fromEntries(
   ["View", "Text", "Pressable", "ScrollView", "TextInput", "SafeAreaView"].map(name => [name, name]),
 ));
 vi.mock("@getpaseo/plugin/client", () => ({
+  useSettings: () => ({ status: "ready", values: { hostTab: "all", tagFilter: [] } }),
   useRpc: (contract: { name: string }) => async (input: { homeId: string; requestId: string; command?: PlanCaptainCommand }) => {
     rpc.calls.push(contract.name);
     if (contract.name === "firstmate.needs-you.read") return structuredClone(rpc.snapshot!);
     if (contract.name === "firstmate.workflow.act") {
-      if (rpc.outcome === "refused") throw new Error("Plan changed");
+      if (rpc.outcome === "refused") {
+        if (rpc.refuseWithChange) {
+          const next = structuredClone(rpc.snapshot!);
+          next.planNow![0]!.decision!.subjectHash = "c".repeat(64);
+          next.planNow![0]!.question = "Updated reader checks";
+          rpc.snapshot = next;
+        }
+        throw new Error("Plan changed");
+      }
       rpc.planActions.push(input.command!);
       rpc.planHomes.push(input.homeId);
       rpc.snapshot!.planNow = [];
@@ -43,7 +60,10 @@ vi.mock("@getpaseo/plugin/client", () => ({
     }
     rpc.snapshot = snapshot;
     if (rpc.delay) await rpc.delay;
-    return { outcome: rpc.outcome, snapshot };
+    const { planNow: _now, comingUp: _later, planProblems: _problems, ...ledger } = snapshot;
+    ledger.actionCount = ledger.requests.filter(r => r.state === "new" || r.state === "seen").length;
+    rpc.answerSnapshot = ledger; // Production answerDecision returns the backlog ledger, not the combined read.
+    return { outcome: rpc.outcome, snapshot: ledger };
   },
 }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({
@@ -57,6 +77,7 @@ vi.mock("./web", () => ({
   bindWebKeys: () => () => {}, webSurfaceVisible: () => false,
 }));
 vi.mock("./keyboard", () => ({ useKeyboardOverlap: () => 0 }));
+vi.mock("./fleet-query", () => ({ FLEET_QUERY_KEY: ["fleet"], useFleet: () => ({ data: null }) }));
 vi.mock("./files", () => ({ FilesView: () => null }));
 vi.mock("./card", () => ({ CrewCard: () => null, watchOpener() {} }));
 vi.mock("./ui", () => ({ Tag: () => null }));
@@ -72,13 +93,15 @@ let renderer: ReactTestRenderer;
 let client: QueryClient;
 let selectedId: string;
 const close = vi.fn();
-async function mount(ids = ["a", "b", "c"], planDecision = false, configure?: (snapshot: NeedsYouSnapshot) => void) {
+async function mount(ids = ["a", "b", "c"], planDecision = false, configure?: (snapshot: NeedsYouSnapshot) => void,
+  options: { offline?: boolean; initial?: string; filtered?: boolean } = {}) {
   close.mockClear();
   rpc.calls = [];
   rpc.outcome = "accepted";
   rpc.delay = null;
   rpc.planActions = [];
   rpc.planHomes = [];
+  rpc.refuseWithChange = false;
   rpc.snapshot = attentionSnapshot(ids.map(id => attentionRequest(id)));
   if (planDecision) {
     rpc.snapshot.planNow = [planDecisionNeed()];
@@ -86,14 +109,14 @@ async function mount(ids = ["a", "b", "c"], planDecision = false, configure?: (s
     rpc.snapshot.actionCount!++;
   }
   configure?.(rpc.snapshot);
-  selectedId = planDecision ? "plan-decision:reader-pass:checks" : rpc.snapshot.requests[0]!.id;
+  selectedId = options.initial ?? (planDecision ? "plan-decision:reader-pass:checks" : rpc.snapshot.requests[0]!.id);
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   function Origin() {
     const [destination, select] = useState<DecisionDestination>({ requestId: selectedId });
     const [open, setOpen] = useState(true);
     const query = useQuery({ queryKey: NEEDS_YOU_QUERY_KEY, queryFn: async () => rpc.snapshot! });
     return open && query.data ? createElement(DecisionDrawer, {
-      theme: attentionTheme, snapshot: query.data, offline: false, destination,
+      theme: attentionTheme, snapshot: query.data, offline: options.offline ?? false, filtered: options.filtered ?? false, destination,
       onSelect(next) { selectedId = next.requestId; select(next); },
       onClose() { close(); setOpen(false); },
       mateId: "mate", suggestions: [], compact: false, returnLabel: "Board",
@@ -116,7 +139,7 @@ async function answer() {
   });
   await press("Send answer");
 }
-function words() { return JSON.stringify(renderer.toJSON()); }
+function words() { return visibleText(renderer.toJSON()); }
 afterEach(async () => {
   await act(async () => renderer?.unmount());
   client?.clear();
@@ -175,7 +198,7 @@ it.each([false, true])("advances or closes after selecting a question in All (la
   await mount(last ? ["a"] : ["a", "b", "c"]);
   await press("All decisions");
   const row = renderer.root.findAll(node => node.type === Pressable &&
-    String(node.props.accessibilityLabel).startsWith(`${last ? "a" : "b"} · `))[0]!;
+    String(node.props.accessibilityLabel).startsWith(`Answer: ${last ? "a" : "b"}.`))[0]!;
   await act(async () => row.props.onPress());
   await answer();
   if (last) expect(close).toHaveBeenCalledOnce();
@@ -252,15 +275,111 @@ it("advances from a backlog answer to the remaining plan decision", async () => 
   await press("Next decision");
   expect(selectedId).toBe("local:backlog");
   await answer();
+  expect(rpc.answerSnapshot!.planNow).toBeUndefined();
   expect(selectedId).toBe("plan-decision:reader-pass:checks");
   expect(button("Keep both checks")).toBeTruthy();
   expect(close).not.toHaveBeenCalled();
+});
+
+it("shows a due decision only once and before all quiet plan content in All", async () => {
+  await mount(["backlog"], true, snapshot => {
+    snapshot.planNow!.push({ plan: "review", title: "A separate plan", question: "Approve this plan", waits: [], neededBy: [], recommendation: "Review" });
+    snapshot.actionCount!++;
+  }, { filtered: true });
+  await press("All decisions");
+  const text = words();
+  for (const marker of ["Waiting for you", "Spoiler and foreshadowing checks", "backlog", "Review plan: A separate plan", "Coming up: 1 later decision", "Filters don’t hide decisions"]) expect(text).toContain(marker);
+  expect(text.split("Spoiler and foreshadowing checks")).toHaveLength(2);
+  expect(text).not.toContain("Review plan: Build the reader pass");
+  expect(text.indexOf("Waiting for you")).toBeLessThan(text.indexOf("Review plan: A separate plan"));
+  expect(text.indexOf("Spoiler and foreshadowing checks")).toBeLessThan(text.indexOf("Review plan: A separate plan"));
+  expect(text.indexOf("backlog")).toBeLessThan(text.indexOf("Coming up: 1 later decision"));
+  expect(text.indexOf("backlog")).toBeLessThan(text.indexOf("Filters don’t hide decisions"));
+  await press("Coming up: 1 later decision");
+  expect(words()).toContain("Later decision · after earlier work is finished");
+  expect(words()).not.toContain("Build the reader pass into chapter-making and roll it out:");
+  expect(words().split("Keep the reader pass spoiler-safe")).toHaveLength(2);
 });
 
 it("uses the plan question and recommendation without an optional brief", async () => {
   await mount([], true, snapshot => { delete snapshot.planNow![0]!.decision!.brief; });
   expect(words()).toContain("Keep the reader pass spoiler-safe");
   expect(words()).toContain("Keep both checks — preserve reader confidence.");
+  await press("All decisions");
+  expect(words()).toContain("Keep both checks — preserve reader confidence.");
+  await press("Back to Needs you");
   await press("Keep both checks");
   expect(close).toHaveBeenCalledOnce();
+});
+
+it.each(["held", "stale", "plan-problems", "offline"])("disables the %s plan decision and refuses direct presses", async guard => {
+  await mount([], true, snapshot => {
+    if (guard === "held") snapshot.planNow![0]!.decision!.held = true;
+    if (guard === "stale") snapshot.freshness.status = "stale";
+    if (guard === "plan-problems") snapshot.planProblems = ["Some plan evidence is unavailable"];
+  }, { offline: guard === "offline" });
+  expect(button("Keep both checks").props.disabled).toBe(true);
+  await press("Keep both checks");
+  expect(rpc.calls).not.toContain("firstmate.workflow.act");
+});
+
+it.each(["stale", "offline"])("puts the %s warning before the selected card and All's waiting cards", async state => {
+  await mount(["backlog"], true, snapshot => {
+    if (state === "stale") snapshot.freshness.status = "stale";
+  }, { offline: state === "offline" });
+  expect(words()).toContain("Showing the list from");
+  expect(words().indexOf("Showing the list from")).toBeLessThan(words().indexOf("Spoiler and foreshadowing checks"));
+  await press("All decisions");
+  expect(words().indexOf("Showing the list from")).toBeLessThan(words().indexOf("Waiting for you"));
+});
+
+it("retains a refusal after a refreshed subject remounts the plan card", async () => {
+  await mount([], true);
+  rpc.outcome = "refused"; rpc.refuseWithChange = true;
+  await press("Keep both checks");
+  await act(async () => { await client.invalidateQueries({ queryKey: NEEDS_YOU_QUERY_KEY }); await new Promise(resolve => setTimeout(resolve, 0)); });
+  expect(words()).toContain("Updated reader checks");
+  expect(words()).toContain("Plan changed");
+  expect(close).not.toHaveBeenCalled();
+});
+
+it.each(["next", "empty"])("resolves the drawer's %s destination to its due plan card", async initial => {
+  await mount([], true, undefined, { initial });
+  expect(words()).toContain("Spoiler and foreshadowing checks");
+  await press("Keep both checks");
+  expect(close).toHaveBeenCalledOnce();
+});
+
+it("resolves the surface's next action to the actual plan request identity", async () => {
+  await mount([], true);
+  await act(async () => {
+    renderer.unmount();
+    renderer = create(createElement(QueryClientProvider, { client }, createElement(DecisionSurface, {
+      theme: attentionTheme, compact: false, params: { decision: "next" }, children: createElement("Text", null, "Home"),
+    })));
+  });
+  await act(async () => { renderer.root.findAll(n => n.type === View && typeof n.props.onLayout === "function")[0]!.props.onLayout({ nativeEvent: { layout: { width: 1440 } } }); });
+  expect(renderer.root.findByType(DecisionDrawer).props.destination.requestId).toBe("plan-decision:reader-pass:checks");
+});
+
+it("uses the same shared card component and style for plan and backlog decisions in All", async () => {
+  await mount(["backlog"], true, snapshot => { snapshot.requests[0]!.state = "seen"; });
+  await press("All decisions");
+  expect(renderer.root.findAllByType(DecisionTask)).toHaveLength(2);
+  const cards = renderer.root.findAll(n => n.type === View && n.props.testID === "decision-task");
+  expect(cards.map(c => [c.props.style.borderWidth, c.props.style.borderRadius, c.props.style.padding])).toEqual([[1, 8, 12], [1, 8, 12]]);
+});
+
+it.each(["List", "Board"])("omits Coming up from the real %s component", async view => {
+  await mount([], true);
+  const props = { cards: [], allCards: [], snapshot: rpc.snapshot!, offline: false, theme: attentionTheme, compact: false, density: "comfortable" as const,
+    conversing: null, onConverse() {}, onChanged() {}, showDone: false, onShowDone() {}, layout: DEFAULT_TASK_LAYOUT, layoutDisabled: false, onLayout() {} };
+  await act(async () => {
+    renderer.unmount();
+    renderer = create(createElement(QueryClientProvider, { client }, view === "List" ? createElement(TaskList, props) : createElement(TaskBoard, props)));
+  });
+  expect(words()).toContain("Spoiler and foreshadowing checks");
+  expect(words()).not.toContain("Coming up");
+  expect(words()).not.toContain("Later decision");
+  expect(words()).not.toContain("Review plan: Build the reader pass");
 });

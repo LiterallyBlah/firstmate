@@ -39,6 +39,9 @@ try {
       await page.getByLabel("Decision count", { exact: true }).getByText(`Needs you · ${view === "needs-you" ? 1 : 2}`, { exact: true }).waitFor();
       if (view === "all") await page.getByRole("button", { name: "All decisions", exact: true }).click();
       if (mode === "after") {
+        const visible = await page.locator("body").innerText();
+        assert(!visible.includes(needTitle()), "the full plan title must not reappear in a prefixed Review plan link");
+        assert.equal(await page.getByRole("button", { name: /^Review plan:/ }).count(), 0, "due decisions must not also appear as review links");
         assert.equal(await page.getByText("Now · plans", { exact: true }).count(), 0);
         assert.equal(await page.getByText(/Needed before/).count(), 0);
         assert.equal(await page.getByText(needTitle(), { exact: true }).count(), 0);
@@ -47,7 +50,12 @@ try {
           await page.getByRole("button", { name: "Keep both checks", exact: true }).waitFor();
           await page.getByText(/Should the reader pass check both/).waitFor();
         } else {
-          assert.equal(await page.getByTestId("decision-task").count(), view === "all" ? 1 : 2);
+          assert.equal(await page.getByTestId("decision-task").count(), 2);
+          if (view === "all") {
+            assert(visible.indexOf("Waiting for you") < visible.indexOf("Coming up:"), "waiting group must precede future decisions");
+            assert(visible.indexOf("Spoiler and foreshadowing checks") < visible.indexOf("Coming up:"), "the due plan card must come first");
+            assert(visible.indexOf("Choose the review pilot") < visible.indexOf("Coming up:"), "the backlog card must also precede future decisions");
+          }
         }
         if (view === "list" || view === "board") assert.equal(await page.getByTestId("workflow-coming-up").count(), 0);
       } else assert.equal(await page.getByText("Now · plans", { exact: true }).count(), 1);
@@ -57,6 +65,14 @@ try {
         await page.getByRole("button", { name: "Coming up: 3 later decisions", exact: true }).click();
         await page.getByRole("button", { name: "Connect Claude · after the connection is ready", exact: true }).waitFor();
         await page.screenshot({ path: resolve(out, `${theme}-${width}-${view}-expanded.png`) });
+        const expanded = await page.locator("body").innerText();
+        assert(!expanded.includes(needTitle()), "expanded future decisions must not repeat the plan title");
+        await page.getByRole("button", { name: /^Answer: Choose the review pilot\./ }).first().click();
+        await page.getByRole("textbox", { name: "Answer the first mate", exact: true }).fill("Use the public pilot.");
+        await page.getByRole("button", { name: "Send answer", exact: true }).click();
+        await page.getByRole("button", { name: "Keep both checks", exact: true }).waitFor();
+        await page.getByRole("button", { name: "Keep both checks", exact: true }).click();
+        await page.getByText("Returned to Home", { exact: true }).waitFor();
       }
       if (mode === "after" && (view === "list" || view === "board")) {
         await page.getByRole("button", { name: /^Answer: Spoiler and foreshadowing checks\./ }).first().click();

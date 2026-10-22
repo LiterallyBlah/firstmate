@@ -17,6 +17,18 @@ import { quarantinedDependencyIds, type QuarantinedWorkflow } from "./workflow-o
 import { decisionBriefs } from "./decision-brief";
 import { planDecisionRequest } from "../shared/plan-decisions";
 
+/** Derive readiness from committed events, never the request's authored date or poll time. */
+function decisionDueAt(plan: WorkflowPlan, node: WorkflowPlan["definition"]["nodes"][number], plans: readonly WorkflowPlan[]) {
+  const times = [plan.nodes[node.id]?.introducedAt ?? plan.history[0]?.at];
+  for (const edge of node.after) {
+    const owner = plans.find(p => p.nodes[edge.node]), state = owner?.nodes[edge.node];
+    times.push(state?.availableAt, state?.completedAt);
+    if (edge.on === "answered") times.push(owner?.captainEvents?.filter(e => e.action === "answer" && e.node === edge.node).at(-1)?.at);
+  }
+  const latest = Math.max(...times.flatMap(at => at && Number.isFinite(Date.parse(at)) ? [Date.parse(at)] : []));
+  return Number.isFinite(latest) ? new Date(latest).toISOString() : plan.definition.request.at;
+}
+
 export const workflowHomeId = (home: string) => digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home));
 export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> {
   let read: { plans: WorkflowPlan[]; problems: string[]; warnings?: string[]; quarantined?: QuarantinedWorkflow[] };
@@ -34,7 +46,7 @@ export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> 
         neededBy: plan.definition.nodes.filter(n => n.after.some(d => d.node === node.id)).map(n => n.title),
         recommendation: `${node.options.find(o => o.id === node.recommendation)?.label ?? "None yet"} — ${node.rationale}`,
         waitingFor: node.after.some(d => d.on === "landed") ? "after earlier changes are landed" : node.after.some(d => d.on === "answered") ? "after an earlier decision is answered" : node.after.some(d => d.reason === "needs-evidence") ? "after the earlier review is complete" : "after earlier work is finished",
-        decision: { homeId: workflowHomeId(home), revision: plan.revision, subjectHash: planSubjectHash(plan), ask: node.summary, options: node.options, at: plan.definition.request.at, held: !!plan.nodes[node.id]?.held } };
+        decision: { homeId: workflowHomeId(home), revision: plan.revision, subjectHash: planSubjectHash(plan), ask: node.summary, options: node.options, at: decisionDueAt(plan, node, allPlans), held: !!plan.nodes[node.id]?.held } };
       (dependenciesMet(node, allPlans, unavailableDependencies) ? now : comingUp).push(need);
     }
   }

@@ -59,10 +59,14 @@ The visual fixture `node docs/workflows/render.mjs` writes exclusively to `.loca
 `shared/plan-decisions.ts` adapts due plan needs into the shared presentation queue without writing
 backlog-ledger requests. The drawer, List and Board reuse `DecisionTask`; a plan answer uses only
 `firstmate.workflow.act` with the displayed revision and subject hash, then rereads Needs you before
-advancing or closing. Optional plan briefs use the same confined reader, ambiguity checks and shared
+advancing or closing. Backlog answer responses are ledger-only: the drawer rereads the combined
+snapshot before navigating and keeps a confirmed answer disabled if that read fails. Optional plan briefs use the same confined reader, ambiguity checks and shared
 512 KiB snapshot budget. Plan approvals remain separate. All puts waiting cards before plan review
 and the collapsed Coming up line; expanded future rows show only their own title and a plain waiting
-reason, opening Plans for details. List/Board omit Coming up entirely. `node docs/plan-decisions/render.mjs`
+reason, opening Plans for details. Warnings remain above the cards, both kinds use the same All-card
+style, and plan refusal notices survive a changed-subject remount. Waiting time comes from committed
+decision introduction and dependency completion/answer/renewed-verification times, not the authored
+request date; these optional projection fields are rebuilt on ledger replay. List/Board omit Coming up entirely. `node docs/plan-decisions/render.mjs`
 compares all four views against its pinned baseline in both themes and desktop/phone browser widths;
 renders and checks stay in ignored `.local/plan-decisions/`.
 Plan actions retain author provenance: a captain press and a mate-recorded chat action are distinct.

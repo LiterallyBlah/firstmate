@@ -10,6 +10,7 @@ vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: "Icon", TextInput
 import { PlanDialog, PlanNeeds } from "./workflow-plans";
 import { indicatorState, decisionCountText } from "./needs-you-state";
 import { OptionPicker } from "./option-picker";
+import { visibleText } from "../test/visible-text";
 const theme = { colors: { foreground: "#ffffff", foregroundMuted: "#aaaaaa", border: "#333333", surface1: "#222222", statusWarning: "#ffff00" } } as PluginTheme;
 let renderer: ReactTestRenderer | null = null;
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
@@ -65,12 +66,11 @@ it("renders Coming up quietly without adding a count or an approval side effect"
   await act(async () => { renderer = create(createElement(PlanNeeds, { theme, snapshot: { planNow: [], comingUp: [{ plan: "scheduler", node: "database", title: "Scheduler", question: "Choose database", waits: ["Database trial"], neededBy: ["Build scheduler"], recommendation: "SQLite" }] } })); });
   expect(renderer!.root.findAll(n => n.props.testID === "workflow-now")).toHaveLength(0);
   expect(renderer!.root.findAll(n => n.props.testID === "workflow-coming-up")).toHaveLength(1);
-  expect(JSON.stringify(renderer!.toJSON())).not.toContain("Choose database");
+  expect(visibleText(renderer!.toJSON())).not.toContain("Choose database");
   await act(async () => button("Coming up: 1 later decision").props.onPress());
-  expect(JSON.stringify(renderer!.toJSON())).toContain("Choose database");
-  expect(JSON.stringify(renderer!.toJSON())).toContain("after earlier work is finished");
-  expect(JSON.stringify(renderer!.toJSON())).not.toContain("Needed before");
-  expect(JSON.stringify(renderer!.toJSON())).not.toContain("Scheduler:");
+  expect(visibleText(renderer!.toJSON())).toContain("Choose database · after earlier work is finished");
+  expect(visibleText(renderer!.toJSON())).not.toContain("Needed before");
+  expect(visibleText(renderer!.toJSON())).not.toContain("Scheduler:");
 });
 it("reports only a lower bound from plans when legacy decisions are unavailable, excluding Coming up", () => {
   const need = { plan: "scheduler", title: "Scheduler", question: "Approve", waits: [], neededBy: [], recommendation: "Review" };

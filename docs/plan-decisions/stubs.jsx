@@ -23,7 +23,10 @@ export function useRpc(contract) {
     else throw new Error(`Unexpected action: ${contract.name}`);
     snapshot.version++;
     snapshot.freshness.checkedAt = Date.now();
-    return contract.name.endsWith(".answer") ? { outcome: "accepted", snapshot: structuredClone(snapshot) } : structuredClone(snapshot);
+    if (!contract.name.endsWith(".answer")) return structuredClone(snapshot);
+    const { planNow, comingUp, planProblems, ...ledger } = structuredClone(snapshot);
+    ledger.actionCount = ledger.requests.filter(r => ["new", "seen"].includes(r.state)).length;
+    return { outcome: "accepted", snapshot: ledger };
   };
   return base;
 }

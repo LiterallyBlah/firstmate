@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { workflowFixture } from "../test/workflow-fixture";
 import { type PlanCaptainCommand } from "../shared/workflow-plans";
 import { workflowStore, queuePlanNotes } from "./workflow-service";
@@ -16,6 +16,7 @@ import { decisionCardSnapshot } from "../shared/plan-decisions";
 
 let home: string;
 const daemonRoot = process.env.PASEO_HOME!;
+afterEach(() => { vi.useRealTimers(); });
 beforeEach(async () => {
   // Each test has its own daemon data as well as its own configured home.
   process.env.PASEO_HOME = join(daemonRoot, randomUUID()); home = join(process.env.PASEO_HOME!, "home");
@@ -142,6 +143,91 @@ it("applies edits atomically, pins in-flight runs and holds a removed prerequisi
   const p = (await workflowStore(home).get("scheduler"))!; expect(p.revision).toBe(2); expect(p.nodes.database?.held).toBe(true);
   expect((await workflowStore(home).agenda()).some(i => i.kind === "start")).toBe(false);
   expect((await workflowSnapshot(home)).now.some(n => n.node === "database")).toBe(true);
+  expect((await workflowSnapshot(home)).now.find(n => n.node === "database")?.decision?.held).toBe(true);
+});
+
+async function briefView() {
+  const view = await workflowSnapshot(home);
+  return { ...view, now: view.comingUp, comingUp: [] };
+}
+it.each(["request", "parked", "remote"] as const)("refuses a plan brief when its node id collides with another %s scope", async scope => {
+  await mkdir(join(home, "data/database"), { recursive: true });
+  await writeFile(join(home, "data/database/decision.md"), "A different project's private decision");
+  const other = attentionRequest("database", "seen", scope === "remote" ? "remote-host" : "local");
+  other.source.project = "other-project";
+  other.source.key = JSON.stringify([[other.source.hostId], "other-project", "database"]);
+  const base = attentionSnapshot(scope === "parked" ? [] : [other]);
+  if (scope === "parked") base.parked = [{ ...other.source, disposition: "parked" }];
+  const combined = await withWorkflowNeeds(base, home, await briefView());
+  expect(combined.planNow?.find(n => n.node === "database")?.decision?.brief).toBeUndefined();
+});
+it("respects the shared plan-brief budget already consumed by backlog briefs", async () => {
+  await mkdir(join(home, "data/database"), { recursive: true });
+  await writeFile(join(home, "data/database/decision.md"), "More than four remaining bytes");
+  const base = attentionSnapshot([]);
+  base.briefs = Array.from({ length: 8 }, (_, i) => ({ requestId: `other-${i}`, recordRevision: 1, path: `data/other-${i}/decision.md`, content: "x".repeat(64 * 1024 - (i === 7 ? 4 : 0)) }));
+  const combined = await withWorkflowNeeds(base, home, await briefView());
+  expect(combined.planNow?.[0]?.decision?.brief).toBeUndefined();
+});
+it.each([
+  ["done", "needs-evidence", "after the earlier review is complete"],
+  ["done", "builds-on", "after earlier work is finished"],
+  ["landed", "builds-on", "after earlier changes are landed"],
+  ["answered", "decision", "after an earlier decision is answered"],
+] as const)("describes the %s/%s wait without node ids", async (on, reason, expected) => {
+  const view = await workflowSnapshot(home), plan = view.plans[0]!;
+  plan.definition.nodes.find(n => n.id === "database")!.after = [{ node: "trial", on, reason }];
+  const read = vi.spyOn(WorkflowPlanStore.prototype, "read").mockResolvedValue({ plans: [plan], problems: [], warnings: [], quarantined: [] });
+  try { expect((await workflowSnapshot(home)).comingUp.find(n => n.node === "database")?.waitingFor).toBe(expected); }
+  finally { read.mockRestore(); }
+});
+it("starts the waiting clock when evidence makes the decision due, and restarts it after renewed verification", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));
+  await act(await command("approve"));
+  const started = await workflowStore(home).execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), "mate") as any;
+  vi.setSystemTime(new Date("2026-10-26T12:00:00Z"));
+  await workflowStore(home).execute({ op: "record", plan: "scheduler", node: "trial", attempt: started.launch.workflow.attempt, state: "done", evidence: "Verified storage trial report." }, randomUUID(), "mate");
+  const due = () => workflowSnapshot(home).then(s => s.now.find(n => n.node === "database")?.decision?.at);
+  expect(await due()).toBe("2026-10-26T12:00:00.000Z");
+  vi.setSystemTime(new Date("2026-10-27T12:00:00Z"));
+  expect(await due()).toBe("2026-10-26T12:00:00.000Z");
+  await workflowStore(home).execute({ op: "invalidate", plan: "scheduler", node: "trial", attempt: started.launch.workflow.attempt, evidence: "Check changed evidence." }, randomUUID(), "mate");
+  expect(await due()).toBeUndefined();
+  vi.setSystemTime(new Date("2026-10-28T12:00:00Z"));
+  const current = (await workflowStore(home).get("scheduler"))!;
+  await workflowStore(home).execute({ op: "validate", plan: "scheduler", node: "trial", attempt: started.launch.workflow.attempt, expected: current.hash, evidence: "Rechecked report against the new evidence." }, randomUUID(), "mate");
+  expect(await due()).toBe("2026-10-28T12:00:00.000Z");
+});
+
+it("dates a newly introduced decision from its revision, without resetting it on unrelated edits", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-29T12:00:00Z"));
+  let current = (await workflowStore(home).get("scheduler"))!;
+  const definition = structuredClone(current.definition), original = definition.nodes.find(n => n.kind === "decision")!;
+  definition.nodes.push({ ...original, id: "new-choice", title: "A new choice", after: [] });
+  definition.nodes.find(n => n.id === "build")!.after.push({ node: "new-choice", reason: "decision", on: "answered" });
+  await workflowStore(home).execute({ op: "revise", definition, expected: current.hash, reason: "Add a newly needed choice." }, randomUUID(), "mate");
+  const due = () => workflowSnapshot(home).then(s => s.now.find(n => n.node === "new-choice")?.decision?.at);
+  expect(await due()).toBe("2026-10-29T12:00:00.000Z");
+  vi.setSystemTime(new Date("2026-10-30T12:00:00Z"));
+  current = (await workflowStore(home).get("scheduler"))!;
+  const edited = structuredClone(current.definition); edited.title = "Scheduler with clearer wording";
+  await workflowStore(home).execute({ op: "revise", definition: edited, expected: current.hash, reason: "Clarify only the plan title." }, randomUUID(), "mate");
+  expect(await due()).toBe("2026-10-29T12:00:00.000Z");
+});
+
+it("starts waiting when an earlier captain decision is answered", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));
+  const current = (await workflowStore(home).get("scheduler"))!, definition = structuredClone(current.definition);
+  const decision = definition.nodes.find(n => n.id === "database")!;
+  definition.nodes.push({ ...decision, id: "first-choice", title: "First choice", after: [] });
+  decision.after = [{ node: "first-choice", reason: "decision", on: "answered" }];
+  await workflowStore(home).execute({ op: "revise", definition, expected: current.hash, reason: "Ask the earlier choice first." }, randomUUID(), "mate");
+  vi.setSystemTime(new Date("2026-10-26T12:00:00Z"));
+  await act(await command("answer", { node: "first-choice", option: "sqlite" }));
+  expect((await workflowSnapshot(home)).now.find(n => n.node === "database")?.decision?.at).toBe("2026-10-26T12:00:00.000Z");
 });
 it("holds new starts, refuses to decline started work, and builds read-only Bearings from plans", async () => {
   await act(await command("approve")); await workflowStore(home).execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), "mate");
