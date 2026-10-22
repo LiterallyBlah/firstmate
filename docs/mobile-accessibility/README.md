@@ -40,7 +40,7 @@ CSS snapshot tests were added.
 Final-head validation commands:
 
 ```powershell
-npm.cmd test
+npm.cmd test -- client/converse.test.ts client/ship-deck.test.ts client/decision-drawer.test.ts client/task-presentation.test.ts client/decision-copy.test.ts client/workflow-plan-browser.test.ts
 npm.cmd run typecheck
 node docs/shell-phase1/check-bundle.mjs
 git diff --check
@@ -49,6 +49,16 @@ git diff --check
 The bundle check uses Paseo's compiler and Hermes parsing, without installing or
 reloading a plugin. Browser render scripts are deliberately not invoked locally.
 Repository CI remains required.
+
+The earlier broad Windows run is retained as incomplete in
+`.local/mobile-accessibility/final-tests.log`. It exposed a missing `Platform` in
+the Plans test mock (fixed), plus timeouts in unchanged PR-watch, precipitation,
+home-role and workflow tests. The original run was stopped after retaining its
+failures; no broad rerun or timeout/check-limit change followed. The specific
+PR-watch comparison on the pinned base passed all five tests in isolation, so
+these observations do not establish a baseline code defect or a timeout cause.
+The six affected files pass 195 tests after the mock fix. CI must qualify the full
+suite on the submitted head; fresh visual and integration checks remain separate.
 
 ## Prepared fixture and outstanding landing gate
 
