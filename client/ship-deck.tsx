@@ -472,7 +472,7 @@ function DeckView({
   const crew = scene.sailors.length;
   const hidden = scene.hidden?.workers ? hiddenWorkersText(scene.hidden.workers, scene.hidden.hosts) : null;
   const lost = scene.stale === 0 ? "" : decisionStale ? ", decisions from the last good read" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
-  const words = (state: (typeof DECK_STATES)[number]) => places[state] || state;
+  const words = (state: (typeof DECK_STATES)[number]) => needsYou === undefined ? state : places[state] || state;
   const decisionLabel = deckDecisionLabel(needsYou, stale);
   const total = needsYou === undefined ? "" : `${decisionLabel}. `;
   const summary = `${total}${legendStates.map((state) => `${scene.counts[state]} ${words(state)}`).join(", ")}${lost}${hidden === null ? "" : `. ${hidden}`}`;
