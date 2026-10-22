@@ -30,6 +30,7 @@ export interface TaskListProps {
   layoutDisabled?: boolean;
   filtered?: boolean;
   reveal?: { card: string; request: object } | null;
+  onRevealed?(request: object): void;
 }
 export function TaskList(props: TaskListProps) {
   const { cards, snapshot, theme, compact } = props;
@@ -41,14 +42,17 @@ export function TaskList(props: TaskListProps) {
     if (!props.reveal || scrolled.current === props.reveal.request || !target.current || !scroller.current) return;
     const request = props.reveal.request;
     target.current.measureLayout(scroller.current.getInnerViewNode(), (_x, y) => {
-      scroller.current?.scrollTo({ y: Math.max(0, y - 8), animated: false }); scrolled.current = request;
+      if (!scroller.current || scrolled.current === request) return;
+      scroller.current.scrollTo({ y: Math.max(0, y - 8), animated: false }); scrolled.current = request;
+      props.onRevealed?.(request);
     }, () => {});
   }
   useEffect(scrollToTask, [props.reveal]);
   const revealed = (props.allCards ?? cards).find(card => card.key === props.reveal?.card);
   const revealGroup = tasks.find(entry => entry.card.key === props.reveal?.card)?.summary.group ?? null;
   const [revealedGroup, setRevealedGroup] = useState(revealGroup);
-  useEffect(() => { setRevealedGroup(revealGroup); }, [props.reveal?.request, revealGroup]);
+  // Consuming the scroll must not hide the group we just revealed. A fold clears it.
+  useEffect(() => { if (props.reveal) setRevealedGroup(revealGroup); }, [props.reveal?.request, revealGroup]);
   function renderTasks(entries: typeof tasks) {
     return entries.map(({ card, summary }) => (
       <View key={card.key} ref={card.key === props.reveal?.card ? target : undefined} collapsable={card.key !== props.reveal?.card} onLayout={scrollToTask}>

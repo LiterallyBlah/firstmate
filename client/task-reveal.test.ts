@@ -1,4 +1,4 @@
-import { act, createElement } from "react";
+import { act, createElement, useState } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import { attentionRequest, attentionSnapshot, attentionTheme } from "../test/attention-deck-fixture";
@@ -41,5 +41,56 @@ it.each(["in-hand", "later", "done", "needs-you"])("Show task expands and measur
   if (group === "later") expect(renderer.root.find(node => node.type === ("Pressable" as never) && node.props.accessibilityLabel?.endsWith("Hide details and actions")).props.accessibilityState.expanded).toBe(true);
   else expect(json).toContain("Relaunch");
   if (group === "needs-you") expect(renderer.root.findByProps({ accessibilityLabel: `Details for decision ${request.source.title}` }).props.accessibilityState.expanded).toBe(true);
+  expect(rpc).not.toHaveBeenCalled();
+});
+
+it.each(["done", "later"] as const)("uses a %s reveal once, preserving a later collapse and fold across List remounts", async group => {
+  const { card } = workflowTaskFixture(); card.key += `once-${group}`;
+  card.column = group === "done" ? "done" : "queued"; card.backlog!.section = card.column;
+  if (group === "later") { card.agent = null; card.backlog!.agentId = null; }
+  const scrollTo = vi.fn(), onShow = vi.fn(), consumed = vi.fn();
+  const measureLayout = vi.fn((_relative: unknown, success: (x: number, y: number) => void) => success(0, 620));
+  function Harness({ visible, request }: { visible: boolean; request: object }) {
+    const [used, setUsed] = useState<object | null>(null);
+    const [show, setShow] = useState(false);
+    const onShowGroup = (next: boolean) => { onShow(next); setShow(next); };
+    const props = {
+      cards: [card], snapshot: attentionSnapshot([]), theme: attentionTheme, compact: true, density: "comfortable" as const, conversing: null,
+      onConverse: vi.fn(), onChanged: vi.fn(), showDone: group === "done" && show, onShowDone: onShowGroup, showLater: group === "later" && show, onShowLater: onShowGroup,
+      reveal: used === request ? null : { card: card.key, request },
+      onRevealed: (request: object) => { consumed(request); setUsed(request); },
+    };
+    return visible ? createElement(TaskList, props) : null;
+  }
+  const first = {}, second = {};
+  async function show(visible: boolean, request = first) {
+    await act(async () => renderer.update(createElement(Harness, { visible, request })));
+  }
+  const header = () => renderer.root.findByProps({ testID: `task-group-${group}` }).findAll(node => node.type === ("Pressable" as never))[0]!;
+  const toggle = (label: string) => renderer.root.find(node => node.type === ("Pressable" as never) && node.props.accessibilityLabel?.endsWith(label));
+  await act(async () => { renderer = create(createElement(Harness, { visible: true, request: first }), {
+    createNodeMock: element => element.type === "ScrollView" ? { scrollTo, getInnerViewNode: () => ({}) } : element.type === "View" ? { measureLayout } : null,
+  }); });
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ y: 612, animated: false });
+  expect(header().props.accessibilityState.expanded).toBe(true);
+  expect(toggle("Hide details and actions").props.accessibilityState.expanded).toBe(true);
+  expect(onShow).not.toHaveBeenCalled();
+  await act(async () => toggle("Hide details and actions").props.onPress());
+  await act(async () => header().props.onPress());
+  expect(header().props.accessibilityState.expanded).toBe(false);
+  await show(false); await show(true);
+  expect(header().props.accessibilityState.expanded).toBe(false);
+  expect(scrollTo).toHaveBeenCalledTimes(1);
+  // Reopening the group is the captain's choice; the previously collapsed card stays closed.
+  await act(async () => header().props.onPress());
+  await show(false); await show(true);
+  expect(toggle("Show details and actions").props.accessibilityState.expanded).toBe(false);
+  expect(scrollTo).toHaveBeenCalledTimes(1);
+  // A new explicit handoff still opens and scrolls to the same task.
+  await act(async () => renderer.update(createElement(Harness, { visible: true, request: second })));
+  expect(header().props.accessibilityState.expanded).toBe(true);
+  expect(toggle("Hide details and actions").props.accessibilityState.expanded).toBe(true);
+  expect(scrollTo).toHaveBeenCalledTimes(2);
+  expect(consumed.mock.calls).toEqual([[first], [second]]);
   expect(rpc).not.toHaveBeenCalled();
 });

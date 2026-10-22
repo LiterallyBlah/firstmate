@@ -132,6 +132,30 @@ it("Show task closes the covering conversation and opens no native agent or tab"
   expect(list().reveal.card).toBe("task-worker"); expect(shell.openView).not.toHaveBeenCalled();
 });
 
+it.each([[390, "First mate"], [1440, "Plans"], [1440, "Home files"], [1440, "Deck"]] as const)(
+  "%s points: a consumed Show task reveal stays used after %s and List, but a new handoff still reveals", async (width, pane) => {
+    fixture(); const host = `used-reveal-${width}-${pane}`;
+    await mount(width, { host, params: workflowTaskRoute(workerRequest(host, false)).params });
+    const first = list().reveal;
+    expect(first.card).toBe(state.fleet!.cards[0]!.key);
+    await act(async () => list().onRevealed?.(first.request));
+    await act(async () => renderer.root.findAll(node => node.type === ("Pressable" as never) && node.props.accessibilityLabel === pane)[0]!.props.onPress());
+    expect(renderer.root.findAllByType("TaskList" as never)).toHaveLength(0);
+    await act(async () => renderer.root.findAll(node => node.type === ("Pressable" as never) && node.props.accessibilityLabel === "List")[0]!.props.onPress());
+    expect(list().reveal).toBeNull();
+    const prior = renderer.root.findByType(FleetSurface).props as ComponentProps<typeof FleetSurface>;
+    await act(async () => renderer.update(createElement(QueryClientProvider, { client }, createElement(FleetSurface, {
+      ...prior, params: { ...workflowTaskRoute(workerRequest(host, false)).params, taskHandoff: "2" },
+    }))));
+    expect(list().reveal.card).toBe(first.card); expect(list().reveal.request).not.toBe(first.request);
+    const second = list().reveal;
+    await act(async () => list().onRevealed?.(first.request));
+    expect(list().reveal).toBe(second);
+    await act(async () => list().onRevealed?.(second.request));
+    expect(list().reveal).toBeNull();
+  },
+);
+
 it("Show task keeps an unsaved remote host's card visible without opening a missing worker", async () => {
   const { card } = fixture(); card.remote!.serverId = null; card.remote!.online = false; card.remote!.worker = null;
   const host = "unsaved-host";
