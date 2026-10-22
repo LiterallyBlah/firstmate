@@ -134,6 +134,9 @@ export async function checkPolish(pageAt, output) {
     assert.equal(await page.getByText("the first mate is waiting at the bow", { exact: false }).count(), 0);
     assert.equal(await page.getByText(/as of/).count(), 0);
     await page.getByTestId("firstmate-deck-decision-tag").click();
+    assert.equal(await drawerFor(page).count(), 0);
+    await page.getByRole("dialog", { name: "First mate needs you", exact: true })
+      .getByRole("button", { name: "Open decision: Decision a", exact: true }).click();
     await button(drawerFor(page), "Back to Deck").click();
     await page.screenshot({ path: join(output, `polish-deck-stale-1440-${light ? "light" : "dark"}.png`) });
     await page.close();
