@@ -213,7 +213,9 @@ export function DecisionDrawer({
     ? snapshot?.requests.find((r) => r.id === destination.requestId) ?? (["next", "empty"].includes(destination.requestId) ? queue[0] : undefined)
     : undefined;
   const index = queue.findIndex((r) => r.id === request?.id);
-  const [all, setAll] = useState(false);
+  const [expandedAll, setAll] = useState(false);
+  const all = destination.requestId === "all" || expandedAll;
+  const nestedAll = all && destination.requestId !== "all";
   const [receipt, setReceipt] = useState<{
     text: string;
     target: DecisionDestination;
@@ -444,9 +446,9 @@ export function DecisionDrawer({
           theme={theme}
           compact={compact}
           icon="ChevronLeft"
-          label={all ? "Back to Needs you" : `Back to ${returnLabel}`}
-          text={all ? "Needs you" : returnLabel}
-          onPress={all ? () => setAll(false) : onClose}
+          label={nestedAll ? "Back to Needs you" : `Back to ${returnLabel}`}
+          text={nestedAll ? "Needs you" : returnLabel}
+          onPress={nestedAll ? () => setAll(false) : onClose}
         />
         <Text
           nativeID={headingId}

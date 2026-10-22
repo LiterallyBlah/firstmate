@@ -13,7 +13,8 @@ the checked themes and scenes. These are fixture checks, not installed desktop o
 
 Assertions cover the shared Plans icon/style, selected/open state and unchanged filter modal;
 count-only first-mate bubble; no worker sprite bubbles/markers; opening without acknowledging or
-swapping the page; exact-item drawer selection; unreadable-held-task repair access; keyboard,
+swapping the page; exact-item drawer selection; direct All/repair access with unreadable holds alone
+or alongside healthy decisions; keyboard,
 toggle and outside dismissal; scrolling;
 and removing the bubble/popover when the last item clears. Generated evidence stays in the ignored
 output folder; copy review captures to the task's separately designated evidence location.

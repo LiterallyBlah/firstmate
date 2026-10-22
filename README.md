@@ -48,7 +48,7 @@ slice 1 can record the captain's approval from chat with its provenance.
 Deck keeps its decision signal below the scene and as a number-only speech bubble on the first mate.
 Click the first mate or its bubble to list all current Needs-you items, then choose one to open that
 specific decision. Other crew keep their state badges and hover labels without speech bubbles.
-Counted unreadable holds retain a footer link to Needs you and its repair controls.
+The counted footer opens All in Needs you, keeping unreadable-task repair controls visible alongside healthy decisions.
 The other views keep their Needs-you header indicator, including its empty state.
 An unreadable or missing task is isolated so other decisions stay current; its last good gate is retained,
 and a suspected hold still counts. The decision drawer and indicator explain problems with line

@@ -153,23 +153,29 @@ try {
       assert.deepEqual(errors, []); results.push({ theme, tree, errors }); await page.close();
     }
   }
-  // Counted unreadable holds still lead to the existing repair UI, even with no ordinary requests.
-  for (const theme of ["light", "dark"]) {
-    const { page, errors } = await open("after", theme, "deck", "ship", 1440, "unreadable");
+  // Unreadable holds open All/repair directly, including when a healthy decision is also waiting.
+  for (const theme of ["light", "dark"]) for (const scenario of ["unreadable", "mixed-unreadable"]) {
+    const { page, errors } = await open("after", theme, "deck", "ship", 1440, scenario);
     await page.waitForSelector('canvas[data-firstmate-deck-setting="ship"]');
     const tag = page.getByTestId("firstmate-deck-decision-tag"); await tag.waitFor();
-    assert.equal(await tag.textContent(), "1");
+    assert.equal(await tag.textContent(), scenario === "unreadable" ? "1" : "2");
     await clickMate(page);
     const popover = page.getByRole("dialog", { name: "First mate needs you", exact: true }); await popover.waitFor();
     assert.equal(await popover.getByText("Nothing needs you right now.", { exact: true }).count(), 0);
-    await page.screenshot({ path: join(out, `after-unreadable-popover-${theme}.png`) });
+    await popover.getByText("Open Needs you for the rest.", { exact: true }).waitFor();
+    if (scenario === "mixed-unreadable") await popover.getByRole("button", { name: "Open decision: Choose the release", exact: true }).waitFor();
+    await page.screenshot({ path: join(out, `after-${scenario}-popover-${theme}.png`) });
     await popover.getByRole("button", { name: "Open Needs you: 1 more item", exact: true }).click();
     const drawer = page.getByLabel("FirstMate decisions", { exact: true });
+    await drawer.getByRole("heading", { name: "All", exact: true }).waitFor();
     await drawer.getByText("Couldn't read this task: damaged-task. Check the Board and data/backlog.md, line 5.", { exact: true }).waitFor();
     await drawer.getByRole("button", { name: "Ask the first mate to fix it", exact: true }).waitFor();
-    await page.screenshot({ path: join(out, `after-unreadable-repair-${theme}.png`) });
+    assert.equal(await drawer.getByRole("button", { name: "Send answer", exact: true }).count(), 0);
+    await page.screenshot({ path: join(out, `after-${scenario}-repair-${theme}.png`) });
     assert.equal(await page.evaluate(() => window.fixtureCalls.filter(call => call.name === "firstmate.mate.ask" || call.name.startsWith("firstmate.needs-you.")).length), 0);
-    assert.deepEqual(errors, []); results.push({ theme, scenario: "unreadable-held-task-only", errors }); await page.close();
+    await drawer.getByRole("button", { name: "Back to Deck", exact: true }).click();
+    await drawer.waitFor({ state: "detached" });
+    assert.deepEqual(errors, []); results.push({ theme, scenario, errors }); await page.close();
   }
   // The same first-mate anchor and popup work in every shipped scene, including a narrowed pane.
   for (const setting of ["japanese-ship", "ghost-ship", "sky-airship"]) {

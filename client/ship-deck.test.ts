@@ -950,7 +950,7 @@ describe("the ship deck view", () => {
     expect(text(renderer!)).not.toContain("Nothing needs you right now.");
     expect(open).not.toHaveBeenCalled();
     await act(async () => renderer!.root.findByProps({ accessibilityLabel: "Open Needs you: 1 more item" }).props.onPress());
-    expect(open).toHaveBeenCalledExactlyOnceWith({ requestId: "next", homeId: snapshot.homeId });
+    expect(open).toHaveBeenCalledExactlyOnceWith({ requestId: "all", homeId: snapshot.homeId });
   });
   it.each(["clear", "unknown", "disabled"] as const)("keeps the first mate quiet when decisions are %s", async state => {
     const engine = viewEngine(), open = vi.fn(), snapshot = attentionSnapshot([]);

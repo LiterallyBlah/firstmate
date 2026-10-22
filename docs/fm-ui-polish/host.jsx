@@ -13,8 +13,9 @@ const theme = params.get("theme") === "light" ? { colors: { ...attentionTheme.co
 const snapshot = attentionSnapshot();
 snapshot.requests[0].source.ask = snapshot.requests[0].originalAsk = "Which release should sail?";
 snapshot.requests[1].source.ask = snapshot.requests[1].originalAsk = "Which project should the first mate start next?";
-if (params.get("scenario") === "unreadable") {
-  snapshot.requests = []; snapshot.actionCount = 1; snapshot.newCount = 0;
+if (["unreadable", "mixed-unreadable"].includes(params.get("scenario"))) {
+  snapshot.requests = params.get("scenario") === "unreadable" ? [] : [snapshot.requests[0]];
+  snapshot.actionCount = snapshot.requests.length + 1; snapshot.newCount = snapshot.requests.length;
   snapshot.quarantined = [{ line: 5, taskId: "damaged-task", key: null, hasHold: true, problem: "Task scope could not be read." }];
   snapshot.freshness.problems = [snapshot.quarantined[0].problem];
 }

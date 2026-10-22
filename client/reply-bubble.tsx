@@ -86,10 +86,10 @@ export function NeedsYouBubbles({ snapshot, place, theme, holdRef, onClose, onOp
       <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{need.title}</Text>
     </Pressable>)}
     {remaining === 0 ? null : <Pressable accessibilityRole="button" accessibilityLabel={`Open Needs you: ${remaining} more item${remaining === 1 ? "" : "s"}`}
-      onPress={() => onOpen(deckDecisionDestination(snapshot, "next"))}
+      onPress={() => onOpen(deckDecisionDestination(snapshot, "all"))}
       style={{ padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.surface1 }}>
       <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{remaining} more {remaining === 1 ? "item" : "items"} · open Needs you</Text>
-      <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Review unreadable tasks and repair details.</Text>
+      <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Open Needs you for the rest.</Text>
     </Pressable>}
     {requests.length || reviews.length || remaining ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Nothing needs you right now.</Text>}
   </DeckPopover>;

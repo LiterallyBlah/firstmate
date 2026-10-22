@@ -3,6 +3,7 @@ import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
 import type { Suggestion } from "../shared/fleet";
 
 export type DecisionDestination = {
+  /** A server request id, or the client destinations next, empty and all. */
   requestId: string;
   homeId?: string;
   recordRevision?: number;

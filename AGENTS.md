@@ -379,7 +379,9 @@ Clicking the officer or its bubble opens all current Needs-you items in the shar
 chrome. Opening sends and acknowledges nothing; picking a decision carries its exact id, home and
 revision into the existing drawer. Due plan decisions use the shared presentation adapter; plan
 reviews open their existing plan dialog. Counted items absent from the rows (including unreadable
-held tasks) retain a counted footer linking to Needs you and its repair controls. Zero/unavailable counts show no bubble. Escape, outside
+held tasks) retain a counted footer opening All in Needs you, with repair controls visible even when
+healthy decisions also wait. The client-only `all` destination never selects or acknowledges the next
+decision; Back returns to the opening surface. Zero/unavailable counts show no bubble. Escape, outside
 clicks, the close button and another officer click dismiss it. Shark and officer popovers are exclusive.
 
 Missing tasks are retained as per-task quarantines, never inferred resolved and never freezing healthy
