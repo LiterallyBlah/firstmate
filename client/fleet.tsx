@@ -307,7 +307,7 @@ function FleetViewBody({
     }
     setPlanFilter(request.plan);
     // The explicit handoff reveals the selected task even when other filters/folds hid it.
-    save({ hostTab: target.card.remote?.serverId ?? "local", tagFilter: [], boardCollapsed: false });
+    save({ hostTab: target.card.remote ? target.card.remote.serverId ?? "all" : "local", tagFilter: [], boardCollapsed: false });
     selectHomePane("list");
     setTab("board", true);
     setRevealedTask({ card: request.card, request });
