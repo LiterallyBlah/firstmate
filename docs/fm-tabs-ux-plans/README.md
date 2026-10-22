@@ -66,6 +66,18 @@ attachments. Before/after checks and a separate final-head bundle are retained i
 `.local/tabs-plans/p2-navigation/`; earlier evidence is preserved. This follow-up
 addresses those two findings only, with no new general review or broad local suite.
 
+The initial independent Opus review retained one additional accepted defect (B1):
+Home kept passing a Show task reveal after it had already scrolled, reopening the
+task and its Done/Later group on later List mounts. List now acknowledges a
+successful scroll by request identity; Home consumes only that matching request.
+The current group stays open until folded, while subsequent mounts honor saved
+folds and card collapse. A second explicit handoff still reveals the task. The
+two retained probes became six failing-before regressions covering the actual
+List/card and compact First mate / wide Plans, Home files and Deck round trips.
+The checks also retain the initial reveal and reject an old acknowledgement for
+a newer request. Task/worker validation is unchanged. Separate B1 evidence lives
+under `.local/tabs-plans/b1-reveal/`; earlier reports and evidence are retained.
+
 Fresh visual verification is **pending**, deferred by the captain rather than
 waived. The original audit screenshots remain baseline evidence only. The copied
 actual-component synthetic preview and all before/after check evidence are kept

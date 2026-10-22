@@ -842,6 +842,7 @@ function FleetViewBody({
           allCards={data.cards}
           filtered={hostTab !== "all" || values.tagFilter.length > 0 || planFilter !== null}
           reveal={revealedTask}
+          onRevealed={request => setRevealedTask(current => current?.request === request ? null : current)}
           snapshot={decisions.data}
           offline={decisions.error !== null}
           showLater={!taskLayout.values.laterCollapsed}
