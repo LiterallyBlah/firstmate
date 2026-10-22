@@ -115,6 +115,10 @@ it("reveals Board locally even when Home's task pane was folded", async () => {
 });
 
 it("consumes an incoming Home Board handoff without covering it with the old drawer", async () => {
+  await mount(390, { route: { chat: "show" } });
+  expect(renderer.root.findAllByType("MateChat" as never)).toHaveLength(1);
+  await act(async () => renderer.unmount());
+  client.clear();
   await mount(390, { route: { decision: "all", decisionHome: "sample-home", decisionBoard: "show" } });
   expect(renderer.root.findAllByType("TaskBoard" as never)).toHaveLength(1);
   expect(renderer.root.findAllByType("DecisionDrawer" as never)).toHaveLength(0);

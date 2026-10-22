@@ -46,6 +46,9 @@ original failure is retained in `.local/tabs-discuss/ci-push-failure.log`.
 The old Open Board render assertion expected the standalone Board heading. It now
 requires Home's header, the selected Board tab, the visible task board and a closed
 decision drawer. All subsequent repair/answer assertions and timeouts are retained.
+The Board handoff also records the compact tab before the first width measurement:
+a fresh narrowed Home must show Board even if its previous session showed chat.
+That case was reproduced with the real Home component before the fix.
 One Windows CI run timed out at 5,000 ms in the unchanged server workflow-board
 "missing interior" case (2,114 other tests passed). The exact same test bytes and its
 server/shared dependencies are unchanged from the base; the isolated case passes on
