@@ -151,10 +151,8 @@ try {
   await phone.screenshot({ path: join(generated, "crew-phone.png") });
   await phone.getByRole("button", { name: "FirstMate Home", exact: true }).click();
   await phone.getByRole("button", { name: "Open Deck", exact: true }).click();
-  await phone
-    .getByText("Deck needs a wide web or desktop window. Open Crew or Board from FirstMate Home on this device.")
-    .waitFor();
-  assert.equal(await phone.locator("canvas").count(), 0);
+  await phone.locator("canvas[data-firstmate-deck-setting=ship]").waitFor();
+  assert.equal(await phone.locator("canvas").count(), 1);
   await phone.getByRole("button", { name: "FirstMate Home", exact: true }).click();
   assert.equal(await phone.getByRole("button", { name: "New browser", exact: true }).isDisabled(), true);
   await phone.mouse.move(0, 843);

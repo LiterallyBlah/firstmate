@@ -19,8 +19,7 @@ export async function checkHeaders(pageAt, output) {
         const heading = page.getByRole("heading", { name: "Deck", exact: true });
         let deckBox;
         if (view === "deck") {
-          if (width >= 638) await page.locator("canvas[data-firstmate-deck-setting=ship]").waitFor();
-          else await page.getByText("Deck needs a wide web or desktop window.", { exact: false }).waitFor();
+          await page.locator("canvas[data-firstmate-deck-setting=ship]").waitFor();
           deckBox = await headerBox(heading);
         }
         await page.evaluate(() => { window.headerSnapshot = structuredClone(window.attentionSnapshot); });
@@ -53,10 +52,8 @@ export async function checkHeaders(pageAt, output) {
               try { return window.decisionSurfaceVisible(); }
               finally { root.style.display = ""; }
             }), false, "a retained hidden Deck does not suppress toasts");
-            if (width >= 638) {
-              const legend = page.getByTestId("firstmate-deck-decision-legend");
-              await legend.getByText(state === "empty" ? "Nothing needs you ·" : "3 need you ·", { exact: true }).waitFor();
-            }
+            const legend = page.getByTestId("firstmate-deck-decision-legend");
+            await legend.getByText(state === "empty" ? "Nothing needs you ·" : "3 need you ·", { exact: true }).waitFor();
           } else {
             assert.equal(await pill.count(), 1, `${view} keeps its header pill`);
             await pill.getByText(state === "empty" ? "Nothing needs you" : "Needs you · 3 · 2 new", { exact: true }).waitFor();
@@ -65,7 +62,7 @@ export async function checkHeaders(pageAt, output) {
             await page.screenshot({ path: join(output, `header-${view}-${state}-${width}-${light ? "light" : "dark"}.png`) });
             results.push({ view, state, width, theme: light ? "light" : "dark" });
           }
-          if (view === "deck" && width >= 638 && state !== "restored") {
+          if (view === "deck" && state !== "restored") {
             await page.getByTestId("firstmate-deck-decision-legend")
               .getByRole("button", { name: state === "empty" ? "Open decisions" : "Answer the next", exact: true }).click();
             const drawer = page.getByLabel("FirstMate decisions", { exact: true });

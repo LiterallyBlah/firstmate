@@ -60,6 +60,12 @@ these observations do not establish a baseline code defect or a timeout cause.
 The six affected files pass 195 tests after the mock fix. CI must qualify the full
 suite on the submitted head; fresh visual and integration checks remain separate.
 
+The first CI run reproduced an obsolete header-fixture expectation of the compact
+Deck refusal text. That check now requires the real canvas at both widths, with
+the same legend states and open/close drawer checks also exercised on compact web.
+The older shell fixture likewise requires one canvas. No check or timeout was
+removed; these render scripts run in repository CI, not through a local browser.
+
 ## Prepared fixture and outstanding landing gate
 
 Fresh browser captures and desktop keyboard traversal are **pending**, explicitly
