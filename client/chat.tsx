@@ -529,7 +529,7 @@ export function MateChat({
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               {discussing ? (
                 <Pressable accessibilityRole="button" accessibilityLabel={`Back to the decision: ${discussing.source.title}`}
-                  onPress={onReturnDecision} style={{ flex: 1, paddingVertical: 6 }}>
+                  onPress={onReturnDecision} style={{ flex: 1, paddingVertical: 6, minHeight: compact ? 44 : undefined, justifyContent: "center" }}>
                   <Text style={{ color: theme.colors.accent, fontSize: 12 }}>‹ Back to the decision · {discussing.source.title}</Text>
                 </Pressable>
               ) : (
@@ -537,7 +537,7 @@ export function MateChat({
                   This decision changed or is no longer waiting. Open Needs you to check.
                 </Text>
               )}
-              <IconButton theme={theme} icon="X" label="Dismiss decision reference" onPress={() => onDismissDiscussion?.()} />
+              <IconButton theme={theme} compact={compact} icon="X" label="Dismiss decision reference" onPress={() => onDismissDiscussion?.()} />
             </View>
           ) : null}
           <View style={styles.quick} onLayout={(event) => setToolbarWidth(event.nativeEvent.layout.width)}>

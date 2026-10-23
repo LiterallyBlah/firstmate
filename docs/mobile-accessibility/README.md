@@ -1,5 +1,10 @@
 # Compact controls and accessibility
 
+This is the original mobile-batch record at `80400cc`. The later
+[final parent integration](final-parent-integration.md) assembles all six reviewed
+batches and records its separate qualification; historical evidence below keeps
+its original attribution.
+
 This batch starts at the reviewed batch-1 commit
 `da554c911a527caaf7fb2766847f6d3f8dd3c075` and targets `fm/fm-tabs-ux-review`.
 It keeps the existing components, theme colors, 380-point Converse and Deck engine.
