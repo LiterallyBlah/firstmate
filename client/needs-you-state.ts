@@ -1,6 +1,7 @@
 import { decisionClock } from "./decision-copy";
 import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
 import type { Suggestion } from "../shared/fleet";
+import type { DecisionIntent } from "./decision-discussion";
 
 export type DecisionDestination = {
   /** A server request id, or the client destinations next, empty and all. */
@@ -10,6 +11,7 @@ export type DecisionDestination = {
 };
 export function decisionRoute(
   destination: DecisionDestination = { requestId: "next" },
+  intent?: DecisionIntent,
 ) {
   return {
     screenId: "fleet",
@@ -19,6 +21,8 @@ export function decisionRoute(
       ...(destination.recordRevision
         ? { decisionRevision: String(destination.recordRevision) }
         : {}),
+      ...(intent?.discussWith ? { discussMate: intent.discussWith, chat: "show" } : {}),
+      ...(intent?.board ? { decisionBoard: "show" } : {}),
     },
   };
 }

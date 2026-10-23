@@ -1,41 +1,65 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
-import { Modal, TextInput } from "@getpaseo/plugin/client/react-native";
+import { Icon, Modal, TextInput } from "@getpaseo/plugin/client/react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, useContext, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { actOnWorkflowPlan, readWorkflowPlans, WorkflowSnapshotSchema, type WorkflowSnapshot } from "../shared/workflow-rpc";
 import { planAwaitingReview, planFinished, planWorstCase, type PlanCaptainCommand, type WorkflowPlan } from "../shared/workflow-plans";
-import { migrationTargets, type FleetCard } from "../shared/fleet";
+import { migrationTargets, type FleetCard, type Fleet } from "../shared/fleet";
 import { readRemotes } from "../shared/remotes";
 import { OptionPicker } from "./option-picker";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { FLEET_QUERY_KEY } from "./fleet-query";
+import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 import { NEEDS_YOU_QUERY_KEY } from "./needs-you-query";
 import { errorText } from "./format";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 import { ToolbarButton } from "./task-toolbar";
+import type { FleetShell, FleetView } from "./shell";
+import { planSessionKey, updatePlanBrowse, usePlanBrowse } from "./workflow-plan-state";
+import { routeWorkflowTask, type WorkflowTaskRequest } from "./workflow-task-navigation";
+import { WorkflowTaskActions } from "./workflow-task-actions";
 import { planSummary } from "./workflow-plan-list";
+import { planDecisionReady } from "../shared/plan-readiness";
+import { planReviewRequest } from "../shared/plan-decisions";
+import { DecisionTask } from "./decision-tasks";
 
 export const WORKFLOW_QUERY_KEY = ["firstmate", "workflow-plans"] as const;
 export function workflowRequestId() {
   return globalThis.crypto?.randomUUID?.() ?? "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const n = Math.floor(Math.random() * 16); return (c === "x" ? n : (n & 3) | 8).toString(16); });
 }
-const Plans = createContext<{ snapshot?: WorkflowSnapshot; loading: boolean; error: string | null; refresh(): void; open(id: string): void }>({ loading: true, error: null, refresh() {}, open() {} });
+type PlansContext = {
+  snapshot?: WorkflowSnapshot; loading: boolean; error: string | null; refresh(): void; open(id: string): void;
+  scope?: string | null; fleet?: Fleet | undefined; fleetOffline?: boolean; canNavigate?: boolean;
+  planFilter?: string | null; setPlanFilter?(id: string | null): void;
+  taskRequest?: WorkflowTaskRequest | null; navigationNotice?: string | null;
+  navigate?(request: WorkflowTaskRequest): void; finishNavigation?(problem?: string): void;
+};
+const Plans = createContext<PlansContext>({ loading: true, error: null, refresh() {}, open() {} });
 export function useWorkflowPlans() { return useContext(Plans); }
-function Button({ theme, label, onPress, disabled = false, quiet = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean; quiet?: boolean }) {
+function Button({ theme, label, onPress, disabled = false, quiet = false, primary = false }: { theme: PluginTheme; label: string; onPress(): void; disabled?: boolean; quiet?: boolean; primary?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} accessibilityState={{ disabled }} onPress={onPress}
-    style={{ minHeight: 44, justifyContent: "center", padding: 10, borderRadius: 7, borderWidth: 1, borderColor: quiet ? "transparent" : theme.colors.border, backgroundColor: quiet ? theme.colors.surface0 : theme.colors.surface1, opacity: disabled ? 0.5 : 1 }}>
-    <Text style={{ color: quiet ? theme.colors.foregroundMuted : theme.colors.foreground, fontSize: 13 }}>{label}</Text>
+    style={{ minHeight: 44, justifyContent: "center", padding: 10, borderRadius: 7, borderWidth: 1, borderColor: primary ? theme.colors.accent : quiet ? "transparent" : theme.colors.border, backgroundColor: primary ? theme.colors.accent : quiet ? theme.colors.surface0 : theme.colors.surface1, opacity: disabled ? 0.5 : 1 }}>
+    <Text style={{ color: primary ? theme.colors.accentForeground : quiet ? theme.colors.foregroundMuted : theme.colors.foreground, fontSize: 13 }}>{label}</Text>
   </Pressable>;
 }
-export function WorkflowSurface({ theme, children }: { theme: PluginTheme; children: ReactNode }) {
+export function WorkflowSurface({ theme, children, hostId, view, shell, params = {} }: {
+  theme: PluginTheme; children: ReactNode; hostId?: string | undefined; view?: FleetView | undefined; shell?: FleetShell | undefined; params?: Readonly<Record<string, string>> | undefined;
+}) {
   const read = useRpc(readWorkflowPlans), act = useRpc(actOnWorkflowPlan), cache = useQueryClient();
   const catalog = useRpc(migrationTargets), readHosts = useRpc(readRemotes);
   const query = useQuery({ queryKey: WORKFLOW_QUERY_KEY, queryFn: async () => WorkflowSnapshotSchema.parse(await read({})), refetchInterval: 5000 });
   const [selected, setSelected] = useState<{ id: string; hash: string } | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
   const gate = useRef(false), pending = useRef<{ id: string; serialized: string } | null>(null);
   const snapshot = query.data, plan = snapshot?.plans.find(p => p.definition.id === selected?.id);
+  const fleet = useFleet(5, !!hostId), data = fleet.isPlaceholderData ? undefined : fleet.data;
+  const scope = planSessionKey(hostId, data?.home, data?.mate?.id, snapshot?.homeId);
+  const planFilter = usePlanBrowse(scope, state => state.filter);
+  const [taskRequest, setTaskRequest] = useState(() => routeWorkflowTask(params));
+  const [navigationNotice, setNavigationNotice] = useState<{ scope: string | null; text: string } | null>(null);
+  useEffect(() => { setSelected(null); }, [scope]);
+  const route = JSON.stringify([routeWorkflowTask(params), params.taskHandoff]);
+  useEffect(() => { setTaskRequest(routeWorkflowTask(params)); setNavigationNotice(null); }, [route]);
   const models = useQuery({ queryKey: ["firstmate", "plan-models"], queryFn: () => catalog({}), enabled: selected !== null });
   const hosts = useQuery({ queryKey: ["firstmate", "plan-hosts"], queryFn: () => readHosts({}), enabled: selected !== null });
   const open = (id: string) => { if (!snapshot?.subjects[id]) return; pending.current = null; setError(null); setSelected({ id, hash: snapshot.subjects[id]! }); };
@@ -51,24 +75,34 @@ export function WorkflowSurface({ theme, children }: { theme: PluginTheme; child
     } catch (e) { setError(errorText(e)); void query.refetch(); }
     finally { gate.current = false; setBusy(false); }
   }
-  return <Plans.Provider value={{ ...(snapshot ? { snapshot } : {}), loading: query.isPending, error: query.error ? errorText(query.error) : null, refresh: () => { void query.refetch(); }, open }}>
+  return <Plans.Provider value={{ ...(snapshot ? { snapshot } : {}), loading: query.isPending, error: query.error ? errorText(query.error) : null, refresh: () => { void query.refetch(); }, open,
+    scope, fleet: data, fleetOffline: !!fleet.error, canNavigate: !!scope && (!view || !!shell?.openTask), planFilter,
+    setPlanFilter: filter => updatePlanBrowse(scope, { filter }), taskRequest, navigationNotice: navigationNotice?.scope === scope ? navigationNotice.text : null,
+    finishNavigation: problem => { setTaskRequest(null); setNavigationNotice(problem ? { scope, text: problem } : null); },
+    navigate: request => {
+      setSelected(null); setNavigationNotice(null);
+      if (!view) setTaskRequest({ ...request });
+      else shell?.openTask?.(request);
+    },
+  }}>
     {children}
     <Modal title={plan?.definition.title ?? "Plan"} open={selected !== null} onOpenChange={value => { if (!value && !busy) setSelected(null); }}>
       <Modal.Content>
         {snapshot && plan && selected ? <PlanDialog key={selected.hash} theme={theme} plan={plan} subjectHash={selected.hash} homeId={snapshot.homeId}
           stale={!!query.error || snapshot.subjects[selected.id] !== selected.hash} onRefresh={() => open(selected.id)} busy={busy} error={error} onAct={submit}
-          models={models.data?.targets ?? []} hosts={hosts.data?.hosts ?? []} /> :
+          plans={snapshot.plans} models={models.data?.targets ?? []} hosts={hosts.data?.hosts ?? []} /> :
           <Text style={{ color: theme.colors.foregroundMuted }}>This plan could not be refreshed. No action has been recorded.</Text>}
       </Modal.Content>
     </Modal>
   </Plans.Provider>;
 }
 
-export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct, onRefresh, models = [], hosts = [] }: {
+export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct, onRefresh, models = [], hosts = [], plans = [plan] }: {
   theme: PluginTheme; plan: WorkflowPlan; subjectHash: string; homeId: string; stale: boolean; busy: boolean; error: string | null;
   onAct(command: PlanCaptainCommand): Promise<void>; onRefresh(): void;
   models?: readonly { provider: string; label: string; modes: readonly { id: string; label: string }[]; thinking: readonly { id: string; label: string }[] }[];
   hosts?: readonly { serverId: string; label: string }[];
+  plans?: readonly WorkflowPlan[];
 }) {
   const [mode, setMode] = useState<"changes" | "edit" | null>(null), [text, setText] = useState("");
   const [edits, setEdits] = useState<NonNullable<PlanCaptainCommand["edits"]>>([]);
@@ -89,14 +123,18 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
       {node.after.length ? <Text style={{ color: colors.foregroundMuted }}>After {node.after.map(d => `${plan.definition.nodes.find(n => n.id === d.node)?.title ?? d.node} (${d.reason === "needs-evidence" ? "needs its evidence" : d.reason === "decision" ? "needs your answer" : d.reason === "shared-state" ? "shares mutable state" : "needs its code"}${d.on === "landed" ? ", after landing" : ""})`).join(", ")}</Text> : null}
       {node.kind === "run" ? <Text style={{ color: colors.foregroundMuted }}>{node.workflow === "scout@1" ? "Investigation" : "Task"} · {node.launch.agent.provider} · {node.launch.agent.thinkingOptionId ?? "default thinking"} · {node.launch.host === "local" ? "This machine" : node.launch.host} · one worker turn</Text> : <>
         <Text style={{ color: colors.foregroundMuted }}>Recommended: {node.options.find(o => o.id === node.recommendation)?.label ?? "none yet"}. {node.rationale}</Text>
+        {!plan.nodes[node.id]?.answer && !planDecisionReady(plan, node, plans) ? <Text style={{ color: colors.foregroundMuted }}>
+          Options are read-only until the plan is approved, holds are lifted and required evidence is ready{node.after.length ? `: ${node.after.map(d => plans.flatMap(p => p.definition.nodes).find(n => n.id === d.node)?.title ?? d.node).join(", ")}` : ""}.
+        </Text> : null}
         {node.options.map(option => <View key={option.id} style={{ gap: 3 }}><Text style={{ color: colors.foregroundMuted }}>{option.consequence}</Text>
-          <Button theme={theme} label={plan.nodes[node.id]?.answer === option.id ? `Chosen: ${option.label}` : option.label} disabled={disabled || !!plan.nodes[node.id]?.answer || !!plan.nodes[node.id]?.held || plan.status === "abandoned"} onPress={() => void send("answer", { node: node.id, option: option.id })} />
+          <Button theme={theme} label={plan.nodes[node.id]?.answer === option.id ? `Chosen: ${option.label}` : option.label} disabled={disabled || !planDecisionReady(plan, node, plans)} onPress={() => { if (!disabled && planDecisionReady(plan, node, plans)) void send("answer", { node: node.id, option: option.id }); }} />
         </View>)}
       </>}
+      <WorkflowTaskActions plan={plan} node={node} theme={theme} disabled={busy} />
       {plan.nodes[node.id]?.evidence ? <Text selectable style={{ color: colors.foregroundMuted }}>{plan.nodes[node.id]!.evidence}</Text> : null}
       {plan.nodes[node.id]?.closedWithoutLanding ? <Text selectable style={{ color: colors.foregroundMuted }}>Closed without landing: {plan.nodes[node.id]!.closedWithoutLanding!.evidence}</Text> : null}
     </View>)}
-    <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Revision history</Text>
+    {plan.history.length ? <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Revision history</Text> : null}
     {plan.history.map((h, i) => <Text key={`${h.revision}:${i}`} style={{ color: colors.foregroundMuted }}>{h.revision} · {h.by === "board:captain" ? "You" : "First mate"} · {h.reason}</Text>)}
     {plan.captainEvents?.length ? <>
       <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Plan actions</Text>
@@ -105,11 +143,13 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
     {plan.status !== "abandoned" && !planFinished(plan) ? <>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {awaitingReview ? <>
-          <Button theme={theme} label="Approve" disabled={disabled} onPress={() => void send("approve")} />
+          <Button theme={theme} label="Approve" primary disabled={disabled} onPress={() => void send("approve")} />
           <Button theme={theme} label="Approve with edits" disabled={disabled} onPress={() => setMode("edit")} />
           <Button theme={theme} label="Ask for changes" disabled={disabled} onPress={() => setMode("changes")} />
         </> : null}
         <Button theme={theme} label="Hold" disabled={disabled} onPress={() => void send("hold")} />
+      </View>
+      <View style={{ borderTopWidth: 1, borderColor: colors.border, paddingTop: 12, alignItems: "flex-start" }}>
         <Button theme={theme} label="Decline" disabled={disabled || plan.definition.nodes.some(n => n.kind === "run" && plan.nodes[n.id]?.state !== "planned")} onPress={() => void send("decline")} />
       </View>
       {awaitingReview && mode ? <View style={{ gap: 8 }}>
@@ -156,15 +196,21 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
   </View>;
 }
 
-export function PlanChip({ card, theme }: { card: FleetCard; theme: PluginTheme }) {
-  const { snapshot, open } = useWorkflowPlans(), plan = snapshot?.plans.find(p => (!p.definition.implicit || p.status === "review") && workflowOwnsCard(p, card));
-  if (!plan) return null;
-  return <Button theme={theme} label={`${plan.definition.title} · ${planSummary(plan, snapshot!.plans).progress}${plan.status === "review" && !planFinished(plan) ? " · awaiting approval" : ""}`} onPress={() => open(plan.definition.id)} />;
+export function PlanChip({ card, theme, inHeader = false }: { card: FleetCard; theme: PluginTheme; inHeader?: boolean }) {
+  const { snapshot, open, planFilter } = useWorkflowPlans(), plan = snapshot?.plans.find(p => (!p.definition.implicit || p.status === "review") && workflowOwnsCard(p, card));
+  if (!plan || planFilter === plan.definition.id) return null;
+  const label = `${plan.definition.title} · ${planSummary(plan, snapshot?.plans ?? []).progress}${plan.status === "review" && !planFinished(plan) ? " · awaiting approval" : ""}`;
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Open plan: ${label}`} onPress={() => open(plan.definition.id)}
+    style={{ alignSelf: inHeader ? "center" : "flex-start", minWidth: 0, maxWidth: inHeader ? "35%" : "100%", flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 6, paddingVertical: 3,
+      borderRadius: 5, borderWidth: 1, borderColor: theme.colors.border }}>
+    <Icon name="ListTodo" size={11} color={theme.colors.foregroundMuted} />
+    <Text numberOfLines={1} style={{ color: theme.colors.foregroundMuted, fontSize: 11, flexShrink: 1 }}>{label}</Text>
+  </Pressable>;
 }
 export function PlansControl({ theme, selected, onSelect }: { theme: PluginTheme; selected: string | null; onSelect(id: string | null): void }) {
   const { snapshot, open } = useWorkflowPlans(), [shown, setShown] = useState(false);
   const plans = snapshot?.plans.filter(p => !p.definition.implicit || p.status === "review") ?? [];
-  if (!plans.length) return null;
+  if (!plans.length && !selected) return null;
   const label = selected ? `Plan filter: ${plans.find(p => p.definition.id === selected)?.definition.title ?? "selected"}` : "Plan filter";
   return <><ToolbarButton theme={theme} icon="ListTodo" text={label} label={label}
     hint="Filter tasks by plan or open a plan's details." active={selected !== null} open={shown} onPress={() => setShown(true)} />
@@ -174,11 +220,13 @@ export function PlansControl({ theme, selected, onSelect }: { theme: PluginTheme
         <Button theme={theme} label={`Open plan: ${p.definition.title}`} onPress={() => { setShown(false); open(p.definition.id); }} /></View>)}
     </Modal.Content></Modal></>;
 }
-export function PlanNeeds({ theme, snapshot, showUpcoming = true }: { theme: PluginTheme; snapshot?: Pick<NeedsYouSnapshot, "planNow" | "comingUp" | "planProblems"> | undefined; showUpcoming?: boolean }) {
+export function PlanNeeds({ theme, snapshot, showUpcoming = true, showReviews = true, compact = false }: { theme: PluginTheme; snapshot?: Pick<NeedsYouSnapshot, "planNow" | "comingUp" | "planProblems"> & { homeId?: string | null } | undefined; showUpcoming?: boolean; showReviews?: boolean; compact?: boolean }) {
   const { open } = useWorkflowPlans();
   const [expanded, setExpanded] = useState(false), later = snapshot?.comingUp ?? [];
   return <>{snapshot?.planProblems?.length ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusWarning }}>Some plans are unavailable. The decision count is incomplete. {snapshot.planProblems.join(" ")}</Text> : null}
-    {(snapshot?.planNow ?? []).filter(n => !n.node).map(n => <Button key={n.plan} theme={theme} label={`Review plan: ${n.title}`} onPress={() => open(n.plan)} />)}
+    {showReviews ? (snapshot?.planNow ?? []).filter(n => !n.node).map(n => <DecisionTask key={n.plan} theme={theme} compact={compact}
+      request={planReviewRequest(n)!} snapshot={{ homeId: snapshot?.homeId ?? null }}
+      onConverse={() => {}} onChanged={() => {}} onAnswer={() => open(n.plan)} review />) : null}
     {showUpcoming && later.length ? <View testID="workflow-coming-up" style={{ gap: 4 }}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Coming up: ${later.length} later decision${later.length === 1 ? "" : "s"}`}
         accessibilityState={{ expanded }} aria-expanded={expanded} onPress={() => setExpanded(!expanded)} style={{ minHeight: 44, justifyContent: "center" }}>

@@ -2,6 +2,25 @@ import type { NeedsYouRequest, NeedsYouSnapshot } from "./needs-you";
 import type { PlanNeed } from "./workflow-rpc";
 
 export const planDecisionId = (need: Pick<PlanNeed, "plan" | "node">) => `plan-decision:${need.plan}:${need.node}`;
+export const planReviewId = (need: Pick<PlanNeed, "plan">) => `plan-review:${need.plan}`;
+
+export function planReviewFor(snapshot: Pick<NeedsYouSnapshot, "planNow"> | undefined, id: string) {
+  return snapshot?.planNow?.find(n => !n.node && planReviewId(n) === id);
+}
+
+export function planReviewRequest(need: PlanNeed): NeedsYouRequest | null {
+  if (need.node) return null;
+  const at = Date.parse(need.review?.at ?? "");
+  return {
+    id: planReviewId(need), revision: need.review?.revision ?? 1, generation: 1, state: "seen",
+    detectedAt: Number.isFinite(at) ? at : 0, updatedAt: Number.isFinite(at) ? at : 0,
+    baseline: true, seenAt: null, seenRevision: null, snoozedUntil: null, submissions: [], resolution: null,
+    originalAsk: "Review the plan",
+    source: { key: planReviewId(need), taskId: need.plan, hostId: "local", project: null,
+      title: need.title, ask: "Review the plan", url: null, reportPath: null, gateToken: null,
+      section: "queued", disposition: "open", blockedBy: null },
+  };
+}
 
 /** Presentation adapter only: these requests never enter the backlog ledger or its answer RPC. */
 export function planDecisionRequest(need: PlanNeed): NeedsYouRequest | null {
@@ -25,7 +44,7 @@ export function planDecisionFor(snapshot: NeedsYouSnapshot | undefined, id: stri
 /** One common queue for the drawer, List and Board; server counts stay untouched. */
 export function decisionCardSnapshot(snapshot: NeedsYouSnapshot): NeedsYouSnapshot {
   const plans = (snapshot.planNow ?? []).flatMap(need => {
-    const request = planDecisionRequest(need);
+    const request = planDecisionRequest(need) ?? planReviewRequest(need);
     return request ? [{ need, request }] : [];
   });
   const ids = new Set(plans.map(p => p.request.id));

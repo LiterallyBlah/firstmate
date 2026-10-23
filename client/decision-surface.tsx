@@ -21,9 +21,20 @@ import {
 } from "./needs-you-state";
 import { focusWebElement, webAttributes } from "./web";
 import { useFleet } from "./fleet-query";
-import { homeWorkspace, type FleetShell } from "./shell";
+import type { FleetShell, FleetView } from "./shell";
 import { MIN_SPLIT_WIDTH } from "./resize-layout";
 import { decisionCardSnapshot } from "../shared/plan-decisions";
+import { discussionRequest, prepareDiscussion, routeDiscussion, type DecisionDiscussion } from "./decision-discussion";
+import { useWorkflowPlans } from "./workflow-plans";
+
+const DecisionHandoffContext = createContext<{
+  discussion: DecisionDiscussion | null;
+  boardRequest: object | null;
+  revealTask(): void;
+  resume(): boolean;
+  dismiss(): void;
+}>({ discussion: null, boardRequest: null, revealTask() {}, resume: () => false, dismiss() {} });
+export function useDecisionHandoff() { return useContext(DecisionHandoffContext); }
 
 const DecisionPaneContext = createContext<{
   drawer: ReactNode;
@@ -75,8 +86,10 @@ export function DecisionSurface({
   params,
   children,
   shell,
+  view = "home",
 }: {
   shell?: FleetShell | undefined;
+  view?: FleetView | "home" | undefined;
   theme: PluginTheme;
   compact: boolean;
   params: Readonly<Record<string, string>>;
@@ -85,33 +98,49 @@ export function DecisionSurface({
   const query = useNeedsYou(),
     fleet = useFleet(5);
   const display = useSettings(displaySettings);
+  const { planFilter } = useWorkflowPlans();
   const filtered =
-    display.status === "ready" &&
-    (display.values.hostTab !== "all" || display.values.tagFilter.length > 0);
-  const boardWorkspace = homeWorkspace(fleet.data ?? null);
+    !!planFilter || (display.status === "ready" &&
+    (display.values.hostTab !== "all" || display.values.tagFilter.length > 0));
+  const mateId = fleet.data?.mate?.id ?? null;
   const [destination, setDestination] = useState<DecisionDestination | null>(
-    () => routeDecision(params),
+    () => params.decisionBoard === "show" ? null : routeDecision(params),
   );
+  const [discussion, setDiscussion] = useState(() => routeDiscussion(params));
+  const prepared = useRef<DecisionDiscussion | null>(null);
+  useEffect(() => {
+    if (!discussion || !mateId || prepared.current === discussion) return;
+    if (prepareDiscussion(discussion, query.data, mateId, query.error !== null)) prepared.current = discussion;
+  }, [discussion, query.data, mateId, query.error]);
+  const [boardRequest, setBoardRequest] = useState<object | null>(() => params.decisionBoard === "show" ? {} : null);
   const [width, setWidth] = useState(0),
     [hasPane, setHasPane] = useState(false);
   const focus = useRef<string | null>(null);
   const origin = useRef("Home");
   const [returnLabel, setReturnLabel] = useState("Home");
   const registerOrigin = useCallback((label: string) => { origin.current = label; }, []);
-  const route = JSON.stringify(routeDecision(params));
+  const route = JSON.stringify([routeDecision(params), routeDiscussion(params), params.decisionBoard, params.decisionHandoff]);
+  const previousRoute = useRef(route);
   useEffect(() => {
-    setDestination(JSON.parse(route) as DecisionDestination | null);
+    if (previousRoute.current === route) return;
+    previousRoute.current = route;
+    const [next, chat, board] = JSON.parse(route) as [DecisionDestination | null, DecisionDiscussion | null, string | null];
+    setDestination(board === "show" ? null : next);
+    setDiscussion(chat);
+    setBoardRequest(board === "show" ? {} : null);
   }, [route]);
   const open = useCallback<OpenDecision>(
     (next = { requestId: "next" }, returnFocusId) => {
       focus.current = returnFocusId ?? null;
       setReturnLabel(origin.current);
+      setDiscussion(null);
       setDestination(next);
     },
     [],
   );
   const close = useCallback(() => {
     setDestination(null);
+    setDiscussion(null);
     if (focus.current) focusWebElement(focus.current);
   }, []);
   useEffect(() => {
@@ -133,25 +162,34 @@ export function DecisionSurface({
   }, [destination, query.data]);
   const phone = compact || width < MIN_SPLIT_WIDTH;
   const paneCover = !phone && width < 1600 && hasPane;
-  const full = phone || (!hasPane && width < 1600);
-  const covered = destination !== null && full;
+  const full = phone || (!hasPane && width < (view === "chat" ? 1100 : 1600));
+  // A covered chat must become usable while discussing; the selected reference stays here.
+  const suspended = discussion !== null && full;
+  const covered = destination !== null && full && !suspended;
   const drawer =
-    destination && width > 0 ? (
+    destination && width > 0 && !suspended ? (
       <DecisionDrawer
         onOpenBoard={
-          shell && boardWorkspace
+          view === "home" || shell
             ? () => {
+                const target = destination;
                 close();
-                shell.openView("board", boardWorkspace);
+                if (view === "home") setBoardRequest({});
+                else shell?.openDecision(target, { board: true });
               }
             : undefined
         }
         onOpenChat={
-          shell
-            ? () => {
-                close();
-                if (boardWorkspace) shell.openView("chat", boardWorkspace);
-                else shell.openHome();
+          mateId && (view === "home" || view === "chat" || shell)
+            ? (target) => {
+                if (!target.homeId || !target.recordRevision) return;
+                const reference = { ...target, homeId: target.homeId, recordRevision: target.recordRevision, mateId };
+                // Even a stale/uncertain answer can open its chat for inspection.
+                // Preparing a draft and returning to the decision each recheck the reference.
+                if (view === "home" || view === "chat") {
+                  setDestination(target);
+                  setDiscussion(reference);
+                } else shell?.openDecision(target, { discussWith: mateId });
               }
             : undefined
         }
@@ -161,9 +199,9 @@ export function DecisionSurface({
         loading={query.isLoading}
         filtered={filtered}
         destination={destination}
-        onSelect={setDestination}
+        onSelect={(next) => { setDiscussion(null); setDestination(next); }}
         onClose={close}
-        mateId={fleet.data?.mate?.id ?? null}
+        mateId={mateId}
         suggestions={fleet.data?.suggestions ?? []}
         compact={phone}
         modal={full}
@@ -172,6 +210,17 @@ export function DecisionSurface({
     ) : null;
   return (
     <DecisionActionContext.Provider value={open}>
+      <DecisionHandoffContext.Provider value={{ discussion, boardRequest,
+        revealTask: () => { setDestination(null); setDiscussion(null); },
+        dismiss: () => { setDiscussion(null); if (suspended) setDestination(null); },
+        resume: () => {
+          if (!discussionRequest(discussion, query.data, mateId, query.error !== null)) return false;
+          const { mateId: _mate, ...target } = discussion!;
+          setDestination(target);
+          setDiscussion(null);
+          return true;
+        },
+      }}>
       <DecisionPaneContext.Provider
         value={{
           drawer: paneCover ? drawer : null,
@@ -217,6 +266,7 @@ export function DecisionSurface({
           ) : null}
         </View>
       </DecisionPaneContext.Provider>
+      </DecisionHandoffContext.Provider>
     </DecisionActionContext.Provider>
   );
 }

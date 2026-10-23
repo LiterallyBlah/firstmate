@@ -13,7 +13,10 @@ import { DecisionTask } from "./decision-tasks";
 import { TaskList } from "./task-list";
 import { TaskBoard } from "./task-board";
 import { DEFAULT_TASK_LAYOUT } from "../shared/task-layout";
-import { DecisionSurface } from "./decision-surface";
+import { DecisionSurface, DecisionPane, useDecisionHandoff } from "./decision-surface";
+import type { FleetShell } from "./shell";
+import { drafts } from "./draft";
+import { pendingAttachments } from "./attachments";
 
 const rpc = vi.hoisted(() => ({
   snapshot: null as NeedsYouSnapshot | null,
@@ -82,7 +85,9 @@ vi.mock("./web", () => ({
   bindWebKeys: () => () => {}, webSurfaceVisible: () => false,
 }));
 vi.mock("./keyboard", () => ({ useKeyboardOverlap: () => 0 }));
-vi.mock("./fleet-query", () => ({ FLEET_QUERY_KEY: ["fleet"], useFleet: () => ({ data: null }) }));
+vi.mock("./fleet-query", () => ({ FLEET_QUERY_KEY: ["fleet"], useFleet: () => ({ data: {
+  mate: { id: "mate", workspaceId: "home" }, mateInHome: true, suggestions: [],
+} }) }));
 vi.mock("./files", () => ({ FilesView: () => null }));
 vi.mock("./card", () => ({ CrewCard: () => null, watchOpener() {} }));
 vi.mock("./ui", () => ({ Tag: () => null }));
@@ -151,19 +156,24 @@ function words() { return visibleText(renderer.toJSON()); }
 afterEach(async () => {
   await act(async () => renderer?.unmount());
   client?.clear();
+  drafts.set("mate", "");
+  pendingAttachments.set("mate", []);
 });
 
-it("names the decision queue separately from plan reviews without changing its navigation or total", async () => {
+it("includes plan reviews in the same counted queue", async () => {
   await mount(["a", "b", "c"], true, snapshot => {
     snapshot.planNow!.push({ ...planDecisionNeed(), node: undefined, decision: undefined });
     snapshot.actionCount!++;
   });
-  expect(words()).toMatch(/Decisions\s+4 of 4/);
-  expect(words()).toContain("4 decisions in this queue · 1 plan review in All");
+  expect(words()).toMatch(/Decisions\s+5 of 5/);
   expect(rpc.snapshot!.actionCount).toBe(5);
   expect(rpc.calls).toEqual([]);
   await press("Next decision");
-  expect(words()).toMatch(/Decisions\s+1 of 4/);
+  expect(words()).toMatch(/Decisions\s+1 of 5/);
+  await press("Previous decision");
+  await press("Previous decision");
+  expect(words()).toMatch(/Decisions\s+4 of 5/);
+  expect(button(`Review plan: ${planDecisionNeed().title}`)).toBeTruthy();
   expect(rpc.calls).toEqual([]);
 });
 
@@ -358,11 +368,12 @@ it("shows a due decision only once and before all quiet plan content in All", as
   }, { filtered: true });
   await press("All decisions");
   const text = words();
-  for (const marker of ["Waiting for you", "Spoiler and foreshadowing checks", "backlog", "Review plan: A separate plan", "Coming up: 1 later decision", "Filters don’t hide decisions"]) expect(text).toContain(marker);
+  for (const marker of ["Waiting for you", "Spoiler and foreshadowing checks", "backlog", "A separate plan", "Coming up: 1 later decision", "Filters don’t hide decisions"]) expect(text).toContain(marker);
   expect(text.split("Spoiler and foreshadowing checks")).toHaveLength(2);
   expect(text).not.toContain("Review plan: Build the reader pass");
-  expect(text.indexOf("Waiting for you")).toBeLessThan(text.indexOf("Review plan: A separate plan"));
-  expect(text.indexOf("Spoiler and foreshadowing checks")).toBeLessThan(text.indexOf("Review plan: A separate plan"));
+  expect(text.indexOf("Waiting for you")).toBeLessThan(text.indexOf("A separate plan"));
+  expect(text.split("A separate plan")).toHaveLength(2);
+  expect(button("Review plan: A separate plan")).toBeTruthy();
   expect(text.indexOf("backlog")).toBeLessThan(text.indexOf("Coming up: 1 later decision"));
   expect(text.indexOf("backlog")).toBeLessThan(text.indexOf("Filters don’t hide decisions"));
   await press("Coming up: 1 later decision");
@@ -382,9 +393,11 @@ it("uses the plan question and recommendation without an optional brief", async 
   expect(close).toHaveBeenCalledOnce();
 });
 
-it.each(["held", "stale", "plan-problems", "offline"])("disables the %s plan decision and refuses direct presses", async guard => {
+it.each(["held", "stale", "plan-problems", "offline", "not-ready", "older-host"])("disables the %s plan decision and refuses direct presses", async guard => {
   await mount([], true, snapshot => {
     if (guard === "held") snapshot.planNow![0]!.decision!.held = true;
+    if (guard === "not-ready") snapshot.planNow![0]!.decision!.ready = false;
+    if (guard === "older-host") delete snapshot.planNow![0]!.decision!.ready;
     if (guard === "stale") snapshot.freshness.status = "stale";
     if (guard === "plan-problems") snapshot.planProblems = ["Some plan evidence is unavailable"];
   }, { offline: guard === "offline" });
@@ -432,6 +445,143 @@ it("resolves the surface's next action to the actual plan request identity", asy
   expect(renderer.root.findByType(DecisionDrawer).props.destination.requestId).toBe("plan-decision:reader-pass:checks");
 });
 
+it("keeps Home's selected decision beside its existing chat when Discuss first is pressed", async () => {
+  await mount(["release"]);
+  const shell: FleetShell = { openView: vi.fn(), openHome: vi.fn(), openDecision: vi.fn() };
+  await act(async () => {
+    renderer.unmount();
+    renderer = create(createElement(QueryClientProvider, { client }, createElement(DecisionSurface, {
+      theme: attentionTheme, compact: false, params: { decision: "local:release", decisionHome: "sample-home", decisionRevision: "1" },
+      shell, children: createElement(DecisionPane, { children: createElement("Text", null, "Tasks beside chat") }),
+    })));
+  });
+  await act(async () => { renderer.root.findAll(n => n.type === View && typeof n.props.onLayout === "function")[0]!.props.onLayout({ nativeEvent: { layout: { width: 1440 } } }); });
+  await press("Discuss first");
+  expect(shell.openView).not.toHaveBeenCalled();
+  expect(shell.openHome).not.toHaveBeenCalled();
+  expect(renderer.root.findByType(DecisionDrawer).props.destination).toEqual({ homeId: "sample-home", requestId: "local:release", recordRevision: 1 });
+});
+
+let handoff: ReturnType<typeof useDecisionHandoff>;
+function HandoffProbe({ pane }: { pane: boolean }) {
+  handoff = useDecisionHandoff();
+  return pane ? createElement(DecisionPane, { children: createElement("Text", null, "Tasks") }) : createElement("Text", null, "Chat");
+}
+const releaseParams = { decision: "local:release", decisionHome: "sample-home", decisionRevision: "1" };
+async function surface(width: number, view: "home" | "chat" | "crew" = "home", params: Readonly<Record<string, string>> = releaseParams) {
+  const shell: FleetShell = { openView: vi.fn(), openHome: vi.fn(), openDecision: vi.fn() };
+  await act(async () => {
+    renderer.unmount();
+    renderer = create(createElement(QueryClientProvider, { client }, createElement(DecisionSurface, {
+      theme: attentionTheme, compact: false, view, params, shell,
+      children: createElement(HandoffProbe, { pane: view !== "chat" }),
+    })));
+  });
+  await resizeSurface(width);
+  return shell;
+}
+async function resizeSurface(width: number) {
+  await act(async () => { renderer.root.findAll(n => n.type === View && typeof n.props.onLayout === "function")[0]!.props.onLayout({ nativeEvent: { layout: { width } } }); });
+}
+
+it.each([900, 1440])("keeps the discussion local on a %s-point Home", async width => {
+  await mount(["release"]);
+  const shell = await surface(width);
+  await press("Discuss first");
+  expect(renderer.root.findByType(DecisionDrawer).props.destination).toEqual(expect.objectContaining(releaseParamsToDestination()));
+  expect(handoff.discussion).toEqual({ ...releaseParamsToDestination(), mateId: "mate" });
+  expect(drafts.get("mate")).toBe("About «release»: ");
+  expect(shell.openDecision).not.toHaveBeenCalled();
+  expect(rpc.calls).not.toContain("firstmate.mate.ask");
+});
+function releaseParamsToDestination() { return { homeId: "sample-home", requestId: "local:release", recordRevision: 1 }; }
+
+it("suspends the phone cover to discuss and returns to that exact decision", async () => {
+  await mount(["release"]);
+  await surface(390);
+  expect(renderer.root.findByType(DecisionDrawer).props.modal).toBe(true);
+  await press("Discuss first");
+  expect(renderer.root.findAllByType(DecisionDrawer)).toHaveLength(0);
+  await act(async () => handoff.resume());
+  expect(renderer.root.findByType(DecisionDrawer).props.destination).toEqual(releaseParamsToDestination());
+});
+
+it("retains the discussion across resizing without reseeding a cleared draft", async () => {
+  await mount(["release"]);
+  await surface(1440);
+  await press("Discuss first");
+  const reference = handoff.discussion;
+  drafts.set("mate", "");
+  await resizeSurface(390);
+  expect(renderer.root.findAllByType(DecisionDrawer)).toHaveLength(0);
+  expect(handoff.discussion).toBe(reference);
+  await resizeSurface(900);
+  expect(renderer.root.findByType(DecisionDrawer).props.destination.requestId).toBe("local:release");
+  expect(drafts.get("mate")).toBe("");
+});
+
+it.each(["revision", "resolved", "missing"])("does not resume a phone discussion after its decision is %s", async change => {
+  await mount(["release"]);
+  await surface(390);
+  await press("Discuss first");
+  const next = structuredClone(rpc.snapshot!);
+  if (change === "revision") next.requests[0]!.revision++;
+  if (change === "resolved") next.requests[0]!.state = "resolved";
+  if (change === "missing") next.requests = [];
+  next.version++;
+  rpc.snapshot = next;
+  await act(async () => { client.setQueryData(NEEDS_YOU_QUERY_KEY, next); await new Promise(resolve => setTimeout(resolve, 0)); });
+  await act(async () => handoff.resume());
+  expect(renderer.root.findAllByType(DecisionDrawer)).toHaveLength(0);
+  await act(async () => handoff.dismiss());
+  expect(renderer.root.findAllByType(DecisionDrawer)).toHaveLength(0);
+  expect(handoff.discussion).toBeNull();
+});
+
+it("lets Chat dock at 1100 points and discusses locally below that width", async () => {
+  await mount(["release"]);
+  const shell = await surface(1100, "chat");
+  expect(renderer.root.findByType(DecisionDrawer).props.modal).toBe(false);
+  await resizeSurface(1099);
+  expect(renderer.root.findByType(DecisionDrawer).props.modal).toBe(true);
+  await press("Discuss first");
+  expect(renderer.root.findAllByType(DecisionDrawer)).toHaveLength(0);
+  await act(async () => handoff.resume());
+  expect(renderer.root.findByType(DecisionDrawer).props.destination).toEqual(releaseParamsToDestination());
+  expect(shell.openView).not.toHaveBeenCalled();
+});
+
+it("hands a surface without chat to Home with the selected revision and mate", async () => {
+  await mount(["release"]);
+  const shell = await surface(1440, "crew");
+  await press("Discuss first");
+  expect(shell.openDecision).toHaveBeenCalledExactlyOnceWith(releaseParamsToDestination(), { discussWith: "mate" });
+  expect(shell.openView).not.toHaveBeenCalled();
+});
+
+it.each(["fresh", "stale"] as const)("keeps %s uncertain-delivery chat recovery local without preparing another answer", async freshness => {
+  await mount(["release"], false, snapshot => { snapshot.requests[0]!.state = "delivery-uncertain"; snapshot.freshness.status = freshness; });
+  const shell = await surface(390);
+  await press("Open the first mate’s chat");
+  expect(handoff.discussion?.requestId).toBe("local:release");
+  expect(renderer.root.findAllByType(DecisionDrawer)).toHaveLength(0);
+  expect(drafts.get("mate")).toBe("");
+  expect(shell.openView).not.toHaveBeenCalled();
+});
+
+it.each(["home", "chat", "crew"] as const)("opens unreadable holds in Home's Board from %s", async view => {
+  await mount(["release"], false, snapshot => {
+    snapshot.quarantined = [{ line: 5, taskId: "damaged-task", key: null, hasHold: true, problem: "Task scope could not be read." }];
+    snapshot.freshness.problems = [snapshot.quarantined[0]!.problem];
+  });
+  const shell = await surface(1440, view, { decision: "all", decisionHome: "sample-home" });
+  await press("Open Board");
+  if (view === "home") expect(handoff.boardRequest).not.toBeNull();
+  else expect(shell.openDecision).toHaveBeenCalledExactlyOnceWith({ requestId: "all", homeId: "sample-home" }, { board: true });
+  expect(renderer.root.findAllByType(DecisionDrawer)).toHaveLength(0);
+  expect(shell.openView).not.toHaveBeenCalled();
+});
+
 it("uses the same shared card component and style for plan and backlog decisions in All", async () => {
   await mount(["backlog"], true, snapshot => { snapshot.requests[0]!.state = "seen"; });
   await press("All decisions");
@@ -460,4 +610,19 @@ it.each(["List", "Board"])("omits Coming up from the real %s component", async v
   expect(words()).not.toContain("Coming up");
   expect(words()).not.toContain("Later decision");
   expect(words()).not.toContain("Review plan: Build the reader pass");
+});
+
+it.each(["List", "Board"])("shows one review row within the real %s Needs-you total", async view => {
+  await mount([], true, snapshot => {
+    snapshot.planNow!.push({ plan: "review", title: "Storage proposal", question: "Review the plan", waits: [], neededBy: [], recommendation: "Review", review: { revision: 1, at: "2026-10-23T06:00:00Z" } });
+    snapshot.actionCount!++;
+  });
+  const props = { cards: [], allCards: [], snapshot: rpc.snapshot!, offline: false, theme: attentionTheme, compact: true, density: "comfortable" as const,
+    conversing: null, onConverse() {}, onChanged() {}, showDone: false, onShowDone() {}, layout: DEFAULT_TASK_LAYOUT, layoutDisabled: false, onLayout() {} };
+  await act(async () => { renderer.unmount(); renderer = create(createElement(QueryClientProvider, { client }, view === "List" ? createElement(TaskList, props) : createElement(TaskBoard, props))); });
+  expect(words()).toContain("Needs you · 2");
+  expect(words().split("Storage proposal")).toHaveLength(2);
+  expect(renderer.root.findAllByType(DecisionTask)).toHaveLength(2);
+  expect(button("Review plan: Storage proposal")).toBeTruthy();
+  expect(rpc.calls).not.toContain("firstmate.workflow.act");
 });

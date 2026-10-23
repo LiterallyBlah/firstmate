@@ -1,6 +1,9 @@
 import { DecisionAnswerBubble } from "./decision-answer-bubble";
 import { DecisionRaisedCard } from "./decision-raised-card";
 import { withRaisedDecisions } from "./decision-raised";
+import { withPlanReviews } from "./plan-ready";
+import { useWorkflowPlans } from "./workflow-plans";
+import { planAwaitingReview } from "../shared/workflow-plans";
 import { useNeedsYou } from "./needs-you-query";
 /**
  * The conversation with the first mate: its transcript, folded to the words,
@@ -13,7 +16,7 @@ import type { PluginScreenProps } from "@getpaseo/plugin/client";
 import { Icon, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Image, Platform, Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
+import { Image, Platform, Pressable, SafeAreaView, ScrollView, Text, View, type TextInput } from "react-native";
 
 import { GrowingChatInput } from "./growing-chat-input";
 
@@ -31,6 +34,7 @@ import {
   type PendingAttachment,
 } from "./attachments";
 import { drafts } from "./draft";
+import { discussionRequest, type DecisionDiscussion } from "./decision-discussion";
 import { lookupIn, recentCandidates } from "./file-links";
 import { useFollowEnd } from "./follow-end";
 import { isSendKey, type WebKeyPressEvent } from "./keys";
@@ -109,6 +113,9 @@ export function MateChat({
   onOpenFile,
   navigation,
   imageContext,
+  discussion = null,
+  onReturnDecision,
+  onDismissDiscussion,
 }: {
   mate: AgentSummary;
   /** When this first mate took the helm; decisions raised before it are not its own. */
@@ -121,6 +128,9 @@ export function MateChat({
   onOpenFile: (path: string) => void;
   navigation?: PluginScreenProps["navigation"];
   imageContext?: { serverId?: string; home?: string };
+  discussion?: DecisionDiscussion | null;
+  onReturnDecision?: () => void;
+  onDismissDiscussion?: () => void;
 }) {
   const toast = useToast();
   const [toolbarWidth, setToolbarWidth] = useState(0);
@@ -131,10 +141,16 @@ export function MateChat({
   const timeline = useAgentTimeline(mate.id, `${mate.updatedAt}:${mate.pendingPermissions}`);
   /** Decisions the first mate raised show once, as cards from the Needs-you snapshot — see `./decision-raised`. */
   const decisions = useNeedsYou();
-  // Placement depends only on the ledger's requests, which change only with its version; each poll is a new object.
+  const plans = useWorkflowPlans();
+  const discussing = discussionRequest(discussion, decisions.data, mate.id, decisions.error !== null);
+  const composer = useRef<TextInput>(null);
+  useEffect(() => {
+    if (discussion?.mateId === mate.id) composer.current?.focus();
+  }, [discussion, mate.id]);
+  // Stable ledger versions keep derived references in place across polls and reconnects.
   const rows = useMemo(
-    () => withRaisedDecisions(transcriptRows(timeline.entries), timeline.entries, decisions.data, mateSince),
-    [timeline.entries, decisions.data?.homeId, decisions.data?.version, mateSince],
+    () => withPlanReviews(withRaisedDecisions(transcriptRows(timeline.entries), timeline.entries, decisions.data, mateSince), timeline.entries, plans.snapshot, mateSince),
+    [timeline.entries, decisions.data?.homeId, decisions.data?.version, plans.snapshot?.homeId, plans.snapshot?.version, mateSince],
   );
   // Redraws a captain's row when the images kept for it change; see `./sent-images`.
   useSyncExternalStore(sentImages.subscribe, sentImages.version);
@@ -250,7 +266,7 @@ export function MateChat({
       pane: { flex: 1, minHeight: 0, backgroundColor: colors.surface0 },
       transcript: { flex: 1 },
       scroller: { flex: 1 },
-      transcriptBody: { padding: compact ? 10 : 14, gap: 10 },
+      transcriptBody: { padding: compact ? 10 : 14, gap: 10, width: "100%" as const, maxWidth: 760, alignSelf: "center" as const },
       captain: {
         alignSelf: "flex-end" as const,
         maxWidth: "88%" as const,
@@ -272,7 +288,7 @@ export function MateChat({
         borderTopColor: colors.border,
         backgroundColor: colors.surface0,
       },
-      composer: { padding: compact ? 8 : 10, gap: 8 },
+      composer: { padding: compact ? 8 : 10, gap: 8, width: "100%" as const, maxWidth: 760, alignSelf: "center" as const },
       quick: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
       prompts: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
       chips: { flexDirection: "row" as const, flexWrap: "wrap" as const, gap: 6 },
@@ -374,6 +390,16 @@ export function MateChat({
     }
     const row = group.row;
     switch (row.kind) {
+      case "plan-ready": {
+        const plan = plans.snapshot?.plans.find(p => p.definition.id === row.planId);
+        return <View key={row.key} style={{ ...styles.line, flexWrap: "wrap", paddingVertical: 6 }}>
+          <Icon name="ListTodo" size={14} color={theme.colors.foregroundMuted} />
+          <Text style={{ color: theme.colors.foreground, fontSize: 13, flex: 1 }}>{plan && planAwaitingReview(plan) ? "Plan ready for review" : "Plan"}: {row.text}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`${plan && planAwaitingReview(plan) ? "Review" : "Open"} plan: ${row.text}`} onPress={() => plans.open(row.planId)} style={{ minHeight: compact ? 44 : 28, justifyContent: "center", paddingHorizontal: 10 }}>
+            <Text style={{ color: theme.colors.foreground, fontSize: 12, fontWeight: "600" }}>{plan && planAwaitingReview(plan) ? "Review" : "Open"}</Text>
+          </Pressable>
+        </View>;
+      }
       case "decision-answer": return <View key={row.key} style={styles.captain}><DecisionAnswerBubble theme={theme} answer={row.answer} /></View>;
       case "decision-raised": {
         const request = decisions.data?.requests.find((entry) => entry.id === row.requestId);
@@ -499,6 +525,21 @@ export function MateChat({
       */}
       <SafeAreaView style={styles.composerFrame}>
         <View style={styles.composer}>
+          {discussion ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              {discussing ? (
+                <Pressable accessibilityRole="button" accessibilityLabel={`Back to the decision: ${discussing.source.title}`}
+                  onPress={onReturnDecision} style={{ flex: 1, paddingVertical: 6 }}>
+                  <Text style={{ color: theme.colors.accent, fontSize: 12 }}>‹ Back to the decision · {discussing.source.title}</Text>
+                </Pressable>
+              ) : (
+                <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12, flex: 1 }}>
+                  This decision changed or is no longer waiting. Open Needs you to check.
+                </Text>
+              )}
+              <IconButton theme={theme} icon="X" label="Dismiss decision reference" onPress={() => onDismissDiscussion?.()} />
+            </View>
+          ) : null}
           <View style={styles.quick} onLayout={(event) => setToolbarWidth(event.nativeEvent.layout.width)}>
             <View style={styles.prompts}>
               <IconButton
@@ -551,6 +592,7 @@ export function MateChat({
           )}
           <View style={styles.inputRow}>
             <GrowingChatInput
+              ref={composer}
               theme={theme}
               compact={compact}
               accessibilityLabel="Message the first mate"

@@ -101,7 +101,7 @@ try {
     const dialog = page.getByRole("dialog", { name: "Scheduler", exact: true }); await dialog.waitFor();
     for (const name of ["Approve", "Approve with edits", "Ask for changes"]) assert.equal(await dialog.getByRole("button", { name, exact: true }).count(), 0);
     assert(await dialog.getByRole("button", { name: "Hold", exact: true }).isEnabled());
-    assert(await dialog.getByRole("button", { name: "SQLite", exact: true }).isEnabled());
+    assert(await dialog.getByRole("button", { name: "SQLite", exact: true }).isDisabled(), "future answers require plan approval and the trial evidence");
     assert.equal(await page.evaluate(() => window.planActions.length), 0);
     await page.screenshot({ path: resolve(out, `${scenario}-plan.png`) }); results.push({ scenario, reviewActionsAbsent: true, lifecycleAndDecisionControls: true }); await page.close();
   }

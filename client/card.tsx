@@ -33,7 +33,7 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
 import { Icon, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { exitCrew, interruptCrew, relaunchCrew, steerCrew, type ColumnId, type FleetCard } from "../shared/fleet";
@@ -155,6 +155,7 @@ export function CrewCard({
   summary: suppliedSummary,
   decisionHomeId,
   onOpenDecision,
+  reveal,
 }: {
   card: FleetCard;
   theme: PluginTheme;
@@ -182,6 +183,7 @@ export function CrewCard({
   decisionHomeId?: string | null | undefined;
   /** Installation-owned opener for contextual panels outside a FleetSurface. */
   onOpenDecision?: OpenDecision;
+  reveal?: object | undefined;
 }) {
   const steer = useRpc(steerCrew);
   const interrupt = useRpc(interruptCrew);
@@ -194,6 +196,7 @@ export function CrewCard({
 
   const memory = useCardMemory(card.key, startExpanded, card.column);
   const { setExpanded, draft, setDraft } = memory;
+  useEffect(() => { if (reveal) setExpanded(true); }, [reveal]);
   const focus = presentation === "focus";
   const drawer = presentation === "drawer";
   const summary = suppliedSummary ?? taskPresentation(card);
@@ -569,11 +572,13 @@ export function CrewCard({
               </>
             )}
           </Pressable>
+          <PlanChip card={card} theme={theme} inHeader />
           {converseButton}
         </View>
       )}
 
-      {focus ? null : <PlanChip card={card} theme={theme} />}
+      {drawer ? <View style={styles.chips}><PlanChip card={card} theme={theme} /></View> : null}
+
       {plain && summary.request && decisionHomeId ? (
         <DecisionButton
           theme={theme}

@@ -1,6 +1,6 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { Icon } from "@getpaseo/plugin/client/react-native";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import type { FleetCard } from "../shared/fleet";
 import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
@@ -9,6 +9,8 @@ import { useOpenDecision } from "./decision-action";
 import { taskSourceKey } from "./task-presentation";
 import { decisionSignalInk, decisionTitle, relativeDecisionTime } from "./decision-copy";
 import { Tag } from "./ui";
+import { planReviewFor } from "../shared/plan-decisions";
+import { useWorkflowPlans } from "./workflow-plans";
 
 /** One ledger request, even when several workers represent the same task. */
 export function DecisionTask({
@@ -21,11 +23,15 @@ export function DecisionTask({
   onChanged,
   presentation = "row",
   onAnswer,
+  reveal,
+  review: isReview = false,
 }: {
   presentation?: "row" | "card";
   onAnswer?: (() => void) | undefined;
+  reveal?: object | undefined;
+  review?: boolean;
   request: NeedsYouRequest;
-  snapshot: NeedsYouSnapshot;
+  snapshot: Pick<NeedsYouSnapshot, "homeId" | "planNow">;
   cards?: readonly FleetCard[];
   theme: PluginTheme;
   compact: boolean;
@@ -35,21 +41,25 @@ export function DecisionTask({
   const open = useOpenDecision(),
     id = `decision-task-${useId()}`;
   const [details, setDetails] = useState(false);
+  const plans = useWorkflowPlans(), need = planReviewFor(snapshot, request.id);
+  const review = isReview || !!need;
+  useEffect(() => { if (reveal) setDetails(true); }, [reveal]);
   const matchingCards = (cards ?? []).filter((card) => taskSourceKey(card) === request.source.key);
   const colors = theme.colors, isNew = request.state === "new", row = presentation === "row";
   const title = decisionTitle(request.source.title);
+  const action = review ? "Review" : "Answer";
   const waiting = relativeDecisionTime(request.detectedAt);
-  const openAnswer = onAnswer ?? (() => open({ homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision }, id));
+  const openAnswer = onAnswer ?? (need ? () => plans.open(need.plan) : () => open({ homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision }, id));
   const metadata = <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
     {request.source.project ? <Tag theme={theme} text={request.source.project} /> : null}
-    <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>{`waiting ${waiting}`}</Text>
+    <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>{review && !request.detectedAt ? "waiting for review" : `waiting ${waiting}`}</Text>
   </View>;
-  const answer = <Pressable nativeID={id} accessibilityRole="button" accessibilityLabel={`Answer: ${title}. ${request.source.ask}`}
+  const answer = <Pressable nativeID={id} accessibilityRole="button" accessibilityLabel={review ? `Review plan: ${request.source.title}` : `Answer: ${title}. ${request.source.ask}`}
     onPress={openAnswer} style={{ minHeight: compact ? 44 : 28, flexDirection: "row", alignItems: "center", justifyContent: "center",
       gap: 5, paddingHorizontal: 10, borderWidth: 1, borderRadius: 7, borderColor: isNew ? colors.accent : colors.border,
       backgroundColor: isNew ? colors.accent : colors.surface1 }}>
-    <Icon name="Reply" size={14} color={isNew ? colors.accentForeground : colors.foreground} />
-    <Text style={{ color: isNew ? colors.accentForeground : colors.foreground, fontSize: 12, fontWeight: "600" }}>Answer</Text>
+    <Icon name={review ? "ListTodo" : "Reply"} size={14} color={isNew ? colors.accentForeground : colors.foreground} />
+    <Text style={{ color: isNew ? colors.accentForeground : colors.foreground, fontSize: 12, fontWeight: "600" }}>{action}</Text>
   </Pressable>;
   const detailToggle = <Pressable accessibilityRole="button" accessibilityLabel={`Details for decision ${request.source.title}`}
     accessibilityState={{ expanded: details }} aria-expanded={details} onPress={() => setDetails(!details)}
@@ -61,8 +71,8 @@ export function DecisionTask({
       borderRadius: 8, padding: row ? 5 : 12, gap: row ? 4 : 8, backgroundColor: isNew ? colors.surface2 : row ? undefined : colors.surface1 }}>
       {!row ? metadata : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        {row ? <Icon name={isNew ? "Circle" : "Hand"} size={isNew ? 9 : 14} color={colors.statusWarning} /> : null}
-        <Pressable accessibilityRole="button" accessibilityLabel={`Answer: ${request.source.title}. ${request.source.ask}`}
+        {row ? <Icon name={review ? "ListTodo" : isNew ? "Circle" : "Hand"} size={isNew ? 9 : 14} color={colors.statusWarning} /> : null}
+        <Pressable accessibilityRole="button" accessibilityLabel={`${action}: ${request.source.title}. ${request.source.ask}`}
           onPress={openAnswer} style={{ flex: 1, minWidth: 0, gap: 3 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             {isNew ? <Text style={{ color: decisionSignalInk(colors.surface0, colors.foreground, colors.statusWarning), backgroundColor: colors.statusWarning, borderRadius: 3,
@@ -76,9 +86,9 @@ export function DecisionTask({
         </Pressable>
         {row && !compact ? metadata : null}
         {row ? answer : null}
-        {row ? detailToggle : null}
+        {row && !review ? detailToggle : null}
       </View>
-      {!row ? <View style={{ flexDirection: "row", justifyContent: "space-between" }}>{answer}{detailToggle}</View> : null}
+      {!row ? <View style={{ flexDirection: "row", justifyContent: "space-between" }}>{answer}{!review ? detailToggle : null}</View> : null}
       {details ? (
         <>
           <Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{request.source.title}</Text>

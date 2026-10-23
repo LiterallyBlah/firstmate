@@ -69,7 +69,7 @@ import { focusWebElement, webAttributes } from "./web";
 import { HubLauncher } from "./hub-launcher";
 import { chatIsVisible, FLEET_PANELS, homeWorkspace, type FleetShell, type FleetView } from "./shell";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
-import { DecisionSurface, DecisionPane, useDecisionPaneOpen, useDecisionOrigin } from "./decision-surface";
+import { DecisionSurface, DecisionPane, useDecisionPaneOpen, useDecisionOrigin, useDecisionHandoff } from "./decision-surface";
 import { NeedsYouIndicator, useDecisionVisibility } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
 import { useOpenDecision } from "./decision-action";
@@ -79,6 +79,7 @@ import { taskPresentation } from "./task-presentation";
 import { WorkflowSurface, PlansControl, useWorkflowPlans, WORKFLOW_QUERY_KEY } from "./workflow-plans";
 import { WorkflowPlansView } from "./workflow-plan-browser";
 import { workflowOwnsCard } from "../shared/workflow-identity";
+import { workflowTaskTarget } from "./workflow-task-navigation";
 
 export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
@@ -117,7 +118,7 @@ type FleetSurfaceProps = PluginScreenProps & {
 export function FleetSurface(props: FleetSurfaceProps) {
   const key = JSON.stringify([props.host?.id, props.workspaceId, props.view ?? "home"]);
   return (
-    <WorkflowSurface theme={props.theme}><DecisionSurface shell={props.shell} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
+    <WorkflowSurface key={key} theme={props.theme} hostId={props.host?.id} view={props.view} shell={props.shell} params={props.params}><DecisionSurface shell={props.shell} view={props.view} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
       <FleetViewBody {...props} stateKey={key} />
     </DecisionSurface></WorkflowSurface>
   );
@@ -136,8 +137,15 @@ function FleetViewBody({
 }: FleetSurfaceProps & { stateKey: string }) {
   const home = view === undefined;
   const plans = useWorkflowPlans();
-  const [planFilter, setPlanFilter] = useState<string | null>(null);
+  const planFilter = plans.planFilter ?? null;
+  const setPlanFilter = (id: string | null) => plans.setPlanFilter?.(id);
+  const [revealedTask, setRevealedTask] = useState<{ card: string; request: object } | null>(null);
+  useEffect(() => { setRevealedTask(null); }, [plans.scope]);
   const decisionOpen = useDecisionPaneOpen();
+  const handoff = useDecisionHandoff();
+  const discussionReturnTab = useRef<Tab>(cachedTab);
+  const openedDiscussion = useRef(handoff.discussion);
+  const openedBoardRequest = useRef<object | null>(null);
   const [viewMenu, setViewMenu] = useState(false);
   const remembered = viewState.get(stateKey);
   const [width, setWidth] = useState(0);
@@ -263,6 +271,50 @@ function FleetViewBody({
     setTab("chat");
     if (values.chatCollapsed) save({ chatCollapsed: false });
   }, [home, params?.chat, display.status]);
+
+  useEffect(() => {
+    if (!handoff.discussion || handoff.discussion.mateId !== data?.mate?.id) return;
+    if (openedDiscussion.current !== handoff.discussion) {
+      discussionReturnTab.current = tab;
+      openedDiscussion.current = handoff.discussion;
+    }
+    if (home) {
+      setTab("chat");
+      if (display.status === "ready" && values.chatCollapsed) save({ chatCollapsed: false });
+    }
+  }, [home, handoff.discussion, data?.mate?.id, display.status]);
+
+  useEffect(() => {
+    if (!home || !handoff.boardRequest || display.status !== "ready") return;
+    if (openedBoardRequest.current === handoff.boardRequest) return;
+    openedBoardRequest.current = handoff.boardRequest;
+    selectHomePane("board");
+    setWatching(null);
+    // A narrowed desktop may not have measured its compact width yet.
+    setTab("board", true);
+    if (values.boardCollapsed) save({ boardCollapsed: false });
+  }, [home, handoff.boardRequest, display.status]);
+
+  useEffect(() => {
+    const request = plans.taskRequest;
+    if (!home || !request || display.status !== "ready" || !plans.scope || !plans.snapshot || !data) return;
+    const plan = plans.snapshot.plans.find(plan => plan.definition.id === request.plan);
+    const node = plan?.definition.nodes.find(node => node.id === request.node);
+    const target = plan && node ? workflowTaskTarget(plan, node, data.cards) : null;
+    if (request.scope !== plans.scope || plans.error || fleet.error || target?.card?.key !== request.card || (request.worker && target.worker !== request.worker)) {
+      plans.finishNavigation?.("This task or worker is no longer available for this home. Refresh Plans and select the step again.");
+      return;
+    }
+    handoff.revealTask();
+    setPlanFilter(request.plan);
+    // The explicit handoff reveals the selected task even when other filters/folds hid it.
+    save({ hostTab: target.card.remote ? target.card.remote.serverId ?? "all" : "local", tagFilter: [], boardCollapsed: false });
+    selectHomePane("list");
+    setTab("board", true);
+    setRevealedTask({ card: request.card, request });
+    setWatching(request.worker ?? null);
+    plans.finishNavigation?.();
+  }, [home, plans.taskRequest, plans.scope, plans.snapshot, display.status, data, fleet.error]);
 
   function setTab(next: Tab, keepConversation = false): void {
     if (next === "board" && tab === "board" && !keepConversation) setWatching(null);
@@ -479,6 +531,9 @@ function FleetViewBody({
   }
 
   const banners: ReactNode[] = [];
+  if (home && plans.navigationNotice) {
+    banners.push(<Text key="workflow-navigation" accessibilityRole="alert" style={{ color: theme.colors.foregroundMuted }}>{plans.navigationNotice}</Text>);
+  }
   if (fleet.error !== null) {
     banners.push(<Banner key="error" theme={theme} tone="danger" text={errorText(fleet.error)} />);
   }
@@ -780,7 +835,9 @@ function FleetViewBody({
         <TaskList
           cards={filteredCards}
           allCards={data.cards}
-          filtered={hostTab !== "all" || values.tagFilter.length > 0}
+          filtered={hostTab !== "all" || values.tagFilter.length > 0 || planFilter !== null}
+          reveal={revealedTask}
+          onRevealed={request => setRevealedTask(current => current?.request === request ? null : current)}
           snapshot={decisions.data}
           offline={decisions.error !== null}
           showLater={!taskLayout.values.laterCollapsed}
@@ -802,7 +859,7 @@ function FleetViewBody({
         <TaskBoard
           cards={filteredCards}
           allCards={data.cards}
-          filtered={hostTab !== "all" || values.tagFilter.length > 0}
+          filtered={hostTab !== "all" || values.tagFilter.length > 0 || planFilter !== null}
           snapshot={decisions.data}
           offline={decisions.error !== null}
           theme={theme}
@@ -850,6 +907,11 @@ function FleetViewBody({
       onChanged={refresh}
       onOpenFile={openFile}
       navigation={navigation}
+      discussion={handoff.discussion}
+      onReturnDecision={() => {
+        if (handoff.resume() && home && compact) setTab(discussionReturnTab.current);
+      }}
+      onDismissDiscussion={handoff.dismiss}
     />
   );
   // Chat always follows the configured mate, even in another project's workspace.
