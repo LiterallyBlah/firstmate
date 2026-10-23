@@ -14,7 +14,7 @@ vi.mock("./ui", () => ({
 vi.mock("./decision-drawer", () => ({ DecisionButton: () => null }));
 vi.mock("./workflow-plans", () => ({ PlanNeeds: () => null, PlanChip: () => null, useWorkflowPlans: () => ({ open() {} }) }));
 vi.mock("./item-tags", () => ({ ItemTagEditor: () => null }));
-vi.mock("./web", () => ({ webTitle: () => ({}) }));
+vi.mock("./web", () => ({ webTitle: () => ({}), webAttributes: () => ({}) }));
 import { TaskList } from "./task-list";
 import { taskSourceKey } from "./task-presentation";
 

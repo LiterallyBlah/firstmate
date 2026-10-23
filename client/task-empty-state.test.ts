@@ -4,7 +4,7 @@ import { expect, it, vi } from "vitest";
 import { attentionCard, attentionRequest, attentionSnapshot, attentionTheme } from "../test/attention-deck-fixture";
 import { DEFAULT_TASK_LAYOUT } from "../shared/task-layout";
 import { taskSourceKey } from "./task-presentation";
-vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", ScrollView: "ScrollView", View: "View" }));
+vi.mock("react-native", () => ({ Platform: { OS: "web" }, Pressable: "Pressable", Text: "Text", ScrollView: "ScrollView", View: "View" }));
 vi.mock("./card", () => ({ CrewCard: (props: object) => createElement("CrewCard", props) }));
 vi.mock("./decision-tasks", () => ({
   DecisionTask: (props: object) => createElement("DecisionTask", props), DecisionQueueNote: () => null,

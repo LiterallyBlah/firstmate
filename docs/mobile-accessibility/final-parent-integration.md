@@ -46,6 +46,14 @@ identity recovery remain intact. The direct post-merge sizing consequence is in
 `client/chat.tsx`: the newly inherited return-to-decision action and dismiss
 button use the same existing compact targets as the rest of the composer.
 
+The first union attempt at `0b89f20` retained 621 passing tests, six failed reveal
+assertions and an uncollected empty-state suite. Both causes were fixture exports
+needed by the combined components: `webAttributes` in the reveal mock and `Platform`
+in the empty-state mock. Only those two mock definitions were repaired; assertions
+and limits remain unchanged. The failed JSON/log/source manifest is retained as
+attempt 1, separate from final qualification. No new product-behavior regression
+test was needed, and this is not represented as a passing first attempt.
+
 The corrected `PlansControl` guard remains
 `if (!plans.length && !selected) return null;`. Its real-component selected-filter
 clear/approval regression is included in qualification. Due-only UI/server/store
