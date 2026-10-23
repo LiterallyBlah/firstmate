@@ -13,22 +13,25 @@ import { drafts } from "./draft";
 import { pendingAttachments } from "./attachments";
 import type { FleetShell } from "./shell";
 
-const state = vi.hoisted(() => ({ values: {} as DisplaySettings, fleet: null as Fleet | null, save: vi.fn(async () => true) }));
+const state = vi.hoisted(() => ({ values: {} as DisplaySettings, fleet: null as Fleet | null, error: null as Error | null,
+  fetching: false, refetch: vi.fn(), save: vi.fn(async () => true) }));
 vi.mock("react-native", () => ({ Platform: { OS: "web" }, View: "View", Text: "Text", ScrollView: "ScrollView" }));
 vi.mock("@getpaseo/plugin/client", () => ({
   useSettings: () => ({ status: "ready", values: state.values, revision: 1, save: state.save }),
   useRpc: () => async () => { throw new Error("Unexpected daemon action"); },
 }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: () => null, Modal: Object.assign(() => null, { Content: () => null }), useToast: () => ({ error() {} }) }));
-vi.mock("./fleet-query", () => ({ FLEET_QUERY_KEY: ["fleet"], useFleet: () => ({ data: state.fleet, error: null, isFetching: false }) }));
+vi.mock("./fleet-query", () => ({ FLEET_QUERY_KEY: ["fleet"], useFleet: () => ({ data: state.fleet, error: state.error, isFetching: state.fetching, refetch: state.refetch }) }));
+vi.mock("./fleet-load-recovery", () => ({ FleetLoadRecovery: () => createElement("FleetLoadRecovery") }));
 vi.mock("./needs-you-query", () => ({ useNeedsYou: () => ({ data: state.fleet?.needsYou, error: null, isLoading: false }) }));
 vi.mock("./decision-drawer", () => ({ DecisionDrawer: (props: unknown) => createElement("DecisionDrawer", props as object) }));
 vi.mock("./chat", () => ({ MateChat: (props: unknown) => createElement("MateChat", props as object) }));
 vi.mock("./ui", () => ({
+  errorText: (error: Error) => error.message,
   IconButton: (props: { label: string; onPress(): void }) => createElement("Pressable", { accessibilityLabel: props.label, onPress: props.onPress }),
   Segmented: (props: { options: { value: string; label: string }[]; onChange(value: string): void }) => props.options.map(option =>
     createElement("Pressable", { key: option.value, accessibilityLabel: option.label, onPress: () => props.onChange(option.value) })),
-  Banner: () => null,
+  Banner: (props: object) => createElement("Banner", props),
 }));
 vi.mock("./web", () => ({ webAttributes: () => ({}), focusWebElement() {} }));
 vi.mock("./needs-you", () => ({ NeedsYouIndicator: () => null, useDecisionVisibility: () => ({ current: null }) }));
@@ -87,6 +90,21 @@ afterEach(async () => {
   drafts.set("converse:agent-p2-worker", "");
   pendingAttachments.set("converse:agent-p2-worker", []);
   pendingAttachments.set("agent-mate", []);
+  state.error = null; state.fetching = false;
+});
+
+it("offers Retry on a failed first load, keeps independent chat recovery and disables Retry in flight", async () => {
+  await mount(1440, { route: {} });
+  state.fleet = null; state.error = new Error("Fleet unavailable");
+  await resize(900);
+  const retry = () => renderer.root.findByType("Banner" as never).props.action;
+  expect(retry().label).toBe("Retry");
+  expect(renderer.root.findAllByType("FleetLoadRecovery" as never)).toHaveLength(1);
+  await act(async () => retry().onPress());
+  expect(state.refetch).toHaveBeenCalledExactlyOnceWith({ cancelRefetch: false });
+  state.fetching = true;
+  await resize(1440);
+  expect(retry().disabled).toBe(true);
 });
 
 it.each([900, 1440])("unfolds Home's existing chat while keeping the selected decision at %s points", async width => {

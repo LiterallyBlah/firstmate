@@ -8,7 +8,7 @@ import type { NeedsYouSnapshot } from "../shared/needs-you";
 import { decisionCountText } from "./needs-you-state";
 import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
-import { activeDecisions, presentedTasks, taskSourceKey, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
+import { activeDecisions, matchingDecisionMessage, presentedTasks, taskSourceKey, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
 import { DecisionTask, DecisionQueueNote } from "./decision-tasks";
 import { PlanNeeds } from "./workflow-plans";
 import { webAttributes } from "./web";
@@ -38,6 +38,7 @@ export function TaskList(props: TaskListProps) {
   const requests = activeDecisions(snapshot),
     tasks = presentedTasks(cards, snapshot);
   const heading = { color: theme.colors.foregroundMuted, fontSize: 13, fontWeight: "600" as const };
+  const matchingNotice = props.filtered ? matchingDecisionMessage(cards, snapshot) : null;
   const scroller = useRef<ScrollView>(null), target = useRef<View>(null), scrolled = useRef<object | null>(null);
   function scrollToTask() {
     if (!props.reveal || scrolled.current === props.reveal.request || !target.current || !scroller.current) return;
@@ -110,6 +111,7 @@ export function TaskList(props: TaskListProps) {
         <PlanNeeds theme={theme} snapshot={snapshot} showUpcoming={false} showReviews={false} />
         {snapshot?.actionCount === 0 && snapshot.freshness.status === "fresh" && !snapshot.planProblems?.length && !props.offline ? <Text style={heading}>Nothing needs a decision now.</Text> : null}
       </View>
+      {matchingNotice ? <Text style={heading}>{matchingNotice}</Text> : null}
       <View testID="task-group-in-hand" style={{ gap: 8 }}>
         <Text accessibilityRole="header" {...webAttributes({ "aria-level": "2" })} style={heading}>
           In hand · {tasks.filter((entry) => entry.summary.group === "in-hand").length}

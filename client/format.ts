@@ -253,6 +253,10 @@ export interface CardHeadline {
 export function cardHeadline(card: FleetCard): CardHeadline | null {
   const remote = card.remote ?? null;
   const worker = remote?.worker ?? null;
+  if (remote?.online === false && worker && !card.backlog?.hold?.trim()) {
+    const state = card.report?.state ?? (worker.pendingPermissions ? "waiting on a permission" : worker.status === "running" ? "working" : worker.status);
+    return { lead: `Last seen ${state}`, text: card.report?.text ?? worker.permissionDetails[0]?.description ?? "Host unreachable", tone: "muted" };
+  }
   const permission = worker?.permissionDetails[0];
   if (permission !== undefined) {
     return {

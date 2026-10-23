@@ -69,6 +69,7 @@ import { focusWebElement, webAttributes } from "./web";
 import { HubLauncher } from "./hub-launcher";
 import { chatIsVisible, FLEET_PANELS, homeWorkspace, type FleetShell, type FleetView } from "./shell";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
+import { FleetLoadRecovery } from "./fleet-load-recovery";
 import { DecisionSurface, DecisionPane, useDecisionPaneOpen, useDecisionOrigin, useDecisionHandoff } from "./decision-surface";
 import { NeedsYouIndicator, useDecisionVisibility } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
@@ -531,11 +532,13 @@ function FleetViewBody({
   }
 
   const banners: ReactNode[] = [];
+  const retryFleet = { label: fleet.isFetching ? "Retrying…" : "Retry", icon: "RefreshCw",
+    disabled: fleet.isFetching, onPress: () => { void fleet.refetch({ cancelRefetch: false }); } };
   if (home && plans.navigationNotice) {
     banners.push(<Text key="workflow-navigation" accessibilityRole="alert" style={{ color: theme.colors.foregroundMuted }}>{plans.navigationNotice}</Text>);
   }
   if (fleet.error !== null) {
-    banners.push(<Banner key="error" theme={theme} tone="danger" text={errorText(fleet.error)} />);
+    banners.push(<Banner key="error" theme={theme} tone="danger" text={errorText(fleet.error)} action={retryFleet} />);
   }
   if (data?.agentTools === false) {
     banners.push(
@@ -774,7 +777,9 @@ function FleetViewBody({
       <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         {header}
         {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
-        <Text style={styles.loading}>{fleet.error === null ? "Mustering the crew…" : ""}</Text>
+        {fleet.error === null ? <Text style={styles.loading}>Mustering the crew…</Text> : home || view === "chat" ? (
+          <FleetLoadRecovery theme={theme} compact={compact} navigation={navigation} serverId={host?.id} onChanged={refresh} />
+        ) : null}
       </View>
     );
   }
@@ -1072,7 +1077,7 @@ function FleetViewBody({
           </View>
           {compact ? attention : null}
         </View>
-        {fleet.error === null ? null : <Banner theme={theme} tone="danger" text={errorText(fleet.error)} />}
+        {fleet.error === null ? null : <Banner theme={theme} tone="danger" text={errorText(fleet.error)} action={retryFleet} />}
         {mate.status === "error" || mate.status === "closed" ? (
           <Banner
             theme={theme}
