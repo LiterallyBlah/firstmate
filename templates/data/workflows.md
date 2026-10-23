@@ -157,8 +157,11 @@ Hold stops new starts while preserving running work; Decline applies only before
 
 Now contains due decisions and plans awaiting approval. Coming up lists future choices with their
 dependencies, what needs them and the recommendation. Coming up contributes nothing to the badge.
-Decisions may be answered early. Every action carries the current plan revision and subject hash;
-a stale or second-device answer is refused. Viewing, closing or filtering is never approval.
+Decisions are read-only until their plan is approved, holds are lifted and their exact required
+evidence is ready. The store refuses earlier new answers. Historical early answers remain in history;
+retries of accepted request IDs with the same body replay without recording another answer.
+Every action carries the current plan revision and subject hash; a stale or second-device answer is
+refused. Viewing, closing or filtering is never approval.
 The Deck still contains real workers only. Multi-step rounds and merge gates arrive in later slices.
 
 A captain answer in chat may be recorded by the current first mate with `plan action --file …`:

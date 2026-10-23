@@ -210,7 +210,7 @@ export function PlanChip({ card, theme, inHeader = false }: { card: FleetCard; t
 export function PlansControl({ theme, selected, onSelect }: { theme: PluginTheme; selected: string | null; onSelect(id: string | null): void }) {
   const { snapshot, open } = useWorkflowPlans(), [shown, setShown] = useState(false);
   const plans = snapshot?.plans.filter(p => !p.definition.implicit || p.status === "review") ?? [];
-  if (!plans.length) return null;
+  if (!plans.length && !selected) return null;
   const label = selected ? `Plan filter: ${plans.find(p => p.definition.id === selected)?.definition.title ?? "selected"}` : "Plan filter";
   return <><ToolbarButton theme={theme} icon="ListTodo" text={label} label={label}
     hint="Filter tasks by plan or open a plan's details." active={selected !== null} open={shown} onPress={() => setShown(true)} />
