@@ -14,12 +14,15 @@ export function HubLauncher({
   shell,
   workspaceId,
   compact = false,
+  phone = false,
 }: {
   theme: PluginScreenProps["theme"];
   navigation: PluginScreenProps["navigation"];
   shell: FleetShell;
   workspaceId: string | null;
   compact?: boolean;
+  /** The launcher also uses its menu on desktop; phone targets are independent. */
+  phone?: boolean;
 }) {
   const toast = useToast();
   const [opened, setOpened] = useState(false);
@@ -95,9 +98,10 @@ export function HubLauncher({
               theme={theme}
               icon="PanelsTopLeft"
               label="Open"
+              compact={phone}
               showLabel
               nativeID={triggerId}
-              tooltip="Open Deck, Board, Crew, Chat, Plans or workspace tools."
+              tooltip="Open Deck, Board, List, Chat, Plans or workspace tools."
               tooltipSide="bottom"
               tooltipAlign="end"
               onPress={() => setOpened(true)}

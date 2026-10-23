@@ -2,12 +2,16 @@ import { act, createElement, type ReactNode } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import type { PluginTheme } from "@getpaseo/plugin";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { workflowFixture } from "../test/workflow-fixture";
+import { compactPlansFixture } from "../test/compact-plans-fixture";
+import { attentionCard } from "../test/attention-deck-fixture";
 import type { WorkflowPlan } from "../shared/workflow-plans";
+vi.mock("@getpaseo/plugin/client", () => ({ useRpc: () => vi.fn() }));
 vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View", Image: "Image", Platform: { OS: "web", select: (options: { default: unknown }) => options.default } }));
 vi.mock("@getpaseo/plugin/client/ui", () => ({ SettingsRow: "SettingsRow" }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ Icon: "Icon", TextInput: "TextInput", FlatList: "FlatList", Modal: Object.assign(({ open, children }: { open: boolean; children: ReactNode }) => open ? children : null, { Content: "Content" }) }));
-import { PlanDialog, PlanNeeds } from "./workflow-plans";
+import { PlanChip, PlanDialog, PlanNeeds, WorkflowSurface, WORKFLOW_QUERY_KEY } from "./workflow-plans";
 import { indicatorState, decisionCountText } from "./needs-you-state";
 import { OptionPicker } from "./option-picker";
 import { visibleText } from "../test/visible-text";
@@ -17,6 +21,24 @@ beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REAC
 afterEach(() => { act(() => renderer?.unmount()); renderer = null; });
 const plan = (): WorkflowPlan => ({ definition: workflowFixture(), revision: 1, sequence: 0, hash: "a".repeat(64), posture: "review", status: "review", approvedBudget: { agents: 2, turns: 2 }, nodes: { trial: { state: "planned" }, database: { state: "planned" }, build: { state: "planned" } }, told: [], handled: [], history: [{ revision: 1, at: "2026-10-20T12:00:00Z", by: "mate", reason: "draft" }] });
 function button(label: string) { return renderer!.root.find(n => n.type === ("Pressable" as any) && n.props.accessibilityLabel === label); }
+it("shows the same build-step progress on task chips as Plans, folding reviews and excluding decisions", async () => {
+  const plans = compactPlansFixture(), star = plans[0]!, card = attentionCard("starpath-scheduler-slice13", "ready");
+  card.project = "starpath";
+  card.backlog = { id: card.taskId!, title: card.title, project: "starpath", section: "in-flight", kind: "ship", mode: null,
+    agentId: null, hold: null, blockedBy: null, since: null, url: null, reportPath: null, outcome: null, host: "Remote lab", plan: star.definition.id };
+  card.remote = { serverId: "sample-lab", host: "Remote lab", online: true, clockSkewSeconds: null, worker: null };
+  const cache = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+  cache.setQueryData(WORKFLOW_QUERY_KEY, { homeId: "fixture", version: "1", plans, subjects: {}, now: [], comingUp: [] });
+  try {
+    await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache },
+      createElement(WorkflowSurface, { theme, children: createElement(PlanChip, { theme, card }) }))); });
+    expect(visibleText(renderer!.toJSON())).toContain("3 of 7 steps landed");
+    expect(Object.values(star.nodes).filter(n => n.state === "done" || n.state === "landed")).toHaveLength(11);
+    expect(star.definition.nodes).toHaveLength(22);
+  } finally {
+    await act(async () => renderer?.unmount()); renderer = null; cache.clear();
+  }
+});
 it("renders without acting and binds approval to the displayed revision and subject", async () => {
   const onAct = vi.fn().mockResolvedValue(undefined);
   await act(async () => { renderer = create(createElement(PlanDialog, { theme, plan: plan(), subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct, onRefresh() {} })); });
@@ -24,6 +46,32 @@ it("renders without acting and binds approval to the displayed revision and subj
   for (const label of ["Approve", "Approve with edits", "Ask for changes", "Hold", "Decline"]) expect(button(label)).toBeTruthy();
   await act(async () => button("Approve").props.onPress());
   expect(onAct).toHaveBeenCalledWith(expect.objectContaining({ action: "approve", revision: 1, subjectHash: "b".repeat(64) }));
+});
+it("keeps future choices read-only, then enables only approved evidence-ready decisions", async () => {
+  const p = plan(), onAct = vi.fn(), props = { theme, plan: p, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct, onRefresh() {} };
+  await act(async () => { renderer = create(createElement(PlanDialog, props)); });
+  await act(async () => button("SQLite").props.onPress());
+  expect(button("SQLite").props.disabled).toBe(true); expect(onAct).not.toHaveBeenCalled();
+  p.status = "active";
+  await act(async () => renderer!.update(createElement(PlanDialog, props)));
+  expect(button("SQLite").props.disabled).toBe(true);
+  p.nodes.trial = { state: "done", evidence: "Verified" };
+  await act(async () => renderer!.update(createElement(PlanDialog, props)));
+  expect(button("SQLite").props.disabled).toBe(false);
+  await act(async () => button("SQLite").props.onPress());
+  expect(onAct).toHaveBeenCalledWith(expect.objectContaining({ action: "answer", node: "database", option: "sqlite", revision: 1, subjectHash: "b".repeat(64) }));
+});
+it("opens the existing plan dialog from a compact review row without recording an action", async () => {
+  const p = plan(), cache = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+  cache.setQueryData(WORKFLOW_QUERY_KEY, { homeId: "home", version: "1", plans: [p], subjects: { [p.definition.id]: "b".repeat(64) }, now: [], comingUp: [] });
+  const needs = { homeId: "home", planNow: [{ plan: p.definition.id, title: p.definition.title, question: "Review the plan", waits: [], neededBy: [], recommendation: "Review", review: { revision: 1, at: p.history[0]!.at } }] };
+  try {
+    await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(WorkflowSurface, { theme, children: createElement(PlanNeeds, { theme, snapshot: needs, compact: true }) }))); });
+    expect(renderer!.root.findAllByProps({ testID: "workflow-plan-dialog" })).toHaveLength(0);
+    await act(async () => button(`Review plan: ${p.definition.title}`).props.onPress());
+    expect(renderer!.root.findAllByProps({ testID: "workflow-plan-dialog" })).toHaveLength(1);
+    expect(cache.getQueryData(WORKFLOW_QUERY_KEY)).toMatchObject({ plans: [{ hash: p.hash, status: "review" }] });
+  } finally { await act(async () => renderer?.unmount()); renderer = null; cache.clear(); }
 });
 it.each(["active", "held"] as const)("keeps %s plans browsable without review actions, preserving decisions and lifecycle controls", async status => {
   const p = plan(); p.status = status;
@@ -34,7 +82,7 @@ it.each(["active", "held"] as const)("keeps %s plans browsable without review ac
   }
   expect(button("Hold").props.disabled).toBe(false);
   expect(button("Decline").props.disabled).toBe(false);
-  expect(button("SQLite").props.disabled).toBe(false);
+  expect(button("SQLite").props.disabled).toBe(true);
   expect(onAct).not.toHaveBeenCalled();
 });
 it.each(["active", "held"] as const)("closes an open review form when a plan becomes %s", async status => {

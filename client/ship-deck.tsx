@@ -1,8 +1,7 @@
 /**
  * The ship deck: the crew as sailors on hull C's deck, drawn from the generated art by PixiJS on a WebGL
- * canvas in the right-hand pane. A standard part of the screen in the desktop app's wide layout
- * (`deckOffered`); a phone or a narrow window is not offered it, and a display without WebGL is told why
- * in words.
+ * canvas in the task pane or standalone Deck tab, on compact and wide web layouts
+ * (`deckOffered`). Native and displays without WebGL are told why they cannot draw it in words.
  *
  * It draws from the cards the board already has — `FleetSurface` passes them in from the shared fleet
  * query — so it polls nothing of its own. When that query fails, `stale` greys the whole crew: each
@@ -34,7 +33,7 @@
  */
 import type { PluginTheme } from "@getpaseo/plugin";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { DECK_MOVE_WORDS, deckDecisionDestination, deckDecisionLabel } from "./deck-decisions";
+import { deckDecisionDestination, deckDecisionLabel } from "./deck-decisions";
 import type { OpenDecision } from "./decision-action";
 import { FIRST_MATE_KEY } from "./deck-first-mate";
 import { disconnectedReveals, hiddenWorkersText } from "./deck-offline";
@@ -196,8 +195,8 @@ export function deckStatusText(status: DeckStatus, presentation: DeckPresentatio
       return `${subject} could not start: ${status.message}`;
     case "unsupported":
       return status.reason === "no-webgl"
-        ? `This display has no WebGL, so ${noun} cannot draw. The Crew board shows everything it would.`
-        : `${subject} draws only in the Paseo desktop app. The Crew board shows everything it would.`;
+        ? `This display has no WebGL, so ${noun} cannot draw. List and Board show the tasks.`
+        : `${subject} draws only in the Paseo desktop app. List and Board show the tasks.`;
   }
 }
 
@@ -472,7 +471,7 @@ function DeckView({
   const crew = scene.sailors.length;
   const hidden = scene.hidden?.workers ? hiddenWorkersText(scene.hidden.workers, scene.hidden.hosts) : null;
   const lost = scene.stale === 0 ? "" : decisionStale ? ", decisions from the last good read" : stale ? ", feed lost: last known" : `, ${scene.stale} out of reach: last known`;
-  const words = (state: (typeof DECK_STATES)[number]) => needsYou === undefined ? state : DECK_MOVE_WORDS[state];
+  const words = (state: (typeof DECK_STATES)[number]) => needsYou === undefined ? state : places[state] || state;
   const decisionLabel = deckDecisionLabel(needsYou, stale);
   const total = needsYou === undefined ? "" : `${decisionLabel}. `;
   const summary = `${total}${legendStates.map((state) => `${scene.counts[state]} ${words(state)}`).join(", ")}${lost}${hidden === null ? "" : `. ${hidden}`}`;

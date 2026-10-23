@@ -3,11 +3,20 @@ import { FleetSurface } from "./fleet";
 import { FLEET_SCREEN_ID } from "./screen";
 import { FLEET_PANELS, type FleetShell, type FleetView } from "./shell";
 import { decisionRoute } from "./needs-you-state";
+import { workflowTaskRoute } from "./workflow-task-navigation";
 
 /** Capabilities stay bound to this installation/host, including when several hosts are open. */
 export function registerFleetViews(client: PluginClientContext): FleetShell {
+  let handoff = 0;
   const shell: FleetShell = {
-    openDecision(destination) { client.openScreen(decisionRoute(destination)); },
+    openTask(request) {
+      const route = workflowTaskRoute(request);
+      client.openScreen({ ...route, params: { ...route.params, taskHandoff: String(++handoff) } });
+    },
+    openDecision(destination, intent) {
+      const route = decisionRoute(destination, intent);
+      client.openScreen(intent ? { ...route, params: { ...route.params, decisionHandoff: String(++handoff) } } : route);
+    },
     openView(view, workspaceId) {
       client.openPanel(FLEET_PANELS[view].id, {
         workspaceId,

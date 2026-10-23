@@ -16,10 +16,11 @@ import { resolveHost } from "./remote-cards";
 import { quarantinedDependencyIds, type QuarantinedWorkflow } from "./workflow-ownership";
 import { decisionBriefs } from "./decision-brief";
 import { planDecisionRequest } from "../shared/plan-decisions";
+import { planDecisionReady } from "../shared/plan-readiness";
 
 /** Derive readiness from committed events, never the request's authored date or poll time. */
 function decisionDueAt(plan: WorkflowPlan, node: WorkflowPlan["definition"]["nodes"][number], plans: readonly WorkflowPlan[]) {
-  const times = [plan.nodes[node.id]?.introducedAt ?? plan.history[0]?.at];
+  const times = [plan.nodes[node.id]?.introducedAt ?? plan.history[0]?.at, plan.captainEvents?.filter(e => e.action === "approve" || e.action === "edit").at(-1)?.at];
   for (const edge of node.after) {
     const owner = plans.find(p => p.nodes[edge.node]), state = owner?.nodes[edge.node];
     times.push(state?.availableAt, state?.readyAt?.[edge.on]);
@@ -37,16 +38,16 @@ export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> 
   const unavailableDependencies = quarantinedDependencyIds(read.quarantined ?? []);
   for (const plan of plans) {
     if (plan.status === "abandoned" || planFinished(plan)) continue;
-    if (plan.status === "review") now.push({ plan: plan.definition.id, title: plan.definition.title, question: "Approve this plan", waits: [], neededBy: [], recommendation: "Review the runs, dependencies and budget." });
+    if (plan.status === "review") now.push({ plan: plan.definition.id, title: plan.definition.title, question: "Review the plan", waits: [], neededBy: [], recommendation: "Review the runs, dependencies and budget.", review: { revision: plan.revision, at: plan.history.at(-1)?.at ?? plan.definition.request.at } });
     for (const node of plan.definition.nodes) {
       if (node.kind !== "decision" || plan.nodes[node.id]?.answer) continue;
       const need = { plan: plan.definition.id, node: node.id, title: plan.definition.title, question: node.title,
         waits: node.after.map(d => unavailableDependencies.has(d.node) ? `${d.node} (evidence unavailable)` : allPlans.flatMap(p => p.definition.nodes).find(n => n.id === d.node)?.title ?? d.node),
         neededBy: plan.definition.nodes.filter(n => n.after.some(d => d.node === node.id)).map(n => n.title),
         recommendation: `${node.options.find(o => o.id === node.recommendation)?.label ?? "None yet"} — ${node.rationale}`,
-        waitingFor: node.after.some(d => d.on === "landed") ? "after earlier changes are landed" : node.after.some(d => d.on === "answered") ? "after an earlier decision is answered" : node.after.some(d => d.reason === "needs-evidence") ? "after the earlier review is complete" : "after earlier work is finished",
-        decision: { homeId: workflowHomeId(home), revision: plan.revision, subjectHash: planSubjectHash(plan), ask: node.summary, options: node.options, at: decisionDueAt(plan, node, allPlans), held: !!plan.nodes[node.id]?.held } };
-      (dependenciesMet(node, allPlans, unavailableDependencies) ? now : comingUp).push(need);
+        waitingFor: plan.status === "review" ? "after plan approval and required evidence" : plan.status === "held" || plan.nodes[node.id]?.held ? "after the hold is lifted and required evidence is ready" : node.after.some(d => d.on === "landed") ? "after earlier changes are landed" : node.after.some(d => d.on === "answered") ? "after an earlier decision is answered" : node.after.some(d => d.reason === "needs-evidence") ? "after the earlier review is complete" : "after earlier work is finished",
+        decision: { homeId: workflowHomeId(home), revision: plan.revision, subjectHash: planSubjectHash(plan), ask: node.summary, options: node.options, at: decisionDueAt(plan, node, allPlans), held: !!plan.nodes[node.id]?.held, ready: planDecisionReady(plan, node, allPlans, unavailableDependencies) } };
+      (planDecisionReady(plan, node, allPlans, unavailableDependencies) ? now : comingUp).push(need);
     }
   }
   return { homeId: workflowHomeId(home), version: digest({ plans: allPlans.map(p => p.hash), problems: read.problems, warnings: read.warnings ?? [], unavailableDependencies: [...unavailableDependencies].sort() }), plans,

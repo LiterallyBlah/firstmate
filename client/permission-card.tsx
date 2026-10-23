@@ -70,6 +70,7 @@ export function usePendingRequests(
 
 interface CardProps {
   request: PermissionRequest;
+  asker: string;
   theme: PluginTheme;
   compact: boolean;
   /** Resolves when the daemon has the answer; the card stays busy until then. */
@@ -146,7 +147,7 @@ export function PermissionCard(props: CardProps) {
   return questions === null ? <RequestCard {...props} /> : <QuestionCard {...props} questions={questions} />;
 }
 
-function QuestionCard({ request, theme, compact, onRespond, questions }: CardProps & { questions: Question[] }) {
+function QuestionCard({ request, asker, theme, compact, onRespond, questions }: CardProps & { questions: Question[] }) {
   const styles = useCardStyles(theme, compact);
   const [selections, setSelections] = useState<Selections>({});
   const [otherTexts, setOtherTexts] = useState<OtherTexts>({});
@@ -205,7 +206,7 @@ function QuestionCard({ request, theme, compact, onRespond, questions }: CardPro
     <View style={styles.card}>
       <View style={styles.heading}>
         <Icon name="MessageSquare" size={13} color={theme.colors.accent} />
-        <Text style={styles.headingText}>The first mate is asking you</Text>
+        <Text style={styles.headingText}>{asker} is asking you</Text>
       </View>
 
       {questions.length > 1 ? (
@@ -320,7 +321,7 @@ function actionTone(variant: string | undefined, behavior: "allow" | "deny"): To
   return "default";
 }
 
-function RequestCard({ request, theme, compact, onRespond, onOpenLink }: CardProps) {
+function RequestCard({ request, asker, theme, compact, onRespond, onOpenLink }: CardProps) {
   const styles = useCardStyles(theme, compact);
   const [busy, setBusy] = useState(false);
   const summary = useMemo(() => requestSummary(request), [request]);
@@ -353,7 +354,7 @@ function RequestCard({ request, theme, compact, onRespond, onOpenLink }: CardPro
       <View style={styles.heading}>
         <Icon name="AlertTriangle" size={13} color={theme.colors.accent} />
         <Text style={styles.headingText}>
-          {request.kind === "plan" ? "The first mate has a plan for you to approve" : "The first mate is asking permission"}
+          {request.kind === "plan" ? `${asker} has a plan for you to approve` : `${asker} is asking permission`}
         </Text>
       </View>
       <Text style={styles.question}>{request.title ?? request.name}</Text>

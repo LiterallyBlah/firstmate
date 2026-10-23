@@ -60,6 +60,14 @@ export function activeDecisions(snapshot?: NeedsYouSnapshot): NeedsYouRequest[] 
 }
 /** Presentation only. Worker finishes and failures cannot create either decisions or task outcomes. */
 export function taskPresentation(card: FleetCard, snapshot?: NeedsYouSnapshot): TaskPresentation {
+  const summary = observedTaskPresentation(card, snapshot);
+  // Decisions and backlog outcomes are local records; only the remote worker's activity is historical.
+  if (card.remote?.online === false && card.remote.worker && summary.group === "in-hand" && !summary.request && summary.reason !== "unknown")
+    return { ...summary, line: `Last seen ${summary.line.charAt(0).toLowerCase()}${summary.line.slice(1)}` };
+  return summary;
+}
+
+function observedTaskPresentation(card: FleetCard, snapshot?: NeedsYouSnapshot): TaskPresentation {
   const item = card.backlog,
     worker = card.agent ?? card.remote?.worker;
   const request = requestForCard(card, snapshot);
@@ -134,4 +142,11 @@ export function presentedTasks(cards: readonly FleetCard[], snapshot?: NeedsYouS
   return [...cards.filter((card) => card.backlog?.section !== "done"), ...done]
     .map((card) => ({ card, summary: taskPresentation(card, snapshot) }))
     .filter(({ summary }) => summary.group !== "needs-you");
+}
+
+/** Why a nonempty filtered selection has no ordinary tasks; workers sharing one task count once. */
+export function matchingDecisionMessage(cards: readonly FleetCard[], snapshot?: NeedsYouSnapshot): string | null {
+  if (!cards.length || cards.some(card => taskPresentation(card, snapshot).group !== "needs-you")) return null;
+  const count = new Set(cards.map(taskSourceKey)).size;
+  return `${count} matching task${count === 1 ? " is" : "s are"} in Needs you.`;
 }

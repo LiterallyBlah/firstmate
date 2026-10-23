@@ -111,6 +111,10 @@ describe("unseenSends", () => {
 
 describe("the drawer's place", () => {
   it("docks beside the surface only where both fit", () => {
+    // A 1,440-point Home with 40% chat leaves about 864 for List + Converse.
+    expect(drawerDocks(864)).toBe(false);
+    expect(drawerDocks(899)).toBe(false);
+    expect(drawerDocks(900)).toBe(true);
     expect(drawerDocks(DRAWER_WIDTH + DRAWER_MIN_SURFACE)).toBe(true);
     expect(drawerDocks(DRAWER_WIDTH + DRAWER_MIN_SURFACE - 1)).toBe(false);
     expect(drawerDocks(0)).toBe(false);

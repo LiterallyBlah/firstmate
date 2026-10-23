@@ -18,7 +18,7 @@ export async function checkResilience(pageAt, output) {
       }, problem);
       await page
         .getByRole("button", {
-          name: /Needs you, 3 decisions.*Line 12, task a/,
+          name: /Needs you, 3 items.*Line 12, task a/,
         })
         .click();
       const drawer = page.getByLabel("FirstMate decisions", { exact: true });
@@ -76,7 +76,10 @@ export async function checkResilience(pageAt, output) {
       await drawer
         .getByRole("button", { name: "Open Board", exact: true })
         .click();
-      await page.getByRole("heading", { name: "Board", exact: true }).waitFor();
+      await page.locator("#firstmate-home-header").waitFor();
+      await page.getByRole("tab", { name: "Board", exact: true, selected: true }).waitFor();
+      await page.getByTestId("firstmate-task-board").waitFor();
+      assert.equal(await drawer.count(), 0);
       await page.evaluate(async () => {
         const snapshot = window.attentionSnapshot;
         snapshot.version++;

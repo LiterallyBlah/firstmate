@@ -7,9 +7,10 @@ import { moveTaskColumn, orderedTaskColumns, type TaskColumn, type TaskLayout } 
 import { decisionCountText } from "./needs-you-state";
 import { CrewCard } from "./card";
 import { converseKey, conversingWith } from "./converse-layout";
-import { activeDecisions, presentedTasks, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
+import { activeDecisions, matchingDecisionMessage, presentedTasks, waitingOver30Minutes, OWNER_LABELS, TASK_TITLES, type TaskOwner } from "./task-presentation";
 import { DecisionQueueNote, DecisionTask } from "./decision-tasks";
 import { PlanNeeds } from "./workflow-plans";
+import { webAttributes } from "./web";
 
 export function TaskBoard(props: {
   cards: readonly FleetCard[];
@@ -32,6 +33,7 @@ export function TaskBoard(props: {
   const tasks = presentedTasks(props.cards, snapshot),
     requests = activeDecisions(snapshot);
   const order = orderedTaskColumns(layout.order);
+  const matchingNotice = props.filtered ? matchingDecisionMessage(props.cards, snapshot) : null;
   function control(label: string, onPress: () => void, disabled = false) {
     return (
       <Pressable
@@ -77,6 +79,7 @@ export function TaskBoard(props: {
       id === "needs-you" ? (
         <>
           <DecisionQueueNote theme={theme} snapshot={snapshot} offline={props.offline} filtered={props.filtered} />
+          {matchingNotice ? <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{matchingNotice}</Text> : null}
           {requests.map((request) => (
             <DecisionTask
               key={request.id}
@@ -90,15 +93,19 @@ export function TaskBoard(props: {
               onChanged={props.onChanged}
             />
           ))}
-          <PlanNeeds theme={theme} snapshot={snapshot} showUpcoming={false} />
+          <PlanNeeds theme={theme} snapshot={snapshot} showUpcoming={false} showReviews={false} />
           {count === 0 ? <Text style={{ color: ink }}>Nothing needs a decision now.</Text> : null}
         </>
+      ) : entries.length === 0 ? (
+        <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
+          {id === "in-hand" ? "No tasks in hand." : id === "later" ? "No tasks waiting for later." : "No completed tasks."}
+        </Text>
       ) : id === "in-hand" ? (
         (["first-mate", "worker", "parked", "unknown"] as TaskOwner[]).map((owner) => {
           const owned = entries.filter((entry) => entry.summary.owner === owner);
           return owned.length ? (
             <View key={owner} style={{ gap: 8 }}>
-              <Text accessibilityRole="header" style={{ color: colors.foregroundMuted, fontSize: 12 }}>
+              <Text accessibilityRole="header" {...webAttributes({ "aria-level": "3" })} style={{ color: colors.foregroundMuted, fontSize: 12 }}>
                 {OWNER_LABELS[owner]} · {owned.length}
                 {waitingOver30Minutes(owned) ? <Text style={{ color: colors.statusWarning }}> · {waitingOver30Minutes(owned)} waiting over 30m</Text> : null}
               </Text>
@@ -126,31 +133,32 @@ export function TaskBoard(props: {
         }}
       >
         <View style={{ flexDirection: folded && !compact ? "column" : "row", alignItems: "center", flexShrink: 0 }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${folded ? "Unfold" : "Fold"} ${TASK_TITLES[id]} · ${count}`}
-            accessibilityState={{ expanded: !folded, disabled: props.layoutDisabled }}
-            aria-expanded={!folded}
-            disabled={props.layoutDisabled}
-            onPress={() =>
-              props.onLayout({
-                collapsed: folded ? layout.collapsed.filter((value) => value !== id) : [...layout.collapsed, id],
-              })
-            }
-            style={{
-              minHeight: 44,
-              minWidth: 44,
-              ...(folded && !compact ? { width: 44, height: 180 } : {}),
-              flex: compact || !folded ? 1 : undefined,
-              justifyContent: "center",
-              gap: 4,
-            }}
-          >
-            <Text accessibilityRole="header" style={{ color: ink, fontSize: 13, fontWeight: "600",
-              ...(folded && !compact ? { position: "absolute", width: 180, left: -68, top: 80, textAlign: "center", transform: [{ rotate: "90deg" }] } : {}) }}>
-              {TASK_TITLES[id]} · {count} {folded ? "›" : "⌄"}
-            </Text>
-          </Pressable>
+          <View accessibilityRole="header" {...webAttributes({ "aria-level": "2" })} style={{ flex: compact || !folded ? 1 : undefined }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${folded ? "Unfold" : "Fold"} ${TASK_TITLES[id]} · ${count}`}
+              accessibilityState={{ expanded: !folded, disabled: props.layoutDisabled }}
+              aria-expanded={!folded}
+              disabled={props.layoutDisabled}
+              onPress={() =>
+                props.onLayout({
+                  collapsed: folded ? layout.collapsed.filter((value) => value !== id) : [...layout.collapsed, id],
+                })
+              }
+              style={{
+                minHeight: 44,
+                minWidth: 44,
+                ...(folded && !compact ? { width: 44, height: 180 } : {}),
+                justifyContent: "center",
+                gap: 4,
+              }}
+            >
+              <Text style={{ color: ink, fontSize: 13, fontWeight: "600",
+                ...(folded && !compact ? { position: "absolute", width: 180, left: -68, top: 80, textAlign: "center", transform: [{ rotate: "90deg" }] } : {}) }}>
+                {TASK_TITLES[id]} · {count} {folded ? "›" : "⌄"}
+              </Text>
+            </Pressable>
+          </View>
           {folded || id === "needs-you" ? null : (
             <>
               {control(

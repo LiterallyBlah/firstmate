@@ -40,7 +40,7 @@ export async function checkPolish(pageAt, output) {
       assert.ok((await header.boundingBox()).height < 65, "desktop Home header occupies one row");
       assert.equal(await button(page, "Open Deck").count(), 0);
       await button(page, "Open").click();
-      for (const label of ["Open Deck", "Open Board", "Open Crew", "Open Chat", "Shared terminal", "New browser", "Terminal & browser"])
+      for (const label of ["Open Deck", "Open Board", "Open List", "Open Chat", "Shared terminal", "New browser", "Terminal & browser"])
         await button(page, label).waitFor();
       await page.getByRole("dialog", { name: "FirstMate workspace" }).getByRole("button", { name: "Close", exact: true }).click();
     }
@@ -49,7 +49,7 @@ export async function checkPolish(pageAt, output) {
     await page.evaluate(() => document.activeElement?.blur());
     await page.screenshot({ path: join(output, `polish-home-${width}-${light ? "light" : "dark"}.png`) });
     if (width < 638) await page.getByRole("tab", { name: "List", exact: true }).click();
-    await page.getByRole("button", { name: /^Needs you, 3 decisions/ }).click();
+    await page.getByRole("button", { name: /^Needs you, 3 items/ }).click();
     const drawer = drawerFor(page);
     await button(drawer, "Back to List").waitFor();
     const rendered = drawer.getByTestId("decision-brief");
@@ -103,7 +103,7 @@ export async function checkPolish(pageAt, output) {
     if (view === "deck")
       await page.getByTestId("firstmate-deck-decision-legend").getByRole("button", { name: "Answer the next", exact: true }).click();
     else
-      await page.getByRole("button", { name: /^Needs you, 3 decisions/ }).click();
+      await page.getByRole("button", { name: /^Needs you, 3 items/ }).click();
     await button(drawerFor(page), `Back to ${label}`).click();
     assert.equal(await drawerFor(page).count(), 0);
     await page.close();

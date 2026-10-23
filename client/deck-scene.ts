@@ -42,7 +42,7 @@ import type { Figure } from "./deck-crew";
 import type { DeckDeparture } from "./deck-choreography";
 import { cardHeadline } from "./format";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { deckDecisions, DECK_MOVE_WORDS, type DeckDecisions } from "./deck-decisions";
+import { deckDecisions, type DeckDecisions } from "./deck-decisions";
 
 export const DECK_STATES = ["working", "waiting", "blocked", "idle"] as const;
 export type DeckState = (typeof DECK_STATES)[number];
@@ -277,7 +277,6 @@ export function deckScene(
         identity: sailorIdentity(card),
         stale,
         caption: decisions === undefined ? caption : { ...caption,
-          status: `${DECK_MOVE_WORDS[state]} · ${caption.status}`,
           line: decision === undefined ? caption.line : `Your call: ${decision.source.ask}`,
           stale: decisions.snapshot.freshness.status === "stale" ? "Decisions are from the last good read." : caption.stale,
         },
@@ -333,10 +332,10 @@ export function deckLayers(
 }
 
 /**
- * Whether the screen offers the Deck: in a web renderer (the desktop app), on the wide layout, where it
- * takes the right-hand pane. Not on a phone or in a narrow window; a renderer without WebGL is offered it
+ * Whether the screen offers the Deck: in a web renderer, including compact web. Native
+ * renderers cannot mount the canvas; a web renderer without WebGL is offered it
  * and says in words why it cannot draw (`deckStatusText`).
  */
-export function deckOffered(os: string, compact: boolean): boolean {
-  return os === "web" && !compact;
+export function deckOffered(os: string, _compact: boolean): boolean {
+  return os === "web";
 }

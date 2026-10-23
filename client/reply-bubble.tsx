@@ -9,7 +9,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type { Suggestion } from "../shared/fleet";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { decisionCardSnapshot } from "../shared/plan-decisions";
+import { decisionCardSnapshot, planReviewFor } from "../shared/plan-decisions";
 import { decisionQueue, indicatorState, type DecisionDestination } from "./needs-you-state";
 import { deckDecisionDestination } from "./deck-decisions";
 import type { DeckHover } from "./deck-hover";
@@ -69,21 +69,15 @@ export function NeedsYouBubbles({ snapshot, place, theme, holdRef, onClose, onOp
   const plans = useWorkflowPlans();
   const projected = decisionCardSnapshot(snapshot);
   const requests = decisionQueue(projected.requests).filter(request => request.state === "new" || request.state === "seen");
-  const reviews = snapshot.planNow?.filter(need => !need.node) ?? [];
   // The server also counts unreadable held tasks that cannot become ordinary decision rows.
-  const remaining = Math.max(0, (snapshot.actionCount ?? 0) - requests.length - reviews.length);
+  const remaining = Math.max(0, (snapshot.actionCount ?? 0) - requests.length);
   const { colors } = theme;
   return <DeckPopover title="Needs you" label="First mate needs you" testID="firstmate-deck-needs-you"
     place={place} theme={theme} holdRef={holdRef} onClose={onClose}>
-    {requests.map(request => <Pressable key={request.id} accessibilityRole="button" accessibilityLabel={`Open decision: ${request.source.title}`}
-      onPress={() => onOpen(deckDecisionDestination(projected, request.id))}
+    {requests.map(request => <Pressable key={request.id} accessibilityRole="button" accessibilityLabel={`${planReviewFor(snapshot, request.id) ? "Review plan" : "Open decision"}: ${request.source.title}`}
+      onPress={() => { const review = planReviewFor(snapshot, request.id); if (review) { onClose(); plans.open(review.plan); } else onOpen(deckDecisionDestination(projected, request.id)); }}
       style={{ padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.surface1 }}>
       <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{request.source.title}</Text>
-    </Pressable>)}
-    {reviews.map(need => <Pressable key={need.plan} accessibilityRole="button" accessibilityLabel={`Review plan: ${need.title}`}
-      onPress={() => { onClose(); plans.open(need.plan); }}
-      style={{ padding: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.surface1 }}>
-      <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{need.title}</Text>
     </Pressable>)}
     {remaining === 0 ? null : <Pressable accessibilityRole="button" accessibilityLabel={`Open Needs you: ${remaining} more item${remaining === 1 ? "" : "s"}`}
       onPress={() => onOpen(deckDecisionDestination(snapshot, "all"))}
@@ -91,7 +85,7 @@ export function NeedsYouBubbles({ snapshot, place, theme, holdRef, onClose, onOp
       <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{remaining} more {remaining === 1 ? "item" : "items"} · open Needs you</Text>
       <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Open Needs you for the rest.</Text>
     </Pressable>}
-    {requests.length || reviews.length || remaining ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Nothing needs you right now.</Text>}
+    {requests.length || remaining ? null : <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>Nothing needs you right now.</Text>}
   </DeckPopover>;
 }
 

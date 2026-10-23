@@ -14,7 +14,7 @@ export async function checkAnswers(pageAt, output) {
   for (const width of [390, 1440]) for (const light of [false, true]) {
     const suffix = `${width}-${light ? "light" : "dark"}`;
     const page = await pageAt(`view=crew${light ? "&light" : ""}`, width);
-    await page.getByRole("button", { name: /^Needs you, 3 decisions/ }).click();
+    await page.getByRole("button", { name: /^Needs you, 3 items/ }).click();
     await heading(page, "Decision a").waitFor();
     await button(page, "All decisions").click();
     await button(page, /^Answer: Decision b\./).first().click();
@@ -34,14 +34,14 @@ export async function checkAnswers(pageAt, output) {
     assert.equal(await button(page, "Next decision").isDisabled(), true);
     await answer(page);
     await drawer(page).waitFor({ state: "detached" });
-    await heading(page, "Crew").waitFor();
+    await heading(page, "List").waitFor();
     await page.waitForFunction(() => document.activeElement?.id.startsWith("needs-you-"));
     await page.screenshot({ path: join(output, `last-answer-${suffix}.png`) });
     const sent = await page.evaluate(() => window.fixtureCalls.filter(c => c.name.endsWith(".answer")));
     assert.deepEqual(sent.map(call => call.input.requestId), ["b", "seen", "a"]);
     assert.equal(await page.evaluate(() => window.attentionSnapshot.requests.find(r => r.id === "a").source.ask.length > 0), true);
     await page.evaluate(async () => { await window.refreshDecisions(); });
-    await page.getByRole("button", { name: /^Needs you, 0 decisions/ }).click();
+    await page.getByRole("button", { name: /^Needs you, 0 items/ }).click();
     assert.equal(await heading(page, "Decision a").count(), 0);
     assert.equal(await heading(page, "Decision b").count(), 0);
     assert.equal(await page.getByRole("textbox", { name: "Answer the first mate", exact: true }).count(), 0);
@@ -57,7 +57,7 @@ export async function checkAnswers(pageAt, output) {
       s.actionCount = s.newCount = 1; s.pendingAnswerCount = s.snoozedCount = 0;
       s.version++; await window.refreshDecisions();
     });
-    await last.getByRole("button", { name: /^Needs you, 1 decisions/ }).click();
+    await last.getByRole("button", { name: /^Needs you, 1 items/ }).click();
     await heading(last, "Decision a").waitFor();
     await button(last, "All decisions").click();
     await button(last, /^Answer: Decision a\./).first().click();
@@ -68,7 +68,7 @@ export async function checkAnswers(pageAt, output) {
     await last.close();
 
     const failed = await pageAt(`view=crew${light ? "&light" : ""}`, width);
-    await failed.getByRole("button", { name: /^Needs you, 3 decisions/ }).click();
+    await failed.getByRole("button", { name: /^Needs you, 3 items/ }).click();
     await heading(failed, "Decision a").waitFor();
     await failed.evaluate(() => { window.attentionRefuse = true; });
     await answer(failed);

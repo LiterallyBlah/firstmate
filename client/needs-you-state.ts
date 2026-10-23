@@ -1,6 +1,7 @@
 import { decisionClock } from "./decision-copy";
 import type { NeedsYouRequest, NeedsYouSnapshot } from "../shared/needs-you";
 import type { Suggestion } from "../shared/fleet";
+import type { DecisionIntent } from "./decision-discussion";
 
 export type DecisionDestination = {
   /** A server request id, or the client destinations next, empty and all. */
@@ -10,6 +11,7 @@ export type DecisionDestination = {
 };
 export function decisionRoute(
   destination: DecisionDestination = { requestId: "next" },
+  intent?: DecisionIntent,
 ) {
   return {
     screenId: "fleet",
@@ -19,6 +21,8 @@ export function decisionRoute(
       ...(destination.recordRevision
         ? { decisionRevision: String(destination.recordRevision) }
         : {}),
+      ...(intent?.discussWith ? { discussMate: intent.discussWith, chat: "show" } : {}),
+      ...(intent?.board ? { decisionBoard: "show" } : {}),
     },
   };
 }
@@ -93,7 +97,7 @@ export function indicatorState(
           : `Needs you · ${count}${unavailablePlans ? "+ · some plans unavailable" : partialPlans ? "+ · plans only" : ""}${!fresh && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}`,
     badge: count === null ? "!" : `${count}${partialPlans || unavailablePlans ? "+" : ""}`,
     extra,
-    accessibilityLabel: `Needs you, ${count === null ? "count unavailable" : unavailablePlans ? `at least ${count} decisions; some plans unavailable` : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} decisions`}${extra ? `, ${extra}` : ""}${!fresh && count !== null && snapshot?.freshness.asOf != null ? `, as of ${decisionClock(snapshot.freshness.asOf)}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
+    accessibilityLabel: `Needs you, ${count === null ? "count unavailable" : unavailablePlans ? `at least ${count} items; some plans unavailable` : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} items`}${extra ? `, ${extra}` : ""}${!fresh && count !== null && snapshot?.freshness.asOf != null ? `, as of ${decisionClock(snapshot.freshness.asOf)}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
   };
 }
 

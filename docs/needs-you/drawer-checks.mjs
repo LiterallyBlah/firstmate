@@ -23,7 +23,7 @@ export async function checkDrawer(pageAt, output) {
     for (const light of [false, true]) {
       const page = await pageAt(`view=crew${light ? "&light" : ""}`, width);
       const indicator = page.getByRole("button", {
-        name: /^Needs you, 3 decisions/,
+        name: /^Needs you, 3 items/,
       });
       await page.evaluate(() => document.fonts.ready);
       if (width < 638)
@@ -121,7 +121,7 @@ export async function checkDrawer(pageAt, output) {
   // Home keeps the header and chat width while covering only the task pane at 1440.
   const home = await pageAt("", 1440);
   const chatBefore = await home.locator("#firstmate-chat-pane").boundingBox();
-  await home.getByRole("button", { name: /^Needs you, 3 decisions/ }).click();
+  await home.getByRole("button", { name: /^Needs you, 3 items/ }).click();
   await heading(home, "Decision a").waitFor();
   const chatAfter = await home.locator("#firstmate-chat-pane").boundingBox();
   const homeDrawer = await drawerFor(home).boundingBox();

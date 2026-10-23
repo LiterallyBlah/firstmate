@@ -23,7 +23,7 @@ import {
   readNeedsYou,
 } from "../shared/needs-you";
 import { actOnWorkflowPlan, type PlanNeed } from "../shared/workflow-rpc";
-import { decisionCardSnapshot, planDecisionFor } from "../shared/plan-decisions";
+import { decisionCardSnapshot, planDecisionFor, planReviewFor } from "../shared/plan-decisions";
 import { parseDecisionBrief } from "../shared/decision-brief";
 import type { Suggestion } from "../shared/fleet";
 import { useMateSender } from "./mate-send";
@@ -57,8 +57,10 @@ import {
 } from "./web";
 import { useKeyboardOverlap } from "./keyboard";
 import { errorText } from "./format";
-import { PlanNeeds, WORKFLOW_QUERY_KEY, workflowRequestId } from "./workflow-plans";
+import { PlanNeeds, useWorkflowPlans, WORKFLOW_QUERY_KEY, workflowRequestId } from "./workflow-plans";
 import { DecisionTask } from "./decision-tasks";
+
+const readableContent = { width: "100%" as const, maxWidth: 760, alignSelf: "center" as const };
 
 export function DecisionButton({
   theme,
@@ -141,7 +143,7 @@ function DecisionGroup({ theme, label, count, children }: { theme: PluginTheme; 
   const colors = theme.colors;
   return <View testID="decision-group" style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, overflow: "hidden" }}>
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 12, backgroundColor: colors.surface2 }}>
-      <Text accessibilityRole="header" style={{ flex: 1, color: colors.foreground, fontSize: 14, fontWeight: "700" }}>{label}</Text>
+      <Text accessibilityRole="header" {...webAttributes({ "aria-level": "3" })} style={{ flex: 1, color: colors.foreground, fontSize: 14, fontWeight: "700" }}>{label}</Text>
       <Text accessibilityLabel={`${count} ${label}`} style={{ color: colors.foreground, fontSize: 13, fontWeight: "700",
         backgroundColor: colors.surface0, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 }}>{count}</Text>
     </View>
@@ -185,7 +187,7 @@ export function DecisionDrawer({
   compact: boolean;
   modal?: boolean;
   onOpenBoard?: (() => void) | undefined;
-  onOpenChat?: (() => void) | undefined;
+  onOpenChat?: ((destination: DecisionDestination) => void) | undefined;
   filtered?: boolean;
   loading?: boolean;
   returnLabel?: string;
@@ -213,6 +215,7 @@ export function DecisionDrawer({
     ? snapshot?.requests.find((r) => r.id === destination.requestId) ?? (["next", "empty"].includes(destination.requestId) ? queue[0] : undefined)
     : undefined;
   const index = queue.findIndex((r) => r.id === request?.id);
+  const plans = useWorkflowPlans(), review = planReviewFor(snapshot, request?.id ?? "");
   const [expandedAll, setAll] = useState(false);
   const all = destination.requestId === "all" || expandedAll;
   const nestedAll = all && destination.requestId !== "all";
@@ -435,6 +438,7 @@ export function DecisionDrawer({
       <View
         style={{
           flexDirection: "row",
+          flexWrap: compact ? "wrap" : "nowrap",
           alignItems: "center",
           padding: compact ? 12 : 10,
           gap: 8,
@@ -447,25 +451,31 @@ export function DecisionDrawer({
           compact={compact}
           icon="ChevronLeft"
           label={nestedAll ? "Back to Needs you" : `Back to ${returnLabel}`}
-          text={nestedAll ? "Needs you" : returnLabel}
+          text={nestedAll ? "Needs you" : compact && returnLabel === "Home files" ? "Files" : returnLabel}
           onPress={nestedAll ? () => setAll(false) : onClose}
         />
-        <Text
-          nativeID={headingId}
-          {...webAttributes({ tabindex: "-1" })}
-          accessibilityRole="header"
-          style={{
-            color: colors.statusWarning,
-            fontSize: 13,
-            fontWeight: "600",
-            flex: 1,
-          }}
-        >
-          {all ? "All" : "Needs you"}
-          {!all && index >= 0 ? `  ${index + 1} of ${queue.length}` : ""}
-        </Text>
+        <View style={{ flex: 1, minWidth: compact ? 100 : undefined, flexDirection: compact ? "column" : "row", gap: compact ? 2 : 6 }}>
+          <Text
+            nativeID={headingId}
+            {...webAttributes({ tabindex: "-1", "aria-level": "2" })}
+            accessibilityRole="header"
+            style={{
+              color: colors.statusWarning,
+              fontSize: 13,
+              fontWeight: "600",
+              // This non-interactive heading takes focus to announce a new page.
+              // Button/input focus indicators remain owned by the renderer.
+              outlineWidth: 0,
+            }}
+          >
+            {all ? "All" : "Decisions"}
+          </Text>
+          {!all && index >= 0 ? <Text style={{ color: colors.statusWarning, fontSize: 13 }}>
+            {`${index + 1} of ${queue.length}`}
+          </Text> : null}
+        </View>
         {!all ? (
-          <>
+          <View style={{ flexDirection: "row", gap: 8, marginLeft: "auto" }}>
             <DecisionButton
               theme={theme}
               compact={compact}
@@ -491,7 +501,7 @@ export function DecisionDrawer({
               text="All"
               onPress={() => setAll(true)}
             />
-          </>
+          </View>
         ) : null}
       </View>
       {receipt?.answered ? (
@@ -529,7 +539,7 @@ export function DecisionDrawer({
       ) : null}
       {all ? (
         <ScrollView
-          contentContainerStyle={{ padding: 16, gap: 24 }}
+          contentContainerStyle={{ ...readableContent, padding: 16, gap: 24 }}
           style={{ flex: 1 }}
         >
           {failure ? chrome : null}
@@ -538,7 +548,7 @@ export function DecisionDrawer({
             queue.filter((r) => r.state === "new" || r.state === "seen"),
           )}
           {!failure ? chrome : null}
-          <PlanNeeds theme={theme} snapshot={snapshot} />
+          <PlanNeeds theme={theme} snapshot={snapshot} showReviews={false} />
           {group(
             "Answered · waiting for the first mate",
             snapshot?.requests.filter(
@@ -580,6 +590,13 @@ export function DecisionDrawer({
             ) ?? [],
           )}
         </ScrollView>
+      ) : request && review ? (
+        <ScrollView contentContainerStyle={{ ...readableContent, padding: compact ? 16 : 20, gap: 16 }}>
+          {chrome}
+          <DecisionTask request={request} snapshot={snapshot!} theme={theme} compact={compact} review
+            presentation="card" onAnswer={() => plans.open(review.plan)} onConverse={() => {}} onChanged={() => {}} />
+          <Text style={{ color: colors.foregroundMuted, fontSize: 13 }}>{review.recommendation}</Text>
+        </ScrollView>
       ) : request && planDecisionFor(snapshot, request.id) ? (
         <PlanDecisionDetails key={`${snapshot!.homeId}:${request.id}:${planDecisionFor(snapshot, request.id)!.decision!.subjectHash}`}
           theme={theme} request={request} snapshot={snapshot!} need={planDecisionFor(snapshot, request.id)!}
@@ -602,9 +619,9 @@ export function DecisionDrawer({
           chrome={chrome}
         />
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+        <ScrollView contentContainerStyle={{ ...readableContent, padding: 16, gap: 16 }}>
           {chrome}
-          <PlanNeeds theme={theme} snapshot={snapshot} />
+          <PlanNeeds theme={theme} snapshot={snapshot} showReviews={false} />
           {sameHome && snapshot?.freshness.status === "fresh" && !offline &&
             (destination.requestId === "next" || destination.requestId === "empty") &&
             (!!snapshot.planNow?.length || !!snapshot.comingUp?.length) ? null :
@@ -685,7 +702,8 @@ function PlanDecisionDetails({ theme, request, snapshot, need, offline, compact,
   const heading = `plan-decision-heading-${useId()}`;
   useEffect(() => { focusWebElement(heading); }, [heading]);
   const decision = need.decision!, colors = theme.colors;
-  const disabled = offline || snapshot.freshness.status === "stale" || !!snapshot.planProblems?.length || !!decision.held || busy || accepted;
+  const plans = useWorkflowPlans();
+  const disabled = offline || snapshot.freshness.status === "stale" || !!snapshot.planProblems?.length || decision.ready !== true || !!decision.held || busy || accepted;
   async function answer(option: string) {
     if (gate.current || disabled) return;
     gate.current = true; setBusy(true); setNotice("");
@@ -713,10 +731,12 @@ function PlanDecisionDetails({ theme, request, snapshot, need, offline, compact,
   // Authored prose is context; only the current plan's options authorize an answer.
   const recommendation = brief ? parseDecisionBrief(brief.content).recommendation : "";
   return <>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: compact ? 16 : 20, gap: 16, paddingBottom: 24 }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ ...readableContent, padding: compact ? 16 : 20, gap: 16, paddingBottom: 24 }}>
       {warning ? chrome : null}
-      <Text nativeID={heading} {...webAttributes({ tabindex: "-1" })} accessibilityRole="header"
-        style={{ color: colors.foreground, fontSize: 18, fontWeight: "600" }}>{request.source.title}</Text>
+      <Text nativeID={heading} {...webAttributes({ tabindex: "-1", "aria-level": "3" })} accessibilityRole="header"
+        style={{ color: colors.foreground, fontSize: 18, fontWeight: "600", outlineWidth: 0 }}>{request.source.title}</Text>
+      <Text style={{ color: colors.foregroundMuted, fontSize: 13 }}>Part of {need.title}{need.neededBy.length ? ` · Unblocks: ${need.neededBy.join(", ")}` : ""}</Text>
+      <DecisionButton theme={theme} compact={compact} label={`Open plan: ${need.title}`} text="Open plan" onPress={() => plans.open(need.plan)} />
       {brief ? <DecisionBrief theme={theme} content={brief.content} answer={() => null} /> :
         <DecisionAsk theme={theme} source={request.source} homeId={snapshot.homeId!} onOpenFile={setFile} compact={compact} />}
       {!recommendation ? <View style={{ borderLeftWidth: 3, borderLeftColor: colors.accent, backgroundColor: colors.surface2, padding: 12, gap: 6, borderRadius: 8 }}>
@@ -729,6 +749,7 @@ function PlanDecisionDetails({ theme, request, snapshot, need, offline, compact,
       </View>)}
       {!warning ? chrome : null}
       {decision.held ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>This decision is on hold. Review its dependencies in Plans before answering.</Text> : null}
+      {decision.ready !== true ? <Text style={{ color: colors.foregroundMuted }}>Options are read-only until the host confirms plan approval and required evidence. Open the plan to review readiness.</Text> : null}
       {notice ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>{notice}</Text> : null}
       {accepted ? <DecisionButton theme={theme} label="Refresh decisions" onPress={() => void advance()} /> : null}
     </ScrollView>
@@ -757,7 +778,7 @@ function DecisionDetails({
   mateId: string | null;
   suggestions: readonly Suggestion[];
   compact: boolean;
-  onOpenChat?: (() => void) | undefined;
+  onOpenChat?: ((destination: DecisionDestination) => void) | undefined;
   onCompleted(snapshot: NeedsYouSnapshot, receipt: string, answered?: boolean): void;
   chrome: ReactNode;
 }) {
@@ -944,7 +965,7 @@ function DecisionDetails({
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {button("Snooze ▾", () => setSnoozing(true), !writable)}
-        {button("Discuss first", () => onOpenChat?.(), !onOpenChat)}
+        {button("Discuss first", () => onOpenChat?.({ homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision }), !onOpenChat || !writable)}
         {compact ? (
           <DecisionButton
             theme={theme}
@@ -1021,6 +1042,7 @@ function DecisionDetails({
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
+          ...readableContent,
           padding: compact ? 16 : 20,
           gap: 16,
           paddingBottom: 24,
@@ -1055,12 +1077,13 @@ function DecisionDetails({
         <View ref={heading}>
           <Text
             nativeID={headingId}
-            {...webAttributes({ tabindex: "-1" })}
+            {...webAttributes({ tabindex: "-1", "aria-level": "3" })}
             accessibilityRole="header"
             style={{
               color: colors.foreground,
               fontSize: 18,
               fontWeight: "600",
+              outlineWidth: 0,
             }}
           >
             {request.source.title}
@@ -1103,7 +1126,7 @@ function DecisionDetails({
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
               {button(
                 "Open the first mate’s chat",
-                () => onOpenChat?.(),
+                () => onOpenChat?.({ homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision }),
                 !onOpenChat,
                 true,
               )}

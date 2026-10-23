@@ -72,7 +72,7 @@ try {
   for (const theme of ["light", "dark"]) {
     for (const tree of ["before", "after"]) {
       const { page, errors } = await open(tree, theme, "toolbar");
-      const toolbar = page.getByTestId("firstmate-task-toolbar"), plans = toolbar.getByRole("button", { name: "Plans", exact: true });
+      const toolbar = page.getByTestId("firstmate-task-toolbar"), plans = toolbar.getByRole("button", { name: tree === "before" ? "Plans" : "Plan filter", exact: true });
       await plans.waitFor();
       await toolbar.screenshot({ path: join(out, `${tree}-toolbar-${theme}.png`) });
       if (tree === "after") {
@@ -83,9 +83,9 @@ try {
         assert.equal(await plans.getAttribute("aria-expanded"), "false");
         await plans.click();
         assert.equal(await plans.getAttribute("aria-expanded"), "true");
-        const modal = page.getByRole("dialog", { name: "Plans", exact: true });
+        const modal = page.getByRole("dialog", { name: "Filter tasks by plan", exact: true });
         await modal.getByRole("button", { name: "Filter: Release voyage", exact: true }).click();
-        const selected = toolbar.getByRole("button", { name: "Plans: Release voyage", exact: true });
+        const selected = toolbar.getByRole("button", { name: "Plan filter: Release voyage", exact: true });
         await selected.waitFor();
         assert.equal(await selected.evaluate(el => getComputedStyle(el).borderColor), "rgb(32, 116, 74)");
         await selected.click();

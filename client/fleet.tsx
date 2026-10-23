@@ -69,17 +69,18 @@ import { focusWebElement, webAttributes } from "./web";
 import { HubLauncher } from "./hub-launcher";
 import { chatIsVisible, FLEET_PANELS, homeWorkspace, type FleetShell, type FleetView } from "./shell";
 import { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
-import { DecisionSurface, DecisionPane, useDecisionPaneOpen, useDecisionOrigin } from "./decision-surface";
+import { FleetLoadRecovery } from "./fleet-load-recovery";
+import { DecisionSurface, DecisionPane, useDecisionPaneOpen, useDecisionOrigin, useDecisionHandoff } from "./decision-surface";
 import { NeedsYouIndicator, useDecisionVisibility } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
 import { useOpenDecision } from "./decision-action";
-import { activeCrewCount } from "./screen";
 import { TaskBoard } from "./task-board";
 import { useTaskLayout } from "./task-layout";
 import { taskPresentation } from "./task-presentation";
-import { WorkflowSurface, PlansControl, useWorkflowPlans } from "./workflow-plans";
+import { WorkflowSurface, PlansControl, useWorkflowPlans, WORKFLOW_QUERY_KEY } from "./workflow-plans";
 import { WorkflowPlansView } from "./workflow-plan-browser";
 import { workflowOwnsCard } from "../shared/workflow-identity";
+import { workflowTaskTarget } from "./workflow-task-navigation";
 
 export { FLEET_QUERY_KEY, useFleet } from "./fleet-query";
 
@@ -118,7 +119,7 @@ type FleetSurfaceProps = PluginScreenProps & {
 export function FleetSurface(props: FleetSurfaceProps) {
   const key = JSON.stringify([props.host?.id, props.workspaceId, props.view ?? "home"]);
   return (
-    <WorkflowSurface theme={props.theme}><DecisionSurface shell={props.shell} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
+    <WorkflowSurface key={key} theme={props.theme} hostId={props.host?.id} view={props.view} shell={props.shell} params={props.params}><DecisionSurface shell={props.shell} view={props.view} key={key} theme={props.theme} compact={props.layout.compact} params={props.params ?? {}}>
       <FleetViewBody {...props} stateKey={key} />
     </DecisionSurface></WorkflowSurface>
   );
@@ -137,8 +138,15 @@ function FleetViewBody({
 }: FleetSurfaceProps & { stateKey: string }) {
   const home = view === undefined;
   const plans = useWorkflowPlans();
-  const [planFilter, setPlanFilter] = useState<string | null>(null);
+  const planFilter = plans.planFilter ?? null;
+  const setPlanFilter = (id: string | null) => plans.setPlanFilter?.(id);
+  const [revealedTask, setRevealedTask] = useState<{ card: string; request: object } | null>(null);
+  useEffect(() => { setRevealedTask(null); }, [plans.scope]);
   const decisionOpen = useDecisionPaneOpen();
+  const handoff = useDecisionHandoff();
+  const discussionReturnTab = useRef<Tab>(cachedTab);
+  const openedDiscussion = useRef(handoff.discussion);
+  const openedBoardRequest = useRef<object | null>(null);
   const [viewMenu, setViewMenu] = useState(false);
   const remembered = viewState.get(stateKey);
   const [width, setWidth] = useState(0);
@@ -183,7 +191,8 @@ function FleetViewBody({
 
   const refresh = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: FLEET_QUERY_KEY });
-  }, [queryClient]);
+    if (view === "plans") void queryClient.invalidateQueries({ queryKey: WORKFLOW_QUERY_KEY });
+  }, [queryClient, view]);
 
   const shownTab = tab;
   /** Keep the standalone Deck tab's availability policy; inline Deck measures its narrower container. */
@@ -263,6 +272,50 @@ function FleetViewBody({
     setTab("chat");
     if (values.chatCollapsed) save({ chatCollapsed: false });
   }, [home, params?.chat, display.status]);
+
+  useEffect(() => {
+    if (!handoff.discussion || handoff.discussion.mateId !== data?.mate?.id) return;
+    if (openedDiscussion.current !== handoff.discussion) {
+      discussionReturnTab.current = tab;
+      openedDiscussion.current = handoff.discussion;
+    }
+    if (home) {
+      setTab("chat");
+      if (display.status === "ready" && values.chatCollapsed) save({ chatCollapsed: false });
+    }
+  }, [home, handoff.discussion, data?.mate?.id, display.status]);
+
+  useEffect(() => {
+    if (!home || !handoff.boardRequest || display.status !== "ready") return;
+    if (openedBoardRequest.current === handoff.boardRequest) return;
+    openedBoardRequest.current = handoff.boardRequest;
+    selectHomePane("board");
+    setWatching(null);
+    // A narrowed desktop may not have measured its compact width yet.
+    setTab("board", true);
+    if (values.boardCollapsed) save({ boardCollapsed: false });
+  }, [home, handoff.boardRequest, display.status]);
+
+  useEffect(() => {
+    const request = plans.taskRequest;
+    if (!home || !request || display.status !== "ready" || !plans.scope || !plans.snapshot || !data) return;
+    const plan = plans.snapshot.plans.find(plan => plan.definition.id === request.plan);
+    const node = plan?.definition.nodes.find(node => node.id === request.node);
+    const target = plan && node ? workflowTaskTarget(plan, node, data.cards) : null;
+    if (request.scope !== plans.scope || plans.error || fleet.error || target?.card?.key !== request.card || (request.worker && target.worker !== request.worker)) {
+      plans.finishNavigation?.("This task or worker is no longer available for this home. Refresh Plans and select the step again.");
+      return;
+    }
+    handoff.revealTask();
+    setPlanFilter(request.plan);
+    // The explicit handoff reveals the selected task even when other filters/folds hid it.
+    save({ hostTab: target.card.remote ? target.card.remote.serverId ?? "all" : "local", tagFilter: [], boardCollapsed: false });
+    selectHomePane("list");
+    setTab("board", true);
+    setRevealedTask({ card: request.card, request });
+    setWatching(request.worker ?? null);
+    plans.finishNavigation?.();
+  }, [home, plans.taskRequest, plans.scope, plans.snapshot, display.status, data, fleet.error]);
 
   function setTab(next: Tab, keepConversation = false): void {
     if (next === "board" && tab === "board" && !keepConversation) setWatching(null);
@@ -479,8 +532,13 @@ function FleetViewBody({
   }
 
   const banners: ReactNode[] = [];
+  const retryFleet = { label: fleet.isFetching ? "Retrying…" : "Retry", icon: "RefreshCw",
+    disabled: fleet.isFetching, onPress: () => { void fleet.refetch({ cancelRefetch: false }); } };
+  if (home && plans.navigationNotice) {
+    banners.push(<Text key="workflow-navigation" accessibilityRole="alert" style={{ color: theme.colors.foregroundMuted }}>{plans.navigationNotice}</Text>);
+  }
   if (fleet.error !== null) {
-    banners.push(<Banner key="error" theme={theme} tone="danger" text={errorText(fleet.error)} />);
+    banners.push(<Banner key="error" theme={theme} tone="danger" text={errorText(fleet.error)} action={retryFleet} />);
   }
   if (data?.agentTools === false) {
     banners.push(
@@ -627,7 +685,7 @@ function FleetViewBody({
       <Text style={[styles.meta, { flexShrink: 1 }]} numberOfLines={1}>
         {(
           [
-            [activeCrewCount(data.cards), "in hand"],
+            [data.cards.filter((card) => taskPresentation(card, decisions.data).group === "in-hand").length, "in hand"],
             [data.cards.filter((card) => taskPresentation(card, decisions.data).group === "later").length, "later"],
             [data.cards.filter((card) => taskPresentation(card, decisions.data).group === "done").length, "done"],
           ] as const
@@ -641,14 +699,14 @@ function FleetViewBody({
     );
   const narrowHeader = !compact && width < 1000;
   const homeViewSegments = (selected: Tab | CrewView) => <>
-    <Segmented theme={theme} value={selected}
+    <Segmented theme={theme} compact={compact} value={selected}
       options={[
         { value: "list", label: "List", tooltip: "Show the tasks as a list grouped by urgency." },
         { value: "board", label: "Board", tooltip: "Show the same tasks in status columns." },
         { value: "deck", label: "Deck", tooltip: "Show the crew on deck beside the first mate." },
       ]}
       onChange={value => { if (value !== "chat") selectHomePane(value); setViewMenu(false); }} />
-    <Segmented theme={theme} value={selected}
+    <Segmented theme={theme} compact={compact} value={selected}
       options={[
         { value: "files", label: compact ? "Files" : "Home files", tooltip: "Browse and edit files in the FirstMate home." },
         { value: "plans", label: "Plans", tooltip: "Browse workflow runs, decisions, dependencies and budgets." },
@@ -665,7 +723,7 @@ function FleetViewBody({
       <View style={[styles.headerRow, { flexWrap: "nowrap" }]}>
         <Icon name="Ship" size={16} color={theme.colors.foreground} />
         <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "nowrap" }}>
-          <Text style={[styles.title, { fontSize: 17 }]}>FirstMate</Text>
+          <Text accessibilityRole="header" style={[styles.title, { fontSize: 17 }]}>FirstMate</Text>
           {compact ? null : attention}
           {compact || narrowHeader || attention === null || mateStatus === null ? null : <View style={styles.rule} />}
           {compact || narrowHeader ? null : mateStatus}
@@ -681,7 +739,7 @@ function FleetViewBody({
           </> : homeViewControl
         ) : null}
         {shell !== undefined ? (
-          <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} compact />
+          <HubLauncher theme={theme} navigation={navigation} shell={shell} workspaceId={homeWorkspaceId} compact phone={compact} />
         ) : null}
         <HeaderActions
           theme={theme}
@@ -719,7 +777,9 @@ function FleetViewBody({
       <View style={styles.screen} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         {header}
         {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
-        <Text style={styles.loading}>{fleet.error === null ? "Mustering the crew…" : ""}</Text>
+        {fleet.error === null ? <Text style={styles.loading}>Mustering the crew…</Text> : home || view === "chat" ? (
+          <FleetLoadRecovery theme={theme} compact={compact} navigation={navigation} serverId={host?.id} onChanged={refresh} />
+        ) : null}
       </View>
     );
   }
@@ -780,7 +840,9 @@ function FleetViewBody({
         <TaskList
           cards={filteredCards}
           allCards={data.cards}
-          filtered={hostTab !== "all" || values.tagFilter.length > 0}
+          filtered={hostTab !== "all" || values.tagFilter.length > 0 || planFilter !== null}
+          reveal={revealedTask}
+          onRevealed={request => setRevealedTask(current => current?.request === request ? null : current)}
           snapshot={decisions.data}
           offline={decisions.error !== null}
           showLater={!taskLayout.values.laterCollapsed}
@@ -802,7 +864,7 @@ function FleetViewBody({
         <TaskBoard
           cards={filteredCards}
           allCards={data.cards}
-          filtered={hostTab !== "all" || values.tagFilter.length > 0}
+          filtered={hostTab !== "all" || values.tagFilter.length > 0 || planFilter !== null}
           snapshot={decisions.data}
           offline={decisions.error !== null}
           theme={theme}
@@ -850,6 +912,11 @@ function FleetViewBody({
       onChanged={refresh}
       onOpenFile={openFile}
       navigation={navigation}
+      discussion={handoff.discussion}
+      onReturnDecision={() => {
+        if (handoff.resume() && home && compact) setTab(discussionReturnTab.current);
+      }}
+      onDismissDiscussion={handoff.dismiss}
     />
   );
   // Chat always follows the configured mate, even in another project's workspace.
@@ -866,9 +933,9 @@ function FleetViewBody({
             {mateStatus}
             <View style={styles.spacer} />
             {shell === undefined ? null : (
-              <IconButton theme={theme} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
+              <IconButton theme={theme} compact={compact} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
             )}
-            <IconButton theme={theme} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
+            <IconButton theme={theme} compact={compact} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
           </View>
           {compact ? attention : null}
         </View>
@@ -914,7 +981,7 @@ function FleetViewBody({
           theme={theme}
           compact={compact}
           docked={docked}
-          backLabel={onDeck ? "Deck" : crewView === "list" ? (home ? "List" : "Crew") : "Board"}
+          backLabel={onDeck ? "Deck" : crewView === "list" ? "List" : "Board"}
           onClose={() => setWatching(null)}
           onOpen={
             navigation === undefined || watchedLocalId === null
@@ -1004,13 +1071,13 @@ function FleetViewBody({
             <View style={styles.spacer} />
             {view === "deck" && deck ? <DeckSceneSwitcher theme={theme} compact={compact || width < 900} /> : null}
             {shell === undefined ? null : (
-              <IconButton theme={theme} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
+              <IconButton theme={theme} compact={compact} icon="Ship" label="FirstMate Home" showLabel onPress={shell.openHome} />
             )}
-            <IconButton theme={theme} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
+            <IconButton theme={theme} compact={compact} icon="RefreshCw" label="Refresh" onPress={refresh} disabled={fleet.isFetching} />
           </View>
           {compact ? attention : null}
         </View>
-        {fleet.error === null ? null : <Banner theme={theme} tone="danger" text={errorText(fleet.error)} />}
+        {fleet.error === null ? null : <Banner theme={theme} tone="danger" text={errorText(fleet.error)} action={retryFleet} />}
         {mate.status === "error" || mate.status === "closed" ? (
           <Banner
             theme={theme}
@@ -1032,12 +1099,12 @@ function FleetViewBody({
         )}
         <View style={{ flex: 1, minHeight: 0 }} onLayout={(event) => setPaneWidth(event.nativeEvent.layout.width)}>
           <DecisionPane>{view === "plans" ? (
-            <WorkflowPlansView theme={theme} />
+            <WorkflowPlansView theme={theme} showHeading={false} compact={compact} />
           ) : view !== "deck" ? (
             crew
           ) : !deck ? (
             <Text style={styles.loading}>
-              Deck needs a wide web or desktop window. Open Crew or Board from FirstMate Home on this device.
+              Deck needs a web renderer. Open FirstMate Home’s List or Board on this device, or Home’s Deck in a web browser.
             </Text>
           ) : (
             inlineDeck
@@ -1054,7 +1121,7 @@ function FleetViewBody({
         {header}
         {banners.length === 0 ? null : <View style={styles.banners}>{banners}</View>}
         <View style={styles.tabs}>
-          <Segmented theme={theme} value={selected} options={[{ value: "chat", label: "First mate" }]} onChange={() => setTab("chat")} />
+          <Segmented theme={theme} compact value={selected} options={[{ value: "chat", label: "First mate" }]} onChange={() => setTab("chat")} />
           {homeViewSegments(selected)}
         </View>
         <View style={{ flex: 1, minHeight: 0 }}>
@@ -1065,7 +1132,7 @@ function FleetViewBody({
           ) : shownTab === "deck" ? (
             inlineDeck
           ) : shownTab === "plans" ? (
-            <WorkflowPlansView theme={theme} />
+            <WorkflowPlansView theme={theme} compact />
           ) : (
             <FilesView theme={theme} compact request={filesRequest} />
           )}

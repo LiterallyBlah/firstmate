@@ -12,6 +12,8 @@ vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "Vi
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ useToast: () => ({ show() {}, error() {} }) }));
 /** The answer RPC's next result, set by each test. */
 const rpc = vi.hoisted(() => ({ answer: vi.fn() }));
+const openDecision = vi.hoisted(() => vi.fn());
+vi.mock("./decision-action", () => ({ useOpenDecision: () => openDecision }));
 vi.mock("@getpaseo/plugin/client", () => ({
   useRpc: (contract: { name: string }) => (contract.name === "firstmate.needs-you.answer" ? rpc.answer : async () => ({})),
 }));
@@ -97,6 +99,19 @@ describe("a raised decision's card, when its data may be out of date", () => {
 });
 
 describe("answering from a raised decision's card", () => {
+  it.each(["resolved", "answer-sent", "delivery-uncertain"] as const)("keeps a compact %s receipt that opens the original decision without sending", async state => {
+    const snapshot = snapshotWithChoice();
+    const request = snapshot.requests[0]!;
+    request.state = state;
+    const before = structuredClone(snapshot);
+    const tree = await render(snapshot);
+    expect(text(tree)).not.toContain("Light or Atlas?");
+    expect(text(tree)).toContain("Choose the Windows host");
+    await act(async () => tree.root.findByProps({ accessibilityLabel: "Open the decision" }).props.onPress());
+    expect(openDecision).toHaveBeenLastCalledWith({ homeId: snapshot.homeId, requestId: request.id, recordRevision: request.revision });
+    expect(rpc.answer).not.toHaveBeenCalled();
+    expect(snapshot).toEqual(before);
+  });
   it("keeps the exact words in the drawer's draft for this revision, so Send again… has them after an uncertain delivery", async () => {
     const snapshot = snapshotWithChoice();
     const request = snapshot.requests[0]!;

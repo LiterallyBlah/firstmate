@@ -13,6 +13,8 @@ import { parseBacklog } from "./backlog";
 import { observeNeedsYou } from "./needs-you-detect";
 import { RemoteSnapshot } from "../shared/remotes";
 import { fill, readTemplate, TEMPLATES } from "./templates";
+import { dependenciesMet, planDecisionReady } from "../shared/plan-readiness";
+export { dependenciesMet } from "../shared/plan-readiness";
 import { mergeOwnership, ownershipCapsule, ownershipScope, planOwnership, quarantinedDependencyIds, readOwnershipCapsule, RetirementSchema, workflowHomeIdentity, type QuarantinedWorkflow, type WorkflowOwnership, type WorkflowRetirement } from "./workflow-ownership";
 
 const EventSchema = z.object({ version: z.literal(1), home: z.string().min(1), plan: PlanId, sequence: z.number().int().nonnegative(), previous: z.string().length(64).nullable(),
@@ -28,14 +30,6 @@ export const backlogSection = (node: PlanNode, state: string, closedWithoutLandi
 export const samePlanItem = (item: ReturnType<typeof parseBacklog>[number], plan: WorkflowPlan, node: PlanNode) =>
   item.id === node.id && (node.kind === "decision" ? !item.project && !item.host : item.project === node.launch.project && (item.host ?? "local").toLowerCase() === node.launch.host.toLowerCase()) &&
   (plan.definition.implicit || item.plan === plan.definition.id);
-export function dependenciesMet(node: PlanNode, plans: readonly WorkflowPlan[], unavailableDependencies?: ReadonlySet<string>): boolean {
-  return node.after.every(edge => {
-    if (unavailableDependencies?.has(edge.node)) return false;
-    const state = plans.flatMap(p => Object.entries(p.nodes)).find(([id]) => id === edge.node)?.[1];
-    if (state?.held || state?.invalidated) return false;
-    return edge.on === "answered" ? !!state?.answer : edge.on === "landed" ? state?.state === "landed" : state?.state === "done" || state?.state === "landed";
-  });
-}
 function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
   const c = event.command;
   let next = previous ? structuredClone(previous) : null;
@@ -446,6 +440,14 @@ export class WorkflowPlanStore {
       const postureSource = postureDefinition ? await readPlanPosture(this.home, postureDefinition) : undefined;
       const { plans, quarantined, unavailable } = await this.read();
       const unavailableDependencies = quarantinedDependencyIds(quarantined);
+      // New answers only. Keep the reducer and request-id replay compatible with
+      // committed early answers from older versions of the append-only ledger.
+      if (command.op === "captain" && command.action === "answer") {
+        const node = previous?.definition.nodes.find(n => n.id === command.node);
+        if (previous?.nodes[command.node ?? ""]?.answer) throw new Error("Decision is already answered.");
+        if (unavailable || !previous || !node || !planDecisionReady(previous, node, plans, unavailableDependencies))
+          throw new Error("Decision is not ready. Approve the plan and complete its required evidence before answering.");
+      }
       const ownsWork = ["draft", "revise", "implicit", "start", "claim", "replace"].includes(command.op);
       const candidates = command.op === "draft" || command.op === "revise" ? command.definition.nodes.map(ownershipScope) : command.op === "implicit" ? [{ node: command.launch.id, host: command.launch.host.trim().toLowerCase() }] :
         ownsWork ? previous?.definition.nodes.filter(n => "node" in command && n.id === command.node).map(ownershipScope) ?? [] : [];

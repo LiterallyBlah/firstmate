@@ -33,7 +33,7 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { openExternalUrl, useRpc } from "@getpaseo/plugin/client";
 import { Icon, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { exitCrew, interruptCrew, relaunchCrew, steerCrew, type ColumnId, type FleetCard } from "../shared/fleet";
@@ -155,6 +155,7 @@ export function CrewCard({
   summary: suppliedSummary,
   decisionHomeId,
   onOpenDecision,
+  reveal,
 }: {
   card: FleetCard;
   theme: PluginTheme;
@@ -182,6 +183,7 @@ export function CrewCard({
   decisionHomeId?: string | null | undefined;
   /** Installation-owned opener for contextual panels outside a FleetSurface. */
   onOpenDecision?: OpenDecision;
+  reveal?: object | undefined;
 }) {
   const steer = useRpc(steerCrew);
   const interrupt = useRpc(interruptCrew);
@@ -194,6 +196,7 @@ export function CrewCard({
 
   const memory = useCardMemory(card.key, startExpanded, card.column);
   const { setExpanded, draft, setDraft } = memory;
+  useEffect(() => { if (reveal) setExpanded(true); }, [reveal]);
   const focus = presentation === "focus";
   const drawer = presentation === "drawer";
   const summary = suppliedSummary ?? taskPresentation(card);
@@ -222,6 +225,7 @@ export function CrewCard({
           status: worker.status,
         });
   const followed = worker?.followed === true;
+  const lastSeen = remote?.online === false && worker !== null;
   const running = status !== null && (status.status === "running" || status.status === "initializing");
   const actionPending = "Wait for the current action to finish.";
   const unreachable = `${remote?.host ?? "The remote host"} is unreachable; wait until it answers.`;
@@ -395,7 +399,7 @@ export function CrewCard({
    * The state chip: why the board filed the card where its live status alone would not — "waiting",
    * "stalled", "no worker seen" — in the column's colour, or else the agent's own status.
    */
-  const stateChip =
+  const observedState =
     card.note !== undefined
       ? { text: card.note, color: tone }
       : status === null
@@ -404,6 +408,7 @@ export function CrewCard({
             text: agentStatusLabel(status),
             color: agentStatusTone(theme, status),
           };
+  const stateChip = observedState && lastSeen ? { ...observedState, text: `Last seen ${observedState.text.toLowerCase()}` } : observedState;
 
   /** Long lines are cut in the focus panel; the board's card has them whole. */
   const lines = focus ? 3 : undefined;
@@ -569,11 +574,13 @@ export function CrewCard({
               </>
             )}
           </Pressable>
+          <PlanChip card={card} theme={theme} inHeader />
           {converseButton}
         </View>
       )}
 
-      {focus ? null : <PlanChip card={card} theme={theme} />}
+      {drawer ? <View style={styles.chips}><PlanChip card={card} theme={theme} /></View> : null}
+
       {plain && summary.request && decisionHomeId ? (
         <DecisionButton
           theme={theme}
@@ -588,7 +595,7 @@ export function CrewCard({
         />
       ) : null}
 
-      {focus || cardTags(card).length === 0 ? null : (
+      {focus || expanded || cardTags(card).length === 0 ? null : (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
           {cardTags(card).map((tag) => (
             <Tag key={tag} theme={theme} icon="Tag" text={tag} />
@@ -602,7 +609,7 @@ export function CrewCard({
           {focus || facts.length === 0 ? null : <Text style={styles.meta}>{facts.join(" · ")}</Text>}
           {card.report === null ? null : (
             <Text style={styles.report} numberOfLines={lines}>
-              <Text style={styles.reportState}>{REPORT_STATES[card.report.state] ?? card.report.state}: </Text>
+              <Text style={styles.reportState}>{lastSeen ? "Last seen " : ""}{REPORT_STATES[card.report.state] ?? card.report.state}: </Text>
               {card.report.text}
             </Text>
           )}

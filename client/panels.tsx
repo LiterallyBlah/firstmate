@@ -129,7 +129,7 @@ function PanelBody({
         compact={compact}
         snapshot={decisions.data}
         offline={decisions.error !== null}
-        onOpen={shell.openDecision}
+        onOpen={(destination) => shell.openDecision(destination)}
       />
       <Text style={styles.muted}>{summary}</Text>
       {isMate ? null : (
@@ -153,7 +153,7 @@ function PanelBody({
             card={card}
             summary={taskPresentation(card, decisions.data)}
             decisionHomeId={decisions.data?.homeId}
-            onOpenDecision={shell.openDecision}
+            onOpenDecision={(destination) => shell.openDecision(destination)}
             theme={theme}
             compact={compact}
             opener={

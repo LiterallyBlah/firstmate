@@ -1,11 +1,13 @@
 import type { Fleet } from "../shared/fleet";
 import type { DecisionDestination } from "./needs-you-state";
+import type { DecisionIntent } from "./decision-discussion";
+import type { WorkflowTaskRequest } from "./workflow-task-navigation";
 
 /** Fixed identities: Paseo owns opening, focusing, closing and restoring these tabs. */
 export const FLEET_PANELS = {
   deck: { id: "firstmate-deck", title: "Deck", icon: "Ship" },
   board: { id: "firstmate-board", title: "Board", icon: "Columns3" },
-  crew: { id: "firstmate-crew", title: "Crew", icon: "Users" },
+  crew: { id: "firstmate-crew", title: "List", icon: "Users" },
   chat: { id: "firstmate-chat", title: "Chat", icon: "MessageSquare" },
   plans: { id: "firstmate-plans", title: "Plans", icon: "ListTodo" },
 } as const;
@@ -14,7 +16,8 @@ export type FleetView = keyof typeof FLEET_PANELS;
 export type FleetShell = {
   openView(view: FleetView, workspaceId: string): void;
   openHome(): void;
-  openDecision(destination?: DecisionDestination): void;
+  openDecision(destination?: DecisionDestination, intent?: DecisionIntent): void;
+  openTask?(request: WorkflowTaskRequest): void;
 };
 
 /** An adopted agent outside the home must never lend its workspace to the launcher. */
