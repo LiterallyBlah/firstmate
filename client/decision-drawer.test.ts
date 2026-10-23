@@ -160,17 +160,20 @@ afterEach(async () => {
   pendingAttachments.set("mate", []);
 });
 
-it("names the decision queue separately from plan reviews without changing its navigation or total", async () => {
+it("includes plan reviews in the same counted queue", async () => {
   await mount(["a", "b", "c"], true, snapshot => {
     snapshot.planNow!.push({ ...planDecisionNeed(), node: undefined, decision: undefined });
     snapshot.actionCount!++;
   });
-  expect(words()).toMatch(/Decisions\s+4 of 4/);
-  expect(words()).toContain("4 decisions in this queue · 1 plan review in All");
+  expect(words()).toMatch(/Decisions\s+5 of 5/);
   expect(rpc.snapshot!.actionCount).toBe(5);
   expect(rpc.calls).toEqual([]);
   await press("Next decision");
-  expect(words()).toMatch(/Decisions\s+1 of 4/);
+  expect(words()).toMatch(/Decisions\s+1 of 5/);
+  await press("Previous decision");
+  await press("Previous decision");
+  expect(words()).toMatch(/Decisions\s+4 of 5/);
+  expect(button(`Review plan: ${planDecisionNeed().title}`)).toBeTruthy();
   expect(rpc.calls).toEqual([]);
 });
 
@@ -365,11 +368,12 @@ it("shows a due decision only once and before all quiet plan content in All", as
   }, { filtered: true });
   await press("All decisions");
   const text = words();
-  for (const marker of ["Waiting for you", "Spoiler and foreshadowing checks", "backlog", "Review plan: A separate plan", "Coming up: 1 later decision", "Filters don’t hide decisions"]) expect(text).toContain(marker);
+  for (const marker of ["Waiting for you", "Spoiler and foreshadowing checks", "backlog", "A separate plan", "Coming up: 1 later decision", "Filters don’t hide decisions"]) expect(text).toContain(marker);
   expect(text.split("Spoiler and foreshadowing checks")).toHaveLength(2);
   expect(text).not.toContain("Review plan: Build the reader pass");
-  expect(text.indexOf("Waiting for you")).toBeLessThan(text.indexOf("Review plan: A separate plan"));
-  expect(text.indexOf("Spoiler and foreshadowing checks")).toBeLessThan(text.indexOf("Review plan: A separate plan"));
+  expect(text.indexOf("Waiting for you")).toBeLessThan(text.indexOf("A separate plan"));
+  expect(text.split("A separate plan")).toHaveLength(2);
+  expect(button("Review plan: A separate plan")).toBeTruthy();
   expect(text.indexOf("backlog")).toBeLessThan(text.indexOf("Coming up: 1 later decision"));
   expect(text.indexOf("backlog")).toBeLessThan(text.indexOf("Filters don’t hide decisions"));
   await press("Coming up: 1 later decision");
@@ -389,9 +393,11 @@ it("uses the plan question and recommendation without an optional brief", async 
   expect(close).toHaveBeenCalledOnce();
 });
 
-it.each(["held", "stale", "plan-problems", "offline"])("disables the %s plan decision and refuses direct presses", async guard => {
+it.each(["held", "stale", "plan-problems", "offline", "not-ready", "older-host"])("disables the %s plan decision and refuses direct presses", async guard => {
   await mount([], true, snapshot => {
     if (guard === "held") snapshot.planNow![0]!.decision!.held = true;
+    if (guard === "not-ready") snapshot.planNow![0]!.decision!.ready = false;
+    if (guard === "older-host") delete snapshot.planNow![0]!.decision!.ready;
     if (guard === "stale") snapshot.freshness.status = "stale";
     if (guard === "plan-problems") snapshot.planProblems = ["Some plan evidence is unavailable"];
   }, { offline: guard === "offline" });
@@ -604,4 +610,19 @@ it.each(["List", "Board"])("omits Coming up from the real %s component", async v
   expect(words()).not.toContain("Coming up");
   expect(words()).not.toContain("Later decision");
   expect(words()).not.toContain("Review plan: Build the reader pass");
+});
+
+it.each(["List", "Board"])("shows one review row within the real %s Needs-you total", async view => {
+  await mount([], true, snapshot => {
+    snapshot.planNow!.push({ plan: "review", title: "Storage proposal", question: "Review the plan", waits: [], neededBy: [], recommendation: "Review", review: { revision: 1, at: "2026-10-23T06:00:00Z" } });
+    snapshot.actionCount!++;
+  });
+  const props = { cards: [], allCards: [], snapshot: rpc.snapshot!, offline: false, theme: attentionTheme, compact: true, density: "comfortable" as const,
+    conversing: null, onConverse() {}, onChanged() {}, showDone: false, onShowDone() {}, layout: DEFAULT_TASK_LAYOUT, layoutDisabled: false, onLayout() {} };
+  await act(async () => { renderer.unmount(); renderer = create(createElement(QueryClientProvider, { client }, view === "List" ? createElement(TaskList, props) : createElement(TaskBoard, props))); });
+  expect(words()).toContain("Needs you · 2");
+  expect(words().split("Storage proposal")).toHaveLength(2);
+  expect(renderer.root.findAllByType(DecisionTask)).toHaveLength(2);
+  expect(button("Review plan: Storage proposal")).toBeTruthy();
+  expect(rpc.calls).not.toContain("firstmate.workflow.act");
 });

@@ -47,7 +47,7 @@ export function FleetSidebarItem({
       }
       onPress={() =>
         openScreen(
-          query.data?.actionCount === 0
+          !(query.data?.newCount && query.data.freshness.status === "fresh" && !query.error)
             ? { screenId: FLEET_SCREEN_ID }
             : decisionRoute({
                 requestId: "next",

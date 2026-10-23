@@ -21,6 +21,7 @@ type TimelineItem = TimelineEntry["item"];
 type ToolCallItem = Extract<TimelineItem, { type: "tool_call" }>;
 
 export type TranscriptRow =
+  | { key: string; kind: "plan-ready"; text: string; planId: string }
   | { key: string; kind: "decision-answer"; text: string; answer: DecisionAnswerSummary }
   /** A decision the first mate raised, placed by `./decision-raised`; drawn from the Needs-you snapshot. */
   | { key: string; kind: "decision-raised"; text: string; requestId: string }

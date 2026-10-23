@@ -4,15 +4,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import { attentionCard, attentionRequest, attentionSnapshot, attentionTheme } from "../test/attention-deck-fixture";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
+import type { WorkflowSnapshot } from "../shared/workflow-rpc";
+import type { TimelineEntry } from "./transcript-rows";
+import { compactPlansFixture } from "../test/compact-plans-fixture";
 import { drafts } from "./draft";
 import { pendingAttachments } from "./attachments";
 
-const state = vi.hoisted(() => ({ snapshot: null as NeedsYouSnapshot | null, send: vi.fn(), focus: vi.fn() }));
+const state = vi.hoisted(() => ({ snapshot: null as NeedsYouSnapshot | null, plans: undefined as WorkflowSnapshot | undefined, entries: [] as TimelineEntry[], openPlan: vi.fn(), send: vi.fn(), focus: vi.fn() }));
 vi.mock("react-native", () => ({ Platform: { OS: "web" }, ...Object.fromEntries(["View", "Text", "Pressable", "ScrollView", "SafeAreaView", "Image"].map(name => [name, name])) }));
 vi.mock("@getpaseo/plugin/client", () => ({ useRpc: () => async () => ({}), openExternalUrl() {} }));
 vi.mock("@getpaseo/plugin/client/react-native", () => ({ TextInput: "TextInput", Icon: () => null, useToast: () => ({ error() {} }) }));
 vi.mock("./needs-you-query", () => ({ useNeedsYou: () => ({ data: state.snapshot, error: null }) }));
-vi.mock("./use-timeline", () => ({ useAgentTimeline: () => ({ entries: [], error: null, hasOlder: false, loading: false }) }));
+vi.mock("./use-timeline", () => ({ useAgentTimeline: () => ({ entries: state.entries, error: null, hasOlder: false, loading: false }) }));
+vi.mock("./workflow-plans", () => ({ useWorkflowPlans: () => ({ snapshot: state.plans, open: state.openPlan }) }));
 vi.mock("./permission-card", () => ({ usePendingRequests: () => ({ pending: [], respond() {} }), PermissionCard: () => null }));
 vi.mock("./follow-end", () => ({ useFollowEnd: () => ({ scrollProps: {}, away: false, pin() {} }) }));
 vi.mock("./keyboard", () => ({ useKeyboardOverlap: () => 0 }));
@@ -49,6 +53,26 @@ async function render() {
 afterEach(async () => {
   await act(async () => renderer?.unmount()); client?.clear();
   drafts.set(mate.id, ""); pendingAttachments.set(mate.id, []); vi.clearAllMocks();
+  state.plans = undefined; state.entries = [];
+});
+
+it.each([false, true])("opens one compact plan-ready reference from the actual chat (compact %s)", async compact => {
+  const plan = structuredClone(compactPlansFixture()[0]!);
+  plan.status = "review"; plan.definition.implicit = false;
+  plan.history = [{ revision: 1, at: "2026-10-23T12:00:00Z", by: "mate", reason: "draft" }];
+  state.plans = { homeId: "home", version: "1", plans: [plan], subjects: {}, now: [], comingUp: [] };
+  state.entries = [{ seqStart: 1, timestamp: "2026-10-23T11:00:00Z", item: { type: "user_message", text: "Please draft a plan" } }] as unknown as TimelineEntry[];
+  client = new QueryClient();
+  const chat = () => createElement(QueryClientProvider, { client }, createElement(MateChat, { ...props, compact, mateSince: "2026-10-23T10:00:00Z" }));
+  await act(async () => { renderer = create(chat()); });
+  const label = `Review plan: ${plan.definition.title}`;
+  expect(renderer.root.findAllByProps({ accessibilityLabel: label })).toHaveLength(1);
+  state.plans = structuredClone(state.plans);
+  await act(async () => renderer.update(chat()));
+  expect(renderer.root.findAllByProps({ accessibilityLabel: label })).toHaveLength(1);
+  await act(async () => renderer.root.findByProps({ accessibilityLabel: label }).props.onPress());
+  expect(state.openPlan).toHaveBeenCalledWith(plan.definition.id);
+  expect(state.send).not.toHaveBeenCalled();
 });
 
 it("focuses the real composer and offers a return while preserving its existing words and attachment", async () => {

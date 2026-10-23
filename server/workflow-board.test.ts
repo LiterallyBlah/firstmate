@@ -13,6 +13,7 @@ import { readBearingsMessage } from "../shared/bearings";
 import { planGroups } from "../shared/workflow-plan-summary";
 import { attentionRequest, attentionSnapshot } from "../test/attention-deck-fixture";
 import { decisionCardSnapshot } from "../shared/plan-decisions";
+import { digest } from "./submissions";
 
 let home: string;
 const daemonRoot = process.env.PASEO_HOME!;
@@ -32,6 +33,22 @@ async function command(action: PlanCaptainCommand["action"], extra: Partial<Plan
   return { op: "captain", plan: "scheduler", revision: p.revision, subjectHash: planSubjectHash(p), action, text: "", ...extra };
 }
 const act = async (c: PlanCaptainCommand, id = randomUUID()) => workflowStore(home).execute(c, id, "board:captain");
+it("retains committed legacy early answers and replays their accepted request without new authority", async () => {
+  const store = workflowStore(home), p = (await store.get("scheduler"))!;
+  const command = { op: "captain" as const, plan: "scheduler", revision: p.revision, subjectHash: planSubjectHash(p), action: "answer" as const, node: "database", option: "sqlite", text: "Previously accepted early" };
+  const id = randomUUID(), body = { version: 1, home, plan: "scheduler", sequence: p.sequence + 1, previous: p.hash,
+    requestId: id, requestHash: digest(command), at: new Date().toISOString(), by: "board:captain", command };
+  const hash = digest(body), name = `${String(body.sequence).padStart(8, "0")}.json`;
+  // A valid committed pre-policy log, with its original expected tip. No reducer migration.
+  await writeFile(join(store.root, "scheduler", name), JSON.stringify({ ...body, hash }));
+  await writeFile(join(store.root, ".tips", "scheduler", name), JSON.stringify({ sequence: body.sequence, hash }));
+  const before = (await new WorkflowPlanStore(store.root, home).get("scheduler"))!;
+  expect(before.status).toBe("review"); expect(before.nodes.trial?.state).toBe("planned");
+  expect(before.nodes.database?.answer).toBe("sqlite");
+  await store.execute(command, id, "board:captain");
+  expect((await store.get("scheduler"))?.hash).toBe(before.hash);
+  await expect(act({ ...command, subjectHash: planSubjectHash(before), option: "postgres" })).rejects.toThrow("already answered");
+});
 it("shows a plan read failure in Bearings with one unavailable prefix", async () => {
   const read = vi.spyOn(WorkflowPlanStore.prototype, "read").mockRejectedValueOnce(new Error("Ledger offline"));
   try {
@@ -68,12 +85,37 @@ it("applies D2, keeps Coming up outside the urgent count and exposes worker-less
   await act(await command("approve")); expect((await workflowStore(home).agenda()).some(i => i.kind === "start" && i.node === "trial")).toBe(true);
   expect((await workflowSnapshot(home)).now).toHaveLength(0);
 });
-it("binds answers to revision and subject, refuses a second device, and permits an early choice", async () => {
+it("refuses answers until approval and evidence, then binds the answer across devices", async () => {
   const firstDevice = await command("answer", { node: "database", option: "sqlite" }), secondDevice = { ...firstDevice, option: "postgres" };
-  await act(firstDevice); await expect(act(secondDevice)).rejects.toThrow("changed since you opened");
+  await expect(act(firstDevice)).rejects.toThrow("not ready");
+  await act(await command("approve"));
+  await expect(act(await command("answer", { node: "database", option: "sqlite" }))).rejects.toThrow("not ready");
+  const started: any = await workflowStore(home).execute({ op: "start", plan: "scheduler", node: "trial" }, randomUUID(), "mate");
+  await workflowStore(home).execute({ op: "record", plan: "scheduler", node: "trial", attempt: started.launch.workflow.attempt, state: "done", evidence: "Compared both databases." }, randomUUID(), "mate");
+  const ready = await command("answer", { node: "database", option: "sqlite" }), id = randomUUID();
+  await act(ready, id); await expect(act(secondDevice)).rejects.toThrow("changed since you opened");
+  await expect(act(ready, id)).resolves.toBeTruthy(); // Accepted retries replay, without a second answer.
   expect((await workflowStore(home).get("scheduler"))?.nodes.database?.answer).toBe("sqlite");
   const current = await command("answer", { node: "database", option: "postgres" }); await expect(act(current)).rejects.toThrow("already answered");
-  const snapshot = await workflowSnapshot(home); expect(snapshot.comingUp).toEqual([]); expect(snapshot.now).toHaveLength(1); // Plan approval is separate.
+  const snapshot = await workflowSnapshot(home); expect(snapshot.comingUp).toEqual([]); expect(snapshot.now).toHaveLength(0);
+});
+it("keeps an evidence-free decision out of counts until its plan is approved", async () => {
+  const store = workflowStore(home), current = (await store.get("scheduler"))!, definition = structuredClone(current.definition);
+  definition.nodes.find(n => n.id === "database")!.after = [];
+  await store.execute({ op: "revise", definition, expected: current.hash, reason: "No trial needed for this choice." }, randomUUID(), "mate");
+  await expect(act(await command("answer", { node: "database", option: "sqlite" }))).rejects.toThrow("not ready");
+  const waiting = await workflowSnapshot(home), base = attentionSnapshot([]);
+  expect(waiting.now.map(n => n.node)).toEqual([undefined]);
+  expect(waiting.comingUp[0]?.decision?.ready).toBe(false);
+  const combined = await withWorkflowNeeds(base, home, waiting);
+  expect(combined.actionCount).toBe(1);
+  expect(decisionCardSnapshot(combined).requests).toHaveLength(1);
+  await act(await command("approve"));
+  const ready = await workflowSnapshot(home), readyCombined = await withWorkflowNeeds(base, home, ready);
+  expect(ready.now[0]?.decision?.ready).toBe(true);
+  expect(readyCombined.actionCount).toBe(1);
+  expect(decisionCardSnapshot(readyCombined).requests).toHaveLength(1);
+  await act(await command("answer", { node: "database", option: "sqlite" }));
 });
 
 it("projects a due plan decision once with its brief and options, records the existing captain action and wakes the mate", async () => {
@@ -144,8 +186,8 @@ it("applies edits atomically, pins in-flight runs and holds a removed prerequisi
   await act(await command("edit", { edits: [{ kind: "remove", node: "trial" }] }));
   const p = (await workflowStore(home).get("scheduler"))!; expect(p.revision).toBe(2); expect(p.nodes.database?.held).toBe(true);
   expect((await workflowStore(home).agenda()).some(i => i.kind === "start")).toBe(false);
-  expect((await workflowSnapshot(home)).now.some(n => n.node === "database")).toBe(true);
-  expect((await workflowSnapshot(home)).now.find(n => n.node === "database")?.decision?.held).toBe(true);
+  expect((await workflowSnapshot(home)).now.some(n => n.node === "database")).toBe(false);
+  expect((await workflowSnapshot(home)).comingUp.find(n => n.node === "database")?.decision?.held).toBe(true);
 });
 
 async function briefView() {
@@ -178,6 +220,7 @@ it.each([
   ["answered", "decision", "after an earlier decision is answered"],
 ] as const)("describes the %s/%s wait without node ids", async (on, reason, expected) => {
   const view = await workflowSnapshot(home), plan = view.plans[0]!;
+  plan.status = "active";
   plan.definition.nodes.find(n => n.id === "database")!.after = [{ node: "trial", on, reason }];
   const read = vi.spyOn(WorkflowPlanStore.prototype, "read").mockResolvedValue({ plans: [plan], problems: [], warnings: [], quarantined: [] });
   try { expect((await workflowSnapshot(home)).comingUp.find(n => n.node === "database")?.waitingFor).toBe(expected); }
@@ -202,7 +245,7 @@ it("starts the waiting clock when evidence makes the decision due, and restarts 
   expect(await due()).toBe("2026-10-28T12:00:00.000Z");
 });
 
-it("dates a newly introduced decision from its revision, without resetting it on unrelated edits", async () => {
+it("dates a newly introduced decision from its revision and later reapproval", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-29T12:00:00Z"));
   let current = (await workflowStore(home).get("scheduler"))!;
@@ -210,13 +253,15 @@ it("dates a newly introduced decision from its revision, without resetting it on
   definition.nodes.push({ ...original, id: "new-choice", title: "A new choice", after: [] });
   definition.nodes.find(n => n.id === "build")!.after.push({ node: "new-choice", reason: "decision", on: "answered" });
   await workflowStore(home).execute({ op: "revise", definition, expected: current.hash, reason: "Add a newly needed choice." }, randomUUID(), "mate");
+  await act(await command("approve"));
   const due = () => workflowSnapshot(home).then(s => s.now.find(n => n.node === "new-choice")?.decision?.at);
   expect(await due()).toBe("2026-10-29T12:00:00.000Z");
   vi.setSystemTime(new Date("2026-10-30T12:00:00Z"));
   current = (await workflowStore(home).get("scheduler"))!;
   const edited = structuredClone(current.definition); edited.title = "Scheduler with clearer wording";
   await workflowStore(home).execute({ op: "revise", definition: edited, expected: current.hash, reason: "Clarify only the plan title." }, randomUUID(), "mate");
-  expect(await due()).toBe("2026-10-29T12:00:00.000Z");
+  await act(await command("approve"));
+  expect(await due()).toBe("2026-10-30T12:00:00.000Z"); // It became actionable again at reapproval.
 });
 
 it("keeps the done decision's due time when its prerequisite later lands, with a separate landed due time", async () => {
@@ -260,6 +305,7 @@ it("restarts the waiting clock when a revision changes an existing decision's de
   const current = (await store.get("scheduler"))!, definition = structuredClone(current.definition);
   definition.nodes.find(n => n.id === "database")!.after = [];
   await store.execute({ op: "revise", definition, expected: current.hash, reason: "Ask this decision independently of the trial." }, randomUUID(), "mate");
+  await act(await command("approve"));
   expect(await due()).toBe("2026-10-27T12:00:00.000Z");
 });
 
@@ -280,6 +326,7 @@ it("starts waiting when an earlier captain decision is answered", async () => {
   definition.nodes.push({ ...decision, id: "first-choice", title: "First choice", after: [] });
   decision.after = [{ node: "first-choice", reason: "decision", on: "answered" }];
   await workflowStore(home).execute({ op: "revise", definition, expected: current.hash, reason: "Ask the earlier choice first." }, randomUUID(), "mate");
+  await act(await command("approve"));
   vi.setSystemTime(new Date("2026-10-26T12:00:00Z"));
   await act(await command("answer", { node: "first-choice", option: "sqlite" }));
   expect((await workflowSnapshot(home)).now.find(n => n.node === "database")?.decision?.at).toBe("2026-10-26T12:00:00.000Z");
@@ -296,6 +343,7 @@ it("holds new starts, refuses to decline started work, and builds read-only Bear
   expect(await readFile(join(home, "data/plans/scheduler/plan.md"), "utf8")).toContain("held");
 });
 it("retains an old answer when changed assumptions route unstarted work through a replacement decision", async () => {
+  await act(await command("edit", { edits: [{ kind: "dependencies", node: "database", after: [] }] }));
   await act(await command("answer", { node: "database", option: "sqlite" }));
   const p = (await workflowStore(home).get("scheduler"))!, revised = structuredClone(p.definition);
   const original = revised.nodes.find(n => n.id === "database")!;

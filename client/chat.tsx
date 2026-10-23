@@ -1,6 +1,9 @@
 import { DecisionAnswerBubble } from "./decision-answer-bubble";
 import { DecisionRaisedCard } from "./decision-raised-card";
 import { withRaisedDecisions } from "./decision-raised";
+import { withPlanReviews } from "./plan-ready";
+import { useWorkflowPlans } from "./workflow-plans";
+import { planAwaitingReview } from "../shared/workflow-plans";
 import { useNeedsYou } from "./needs-you-query";
 /**
  * The conversation with the first mate: its transcript, folded to the words,
@@ -138,15 +141,16 @@ export function MateChat({
   const timeline = useAgentTimeline(mate.id, `${mate.updatedAt}:${mate.pendingPermissions}`);
   /** Decisions the first mate raised show once, as cards from the Needs-you snapshot — see `./decision-raised`. */
   const decisions = useNeedsYou();
+  const plans = useWorkflowPlans();
   const discussing = discussionRequest(discussion, decisions.data, mate.id, decisions.error !== null);
   const composer = useRef<TextInput>(null);
   useEffect(() => {
     if (discussion?.mateId === mate.id) composer.current?.focus();
   }, [discussion, mate.id]);
-  // Placement depends only on the ledger's requests, which change only with its version; each poll is a new object.
+  // Stable ledger versions keep derived references in place across polls and reconnects.
   const rows = useMemo(
-    () => withRaisedDecisions(transcriptRows(timeline.entries), timeline.entries, decisions.data, mateSince),
-    [timeline.entries, decisions.data?.homeId, decisions.data?.version, mateSince],
+    () => withPlanReviews(withRaisedDecisions(transcriptRows(timeline.entries), timeline.entries, decisions.data, mateSince), timeline.entries, plans.snapshot, mateSince),
+    [timeline.entries, decisions.data?.homeId, decisions.data?.version, plans.snapshot?.homeId, plans.snapshot?.version, mateSince],
   );
   // Redraws a captain's row when the images kept for it change; see `./sent-images`.
   useSyncExternalStore(sentImages.subscribe, sentImages.version);
@@ -386,6 +390,16 @@ export function MateChat({
     }
     const row = group.row;
     switch (row.kind) {
+      case "plan-ready": {
+        const plan = plans.snapshot?.plans.find(p => p.definition.id === row.planId);
+        return <View key={row.key} style={{ ...styles.line, flexWrap: "wrap", paddingVertical: 6 }}>
+          <Icon name="ListTodo" size={14} color={theme.colors.foregroundMuted} />
+          <Text style={{ color: theme.colors.foreground, fontSize: 13, flex: 1 }}>{plan && planAwaitingReview(plan) ? "Plan ready for review" : "Plan"}: {row.text}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`${plan && planAwaitingReview(plan) ? "Review" : "Open"} plan: ${row.text}`} onPress={() => plans.open(row.planId)} style={{ minHeight: compact ? 44 : 28, justifyContent: "center", paddingHorizontal: 10 }}>
+            <Text style={{ color: theme.colors.foreground, fontSize: 12, fontWeight: "600" }}>{plan && planAwaitingReview(plan) ? "Review" : "Open"}</Text>
+          </Pressable>
+        </View>;
+      }
       case "decision-answer": return <View key={row.key} style={styles.captain}><DecisionAnswerBubble theme={theme} answer={row.answer} /></View>;
       case "decision-raised": {
         const request = decisions.data?.requests.find((entry) => entry.id === row.requestId);

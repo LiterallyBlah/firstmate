@@ -12,7 +12,7 @@ vi.mock("./ui", () => ({
   Tag: () => null, Chip: () => null, errorText: String,
 }));
 vi.mock("./decision-drawer", () => ({ DecisionButton: () => null }));
-vi.mock("./workflow-plans", () => ({ PlanNeeds: () => null, PlanChip: () => null }));
+vi.mock("./workflow-plans", () => ({ PlanNeeds: () => null, PlanChip: () => null, useWorkflowPlans: () => ({ open() {} }) }));
 vi.mock("./item-tags", () => ({ ItemTagEditor: () => null }));
 vi.mock("./web", () => ({ webTitle: () => ({}) }));
 import { TaskList } from "./task-list";

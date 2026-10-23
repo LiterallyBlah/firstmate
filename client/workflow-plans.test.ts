@@ -47,6 +47,32 @@ it("renders without acting and binds approval to the displayed revision and subj
   await act(async () => button("Approve").props.onPress());
   expect(onAct).toHaveBeenCalledWith(expect.objectContaining({ action: "approve", revision: 1, subjectHash: "b".repeat(64) }));
 });
+it("keeps future choices read-only, then enables only approved evidence-ready decisions", async () => {
+  const p = plan(), onAct = vi.fn(), props = { theme, plan: p, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct, onRefresh() {} };
+  await act(async () => { renderer = create(createElement(PlanDialog, props)); });
+  await act(async () => button("SQLite").props.onPress());
+  expect(button("SQLite").props.disabled).toBe(true); expect(onAct).not.toHaveBeenCalled();
+  p.status = "active";
+  await act(async () => renderer!.update(createElement(PlanDialog, props)));
+  expect(button("SQLite").props.disabled).toBe(true);
+  p.nodes.trial = { state: "done", evidence: "Verified" };
+  await act(async () => renderer!.update(createElement(PlanDialog, props)));
+  expect(button("SQLite").props.disabled).toBe(false);
+  await act(async () => button("SQLite").props.onPress());
+  expect(onAct).toHaveBeenCalledWith(expect.objectContaining({ action: "answer", node: "database", option: "sqlite", revision: 1, subjectHash: "b".repeat(64) }));
+});
+it("opens the existing plan dialog from a compact review row without recording an action", async () => {
+  const p = plan(), cache = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+  cache.setQueryData(WORKFLOW_QUERY_KEY, { homeId: "home", version: "1", plans: [p], subjects: { [p.definition.id]: "b".repeat(64) }, now: [], comingUp: [] });
+  const needs = { homeId: "home", planNow: [{ plan: p.definition.id, title: p.definition.title, question: "Review the plan", waits: [], neededBy: [], recommendation: "Review", review: { revision: 1, at: p.history[0]!.at } }] };
+  try {
+    await act(async () => { renderer = create(createElement(QueryClientProvider, { client: cache }, createElement(WorkflowSurface, { theme, children: createElement(PlanNeeds, { theme, snapshot: needs, compact: true }) }))); });
+    expect(renderer!.root.findAllByProps({ testID: "workflow-plan-dialog" })).toHaveLength(0);
+    await act(async () => button(`Review plan: ${p.definition.title}`).props.onPress());
+    expect(renderer!.root.findAllByProps({ testID: "workflow-plan-dialog" })).toHaveLength(1);
+    expect(cache.getQueryData(WORKFLOW_QUERY_KEY)).toMatchObject({ plans: [{ hash: p.hash, status: "review" }] });
+  } finally { await act(async () => renderer?.unmount()); renderer = null; cache.clear(); }
+});
 it.each(["active", "held"] as const)("keeps %s plans browsable without review actions, preserving decisions and lifecycle controls", async status => {
   const p = plan(); p.status = status;
   const onAct = vi.fn();
@@ -56,7 +82,7 @@ it.each(["active", "held"] as const)("keeps %s plans browsable without review ac
   }
   expect(button("Hold").props.disabled).toBe(false);
   expect(button("Decline").props.disabled).toBe(false);
-  expect(button("SQLite").props.disabled).toBe(false);
+  expect(button("SQLite").props.disabled).toBe(true);
   expect(onAct).not.toHaveBeenCalled();
 });
 it.each(["active", "held"] as const)("closes an open review form when a plan becomes %s", async status => {

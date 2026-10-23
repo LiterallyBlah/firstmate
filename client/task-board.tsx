@@ -90,7 +90,7 @@ export function TaskBoard(props: {
               onChanged={props.onChanged}
             />
           ))}
-          <PlanNeeds theme={theme} snapshot={snapshot} showUpcoming={false} />
+          <PlanNeeds theme={theme} snapshot={snapshot} showUpcoming={false} showReviews={false} />
           {count === 0 ? <Text style={{ color: ink }}>Nothing needs a decision now.</Text> : null}
         </>
       ) : id === "in-hand" ? (
