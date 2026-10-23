@@ -488,6 +488,7 @@ export function MateChat({
             <View key={request.id} onLayout={(event) => follow.reveal(request.id, event.nativeEvent.layout)}>
               <PermissionCard
                 request={request}
+                asker="The first mate"
                 theme={theme}
                 compact={compact}
                 onRespond={(response) => respond(request.id, response)}

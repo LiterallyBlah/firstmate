@@ -18,7 +18,7 @@ export async function checkResilience(pageAt, output) {
       }, problem);
       await page
         .getByRole("button", {
-          name: /Needs you, 3 decisions.*Line 12, task a/,
+          name: /Needs you, 3 items.*Line 12, task a/,
         })
         .click();
       const drawer = page.getByLabel("FirstMate decisions", { exact: true });

@@ -73,11 +73,10 @@ import { DecisionSurface, DecisionPane, useDecisionPaneOpen, useDecisionOrigin, 
 import { NeedsYouIndicator, useDecisionVisibility } from "./needs-you";
 import { useNeedsYou } from "./needs-you-query";
 import { useOpenDecision } from "./decision-action";
-import { activeCrewCount } from "./screen";
 import { TaskBoard } from "./task-board";
 import { useTaskLayout } from "./task-layout";
 import { taskPresentation } from "./task-presentation";
-import { WorkflowSurface, PlansControl, useWorkflowPlans } from "./workflow-plans";
+import { WorkflowSurface, PlansControl, useWorkflowPlans, WORKFLOW_QUERY_KEY } from "./workflow-plans";
 import { WorkflowPlansView } from "./workflow-plan-browser";
 import { workflowOwnsCard } from "../shared/workflow-identity";
 import { workflowTaskTarget } from "./workflow-task-navigation";
@@ -191,7 +190,8 @@ function FleetViewBody({
 
   const refresh = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: FLEET_QUERY_KEY });
-  }, [queryClient]);
+    if (view === "plans") void queryClient.invalidateQueries({ queryKey: WORKFLOW_QUERY_KEY });
+  }, [queryClient, view]);
 
   const shownTab = tab;
   /** Keep the standalone Deck tab's availability policy; inline Deck measures its narrower container. */
@@ -682,7 +682,7 @@ function FleetViewBody({
       <Text style={[styles.meta, { flexShrink: 1 }]} numberOfLines={1}>
         {(
           [
-            [activeCrewCount(data.cards), "in hand"],
+            [data.cards.filter((card) => taskPresentation(card, decisions.data).group === "in-hand").length, "in hand"],
             [data.cards.filter((card) => taskPresentation(card, decisions.data).group === "later").length, "later"],
             [data.cards.filter((card) => taskPresentation(card, decisions.data).group === "done").length, "done"],
           ] as const
@@ -976,7 +976,7 @@ function FleetViewBody({
           theme={theme}
           compact={compact}
           docked={docked}
-          backLabel={onDeck ? "Deck" : crewView === "list" ? (home ? "List" : "Crew") : "Board"}
+          backLabel={onDeck ? "Deck" : crewView === "list" ? "List" : "Board"}
           onClose={() => setWatching(null)}
           onOpen={
             navigation === undefined || watchedLocalId === null
@@ -1094,12 +1094,12 @@ function FleetViewBody({
         )}
         <View style={{ flex: 1, minHeight: 0 }} onLayout={(event) => setPaneWidth(event.nativeEvent.layout.width)}>
           <DecisionPane>{view === "plans" ? (
-            <WorkflowPlansView theme={theme} />
+            <WorkflowPlansView theme={theme} showHeading={false} />
           ) : view !== "deck" ? (
             crew
           ) : !deck ? (
             <Text style={styles.loading}>
-              Deck needs a wide web or desktop window. Open Crew or Board from FirstMate Home on this device.
+              Deck needs a wide web or desktop window. Open List or Board from FirstMate Home on this device.
             </Text>
           ) : (
             inlineDeck

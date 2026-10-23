@@ -49,7 +49,7 @@ export function NeedsYouIndicator({
       ? theme.colors.statusWarning
       : null;
   const ink = state.filled
-    ? decisionSignalInk(theme.colors.surface0, theme.colors.foreground)
+    ? decisionSignalInk(theme.colors.surface0, theme.colors.foreground, theme.colors.statusWarning)
     : theme.colors.foreground;
   return (
     <Pressable
@@ -144,7 +144,7 @@ export function NeedsYouBadge({
       <Text
         style={{
           color: state.filled
-            ? decisionSignalInk(theme.colors.surface0, theme.colors.foreground)
+            ? decisionSignalInk(theme.colors.surface0, theme.colors.foreground, theme.colors.statusWarning)
             : state.unavailable
               ? theme.colors.statusDanger
               : state.amber

@@ -16,6 +16,7 @@ import {
 } from "react";
 import { ActivityIndicator, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { bindWebKeys, fromHiddenTooltip, hasWebFocus, tooltipPlacement, webAttributes } from "./web";
+import { contrastRatio } from "./contrast";
 
 /** A fixed-width font on every platform; iOS has no font named "monospace". */
 export const MONOSPACE = Platform.select({ ios: "Menlo", default: "monospace" });
@@ -458,7 +459,8 @@ export function Tag({
   /** The text and icon colour; muted when absent. */
   color?: string | undefined;
 }) {
-  const tint = color ?? theme.colors.foregroundMuted;
+  const tint = color ?? (contrastRatio(theme.colors.foregroundMuted, theme.colors.surface2) >= 4.5
+    ? theme.colors.foregroundMuted : theme.colors.foreground);
   const styles = useMemo(
     () => ({
       tag: {

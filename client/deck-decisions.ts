@@ -56,8 +56,6 @@ export function deckDecisions(cards: readonly FleetCard[], snapshot: NeedsYouSna
   return { snapshot, byCard, inHand, parked, workerless, workerlessCount: snapshot.actionCount === null ? null : Math.max(0, snapshot.actionCount - assigned) };
 }
 
-export const DECK_MOVE_WORDS = { blocked: "needs you", waiting: "with the first mate", working: "at work", idle: "parked" } as const;
-
 /** Ledger total, never the number of figures at the bow. */
 export function deckDecisionLabel(snapshot: NeedsYouSnapshot | undefined, offline = false, includeFreshness = true): string {
   if (snapshot?.freshness.status === "disabled") return "Decisions are off";

@@ -42,7 +42,7 @@ import type { Figure } from "./deck-crew";
 import type { DeckDeparture } from "./deck-choreography";
 import { cardHeadline } from "./format";
 import type { NeedsYouSnapshot } from "../shared/needs-you";
-import { deckDecisions, DECK_MOVE_WORDS, type DeckDecisions } from "./deck-decisions";
+import { deckDecisions, type DeckDecisions } from "./deck-decisions";
 
 export const DECK_STATES = ["working", "waiting", "blocked", "idle"] as const;
 export type DeckState = (typeof DECK_STATES)[number];
@@ -277,7 +277,6 @@ export function deckScene(
         identity: sailorIdentity(card),
         stale,
         caption: decisions === undefined ? caption : { ...caption,
-          status: `${DECK_MOVE_WORDS[state]} · ${caption.status}`,
           line: decision === undefined ? caption.line : `Your call: ${decision.source.ask}`,
           stale: decisions.snapshot.freshness.status === "stale" ? "Decisions are from the last good read." : caption.stale,
         },
