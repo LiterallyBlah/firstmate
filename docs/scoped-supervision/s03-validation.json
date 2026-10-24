@@ -1,6 +1,7 @@
 {
   "format": "firstmate.s03-validation/1",
   "base": "a75abc21552e14615d02b443efe2a068c84bac1c",
+  "previousDeliveryHead": "034ef7d03e6faefcc83ddc38443b7c5cb51ec120",
   "dependencyAcceptedHead": "36d086045a72fbfd4f8b94aaed19c007a7d8ac2d",
   "runtime": {
     "node": "v24.18.0",
@@ -29,13 +30,13 @@
     },
     {
       "path": "server/needs-you-service.ts",
-      "gitBlob": "00932fd4784cfbab69dce20fb45699765d540f96",
-      "sha256NormalizedUtf8": "bbb811e0b150abb61b650986a953c4c0c26e7eedc018029dcd509e98b2bbaf8a"
+      "gitBlob": "cefbbaa28957d339f5fa9be389a52cb9214009da",
+      "sha256NormalizedUtf8": "f6e6fb9cecdd04d47abbbf64075aa49334ffb3c71c1ee73c51287933455eb3a7"
     },
     {
       "path": "server/supervision-commands.test.ts",
-      "gitBlob": "9948c303f16a865afd82f9b0000c1146e7e6ddce",
-      "sha256NormalizedUtf8": "fff5ed8cb21e25bd46bc5e47f37bce10ecca89f7eba73088b9e97898db915d8a"
+      "gitBlob": "9f510110a07d5654324804e7e2a268784842b6b5",
+      "sha256NormalizedUtf8": "c6b670595e8d828481a15a20014876c6177b8b8f0359c49bf43a57105c454671"
     },
     {
       "path": "server/supervision-commands.ts",
@@ -85,15 +86,15 @@
     },
     "targeted": {
       "path": ".local/fm-ss-s03/final-commands-tests.json",
-      "sha256": "b90999c459ed1db54eb5c07a8e50c0e9e8f9abb5bfd1a442093f675a75c49aa6",
-      "qualification": "Final S03 source; final command/outbox handling refinement verified after full-suite start.",
+      "sha256": "7a968efa37b9df95609f30a1cc982dc5c15f08e23ad27f879c70f2b701c6090a",
+      "qualification": "Final S03 source plus Needs-you service and decision-answer regressions after the narrow count correction.",
       "success": true,
-      "suites": 1,
-      "tests": 25,
-      "passed": 25,
+      "suites": 5,
+      "tests": 95,
+      "passed": 95,
       "failed": 0,
       "skipped": 0,
-      "durationMs": 8977.6171875,
+      "durationMs": 10857.446044921875,
       "failures": []
     },
     "affected": {
@@ -255,6 +256,10 @@
     },
     {
       "name": "stale policy in one project does not hold an unrelated scoped project",
+      "status": "passed"
+    },
+    {
+      "name": "a model-only hold does not hide a separate ready captain decision",
       "status": "passed"
     }
   ],

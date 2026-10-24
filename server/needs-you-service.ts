@@ -34,16 +34,17 @@ export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: Supervisi
     const node = plan?.definition.nodes.find(n => n.id === decision.nodeId);
     const owner = status.scopes.find(s => s.id === decision.ownerScopeId), binding = status.bindings.find(b => b.scopeId === decision.ownerScopeId);
     const backend = status.backends.find(b => b.planId === decision.planId);
-    const ready = status.freshness === "current" && backend?.backend === "scoped" && backend.state === "active" && owner?.state !== "retired" &&
-      !!plan && !!node && decision.state === "pending" && planDecisionReady(plan, node, plans);
+    const held = status.operationHolds.some(h => h.scopeId === decision.ownerScopeId && h.planId === decision.planId && h.state === "held" && h.operations.includes("decision.answer"));
+    const ready = status.freshness === "current" && backend?.backend === "scoped" && backend.state === "active" && !!owner && owner.state !== "retired" &&
+      !held && !!plan && !!node && decision.state === "pending" && planDecisionReady(plan, node, plans);
     return { decision, ready, waitingFor: decision.state === "answered" ? null : ready ? null : "Waiting for current plan evidence or ownership reconciliation.",
       ownerEpoch: binding?.state === "active" ? binding.epoch : null };
   });
   const holds = status.operationHolds.filter(h => h.state === "held");
   const holdPlans = new Set(holds.map(h => h.planId));
-  const count = rows.filter(r => r.ready && !holdPlans.has(r.decision.planId)).length + holdPlans.size;
+  const count = rows.filter(r => r.ready).length + holdPlans.size;
   const priorHoldPlans = new Set(snapshot.scopedHolds?.map(h => h.planId) ?? []);
-  const priorCount = (snapshot.scopedDecisions?.filter(r => r.ready && !priorHoldPlans.has(r.decision.planId)).length ?? 0) + priorHoldPlans.size;
+  const priorCount = (snapshot.scopedDecisions?.filter(r => r.ready).length ?? 0) + priorHoldPlans.size;
   const pending = status.outbox.filter(o => o.kind === "decision.answer" && o.state === "pending").length;
   if (status.freshness !== "current") problems.push("Scoped decision inventory is incomplete; counts are a lower bound.");
   return { ...snapshot, homeId: snapshot.homeId ?? status.homeId, scopedDecisions: rows, scopedSequence: status.sequence, scopedProblems: problems, scopedHolds: holds, scopedComplete: status.freshness === "current", scopedPendingAnswerCount: pending,

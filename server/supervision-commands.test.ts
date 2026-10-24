@@ -348,3 +348,13 @@ it("stale policy in one project does not hold an unrelated scoped project", asyn
     policyVector: currentPolicyVector(current, target), modelPolicyVector: currentPolicyVector(current, { ...target, operation: "model.use" }) }, { ...mate, id: "other-owner" });
   expect(response.result.planId).toBe("other-plan"); expect((await store.read()).plans).toHaveLength(2);
 });
+it("a model-only hold does not hide a separate ready captain decision", async () => {
+  await decisionReady(); const s = await store.read();
+  const hold: SupervisionMutation[] = [{ kind: "operation-hold", value: { id: randomUUID(), version: 1, scopeId: ids.scope, planId: "scheduler",
+    operations: ["model.use"], reason: "Review only the changed model profile.", sourceVector: [policyRef("policy-rule", s.policyRules[0]!)], state: "held" } }];
+  await store.transact(expected(hold), randomUUID(), hold);
+  const base = { ...needsYouSnapshot(null, { status: "fresh", checkedAt: Date.now(), asOf: Date.now(), problems: [] }), homeId: store.homeId, actionCount: 0, pendingAnswerCount: 0 };
+  const view = withScopedNeedsYou(base, await store.read());
+  expect(view.scopedDecisions?.[0]?.ready).toBe(true); expect(view.actionCount).toBe(2);
+  expect(withScopedNeedsYou(view, await store.read()).actionCount).toBe(2);
+});
