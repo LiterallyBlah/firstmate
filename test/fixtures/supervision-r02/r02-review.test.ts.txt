@@ -1,0 +1,98 @@
+import { randomUUID } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+import { inboxFixture, observation, ids, second, now, api, timelinePage } from './supervision-inbox-fixture';
+import { expected } from './supervision-fixture';
+import { SupervisionStore, type SupervisionMutation } from '../server/supervision-store';
+import { supervisionInboxStatus } from '../server/supervision-status';
+import type { PluginLifecycleEvents } from '@getpaseo/plugin/server';
+
+const evidence = fileURLToPath(new URL('../../', import.meta.url));
+async function save(name: string, value: unknown) {
+  await writeFile(`${evidence}/${name}.json`, JSON.stringify({ head: 'e8e4646604b040693e4a80587653b7bfdeff4057', value }, null, 2));
+}
+
+describe('R02 independent exact-head checks', () => {
+  it('scope paging must not skip earlier ordinals after a late triage resolution', async () => {
+    const f = await inboxFixture();
+    const triage = await f.events.admit(observation({agentId:'future-worker',sourceKey:'future:1'}));
+    const b1 = await f.events.admit(observation({agentId:'worker-b',sourceKey:'b:1',turnId:'b:1'}));
+    const b2 = await f.events.admit(observation({agentId:'worker-b',sourceKey:'b:2',turnId:'b:2'}));
+    const s = await f.store.read();
+    const task = s.tasks.find(t=>t.id===second.task)!;
+    const attempt = s.attempts.find(a=>a.id===second.attempt)!;
+    const effect = s.effects.find(e=>e.id===second.effect)!;
+    const attemptId = randomUUID(), effectId = randomUUID();
+    const batch: SupervisionMutation[] = [
+      {kind:'attempt',value:{...attempt,id:attemptId,ordinal:2,launchEffectId:effectId,worker:{hostId:'local',agentId:'future-worker',workspaceId:'future-workspace'}}},
+      {kind:'effect',value:{...effect,id:effectId,attemptId,logicalKey:'r02-future-launch'}},
+      {kind:'task',value:{...task,currentAttempt:attemptId,version:2}},
+    ];
+    await f.store.transact(batch.map(m=>({...expected([m])[0]!,version:m.kind==='task'?1:0})),randomUUID(),batch);
+    await f.events.resolve(triage.resultIds[0]!);
+    const fresh = await new SupervisionStore(f.dataRoot,f.home).read();
+    const pages = [], seen = [];
+    let after = 0;
+    for(let i=0;i<4;i++) {
+      const page=supervisionInboxStatus(fresh,{scopeId:second.scope,after,limit:1},now);
+      pages.push(page);seen.push(...page.entries.map(e=>e.event.id));
+      if(!page.hasMore||page.nextAfter===null)break;
+      after=page.nextAfter;
+    }
+    await save('paging-reproduction',{fresh,pages,seen,expected:[b1.resultIds[0],b2.resultIds[0],triage.resultIds[0]]});
+    expect(fresh.freshness).toBe('current');
+    expect(seen).toEqual([b1.resultIds[0],b2.resultIds[0],triage.resultIds[0]]);
+  });
+
+  it('changed content for the same hook outcome remains visibly quarantined after a duplicate', async () => {
+    const f=await inboxFixture();
+    const hook = (text: string) => ({agent:{id:'worker-a'},turnId:'turn-1',outcome:{kind:'completed'},timeline:[{type:'assistant_message',text}]}) as unknown as PluginLifecycleEvents['agent.turn_ended'];
+    const noFetch=api(async()=>{throw Error('Nonempty hook must not fetch');});
+    await f.events.ended(hook('original evidence'),noFetch);
+    await f.events.ended(hook('conflicting evidence'),noFetch);
+    const conflict=await f.store.read();
+    await f.events.ended(hook('original evidence'),noFetch);
+    const fresh=await new SupervisionStore(f.dataRoot,f.home).read();
+    const global=supervisionInboxStatus(fresh,{},now);
+    const source=supervisionInboxStatus(fresh,{scopeId:ids.scope,pageKind:'sources'},now);
+    await save('conflict-reproduction',{conflict,fresh,global,source});
+    expect(fresh.inbox.events).toHaveLength(2);
+    expect(global.counts.quarantined>0||source.sources.some(s=>s.gaps.includes('malformed'))).toBe(true);
+  });
+
+  it('partial handling then higher-epoch reoffer retains handled facts and closes the watermark',async()=>{
+    const f=await inboxFixture();
+    await f.events.admit(observation());
+    await f.events.admit(observation({turnId:'second',sourceKey:'second'}));
+    const prepared=await f.inbox.prepare(ids.scope,1,true);
+    const offer=(await f.store.read()).inbox.offers.find(o=>o.id===prepared.resultIds[0])!;
+    await f.inbox.beginSend(ids.scope,1,offer.id,true);
+    await f.inbox.acknowledge(ids.scope,1,offer.id,offer.eventIds);
+    const result={kind:'no-action' as const,reason:'Independent fixture inspected this evidence; no effect required.',evidenceIds:[(await f.store.read()).inbox.events[0]!.envelope.payloadRef.slice(5)]};
+    await f.inbox.handle(ids.scope,1,offer.id,[{eventId:offer.eventIds[0]!,result}]);
+    const old=(await f.store.read()).bindings.find(b=>b.scopeId===ids.scope)!;
+    for(const binding of [{...old,state:'suspect' as const},{...old,state:'prepared' as const,epoch:2},{...old,state:'active' as const,epoch:2}]){
+      const status=await f.store.read();await f.store.transact([status.versions.find(v=>v.kind==='binding'&&v.id===ids.scope)!],randomUUID(),[{kind:'binding',value:binding}]);
+    }
+    await f.inbox.reoffer(ids.scope,2);
+    const replacement=await f.inbox.prepare(ids.scope,2,true);
+    const next=(await f.store.read()).inbox.offers.find(o=>o.id===replacement.resultIds[0])!;
+    await f.inbox.beginSend(ids.scope,2,next.id,true);
+    await f.inbox.acknowledge(ids.scope,2,next.id,next.eventIds);
+    await f.inbox.handle(ids.scope,2,next.id,[{eventId:next.eventIds[0]!,result}]);
+    const fresh=await new SupervisionStore(f.dataRoot,f.home).read();
+    await save('partial-reoffer-control',{fresh});
+    expect(next.eventIds).toEqual([offer.eventIds[1]]);
+    expect(fresh.inbox.mailboxes.find(b=>b.id===ids.scope)?.watermark).toBe(2);
+    expect(fresh.inbox.assignments.map(a=>a.state)).toEqual(['handled','handled']);
+  });
+
+  it('public typed pages cannot silently associate a different agent with this scope',async()=>{
+    const f=await inboxFixture();
+    await f.events.timeline(api(async()=>timelinePage({agentId:'worker-b'})),'worker-a');
+    const fresh=await new SupervisionStore(f.dataRoot,f.home).read();
+    await save('foreign-page-reproduction',{fresh});
+    expect(fresh.inbox.sources[0]?.coverage).toBe('gap');
+  });
+});

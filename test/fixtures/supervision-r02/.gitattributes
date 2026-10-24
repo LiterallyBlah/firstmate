@@ -1,0 +1,2 @@
+# Preserve the independent review probe's exact source bytes, including line endings.
+*.txt -text

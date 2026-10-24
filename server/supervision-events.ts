@@ -5,7 +5,7 @@ import { z } from "zod";
 import { SupervisionEventSchema, SupervisionUtc } from "../shared/supervision";
 import { INBOX_LIMITS, InboxSourceSchema, type InboxAssignment, type InboxEvent, type InboxSource } from "../shared/supervision-inbox";
 import type { PaseoAgent, PaseoApi, TimelinePage } from "./host-types";
-import { eventOwners, terminal } from "./supervision-inbox-state";
+import { eventOwners, hasMalformedQuarantine, terminal } from "./supervision-inbox-state";
 import { inboxRef, inboxTransaction } from "./supervision-inbox";
 import { SupervisionError, SupervisionStore, type SupervisionMutation } from "./supervision-store";
 import { canonical, digest } from "./submissions";
@@ -48,7 +48,7 @@ export class SupervisionEvents {
     return serialized(`${this.store.root}:ingress`, () => inboxTransaction(this.store, requestId, { op: "ingress", inputHash }, async s => {
       const id = sourceId(o.sourceKind, o.agentId), prior = s.inbox.sources.find(c => c.id === id);
       if (o.expectedSourceVersion !== undefined && o.expectedSourceVersion !== (prior?.version ?? 0)) throw new SupervisionError("STALE", "Source changed while fetching; retain the current baseline and refetch explicitly.");
-      const gaps = [...new Set([...o.gaps, ...(malformed ? ["malformed" as const] : []), ...(prior && prior.epoch !== o.epoch ? ["epoch-changed" as const] : [])])];
+      const gaps = [...new Set([...o.gaps, ...(malformed || hasMalformedQuarantine(s.inbox, o.sourceKind, o.agentId) ? ["malformed" as const] : []), ...(prior && prior.epoch !== o.epoch ? ["epoch-changed" as const] : [])])];
       const reordered = prior?.epoch === o.epoch && (o.maxSeq ?? 0) < (prior.maxSeq ?? 0);
       if (reordered) gaps.push("reordered");
       const source: InboxSource = { id, kind: o.sourceKind, hostId: "local", agentId: o.agentId, epoch: o.epoch,
@@ -84,9 +84,9 @@ export class SupervisionEvents {
       const box = scopeId ? s.inbox.mailboxes.find(b => b.id === scopeId) : undefined;
       const assignment: InboxAssignment = { id: eventId, scopeId, primaryEventId: primary?.id ?? eventId, consequenceKey,
         attemptId: primary?.attemptId ?? owner?.attempt.id ?? null,
-        resolverVersion: 1, reason: primary ? "duplicate" : malformed ? "malformed" : owner ? "attempt-owner" : owners.length > 1 ? "ambiguous-owner" : "unknown-owner",
+        resolverVersion: 1, reason: malformed ? "malformed" : primary ? "duplicate" : owner ? "attempt-owner" : owners.length > 1 ? "ambiguous-owner" : "unknown-owner",
         candidates: [...new Set(owners.map(o => o.scopeId))].slice(0, 64), ordinal: !primary && scopeId ? box?.nextOrdinal ?? 1 : null,
-        state: primary ? "superseded" : malformed ? "quarantined" : owner ? critical ? "assigned" : "observed" : "received", offerId: null, epoch: null,
+        state: malformed ? "quarantined" : primary ? "superseded" : owner ? critical ? "assigned" : "observed" : "received", offerId: null, epoch: null,
         result: !primary && owner && !critical ? { kind: "no-action", reason: "Bounded evidence metadata only; no lifecycle outcome or model wake.", evidenceIds: [blob.id] } : null, version: 1 };
       // A duplicate of unresolved triage retains the original unresolved owner, even after registration.
       if (primary && primary.scopeId !== owner?.scopeId) {
@@ -128,7 +128,7 @@ export class SupervisionEvents {
       const id = sourceId(kind, agentId), old = s.inbox.sources.find(c => c.id === id);
       if (expectedVersion !== undefined && expectedVersion !== (old?.version ?? 0)) return { mutations: [], resultIds: [id] };
       const value: InboxSource = { id, kind, hostId: "local", agentId, epoch, cursor: epoch === old?.epoch ? old.cursor : null,
-        maxSeq: epoch === old?.epoch ? old.maxSeq : null, coverage: "gap", gaps: [...new Set([...gaps, ...(old && old.epoch !== epoch ? ["epoch-changed" as const] : [])])],
+        maxSeq: epoch === old?.epoch ? old.maxSeq : null, coverage: "gap", gaps: [...new Set([...gaps, ...(hasMalformedQuarantine(s.inbox, kind, agentId) ? ["malformed" as const] : []), ...(old && old.epoch !== epoch ? ["epoch-changed" as const] : [])])],
         observedAt: this.now(), version: (old?.version ?? 0) + 1 };
       return { mutations: [{ kind: "inbox-source", value }], resultIds: [id] };
     }));
@@ -139,6 +139,11 @@ export class SupervisionEvents {
     let page: TimelinePage;
     try { page = await paseo.agents.ref(agentId).timeline.refetch({ direction: old?.cursor ? "after" : "tail", ...(old?.cursor ? { cursor: old.cursor } : {}), limit: 32, projection: "canonical" }); }
     catch { await this.recordGap("timeline", agentId, old?.epoch ?? null, ["fetch-failed"], old?.version ?? 0); return null; }
+    // Qualify the returned typed source before using any epoch, entries or cursor. This is not authentication.
+    if (page.agentId !== agentId) {
+      await this.recordGap("timeline", agentId, old?.epoch ?? null, ["malformed"], old?.version ?? 0);
+      return null;
+    }
     const relevant = turnId ? page.entries.filter(e => e.turnId === turnId) : page.entries;
     const gaps: InboxSource["gaps"] = [];
     if (page.error) gaps.push("fetch-failed");

@@ -8,6 +8,11 @@ export type InboxFrame = { kind: SupervisionExpected["kind"]; id: string; versio
 type Fail = (code: SupervisionCode, message: string) => never;
 export const inboxKey = (kind: string, id: string) => JSON.stringify([kind, id]);
 export const terminal = (a: InboxAssignment) => a.state === "handled" || a.state === "superseded" || a.state === "observed";
+/** A later ordinary observation cannot reconcile retained malformed evidence, even across epochs. */
+export function hasMalformedQuarantine(inbox: InboxProjection, kind: InboxSource["kind"], agentId: string) {
+  return inbox.assignments.some(a => a.state === "quarantined" && a.reason === "malformed" && inbox.events.some(e =>
+    e.id === a.id && e.envelope.source.kind === kind && e.envelope.subject.agentId === agentId));
+}
 export function inboxProjection(frames: Map<string, InboxFrame>): InboxProjection {
   const values = <T>(kind: string) => [...frames.values()].filter(f => f.kind === kind).map(f => f.value as T);
   return { events: values("inbox-event"), assignments: values("inbox-assignment"), sources: values("inbox-source"),
@@ -104,7 +109,9 @@ export function validateInbox(frames: Map<string, InboxFrame>, fail: Fail) {
     const event = get("inbox-event", row.id) as InboxEvent | undefined, primary = get("inbox-assignment", row.primaryEventId) as InboxAssignment | undefined;
     if (!event || !primary || primary.primaryEventId !== primary.id || primary.consequenceKey !== row.consequenceKey || (primary.scopeId !== row.scopeId && !(row.id !== row.primaryEventId && row.scopeId === null))) fail("CONFLICT", "Disposition lost its primary consequence/provenance.");
     if (row.id !== row.primaryEventId) {
-      if (row.state !== "superseded" || row.reason !== "duplicate" || row.ordinal !== null || row.result) fail("CONFLICT", "Duplicate observations cannot create a second actionable consequence.");
+      const duplicate = row.state === "superseded" && row.reason === "duplicate";
+      const conflict = row.state === "quarantined" && row.reason === "malformed" && event.critical && event.envelope.certainty === "unknown";
+      if ((!duplicate && !conflict) || row.ordinal !== null || row.result || (conflict && (row.offerId || row.epoch !== null))) fail("CONFLICT", "Secondary observations must be superseded duplicates or unresolved malformed evidence, never another actionable consequence.");
     } else {
       if (consequences.has(row.consequenceKey)) fail("CONFLICT", "Semantic consequence already has a primary event.");
       consequences.set(row.consequenceKey, row.id);

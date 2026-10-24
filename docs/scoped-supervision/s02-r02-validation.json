@@ -1,0 +1,277 @@
+{
+  "format": "firstmate.s02-r02-correction-validation/1",
+  "generatedAt": "2026-10-24T23:16:51.821Z",
+  "sourceBase": "a75abc21552e14615d02b443efe2a068c84bac1c",
+  "reviewedHead": "e8e4646604b040693e4a80587653b7bfdeff4057",
+  "node": "v24.18.0",
+  "platform": "win32",
+  "branch": "fm/fm-ss-s02",
+  "sourceDigestEncoding": "SHA-256 of exact staged Git blob bytes; excludes this self-referential receipt",
+  "sources": {
+    "docs/scoped-supervision/S02-R02-corrections.md": "e79b15d6e6317dbc5e5e62c036e77a18a3947be1ace00f91a971dc49cf4b13a0",
+    "docs/scoped-supervision/S02.md": "621fc8db49cf30c2ff78a0a24c50f7bca76218963226c1ee5a5e79e8f29ab63e",
+    "docs/scoped-supervision/s02-r02-evidence/red.json": "da6375713d7165c4ebb65775620ab04404e7563fa9efa599d37db87e28944822",
+    "docs/scoped-supervision/s02-r02-evidence/red.log": "e147d6f3c5e2bc8a09cf3484084d2239146d26cca0a073f124b825814d6f82d4",
+    "docs/scoped-supervision/s02-r02-evidence/typecheck-initial-failure.log": "3ad6cbd9a84fddd5ac31d66dbefdbc8acc8947e8b912cf87c34e7960df87d329",
+    "docs/scoped-supervision/s02-validation.json": "b078f20d12e45fc99385cfeac3db70922a353fd4f433f79f1418a909b9bb2b19",
+    "index.server.ts": "50bd1f6e74cca7db13ad80b9ee7e3d4f73efd9d284cb299e7006722e44bfd6ab",
+    "server/crew-seen.ts": "3adba5858fab80f4830004acfcd254a4b1979e6a60f4fcc866cdf0ac34319959",
+    "server/supervision-events.test.ts": "677c0a062be6ea8df844b4619304b4572f8e5ae10d48b9797ee8a812fc6c6b06",
+    "server/supervision-events.ts": "2198f7746d94193ced435a16b162be96d1934621151083baf7728a31db89e1ff",
+    "server/supervision-inbox-state.ts": "9dc2ad7eee8afbb692acdcec681c36c53efdd4e817f9b6a03928c2afe0bb9be5",
+    "server/supervision-inbox.test.ts": "44bfc09f6d21240f915c3175e9b847f0e8d9317e14a1f6dc3488f4dcd0694e95",
+    "server/supervision-inbox.ts": "68bd004df7063b93902d86bf8651bf450bb4de6a54e5c6f811886414409aa031",
+    "server/supervision-status.ts": "4271374d3aaec3dd92f258a47779474c56c51658855279fcbb4a55113d34a41c",
+    "server/supervision-store.ts": "53dcd3b86d531df2014689379084e4347a0a0d1ca044b895ad8d694228d91881",
+    "shared/supervision-inbox.ts": "95c4419c72afed14308dc7a9db1fab0bea58355c75df653afc63a82be7ca42cb",
+    "shared/supervision-rpc.ts": "dbb9237aebade9a086688e1b0ac4f99be87cfd3fcc7c21d0cb7ed0aa98532902",
+    "shared/supervision.ts": "5a22ccd41230998d75ed224bb352168871c288fd41c23d03f738805310160846",
+    "test/fixtures/supervision-r02/.gitattributes": "4dfccf3e03b653552f3c23235d716e7c930657d4f13fd1754e0676938db5c4a5",
+    "test/fixtures/supervision-r02/r02-review.test.ts.txt": "6e6d564d70ee92fe26bfe9e1c5b61f949f3118b2b8aa2bd4e86caa2af0f821b8",
+    "test/supervision-inbox-fixture.ts": "e0cc96dc2cb5b5d686cf5141fe80f35757485261fa2063028c3c8af227ba453e",
+    "test/supervision-r02.test.ts": "4d3b83ac4bb9375552bd2a8a67fd920d616d9fb621f064491d95b6db645386c5"
+  },
+  "unchangedFromReviewedHead": {
+    "docs/scoped-supervision/S02.md": "621fc8db49cf30c2ff78a0a24c50f7bca76218963226c1ee5a5e79e8f29ab63e",
+    "index.server.ts": "50bd1f6e74cca7db13ad80b9ee7e3d4f73efd9d284cb299e7006722e44bfd6ab",
+    "server/crew-seen.ts": "3adba5858fab80f4830004acfcd254a4b1979e6a60f4fcc866cdf0ac34319959",
+    "server/supervision-events.test.ts": "677c0a062be6ea8df844b4619304b4572f8e5ae10d48b9797ee8a812fc6c6b06",
+    "server/supervision-inbox.test.ts": "44bfc09f6d21240f915c3175e9b847f0e8d9317e14a1f6dc3488f4dcd0694e95",
+    "server/supervision-inbox.ts": "68bd004df7063b93902d86bf8651bf450bb4de6a54e5c6f811886414409aa031",
+    "server/supervision-store.ts": "53dcd3b86d531df2014689379084e4347a0a0d1ca044b895ad8d694228d91881",
+    "shared/supervision-inbox.ts": "95c4419c72afed14308dc7a9db1fab0bea58355c75df653afc63a82be7ca42cb",
+    "shared/supervision-rpc.ts": "dbb9237aebade9a086688e1b0ac4f99be87cfd3fcc7c21d0cb7ed0aa98532902",
+    "shared/supervision.ts": "5a22ccd41230998d75ed224bb352168871c288fd41c23d03f738805310160846",
+    "test/supervision-inbox-fixture.ts": "e0cc96dc2cb5b5d686cf5141fe80f35757485261fa2063028c3c8af227ba453e",
+    "templates/tools/workflow.mjs": "36c8d8831c130ff2b81434338da2cc7228c834c05521966a74ed297b940cfd5b",
+    "templates/tools/launch.mjs": "1023178498a89286402ede81f3281c13ab5bd6ec427687d0d3a0b90a326750c7",
+    "templates/data/charter.md": "3bd15040400c5617c4ca47ee12b949ef89f3c1c68ef0b74225374e816e0cd9a2",
+    "server/workflow-plans.ts": "2d844d6dfe059b6738761ffcf6ad4e43d46413f7556f11cd8c8c743efd12e806",
+    "server/workflow-service.ts": "88c7588141065d66ce3726954c98d6a3a31d882664cbce5a40084b6e54981967",
+    "server/watches.ts": "33c0657e82cbe5841cdf6ef20dce0dd163899b04869a91bf33b52770c39a0480",
+    "server/watch-service.ts": "dc6b57672322c9a758055f2435e72b87ce68bedbe7b55e4e3239c77e59ca9881",
+    "server/remotes.ts": "5b7858f6bbb15fe4efaca82dae597548cd0d1f4f26e94f49737b5d3f1c05910b",
+    "server/receipt-observers.ts": "7a13dc6e98e6530a4afb03eb35f8142c943d3d85124e2fdfade709ae841eaec6",
+    "package-lock.json": "655f3e6c78801ecc92e64c1695c439f575aa8d573e40ce2759d710054f4c104a",
+    "docs/scoped-supervision/s02-validation.json": "b078f20d12e45fc99385cfeac3db70922a353fd4f433f79f1418a909b9bb2b19"
+  },
+  "approvedInputsUnchanged": {
+    "fm-supervision-plan-corrections/implementation-plan.md": "ea808a52169bfb5988b00a9ac50d1784b2b17f377f6bc0d75ef1e01173da2a5f",
+    "fm-supervision-plan-corrections/acceptance-matrix.md": "7b20b02a8a692774f2c267015a1b7bdb72cd2462853733452af09df44ad47051",
+    "fm-supervision-plan-corrections/slices.json": "f1da8baeb8b7fc6a937770eaa6bfdeec1fc7830f810ac16676a4a4cb412b594d",
+    "fm-ss-r01-rereview/report.md": "90d484c66e695880492d8d842b077e355bb16a640d7e4177a39effa50d62e051",
+    "fm-ss-d4/decision.md": "b1e130aebc491576bb1ca322c72ca9eecf8003405d507c306fcf7b5f54ad52ed",
+    "fm-plans-simplification-review/report.md": "69f04e30fa50ad576792d57741b606c9941df116502f8cb81ab82cb584e5c4cb"
+  },
+  "reviewerInputRoot": "FirstMate home data/fm-ss-r02 (original artifacts retained, not modified)",
+  "reviewerInputs": [
+    {
+      "path": "report.md",
+      "bytes": 12648,
+      "sha256": "dd613a969fa6b5a3522aa56cb29dfc0936ccd079643cac5e1705858af6a822de"
+    },
+    {
+      "path": "source/test/r02-review.test.ts",
+      "bytes": 6293,
+      "sha256": "6e6d564d70ee92fe26bfe9e1c5b61f949f3118b2b8aa2bd4e86caa2af0f821b8"
+    },
+    {
+      "path": "paging-reproduction.json",
+      "bytes": 39497,
+      "sha256": "5b4b90adc28f9874f9a70ab91abfafbd07d8d388e1e1102f6e4c720cd0274be0"
+    },
+    {
+      "path": "conflict-reproduction.json",
+      "bytes": 49683,
+      "sha256": "b026a8b08df0cf975d02283880e043cb740a1ca9c0c13523c27c58751d6bb102"
+    },
+    {
+      "path": "foreign-page-reproduction.json",
+      "bytes": 19466,
+      "sha256": "1e1c410f4f15a4a88f92bd2e41845e62dc65d1cc863d1cd4787fc687313989e2"
+    },
+    {
+      "path": "partial-reoffer-control.json",
+      "bytes": 27988,
+      "sha256": "6545390de5e47264dca1e1e405aa2a245efe5537d9c57113dcb9f65b4342807d"
+    },
+    {
+      "path": "review-validation.json",
+      "bytes": 4285,
+      "sha256": "57f9a58d25c86e94fe26bbc09f34a103556d2ff436a71af47dfe92e90eb9562b"
+    },
+    {
+      "path": "artifact-manifest.json",
+      "bytes": 4366,
+      "sha256": "02ea3799f3ca49f03e282b2967ba70aae0fe5937beb21d70371bfabe4efe2ba4"
+    }
+  ],
+  "fixture": {
+    "clock": "2026-10-24T20:00:00.000Z",
+    "identitySeed": "test/supervision-fixture.ts + test/supervision-inbox-fixture.ts",
+    "requestsAndTemporaryRoots": "randomUUID per run, test/setup.ts isolated PASEO_HOME",
+    "modelOrProviderCalls": 0
+  },
+  "commands": {
+    "beforeFix": {
+      "command": "node node_modules/vitest/vitest.mjs run test/supervision-r02.test.ts --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s02-r02/red.json",
+      "expectedFailure": true,
+      "exitCode": 1,
+      "path": ".local/s02-r02/red.json",
+      "sha256": "da6375713d7165c4ebb65775620ab04404e7563fa9efa599d37db87e28944822",
+      "success": false,
+      "passed": 1,
+      "failed": 3,
+      "skipped": 0,
+      "files": 1,
+      "rawLog": {
+        "path": ".local/s02-r02/red.log",
+        "sha256": "5ad124a42cf2c95968fc8bc4e470d368d605be15d590595255a46f23743a2abc"
+      },
+      "adaptation": "Exact retained reviewer probe, output moved inside ignored worktree .local/s02-r02/probes; no product edits yet."
+    },
+    "copiedHarnessTypecheckFailure": {
+      "exitCode": 1,
+      "path": ".local/s02-r02/typecheck-initial-failure.log",
+      "sha256": "c0bf4c7ea8ccaab9a8ad2be3c6a3837792b0e7e2e091137227d8ca73d5aeb866",
+      "resolution": "Explicit import of URL from node:url; no product fix related to this harness-only type error."
+    },
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exitCode": 0,
+      "path": ".local/s02-r02/typecheck-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "affected": {
+      "command": "node node_modules/vitest/vitest.mjs run test/supervision-r02.test.ts server/supervision-events.test.ts server/supervision-inbox.test.ts server/supervision-store.test.ts server/supervision-ownership.test.ts server/supervision-process.test.ts server/supervision-crash.test.ts server/supervision-workflows.test.ts server/crew-seen.test.ts --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s02-r02/affected.json",
+      "exitCode": 0,
+      "path": ".local/s02-r02/affected.json",
+      "sha256": "d2f3818356335a0613a8006dfd104a8989f84ead5c03ae10586c8a197189dc10",
+      "success": true,
+      "passed": 137,
+      "failed": 0,
+      "skipped": 0,
+      "files": 9,
+      "rawLog": {
+        "path": ".local/s02-r02/affected.log",
+        "sha256": "465177fc2baf4756c375d106fce53551837ab795d62c8a0230f5fe9fa1dfc9ad"
+      }
+    },
+    "full": {
+      "command": "FIRSTMATE_RECEIPT_JOURNAL=1 node node_modules/vitest/vitest.mjs run --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s02-r02/full.json",
+      "exitCode": 0,
+      "path": ".local/s02-r02/full.json",
+      "sha256": "e9c5280cf0ae9c6d545312f99845f16c72ed870526fa94d6445a056b54dc4626",
+      "success": true,
+      "passed": 2507,
+      "failed": 0,
+      "skipped": 3,
+      "files": 169,
+      "rawLog": {
+        "path": ".local/s02-r02/full.log",
+        "sha256": "b1409731382ec6247d54e372d62cfd7bb6be8852ffeb8e474e0bd128b519b294"
+      }
+    },
+    "bundle": {
+      "command": "node .local/s02-r02/bundle-smoke.mjs",
+      "exitCode": 0,
+      "runtime": "v24.18.0",
+      "format": "cjs",
+      "export": "module.exports function (auto default-only entry)",
+      "homeFilesBefore": [],
+      "homeFilesAfter": [],
+      "invokedContribution": false,
+      "bundleSha256": "b64934450bceddbba82d32f9e5a19263fdc39431007422ce1e66d4baf1dfe6ce",
+      "rawLog": {
+        "path": ".local/s02-r02/bundle.log",
+        "sha256": "ff430d0d246035639436b11bfb0b79a6d0ebed460a9a7dd534a0e70051ab2a48"
+      }
+    }
+  },
+  "regressionAssertions": [
+    {
+      "name": "R02 independent exact-head checks scope paging must not skip earlier ordinals after a late triage resolution",
+      "status": "passed"
+    },
+    {
+      "name": "R02 independent exact-head checks changed content for the same hook outcome remains visibly quarantined after a duplicate",
+      "status": "passed"
+    },
+    {
+      "name": "R02 independent exact-head checks partial handling then higher-epoch reoffer retains handled facts and closes the watermark",
+      "status": "passed"
+    },
+    {
+      "name": "R02 independent exact-head checks public typed pages cannot silently associate a different agent with this scope",
+      "status": "passed"
+    },
+    {
+      "name": "R02 correction boundary regressions traverses every supported page size across late resolution and the response byte bound",
+      "status": "passed"
+    },
+    {
+      "name": "R02 correction boundary regressions retains same-outcome quarantine and provenance after retries/restart (handled primary: false)",
+      "status": "passed"
+    },
+    {
+      "name": "R02 correction boundary regressions retains same-outcome quarantine and provenance after retries/restart (handled primary: true)",
+      "status": "passed"
+    },
+    {
+      "name": "R02 correction boundary regressions rejects returned timeline identity worker-b without establishing any attributed baseline",
+      "status": "passed"
+    },
+    {
+      "name": "R02 correction boundary regressions rejects returned timeline identity WORKER-A without establishing any attributed baseline",
+      "status": "passed"
+    },
+    {
+      "name": "R02 correction boundary regressions rejects returned timeline identity  without establishing any attributed baseline",
+      "status": "passed"
+    },
+    {
+      "name": "R02 correction boundary regressions rejects returned timeline identity undefined without establishing any attributed baseline",
+      "status": "passed"
+    },
+    {
+      "name": "R02 correction boundary regressions retains the checked baseline after a foreign page, then accepts a correctly identified page and independent scope",
+      "status": "passed"
+    },
+    {
+      "name": "R02 correction boundary regressions a late mismatched page cannot overwrite a concurrently qualified source",
+      "status": "passed"
+    }
+  ],
+  "retainedBuilderReproductionSnapshots": [
+    {
+      "path": ".local/s02-r02/red-probes/paging-reproduction.json",
+      "sha256": "79862ebe02f180fbd06246c379950795946366670f5fc0f347e3a01ac5c1ad5e"
+    },
+    {
+      "path": ".local/s02-r02/red-probes/conflict-reproduction.json",
+      "sha256": "4a73dd3a5a447537fec11a05d314ae452f651078dcf699eb59efde35ce0b9fd3"
+    },
+    {
+      "path": ".local/s02-r02/red-probes/foreign-page-reproduction.json",
+      "sha256": "ada0457213551f25d7023a3ab438ad4c3d78a0e7f4a61b1bd519b19bfe112c26"
+    },
+    {
+      "path": ".local/s02-r02/red-probes/partial-reoffer-control.json",
+      "sha256": "1421c95a41ffb9b137114583675d94001e64ee8b83da87f950046e0124a694a4"
+    }
+  ],
+  "boundary": {
+    "rpcShapeChanged": false,
+    "historyMigration": false,
+    "conflictReconciliationAuthorityAdded": false,
+    "offersDefaultOff": true,
+    "ingressAttached": false,
+    "activation": false,
+    "modelOrProviderCalls": 0,
+    "delegatedAgents": 0,
+    "pluginInstallsOrReloads": 0,
+    "liveRoutingOrWatchChanges": 0,
+    "merged": false,
+    "independentRereviewRequired": true
+  }
+}

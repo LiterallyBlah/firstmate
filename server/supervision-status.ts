@@ -6,8 +6,12 @@ import { terminal } from "./supervision-inbox-state";
 /** Pure stored projection. Source coverage is separate from journal freshness. No timeline/model reads. */
 export function supervisionInboxStatus(status: SupervisionStatus, input: { scopeId?: string | undefined; pageKind?: "events" | "sources" | "offers"; after?: number; limit?: number } = {}, now = new Date()): SupervisionInboxStatus {
   const scopeId = input.scopeId ?? null, { inbox } = status;
-  const all = inbox.assignments.filter(a => a.id === a.primaryEventId && (!scopeId || a.scopeId === scopeId));
-  const pending = all.filter(a => !terminal(a)), triage = all.filter(a => !a.scopeId && !terminal(a));
+  const scoped = inbox.assignments.filter(a => !scopeId || (a.scopeId ?? inbox.assignments.find(p => p.id === a.primaryEventId)?.scopeId) === scopeId);
+  const all = scoped.filter(a => a.id === a.primaryEventId);
+  // Late triage resolution appends an ordinal without changing journal insertion order.
+  if (scopeId) all.sort((a, b) => a.ordinal! - b.ordinal!);
+  const quarantined = scoped.filter(a => a.state === "quarantined");
+  const pending = scoped.filter(a => !terminal(a)), triage = pending.filter(a => !a.scopeId && !inbox.assignments.find(p => p.id === a.primaryEventId)?.scopeId);
   const oldestPendingAt = pending.map(a => inbox.events.find(e => e.id === a.id)!.envelope.observedAt).sort()[0] ?? null;
   const after = input.after ?? 0, pageKind = input.pageKind ?? "events";
   const ids = new Set(status.tasks.filter(t => t.ownerScopeId === scopeId).map(t => t.id));
@@ -17,8 +21,9 @@ export function supervisionInboxStatus(status: SupervisionStatus, input: { scope
   const rows = pageKind === "events" ? all.filter((a, i) => (scopeId ? a.ordinal! : i + 1) > after).map(a => ({ event: inbox.events.find(e => e.id === a.id)!, disposition: a }))
     : (pageKind === "sources" ? sources : offers).slice(after);
   const output: SupervisionInboxStatus = { format: "firstmate.supervision-inbox/1", homeId: status.homeId, scopeId, sequence: status.sequence, hash: status.hash, pageKind,
-    freshness: status.freshness, observedAt: now.toISOString(), offersEnabled: false, deliverySupported: false, problems: status.problems.slice(0, 8).map(p => p.slice(0, 1024)),
-    counts: { pending: pending.length, triage: triage.length, quarantined: all.filter(a => a.state === "quarantined").length,
+    freshness: status.freshness, observedAt: now.toISOString(), offersEnabled: false, deliverySupported: false,
+    problems: [...status.problems, ...quarantined.map(a => `Unresolved malformed observation ${a.id}; retained in quarantine under consequence ${a.primaryEventId}.`)].slice(0, 8).map(p => p.slice(0, 1024)),
+    counts: { pending: pending.length, triage: triage.length, quarantined: quarantined.length,
       acknowledgedUnhandled: pending.filter(a => a.state === "acknowledged").length, uncertainOffers: offers.filter(o => o.state === "uncertain").length,
       sourcesWithGaps: sources.filter(s => s.coverage === "gap" || s.coverage === "unknown").length, lowerBound: status.freshness === "held" },
     oldestPendingAt, oldestPendingAgeMs: oldestPendingAt ? Math.max(0, now.getTime() - Date.parse(oldestPendingAt)) : null,
