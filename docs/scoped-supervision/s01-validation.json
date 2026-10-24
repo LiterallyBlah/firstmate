@@ -14,11 +14,11 @@
     "exitCode": 0
   },
   "tests": {
-    "command": "node node_modules/vitest/vitest.mjs run shared/supervision.test.ts server/supervision-store.test.ts server/supervision-workflows.test.ts server/supervision-crash.test.ts --reporter=verbose --reporter=json --outputFile=.local/s01/s01-tests.json",
-    "passed": 224,
+    "command": "node node_modules/vitest/vitest.mjs run shared/supervision.test.ts server/supervision-store.test.ts server/supervision-workflows.test.ts server/supervision-crash.test.ts server/supervision-process.test.ts --reporter=verbose --reporter=json --outputFile=.local/s01/s01-tests.json",
+    "passed": 228,
     "failed": 0,
-    "files": 4,
-    "reportSha256": "139f07a234f4876212f1ae61c044563b89ef8093f204f470dcfa9fb6f65556be",
+    "files": 5,
+    "reportSha256": "10d86b2122dfb3a9876f9967c25961eccc9a190f4e3dcc6a17de2d9453bd0e6a",
     "results": [
       {
         "file": "shared/supervision.test.ts",
@@ -797,6 +797,28 @@
         ]
       },
       {
+        "file": "server/supervision-process.test.ts",
+        "passed": 4,
+        "checks": [
+          {
+            "name": "classifies missing PID stat as dead",
+            "status": "passed"
+          },
+          {
+            "name": "keeps missing boot identity unknown even when PID stat is readable",
+            "status": "passed"
+          },
+          {
+            "name": "keeps denied PID stat unknown",
+            "status": "passed"
+          },
+          {
+            "name": "binds a readable PID to boot identity/start ticks and distinguishes zombie termination",
+            "status": "passed"
+          }
+        ]
+      },
+      {
         "file": "server/supervision-store.test.ts",
         "passed": 26,
         "checks": [
@@ -953,10 +975,10 @@
   "sourceDigestsEncoding": "SHA256 of UTF-8 file content with CRLF normalized to LF; validation file excluded to avoid self-reference",
   "sourceDigests": {
     ".github/workflows/check.yml": "7f9546f0738807918d52c3f7b7c41295f66934f9b8f4381ed464cd1fa651e842",
-    "docs/scoped-supervision/S01.md": "15661a9c407cd6daacd9d67b34842cf6d18f2cb364751af9a657ee3d7c0a139e",
+    "docs/scoped-supervision/S01.md": "801d0e35d4325bc16f8515ab23ebb3adcd4dd19d1fac95ecbcccc5076b1c31a9",
     "server/submissions.ts": "60c385b955752643499be484d94645ca16b9377f133945a1f635f8377f79e4d5",
     "server/supervision-crash.test.ts": "38eadcefaa6f903e6ddf5abc0142c1dd2fe465531490d2660e6357983ace2638",
-    "server/supervision-process.ts": "c9d813eaa0ba4660e59a358e868d4adc1d0d3d25b8803cc3250e40f4213c206a",
+    "server/supervision-process.ts": "6fb194ea0bc0954174736dcec78ab517c06b52eb68787b6660b590f54864c382",
     "server/supervision-store.test.ts": "259193051ad98c6b6ac2507d47f843c16d5eca1bb2f3a937fd6b62809c814d41",
     "server/supervision-store.ts": "05325e2f7e8f0e72537a0513503c1845cc5b15f5b4cfafb36fa52c49b5b339f3",
     "server/supervision-workflows.test.ts": "f30b7da62e41963d116388de6a3419ac3f93ff1248d06c01bb95f42bdd970e83",
@@ -967,6 +989,7 @@
     "test/fixtures/supervision-s00/examples.json": "85cbc708148cf76f9e8c31a77d1149a5b52e85346a486e998a5c5e68dc5aa395",
     "test/fixtures/supervision-s00/regression-corpus.json": "5d35b695013a74f053bdc7b062be59793156c184c48349a25b9052cab4b23d11",
     "test/supervision-child.ts": "0fc5ae7131c023340377d93e7725e6433e98e05bfc11bfb2e09bf5c44e60a072",
-    "test/supervision-fixture.ts": "b80b16da43f5166998736807e4cf5e0afb3c6e581dc6b6a73bacf25e187e7cd3"
+    "test/supervision-fixture.ts": "b80b16da43f5166998736807e4cf5e0afb3c6e581dc6b6a73bacf25e187e7cd3",
+    "server/supervision-process.test.ts": "d5cfead7eb9fcab6bc873224c0fa9b0fcd442d3ed7e9bfe4209030708189de9a"
   }
 }
