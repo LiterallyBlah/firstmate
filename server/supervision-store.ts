@@ -19,6 +19,8 @@ import { WorkflowEventSchema } from "./workflow-plans";
 import { mergeOwnership, OwnershipSchema as WorkflowOwnershipSchema, planOwnership, RetirementSchema, workflowHomeIdentity, type WorkflowOwnership } from "./workflow-ownership";
 import { replaySupervisionWorkflow } from "./supervision-workflows";
 import { supervisionProcessIdentity, type ProcessIdentity } from "./supervision-process";
+import { InboxAssignmentSchema, InboxEventSchema, InboxMailboxSchema, InboxOfferSchema, InboxRequestSchema, InboxSourceSchema, INBOX_LIMITS } from "../shared/supervision-inbox";
+import { eventOwners, inboxProjection, terminal, validateInbox, validateInboxChange } from "./supervision-inbox-state";
 
 const number = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), positive = number.min(1);
 const BlobSchema = z.object({ id: SupervisionHash, bytes: number }).strict();
@@ -30,6 +32,12 @@ export const SupervisionMutationSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("effect"), value: SupervisionEffectSchema }).strict(),
   z.object({ kind: z.literal("backend"), value: SupervisionBackendSchema }).strict(),
   z.object({ kind: z.literal("blob"), value: BlobSchema }).strict(),
+  z.object({ kind: z.literal("inbox-event"), value: InboxEventSchema }).strict(),
+  z.object({ kind: z.literal("inbox-assignment"), value: InboxAssignmentSchema }).strict(),
+  z.object({ kind: z.literal("inbox-source"), value: InboxSourceSchema }).strict(),
+  z.object({ kind: z.literal("inbox-mailbox"), value: InboxMailboxSchema }).strict(),
+  z.object({ kind: z.literal("inbox-offer"), value: InboxOfferSchema }).strict(),
+  z.object({ kind: z.literal("inbox-request"), value: InboxRequestSchema }).strict(),
   // Validate without replacing original wire data with schema defaults. Legacy hashes stay exact.
   z.object({ kind: z.literal("workflow"), scopeId: SupervisionUuid,
     event: z.custom<z.infer<typeof WorkflowEventSchema>>(value => WorkflowEventSchema.safeParse(value).success) }).strict(),
@@ -72,11 +80,16 @@ export interface SupervisionStoreOptions {
   boundary?: (name: string) => Promise<void>;
   processIdentity?: (pid: number) => Promise<ProcessIdentity>;
   maxJournalBytes?: number;
+  /** Queue pressure counts unresolved primary events, including triage. No critical eviction. */
+  maxPendingEvents?: number;
 }
 export class SupervisionError extends Error {
   constructor(readonly code: SupervisionCode, message: string) { super(message); }
 }
 function fail(code: SupervisionCode, message: string): never { throw new SupervisionError(code, message); }
+function checkInboxRequest(mutations: SupervisionMutation[], requestId: string) {
+  if (mutations.some(m => m.kind === "inbox-request" && m.value.id !== requestId)) fail("CONFLICT", "Inbox replay marker must name its publishing transaction's request ID.");
+}
 const key = (kind: string, id: string) => JSON.stringify([kind, id]);
 const pad = (value: number) => String(value).padStart(12, "0");
 const hashed = <T extends object>(body: T) => ({ ...body, hash: digest(body) });
@@ -233,6 +246,7 @@ export class SupervisionStore {
         value = mutation.value;
         if ("version" in mutation.value && mutation.value.version !== version) fail("STALE", "New row version must increment once.");
         const old = prior?.value as Record<string, unknown> | undefined;
+        validateInboxChange(mutation.kind, mutation.value, old, next, fail);
         if (mutation.kind === "scope") {
           if (mutation.value.homeId !== this.homeId) fail("CONFLICT", "Scope belongs to another lexical home.");
           if (old && (old.kind !== mutation.value.kind || old.mode !== mutation.value.mode || (old.state === "retired" && mutation.value.state !== "retired"))) fail("HELD", "Scope identity/mode or retirement cannot be reset.");
@@ -272,6 +286,19 @@ export class SupervisionStore {
       next.set(k, { kind, id, version, value }); changes.push({ kind, id, version });
     }
     this.validateIndexes(next);
+    validateInbox(next, fail);
+    for (const mutation of body.mutations) if (mutation.kind === "inbox-assignment" && mutation.value.scopeId) {
+      const prior = frames.get(key("inbox-assignment", mutation.value.id))?.value as z.infer<typeof InboxAssignmentSchema> | undefined;
+      if (prior && !prior.scopeId) {
+        const event = next.get(key("inbox-event", mutation.value.id))!.value as z.infer<typeof InboxEventSchema>;
+        const projection = (kind: Frame["kind"]) => [...next.values()].filter(f => f.kind === kind).map(f => f.value);
+        const owners = eventOwners(event, projection("task") as SupervisionStatus["tasks"], projection("attempt") as SupervisionStatus["attempts"]);
+        if (owners.length !== 1 || owners[0]!.attempt.id !== mutation.value.attemptId) fail("UNKNOWN_OWNER", "Triage resolution became ambiguous before publication.");
+      }
+    }
+    // Fixed wire ceiling at replay; a smaller fixture/admission alarm is checked at append only.
+    if (inboxProjection(next).assignments.filter(a => a.primaryEventId === a.id && !terminal(a)).length > INBOX_LIMITS.pending)
+      fail("HELD", "Pending event ceiling reached; retain history and reconcile source gaps.");
     for (const mutation of body.mutations) {
       if (mutation.kind === "effect" && !frames.has(key("effect", mutation.value.id))) {
         const binding = next.get(key("binding", mutation.value.scopeId))?.value as z.infer<typeof SupervisionBindingSchema> | undefined;
@@ -386,6 +413,7 @@ export class SupervisionStore {
           tip.requestId !== event.requestId || tip.requestHash !== event.requestHash || tip.generation !== event.generation || digest(event.body) !== event.requestHash ||
           result.coordinators[event.generation - 1]?.hash !== event.coordinatorHash || result.transactions.some(t => t.requestId === event.requestId)) fail("HELD", "Transaction chain, request or coordinator identity mismatch.");
         await this.checkBlobs(event.body.mutations);
+        checkInboxRequest(event.body.mutations, event.requestId);
         const next = this.apply(result.frames, event.body);
         if (digest(next.changes) !== digest(event.changes) || frameDigest(next.frames) !== event.projectionHash || digest(ownership(next.frames)) !== digest(tip.ownership)) fail("HELD", "Transaction projection or retained ownership mismatch.");
         if (!durable.includes(`${pad(sequence)}.publication.json`)) {
@@ -414,6 +442,7 @@ export class SupervisionStore {
     const input = { actor: this.actor, expectedVersions, mutations }, body = structuredClone(BodySchema.parse(input));
     // Bind exact canonical submitted data; schema defaults must not silently change request identity.
     if (digest(input) !== digest(body)) fail("CONFLICT", "Submit the complete canonical mutation contract, including workflow defaults.");
+    checkInboxRequest(body.mutations, requestId);
     const requestHash = digest(body);
     return serialized(this.root, async () => {
       const snapshot = await this.scan();
@@ -427,6 +456,9 @@ export class SupervisionStore {
       if (!snapshot.initialized) fail("HELD", "Initialize a new fixture store explicitly.");
       const coordinator = await this.assertCoordinator();
       const next = this.apply(snapshot.frames, body);
+      const pending = inboxProjection(next.frames).assignments.filter(a => a.primaryEventId === a.id && !terminal(a)).length;
+      const oldPending = inboxProjection(snapshot.frames).assignments.filter(a => a.primaryEventId === a.id && !terminal(a)).length;
+      if (pending > oldPending && pending > (this.options.maxPendingEvents ?? INBOX_LIMITS.pending)) fail("HELD", "Pending event alarm; ingress baseline has not advanced.");
       await this.checkBlobs(body.mutations);
       const event = hashed({ format: "firstmate.supervision-transaction/1" as const, homeId: this.homeId,
         sequence: snapshot.sequence + 1, previous: snapshot.hash, generation: coordinator.generation, coordinatorHash: coordinator.hash,
@@ -500,10 +532,18 @@ export class SupervisionStore {
       retirements: values<{ scopeId: string; receipt: z.infer<typeof RetirementSchema> }>("retirement")
         .map(({ scopeId, receipt }) => ({ scopeId, plan: receipt.plan, evidence: receipt.evidence, hash: receipt.hash })),
       retainedOwnership: snapshot.ownership,
+      inbox: inboxProjection(snapshot.frames),
       index: { schema: 1, sequence: snapshot.sequence, hash: snapshot.hash,
         taskOwners: Object.fromEntries(tasks.map(t => [JSON.stringify([t.hostId.trim().toLowerCase(), t.projectId, t.nodeId]), t.ownerScopeId])),
         effectKeys: Object.fromEntries(effects.map(e => [e.logicalKey, e.id])) },
     };
+  }
+  /** Read accepted transaction identity without reauthorizing it or acquiring the coordinator. */
+  async requestReceipt(requestId: string): Promise<SupervisionReceipt | null> {
+    const snapshot = await this.scan();
+    if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
+    const transaction = snapshot.transactions.find(t => t.requestId === requestId);
+    return transaction ? this.receipt(transaction) : null;
   }
   /** Original event/request identity and transaction receipt, independent of later policy changes. */
   async workflowRequest(planId: string, requestId: string): Promise<{ requestHash: string; eventHash: string; receipt: SupervisionReceipt } | null> {

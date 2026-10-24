@@ -70,6 +70,7 @@ export async function markCrewSeen(
   mateId: string,
   readSince: Date,
   clear: ClearAttention = clearOverChannel,
+  mayClear: (agentId: string) => boolean | Promise<boolean> = () => true,
 ): Promise<string[]> {
   let crew: PaseoAgent[];
   try {
@@ -85,6 +86,7 @@ export async function markCrewSeen(
       .filter((agent) => isClearableCrew(agent, mateId, readSince))
       .map(async function markOne(agent): Promise<string | null> {
         try {
+          if (!await mayClear(agent.id)) return null;
           await clear(agent.id);
           return agent.id;
         } catch (error) {
@@ -106,6 +108,7 @@ export function registerCrewSeen(
   readConfig: () => Promise<FirstmateConfig>,
   clear: ClearAttention = clearOverChannel,
   now: () => Date = () => new Date(),
+  readMayClear: () => Promise<(agentId: string) => boolean> = async () => () => true,
 ): () => void {
   const startedAt = new Map<string, Date>();
   const unregisterStart = server.on("agent.turn_started", (event) => {
@@ -118,7 +121,7 @@ export function registerCrewSeen(
     try {
       const mateId = (await readConfig()).mateAgentId.trim();
       if (mateId !== event.agent.id) return;
-      const cleared = await markCrewSeen(paseo, mateId, readSince, clear);
+      const cleared = await markCrewSeen(paseo, mateId, readSince, clear, await readMayClear());
       if (cleared.length > 0) {
         console.log(`[firstmate] cleared ${cleared.length} crewmates the first mate has read about`);
       }

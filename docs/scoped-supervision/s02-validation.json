@@ -1,0 +1,142 @@
+{
+  "format": "firstmate.s02-validation/1",
+  "sourceBase": "a75abc21552e14615d02b443efe2a068c84bac1c",
+  "acceptedS01Head": "36d086045a72fbfd4f8b94aaed19c007a7d8ac2d",
+  "platform": "win32",
+  "node": "v24.18.0",
+  "fixture": {
+    "clock": "2026-10-24T20:00:00.000Z",
+    "identitySeed": "test/supervision-fixture.ts ids + test/supervision-inbox-fixture.ts second map",
+    "requestIdsAndTemporaryRoots": "per-run randomUUID; no provider/model calls",
+    "publicationFaults": [
+      "tip:linked",
+      "event:linked",
+      "publication:linked"
+    ]
+  },
+  "inputs": {
+    "fm-supervision-plan-corrections/implementation-plan.md": "ea808a52169bfb5988b00a9ac50d1784b2b17f377f6bc0d75ef1e01173da2a5f",
+    "fm-supervision-plan-corrections/acceptance-matrix.md": "7b20b02a8a692774f2c267015a1b7bdb72cd2462853733452af09df44ad47051",
+    "fm-supervision-plan-corrections/slices.json": "f1da8baeb8b7fc6a937770eaa6bfdeec1fc7830f810ac16676a4a4cb412b594d",
+    "fm-ss-r01-rereview/report.md": "90d484c66e695880492d8d842b077e355bb16a640d7e4177a39effa50d62e051",
+    "fm-ss-d4/decision.md": "b1e130aebc491576bb1ca322c72ca9eecf8003405d507c306fcf7b5f54ad52ed",
+    "fm-plans-simplification-review/report.md": "69f04e30fa50ad576792d57741b606c9941df116502f8cb81ab82cb584e5c4cb"
+  },
+  "sourceDigestEncoding": "SHA-256 of exact staged Git blob bytes, without this self-referential receipt",
+  "sources": {
+    "docs/scoped-supervision/S02.md": "621fc8db49cf30c2ff78a0a24c50f7bca76218963226c1ee5a5e79e8f29ab63e",
+    "index.server.ts": "50bd1f6e74cca7db13ad80b9ee7e3d4f73efd9d284cb299e7006722e44bfd6ab",
+    "server/crew-seen.ts": "3adba5858fab80f4830004acfcd254a4b1979e6a60f4fcc866cdf0ac34319959",
+    "server/supervision-events.test.ts": "677c0a062be6ea8df844b4619304b4572f8e5ae10d48b9797ee8a812fc6c6b06",
+    "server/supervision-events.ts": "cc154b1b262a0f780fecda7671f02a1503ac86dc202b124a1d4249313c6e42d3",
+    "server/supervision-inbox-state.ts": "adc08ecdfde8f55cd8992760bbb908bb52394305a0524b58fa12307ea2de2e3d",
+    "server/supervision-inbox.test.ts": "44bfc09f6d21240f915c3175e9b847f0e8d9317e14a1f6dc3488f4dcd0694e95",
+    "server/supervision-inbox.ts": "68bd004df7063b93902d86bf8651bf450bb4de6a54e5c6f811886414409aa031",
+    "server/supervision-status.ts": "a242af0caf58caec019a39c679805096bb6ebb8fccdc2eae7c54ad66b4cabfa3",
+    "server/supervision-store.ts": "53dcd3b86d531df2014689379084e4347a0a0d1ca044b895ad8d694228d91881",
+    "shared/supervision-inbox.ts": "95c4419c72afed14308dc7a9db1fab0bea58355c75df653afc63a82be7ca42cb",
+    "shared/supervision-rpc.ts": "dbb9237aebade9a086688e1b0ac4f99be87cfd3fcc7c21d0cb7ed0aa98532902",
+    "shared/supervision.ts": "5a22ccd41230998d75ed224bb352168871c288fd41c23d03f738805310160846",
+    "test/supervision-inbox-fixture.ts": "e0cc96dc2cb5b5d686cf5141fe80f35757485261fa2063028c3c8af227ba453e"
+  },
+  "unchanged": {
+    "templates/tools/workflow.mjs": "36c8d8831c130ff2b81434338da2cc7228c834c05521966a74ed297b940cfd5b",
+    "templates/tools/launch.mjs": "1023178498a89286402ede81f3281c13ab5bd6ec427687d0d3a0b90a326750c7",
+    "templates/data/charter.md": "3bd15040400c5617c4ca47ee12b949ef89f3c1c68ef0b74225374e816e0cd9a2",
+    "server/workflow-plans.ts": "2d844d6dfe059b6738761ffcf6ad4e43d46413f7556f11cd8c8c743efd12e806",
+    "server/workflow-service.ts": "88c7588141065d66ce3726954c98d6a3a31d882664cbce5a40084b6e54981967",
+    "server/watches.ts": "33c0657e82cbe5841cdf6ef20dce0dd163899b04869a91bf33b52770c39a0480",
+    "server/watch-service.ts": "dc6b57672322c9a758055f2435e72b87ce68bedbe7b55e4e3239c77e59ca9881",
+    "server/remotes.ts": "5b7858f6bbb15fe4efaca82dae597548cd0d1f4f26e94f49737b5d3f1c05910b",
+    "server/receipt-observers.ts": "7a13dc6e98e6530a4afb03eb35f8142c943d3d85124e2fdfade709ae841eaec6",
+    "package-lock.json": "655f3e6c78801ecc92e64c1695c439f575aa8d573e40ce2759d710054f4c104a"
+  },
+  "commands": {
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exitCode": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "targeted": {
+      "command": "node node_modules/vitest/vitest.mjs run server/supervision-events.test.ts server/supervision-inbox.test.ts --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s02/review-final-inbox-tests.json",
+      "exitCode": 0,
+      "path": ".local/s02/review-final-inbox-tests.json",
+      "sha256": "3faa31246858fad68323420c6c3364e5f97a23a3a1e63077af4f6f9e041d01ed",
+      "success": true,
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0,
+      "files": 2
+    },
+    "full": {
+      "command": "node node_modules/vitest/vitest.mjs run --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s02/review-final-full-tests.json",
+      "exitCode": 0,
+      "path": ".local/s02/review-final-full-tests.json",
+      "sha256": "8b86afd5dfea3ecd764f47f2d9e22968f6fd10c5b8a6c3838df3c66ee4f7d28d",
+      "success": true,
+      "passed": 2494,
+      "failed": 0,
+      "skipped": 3,
+      "files": 168
+    },
+    "markerBeforeFix": {
+      "expectedFailure": true,
+      "path": ".local/s02/marker-red.json",
+      "sha256": "02fa260791c7ceae9439280385bc5ed9ce3e0a6b0e8575411299fb909b467c94",
+      "success": false,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 11,
+      "files": 1
+    },
+    "catalogBeforeFix": {
+      "expectedFailure": true,
+      "path": ".local/s02/catalog-red.json",
+      "sha256": "ebbb55bd041e40c3bdb48cf8dfd325dca5b9fd9cc6ce112dfa77e9fde1ccb98a",
+      "success": false,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 31,
+      "files": 1
+    },
+    "bundle": {
+      "command": "node .local/s02/bundle-smoke.mjs",
+      "exitCode": 0,
+      "runtime": "v24.18.0",
+      "format": "cjs",
+      "export": "module.exports function (auto default-only entry)",
+      "homeFilesBefore": [],
+      "homeFilesAfter": [],
+      "invokedContribution": false,
+      "artifactSha256": "1f18f54cc3472b3be17855cb5b46a893cb937bd6ed12e21434602a030f59c6f0"
+    }
+  },
+  "boundaries": {
+    "offersDefaultOff": true,
+    "ingressAttached": false,
+    "runtimeActivation": false,
+    "providerCalls": 0,
+    "delegatedAgents": 0,
+    "pluginInstallsOrReloads": 0,
+    "liveStoreWrites": 0,
+    "workflowOrTimerChanges": 0,
+    "mergePerformed": false,
+    "durability": "S02 isolated publication-boundary throws and fresh-reader replay; existing S01 real SIGKILL tests rerun. Not disk-loss protection.",
+    "acceptanceEvidence": {
+      "A02": "Local ingress/provenance foundation only",
+      "A06": "Local cursor/gap/publication foundation only",
+      "A08": "Mailbox independence only; no worker/reviewer/model progression",
+      "A09": "Read-only stored status only; S05 UI deferred",
+      "A17": "A17.preserve only"
+    },
+    "fullScenarioAcceptanceClaim": false,
+    "deferred": [
+      "S04 effect/review admission",
+      "S05 UI",
+      "S06 live trial",
+      "remote adapters",
+      "authenticated caller or receiver fencing",
+      "performance/cost targets"
+    ]
+  }
+}
