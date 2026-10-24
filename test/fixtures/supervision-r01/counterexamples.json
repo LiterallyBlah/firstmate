@@ -1,0 +1,669 @@
+{
+  "format": "firstmate.s01-r01-counterexamples/1",
+  "reviewedHead": "7139feb970e7dc4bc822793394fcf82c24fc61c0",
+  "adaptation": "Retained mutation payloads; only Scope.homeId is replaced with the fresh isolated test home. IDs, relationships, worker and host data are retained.",
+  "duplicateWorker": {
+    "first": [
+      {
+        "kind": "scope",
+        "value": {
+          "homeId": "rebound-to-test-home",
+          "id": "81e6c44b-0d5b-4946-8455-b361a3a4a074",
+          "kind": "plan",
+          "mode": "scoped",
+          "projectIds": [
+            "00000000-0000-4000-8000-000000000002"
+          ],
+          "sponsorId": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "binding",
+        "value": {
+          "acknowledgedSeq": 0,
+          "agentId": "supervisor-a",
+          "checkpointHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "epoch": 1,
+          "heartbeatDue": null,
+          "hostId": "local",
+          "profileDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scopeId": "81e6c44b-0d5b-4946-8455-b361a3a4a074",
+          "state": "prepared",
+          "workspaceId": "supervisor-space-a"
+        }
+      },
+      {
+        "kind": "backend",
+        "value": {
+          "backend": "scoped",
+          "ownerScopeId": "81e6c44b-0d5b-4946-8455-b361a3a4a074",
+          "planId": "plan-a",
+          "sourceHash": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "task",
+        "value": {
+          "currentAttempt": "abfb049d-2af2-41e6-9478-78b10d6bbda1",
+          "hostId": "local",
+          "id": "8ef565f4-aee9-443c-954c-7bf6bce5d0f0",
+          "nodeId": "node-a",
+          "ownerScopeId": "81e6c44b-0d5b-4946-8455-b361a3a4a074",
+          "planId": "plan-a",
+          "projectId": "00000000-0000-4000-8000-000000000002",
+          "version": 1
+        }
+      },
+      {
+        "kind": "attempt",
+        "value": {
+          "briefHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "evidenceIds": [],
+          "id": "abfb049d-2af2-41e6-9478-78b10d6bbda1",
+          "launchEffectId": "e29b7b79-d7ee-41d9-8100-1c89c6a9c8c4",
+          "notificationStatus": "unknown",
+          "ordinal": 1,
+          "originalNotificationOwner": null,
+          "spentAgents": 1,
+          "spentTurns": 1,
+          "state": "running",
+          "taskId": "8ef565f4-aee9-443c-954c-7bf6bce5d0f0",
+          "version": 1,
+          "worker": {
+            "agentId": "same-worker",
+            "hostId": "local",
+            "workspaceId": "same-workspace"
+          }
+        }
+      },
+      {
+        "kind": "effect",
+        "value": {
+          "approvalId": null,
+          "attemptId": "abfb049d-2af2-41e6-9478-78b10d6bbda1",
+          "epoch": 1,
+          "evidenceVector": [],
+          "id": "e29b7b79-d7ee-41d9-8100-1c89c6a9c8c4",
+          "logicalKey": "a/create",
+          "operation": "agent.create",
+          "planRevision": 1,
+          "policyVector": [],
+          "receiptRef": null,
+          "receiverKey": null,
+          "requestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requestId": "d663c313-8fcc-4aa1-8626-d1f2154c1bb5",
+          "resourceIds": [
+            "workspace:fixture"
+          ],
+          "scopeId": "81e6c44b-0d5b-4946-8455-b361a3a4a074",
+          "state": "accepted",
+          "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "version": 1
+        }
+      }
+    ],
+    "second": [
+      {
+        "kind": "scope",
+        "value": {
+          "homeId": "rebound-to-test-home",
+          "id": "72ad362a-5fb2-47f1-a652-448dda0ef61d",
+          "kind": "plan",
+          "mode": "scoped",
+          "projectIds": [
+            "00000000-0000-4000-8000-000000000002"
+          ],
+          "sponsorId": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "binding",
+        "value": {
+          "acknowledgedSeq": 0,
+          "agentId": "supervisor-b",
+          "checkpointHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "epoch": 1,
+          "heartbeatDue": null,
+          "hostId": "local",
+          "profileDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scopeId": "72ad362a-5fb2-47f1-a652-448dda0ef61d",
+          "state": "prepared",
+          "workspaceId": "supervisor-space-b"
+        }
+      },
+      {
+        "kind": "backend",
+        "value": {
+          "backend": "scoped",
+          "ownerScopeId": "72ad362a-5fb2-47f1-a652-448dda0ef61d",
+          "planId": "plan-b",
+          "sourceHash": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "task",
+        "value": {
+          "currentAttempt": "a421402b-4da4-477c-be12-55a42e9e136f",
+          "hostId": "local",
+          "id": "7a1f6291-4ca4-42ec-bb03-8c1d9173f61e",
+          "nodeId": "node-b",
+          "ownerScopeId": "72ad362a-5fb2-47f1-a652-448dda0ef61d",
+          "planId": "plan-b",
+          "projectId": "00000000-0000-4000-8000-000000000002",
+          "version": 1
+        }
+      },
+      {
+        "kind": "attempt",
+        "value": {
+          "briefHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "evidenceIds": [],
+          "id": "a421402b-4da4-477c-be12-55a42e9e136f",
+          "launchEffectId": "8a4307ed-3c38-4b12-ab23-ee04a82301d0",
+          "notificationStatus": "unknown",
+          "ordinal": 1,
+          "originalNotificationOwner": null,
+          "spentAgents": 1,
+          "spentTurns": 1,
+          "state": "running",
+          "taskId": "7a1f6291-4ca4-42ec-bb03-8c1d9173f61e",
+          "version": 1,
+          "worker": {
+            "agentId": "same-worker",
+            "hostId": "local",
+            "workspaceId": "same-workspace"
+          }
+        }
+      },
+      {
+        "kind": "effect",
+        "value": {
+          "approvalId": null,
+          "attemptId": "a421402b-4da4-477c-be12-55a42e9e136f",
+          "epoch": 1,
+          "evidenceVector": [],
+          "id": "8a4307ed-3c38-4b12-ab23-ee04a82301d0",
+          "logicalKey": "b/create",
+          "operation": "agent.create",
+          "planRevision": 1,
+          "policyVector": [],
+          "receiptRef": null,
+          "receiverKey": null,
+          "requestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requestId": "92d3b01a-cd7a-46e1-8b2a-2a85a7338376",
+          "resourceIds": [
+            "workspace:fixture"
+          ],
+          "scopeId": "72ad362a-5fb2-47f1-a652-448dda0ef61d",
+          "state": "accepted",
+          "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "version": 1
+        }
+      }
+    ]
+  },
+  "foreignAttempt": {
+    "first": [
+      {
+        "kind": "scope",
+        "value": {
+          "homeId": "rebound-to-test-home",
+          "id": "026f1c68-c695-49da-97d9-d26ad54d82e8",
+          "kind": "plan",
+          "mode": "scoped",
+          "projectIds": [
+            "00000000-0000-4000-8000-000000000002"
+          ],
+          "sponsorId": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "binding",
+        "value": {
+          "acknowledgedSeq": 0,
+          "agentId": "supervisor-a",
+          "checkpointHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "epoch": 1,
+          "heartbeatDue": null,
+          "hostId": "local",
+          "profileDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scopeId": "026f1c68-c695-49da-97d9-d26ad54d82e8",
+          "state": "prepared",
+          "workspaceId": "supervisor-space-a"
+        }
+      },
+      {
+        "kind": "backend",
+        "value": {
+          "backend": "scoped",
+          "ownerScopeId": "026f1c68-c695-49da-97d9-d26ad54d82e8",
+          "planId": "plan-a",
+          "sourceHash": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "task",
+        "value": {
+          "currentAttempt": "e13cc18d-30c8-4a2b-a705-7b5cba0df500",
+          "hostId": "local",
+          "id": "9e2b97a3-e476-4019-8f82-a5cb466fe02b",
+          "nodeId": "node-a",
+          "ownerScopeId": "026f1c68-c695-49da-97d9-d26ad54d82e8",
+          "planId": "plan-a",
+          "projectId": "00000000-0000-4000-8000-000000000002",
+          "version": 1
+        }
+      },
+      {
+        "kind": "attempt",
+        "value": {
+          "briefHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "evidenceIds": [],
+          "id": "e13cc18d-30c8-4a2b-a705-7b5cba0df500",
+          "launchEffectId": "35d926e0-bc23-467e-8518-679cadb4756d",
+          "notificationStatus": "unknown",
+          "ordinal": 1,
+          "originalNotificationOwner": null,
+          "spentAgents": 1,
+          "spentTurns": 1,
+          "state": "running",
+          "taskId": "9e2b97a3-e476-4019-8f82-a5cb466fe02b",
+          "version": 1,
+          "worker": {
+            "agentId": "same-worker",
+            "hostId": "local",
+            "workspaceId": "same-workspace"
+          }
+        }
+      },
+      {
+        "kind": "effect",
+        "value": {
+          "approvalId": null,
+          "attemptId": "e13cc18d-30c8-4a2b-a705-7b5cba0df500",
+          "epoch": 1,
+          "evidenceVector": [],
+          "id": "35d926e0-bc23-467e-8518-679cadb4756d",
+          "logicalKey": "a/create",
+          "operation": "agent.create",
+          "planRevision": 1,
+          "policyVector": [],
+          "receiptRef": null,
+          "receiverKey": null,
+          "requestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requestId": "f53bd5d0-545d-44b2-b8d9-bf718a6a41fb",
+          "resourceIds": [
+            "workspace:fixture"
+          ],
+          "scopeId": "026f1c68-c695-49da-97d9-d26ad54d82e8",
+          "state": "accepted",
+          "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "version": 1
+        }
+      }
+    ],
+    "second": [
+      {
+        "kind": "scope",
+        "value": {
+          "homeId": "rebound-to-test-home",
+          "id": "2b67247b-4613-4939-af75-7e6860501500",
+          "kind": "plan",
+          "mode": "scoped",
+          "projectIds": [
+            "00000000-0000-4000-8000-000000000002"
+          ],
+          "sponsorId": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "binding",
+        "value": {
+          "acknowledgedSeq": 0,
+          "agentId": "supervisor-b",
+          "checkpointHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "epoch": 1,
+          "heartbeatDue": null,
+          "hostId": "remote-fixture",
+          "profileDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scopeId": "2b67247b-4613-4939-af75-7e6860501500",
+          "state": "prepared",
+          "workspaceId": "supervisor-space-b"
+        }
+      },
+      {
+        "kind": "backend",
+        "value": {
+          "backend": "scoped",
+          "ownerScopeId": "2b67247b-4613-4939-af75-7e6860501500",
+          "planId": "plan-b",
+          "sourceHash": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "task",
+        "value": {
+          "currentAttempt": "0928eeaf-41fa-45b2-8416-0aabc4f383a9",
+          "hostId": "remote-fixture",
+          "id": "f8fca832-798f-493c-af64-53e5bde2895e",
+          "nodeId": "node-b",
+          "ownerScopeId": "2b67247b-4613-4939-af75-7e6860501500",
+          "planId": "plan-b",
+          "projectId": "00000000-0000-4000-8000-000000000002",
+          "version": 1
+        }
+      },
+      {
+        "kind": "attempt",
+        "value": {
+          "briefHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "evidenceIds": [],
+          "id": "0928eeaf-41fa-45b2-8416-0aabc4f383a9",
+          "launchEffectId": "cbc6fcb8-b321-480c-b649-2d119feff7b1",
+          "notificationStatus": "unknown",
+          "ordinal": 1,
+          "originalNotificationOwner": null,
+          "spentAgents": 1,
+          "spentTurns": 1,
+          "state": "running",
+          "taskId": "f8fca832-798f-493c-af64-53e5bde2895e",
+          "version": 1,
+          "worker": {
+            "agentId": "same-worker",
+            "hostId": "remote-fixture",
+            "workspaceId": "same-workspace"
+          }
+        }
+      },
+      {
+        "kind": "effect",
+        "value": {
+          "approvalId": null,
+          "attemptId": "0928eeaf-41fa-45b2-8416-0aabc4f383a9",
+          "epoch": 1,
+          "evidenceVector": [],
+          "id": "cbc6fcb8-b321-480c-b649-2d119feff7b1",
+          "logicalKey": "b/create",
+          "operation": "agent.create",
+          "planRevision": 1,
+          "policyVector": [],
+          "receiptRef": null,
+          "receiverKey": null,
+          "requestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requestId": "009c558f-1e93-4264-b0ba-aac2fde3dd8c",
+          "resourceIds": [
+            "workspace:fixture"
+          ],
+          "scopeId": "2b67247b-4613-4939-af75-7e6860501500",
+          "state": "accepted",
+          "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "version": 1
+        }
+      }
+    ],
+    "effect": [
+      {
+        "kind": "effect",
+        "value": {
+          "approvalId": null,
+          "attemptId": "e13cc18d-30c8-4a2b-a705-7b5cba0df500",
+          "epoch": 1,
+          "evidenceVector": [],
+          "id": "65831df5-4c89-4eca-943b-b333f12ce859",
+          "logicalKey": "b/interrupt-a",
+          "operation": "agent.interrupt",
+          "planRevision": 1,
+          "policyVector": [],
+          "receiptRef": null,
+          "receiverKey": null,
+          "requestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requestId": "ce94eec7-08cf-40b5-b41c-dfd0d800db6c",
+          "resourceIds": [
+            "workspace:fixture"
+          ],
+          "scopeId": "2b67247b-4613-4939-af75-7e6860501500",
+          "state": "reserved",
+          "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "version": 1
+        }
+      }
+    ]
+  },
+  "distinctHosts": {
+    "first": [
+      {
+        "kind": "scope",
+        "value": {
+          "homeId": "rebound-to-test-home",
+          "id": "8d0d8dac-9124-479a-a240-ac4f5fc2dec6",
+          "kind": "plan",
+          "mode": "scoped",
+          "projectIds": [
+            "00000000-0000-4000-8000-000000000002"
+          ],
+          "sponsorId": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "binding",
+        "value": {
+          "acknowledgedSeq": 0,
+          "agentId": "supervisor-a",
+          "checkpointHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "epoch": 1,
+          "heartbeatDue": null,
+          "hostId": "local",
+          "profileDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scopeId": "8d0d8dac-9124-479a-a240-ac4f5fc2dec6",
+          "state": "prepared",
+          "workspaceId": "supervisor-space-a"
+        }
+      },
+      {
+        "kind": "backend",
+        "value": {
+          "backend": "scoped",
+          "ownerScopeId": "8d0d8dac-9124-479a-a240-ac4f5fc2dec6",
+          "planId": "plan-a",
+          "sourceHash": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "task",
+        "value": {
+          "currentAttempt": "9c036a4c-3390-4b47-bcb3-607ab70374df",
+          "hostId": "local",
+          "id": "faedddef-db79-4050-910f-67239bc78177",
+          "nodeId": "node-a",
+          "ownerScopeId": "8d0d8dac-9124-479a-a240-ac4f5fc2dec6",
+          "planId": "plan-a",
+          "projectId": "00000000-0000-4000-8000-000000000002",
+          "version": 1
+        }
+      },
+      {
+        "kind": "attempt",
+        "value": {
+          "briefHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "evidenceIds": [],
+          "id": "9c036a4c-3390-4b47-bcb3-607ab70374df",
+          "launchEffectId": "a6324e8a-e776-4b2d-b78a-642e5c43db72",
+          "notificationStatus": "unknown",
+          "ordinal": 1,
+          "originalNotificationOwner": null,
+          "spentAgents": 1,
+          "spentTurns": 1,
+          "state": "running",
+          "taskId": "faedddef-db79-4050-910f-67239bc78177",
+          "version": 1,
+          "worker": {
+            "agentId": "same-worker",
+            "hostId": "local",
+            "workspaceId": "same-workspace"
+          }
+        }
+      },
+      {
+        "kind": "effect",
+        "value": {
+          "approvalId": null,
+          "attemptId": "9c036a4c-3390-4b47-bcb3-607ab70374df",
+          "epoch": 1,
+          "evidenceVector": [],
+          "id": "a6324e8a-e776-4b2d-b78a-642e5c43db72",
+          "logicalKey": "a/create",
+          "operation": "agent.create",
+          "planRevision": 1,
+          "policyVector": [],
+          "receiptRef": null,
+          "receiverKey": null,
+          "requestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requestId": "7ad407e0-f6eb-48ff-bd72-5b95cfc7a81d",
+          "resourceIds": [
+            "workspace:fixture"
+          ],
+          "scopeId": "8d0d8dac-9124-479a-a240-ac4f5fc2dec6",
+          "state": "accepted",
+          "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "version": 1
+        }
+      }
+    ],
+    "second": [
+      {
+        "kind": "scope",
+        "value": {
+          "homeId": "rebound-to-test-home",
+          "id": "a0219505-1a56-4f14-9146-18bac0246276",
+          "kind": "plan",
+          "mode": "scoped",
+          "projectIds": [
+            "00000000-0000-4000-8000-000000000002"
+          ],
+          "sponsorId": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "binding",
+        "value": {
+          "acknowledgedSeq": 0,
+          "agentId": "supervisor-b",
+          "checkpointHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "epoch": 1,
+          "heartbeatDue": null,
+          "hostId": "remote-fixture",
+          "profileDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scopeId": "a0219505-1a56-4f14-9146-18bac0246276",
+          "state": "prepared",
+          "workspaceId": "supervisor-space-b"
+        }
+      },
+      {
+        "kind": "backend",
+        "value": {
+          "backend": "scoped",
+          "ownerScopeId": "a0219505-1a56-4f14-9146-18bac0246276",
+          "planId": "plan-b",
+          "sourceHash": null,
+          "state": "active",
+          "version": 1
+        }
+      },
+      {
+        "kind": "task",
+        "value": {
+          "currentAttempt": "f37bd2b3-1d3e-40ed-88de-2fa9d692f8c3",
+          "hostId": "remote-fixture",
+          "id": "08c818a5-bc26-465e-ae88-d9cbc6a043a1",
+          "nodeId": "node-b",
+          "ownerScopeId": "a0219505-1a56-4f14-9146-18bac0246276",
+          "planId": "plan-b",
+          "projectId": "00000000-0000-4000-8000-000000000002",
+          "version": 1
+        }
+      },
+      {
+        "kind": "attempt",
+        "value": {
+          "briefHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "evidenceIds": [],
+          "id": "f37bd2b3-1d3e-40ed-88de-2fa9d692f8c3",
+          "launchEffectId": "e438f981-eb47-42d6-b2cb-9a2a52115884",
+          "notificationStatus": "unknown",
+          "ordinal": 1,
+          "originalNotificationOwner": null,
+          "spentAgents": 1,
+          "spentTurns": 1,
+          "state": "running",
+          "taskId": "08c818a5-bc26-465e-ae88-d9cbc6a043a1",
+          "version": 1,
+          "worker": {
+            "agentId": "same-worker",
+            "hostId": "remote-fixture",
+            "workspaceId": "same-workspace"
+          }
+        }
+      },
+      {
+        "kind": "effect",
+        "value": {
+          "approvalId": null,
+          "attemptId": "f37bd2b3-1d3e-40ed-88de-2fa9d692f8c3",
+          "epoch": 1,
+          "evidenceVector": [],
+          "id": "e438f981-eb47-42d6-b2cb-9a2a52115884",
+          "logicalKey": "b/create",
+          "operation": "agent.create",
+          "planRevision": 1,
+          "policyVector": [],
+          "receiptRef": null,
+          "receiverKey": null,
+          "requestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requestId": "be7ca63c-9d40-42e0-a5bd-d499e3311d29",
+          "resourceIds": [
+            "workspace:fixture"
+          ],
+          "scopeId": "a0219505-1a56-4f14-9146-18bac0246276",
+          "state": "accepted",
+          "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "version": 1
+        }
+      }
+    ]
+  },
+  "reviewReportSha256": "8b53ec7bda06b1028ed0c833ad654bc3b06b1b82696ea67411c3a4c71872b536",
+  "sourceSha256": {
+    "duplicate-worker.json": "350d6ffdc9b4edb25b3c13041dad353c07f179094b92214f68ae88f63035d6df",
+    "independent-fixtures/duplicate-worker/data/supervision/7f8456bd493571373f9980e6ba2db492887a34f5731f2d03c19b31a6dfb0d13f/transactions/000000000001.event.json": "70823422d8e599f544f85c5b9bd8b74527193ede226e5d1e2089796c4e6560bc",
+    "independent-fixtures/duplicate-worker/data/supervision/7f8456bd493571373f9980e6ba2db492887a34f5731f2d03c19b31a6dfb0d13f/transactions/000000000002.event.json": "d4f4cf418aecfad973e173c1cf36a05d92128f5d3b527c95a2033b1cde3e255c",
+    "foreign-attempt.json": "92c12f7a59b42f98a1c4ec4ae79bb647519284065ea0f357b517940118e77cf4",
+    "independent-fixtures/foreign-attempt/data/supervision/dec14dc3bf3ea438791a968116e0237a076d45efc8973daa22bdd9dc9b9d36a3/transactions/000000000001.event.json": "2ea75ef020b1a18ffd3b843a9b47b91f3a231783920850ec3e9fd4a8a5abfa47",
+    "independent-fixtures/foreign-attempt/data/supervision/dec14dc3bf3ea438791a968116e0237a076d45efc8973daa22bdd9dc9b9d36a3/transactions/000000000002.event.json": "f4b17a4d768ea8dc33b41a4380b65e38c509a3c98fee75a249a6160defbbe6d2",
+    "independent-fixtures/foreign-attempt/data/supervision/dec14dc3bf3ea438791a968116e0237a076d45efc8973daa22bdd9dc9b9d36a3/transactions/000000000003.event.json": "1279d6ffca5e016b5dd526d98168fe60e97b0e7a5faa72a2c578ccae64600805",
+    "distinct-hosts.json": "c5199a5f218dd88cad50b7113774321f6429742e16846d722808b25e8490357c",
+    "independent-fixtures/distinct-hosts/data/supervision/e4b565a1ca970b9ff6e271fa1daaf11efb41637912d6203cdadf41cac3a05182/transactions/000000000001.event.json": "afe64ce047b5b1f022f1a14119f4e89845eb22be8dae5030c789718d7c1f5c15",
+    "independent-fixtures/distinct-hosts/data/supervision/e4b565a1ca970b9ff6e271fa1daaf11efb41637912d6203cdadf41cac3a05182/transactions/000000000002.event.json": "e54508a4f2baa36d7e350e5c3442929ab6003be2954940a54911683c3361aab2"
+  }
+}

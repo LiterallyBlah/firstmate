@@ -42,7 +42,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - run: npm test
+      - run: npm test -- --reporter=default --reporter=json --outputFile=.local/s01/ci-tests.json
         env:
           # Test setup must override an enabled journal on developer machines.
           FIRSTMATE_RECEIPT_JOURNAL: "1"
@@ -56,4 +56,5 @@ jobs:
           path: |
             .local/needs-you-drawer/*.png
             .local/needs-you-drawer/*.json
+            .local/s01/ci-tests.json
           include-hidden-files: true

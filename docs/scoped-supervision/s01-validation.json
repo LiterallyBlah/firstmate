@@ -1,0 +1,995 @@
+{
+  "format": "firstmate.s01-validation/1",
+  "platform": "win32",
+  "node": "v24.18.0",
+  "npm": "11.16.0",
+  "sourceBase": "bef484b35e66fc3a695038cf5d5b88ef00c64203",
+  "acceptedS00": {
+    "manifest": "343444b790d0f8ad17b6458f804b65f564f083b6825536ef72d4f04034a7b135",
+    "report": "d8b3ead73fde15bca210db3944ca00cb0687471e957298342c8e969ff6045a80",
+    "checkedManifestEntries": 377
+  },
+  "typecheck": {
+    "command": "node node_modules/typescript/bin/tsc --noEmit",
+    "exitCode": 0
+  },
+  "tests": {
+    "command": "node node_modules/vitest/vitest.mjs run shared/supervision.test.ts server/supervision-store.test.ts server/supervision-workflows.test.ts server/supervision-crash.test.ts server/supervision-process.test.ts --reporter=verbose --reporter=json --outputFile=.local/s01/s01-tests.json",
+    "passed": 228,
+    "failed": 0,
+    "files": 5,
+    "reportSha256": "10d86b2122dfb3a9876f9967c25961eccc9a190f4e3dcc6a17de2d9453bd0e6a",
+    "results": [
+      {
+        "file": "shared/supervision.test.ts",
+        "passed": 175,
+        "checks": [
+          {
+            "name": "corrected S00 production contracts round-trips all six frozen examples and rejects unknown envelope/nested properties",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts R00-2:basic-ISO-not-RFC3339",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts R00-2:week-date-not-RFC3339",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts R00-2:missing-seconds-not-RFC3339",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts R00-2:requestHash-trailing-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts R00-2:evidence-digest-trailing-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts R00-2:checkpointHash-trailing-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:ordinary",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:fractional",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:long-fraction",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:leap-2000",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:leap-2024",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:year-1",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:not-leap-1900",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:invalid-February",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:invalid-April",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:basic-ISO",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:ISO-week",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:missing-seconds",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:year-zero",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:year-10000",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:hour-24",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:minute-60",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:leap-second-out-of-profile",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:offset",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:lower-t",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:lower-z",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:empty-fraction",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:trailing-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:trailing-CRLF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts observedAt:unicode-digit",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:ordinary",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:fractional",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:long-fraction",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:leap-2000",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:leap-2024",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:year-1",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:not-leap-1900",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:invalid-February",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:invalid-April",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:basic-ISO",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:ISO-week",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:missing-seconds",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:year-zero",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:year-10000",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:hour-24",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:minute-60",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:leap-second-out-of-profile",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:offset",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:lower-t",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:lower-z",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:empty-fraction",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:trailing-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:trailing-CRLF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts occurredAt:unicode-digit",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:ordinary",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:fractional",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:long-fraction",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:leap-2000",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:leap-2024",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:year-1",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:not-leap-1900",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:invalid-February",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:invalid-April",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:basic-ISO",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:ISO-week",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:missing-seconds",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:year-zero",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:year-10000",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:hour-24",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:minute-60",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:leap-second-out-of-profile",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:offset",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:lower-t",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:lower-z",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:empty-fraction",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:trailing-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:trailing-CRLF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts freshness:unicode-digit",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:ordinary",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:fractional",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:long-fraction",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:leap-2000",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:leap-2024",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:year-1",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:not-leap-1900",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:invalid-February",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:invalid-April",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:basic-ISO",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:ISO-week",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:missing-seconds",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:year-zero",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:year-10000",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:hour-24",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:minute-60",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:leap-second-out-of-profile",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:offset",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:lower-t",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:lower-z",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:empty-fraction",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:trailing-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:trailing-CRLF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts heartbeatDue:unicode-digit",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:lowercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:mixed-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:short",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:long",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:CRLF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:space",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:NUL",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:uppercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:not-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:empty",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts requestHash:embedded-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:lowercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:mixed-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:short",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:long",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:CRLF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:space",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:NUL",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:uppercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:not-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:empty",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts subjectHash:embedded-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:lowercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:mixed-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:short",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:long",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:CRLF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:space",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:NUL",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:uppercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:not-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:empty",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts profileDigest:embedded-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:lowercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:mixed-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:short",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:long",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:CRLF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:space",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:NUL",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:uppercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:not-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:empty",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts checkpointHash:embedded-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:lowercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:mixed-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:short",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:long",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:CRLF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:space",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:NUL",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:uppercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:not-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:empty",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts VersionRef.digest:embedded-LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:lowercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:mixed-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:short",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:long",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:LF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:CRLF",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:space",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:NUL",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:uppercase",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:not-hex",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:empty",
+            "status": "passed"
+          },
+          {
+            "name": "corrected S00 production contracts Evidence.digest:embedded-LF",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "server/supervision-crash.test.ts",
+        "passed": 16,
+        "checks": [
+          {
+            "name": "actual child-process / filesystem publication SIGKILL at tip:written: no partial exposure, duplicate reservation or budget reset",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication SIGKILL at tip:synced: no partial exposure, duplicate reservation or budget reset",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication SIGKILL at tip:linked: no partial exposure, duplicate reservation or budget reset",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication SIGKILL at event:written: no partial exposure, duplicate reservation or budget reset",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication SIGKILL at event:synced: no partial exposure, duplicate reservation or budget reset",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication SIGKILL at event:linked: no partial exposure, duplicate reservation or budget reset",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication SIGKILL at publication:written: no partial exposure, duplicate reservation or budget reset",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication SIGKILL at publication:synced: no partial exposure, duplicate reservation or budget reset",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication SIGKILL at publication:linked: no partial exposure, duplicate reservation or budget reset",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication races actual exclusive links from two processes: one whole record, one EEXIST refusal",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication races two process claims/transactions against the same expected rows: one owner/effect commit",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication backend barrier crash at tip:linked: both writer choices remain held",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication backend barrier crash at event:linked: both writer choices remain held",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication backend barrier crash at publication:linked: both writer choices remain held",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication refuses a live overlapping installation, then permits only explicit released handoff",
+            "status": "passed"
+          },
+          {
+            "name": "actual child-process / filesystem publication qualifies the actual local PID/start probe without treating an unsupported OS as dead",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "server/supervision-process.test.ts",
+        "passed": 4,
+        "checks": [
+          {
+            "name": "classifies missing PID stat as dead",
+            "status": "passed"
+          },
+          {
+            "name": "keeps missing boot identity unknown even when PID stat is readable",
+            "status": "passed"
+          },
+          {
+            "name": "keeps denied PID stat unknown",
+            "status": "passed"
+          },
+          {
+            "name": "binds a readable PID to boot identity/start ticks and distinguishes zombie termination",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "server/supervision-store.test.ts",
+        "passed": 26,
+        "checks": [
+          {
+            "name": "scoped transaction authority keeps disabled/uninitialized reads inert and never creates a store on render/read",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority publishes all six related rows atomically, with deterministic replay and rebuildable indexes",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority returns the original accepted receipt before version checks and refuses divergent content",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority captures UI/chat provenance in the committed request without treating it as authentication",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority serializes competing commands: exactly one owner transition wins the same expected version",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority requires exact expected rows and refuses duplicate aliases/logical effects without partial ownership",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority retains task, attempt, spend and effect identity, including uncertainty after coordinator handoff",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority keeps backend barriers held and refuses an S07 cutover/source replacement or rollback",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority uses exact lexical/case-fold home identity and canonical-string digest, keeping junction aliases distinct",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority does not reset a missing identity in a nonempty store",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority holds damaged authority (event) with retained ownership, never a shorter executable history",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority holds damaged authority (tip) with retained ownership, never a shorter executable history",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority holds damaged authority (publication) with retained ownership, never a shorter executable history",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority holds damaged authority (event+tip) with retained ownership, never a shorter executable history",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority holds damaged authority (corrupt-event) with retained ownership, never a shorter executable history",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority holds damaged authority (duplicate-key) with retained ownership, never a shorter executable history",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority holds damaged authority (old-snapshot) with retained ownership, never a shorter executable history",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority syncs evidence before its reference, rejects missing/corrupt bytes, and leaves orphan blobs inert",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority holds storage pressure before a tip or effect is published",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority exposes sync/link failures without publishing a receipt, then safely retries only a never-linked request",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority refuses neighbor-project ownership and stale effect epochs while retaining older reservations",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority keeps held owners out of backend eligibility and prevents retired binding reactivation",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority refuses an alive/unknown coordinator; verified PID reuse advances generation without changing reservations",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority never treats a different lexical home as compatible with persisted scope authority",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority rejects recomputed but wrong-home authority metadata",
+            "status": "passed"
+          },
+          {
+            "name": "scoped transaction authority retains checked ownership capsules when coordinator authority is corrupt",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "server/supervision-workflows.test.ts",
+        "passed": 7,
+        "checks": [
+          {
+            "name": "preserves exact frozen pre-default definitions/hashes in the existing reducer seam",
+            "status": "passed"
+          },
+          {
+            "name": "captures raw workflow input before asynchronous work, preserving its content-bound request",
+            "status": "passed"
+          },
+          {
+            "name": "replays real automatic one-run history without another plan model or budget reset",
+            "status": "passed"
+          },
+          {
+            "name": "preserves approvals, prior attempts, promotion, invalidation and evidence-only closure from real logs",
+            "status": "passed"
+          },
+          {
+            "name": "keeps a committed historical early answer without applying today's admission guards on replay",
+            "status": "passed"
+          },
+          {
+            "name": "preserves removed prerequisites and held dependents from real revision history",
+            "status": "passed"
+          },
+          {
+            "name": "retains an actual quarantine retirement receipt, attempts, budget and scoped reservations",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "boundaries": [
+    "temporary homes and synthetic OS children only",
+    "zero daemon/provider/model calls",
+    "feature unwired and writes default off",
+    "no install/reload/live migration/routing or merge",
+    "process crash only, not power/disk loss",
+    "Linux qualification uses same-head Ubuntu CI"
+  ],
+  "sourceDigestsEncoding": "SHA256 of UTF-8 file content with CRLF normalized to LF; validation file excluded to avoid self-reference",
+  "sourceDigests": {
+    ".github/workflows/check.yml": "7f9546f0738807918d52c3f7b7c41295f66934f9b8f4381ed464cd1fa651e842",
+    "docs/scoped-supervision/S01.md": "801d0e35d4325bc16f8515ab23ebb3adcd4dd19d1fac95ecbcccc5076b1c31a9",
+    "server/submissions.ts": "60c385b955752643499be484d94645ca16b9377f133945a1f635f8377f79e4d5",
+    "server/supervision-crash.test.ts": "38eadcefaa6f903e6ddf5abc0142c1dd2fe465531490d2660e6357983ace2638",
+    "server/supervision-process.ts": "6fb194ea0bc0954174736dcec78ab517c06b52eb68787b6660b590f54864c382",
+    "server/supervision-store.test.ts": "259193051ad98c6b6ac2507d47f843c16d5eca1bb2f3a937fd6b62809c814d41",
+    "server/supervision-store.ts": "05325e2f7e8f0e72537a0513503c1845cc5b15f5b4cfafb36fa52c49b5b339f3",
+    "server/supervision-workflows.test.ts": "f30b7da62e41963d116388de6a3419ac3f93ff1248d06c01bb95f42bdd970e83",
+    "server/supervision-workflows.ts": "c83f6005a8e5bcb0e95a2ddc3ec2020a2ef8f59cbf2c78a4ab9aa18d12984b62",
+    "server/workflow-plans.ts": "2d844d6dfe059b6738761ffcf6ad4e43d46413f7556f11cd8c8c743efd12e806",
+    "shared/supervision.test.ts": "07ccc02a75658b3d2b2b3a23f8be7ed3736e599934bd3e71974e22d269a6589a",
+    "shared/supervision.ts": "9618b6ddad7879c1e1fd249c57db7a731a3828be79fea20b24840d689ab65e43",
+    "test/fixtures/supervision-s00/examples.json": "85cbc708148cf76f9e8c31a77d1149a5b52e85346a486e998a5c5e68dc5aa395",
+    "test/fixtures/supervision-s00/regression-corpus.json": "5d35b695013a74f053bdc7b062be59793156c184c48349a25b9052cab4b23d11",
+    "test/supervision-child.ts": "0fc5ae7131c023340377d93e7725e6433e98e05bfc11bfb2e09bf5c44e60a072",
+    "test/supervision-fixture.ts": "b80b16da43f5166998736807e4cf5e0afb3c6e581dc6b6a73bacf25e187e7cd3",
+    "server/supervision-process.test.ts": "d5cfead7eb9fcab6bc873224c0fa9b0fcd442d3ed7e9bfe4209030708189de9a"
+  }
+}

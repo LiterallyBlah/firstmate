@@ -1,0 +1,1844 @@
+{
+  "format": "firstmate.s00-corrections-corpus/1",
+  "profile": "Uppercase calendar YYYY-MM-DDTHH:mm:ss[.DIGITS]Z; years 0001-9999, seconds 00-59. SHA256 exactly 64 lowercase ASCII hex characters. No normalization.",
+  "cases": [
+    {
+      "id": "R00-2:basic-ISO-not-RFC3339",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "20261024T200000Z",
+      "expectedValid": false,
+      "reportedNegative": true
+    },
+    {
+      "id": "R00-2:week-date-not-RFC3339",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-W43-6T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": true
+    },
+    {
+      "id": "R00-2:missing-seconds-not-RFC3339",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T20:00Z",
+      "expectedValid": false,
+      "reportedNegative": true
+    },
+    {
+      "id": "R00-2:requestHash-trailing-LF",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+      "expectedValid": false,
+      "reportedNegative": true
+    },
+    {
+      "id": "R00-2:evidence-digest-trailing-LF",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n",
+      "expectedValid": false,
+      "reportedNegative": true
+    },
+    {
+      "id": "R00-2:checkpointHash-trailing-LF",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\n",
+      "expectedValid": false,
+      "reportedNegative": true
+    },
+    {
+      "id": "observedAt:ordinary",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T20:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:fractional",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T20:00:00.123Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:long-fraction",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T20:00:00.123456789012Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:leap-2000",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2000-02-29T00:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:leap-2024",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2024-02-29T23:59:59Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:year-1",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "0001-01-01T00:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:not-leap-1900",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "1900-02-29T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:invalid-February",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-02-30T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:invalid-April",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-04-31T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:basic-ISO",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "20261024T200000Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:ISO-week",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-W43-6T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:missing-seconds",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T20:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:year-zero",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "0000-01-01T00:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:year-10000",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "10000-01-01T00:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:hour-24",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T24:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:minute-60",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T20:60:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:leap-second-out-of-profile",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2016-12-31T23:59:60Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:offset",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T20:00:00+00:00",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:lower-t",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24t20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:lower-z",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T20:00:00z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:empty-fraction",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T20:00:00.Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:trailing-LF",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T20:00:00Z\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:trailing-CRLF",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "2026-10-24T20:00:00Z\r\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "observedAt:unicode-digit",
+      "exampleIndex": 3,
+      "path": [
+        "observedAt"
+      ],
+      "input": "２０２６-10-24T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:ordinary",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24T20:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:fractional",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24T20:00:00.123Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:long-fraction",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24T20:00:00.123456789012Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:leap-2000",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2000-02-29T00:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:leap-2024",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2024-02-29T23:59:59Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:year-1",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "0001-01-01T00:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:not-leap-1900",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "1900-02-29T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:invalid-February",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-02-30T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:invalid-April",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-04-31T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:basic-ISO",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "20261024T200000Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:ISO-week",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-W43-6T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:missing-seconds",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24T20:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:year-zero",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "0000-01-01T00:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:year-10000",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "10000-01-01T00:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:hour-24",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24T24:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:minute-60",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24T20:60:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:leap-second-out-of-profile",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2016-12-31T23:59:60Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:offset",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24T20:00:00+00:00",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:lower-t",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24t20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:lower-z",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24T20:00:00z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:empty-fraction",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24T20:00:00.Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:trailing-LF",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24T20:00:00Z\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:trailing-CRLF",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "2026-10-24T20:00:00Z\r\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "occurredAt:unicode-digit",
+      "exampleIndex": 3,
+      "path": [
+        "occurredAt"
+      ],
+      "input": "２０２６-10-24T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:ordinary",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24T20:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:fractional",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24T20:00:00.123Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:long-fraction",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24T20:00:00.123456789012Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:leap-2000",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2000-02-29T00:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:leap-2024",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2024-02-29T23:59:59Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:year-1",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "0001-01-01T00:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:not-leap-1900",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "1900-02-29T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:invalid-February",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-02-30T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:invalid-April",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-04-31T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:basic-ISO",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "20261024T200000Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:ISO-week",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-W43-6T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:missing-seconds",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24T20:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:year-zero",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "0000-01-01T00:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:year-10000",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "10000-01-01T00:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:hour-24",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24T24:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:minute-60",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24T20:60:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:leap-second-out-of-profile",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2016-12-31T23:59:60Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:offset",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24T20:00:00+00:00",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:lower-t",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24t20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:lower-z",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24T20:00:00z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:empty-fraction",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24T20:00:00.Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:trailing-LF",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24T20:00:00Z\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:trailing-CRLF",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "2026-10-24T20:00:00Z\r\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "freshness:unicode-digit",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "freshness"
+      ],
+      "input": "２０２６-10-24T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:ordinary",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24T20:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:fractional",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24T20:00:00.123Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:long-fraction",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24T20:00:00.123456789012Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:leap-2000",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2000-02-29T00:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:leap-2024",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2024-02-29T23:59:59Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:year-1",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "0001-01-01T00:00:00Z",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:not-leap-1900",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "1900-02-29T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:invalid-February",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-02-30T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:invalid-April",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-04-31T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:basic-ISO",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "20261024T200000Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:ISO-week",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-W43-6T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:missing-seconds",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24T20:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:year-zero",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "0000-01-01T00:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:year-10000",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "10000-01-01T00:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:hour-24",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24T24:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:minute-60",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24T20:60:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:leap-second-out-of-profile",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2016-12-31T23:59:60Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:offset",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24T20:00:00+00:00",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:lower-t",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24t20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:lower-z",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24T20:00:00z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:empty-fraction",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24T20:00:00.Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:trailing-LF",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24T20:00:00Z\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:trailing-CRLF",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "2026-10-24T20:00:00Z\r\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "heartbeatDue:unicode-digit",
+      "exampleIndex": 1,
+      "path": [
+        "heartbeatDue"
+      ],
+      "input": "２０２６-10-24T20:00:00Z",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:lowercase",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:mixed-hex",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:short",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:long",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:LF",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:CRLF",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\r\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:space",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:NUL",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u0000",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:uppercase",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:not-hex",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:empty",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "requestHash:embedded-LF",
+      "exampleIndex": 2,
+      "path": [
+        "requestHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:lowercase",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:mixed-hex",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:short",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:long",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:LF",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:CRLF",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\r\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:space",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:NUL",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u0000",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:uppercase",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:not-hex",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:empty",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "subjectHash:embedded-LF",
+      "exampleIndex": 2,
+      "path": [
+        "subjectHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:lowercase",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:mixed-hex",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:short",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:long",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:LF",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:CRLF",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\r\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:space",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:NUL",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u0000",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:uppercase",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:not-hex",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:empty",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "profileDigest:embedded-LF",
+      "exampleIndex": 1,
+      "path": [
+        "profileDigest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:lowercase",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:mixed-hex",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:short",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:long",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:LF",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:CRLF",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\r\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:space",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:NUL",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u0000",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:uppercase",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:not-hex",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:empty",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "checkpointHash:embedded-LF",
+      "exampleIndex": 1,
+      "path": [
+        "checkpointHash"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:lowercase",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:mixed-hex",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:short",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:long",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:LF",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:CRLF",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\r\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:space",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:NUL",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u0000",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:uppercase",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:not-hex",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:empty",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "VersionRef.digest:embedded-LF",
+      "exampleIndex": 2,
+      "path": [
+        "policyVector",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:lowercase",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:mixed-hex",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "expectedValid": true,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:short",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:long",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:LF",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:CRLF",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\r\n",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:space",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:NUL",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u0000",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:uppercase",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:not-hex",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:empty",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "",
+      "expectedValid": false,
+      "reportedNegative": false
+    },
+    {
+      "id": "Evidence.digest:embedded-LF",
+      "exampleIndex": 3,
+      "path": [
+        "evidence",
+        0,
+        "digest"
+      ],
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expectedValid": false,
+      "reportedNegative": false
+    }
+  ]
+}

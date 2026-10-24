@@ -1,0 +1,367 @@
+[
+  {
+    "format": "firstmate.supervision-contract/1",
+    "kind": "Scope",
+    "value": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "homeId": "c:\\synthetic\\firstmate\\home",
+      "kind": "plan",
+      "projectIds": [
+        "00000000-0000-4000-8000-000000000002"
+      ],
+      "sponsorId": "00000000-0000-4000-8000-000000000003",
+      "version": 1,
+      "mode": "scoped",
+      "state": "held"
+    }
+  },
+  {
+    "format": "firstmate.supervision-contract/1",
+    "kind": "Binding",
+    "value": {
+      "scopeId": "00000000-0000-4000-8000-000000000001",
+      "epoch": 1,
+      "hostId": "fixture-host",
+      "agentId": "fixture-agent",
+      "workspaceId": "fixture-workspace",
+      "profileDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "state": "prepared",
+      "checkpointHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "acknowledgedSeq": 0,
+      "heartbeatDue": null
+    }
+  },
+  {
+    "format": "firstmate.supervision-contract/1",
+    "kind": "Effect",
+    "value": {
+      "id": "00000000-0000-4000-8000-000000000004",
+      "logicalKey": "attempt:0005/agent.create/intent:0006/objective:1",
+      "requestId": "00000000-0000-4000-8000-000000000006",
+      "requestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "scopeId": "00000000-0000-4000-8000-000000000001",
+      "epoch": 1,
+      "attemptId": "00000000-0000-4000-8000-000000000005",
+      "operation": "agent.create",
+      "planRevision": 1,
+      "subjectHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "policyVector": [
+        {
+          "kind": "policy",
+          "id": "fixture-start-grant",
+          "version": 1,
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "evidenceVector": [],
+      "approvalId": null,
+      "resourceIds": [
+        "workspace:fixture"
+      ],
+      "state": "uncertain",
+      "receiverKey": "fixture-create-key",
+      "receiptRef": null,
+      "version": 1
+    }
+  },
+  {
+    "format": "firstmate.supervision-contract/1",
+    "kind": "Event",
+    "value": {
+      "version": 1,
+      "eventId": "00000000-0000-4000-8000-000000000007",
+      "source": {
+        "kind": "local-hook",
+        "hostId": "fixture-host",
+        "key": "fixture-agent:fixture-turn:completed",
+        "epoch": null,
+        "cursor": null
+      },
+      "observedAt": "2026-10-24T20:00:00Z",
+      "subject": {
+        "planId": "fixture-plan",
+        "taskId": "00000000-0000-4000-8000-000000000008",
+        "attemptId": "00000000-0000-4000-8000-000000000005",
+        "agentId": "fixture-agent",
+        "turnId": "fixture-turn"
+      },
+      "evidence": [],
+      "certainty": "reported",
+      "payloadRef": "blob:fixture-completion"
+    }
+  },
+  {
+    "format": "firstmate.supervision-contract/1",
+    "kind": "Reply",
+    "value": {
+      "requestId": "00000000-0000-4000-8000-000000000006",
+      "status": "uncertain",
+      "code": "UNCERTAIN",
+      "receiptRef": "fixture:original-effect",
+      "version": 1,
+      "message": "Missing reply after create admission; original attempt and spend retained."
+    }
+  },
+  {
+    "format": "firstmate.supervision-contract/1",
+    "kind": "CapabilityTable",
+    "value": {
+      "version": 1,
+      "receiverIdentity": "not-inspected",
+      "rows": [
+        {
+          "id": "context",
+          "publicSignature": "handle(contract, (input, context: { paseo: PaseoApi }) => output)",
+          "feature": null,
+          "floor011": "source-supported",
+          "proposal012": "source-supported",
+          "disk013": "source-supported",
+          "liveQualified": false,
+          "condition": "No authenticated UI/agent principal in public handler context. Never treat input.actor as identity.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "hooks",
+          "publicSignature": "server.on(name, (event, { paseo, signal }) => void | Promise<void>)",
+          "feature": null,
+          "floor011": "source-supported",
+          "proposal012": "source-supported",
+          "disk013": "source-supported",
+          "liveQualified": false,
+          "condition": "Non-durable observation. 0.11/0.12 publisher forwards timeline; 0.13 emits empty timeline.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "timeline",
+          "publicSignature": "paseo.agents.ref(id).timeline.refetch({direction?,cursor?,limit?,projection?,requestId?}) -> Promise<FetchAgentTimelinePayload>",
+          "feature": null,
+          "floor011": "source-supported",
+          "proposal012": "source-supported",
+          "disk013": "source-supported",
+          "liveQualified": false,
+          "condition": "Public refetch and subscription reconciliation require epoch/cursor/gap checks; hook is not evidence of verified completion.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "creation",
+          "publicSignature": "paseo.agents.create({agentId?,idempotencyKey?,config,cwd,prompt?,parent?,...}) -> Promise<PaseoAgentHandle>",
+          "feature": "creationLifecycle",
+          "floor011": "source-supported",
+          "proposal012": "source-supported",
+          "disk013": "source-supported",
+          "liveQualified": false,
+          "condition": "Actual receiver feature + exact-intent receipt must be qualified. Selected IDs refuse without feature; do not use prompted legacy fallback.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "workspace",
+          "publicSignature": "paseo.workspaces.create(options: PaseoWorkspaceCreateOptions) -> Promise<PaseoWorkspaceHandle>",
+          "feature": "creationLifecycle",
+          "floor011": "source-supported",
+          "proposal012": "source-supported",
+          "disk013": "source-supported",
+          "liveQualified": false,
+          "condition": "Separate effect. Preserve workspace intent/key/ID when response lost; do not infer missing from a negative list.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "unprompted-legacy",
+          "publicSignature": "agent creation without prompt using idempotencyKey",
+          "feature": "agentRequestReceipts",
+          "floor011": "source-supported",
+          "proposal012": "source-supported",
+          "disk013": "source-supported",
+          "liveQualified": false,
+          "condition": "Legacy key retained only unprompted with receipts; selected ID still requires creationLifecycle. This compatibility path is not pilot permission.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "send",
+          "publicSignature": "paseo.agents.ref(id).send(text, {messageId?,activeTurnBehavior?,images?,attachments?}) -> Promise<void>",
+          "feature": null,
+          "floor011": "source-supported",
+          "proposal012": "source-supported",
+          "disk013": "source-supported",
+          "liveQualified": false,
+          "condition": "messageId is correlation; no generic exactly-once receipt/lookup in this signature. Lost response stays uncertain. Steer may interrupt.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "host-routing",
+          "publicSignature": "paseo.hosts.client(serverId: string) -> Promise<PaseoApi>",
+          "feature": null,
+          "floor011": "unsupported",
+          "proposal012": "unsupported",
+          "disk013": "source-supported",
+          "liveQualified": false,
+          "condition": "0.13 has list/observe/add/update/remove/client. No remote pilot mutations; floor adapter cannot assume hosts exists.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "authenticated-admission",
+          "publicSignature": "PROPOSED U1 admitEffect(trustedContext, request) -> EffectReceipt",
+          "feature": null,
+          "floor011": "unsupported",
+          "proposal012": "unsupported",
+          "disk013": "unsupported",
+          "liveQualified": false,
+          "condition": "No public authenticated scope+epoch admission across native/CLI/shell/credentials; cooperative gateway only.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "send-receipt",
+          "publicSignature": "PROPOSED U1 getEffect(effectKey, requestHash) -> EffectReceipt",
+          "feature": null,
+          "floor011": "unsupported",
+          "proposal012": "unsupported",
+          "disk013": "unsupported",
+          "liveQualified": false,
+          "condition": "Creation lifecycle is narrower than a persistent exactly-once arbitrary send/effect result and proved non-admission API.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "finish-transfer",
+          "publicSignature": "PROPOSED U2 transferSubscription(id, expectedOwner, newOwner, expectedVersion, replayAfter)",
+          "feature": null,
+          "floor011": "unsupported",
+          "proposal012": "unsupported",
+          "disk013": "unsupported",
+          "liveQualified": false,
+          "condition": "0.13 INTERNAL durable store exists, but no public list/cancel/atomic transfer/replay contract; never reprompt to rearm.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "heartbeat-owner",
+          "publicSignature": "PROPOSED U2 heartbeat inventory and conditional owner transition",
+          "feature": null,
+          "floor011": "unsupported",
+          "proposal012": "unsupported",
+          "disk013": "unsupported",
+          "liveQualified": false,
+          "condition": "Internal schedules and create/delete tools do not establish complete public durable heartbeat ownership transfer.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "archive",
+          "publicSignature": "paseo.agents.ref(id).archive() -> Promise<{archivedAt:string}>",
+          "feature": null,
+          "floor011": "source-supported",
+          "proposal012": "source-supported",
+          "disk013": "source-supported",
+          "liveQualified": false,
+          "condition": "No ancestry/version precondition; ordinary listing is not complete persisted inventory. Refuse unsafe/incomplete retirement.",
+          "missingResult": "HELD",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "conditional-archive",
+          "publicSignature": "PROPOSED U3 inventory + archiveIfUnchanged(agentId, expectedInventoryVersion, expectedDescendants, retainedWorkspacePolicy)",
+          "feature": null,
+          "floor011": "unsupported",
+          "proposal012": "unsupported",
+          "disk013": "unsupported",
+          "liveQualified": false,
+          "condition": "Private existing history helper is compatibility only; no complete public ancestry/CAS archive contract.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "capability-discovery",
+          "publicSignature": "paseo.observeEvents(['status.server_info'])",
+          "feature": null,
+          "floor011": "unqualified",
+          "proposal012": "unqualified",
+          "disk013": "unqualified",
+          "liveQualified": false,
+          "condition": "Public status observation exists; no dedicated PaseoApi snapshot/supports getter. Initial/reconnect feature payload behavior not exercised; qualify before enablement and never invent a private transport.",
+          "missingResult": "HELD",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "coordinator-lifecycle",
+          "publicSignature": "Verified process identity + exclusive coordinator generation on Windows/Linux",
+          "feature": null,
+          "floor011": "unqualified",
+          "proposal012": "unqualified",
+          "disk013": "unqualified",
+          "liveQualified": false,
+          "condition": "No S00 live process/lifecycle test. PID reuse, reload overlap and unknown liveness hold mutations. S01 platform evidence required.",
+          "missingResult": "HELD",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "publication-durability",
+          "publicSignature": "fsync(temp), exclusive link, expected tip, event, publication marker",
+          "feature": null,
+          "floor011": "unqualified",
+          "proposal012": "unqualified",
+          "disk013": "unqualified",
+          "liveQualified": false,
+          "condition": "Existing plugin source pattern inspected, not crash/disk qualified here. Directory/link/power-loss assumptions need S01 Windows/Linux tests.",
+          "missingResult": "HELD",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        },
+        {
+          "id": "release",
+          "publicSignature": "Merge/deploy/discard/publish receiver adapter",
+          "feature": null,
+          "floor011": "unsupported",
+          "proposal012": "unsupported",
+          "disk013": "unsupported",
+          "liveQualified": false,
+          "condition": "Excluded from pilot and this assignment; source/version checks alone are not conditional external admission.",
+          "missingResult": "UNSUPPORTED",
+          "sourceRefs": [
+            "source-signatures.md"
+          ]
+        }
+      ]
+    }
+  }
+]

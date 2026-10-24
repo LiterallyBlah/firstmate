@@ -33,13 +33,19 @@ export class SubmissionConflict extends Error {
 /** Hard-link publication is exclusive across processes. A crash leaves a whole revision or a temp,
  * never a partially published request. No file/registry registration gap exists.
  */
-export async function publish(path: string, value: unknown): Promise<void> {
+export type PublicationBoundary = "written" | "synced" | "linked";
+export async function publishBytes(path: string, bytes: Uint8Array | string,
+  boundary?: (stage: PublicationBoundary) => Promise<void>): Promise<void> {
   const temporary = `${path}.${randomUUID()}.tmp`;
   const file = await open(temporary, "wx");
-  try { await file.writeFile(`${canonical(value)}\n`, "utf8"); await file.sync(); }
+  try { await file.writeFile(bytes); await boundary?.("written"); await file.sync(); await boundary?.("synced"); }
   finally { await file.close(); }
-  try { await link(temporary, path); }
+  try { await link(temporary, path); await boundary?.("linked"); }
   finally { await unlink(temporary).catch(() => {}); }
+}
+export async function publish(path: string, value: unknown,
+  boundary?: (stage: PublicationBoundary) => Promise<void>): Promise<void> {
+  await publishBytes(path, `${canonical(value)}\n`, boundary);
 }
 
 export class SubmissionStore {

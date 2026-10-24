@@ -17,10 +17,12 @@ import { dependenciesMet, planDecisionReady } from "../shared/plan-readiness";
 export { dependenciesMet } from "../shared/plan-readiness";
 import { mergeOwnership, ownershipCapsule, ownershipScope, planOwnership, quarantinedDependencyIds, readOwnershipCapsule, RetirementSchema, workflowHomeIdentity, type QuarantinedWorkflow, type WorkflowOwnership, type WorkflowRetirement } from "./workflow-ownership";
 
-const EventSchema = z.object({ version: z.literal(1), home: z.string().min(1), plan: PlanId, sequence: z.number().int().nonnegative(), previous: z.string().length(64).nullable(),
+export const WorkflowEventSchema = z.object({ version: z.literal(1), home: z.string().min(1), plan: PlanId, sequence: z.number().int().nonnegative(), previous: z.string().length(64).nullable(),
   requestId: z.uuid(), requestHash: z.string().length(64), at: z.iso.datetime(), by: z.string().min(1),
   command: WorkflowCommandSchema, attempt: z.uuid().optional(), briefHash: z.string().length(64).optional(), launch: PlanLaunchSchema.optional(), postureSource: PlanPostureSourceSchema.optional(), hash: z.string().length(64) }).strict();
-type Event = z.infer<typeof EventSchema>;
+const EventSchema = WorkflowEventSchema;
+export type WorkflowEvent = z.infer<typeof WorkflowEventSchema>;
+type Event = WorkflowEvent;
 const RecoverySchema = z.object({ version: z.literal(1), home: z.string(), plan: PlanId, sequence: z.number().int().nonnegative(),
   orphanHash: z.string().length(64), previous: z.string().length(64).nullable(), revision: z.number().int().positive(), at: z.iso.datetime(), hash: z.string().length(64) }).strict();
 const checksum = ({ hash: _hash, ...event }: Event) => digest(event);
