@@ -1,0 +1,285 @@
+{
+  "format": "firstmate.s03-validation/1",
+  "base": "a75abc21552e14615d02b443efe2a068c84bac1c",
+  "previousDeliveryHead": "034ef7d03e6faefcc83ddc38443b7c5cb51ec120",
+  "dependencyAcceptedHead": "36d086045a72fbfd4f8b94aaed19c007a7d8ac2d",
+  "runtime": {
+    "node": "v24.18.0",
+    "platform": "win32",
+    "architecture": "x64"
+  },
+  "inputs": [
+    {
+      "path": "data/fm-ss-d4/decision.md",
+      "sha256": "b1e130aebc491576bb1ca322c72ca9eecf8003405d507c306fcf7b5f54ad52ed"
+    },
+    {
+      "path": "data/fm-ss-r01-rereview/report.md",
+      "sha256": "90d484c66e695880492d8d842b077e355bb16a640d7e4177a39effa50d62e051"
+    },
+    {
+      "path": "data/fm-ss-s00-corrections/contracts/authority-inventory-v1.json",
+      "sha256": "6f7dbe8714633402744310acb4e16af17fc4bff3c26e2e53bd1b9186608ff59e"
+    }
+  ],
+  "source": [
+    {
+      "path": "server/decision-answer.ts",
+      "gitBlob": "9032727cd3a17983374d3ac39bdd1047e388933f",
+      "sha256NormalizedUtf8": "0a492657568db99f9266161ad8f6a4c4709786f796107a2aa5b4b27b0700c300"
+    },
+    {
+      "path": "server/needs-you-service.ts",
+      "gitBlob": "cefbbaa28957d339f5fa9be389a52cb9214009da",
+      "sha256NormalizedUtf8": "f6e6fb9cecdd04d47abbbf64075aa49334ffb3c71c1ee73c51287933455eb3a7"
+    },
+    {
+      "path": "server/supervision-commands.test.ts",
+      "gitBlob": "9f510110a07d5654324804e7e2a268784842b6b5",
+      "sha256NormalizedUtf8": "c6b670595e8d828481a15a20014876c6177b8b8f0359c49bf43a57105c454671"
+    },
+    {
+      "path": "server/supervision-commands.ts",
+      "gitBlob": "495b2a993521edd5c4eb8a2e7897ce238fad5c05",
+      "sha256NormalizedUtf8": "ed00e56591b96eb8aad50fa2533254aa849f2e87e1c28a17299fbcc8326b9cf3"
+    },
+    {
+      "path": "server/supervision-policy.ts",
+      "gitBlob": "03e8cdbbbbb6950b813ce4308d562c8edb84b170",
+      "sha256NormalizedUtf8": "1ca051861686d89169e4bd55e671942f4347d81cac0a3fc50289867a0d26cf64"
+    },
+    {
+      "path": "server/supervision-store.ts",
+      "gitBlob": "274b152184e9f0378b581f49c44895f735a360b4",
+      "sha256NormalizedUtf8": "8bddf8d81943563a2d8f06394b02683e692ad5dc9f6b4c3801a89a1ea4c79334"
+    },
+    {
+      "path": "server/workflow-plans.ts",
+      "gitBlob": "b5a30ec55a6a462c9a38cacad07a69d9ae310efc",
+      "sha256NormalizedUtf8": "7cbdaba1637de5559f1cc6bff9c55199529b89ae3777d249ad7769ffbf869d2c"
+    },
+    {
+      "path": "server/workflow-service.ts",
+      "gitBlob": "03512c039dfabd0e573cfeab0035e618a6dc4913",
+      "sha256NormalizedUtf8": "c289c823c4cf97ffc6b584e9c3de93a5ea33013c2d3272bccdf4c40534a3dd25"
+    },
+    {
+      "path": "shared/needs-you.ts",
+      "gitBlob": "8b0eacd12bcd03c1c119ae150d60ec880873612b",
+      "sha256NormalizedUtf8": "568b5f40036e1313afe94358d879a04e706fc7beab637bf04a91d37ad51ee8f2"
+    },
+    {
+      "path": "shared/supervision-policy.ts",
+      "gitBlob": "24fa2fc42a126e82b63210351cb79951dacddd4d",
+      "sha256NormalizedUtf8": "9ef6e702e2b9f988b87c6122e5f46d7fcd0a18db1a155aa8b45212ad577d9c77"
+    },
+    {
+      "path": "shared/supervision.ts",
+      "gitBlob": "f9ce31fb1d02e2a42c8d30692d2f8b72464ddded",
+      "sha256NormalizedUtf8": "bbc34afb747ea66d97615b860dc1e008e51ee2a90453730fa4140390c4d399b1"
+    }
+  ],
+  "commands": {
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exitCode": 0
+    },
+    "targeted": {
+      "path": ".local/fm-ss-s03/final-commands-tests.json",
+      "sha256": "7a968efa37b9df95609f30a1cc982dc5c15f08e23ad27f879c70f2b701c6090a",
+      "qualification": "Final S03 source plus Needs-you service and decision-answer regressions after the narrow count correction.",
+      "success": true,
+      "suites": 5,
+      "tests": 95,
+      "passed": 95,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 10857.446044921875,
+      "failures": []
+    },
+    "affected": {
+      "path": ".local/fm-ss-s03/affected-tests.json",
+      "sha256": "d6e82c15483d9c755f2e1e339e616cd277fa4080400bce05f348820bcabbc73b",
+      "qualification": "Earlier affected-store/workflow/Needs-you/launch run; final command refinements are covered by final targeted and final-head CI.",
+      "success": true,
+      "suites": 31,
+      "tests": 525,
+      "passed": 525,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 138481.0859375,
+      "failures": []
+    },
+    "originalFull": {
+      "path": ".local/fm-ss-s03/full-tests.json",
+      "sha256": "0ddf64bc115183939d88e3aa26925496c3376621f66921f03b270310dd534a48",
+      "qualification": "Preserved initial default-concurrency run. One 5-second existing workflow-history timeout; no assertion failure.",
+      "success": false,
+      "suites": 488,
+      "tests": 2478,
+      "passed": 2474,
+      "failed": 1,
+      "skipped": 3,
+      "durationMs": 130946.74291992188,
+      "failures": [
+        {
+          "name": "preserves approvals, prior attempts, promotion, invalidation and evidence-only closure from real logs",
+          "failures": [
+            "Error: Test timed out in 5000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".\n    at task (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2681:43)\n    at Object.<anonymous> (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2698:16)\n    at Object.<anonymous> (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2471:28)\n    at chain (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:1859:14)\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-workflows.test.ts:77:1\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at VitestModuleEvaluator._runInlinedModule (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/module-evaluator.js:261:4)\n    at VitestModuleRunner.directRequest (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vite/dist/node/module-runner.js:1286:59)\n    at VitestModuleRunner.cachedRequest (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vite/dist/node/module-runner.js:1193:73)\n    at VitestModuleRunner.import (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vite/dist/node/module-runner.js:1148:10)"
+          ]
+        }
+      ]
+    },
+    "timeoutControl": {
+      "path": ".local/fm-ss-s03/timeout-control.json",
+      "sha256": "d3d6a1b1c88a9a9d823c5db464072d55c87bb63861e2604ad708ae8c5baf26e4",
+      "qualification": "Same default 5-second timeout; isolated fixture passed in 1106ms.",
+      "success": true,
+      "suites": 1,
+      "tests": 7,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 6,
+      "durationMs": 1766.400146484375,
+      "failures": []
+    },
+    "boundedFull": {
+      "path": ".local/fm-ss-s03/final-full-tests.json",
+      "sha256": "38ba48b1d1e439a9d5ae6b21333ab9ebd9bd9f70c0fe2a060e30be83f90f15be",
+      "qualification": "All repository tests with maxWorkers=4 and unchanged timeouts; final S03 acknowledgement refinement separately reverified in targeted. Final-head CI is the exact-commit cross-platform gate.",
+      "success": true,
+      "suites": 488,
+      "tests": 2478,
+      "passed": 2475,
+      "failed": 0,
+      "skipped": 3,
+      "durationMs": 122987.31518554688,
+      "failures": []
+    }
+  },
+  "targetedAssertions": [
+    {
+      "name": "is unwired by default and source acceptance rejects model/worker provenance",
+      "status": "passed"
+    },
+    {
+      "name": "reuses workflow review, dependency readiness and cumulative start budget",
+      "status": "passed"
+    },
+    {
+      "name": "refuses stale revision without writing",
+      "status": "passed"
+    },
+    {
+      "name": "refuses stale expectedPlanHash without writing",
+      "status": "passed"
+    },
+    {
+      "name": "refuses stale subjectHash without writing",
+      "status": "passed"
+    },
+    {
+      "name": "refuses stale briefHash without writing",
+      "status": "passed"
+    },
+    {
+      "name": "accepted replay returns original receipt after source/policy/epoch changes and after disabling writes",
+      "status": "passed"
+    },
+    {
+      "name": "source drift and conflicting policy hold only new admissions",
+      "status": "passed"
+    },
+    {
+      "name": "two devices commit one revision/subject-bound answer and one durable outbox",
+      "status": "passed"
+    },
+    {
+      "name": "an answer commits during transfer, survives lost delivery and is consumed only at the new epoch",
+      "status": "passed"
+    },
+    {
+      "name": "changed question refuses an old draft and UI/chat provenance cannot share a replay identity",
+      "status": "passed"
+    },
+    {
+      "name": "stop races admission atomically and preserves already dispatching effects",
+      "status": "passed"
+    },
+    {
+      "name": "exact task host/project and active epoch cannot be borrowed",
+      "status": "passed"
+    },
+    {
+      "name": "Needs-you composition is read-only and Coming up contributes no action",
+      "status": "passed"
+    },
+    {
+      "name": "approval binds exact head/check/review versions; accepted history survives later red CI",
+      "status": "passed"
+    },
+    {
+      "name": "duplicate reviewer observations are not independent reviews and red/unknown checks refuse",
+      "status": "passed"
+    },
+    {
+      "name": "source updates publish operation holds, require deliberate review, and never widen model fallback",
+      "status": "passed"
+    },
+    {
+      "name": "release operations are outside the pilot command and approval vocabulary",
+      "status": "passed"
+    },
+    {
+      "name": "a publication interruption exposes neither half of an answer and exact recovery spends nothing twice",
+      "status": "passed"
+    },
+    {
+      "name": "shared Needs-you counts holds once and composition remains stable through answer handling",
+      "status": "passed"
+    },
+    {
+      "name": "captain UI and mate-recorded chat preserve different author sources",
+      "status": "passed"
+    },
+    {
+      "name": "automatic one-run commands use the existing reducer and replay the same pinned attempt",
+      "status": "passed"
+    },
+    {
+      "name": "a stop ordered after admission retains the admitted attempt and requires a fresh review",
+      "status": "passed"
+    },
+    {
+      "name": "the policy's project alias and host selectors refuse borrowed task names",
+      "status": "passed"
+    },
+    {
+      "name": "stale policy in one project does not hold an unrelated scoped project",
+      "status": "passed"
+    },
+    {
+      "name": "a model-only hold does not hide a separate ready captain decision",
+      "status": "passed"
+    }
+  ],
+  "selfReview": {
+    "fullDiff": true,
+    "checks": [
+      "accepted replay before current policy",
+      "logical answer vs session epoch",
+      "no transport-as-handled",
+      "no acknowledgement notification loop",
+      "source/rule change holds before notification",
+      "legacy code paths and reducer semantics preserved",
+      "no activation wiring or paid/live effects"
+    ]
+  },
+  "limitations": [
+    "Cooperative same-user boundary; no authenticated actor or receiver fencing.",
+    "Evidence adapters, native effects and delivery activation are deferred.",
+    "M1 A07.scoped only; legacy transfer is S07.",
+    "No installation, live scope, provider calls, watches or migration.",
+    "Independent R03 review required before landing."
+  ]
+}

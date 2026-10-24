@@ -2,6 +2,7 @@
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import { PlanNeedSchema } from "./workflow-rpc";
+import { OperationHoldSchema, ScopedDecisionSchema } from "./supervision-policy";
 
 const instant = z.number().int().nonnegative();
 const revision = z.number().int().positive();
@@ -104,6 +105,14 @@ export const NeedsYouFreshnessSchema = z.object({
   problems: z.array(z.string()),
 });
 export const NeedsYouSnapshotSchema = z.object({
+  /** Separate scoped backend. These rows never enter the legacy answer/send ledger. */
+  scopedDecisions: z.array(z.object({ decision: ScopedDecisionSchema, ready: z.boolean(), waitingFor: z.string().nullable(),
+    ownerEpoch: z.number().int().positive().nullable() }).strict()).optional(),
+  scopedSequence: z.number().int().nonnegative().optional(),
+  scopedHolds: z.array(OperationHoldSchema).optional(),
+  scopedComplete: z.boolean().optional(),
+  scopedPendingAnswerCount: z.number().int().nonnegative().optional(),
+  scopedProblems: z.array(z.string()).optional(),
   planNow: z.array(PlanNeedSchema).optional(),
   comingUp: z.array(PlanNeedSchema).optional(),
   planProblems: z.array(z.string()).optional(),
