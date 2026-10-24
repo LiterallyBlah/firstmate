@@ -32,6 +32,17 @@ export const backlogSection = (node: PlanNode, state: string, closedWithoutLandi
 export const samePlanItem = (item: ReturnType<typeof parseBacklog>[number], plan: WorkflowPlan, node: PlanNode) =>
   item.id === node.id && (node.kind === "decision" ? !item.project && !item.host : item.project === node.launch.project && (item.host ?? "local").toLowerCase() === node.launch.host.toLowerCase()) &&
   (plan.definition.implicit || item.plan === plan.definition.id);
+/** Append admission only. Replayers deliberately do not call this helper. */
+export function checkNewCaptainAction(command: WorkflowCommand, previous: WorkflowPlan | null, plans: WorkflowPlan[], unavailableDependencies = new Set<string>(), unavailable = false): void {
+  if (command.op !== "captain") return;
+  if (!previous || command.revision !== previous.revision || command.subjectHash !== planSubjectHash(previous)) throw new Error("This plan changed since you opened it. Refresh and review it again.");
+  if (["approve", "edit", "changes"].includes(command.action) && !planAwaitingReview(previous)) throw new Error("This plan is not awaiting review. The first mate must submit a revised plan before another review.");
+  if (command.action === "answer") {
+    const node = previous.definition.nodes.find(n => n.id === command.node);
+    if (previous.nodes[command.node ?? ""]?.answer) throw new Error("Decision is already answered.");
+    if (unavailable || !node || !planDecisionReady(previous, node, plans, unavailableDependencies)) throw new Error("Decision is not ready. Approve the plan and complete its required evidence before answering.");
+  }
+}
 function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
   const c = event.command;
   let next = previous ? structuredClone(previous) : null;
@@ -430,11 +441,6 @@ export class WorkflowPlanStore {
       const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>(reduce, null);
       const replay = events.find(e => e.requestId === requestId);
       if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); return this.renderedResult(previous!, replay); }
-      if (command.op === "captain") {
-        if (!previous || command.revision !== previous.revision || command.subjectHash !== planSubjectHash(previous)) throw new Error("This plan changed since you opened it. Refresh and review it again.");
-        // Check new presses only; committed history and accepted request retries still replay.
-        if (["approve", "edit", "changes"].includes(command.action) && !planAwaitingReview(previous)) throw new Error("This plan is not awaiting review. The first mate must submit a revised plan before another review.");
-      }
       const postureDefinition = command.op === "draft" || command.op === "revise" ? command.definition : command.op === "implicit" ? PlanDefinitionSchema.parse({
         format: "firstmate.plan/1", id, title: command.launch.title, request: { text: command.launch.title, at: new Date().toISOString() }, implicit: true,
         budget: { agents: 1, turns: 1 }, nodes: [{ id, title: command.launch.title, summary: command.launch.title, kind: "run", workflow: command.launch.kind === "scout" ? "scout@1" : "task@1", launch: command.launch }],
@@ -444,12 +450,7 @@ export class WorkflowPlanStore {
       const unavailableDependencies = quarantinedDependencyIds(quarantined);
       // New answers only. Keep the reducer and request-id replay compatible with
       // committed early answers from older versions of the append-only ledger.
-      if (command.op === "captain" && command.action === "answer") {
-        const node = previous?.definition.nodes.find(n => n.id === command.node);
-        if (previous?.nodes[command.node ?? ""]?.answer) throw new Error("Decision is already answered.");
-        if (unavailable || !previous || !node || !planDecisionReady(previous, node, plans, unavailableDependencies))
-          throw new Error("Decision is not ready. Approve the plan and complete its required evidence before answering.");
-      }
+      checkNewCaptainAction(command, previous, plans, unavailableDependencies, unavailable);
       const ownsWork = ["draft", "revise", "implicit", "start", "claim", "replace"].includes(command.op);
       const candidates = command.op === "draft" || command.op === "revise" ? command.definition.nodes.map(ownershipScope) : command.op === "implicit" ? [{ node: command.launch.id, host: command.launch.host.trim().toLowerCase() }] :
         ownsWork ? previous?.definition.nodes.filter(n => "node" in command && n.id === command.node).map(ownershipScope) ?? [] : [];

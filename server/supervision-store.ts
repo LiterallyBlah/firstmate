@@ -19,10 +19,21 @@ import { WorkflowEventSchema } from "./workflow-plans";
 import { mergeOwnership, OwnershipSchema as WorkflowOwnershipSchema, planOwnership, RetirementSchema, workflowHomeIdentity, type WorkflowOwnership } from "./workflow-ownership";
 import { replaySupervisionWorkflow } from "./supervision-workflows";
 import { supervisionProcessIdentity, type ProcessIdentity } from "./supervision-process";
+import { AcceptedScopedCommandSchema, OperationHoldSchema, PolicyApprovalSchema, PolicyEvidenceSchema, PolicyRuleSchema,
+  PolicySourceSchema, ScopedDecisionSchema, ScopedOutboxSchema, ScopedCommandResultSchema,
+  type ScopedCommandResult } from "../shared/supervision-policy";
 
 const number = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), positive = number.min(1);
 const BlobSchema = z.object({ id: SupervisionHash, bytes: number }).strict();
 export const SupervisionMutationSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("policy-source"), value: PolicySourceSchema }).strict(),
+  z.object({ kind: z.literal("policy-rule"), value: PolicyRuleSchema }).strict(),
+  z.object({ kind: z.literal("policy-evidence"), value: PolicyEvidenceSchema }).strict(),
+  z.object({ kind: z.literal("approval"), value: PolicyApprovalSchema }).strict(),
+  z.object({ kind: z.literal("decision"), value: ScopedDecisionSchema }).strict(),
+  z.object({ kind: z.literal("outbox"), value: ScopedOutboxSchema }).strict(),
+  z.object({ kind: z.literal("operation-hold"), value: OperationHoldSchema }).strict(),
+  z.object({ kind: z.literal("command"), value: AcceptedScopedCommandSchema }).strict(),
   z.object({ kind: z.literal("scope"), value: SupervisionScopeSchema }).strict(),
   z.object({ kind: z.literal("binding"), value: SupervisionBindingSchema }).strict(),
   z.object({ kind: z.literal("task"), value: SupervisionTaskSchema }).strict(),
@@ -268,6 +279,17 @@ export class SupervisionStore {
             (old.state === "retired" && mutation.value.state !== "retired"))) fail("HELD", "A held backend requires checked forward recovery, not rollback.");
         }
         if (mutation.kind === "blob" && prior) fail("CONFLICT", "Evidence references are immutable.");
+        if (["command", "approval"].includes(mutation.kind) && prior) fail("CONFLICT", "Accepted commands and approvals are immutable.");
+        if (mutation.kind === "decision" && old) {
+          if (["ownerScopeId", "planId", "nodeId"].some(p => old[p] !== mutation.value[p as keyof typeof mutation.value]) ||
+            (old.answer && digest(old) !== digest({ ...mutation.value, version: old.version }))) fail("HELD", "Decision identity and accepted answers cannot be rewritten.");
+        }
+        if (mutation.kind === "outbox" && old) {
+          const { version: _v, state: _s, handledEpoch: _e, resultRef: _r, ...identity } = mutation.value;
+          const { version: _ov, state: _os, handledEpoch: _oe, resultRef: _or, ...oldIdentity } = old;
+          if (digest(identity) !== digest(oldIdentity) || (old.state === "handled" && digest(old) !== digest({ ...mutation.value, version: old.version })))
+            fail("HELD", "Outbox identity and handled result must be retained.");
+        }
       }
       next.set(k, { kind, id, version, value }); changes.push({ kind, id, version });
     }
@@ -347,6 +369,25 @@ export class SupervisionStore {
         const row = frame.value as WorkflowRow, backend = get("backend", row.plan.definition.id) as z.infer<typeof SupervisionBackendSchema> | undefined;
         if (!backend || backend.ownerScopeId !== row.scopeId) fail("UNKNOWN_OWNER", "Workflow and backend ownership must agree atomically.");
       }
+      if (frame.kind === "decision") {
+        const row = ScopedDecisionSchema.parse(value), backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
+        if (!backend || backend.ownerScopeId !== row.ownerScopeId) fail("UNKNOWN_OWNER", "Decision and plan owner must agree.");
+        if ((row.state === "answered") !== !!row.answer) fail("CONFLICT", "Decision answer and state must agree.");
+        if (row.answer) {
+          const outbox = get("outbox", row.answer.outboxId) as z.infer<typeof ScopedOutboxSchema> | undefined;
+          if (!outbox || outbox.decisionId !== row.id || outbox.ownerScopeId !== row.ownerScopeId || outbox.causationId !== row.answer.submissionId)
+            fail("CONFLICT", "Answer and logical delivery must commit together.");
+        }
+      }
+      if (frame.kind === "outbox") {
+        const row = ScopedOutboxSchema.parse(value), backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;
+        if (!backend || backend.ownerScopeId !== row.ownerScopeId || (row.state === "handled") !== !!(row.handledEpoch && row.resultRef))
+          fail("CONFLICT", "Outbox ownership or handled receipt is inconsistent.");
+        if (row.decisionId) {
+          const decision = get("decision", row.decisionId) as z.infer<typeof ScopedDecisionSchema> | undefined;
+          if (decision?.answer?.outboxId !== row.id) fail("CONFLICT", "Answer outbox must reference its committed decision result.");
+        }
+      }
     }
   }
   private async scan(): Promise<Scan> {
@@ -423,6 +464,37 @@ export class SupervisionStore {
         if (replay.requestHash !== requestHash) fail("CONFLICT", "Request ID has different content; retain and inspect the original receipt.");
         return this.receipt(replay); // Before CAS/admission; historical approval is not reauthorized.
       }
+      return this.commit(snapshot, body, requestId, requestHash);
+    });
+  }
+  /** Internal S03 checked preparation: replay precedes current admission; preparation and publication
+   * share the coordinator's serialization boundary. No model/network call belongs in prepare.
+   */
+  async transactCommand(requestId: string, inputHash: string, actorInput: SupervisionActor,
+    prepare: (status: SupervisionStatus) => Promise<{ expectedVersions: SupervisionExpected[]; mutations: SupervisionMutation[]; result: ScopedCommandResult }>,
+  ): Promise<{ receipt: SupervisionReceipt; result: ScopedCommandResult }> {
+    SupervisionUuid.parse(requestId); SupervisionHash.parse(inputHash);
+    const actor = structuredClone(SupervisionActorSchema.parse(actorInput));
+    return serialized(this.root, async () => {
+      const snapshot = await this.scan();
+      if (snapshot.problems.length) fail("HELD", snapshot.problems.join(" "));
+      const replay = snapshot.transactions.find(t => t.requestId === requestId);
+      if (replay) {
+        const accepted = replay.body.mutations.find(m => m.kind === "command" && m.value.id === requestId);
+        if (accepted?.kind !== "command" || accepted.value.inputHash !== inputHash || digest(accepted.value.actor) !== digest(actor))
+          fail("CONFLICT", "Request ID belongs to different command content or provenance.");
+        return { receipt: this.receipt(replay), result: accepted.value.result };
+      }
+      this.writable(); await this.assertCoordinator();
+      const prepared = await prepare(this.status(snapshot));
+      const result = ScopedCommandResultSchema.parse(prepared.result);
+      if (prepared.mutations.some(m => m.kind === "command")) fail("CONFLICT", "Command replay index is store-owned.");
+      const body = BodySchema.parse({ actor, expectedVersions: [...prepared.expectedVersions, { kind: "command", id: requestId, version: 0 }],
+        mutations: [...prepared.mutations, { kind: "command", value: { id: requestId, version: 1, inputHash, actor, result } }] });
+      return { receipt: await this.commit(snapshot, body, requestId, digest(body)), result };
+    });
+  }
+  private async commit(snapshot: Scan, body: z.infer<typeof BodySchema>, requestId: string, requestHash: string): Promise<SupervisionReceipt> {
       this.writable();
       if (!snapshot.initialized) fail("HELD", "Initialize a new fixture store explicitly.");
       const coordinator = await this.assertCoordinator();
@@ -445,7 +517,6 @@ export class SupervisionStore {
         fail("HELD", `Publication interrupted; reread/reconcile the original request without repeating an effect: ${String(error)}`);
       }
       return this.receipt(event);
-    });
   }
   /** Only completes an exact validated event+tip. Missing events/anchors require deliberate repair.
    * No anchor deletion/reconstruction, external dispatch or recovery of a shorter history exists.
@@ -482,19 +553,23 @@ export class SupervisionStore {
     });
   }
   async read(): Promise<SupervisionStatus> {
-    const snapshot = await this.scan();
+    return this.status(await this.scan());
+  }
+  private status(snapshot: Scan): SupervisionStatus {
     const values = <T>(kind: Frame["kind"]) => [...snapshot.frames.values()].filter(f => f.kind === kind).map(f => f.value as T);
     const tasks = values<SupervisionStatus["tasks"][number]>("task"), effects = values<SupervisionStatus["effects"][number]>("effect");
     return { format: "firstmate.supervision-status/1", homeId: this.homeId,
       freshness: snapshot.problems.length ? "held" : snapshot.initialized ? "current" : "uninitialized",
       sequence: snapshot.sequence, hash: snapshot.hash, executable: false, guarantee: "cooperative-storage-only",
-      limits: ["No command admission, sends, session creation or live backend migration in S01.",
+      limits: ["No live command transport, sends, session creation or backend migration is enabled.",
         "Actor provenance and filesystem ownership are cooperative, not authenticated IPC or receiver fencing.",
         "Process-crash qualification only; coordinated loss of journal and all local metadata can hide truncation."],
       problems: snapshot.problems, versions: [...snapshot.frames.values()].map(({ kind, id, version }) => ({ kind, id, version })),
       storage: { bytes: snapshot.bytes, limitBytes: this.options.maxJournalBytes ?? 100 * 1024 * 1024,
         admissionsHeld: snapshot.problems.length > 0 || snapshot.bytes >= (this.options.maxJournalBytes ?? 100 * 1024 * 1024) },
       scopes: values("scope"), bindings: values("binding"), tasks, attempts: values("attempt"), effects, backends: values("backend"),
+      policySources: values("policy-source"), policyRules: values("policy-rule"), policyEvidence: values("policy-evidence"), approvals: values("approval"),
+      decisions: values("decision"), outbox: values("outbox"), operationHolds: values("operation-hold"), commands: values("command"),
       uncertainEffectIds: effects.filter(e => ["dispatching", "uncertain"].includes(e.state)).map(e => e.id),
       plans: values<WorkflowRow>("workflow").map(({ scopeId, plan }) => ({ scopeId, plan })),
       retirements: values<{ scopeId: string; receipt: z.infer<typeof RetirementSchema> }>("retirement")

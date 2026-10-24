@@ -1,6 +1,7 @@
-/** S01 storage/status contracts only. No transport, session activation or command authority. */
+/** Scoped storage/status contracts. No transport or session activation is installed. */
 import { z } from "zod";
 import { PlanId, type WorkflowPlan } from "./workflow-plans";
+import type { AcceptedScopedCommand, OperationHold, PolicyApproval, PolicyEvidence, PolicyRule, PolicySource, ScopedDecision, ScopedOutbox } from "./supervision-policy";
 
 export const SupervisionHash = z.string().length(64).regex(/^[0-9a-f]{64}$/);
 export const SupervisionUuid = z.string().length(36).regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
@@ -82,7 +83,8 @@ export const SupervisionBackendSchema = z.object({
   planId: PlanId, ownerScopeId: SupervisionUuid, backend: z.enum(["legacy", "scoped"]),
   state: z.enum(["active", "prepared", "held", "retired"]), sourceHash: SupervisionHash.nullable(), version: positive,
 }).strict();
-export const SupervisionRowKind = z.enum(["scope", "binding", "task", "attempt", "effect", "backend", "workflow", "retirement", "blob"]);
+export const SupervisionRowKind = z.enum(["scope", "binding", "task", "attempt", "effect", "backend", "workflow", "retirement", "blob",
+  "policy-source", "policy-rule", "policy-evidence", "approval", "decision", "outbox", "operation-hold", "command"]);
 export const SupervisionExpectedSchema = z.object({ kind: SupervisionRowKind, id: text(1024), version: count }).strict();
 export const SupervisionActorSchema = z.object({
   kind: z.enum(["captain-ui", "mate-chat", "agent", "system"]), id: text(), source: text(1024),
@@ -117,6 +119,8 @@ export interface SupervisionStatus {
   versions: SupervisionExpected[]; scopes: SupervisionScope[]; bindings: SupervisionBinding[];
   tasks: SupervisionTask[]; attempts: SupervisionAttempt[]; effects: SupervisionEffect[]; backends: SupervisionBackend[];
   uncertainEffectIds: string[];
+  policySources: PolicySource[]; policyRules: PolicyRule[]; policyEvidence: PolicyEvidence[]; approvals: PolicyApproval[];
+  decisions: ScopedDecision[]; outbox: ScopedOutbox[]; operationHolds: OperationHold[]; commands: AcceptedScopedCommand[];
   plans: { scopeId: string; plan: WorkflowPlan }[];
   retirements: { scopeId: string; plan: string; evidence: string; hash: string }[];
   retainedOwnership: SupervisionOwnership[];
