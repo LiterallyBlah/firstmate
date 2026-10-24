@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import type { SupervisionActor, SupervisionStatus } from "../shared/supervision";
-import { PolicyRuleSchema, PolicySourceSchema, type PolicyRule, type PolicySource, type PilotOperation, type VersionRef } from "../shared/supervision-policy";
+import { PolicyRuleSchema, PolicySourceSchema, type PolicyRule, type PolicySource, type PilotOperation, type VersionRef, type PolicyOperationTarget } from "../shared/supervision-policy";
 import { resolveInHome } from "./files";
 import { digest } from "./submissions";
 import { SupervisionError, type SupervisionStore, type SupervisionMutation } from "./supervision-store";
@@ -45,6 +45,7 @@ export interface PolicyAdmission extends PolicyTarget {
   policyVector: VersionRef[]; evidenceVector: VersionRef[]; subjectHash: string; revision: number;
   approvalId: string | null; model: string | null; profileDigest?: string; head: string | null; artifactHash: string | null;
   approvalOperation?: PilotOperation; approvalPolicyVector?: VersionRef[]; modelPolicyVector?: VersionRef[];
+  operationTarget: PolicyOperationTarget;
 }
 export async function checkPolicy(home: string, status: SupervisionStatus, input: PolicyAdmission, now: string, issuingApproval = false): Promise<void> {
   if (status.operationHolds.some(h => h.scopeId === input.scopeId && h.planId === input.planId && h.state === "held" && h.operations.includes(input.operation)))
@@ -83,6 +84,7 @@ export async function checkPolicy(home: string, status: SupervisionStatus, input
     if (c.requireApproval && !issuingApproval) {
       const approval = status.approvals.find(a => a.id === input.approvalId);
       if (!approval || approval.scopeId !== input.scopeId || approval.planId !== input.planId || approval.operation !== (input.approvalOperation ?? input.operation) ||
+        !approval.operationTarget || digest(approval.operationTarget) !== digest(input.operationTarget) ||
         approval.revision !== input.revision || approval.subjectHash !== input.subjectHash || approval.head !== input.head || approval.artifactHash !== input.artifactHash ||
         !sameVector(approval.policyVector, input.approvalPolicyVector ?? input.policyVector) || !sameVector(approval.evidenceVector, input.evidenceVector) ||
         (input.model !== null && (approval.profileDigest !== input.profileDigest || !sameVector(approval.modelPolicyVector, input.modelPolicyVector ?? input.policyVector))) ||

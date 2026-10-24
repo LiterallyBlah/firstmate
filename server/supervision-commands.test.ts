@@ -10,7 +10,7 @@ import { workflowFixture } from "../test/workflow-fixture";
 import { SupervisionStore, type SupervisionMutation } from "./supervision-store";
 import { SupervisionCommands, scopedDecisionId, type ScopedPlanCommand, type ScopedAnswer } from "./supervision-commands";
 import { acceptPolicyInventory, currentPolicyVector, policyRef } from "./supervision-policy";
-import { planSubjectHash } from "./workflow-plans";
+import { planSubjectHash, WorkflowEventSchema } from "./workflow-plans";
 import { digest } from "./submissions";
 import { answerScopedDecision } from "./decision-answer";
 import { withScopedNeedsYou } from "./needs-you-service";
@@ -79,6 +79,15 @@ async function ownerResult(outboxId: string, actor = mate) {
   const before = (await store.read()).outbox.length;
   const i = await input({ op: "ack", plan: "scheduler", kind: "handled", ids: [outboxId] });
   await commands.planCommand(i, actor); expect((await store.read()).outbox).toHaveLength(before); return `command:${i.requestId}`;
+}
+async function transferOwner(agentId: string) {
+  const s = await store.read();
+  const held: SupervisionMutation[] = [{ kind: "scope", value: { ...s.scopes[0]!, state: "transferring", version: 2 } }, { kind: "binding", value: { ...s.bindings[0]!, state: "suspect" } }];
+  await store.transact(expected(held, 1), randomUUID(), held);
+  const prepared: SupervisionMutation[] = [{ kind: "binding", value: { ...s.bindings[0]!, epoch: 2, state: "prepared", agentId } }];
+  await store.transact(expected(prepared, 2), randomUUID(), prepared);
+  const active: SupervisionMutation[] = [{ kind: "scope", value: { ...s.scopes[0]!, state: "active", version: 3 } }, { kind: "binding", value: { ...s.bindings[0]!, epoch: 2, state: "active", agentId } }];
+  await store.transact(expected(active).map(r => ({ ...r, version: r.kind === "scope" ? 2 : 3 })), randomUUID(), active);
 }
 async function files() {
   const names = (await readdir(join(store.root, "transactions"))).sort();
@@ -357,4 +366,152 @@ it("a model-only hold does not hide a separate ready captain decision", async ()
   const view = withScopedNeedsYou(base, await store.read());
   expect(view.scopedDecisions?.[0]?.ready).toBe(true); expect(view.actionCount).toBe(2);
   expect(withScopedNeedsYou(view, await store.read()).actionCount).toBe(2);
+});
+
+// R03 counterexamples and their positive controls use the actual checked seam and journal.
+it("R03-01 refuses a borrowed node approval and admits only its pinned target", async () => {
+  const definition = workflowFixture();
+  definition.nodes = definition.nodes.filter(n => n.kind === "run").map(n => ({ ...n, after: [] }));
+  await run({ op: "draft", definition });
+  const p = (await store.read()).plans[0]!.plan;
+  await run({ op: "captain", plan: "scheduler", revision: p.revision, subjectHash: planSubjectHash(p), action: "approve", text: "Approve the plan; operations remain separately bound." }, captain);
+  await changeRule({ constraints: { ...rule.constraints, requireApproval: true } }); await reviewHolds();
+  const approved = await input({ op: "start", plan: "scheduler", node: "trial" }); await commands.approve(approved, captain);
+  const borrowed = await input({ op: "start", plan: "scheduler", node: "build" }); borrowed.approvalId = approved.requestId;
+  const before = await files();
+  await expect(commands.planCommand(borrowed, mate)).rejects.toMatchObject({ code: "STALE" });
+  expect(await files()).toEqual(before);
+  expect((await store.read()).plans[0]!.plan.nodes.build?.state).toBe("planned");
+  await commands.planCommand({ ...approved, requestId: randomUUID(), approvalId: approved.requestId }, mate);
+  expect((await store.read()).plans[0]!.plan.nodes.trial).toMatchObject({ state: "starting", spent: 1 });
+});
+it("R03-01 refuses a changed brief under an old operation approval", async () => {
+  await draft(); await changeRule({ constraints: { ...rule.constraints, requireApproval: true } }); await reviewHolds();
+  const approved = await input({ op: "start", plan: "scheduler", node: "trial" }); await commands.approve(approved, captain);
+  const changed = "Changed bounded brief."; await writeFile(join(home, "data/trial/brief.md"), changed);
+  const current = { ...approved, requestId: randomUUID(), briefHash: sha(changed), approvalId: approved.requestId };
+  const before = await files();
+  await expect(commands.planCommand(current, mate)).rejects.toMatchObject({ code: "STALE" });
+  await expect(commands.approve({ ...approved, requestId: randomUUID() }, captain)).rejects.toMatchObject({ code: "STALE" });
+  expect(await files()).toEqual(before);
+  const renewed = { ...current, requestId: randomUUID() }; await commands.approve(renewed, captain);
+  await commands.planCommand({ ...current, approvalId: renewed.requestId }, mate);
+  expect((await store.read()).plans[0]!.plan.nodes.trial?.briefHash).toBe(sha(changed));
+});
+it.each(["told-unrelated", "told-answer", "handled-unrelated", "handled-other-outbox"])("R03-02 refuses %s as an answer result", async kind => {
+  await decisionReady(); const a = await answerInput(); await commands.answer(a, captain);
+  const s = await store.read(), other = s.outbox.find(o => o.id !== a.submissionId)!;
+  const unrelated = await input({ op: "ack", plan: "scheduler", kind: kind.startsWith("told") ? "told" : "handled",
+    ids: [kind === "told-answer" ? a.submissionId : kind === "handled-other-outbox" ? other.id : "unrelated-status-note"] });
+  await commands.planCommand(unrelated, mate);
+  const ack = { requestId: randomUUID(), scopeId: ids.scope, scopeVersion: 1, epoch: 1, outboxId: a.submissionId, resultRef: `command:${unrelated.requestId}` };
+  const before = await files(); await expect(commands.acknowledge(ack, mate)).rejects.toMatchObject({ code: "HELD" });
+  expect(await files()).toEqual(before);
+  expect((await commands.pending()).some(o => o.entry.id === a.submissionId)).toBe(true);
+  const resultRef = await ownerResult(a.submissionId); await commands.acknowledge({ ...ack, requestId: randomUUID(), resultRef }, mate);
+  expect((await store.read()).outbox.find(o => o.id === a.submissionId)).toMatchObject({ state: "handled", handledEpoch: 1, resultRef });
+});
+it("R03-03 excludes a dormant owner from readiness without losing a pending answer", async () => {
+  await decisionReady(); const s = await store.read();
+  const mutations: SupervisionMutation[] = [{ kind: "scope", value: { ...s.scopes[0]!, state: "dormant", version: 2 } }];
+  await store.transact(expected(mutations, 1), randomUUID(), mutations);
+  const a = await answerInput(), base = { ...needsYouSnapshot(null, { status: "fresh", checkedAt: Date.now(), asOf: Date.now(), problems: [] }), homeId: store.homeId, actionCount: 0, pendingAnswerCount: 0 };
+  const before = await files(), view = withScopedNeedsYou(base, await store.read());
+  expect(view.scopedDecisions?.[0]).toMatchObject({ ready: false, waitingFor: expect.any(String) }); expect(view.actionCount).toBe(0);
+  await expect(commands.answer(a, captain)).rejects.toMatchObject({ code: "HELD" }); expect(await files()).toEqual(before);
+});
+it("R03-04 checks the complete retained graph while binding only the selected node's prerequisites", async () => {
+  const s = await store.read(), extScope = randomUUID();
+  const seed: SupervisionMutation[] = [
+    { kind: "scope", value: { ...s.scopes[0]!, id: extScope } },
+    { kind: "binding", value: { ...s.bindings[0]!, scopeId: extScope, agentId: "external-owner" } },
+    { kind: "backend", value: { ...s.backends[0]!, planId: "external", ownerScopeId: extScope } },
+    { kind: "task", value: { id: randomUUID(), ownerScopeId: extScope, planId: "external", nodeId: "external-task", projectId: ids.project, hostId: "local", version: 1, currentAttempt: null } },
+  ];
+  await store.transact(expected(seed), randomUUID(), seed);
+  const grant = { ...rule, id: randomUUID(), selector: { ...rule.selector, scopeIds: [extScope], planIds: ["external"] } };
+  await acceptPolicyInventory(store, home, randomUUID(), captain, { sources: [], rules: [grant] }, true);
+  const n = workflowFixture().nodes[0]!; if (n.kind !== "run") throw new Error("fixture");
+  const extDefinition = { ...workflowFixture(), id: "external", nodes: [{ ...n, id: "external-task", launch: { ...n.launch, id: "external-task", brief: { file: "data/external-task/brief.md" } } }] };
+  const externalInput = async (command: WorkflowCommand) => {
+    const i = await input(command), status = await store.read(), p = status.plans.find(p => p.plan.definition.id === "external")?.plan;
+    const operation = command.op === "start" ? "plan.start" : command.op === "record" ? "plan.record" : "plan.review";
+    const target = { scopeId: extScope, planId: "external", projectIds: [ids.project], hostId: "local", operation } as const;
+    return { ...i, scopeId: extScope, expectedPlanHash: p?.hash ?? null, revision: p?.revision ?? 0, subjectHash: p ? planSubjectHash(p) : null,
+      policyVector: currentPolicyVector(status, target), modelPolicyVector: currentPolicyVector(status, { ...target, operation: "model.use" }) };
+  };
+  const externalActor = { ...mate, id: "external-owner" };
+  await commands.planCommand(await externalInput({ op: "draft", definition: extDefinition }), externalActor);
+  const external = (await store.read()).plans.find(p => p.plan.definition.id === "external")!.plan;
+  const definition = workflowFixture();
+  definition.nodes = definition.nodes.filter(n => n.kind === "run").map(n => ({ ...n, after: n.id === "build" ? [{ node: "external-task", reason: "needs-evidence" as const, on: "done" as const }] : [] }));
+  const dependency = { homeId: store.homeId, planId: "external", nodeId: "external-task", outcome: "done" as const, planHash: external.hash, revision: external.revision, attemptId: null };
+  const draftCommand = await input({ op: "draft", definition }); draftCommand.dependencyBindings = [dependency]; await commands.planCommand(draftCommand, mate);
+  const p = (await store.read()).plans.find(p => p.plan.definition.id === "scheduler")!.plan;
+  const approval = await input({ op: "captain", plan: "scheduler", revision: p.revision, subjectHash: planSubjectHash(p), action: "approve", text: "Approve the scoped dependency graph." });
+  approval.dependencyBindings = [dependency]; await commands.planCommand(approval, captain);
+  const start = await input({ op: "start", plan: "scheduler", node: "trial" }), before = await files();
+  await expect(commands.planCommand({ ...start, requestId: randomUUID(), dependencyBindings: [dependency] }, mate)).rejects.toThrow(/Every prerequisite/);
+  expect(await files()).toEqual(before);
+  await commands.planCommand(start, mate);
+  await expect(run({ op: "start", plan: "scheduler", node: "build" })).rejects.toThrow(/not satisfied/);
+  await mkdir(join(home, "data/external-task")); await writeFile(join(home, "data/external-task/brief.md"), "Synthetic checked brief.");
+  await commands.planCommand(await externalInput({ op: "start", plan: "external", node: "external-task" }), externalActor);
+  const started = (await store.read()).plans.find(p => p.plan.definition.id === "external")!.plan;
+  await commands.planCommand(await externalInput({ op: "record", plan: "external", node: "external-task", attempt: started.nodes["external-task"]!.attempt!, state: "done", evidence: "Verified external fixture report." }), externalActor);
+  const build = await input({ op: "start", plan: "scheduler", node: "build" });
+  await expect(commands.planCommand({ ...build, requestId: randomUUID(), dependencyBindings: [] }, mate)).rejects.toThrow(/Every prerequisite/);
+  await expect(commands.planCommand({ ...build, requestId: randomUUID(), dependencyBindings: [{ ...build.dependencyBindings[0]!, planHash: hash }] }, mate)).rejects.toMatchObject({ code: "STALE" });
+  await commands.planCommand(build, mate);
+  expect((await store.read()).plans.find(p => p.plan.definition.id === "scheduler")!.plan.nodes).toMatchObject({ trial: { state: "starting", spent: 1 }, build: { state: "starting", spent: 1 } });
+});
+it("R03 control preserves accepted replay after actual owner transfer, source drift and disabled writes", async () => {
+  await draft(); const i = await input({ op: "start", plan: "scheduler", node: "trial" }), original = await commands.planCommand(i, mate);
+  await transferOwner("replacement"); await changeRule({ effect: "deny" }); await writeFile(join(home, "data/orders.md"), "Changed after accepted history.\n");
+  const before = await files(); expect(await new SupervisionCommands(store, home).planCommand(i, mate)).toEqual(original);
+  await expect(commands.planCommand({ ...i, requestId: randomUUID() }, mate)).rejects.toMatchObject({ code: "STALE" });
+  expect(await files()).toEqual(before); expect((await store.read()).plans[0]!.plan.nodes.trial?.spent).toBe(1);
+});
+it("R03-02 refuses a linked handling result from the previous epoch even if the agent ID is retained", async () => {
+  await decisionReady(); const a = await answerInput(); await commands.answer(a, captain);
+  const oldResult = await ownerResult(a.submissionId); await transferOwner(mate.id);
+  const ack = { requestId: randomUUID(), scopeId: ids.scope, scopeVersion: 3, epoch: 2, outboxId: a.submissionId, resultRef: oldResult };
+  const before = await files(); await expect(commands.acknowledge(ack, mate)).rejects.toMatchObject({ code: "HELD" }); expect(await files()).toEqual(before);
+  const currentResult = await ownerResult(a.submissionId); await commands.acknowledge({ ...ack, requestId: randomUUID(), resultRef: currentResult }, mate);
+  expect((await store.read()).outbox.find(o => o.id === a.submissionId)).toMatchObject({ state: "handled", handledEpoch: 2 });
+});
+it.each(["held", "transferring"] as const)("R03-03 keeps logical UI answers ready while the owner is %s", async state => {
+  await decisionReady(); const s = await store.read();
+  const mutations: SupervisionMutation[] = [{ kind: "scope", value: { ...s.scopes[0]!, state, version: 2 } }, { kind: "binding", value: { ...s.bindings[0]!, state: "suspect" } }];
+  await store.transact(expected(mutations, 1), randomUUID(), mutations);
+  const a = await answerInput(), base = { ...needsYouSnapshot(null, { status: "fresh", checkedAt: Date.now(), asOf: Date.now(), problems: [] }), homeId: store.homeId, actionCount: 0, pendingAnswerCount: 0 };
+  const view = withScopedNeedsYou(base, await store.read()); expect(view.actionCount).toBe(1); expect(view.scopedDecisions?.[0]?.ready).toBe(true);
+  await commands.answer(a, captain); expect((await store.read()).decisions[0]!.answer?.submissionId).toBe(a.submissionId);
+});
+it("R03 compatibility retains pre-target approval and accepted-result bytes without granting new operations", async () => {
+  await draft(); await changeRule({ constraints: { ...rule.constraints, requireApproval: true } }); await reviewHolds();
+  const i = await input({ op: "start", plan: "scheduler", node: "trial" }); await commands.approve(i, captain);
+  i.requestId = randomUUID(); // The imported historical start is distinct from its approval request.
+  const s = await store.read(), { operationTarget: _target, ...oldFields } = s.approvals[0]!;
+  const legacyApproval = { ...oldFields, id: randomUUID() };
+  const imported: SupervisionMutation[] = [{ kind: "approval", value: legacyApproval }];
+  await store.transact(expected(imported), randomUUID(), imported); i.approvalId = legacyApproval.id;
+  await expect(commands.planCommand({ ...i, requestId: randomUUID() }, mate)).rejects.toMatchObject({ code: "STALE" });
+  // A historical start is trusted by the existing replay seam, never readmitted by today's policy.
+  const p = s.plans[0]!.plan, node = p.definition.nodes[0]!; if (node.kind !== "run") throw new Error("fixture");
+  const body = { version: 1 as const, home, plan: "scheduler", sequence: p.sequence + 1, previous: p.hash, requestId: i.requestId,
+    requestHash: digest(i.command), at: "2026-10-24T12:00:00Z", by: "agent:fixture-owner:retained-fixture", command: i.command,
+    briefHash: i.briefHash!, attempt: randomUUID(), launch: node.launch };
+  const event = WorkflowEventSchema.parse({ ...body, hash: digest(body) });
+  const result = { planId: "scheduler", planHash: event.hash, decisionId: null, outboxId: i.requestId };
+  const history: SupervisionMutation[] = [{ kind: "workflow", scopeId: ids.scope, event },
+    { kind: "outbox", value: { id: i.requestId, version: 1, ownerScopeId: ids.scope, planId: "scheduler", kind: "plan.command", causationId: i.requestId,
+      subjectHash: event.hash, decisionId: null, at: body.at, state: "pending", handledEpoch: null, resultRef: null } },
+    { kind: "command", value: { id: i.requestId, version: 1, inputHash: digest(i), actor: mate, result } }];
+  const receipt = await store.transact(expected(history).map(r => ({ ...r, version: s.versions.find(v => v.kind === r.kind && v.id === r.id)?.version ?? 0 })), i.requestId, history);
+  const before = await files(), fresh = await new SupervisionStore(join(home, "store"), home).read();
+  expect(fresh.freshness).toBe("current"); expect(fresh.approvals.find(a => a.id === legacyApproval.id)).toEqual(legacyApproval);
+  expect(fresh.commands.find(c => c.id === i.requestId)!.result).toEqual(result);
+  expect(await new SupervisionCommands(store, home).planCommand(i, mate)).toEqual({ receipt, result });
+  expect(await files()).toEqual(before); expect(fresh.plans[0]!.plan.nodes.trial?.spent).toBe(1);
 });

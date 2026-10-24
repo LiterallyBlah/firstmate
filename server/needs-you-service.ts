@@ -35,7 +35,7 @@ export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: Supervisi
     const owner = status.scopes.find(s => s.id === decision.ownerScopeId), binding = status.bindings.find(b => b.scopeId === decision.ownerScopeId);
     const backend = status.backends.find(b => b.planId === decision.planId);
     const held = status.operationHolds.some(h => h.scopeId === decision.ownerScopeId && h.planId === decision.planId && h.state === "held" && h.operations.includes("decision.answer"));
-    const ready = status.freshness === "current" && backend?.backend === "scoped" && backend.state === "active" && !!owner && owner.state !== "retired" &&
+    const ready = status.freshness === "current" && backend?.backend === "scoped" && backend.state === "active" && owner?.kind === "plan" && owner.mode === "scoped" && ["active", "held", "transferring"].includes(owner.state) &&
       !held && !!plan && !!node && decision.state === "pending" && planDecisionReady(plan, node, plans);
     return { decision, ready, waitingFor: decision.state === "answered" ? null : ready ? null : "Waiting for current plan evidence or ownership reconciliation.",
       ownerEpoch: binding?.state === "active" ? binding.epoch : null };

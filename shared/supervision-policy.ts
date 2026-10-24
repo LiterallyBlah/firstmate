@@ -30,9 +30,14 @@ export const PolicyEvidenceSchema = z.object({
     head: z.string().regex(/^[0-9a-f]{40,64}$/), outcome: z.enum(["accepted", "changes"]), sourceDigest: SupervisionHash }).strict()).max(32),
   availability: z.enum(["unknown", "opus-unresponsive", "opus-quota"]), sourceDigest: SupervisionHash,
 }).strict();
+export const PolicyOperationTargetSchema = z.object({
+  nodeId: PlanId.nullable(), commandHash: SupervisionHash, briefHash: SupervisionHash.nullable(), dependencyHash: SupervisionHash,
+}).strict();
 export const PolicyApprovalSchema = z.object({
   id: SupervisionUuid, version: z.literal(1), scopeId: SupervisionUuid, planId: PlanId,
   operation: PilotOperation, revision: version, subjectHash: SupervisionHash,
+  /** Absent only on retained pre-R03 approvals; never sufficient for a new admission. */
+  operationTarget: PolicyOperationTargetSchema.optional(),
   head: z.string().regex(/^[0-9a-f]{40,64}$/).nullable(), artifactHash: SupervisionHash.nullable(),
   policyVector: z.array(SupervisionVersionRefSchema).min(1).max(256), evidenceVector: z.array(SupervisionVersionRefSchema).max(256),
   modelPolicyVector: z.array(SupervisionVersionRefSchema).max(256), profileDigest: SupervisionHash.nullable(),
@@ -60,6 +65,10 @@ export const OperationHoldSchema = z.object({
 }).strict();
 export const ScopedCommandResultSchema = z.object({
   planId: PlanId.nullable(), planHash: SupervisionHash.nullable(), decisionId: SupervisionUuid.nullable(), outboxId: SupervisionUuid.nullable(),
+  /** Only an explicit handled command can introduce these checked causal links. No replay defaults. */
+  handling: z.object({ scopeId: SupervisionUuid, epoch: version,
+    outboxes: z.array(z.object({ outboxId: SupervisionUuid, decisionId: SupervisionUuid.nullable(), causationId: SupervisionUuid }).strict()).min(1).max(100),
+  }).strict().optional(),
 }).strict();
 export const AcceptedScopedCommandSchema = z.object({
   id: SupervisionUuid, version: z.literal(1), inputHash: SupervisionHash, actor: SupervisionActorSchema,
@@ -69,6 +78,7 @@ export type PolicySource = z.infer<typeof PolicySourceSchema>;
 export type PolicyRule = z.infer<typeof PolicyRuleSchema>;
 export type PolicyEvidence = z.infer<typeof PolicyEvidenceSchema>;
 export type PolicyApproval = z.infer<typeof PolicyApprovalSchema>;
+export type PolicyOperationTarget = z.infer<typeof PolicyOperationTargetSchema>;
 export type ScopedDecision = z.infer<typeof ScopedDecisionSchema>;
 export type ScopedOutbox = z.infer<typeof ScopedOutboxSchema>;
 export type OperationHold = z.infer<typeof OperationHoldSchema>;

@@ -3,8 +3,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { z } from "zod";
 import { SupervisionActorSchema, SupervisionHash, SupervisionUuid, SupervisionVersionRefSchema, type SupervisionActor, type SupervisionExpected, type SupervisionStatus } from "../shared/supervision";
-import { PolicyApprovalSchema, ScopedDecisionSchema, type ScopedCommandResult, type PilotOperation } from "../shared/supervision-policy";
-import { PlanDefinitionSchema, PlanId, WorkflowCommandSchema, planProblems, type WorkflowCommand, type WorkflowPlan } from "../shared/workflow-plans";
+import { PolicyApprovalSchema, ScopedDecisionSchema, type ScopedCommandResult, type PilotOperation, type PolicyOperationTarget } from "../shared/supervision-policy";
+import { PlanDefinitionSchema, PlanId, WorkflowCommandSchema, planProblems, type WorkflowCommand, type WorkflowPlan, type PlanLaunch } from "../shared/workflow-plans";
 import { checkNewCaptainAction, dependenciesMet, planSubjectHash, WorkflowEventSchema, type WorkflowEvent } from "./workflow-plans";
 import { SupervisionError, type SupervisionMutation, type SupervisionStore } from "./supervision-store";
 import { applicableRules, checkPolicy } from "./supervision-policy";
@@ -46,6 +46,19 @@ function operation(command: WorkflowCommand): PilotOperation {
   if (command.op === "captain") return command.action === "answer" ? "decision.answer" : ["hold", "decline"].includes(command.action) ? "plan.stop" : "plan.review";
   if (["start", "implicit", "claim"].includes(command.op)) return "plan.start";
   return ["record", "invalidate", "validate", "close", "ack"].includes(command.op) ? "plan.record" : "plan.review";
+}
+function operationTarget(input: ScopedPlanCommand): PolicyOperationTarget {
+  const c = input.command;
+  return { nodeId: "node" in c ? c.node ?? null : c.op === "implicit" ? c.launch.id : null,
+    commandHash: digest(c), briefHash: input.briefHash, dependencyHash: digest(input.dependencyBindings) };
+}
+async function pinnedBrief(home: string, input: ScopedPlanCommand, run: PlanLaunch): Promise<string> {
+  const path = (await resolveInHome(home, run.brief.file)).absolute, before = await stat(path);
+  if (before.size > 100000) fail("HELD", "Brief exceeds 100,000 bytes.");
+  const bytes = await readFile(path), after = await stat(path), briefHash = createHash("sha256").update(bytes).digest("hex");
+  if (!bytes.toString("utf8").trim() || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs || before.size !== after.size ||
+    input.briefHash !== briefHash || (input.command.op === "claim" && input.command.briefHash !== briefHash)) fail("STALE", "Brief changed or is not pinned.");
+  return briefHash;
 }
 export class SupervisionCommands {
   constructor(readonly store: SupervisionStore, readonly home: string, private readonly options: { enabled?: boolean; now?: () => string } = {}) {}
@@ -102,7 +115,7 @@ export class SupervisionCommands {
     const target = { scopeId: scope.id, planId, projectIds: scope.projectIds, hostId, operation: op };
     const admission = { ...target, policyVector: input.policyVector, evidenceVector: input.evidenceVector,
       subjectHash: input.subjectHash ?? digest(c), revision: input.revision || 1, approvalId: input.approvalId,
-      model: null, head: input.head, artifactHash: input.artifactHash };
+      model: null, head: input.head, artifactHash: input.artifactHash, operationTarget: operationTarget(input) };
     await checkPolicy(this.home, status, admission, at);
     const dependencies: WorkflowPlan[] = [];
     for (const d of input.dependencyBindings) {
@@ -146,12 +159,7 @@ export class SupervisionCommands {
     let briefHash: string | undefined, launch: WorkflowEvent["launch"];
     if (c.op === "start" || c.op === "implicit" || c.op === "claim") {
       const run = c.op === "implicit" ? c.launch : node?.kind === "run" ? node.launch : fail("HELD", "A decision cannot launch a worker.");
-      const path = (await resolveInHome(this.home, run.brief.file)).absolute, before = await stat(path);
-      if (before.size > 100000) fail("HELD", "Brief exceeds 100,000 bytes.");
-      const bytes = await readFile(path), after = await stat(path);
-      briefHash = createHash("sha256").update(bytes).digest("hex");
-      if (!bytes.toString("utf8").trim() || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs || before.size !== after.size ||
-        input.briefHash !== briefHash || (c.op === "claim" && c.briefHash !== briefHash)) fail("STALE", "Brief changed or is not pinned.");
+      briefHash = await pinnedBrief(this.home, input, run);
       if (c.op === "start") { launch = structuredClone(run); if (node!.after.length) launch.dependency = { satisfiedBy: node!.after.map(e => {
         const p = plans.find(p => p.nodes[e.node])!; return `${e.node}: ${e.on}; plan ${p.definition.id} at ${p.hash}`;
       }).join("; ") }; }
@@ -169,7 +177,9 @@ export class SupervisionCommands {
       if (!task || task.hostId.trim().toLowerCase() !== run.launch.host.trim().toLowerCase() || !applicableRules(status, target).some(r =>
         r.selector.projectIds.includes(task.projectId) && r.selector.projectNames[task.projectId] === run.launch.project)) fail("UNKNOWN_OWNER", "The edited task/host/project mapping is not owned by this plan.");
     }
-    const problems = planProblems(next.definition, plans, new Set(next.removed?.map(r => r.node.id)));
+    // Structural validation needs the entire retained inventory, including external ancestors
+    // used by other steps. This does not widen the exact per-node readiness bindings above.
+    const problems = planProblems(next.definition, status.plans.map(p => p.plan), new Set(next.removed?.map(r => r.node.id)));
     if (problems.length) fail("HELD", problems.join("\n"));
     const mutations: SupervisionMutation[] = [{ kind: "workflow", scopeId: scope.id, event }];
     // Bookkeeping acknowledgements never generate another notification to acknowledge.
@@ -198,8 +208,10 @@ export class SupervisionCommands {
         operations: ["plan.start", "model.use"], reason: c.op === "captain" ? c.text || "Captain stopped admissions." : "Admission hold.", sourceVector: input.policyVector, state: "held" } });
       for (const effect of status.effects.filter(e => e.scopeId === scope.id && e.state === "reserved")) mutations.push({ kind: "effect", value: { ...effect, version: effect.version + 1, state: "cancelled" } });
     }
+    const handled = c.op === "ack" && c.kind === "handled" ? status.outbox.filter(o => o.ownerScopeId === scope.id && o.planId === planId && o.state === "pending" && c.ids.includes(o.id)) : [];
     return { expectedVersions: refs(status, mutations), mutations,
-      result: { planId, planHash: next.hash, decisionId, outboxId } };
+      result: { planId, planHash: next.hash, decisionId, outboxId, ...(handled.length ? { handling: { scopeId: scope.id, epoch: input.epoch,
+        outboxes: handled.map(o => ({ outboxId: o.id, decisionId: o.decisionId, causationId: o.causationId })) } } : {}) } };
   }
   /** Read-only routing: logical identity survives transfer. S02/S06 own offers; no send occurs here. */
   async pending() {
@@ -224,14 +236,19 @@ export class SupervisionCommands {
       const nodeId = "node" in input.command ? input.command.node : undefined;
       const run = plan.definition.nodes.find(n => n.id === nodeId);
       const profile = run?.kind === "run" ? run.launch.agent : null;
+      if (["start", "claim", "implicit"].includes(input.command.op)) {
+        const launch = input.command.op === "implicit" ? input.command.launch : run?.kind === "run" ? run.launch : fail("HELD", "A decision cannot launch a worker.");
+        await pinnedBrief(this.home, input, launch);
+      }
+      const target = operationTarget(input);
       await checkPolicy(this.home, status, { scopeId: scope.id, planId: plan.definition.id, projectIds: scope.projectIds, hostId, operation: op,
         policyVector: input.policyVector, evidenceVector: input.evidenceVector, revision: plan.revision, subjectHash: input.subjectHash!,
-        head: input.head, artifactHash: input.artifactHash, model: null, approvalId: null }, at, true);
+        head: input.head, artifactHash: input.artifactHash, model: null, approvalId: null, operationTarget: target }, at, true);
       if (profile) await checkPolicy(this.home, status, { scopeId: scope.id, planId: plan.definition.id, projectIds: scope.projectIds, hostId, operation: "model.use",
         policyVector: input.modelPolicyVector, evidenceVector: input.evidenceVector, revision: plan.revision, subjectHash: input.subjectHash!,
-        head: input.head, artifactHash: input.artifactHash, model: profile.provider, profileDigest: digest(profile), approvalId: null }, at, true);
+        head: input.head, artifactHash: input.artifactHash, model: profile.provider, profileDigest: digest(profile), approvalId: null, operationTarget: target }, at, true);
       const value = PolicyApprovalSchema.parse({ id: input.requestId, version: 1, scopeId: scope.id, planId: plan.definition.id, operation: op,
-        revision: plan.revision, subjectHash: input.subjectHash, head: input.head, artifactHash: input.artifactHash,
+        revision: plan.revision, subjectHash: input.subjectHash, head: input.head, artifactHash: input.artifactHash, operationTarget: target,
         policyVector: input.policyVector, evidenceVector: input.evidenceVector, modelPolicyVector: input.modelPolicyVector, profileDigest: profile ? digest(profile) : null, provenance: actor, expiresAt: null });
       const mutations: SupervisionMutation[] = [{ kind: "approval", value }];
       return { expectedVersions: refs(status, mutations), mutations, result: { ...emptyResult(), planId: plan.definition.id, planHash: plan.hash } };
@@ -250,6 +267,10 @@ export class SupervisionCommands {
       const introduced = status.commands.findIndex(c => c.id === outbox.causationId);
       if (!result || result.actor.kind !== "agent" || result.actor.id !== provenance.id || result.result.planId !== outbox.planId ||
         status.commands.indexOf(result) <= introduced) fail("HELD", "Handling needs a later committed same-owner plan result, not a transport receipt or arbitrary reference.");
+      const handling = result.result.handling;
+      if (handling?.scopeId !== data.scopeId || handling.epoch !== data.epoch || !handling.outboxes.some(o =>
+        o.outboxId === outbox.id && o.decisionId === outbox.decisionId && o.causationId === outbox.causationId))
+        fail("HELD", "The committed result does not handle this exact outbox, decision and causation at the current owner epoch.");
       const mutations: SupervisionMutation[] = [{ kind: "outbox", value: { ...outbox, version: outbox.version + 1, state: "handled", handledEpoch: data.epoch, resultRef: data.resultRef } }];
       return { expectedVersions: refs(status, mutations), mutations, result: { ...emptyResult(), outboxId: outbox.id, planId: outbox.planId } };
     });

@@ -1,0 +1,525 @@
+{
+  "format": "firstmate.s03-r03-validation/1",
+  "baseline": "d99e0b41bb7117fe9bb2ba869664f08530f194ab",
+  "integrationBase": "a75abc21552e14615d02b443efe2a068c84bac1c",
+  "runtime": {
+    "node": "v24.18.0",
+    "platform": "win32",
+    "arch": "x64",
+    "executable": "C:\\Program Files\\nodejs\\node.exe",
+    "dependencies": "Existing node_modules junction retained; no dependency or lockfile changes."
+  },
+  "scope": "R03-01, R03-02, R03-04 and directly related R03-03; disabled cooperative S03 seam only. Independent re-review still required.",
+  "inputDigests": {
+    "baseline": "d99e0b41bb7117fe9bb2ba869664f08530f194ab",
+    "inputs": [
+      {
+        "path": "data/fm-ss-r03/report.md",
+        "sha256": "9395154fcf65d756487083faf65e43b3665bae117aacbc985ca41997766e7c78"
+      },
+      {
+        "path": "data/fm-ss-r03/source/server/r03-independent.test.ts",
+        "sha256": "324630e689ccb6e4e2fee672f91cbe52da9157f3483fdcd35023ce5817a6ed1c"
+      },
+      {
+        "path": "data/fm-ss-r03/source/server/r03-controls.test.ts",
+        "sha256": "f5b964977f19ad9736b1dda93516f151cf0d0b8df10e10f15ef1d1f11ac584d8"
+      },
+      {
+        "path": "data/fm-ss-r03/probe-01.json",
+        "sha256": "5780fdec0a2e224887b3b98928179854fc121ddadad6e2dd1aae9109f73d9e6e"
+      },
+      {
+        "path": "data/fm-ss-r03/probe-02.json",
+        "sha256": "f5f24f3f791f29ba40339be7d639fbbcc313e740e66479b692694999775c95f6"
+      },
+      {
+        "path": "data/fm-ss-r03/probe-03.json",
+        "sha256": "957679c0be04381391b84f4e21380c0f34165fdc06b4ac97a5370431ade02288"
+      },
+      {
+        "path": "data/fm-ss-r03/probe-04.json",
+        "sha256": "d97e91e48ddd27f510a0a392a0acdcf61543c8b439f119c4c0aaeecc07e34342"
+      },
+      {
+        "path": "data/fm-ss-r03/control-01.json",
+        "sha256": "f6c96bee86e06f62369b1870bc245188695b2c63ae7ebc97e5d181a3e2372bbc"
+      },
+      {
+        "path": "data/fm-ss-r03/control-02.json",
+        "sha256": "e3bc640d9faaedf4bb06ae34deed446414040cf4709fe0d5427d1bac475662c2"
+      },
+      {
+        "path": "data/fm-ss-r03/control-03.json",
+        "sha256": "40773d942d567970b308da2ac440d96a47c81a8ebf74859e82043f9ac5daec8a"
+      },
+      {
+        "path": "data/fm-ss-r03/artifact-manifest.json",
+        "sha256": "967d947dc53b6fe18560fea75e7fad0598896a97c65c75464a085b6ba399d314"
+      },
+      {
+        "path": "d99e0b41bb7117fe9bb2ba869664f08530f194ab:docs/scoped-supervision/s03-validation.json",
+        "sha256": "e2f223293970601de6baf7d2e4454c6300e8c1d5c3764189e1e047fa50badfe6"
+      }
+    ]
+  },
+  "preservedOriginalArtifacts": [
+    {
+      "path": "docs/scoped-supervision/S03.md",
+      "baseline": "d99e0b41bb7117fe9bb2ba869664f08530f194ab",
+      "sha256": "8494c5c1b9d00736fe3e26e6cb14b1468abaf19727a8582fbfa61aa30da1bfdf",
+      "gitBlob": "0043d9c4b419665531a7776be0aae9696b377b2e",
+      "unchanged": true
+    },
+    {
+      "path": "docs/scoped-supervision/s03-validation.json",
+      "baseline": "d99e0b41bb7117fe9bb2ba869664f08530f194ab",
+      "sha256": "e2f223293970601de6baf7d2e4454c6300e8c1d5c3764189e1e047fa50badfe6",
+      "gitBlob": "be76a66e22fc76ec92cf0835ce55d156206aff43",
+      "unchanged": true
+    }
+  ],
+  "commands": {
+    "typecheck": "C:/Program Files/nodejs/node.exe node_modules/typescript/bin/tsc --noEmit",
+    "affected": "C:/Program Files/nodejs/node.exe node_modules/vitest/vitest.mjs run server/supervision-commands.test.ts server/supervision-store.test.ts server/supervision-workflows.test.ts server/needs-you-service.test.ts server/decision-answer.test.ts server/workflow-plans.test.ts server/workflow-regressions.test.ts server/workflow-board.test.ts server/workflow-service.test.ts server/launch-tool.test.ts server/needs-you-ledger.test.ts server/needs-you-store.test.ts shared/supervision.test.ts server/supervision-ownership.test.ts server/supervision-crash.test.ts server/supervision-process.test.ts --maxWorkers=4 --reporter=dot --reporter=json --outputFile=.local/fm-ss-s03-corrections/final-affected-tests.json",
+    "full": "C:/Program Files/nodejs/node.exe node_modules/vitest/vitest.mjs run --passWithNoTests --maxWorkers=4 --reporter=dot --reporter=json --outputFile=.local/fm-ss-s03-corrections/full-tests.json"
+  },
+  "typecheck": {
+    "exitCode": 0,
+    "log": ".local/fm-ss-s03-corrections/typecheck-final.log",
+    "checkedAt": "2026-10-24T23:00:59.6805470Z",
+    "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "verificationRuns": [
+    {
+      "report": ".local/fm-ss-s03-corrections/red-tests.json",
+      "sha256": "4dc8f3e13510a34e1ba4fd74e0a8b0d99851dd0a36273b01a713d14c8ee462b2",
+      "log": ".local/fm-ss-s03-corrections/red-tests.log",
+      "logSha256": "b4e7a716c65c523819c2ae60cb0207b24cb0bfc7c490d160efe193bc97e3920d",
+      "exitCode": 1,
+      "success": false,
+      "testFiles": 1,
+      "suites": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "tests": {
+        "total": 34,
+        "passed": 0,
+        "failed": 8,
+        "skipped": 26,
+        "todo": 0
+      },
+      "failures": [
+        {
+          "suite": "server/supervision-commands.test.ts",
+          "title": "R03-01 refuses a borrowed node approval and admits only its pinned target",
+          "messages": [
+            "Error: promise resolved \"{ receipt: { …(6) }, result: { …(4) } }\" instead of rejecting\n    at _Assertion.__VITEST_REJECTS__ (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2463:33)\n    at _Assertion.propertyGetter (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1659:22)\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-commands.test.ts:373:53\n    at file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20"
+          ]
+        },
+        {
+          "suite": "server/supervision-commands.test.ts",
+          "title": "R03-01 refuses a changed brief under an old operation approval",
+          "messages": [
+            "Error: promise resolved \"{ receipt: { …(6) }, result: { …(4) } }\" instead of rejecting\n    at _Assertion.__VITEST_REJECTS__ (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2463:33)\n    at _Assertion.propertyGetter (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1659:22)\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-commands.test.ts:385:52\n    at file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20"
+          ]
+        },
+        {
+          "suite": "server/supervision-commands.test.ts",
+          "title": "R03-02 refuses told-unrelated as an answer result",
+          "messages": [
+            "Error: promise resolved \"{ receipt: { …(6) }, result: { …(4) } }\" instead of rejecting\n    at _Assertion.__VITEST_REJECTS__ (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2463:33)\n    at _Assertion.propertyGetter (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1659:22)\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-commands.test.ts:399:78\n    at file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20"
+          ]
+        },
+        {
+          "suite": "server/supervision-commands.test.ts",
+          "title": "R03-02 refuses told-answer as an answer result",
+          "messages": [
+            "Error: promise resolved \"{ receipt: { …(6) }, result: { …(4) } }\" instead of rejecting\n    at _Assertion.__VITEST_REJECTS__ (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2463:33)\n    at _Assertion.propertyGetter (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1659:22)\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-commands.test.ts:399:78\n    at file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20"
+          ]
+        },
+        {
+          "suite": "server/supervision-commands.test.ts",
+          "title": "R03-02 refuses handled-unrelated as an answer result",
+          "messages": [
+            "Error: promise resolved \"{ receipt: { …(6) }, result: { …(4) } }\" instead of rejecting\n    at _Assertion.__VITEST_REJECTS__ (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2463:33)\n    at _Assertion.propertyGetter (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1659:22)\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-commands.test.ts:399:78\n    at file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20"
+          ]
+        },
+        {
+          "suite": "server/supervision-commands.test.ts",
+          "title": "R03-02 refuses handled-other-outbox as an answer result",
+          "messages": [
+            "Error: promise resolved \"{ receipt: { …(6) }, result: { …(4) } }\" instead of rejecting\n    at _Assertion.__VITEST_REJECTS__ (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2463:33)\n    at _Assertion.propertyGetter (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1659:22)\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-commands.test.ts:399:78\n    at file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20"
+          ]
+        },
+        {
+          "suite": "server/supervision-commands.test.ts",
+          "title": "R03-03 excludes a dormant owner from readiness without losing a pending answer",
+          "messages": [
+            "AssertionError: expected { decision: { …(13) }, …(3) } to match object { ready: false, …(1) }\n(15 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/chai/index.js:1700:25)\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-commands.test.ts:411:37\n    at file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20"
+          ]
+        },
+        {
+          "suite": "server/supervision-commands.test.ts",
+          "title": "R03-04 checks the complete retained graph while binding only the selected node's prerequisites",
+          "messages": [
+            "Error: build: unknown dependency external-task.\n    at fail (C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-commands.ts:35:118)\n    at SupervisionCommands.prepare (C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-commands.ts:173:26)\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-store.ts:489:24"
+          ]
+        }
+      ],
+      "note": "Eight new counterexamples fail on the delivered implementation, before product corrections. Other cases filtered."
+    },
+    {
+      "report": ".local/fm-ss-s03-corrections/first-green-tests.json",
+      "sha256": "720aa0eefce18eea7efcd1970eadad862a94c4ef957c558748711951d88143e8",
+      "log": ".local/fm-ss-s03-corrections/first-green-tests.log",
+      "logSha256": "92471cb9fa41ba78c15222858bac6ac3b02dc0278c8212ffba25341aa7bc6d0b",
+      "exitCode": 0,
+      "success": true,
+      "testFiles": 1,
+      "suites": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "tests": {
+        "total": 34,
+        "passed": 34,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "failures": [],
+      "note": "All 34 cases pass after initial fixes, before the five added preservation controls."
+    },
+    {
+      "report": ".local/fm-ss-s03-corrections/affected-tests.json",
+      "sha256": "4a2ab653ac61664c91f1845b095dcc24823a27cf0d1b31e3943a71dd9f512a08",
+      "log": ".local/fm-ss-s03-corrections/affected-tests.log",
+      "logSha256": "0cda684f231bd4c807abded94349ec34a06f63c188ad5903689fdc339346c66f",
+      "exitCode": 1,
+      "success": false,
+      "testFiles": 5,
+      "suites": {
+        "total": 8,
+        "passed": 7,
+        "failed": 1
+      },
+      "tests": {
+        "total": 141,
+        "passed": 140,
+        "failed": 1,
+        "skipped": 0,
+        "todo": 0
+      },
+      "failures": [
+        {
+          "suite": "server/supervision-commands.test.ts",
+          "title": "R03 compatibility retains pre-target approval and accepted-result bytes without granting new operations",
+          "messages": [
+            "Error: Request ID has different content; retain and inspect the original receipt.\n    at fail (C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-store.ts:90:70)\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s03/server/supervision-store.ts:464:49"
+          ]
+        }
+      ],
+      "note": "140 pass; compatibility fixture reused the approval request ID for a distinct historical start and correctly raised CONFLICT. Only fixture request identity was corrected."
+    },
+    {
+      "report": ".local/fm-ss-s03-corrections/compatibility-control.json",
+      "sha256": "e5cd4edcc0a69d1a5a367acff396b1e24b514e87a535c9a685cf81507695439a",
+      "log": ".local/fm-ss-s03-corrections/compatibility-control.log",
+      "logSha256": "a8847a2eed810df24e9ac273470ac88c267067d6a15dd4aa7060fe9e5fc1eb8a",
+      "exitCode": 0,
+      "success": true,
+      "testFiles": 1,
+      "suites": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      "tests": {
+        "total": 39,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 38,
+        "todo": 0
+      },
+      "failures": [],
+      "note": "Corrected compatibility fixture passes alone with the default timeout; other cases filtered."
+    },
+    {
+      "report": ".local/fm-ss-s03-corrections/final-affected-tests.json",
+      "sha256": "c0f133b50b2ad2a676e25cc9392762ec8e12eeb2826147da90b501374cd32ae3",
+      "log": ".local/fm-ss-s03-corrections/final-affected-tests.log",
+      "logSha256": "2fbdffd70d90ece042586b0ef5b85a2a266f3f84547cdc3acbee7ae526837c90",
+      "exitCode": 0,
+      "success": true,
+      "testFiles": 14,
+      "suites": {
+        "total": 31,
+        "passed": 31,
+        "failed": 0
+      },
+      "tests": {
+        "total": 546,
+        "passed": 546,
+        "failed": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "failures": [],
+      "note": "Final affected store, workflow, launch, Needs-you, answer and S03 checks; default timeouts, four workers."
+    },
+    {
+      "report": ".local/fm-ss-s03-corrections/full-tests.json",
+      "sha256": "68e8b3403278decbb3a66f0ab73a8723ae9e40f520721ba821077c3e684d54e0",
+      "log": ".local/fm-ss-s03-corrections/full-tests.log",
+      "logSha256": "ed9114a453b5bc803856542d8e27fa4a315e9cc152242e6de43f2e61caa96ecc",
+      "exitCode": 0,
+      "success": true,
+      "testFiles": 167,
+      "suites": {
+        "total": 488,
+        "passed": 488,
+        "failed": 0
+      },
+      "tests": {
+        "total": 2492,
+        "passed": 2489,
+        "failed": 0,
+        "skipped": 3,
+        "todo": 0
+      },
+      "failures": [],
+      "note": "Final complete repository suite; default timeouts, four workers, no timeout changes."
+    }
+  ],
+  "finalS03Cases": [
+    {
+      "title": "is unwired by default and source acceptance rejects model/worker provenance",
+      "status": "passed"
+    },
+    {
+      "title": "reuses workflow review, dependency readiness and cumulative start budget",
+      "status": "passed"
+    },
+    {
+      "title": "refuses stale revision without writing",
+      "status": "passed"
+    },
+    {
+      "title": "refuses stale expectedPlanHash without writing",
+      "status": "passed"
+    },
+    {
+      "title": "refuses stale subjectHash without writing",
+      "status": "passed"
+    },
+    {
+      "title": "refuses stale briefHash without writing",
+      "status": "passed"
+    },
+    {
+      "title": "accepted replay returns original receipt after source/policy/epoch changes and after disabling writes",
+      "status": "passed"
+    },
+    {
+      "title": "source drift and conflicting policy hold only new admissions",
+      "status": "passed"
+    },
+    {
+      "title": "two devices commit one revision/subject-bound answer and one durable outbox",
+      "status": "passed"
+    },
+    {
+      "title": "an answer commits during transfer, survives lost delivery and is consumed only at the new epoch",
+      "status": "passed"
+    },
+    {
+      "title": "changed question refuses an old draft and UI/chat provenance cannot share a replay identity",
+      "status": "passed"
+    },
+    {
+      "title": "stop races admission atomically and preserves already dispatching effects",
+      "status": "passed"
+    },
+    {
+      "title": "exact task host/project and active epoch cannot be borrowed",
+      "status": "passed"
+    },
+    {
+      "title": "Needs-you composition is read-only and Coming up contributes no action",
+      "status": "passed"
+    },
+    {
+      "title": "approval binds exact head/check/review versions; accepted history survives later red CI",
+      "status": "passed"
+    },
+    {
+      "title": "duplicate reviewer observations are not independent reviews and red/unknown checks refuse",
+      "status": "passed"
+    },
+    {
+      "title": "source updates publish operation holds, require deliberate review, and never widen model fallback",
+      "status": "passed"
+    },
+    {
+      "title": "release operations are outside the pilot command and approval vocabulary",
+      "status": "passed"
+    },
+    {
+      "title": "a publication interruption exposes neither half of an answer and exact recovery spends nothing twice",
+      "status": "passed"
+    },
+    {
+      "title": "shared Needs-you counts holds once and composition remains stable through answer handling",
+      "status": "passed"
+    },
+    {
+      "title": "captain UI and mate-recorded chat preserve different author sources",
+      "status": "passed"
+    },
+    {
+      "title": "automatic one-run commands use the existing reducer and replay the same pinned attempt",
+      "status": "passed"
+    },
+    {
+      "title": "a stop ordered after admission retains the admitted attempt and requires a fresh review",
+      "status": "passed"
+    },
+    {
+      "title": "the policy's project alias and host selectors refuse borrowed task names",
+      "status": "passed"
+    },
+    {
+      "title": "stale policy in one project does not hold an unrelated scoped project",
+      "status": "passed"
+    },
+    {
+      "title": "a model-only hold does not hide a separate ready captain decision",
+      "status": "passed"
+    },
+    {
+      "title": "R03-01 refuses a borrowed node approval and admits only its pinned target",
+      "status": "passed"
+    },
+    {
+      "title": "R03-01 refuses a changed brief under an old operation approval",
+      "status": "passed"
+    },
+    {
+      "title": "R03-02 refuses told-unrelated as an answer result",
+      "status": "passed"
+    },
+    {
+      "title": "R03-02 refuses told-answer as an answer result",
+      "status": "passed"
+    },
+    {
+      "title": "R03-02 refuses handled-unrelated as an answer result",
+      "status": "passed"
+    },
+    {
+      "title": "R03-02 refuses handled-other-outbox as an answer result",
+      "status": "passed"
+    },
+    {
+      "title": "R03-03 excludes a dormant owner from readiness without losing a pending answer",
+      "status": "passed"
+    },
+    {
+      "title": "R03-04 checks the complete retained graph while binding only the selected node's prerequisites",
+      "status": "passed"
+    },
+    {
+      "title": "R03 control preserves accepted replay after actual owner transfer, source drift and disabled writes",
+      "status": "passed"
+    },
+    {
+      "title": "R03-02 refuses a linked handling result from the previous epoch even if the agent ID is retained",
+      "status": "passed"
+    },
+    {
+      "title": "R03-03 keeps logical UI answers ready while the owner is held",
+      "status": "passed"
+    },
+    {
+      "title": "R03-03 keeps logical UI answers ready while the owner is transferring",
+      "status": "passed"
+    },
+    {
+      "title": "R03 compatibility retains pre-target approval and accepted-result bytes without granting new operations",
+      "status": "passed"
+    }
+  ],
+  "sourceEncoding": "Git index blobs after line-ending normalization; not raw Windows working-copy bytes.",
+  "sources": [
+    {
+      "path": "server/decision-answer.ts",
+      "gitBlob": "9032727cd3a17983374d3ac39bdd1047e388933f",
+      "sha256": "0a492657568db99f9266161ad8f6a4c4709786f796107a2aa5b4b27b0700c300"
+    },
+    {
+      "path": "server/needs-you-service.ts",
+      "gitBlob": "88cee2e5d7fc14a03a89cf1cf5a713c7e3aa7a68",
+      "sha256": "7e6f74dcdb1e438fa966acad342b217769bcb9a28fc0a1afd947be85fc226bca"
+    },
+    {
+      "path": "server/supervision-commands.test.ts",
+      "gitBlob": "a53edc0ee074cfecb14faddc7762cdec5a85a360",
+      "sha256": "734a19fba6d8eeb354e5b5d29283875d3f0b8e370df7101dab6e26d23eb3fadf"
+    },
+    {
+      "path": "server/supervision-commands.ts",
+      "gitBlob": "d6d8372c6724ced78fade9d4e78f6fac2103c7e6",
+      "sha256": "815e44a76a91c99707d798729ddf2947a55efd7bfb40aff2ba487f61c4753ebb"
+    },
+    {
+      "path": "server/supervision-policy.ts",
+      "gitBlob": "7d51e8335fe663b78843e8bb60fdf415eddf12c1",
+      "sha256": "a92a1e6dc75fabcaee95458a8d8a69182241607fec30c31a3e5b37e6a0c5efb0"
+    },
+    {
+      "path": "server/supervision-store.ts",
+      "gitBlob": "274b152184e9f0378b581f49c44895f735a360b4",
+      "sha256": "8bddf8d81943563a2d8f06394b02683e692ad5dc9f6b4c3801a89a1ea4c79334"
+    },
+    {
+      "path": "server/workflow-plans.ts",
+      "gitBlob": "b5a30ec55a6a462c9a38cacad07a69d9ae310efc",
+      "sha256": "7cbdaba1637de5559f1cc6bff9c55199529b89ae3777d249ad7769ffbf869d2c"
+    },
+    {
+      "path": "server/workflow-service.ts",
+      "gitBlob": "03512c039dfabd0e573cfeab0035e618a6dc4913",
+      "sha256": "c289c823c4cf97ffc6b584e9c3de93a5ea33013c2d3272bccdf4c40534a3dd25"
+    },
+    {
+      "path": "shared/needs-you.ts",
+      "gitBlob": "8b0eacd12bcd03c1c119ae150d60ec880873612b",
+      "sha256": "568b5f40036e1313afe94358d879a04e706fc7beab637bf04a91d37ad51ee8f2"
+    },
+    {
+      "path": "shared/supervision-policy.ts",
+      "gitBlob": "2955bda4c6d0d7e49325768e082dedaacf1387b5",
+      "sha256": "044ab1d82345f98f0f7450222cd90ca9311fc0f2ffa5b0d76010ae591c3daf30"
+    },
+    {
+      "path": "shared/supervision.ts",
+      "gitBlob": "f9ce31fb1d02e2a42c8d30692d2f8b72464ddded",
+      "sha256": "bbc34afb747ea66d97615b860dc1e008e51ee2a90453730fa4140390c4d399b1"
+    },
+    {
+      "path": "docs/scoped-supervision/S03-R03-corrections.md",
+      "gitBlob": "91a11f0a1bf4e75ea1e4b79534ccf2d721cb6b91",
+      "sha256": "32a2606b46b03d0b0cdc17f72849d2677554233fb88e613314e96c427440da1b"
+    }
+  ],
+  "limits": [
+    "No live qualification, provider/model calls, installation, activation, live routing, migration or merge.",
+    "New optional fields have no replay defaults. Accepted command history remains replayable; unbound old approvals cannot authorize new work.",
+    "Independent report and original receipts retained. Local raw failed/passing reports and logs remain in the isolated ignored evidence directory.",
+    "Cross-platform and render qualification is supplied by exact-head PR CI after publication."
+  ]
+}
