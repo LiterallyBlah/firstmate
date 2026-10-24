@@ -287,6 +287,7 @@ export class SupervisionStore {
   private validateIndexes(frames: Map<string, Frame>): void {
     const get = (kind: Frame["kind"], id: string) => frames.get(key(kind, id))?.value;
     const aliases = new Set<string>(), effects = new Set<string>(), workers = new Set<string>(), ordinals = new Set<string>();
+    const currentWorkerTasks = new Map<string, string>();
     const reservations = ownership(frames).workflows.flatMap(w => w.inventory.scopes.map(scope => ({ ...scope, plan: w.plan })));
     for (let i = 0; i < reservations.length; i++) for (const other of reservations.slice(i + 1)) {
       const held = reservations[i]!;
@@ -320,6 +321,14 @@ export class SupervisionStore {
         const ordinal = key(attempt.taskId, String(attempt.ordinal));
         if (!task || !effect || effect.attemptId !== attempt.id || effect.scopeId !== task.ownerScopeId) fail("CONFLICT", "Attempt/task/launch effect must be committed together.");
         if (attempt.worker && attempt.worker.hostId.trim().toLowerCase() !== task.hostId.trim().toLowerCase()) fail("CONFLICT", "Worker host does not match its task identity.");
+        // Current task pointers define ownership, including later worker assignment. Historical
+        // attempts retain their reservations without becoming a second current worker owner.
+        if (attempt.worker && task.currentAttempt === attempt.id) {
+          const worker = key(attempt.worker.hostId.trim().toLowerCase(), attempt.worker.agentId);
+          const owner = currentWorkerTasks.get(worker);
+          if (owner !== undefined && owner !== task.id) fail("CONFLICT", "A worker is current for two tasks.");
+          currentWorkerTasks.set(worker, task.id);
+        }
         if (ordinals.has(ordinal)) fail("CONFLICT", "Duplicate attempt ordinal."); ordinals.add(ordinal);
       }
       if (frame.kind === "effect") {
@@ -327,7 +336,12 @@ export class SupervisionStore {
         if (effects.has(effect.logicalKey)) fail("CONFLICT", "Logical effect already reserved."); effects.add(effect.logicalKey);
         const binding = get("binding", effect.scopeId) as z.infer<typeof SupervisionBindingSchema> | undefined;
         if (!binding || binding.epoch < effect.epoch) fail("STALE", "Effect binding epoch is unavailable.");
-        if (effect.attemptId && !get("attempt", effect.attemptId)) fail("CONFLICT", "Effect attempt is unavailable.");
+        if (effect.attemptId) {
+          const attempt = get("attempt", effect.attemptId) as z.infer<typeof SupervisionAttemptSchema> | undefined;
+          if (!attempt) fail("CONFLICT", "Effect attempt is unavailable.");
+          const task = get("task", attempt.taskId) as z.infer<typeof SupervisionTaskSchema> | undefined;
+          if (!task || task.ownerScopeId !== effect.scopeId) fail("CONFLICT", "Effect scope does not own its attempt's task.");
+        }
       }
       if (frame.kind === "workflow") {
         const row = frame.value as WorkflowRow, backend = get("backend", row.plan.definition.id) as z.infer<typeof SupervisionBackendSchema> | undefined;

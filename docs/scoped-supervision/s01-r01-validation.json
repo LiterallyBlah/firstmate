@@ -1,0 +1,1019 @@
+{
+  "format": "firstmate.s01-r01-validation/1",
+  "correctionBase": "7139feb970e7dc4bc822793394fcf82c24fc61c0",
+  "sourceBase": "bef484b35e66fc3a695038cf5d5b88ef00c64203",
+  "platform": "win32",
+  "node": "v24.18.0",
+  "npm": "11.16.0",
+  "acceptedS00": {
+    "manifest": "343444b790d0f8ad17b6458f804b65f564f083b6825536ef72d4f04034a7b135",
+    "report": "d8b3ead73fde15bca210db3944ca00cb0687471e957298342c8e969ff6045a80",
+    "checkedManifestEntries": 377
+  },
+  "review": {
+    "reportSha256": "8b53ec7bda06b1028ed0c833ad654bc3b06b1b82696ea67411c3a4c71872b536",
+    "retainedInputSha256": {
+      "duplicate-worker.json": "350d6ffdc9b4edb25b3c13041dad353c07f179094b92214f68ae88f63035d6df",
+      "independent-fixtures/duplicate-worker/data/supervision/7f8456bd493571373f9980e6ba2db492887a34f5731f2d03c19b31a6dfb0d13f/transactions/000000000001.event.json": "70823422d8e599f544f85c5b9bd8b74527193ede226e5d1e2089796c4e6560bc",
+      "independent-fixtures/duplicate-worker/data/supervision/7f8456bd493571373f9980e6ba2db492887a34f5731f2d03c19b31a6dfb0d13f/transactions/000000000002.event.json": "d4f4cf418aecfad973e173c1cf36a05d92128f5d3b527c95a2033b1cde3e255c",
+      "foreign-attempt.json": "92c12f7a59b42f98a1c4ec4ae79bb647519284065ea0f357b517940118e77cf4",
+      "independent-fixtures/foreign-attempt/data/supervision/dec14dc3bf3ea438791a968116e0237a076d45efc8973daa22bdd9dc9b9d36a3/transactions/000000000001.event.json": "2ea75ef020b1a18ffd3b843a9b47b91f3a231783920850ec3e9fd4a8a5abfa47",
+      "independent-fixtures/foreign-attempt/data/supervision/dec14dc3bf3ea438791a968116e0237a076d45efc8973daa22bdd9dc9b9d36a3/transactions/000000000002.event.json": "f4b17a4d768ea8dc33b41a4380b65e38c509a3c98fee75a249a6160defbbe6d2",
+      "independent-fixtures/foreign-attempt/data/supervision/dec14dc3bf3ea438791a968116e0237a076d45efc8973daa22bdd9dc9b9d36a3/transactions/000000000003.event.json": "1279d6ffca5e016b5dd526d98168fe60e97b0e7a5faa72a2c578ccae64600805",
+      "distinct-hosts.json": "c5199a5f218dd88cad50b7113774321f6429742e16846d722808b25e8490357c",
+      "independent-fixtures/distinct-hosts/data/supervision/e4b565a1ca970b9ff6e271fa1daaf11efb41637912d6203cdadf41cac3a05182/transactions/000000000001.event.json": "afe64ce047b5b1f022f1a14119f4e89845eb22be8dae5030c789718d7c1f5c15",
+      "independent-fixtures/distinct-hosts/data/supervision/e4b565a1ca970b9ff6e271fa1daaf11efb41637912d6203cdadf41cac3a05182/transactions/000000000002.event.json": "e54508a4f2baa36d7e350e5c3442929ab6003be2954940a54911683c3361aab2"
+    }
+  },
+  "scope": [
+    "R01-1",
+    "R01-2"
+  ],
+  "typecheck": {
+    "command": "node node_modules/typescript/bin/tsc --noEmit",
+    "exitCode": 0
+  },
+  "redControl": {
+    "reportSha256": "2f10e3ff8dbb2b8e50ce64c66c592fa6f50b6f1d6f1de09a1d0d8292861b99c5",
+    "passed": 3,
+    "failed": 12,
+    "skipped": 0,
+    "files": 1,
+    "expected": "12 refusal assertions fail before correction; 3 positive controls pass"
+  },
+  "ownershipRegression": {
+    "reportSha256": "f47f80b1a27deeafa389bfe447a9615587064fabad04551dd9ea038a88417abb",
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0,
+    "files": 1,
+    "command": "node node_modules/vitest/vitest.mjs run server/supervision-ownership.test.ts"
+  },
+  "affected": {
+    "reportSha256": "3f473d5347432e8e3914bf889d4889c625f1c8255aa036980156b5feb09a8fab",
+    "passed": 243,
+    "failed": 0,
+    "skipped": 0,
+    "files": 6,
+    "command": "node node_modules/vitest/vitest.mjs run shared/supervision.test.ts server/supervision-store.test.ts server/supervision-workflows.test.ts server/supervision-crash.test.ts server/supervision-process.test.ts server/supervision-ownership.test.ts"
+  },
+  "full": {
+    "reportSha256": "be8a4552073e352e6369fe878087579b3a5cc9e44b02a0d77b25c8ea8e4532ce",
+    "passed": 2450,
+    "failed": 0,
+    "skipped": 3,
+    "files": 166,
+    "command": "node node_modules/vitest/vitest.mjs run --maxWorkers=2",
+    "suites": [
+      {
+        "file": "shared/bearings.test.ts",
+        "status": "passed",
+        "passed": 11
+      },
+      {
+        "file": "shared/decision-brief.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "shared/deck-precip.test.ts",
+        "status": "passed",
+        "passed": 10
+      },
+      {
+        "file": "shared/deck-setting.test.ts",
+        "status": "passed",
+        "passed": 16
+      },
+      {
+        "file": "shared/native-tools.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "shared/supervision.test.ts",
+        "status": "passed",
+        "passed": 175
+      },
+      {
+        "file": "client/chat-discussion.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "client/chat-image-routing.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "client/client.test.ts",
+        "status": "passed",
+        "passed": 78
+      },
+      {
+        "file": "client/contrast.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "client/converse.test.ts",
+        "status": "passed",
+        "passed": 8
+      },
+      {
+        "file": "client/decision-answer-summary.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "client/decision-copy.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "client/decision-discussion.test.ts",
+        "status": "passed",
+        "passed": 15
+      },
+      {
+        "file": "client/decision-drawer.test.ts",
+        "status": "passed",
+        "passed": 52
+      },
+      {
+        "file": "client/decision-materials.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "client/decision-raised-card.test.ts",
+        "status": "passed",
+        "passed": 8
+      },
+      {
+        "file": "client/decision-raised.test.ts",
+        "status": "passed",
+        "passed": 9
+      },
+      {
+        "file": "client/deck-ambience.test.ts",
+        "status": "passed",
+        "passed": 13
+      },
+      {
+        "file": "client/deck-atmosphere.test.ts",
+        "status": "passed",
+        "passed": 22
+      },
+      {
+        "file": "client/deck-attention.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "client/deck-camera.test.ts",
+        "status": "passed",
+        "passed": 12
+      },
+      {
+        "file": "client/deck-cast-scale.test.ts",
+        "status": "passed",
+        "passed": 20
+      },
+      {
+        "file": "client/deck-choreography.test.ts",
+        "status": "passed",
+        "passed": 17
+      },
+      {
+        "file": "client/deck-clouds.test.ts",
+        "status": "passed",
+        "passed": 15
+      },
+      {
+        "file": "client/deck-decisions.test.ts",
+        "status": "passed",
+        "passed": 15
+      },
+      {
+        "file": "client/deck-depth-wash.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "client/deck-entry.test.ts",
+        "status": "passed",
+        "passed": 11
+      },
+      {
+        "file": "client/deck-environment.test.ts",
+        "status": "passed",
+        "passed": 81
+      },
+      {
+        "file": "client/deck-extras.test.ts",
+        "status": "passed",
+        "passed": 11
+      },
+      {
+        "file": "client/deck-flash.test.ts",
+        "status": "passed",
+        "passed": 7
+      },
+      {
+        "file": "client/deck-geometry.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "client/deck-mast.test.ts",
+        "status": "passed",
+        "passed": 9
+      },
+      {
+        "file": "client/deck-motion.test.ts",
+        "status": "passed",
+        "passed": 38
+      },
+      {
+        "file": "client/deck-offline.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "client/deck-parts.test.ts",
+        "status": "passed",
+        "passed": 11
+      },
+      {
+        "file": "client/deck-phase-frames.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "client/deck-phase-strip.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "client/deck-phase-tint.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "client/deck-polish.test.ts",
+        "status": "passed",
+        "passed": 21
+      },
+      {
+        "file": "client/deck-popover.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "client/deck-portals.test.ts",
+        "status": "passed",
+        "passed": 7
+      },
+      {
+        "file": "client/deck-post-transit.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "client/deck-precip.test.ts",
+        "status": "passed",
+        "passed": 9
+      },
+      {
+        "file": "client/deck-replies.test.ts",
+        "status": "passed",
+        "passed": 16
+      },
+      {
+        "file": "client/deck-scene-switcher.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "client/deck-setting-view.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "client/deck-setting.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "client/deck-sky.test.ts",
+        "status": "passed",
+        "passed": 13
+      },
+      {
+        "file": "client/deck-stage-motion.test.ts",
+        "status": "passed",
+        "passed": 7
+      },
+      {
+        "file": "client/deck-variants.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "client/deck-water.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "client/deck-worker-behaviours.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "client/deck-zone-appearance.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "client/files.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "client/fleet-discussion.test.ts",
+        "status": "passed",
+        "passed": 10
+      },
+      {
+        "file": "client/fleet-load-recovery.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "client/fleet-plans.test.ts",
+        "status": "passed",
+        "passed": 26
+      },
+      {
+        "file": "client/fleet-recovery-restart.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "client/host-tabs.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "client/image-cache.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "client/markdown-image.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "client/native-chat-transform.test.ts",
+        "status": "passed",
+        "passed": 25
+      },
+      {
+        "file": "client/native-chat.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "client/needs-you-state.test.ts",
+        "status": "passed",
+        "passed": 10
+      },
+      {
+        "file": "client/needs-you.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "client/option-picker.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "client/permission-card.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "client/plan-ready.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "client/plans-control.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "client/resize-layout.test.ts",
+        "status": "passed",
+        "passed": 10
+      },
+      {
+        "file": "client/sent-images.test.ts",
+        "status": "passed",
+        "passed": 9
+      },
+      {
+        "file": "client/settings-screen.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "client/shell.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "client/ship-deck.test.ts",
+        "status": "passed",
+        "passed": 63
+      },
+      {
+        "file": "client/ship-pack.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "client/sidebar.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "client/task-empty-state.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "client/task-presentation.test.ts",
+        "status": "passed",
+        "passed": 75
+      },
+      {
+        "file": "client/task-reveal.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "client/timeline-history.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "client/transcript-rows.test.ts",
+        "status": "passed",
+        "passed": 31
+      },
+      {
+        "file": "client/web-remotes.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "client/workflow-plan-browser.test.ts",
+        "status": "passed",
+        "passed": 14
+      },
+      {
+        "file": "client/workflow-plan-graph.test.ts",
+        "status": "passed",
+        "passed": 7
+      },
+      {
+        "file": "client/workflow-plan-list.test.ts",
+        "status": "passed",
+        "passed": 24
+      },
+      {
+        "file": "client/workflow-plans.test.ts",
+        "status": "passed",
+        "passed": 15
+      },
+      {
+        "file": "client/workflow-task-navigation.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "client/workspace-links.test.ts",
+        "status": "passed",
+        "passed": 31
+      },
+      {
+        "file": "client/workspace-panels.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "server/adviser-profiles.test.ts",
+        "status": "passed",
+        "passed": 1
+      },
+      {
+        "file": "server/attention.test.ts",
+        "status": "passed",
+        "passed": 21
+      },
+      {
+        "file": "server/backlog.test.ts",
+        "status": "passed",
+        "passed": 7
+      },
+      {
+        "file": "server/burst-notes.test.ts",
+        "status": "passed",
+        "passed": 7
+      },
+      {
+        "file": "server/charter-file.test.ts",
+        "status": "passed",
+        "passed": 7
+      },
+      {
+        "file": "server/chat-images.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "server/config.test.ts",
+        "status": "passed",
+        "passed": 13
+      },
+      {
+        "file": "server/crew-report.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "server/crew-seen.test.ts",
+        "status": "passed",
+        "passed": 12
+      },
+      {
+        "file": "server/crew.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "server/data-dir.test.ts",
+        "status": "passed",
+        "passed": 12
+      },
+      {
+        "file": "server/decision-answer.test.ts",
+        "status": "passed",
+        "passed": 30
+      },
+      {
+        "file": "server/deck-settings.test.ts",
+        "status": "passed",
+        "passed": 16
+      },
+      {
+        "file": "server/files.test.ts",
+        "status": "passed",
+        "passed": 15
+      },
+      {
+        "file": "server/fleet.test.ts",
+        "status": "passed",
+        "passed": 10
+      },
+      {
+        "file": "server/home-name.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "server/home-role.test.ts",
+        "status": "passed",
+        "passed": 8
+      },
+      {
+        "file": "server/home.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "server/host-imports.test.ts",
+        "status": "passed",
+        "passed": 7
+      },
+      {
+        "file": "server/item-tags.test.ts",
+        "status": "passed",
+        "passed": 10
+      },
+      {
+        "file": "server/item-threads.test.ts",
+        "status": "passed",
+        "passed": 7
+      },
+      {
+        "file": "server/launch-metrics.test.ts",
+        "status": "passed",
+        "passed": 14
+      },
+      {
+        "file": "server/launch-tool.test.ts",
+        "status": "passed",
+        "passed": 90
+      },
+      {
+        "file": "server/mate.test.ts",
+        "status": "passed",
+        "passed": 20
+      },
+      {
+        "file": "server/migration.test.ts",
+        "status": "passed",
+        "passed": 46
+      },
+      {
+        "file": "server/native-tools.test.ts",
+        "status": "passed",
+        "passed": 7
+      },
+      {
+        "file": "server/needs-you-detect.test.ts",
+        "status": "passed",
+        "passed": 70
+      },
+      {
+        "file": "server/needs-you-ledger.test.ts",
+        "status": "passed",
+        "passed": 26
+      },
+      {
+        "file": "server/needs-you-service.test.ts",
+        "status": "passed",
+        "passed": 39
+      },
+      {
+        "file": "server/pr-watch.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "server/process-launch.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "server/recall-tool.test.ts",
+        "status": "passed",
+        "passed": 14
+      },
+      {
+        "file": "server/receipt-paths.test.ts",
+        "status": "passed",
+        "passed": 10
+      },
+      {
+        "file": "server/receipts.test.ts",
+        "status": "passed",
+        "passed": 22
+      },
+      {
+        "file": "server/remote-cards.test.ts",
+        "status": "passed",
+        "passed": 15
+      },
+      {
+        "file": "server/remote-crew.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "server/remote-watch.test.ts",
+        "status": "passed",
+        "passed": 6
+      },
+      {
+        "file": "server/remotes.test.ts",
+        "status": "passed",
+        "passed": 15
+      },
+      {
+        "file": "server/submissions.test.ts",
+        "status": "passed",
+        "passed": 11
+      },
+      {
+        "file": "server/suggestions.test.ts",
+        "status": "passed",
+        "passed": 17
+      },
+      {
+        "file": "server/supervision-crash.test.ts",
+        "status": "passed",
+        "passed": 16
+      },
+      {
+        "file": "server/supervision-ownership.test.ts",
+        "status": "passed",
+        "passed": 15
+      },
+      {
+        "file": "server/supervision-process.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "server/supervision-store.test.ts",
+        "status": "passed",
+        "passed": 26
+      },
+      {
+        "file": "server/supervision-workflows.test.ts",
+        "status": "passed",
+        "passed": 7
+      },
+      {
+        "file": "server/templates.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "server/update-source.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "server/update.test.ts",
+        "status": "passed",
+        "passed": 10
+      },
+      {
+        "file": "server/uploads.test.ts",
+        "status": "passed",
+        "passed": 4
+      },
+      {
+        "file": "server/watch-config.test.ts",
+        "status": "passed",
+        "passed": 8
+      },
+      {
+        "file": "server/watch-files.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "server/watch-inspections.test.ts",
+        "status": "passed",
+        "passed": 29
+      },
+      {
+        "file": "server/watch-inspector-mcp.test.ts",
+        "status": "passed",
+        "passed": 1
+      },
+      {
+        "file": "server/watch-schedule.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "server/watch-service-routing.test.ts",
+        "status": "passed",
+        "passed": 8
+      },
+      {
+        "file": "server/watch-service.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "server/watches.test.ts",
+        "status": "passed",
+        "passed": 28
+      },
+      {
+        "file": "server/workflow-board-regressions.test.ts",
+        "status": "passed",
+        "passed": 15
+      },
+      {
+        "file": "server/workflow-board.test.ts",
+        "status": "passed",
+        "passed": 29
+      },
+      {
+        "file": "server/workflow-close-review.test.ts",
+        "status": "passed",
+        "passed": 10
+      },
+      {
+        "file": "server/workflow-plans.test.ts",
+        "status": "passed",
+        "passed": 15
+      },
+      {
+        "file": "server/workflow-regressions.test.ts",
+        "status": "passed",
+        "passed": 35
+      },
+      {
+        "file": "server/workflow-tool.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "test/deck-enrichment.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "test/deck-pack-budget.test.ts",
+        "status": "passed",
+        "passed": 1
+      },
+      {
+        "file": "test/deck-rain.test.ts",
+        "status": "passed",
+        "passed": 12
+      },
+      {
+        "file": "test/deck-settings.test.ts",
+        "status": "passed",
+        "passed": 217
+      },
+      {
+        "file": "test/ghost-ship-motion.test.ts",
+        "status": "passed",
+        "passed": 1
+      },
+      {
+        "file": "test/journal-isolation.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "test/office-draft.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "test/sakura-crew-variety.test.ts",
+        "status": "passed",
+        "passed": 1
+      },
+      {
+        "file": "test/sakura-water-inbetweens.test.ts",
+        "status": "passed",
+        "passed": 9
+      },
+      {
+        "file": "test/sakura-water-surface.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "test/ship-baseline.test.ts",
+        "status": "passed",
+        "passed": 2
+      },
+      {
+        "file": "test/ship-voyage.test.ts",
+        "status": "passed",
+        "passed": 5
+      },
+      {
+        "file": "docs/deck-settings/expected-changes.test.mjs",
+        "status": "passed",
+        "passed": 1
+      }
+    ]
+  },
+  "initialFullRun": {
+    "reportSha256": "b13e23a9c9f0c8c14051523d67e95e1d1c67e391af262343ee20d56bda3c1cbd",
+    "passed": 2449,
+    "failed": 1,
+    "skipped": 3,
+    "files": 166,
+    "note": "Concurrent full/affected runs: inherited workflow-close-review case exceeded 5000ms. No source/test timeout edit.",
+    "failures": [
+      {
+        "name": "refuses close with a quarantined-declined landing dependent, preserving later unrelated commands",
+        "messages": [
+          "Error: Test timed out in 5000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".\n    at task (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2681:43)\n    at Object.<anonymous> (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2698:16)\n    at Object.<anonymous> (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2471:28)\n    at Object.chain (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:1859:14)\n    at file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2869:10\n    at Array.forEach (<anonymous>)\n    at file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2866:10\n    at C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/server/workflow-close-review.test.ts:39:61\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at VitestModuleEvaluator._runInlinedModule (file:///C:/Users/micha/.paseo/worktrees/23z5sbxl/fm-ss-s01/node_modules/vitest/dist/module-evaluator.js:261:4)"
+        ]
+      }
+    ]
+  },
+  "timeoutControl": {
+    "reportSha256": "7823c67193c48f7d4e10eb208d2290ab21a2893faf3ff57a96c599d8b10899e2",
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "files": 1,
+    "command": "node node_modules/vitest/vitest.mjs run server/workflow-close-review.test.ts",
+    "note": "Unchanged default 5000ms limit; isolated failure control passes."
+  },
+  "ownershipChecks": [
+    {
+      "name": "R01-1 current task worker ownership refuses the retained duplicate worker between current tasks (running)",
+      "status": "passed"
+    },
+    {
+      "name": "R01-1 current task worker ownership refuses the retained duplicate worker between current tasks (done)",
+      "status": "passed"
+    },
+    {
+      "name": "R01-1 current task worker ownership refuses the retained duplicate worker between current tasks (unresolved)",
+      "status": "passed"
+    },
+    {
+      "name": "R01-1 current task worker ownership normalizes the host and refuses a changed workspace as a duplicate-worker bypass",
+      "status": "passed"
+    },
+    {
+      "name": "R01-1 current task worker ownership refuses two current tasks in the same scope claiming one worker",
+      "status": "passed"
+    },
+    {
+      "name": "R01-1 current task worker ownership refuses later worker assignment atomically with its companion scope change (reverse=false)",
+      "status": "passed"
+    },
+    {
+      "name": "R01-1 current task worker ownership refuses later worker assignment atomically with its companion scope change (reverse=true)",
+      "status": "passed"
+    },
+    {
+      "name": "R01-1 current task worker ownership refuses assigning the same worker to two initially unassigned current attempts in one transaction",
+      "status": "passed"
+    },
+    {
+      "name": "R01-1 current task worker ownership preserves the retained control using the same opaque agent ID on distinct hosts",
+      "status": "passed"
+    },
+    {
+      "name": "R01-1 current task worker ownership preserves same-task promotion history, spend and reservations while changing the current attempt",
+      "status": "passed"
+    },
+    {
+      "name": "R01-2 effect/attempt/task/scope ownership refuses the retained foreign attempt for agent.interrupt without any reservation or companion change",
+      "status": "passed"
+    },
+    {
+      "name": "R01-2 effect/attempt/task/scope ownership refuses the retained foreign attempt for agent.send without any reservation or companion change",
+      "status": "passed"
+    },
+    {
+      "name": "R01-2 effect/attempt/task/scope ownership refuses the retained foreign attempt for agent.archive without any reservation or companion change",
+      "status": "passed"
+    },
+    {
+      "name": "R01-2 effect/attempt/task/scope ownership enforces scope ownership even before the referenced attempt has a worker",
+      "status": "passed"
+    },
+    {
+      "name": "R01-2 effect/attempt/task/scope ownership preserves the same-scope non-launch effect control and its restart projection",
+      "status": "passed"
+    }
+  ],
+  "boundaries": [
+    "temporary homes and synthetic OS children only",
+    "zero daemon/provider/model calls",
+    "feature unwired and writes default off",
+    "no install/reload/live migration/routing or merge",
+    "process crash only, not power/disk loss",
+    "Linux qualification uses same-head Ubuntu CI"
+  ],
+  "sourceDigestsEncoding": "SHA256 of UTF-8 file content with CRLF normalized to LF; validation file excluded to avoid self-reference",
+  "sourceDigests": {
+    ".github/workflows/check.yml": "7f9546f0738807918d52c3f7b7c41295f66934f9b8f4381ed464cd1fa651e842",
+    "docs/scoped-supervision/S01.md": "c3ec120ab1cd692c07ae70d6fe9fd752fe141c3a76e74dc415cc8d4ba8014727",
+    "server/submissions.ts": "60c385b955752643499be484d94645ca16b9377f133945a1f635f8377f79e4d5",
+    "server/supervision-crash.test.ts": "38eadcefaa6f903e6ddf5abc0142c1dd2fe465531490d2660e6357983ace2638",
+    "server/supervision-process.ts": "6fb194ea0bc0954174736dcec78ab517c06b52eb68787b6660b590f54864c382",
+    "server/supervision-store.test.ts": "259193051ad98c6b6ac2507d47f843c16d5eca1bb2f3a937fd6b62809c814d41",
+    "server/supervision-store.ts": "cc37f04e7fa663947ea5566003d94d590065f91fb02eebf43939346f6325698c",
+    "server/supervision-workflows.test.ts": "f30b7da62e41963d116388de6a3419ac3f93ff1248d06c01bb95f42bdd970e83",
+    "server/supervision-workflows.ts": "c83f6005a8e5bcb0e95a2ddc3ec2020a2ef8f59cbf2c78a4ab9aa18d12984b62",
+    "server/workflow-plans.ts": "2d844d6dfe059b6738761ffcf6ad4e43d46413f7556f11cd8c8c743efd12e806",
+    "shared/supervision.test.ts": "07ccc02a75658b3d2b2b3a23f8be7ed3736e599934bd3e71974e22d269a6589a",
+    "shared/supervision.ts": "9618b6ddad7879c1e1fd249c57db7a731a3828be79fea20b24840d689ab65e43",
+    "test/fixtures/supervision-s00/examples.json": "85cbc708148cf76f9e8c31a77d1149a5b52e85346a486e998a5c5e68dc5aa395",
+    "test/fixtures/supervision-s00/regression-corpus.json": "5d35b695013a74f053bdc7b062be59793156c184c48349a25b9052cab4b23d11",
+    "test/supervision-child.ts": "0fc5ae7131c023340377d93e7725e6433e98e05bfc11bfb2e09bf5c44e60a072",
+    "test/supervision-fixture.ts": "b80b16da43f5166998736807e4cf5e0afb3c6e581dc6b6a73bacf25e187e7cd3",
+    "server/supervision-process.test.ts": "d5cfead7eb9fcab6bc873224c0fa9b0fcd442d3ed7e9bfe4209030708189de9a",
+    "docs/scoped-supervision/s01-validation.json": "30644638c984db1a3a128c785cb1be1035315f48530506c713cfe7f0344fe17a",
+    "server/supervision-ownership.test.ts": "5fb916fda06bd29cfdfef15de19f9a0bf0afa08d6a849ae05ef02682af0dd62c",
+    "test/fixtures/supervision-r01/counterexamples.json": "661b9272c2a48e71b79fd632f5bfd8f2ae4d632d84260688e7f88002ec89d95b",
+    "docs/scoped-supervision/S01-R01-corrections.md": "7a5f98e0b99248cbb075157bae293617cb8119700e9f218bc4f02f1d1cef62f7"
+  }
+}
