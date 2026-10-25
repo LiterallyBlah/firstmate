@@ -201,6 +201,52 @@ it("keeps S03 Captain decision routes on both delegated consumers", async () => 
   await run({ op: "revise", definition: routine, expected: before.hash, reason: "Clarify gated work" });
   expect((await store.read()).plans[0]!.plan.definition.nodes.find(n => n.id === "build")?.after).toEqual(before.definition.nodes.find(n => n.id === "build")?.after);
 }, 15000);
+it("requires a Captain gate when an S03 routine decision ID becomes a delegated run", async () => {
+  for (const nodeId of ["choice", "followup"]) {
+    await mkdir(join(home, "data", nodeId)); await writeFile(join(home, "data", nodeId, "brief.md"), "Synthetic checked brief.");
+    const task: SupervisionMutation[] = [{ kind: "task", value: { id: randomUUID(), ownerScopeId: ids.scope, planId: "scheduler", nodeId,
+      projectId: ids.project, hostId: "local", version: 1, currentAttempt: null } }];
+    await store.transact(expected(task), randomUUID(), task);
+  }
+  const definition = workflowFixture();
+  definition.ownership = { owner: "firstmate", evidence: "Captain delegates implementation after my database choice" };
+  const gate = definition.nodes.find(n => n.id === "database")!, trial = definition.nodes.find(n => n.id === "trial")!, build = definition.nodes.find(n => n.id === "build")!;
+  if (gate.kind !== "decision" || trial.kind !== "run" || build.kind !== "run") throw new Error("fixture");
+  gate.authority = "captain"; gate.after = [];
+  const gateEdge = { node: "database", reason: "decision" as const, on: "answered" as const };
+  trial.after = [gateEdge];
+  const choice = structuredClone(gate); choice.id = "choice"; choice.authority = "owner"; choice.after = [];
+  build.after = [gateEdge, { node: "choice", reason: "decision", on: "answered" }];
+  definition.nodes.push(choice);
+  await run({ op: "draft", definition });
+  const before = (await store.read()).plans[0]!.plan, snapshot = await files();
+  const newId = structuredClone(before.definition), added = structuredClone(build);
+  added.id = "followup"; added.launch.id = "followup"; added.launch.brief.file = "data/followup/brief.md"; added.after = [];
+  newId.nodes.push(added); newId.budget = { agents: 3, turns: 3 };
+  await expect(run({ op: "revise", definition: newId, expected: before.hash, reason: "Add ungated ship" })).rejects.toThrow("captain gate");
+  expect(await files()).toEqual(snapshot);
+
+  const converted = structuredClone(before.definition), replacement = structuredClone(build);
+  replacement.id = "choice"; replacement.title = "Implement the choice"; replacement.launch.id = "choice";
+  replacement.launch.brief.file = "data/choice/brief.md"; replacement.after = [];
+  converted.nodes = converted.nodes.map(n => n.id === "choice" ? replacement : n);
+  converted.nodes.find(n => n.id === "build")!.after = [gateEdge, { node: "choice", reason: "needs-evidence", on: "done" }];
+  converted.budget = { agents: 3, turns: 3 };
+  await expect(run({ op: "revise", definition: converted, expected: before.hash, reason: "Convert routine choice to ungated ship" })).rejects.toThrow("captain gate");
+  expect(await files()).toEqual(snapshot);
+  expect((await store.read()).plans[0]!.plan.hash).toBe(before.hash);
+
+  replacement.after = [gateEdge];
+  await run({ op: "revise", definition: converted, expected: before.hash, reason: "Convert choice with Captain gate" });
+  const gated = (await store.read()).plans[0]!.plan;
+  expect(gated.definition.nodes.find(n => n.id === "choice")?.after).toEqual([gateEdge]);
+  const beforeStart = await files();
+  await expect(run({ op: "start", plan: "scheduler", node: "choice" })).rejects.toThrow("dependencies");
+  expect(await files()).toEqual(beforeStart);
+  await run({ op: "captain", plan: "scheduler", revision: gated.revision, subjectHash: planSubjectHash(gated), action: "answer", node: "database", option: "sqlite", text: "Proceed within the stated scope" }, captain);
+  await run({ op: "start", plan: "scheduler", node: "choice" });
+  expect((await store.read()).plans[0]!.plan.nodes.choice).toMatchObject({ state: "starting", spent: 1 });
+}, 15000);
 it("admits an S03 delegated gated start after its explicit Captain decision is answered", async () => {
   const definition = workflowFixture();
   definition.ownership = { owner: "firstmate", evidence: "Captain delegates routine work after my access decision" };

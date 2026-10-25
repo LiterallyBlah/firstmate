@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, expect, it } from "vitest";
 import { workflowFixture } from "../test/workflow-fixture";
@@ -228,6 +228,50 @@ it("preserves every Captain-gate path when a delegated plan has two consumers", 
   const next = structuredClone((await current()).definition); next.nodes.push(added); next.budget = { agents: 3, turns: 3 };
   await store().execute({ op: "revise", definition: next, expected: (await current()).hash, reason: "Add a gated in-scope build" }, randomUUID(), "mate-v2");
   expect((await current()).status).toBe("active");
+}, 15000);
+it("requires a Captain gate when a routine decision ID becomes a delegated run", async () => {
+  const definition = workflowFixture();
+  definition.ownership = { owner: "firstmate", evidence: "Captain delegates implementation after my database choice" };
+  const gate = definition.nodes.find(n => n.id === "database")!, trial = definition.nodes.find(n => n.id === "trial")!, build = definition.nodes.find(n => n.id === "build")!;
+  if (gate.kind !== "decision" || trial.kind !== "run" || build.kind !== "run") throw new Error("fixture");
+  gate.authority = "captain"; gate.after = [];
+  const gateEdge = { node: "database", reason: "decision" as const, on: "answered" as const };
+  trial.after = [gateEdge];
+  const choice = structuredClone(gate); choice.id = "choice"; choice.authority = "owner"; choice.after = [];
+  build.after = [gateEdge, { node: "choice", reason: "decision", on: "answered" }];
+  definition.nodes.push(choice);
+  await store().execute({ op: "draft", definition }, randomUUID(), "mate-v1");
+  const before = await current();
+  const bytes = async () => Promise.all(["scheduler", ".tips/scheduler", ".published/scheduler"].map(async part => {
+    const directory = join(store().root, part);
+    return Promise.all((await readdir(directory)).sort().map(async name => [part, name, await readFile(join(directory, name), "utf8")]));
+  }));
+  const snapshot = await bytes();
+  const newId = structuredClone(before.definition), added = structuredClone(build);
+  added.id = "followup"; added.launch.id = "followup"; added.launch.brief.file = "data/followup/brief.md"; added.after = [];
+  newId.nodes.push(added); newId.budget = { agents: 3, turns: 3 };
+  await expect(store().execute({ op: "revise", definition: newId, expected: before.hash, reason: "Add ungated ship" }, randomUUID(), "mate-v2")).rejects.toThrow("captain gate");
+  expect(await bytes()).toEqual(snapshot);
+
+  const converted = structuredClone(before.definition), replacement = structuredClone(build);
+  replacement.id = "choice"; replacement.title = "Implement the choice"; replacement.launch.id = "choice";
+  replacement.launch.brief.file = "data/choice/brief.md"; replacement.after = [];
+  converted.nodes = converted.nodes.map(n => n.id === "choice" ? replacement : n);
+  converted.nodes.find(n => n.id === "build")!.after = [gateEdge, { node: "choice", reason: "needs-evidence", on: "done" }];
+  converted.budget = { agents: 3, turns: 3 };
+  await expect(store().execute({ op: "revise", definition: converted, expected: before.hash, reason: "Convert routine choice to ungated ship" }, randomUUID(), "mate-v2")).rejects.toThrow("captain gate");
+  expect(await bytes()).toEqual(snapshot);
+  expect((await current()).hash).toBe(before.hash);
+
+  replacement.after = [gateEdge];
+  await store().execute({ op: "revise", definition: converted, expected: before.hash, reason: "Convert choice with Captain gate" }, randomUUID(), "mate-v2");
+  const gated = await current();
+  expect(gated.definition.nodes.find(n => n.id === "choice")?.after).toEqual([gateEdge]);
+  await expect(store().execute({ op: "start", plan: "scheduler", node: "choice" }, randomUUID(), "mate-v2")).rejects.toThrow("dependencies");
+  await mkdir(join(home, "data/choice")); await writeFile(join(home, "data/choice/brief.md"), "Gated implementation brief.");
+  await store().execute({ op: "captain", plan: "scheduler", revision: gated.revision, subjectHash: planSubjectHash(gated), action: "answer", node: "database", option: "sqlite", text: "Proceed within the stated scope" }, randomUUID(), "board:captain");
+  await store().execute({ op: "start", plan: "scheduler", node: "choice" }, randomUUID(), "mate-v2");
+  expect((await current()).nodes.choice).toMatchObject({ state: "starting", spent: 1 });
 }, 15000);
 it("keeps an invalid standing-order posture for captain review under delegation", async () => {
   await writeFile(join(home, "data/captain.md"), "```standing-orders\nplan-posture: sometimes\n```");

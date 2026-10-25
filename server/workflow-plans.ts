@@ -96,7 +96,7 @@ function assertDelegatedRevision(previous: WorkflowPlan, definition: PlanDefinit
     if (!old || old.kind !== "run" || digest(node.launch) !== digest(old.launch)) {
       const scope = delegatedRunScope(node);
       if (!scopes.has(scope)) throw new Error("Delegated revision changes project, host, branch, delivery mode, scout/ship kind or authority scope; ask the captain.");
-      if (!old) for (const source of previous.definition.nodes.filter((n): n is Extract<PlanNode, { kind: "run" }> => n.kind === "run" && delegatedRunScope(n) === scope)) {
+      if (old?.kind !== "run") for (const source of previous.definition.nodes.filter((n): n is Extract<PlanNode, { kind: "run" }> => n.kind === "run" && delegatedRunScope(n) === scope)) {
         for (const edge of source.after.filter(edge => protectedNodes.has(edge.node))) {
           if (!node.after.some(next => digest(next) === digest(edge))) throw new Error("A new run in a protected scope must retain its captain gate dependency.");
         }
