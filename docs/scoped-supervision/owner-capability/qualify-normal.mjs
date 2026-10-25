@@ -4,18 +4,21 @@ import { readFileSync, writeFileSync, mkdirSync, copyFileSync, openSync, readSyn
 import { resolve, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
-import { isDeepStrictEqual } from 'node:util';
 import assert from 'node:assert/strict';
 import { sealOwnerCapture } from './admission.mjs';
 import { recorder, observeOutput, outputComplete, membershipSnapshot } from './capture.mjs';
+import { normalTransport } from './normal-frame.mjs';
+import { diagnosticAssessment } from './diagnostic-capture.mjs';
 
 export const NORMAL_PINS = Object.freeze({
-  'WindowsJobOwner.cs': '6d8042a92ef0b2800cff498fa3964d9f04b80b670fa70f4910ced1f2863ff2ef',
-  'normal-only.ps1': 'e88cbb76d9bd634915ebc96cbbce8cf7a2912796ce3556414a6c7ce01f0cd6d6',
-  'root.mjs': '59f4adbf5d99f4412a6c458ef3137378f8c93ef7d369a2a5cf5565c131505537',
+  'WindowsJobOwner.cs': '946230771e71cf8b8ffdff4233d10c7636ecabc6cf4b57dd6f8a379504079fa5',
+  'normal-only.ps1': 'a637e84f461c7b994e06b925c360c2a624fa9d035a56ddda8837878e30a98f64',
+  'root.mjs': '9fc52a21eeee7f311cda8a55214cfe08c494532a4b703da9fbf844df7f3ba727',
   'child.mjs': '1d5201bb4fb63e88f83c9831e46e6bc131a8fff38d11fd37f5e90e846189a6e3',
   'capture.mjs': '875933e8b1235230305e8f25162ec94b1f5dc0d85bed9fa4b16cf02f919cfa99',
   'admission.mjs': '0ac15bb42dafb34f430973d0c334156f8a2af38d0f59416fea3dd918d9f8e105',
+  'normal-frame.mjs': 'a81ef06a96623ea12b722f43ec64fa124cbbd37289b046adb13dd59cd358fca3',
+  'diagnostic-capture.mjs': '9647d8323b4fd26ef81936f10ed39ee16ba9e772c7c725de95fc550ee8ff74d1',
 });
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const uuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -26,18 +29,8 @@ export function normalConfiguration({ directory, nodePath, nodeVersion, caseId, 
 }
 export function interpretNormal(input) {
   const problems = [], require = (value, reason) => { if (!value) problems.push(reason); };
-  let final = null;
-  try {
-    const stream = input.outer?.stdout;
-    assert.ok(outputComplete(stream) && stream.encoding === 'base64' && stream.retained > 0);
-    const bytes = Buffer.from(stream.data, 'base64');
-    assert.equal(bytes.length, stream.retained); assert.equal(bytes.toString('base64'), stream.data);
-    final = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-  } catch { problems.push('final-helper-output-missing-invalid-or-incomplete'); }
-  const file = input.helperFile;
-  const envelope = value => value?.format === 'firstmate.owner-normal/1' && value.scenario === 'normal' &&
-    value.caseId === input.caseId && value.nonce === input.nonce && value.sourceSha256 === NORMAL_PINS['WindowsJobOwner.cs'];
-  require(envelope(final) && envelope(file) && isDeepStrictEqual(final, file), 'helper-final-file-mismatch');
+  const { file, frame: final, ...transport } = normalTransport(input, NORMAL_PINS['WindowsJobOwner.cs']);
+  require(transport.complete, 'helper-final-frame-or-file-refused');
   require(final?.invocationError === null && final?.recordingError === null, 'helper-invocation-or-recording-error');
   require(input.outer?.error === null && input.outer?.exitObserved === true && input.outer.exitStatus === 0 && input.outer.exitSignal === null &&
     input.outer.closed === true && input.outer.status === 0 && input.outer.signal === null, 'helper-exit-or-close-incomplete');
@@ -45,30 +38,36 @@ export function interpretNormal(input) {
   require(Array.isArray(input.readErrors) && input.readErrors.length === 0, 'saved-file-read-incomplete');
   require(input.scenario === 'normal', 'normal-only-boundary');
   // Retain a file-only native failure for diagnosis, while missing final evidence always refuses success.
-  const native = final?.nativeResult ?? file?.nativeResult ?? null;
+  const native = file?.nativeResult ?? null;
   require(native?.originalFailure === null && native?.originalFailureTruncated === false, 'native-original-failure-or-unknown');
   const fresh = membershipSnapshot(native?.freshOwner);
   require(fresh.complete && fresh.active === 0 && fresh.total === 0 && fresh.pids.length === 0, 'fresh-owner-readback-missing-or-nonempty');
   require(Number.isSafeInteger(input.outer?.helperPid) && input.outer.helperPid > 0 &&
     native?.events?.find(event => event.kind === 'owner-acquired')?.data?.helperPid === input.outer.helperPid, 'helper-native-identity-mismatch');
-  const capture = sealOwnerCapture({ ...input, native, helperFinal: final });
+  const { helperFileRaw, ...retained } = input; // raw file already retained separately; bind exact bytes without duplicating them
+  const capture = sealOwnerCapture({ ...retained, helperFile: file, native, helperFinal: final });
   require(capture.safeForReuse, 'owned-normal-capture-refused');
-  const failure = capture.native?.originalFailure, mismatch = capture.native?.membershipEvidence?.offending;
+  const diagnostics = diagnosticAssessment(input, native);
+  require(diagnostics.complete, 'diagnostic-capture-or-correlation-refused');
+  const failure = capture.native ? capture.native.originalFailure : final?.originalFailure?.state === 'recorded' ? final.originalFailure.value : undefined;
+  const mismatch = capture.native?.membershipEvidence?.offending;
   return { ...capture, normalProblems: problems, normalQualificationPassed: problems.length === 0,
+    transport, diagnostics, ownedSetClosureConfirmed: capture.ownedSetClosureConfirmed && diagnostics.membersClosed,
+    closureState: capture.ownedSetClosureConfirmed && !diagnostics.membersClosed ? 'unknown' : capture.closureState,
+    closureReasons: [...capture.closureReasons, ...(!diagnostics.membersClosed ? ['diagnostic-member-closure-incomplete'] : [])],
     originalFailureDisposition: { state: typeof failure === 'string' ? 'recorded' : failure === null ? 'none-recorded' : 'unavailable',
-      value: failure ?? null, truncated: capture.native?.originalFailureTruncated ?? null },
+      value: failure ?? null, truncated: capture.native?.originalFailureTruncated ?? final?.originalFailure?.truncated ?? null },
     membershipMismatch: { state: mismatch ? 'recorded' : capture.native ? 'none-recorded' : 'unavailable', observation: mismatch ?? null },
     safeForReuse: problems.length === 0 && capture.safeForReuse, historicalC2State: 'failed/unknown',
     actualRuntimeQualified: false, anotherCaseAuthorized: false };
 }
-function savedJson(path, errors) {
-  const limit = 2 * 1024 * 1024;
+function savedJson(path, errors, raw = false, limit = 2 * 1024 * 1024) {
   let descriptor;
   try {
     descriptor = openSync(path, 'r'); const buffer = Buffer.alloc(limit + 1); let size = 0;
     while (size < buffer.length) { const count = readSync(descriptor, buffer, size, buffer.length - size, null); if (!count) break; size += count; }
-    assert.ok(size <= limit, 'Saved JSON exceeds 2 MiB');
-    return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(buffer.subarray(0, size)));
+    assert.ok(size <= limit, `Saved JSON exceeds ${limit}-byte cap`);
+    return raw ? Buffer.from(buffer.subarray(0, size)) : JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(buffer.subarray(0, size)));
   } catch (error) { if (errors.length < 8) errors.push({ path, error: String(error.message).slice(0, 300) }); return null; }
   finally { if (descriptor !== undefined) closeSync(descriptor); }
 }
@@ -81,7 +80,7 @@ async function main() {
   const powershell = 'C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe';
   assert.equal(sha(readFileSync(powershell)), '60c9b29843624dd8af6b6a7b26147753be6aeef65098b9a503cc50850afe410f', 'PowerShell changed');
   for (const [file, expected] of Object.entries(NORMAL_PINS)) assert.equal(sha(readFileSync(join(source, file))), expected, `Changed source: ${file}`);
-  const parent = resolve('.local/owner-normal-qualification'), directory = join(parent, 'normal-1');
+  const parent = resolve('.local/owner-normal-qualification'), directory = join(parent, 'normal-2');
   mkdirSync(parent, { recursive: true }); mkdirSync(directory); // atomic persistent one-attempt boundary; never remove/reset
   mkdirSync(join(directory, 'source'));
   for (const file of [...Object.keys(NORMAL_PINS), 'qualify-normal.mjs']) copyFileSync(join(source, file), join(directory, 'source', file));
@@ -116,7 +115,8 @@ async function main() {
     stdout: out, stderr: err, observation: journal.snapshot(), outputLoss: { stdout: out.dropped, stderr: err.dropped }, outputErrors: { stdout: out.errors, stderr: err.errors } };
   save('helper-terminal.json', outer);
   const readErrors = [], read = name => savedJson(join(directory, name), readErrors);
-  const input = { ...configuration, outer, helperFile: read('normal-helper.json'), rootEntry: read('root-entry.json'), childEntry: read('child-entry.json'),
+  const input = { ...configuration, childScriptPath: configuration.childEntry, outer, helperFileRaw: savedJson(join(directory, 'normal-helper.json'), readErrors, true),
+    rootPreSpawn: savedJson(join(directory, 'root-pre-spawn.json'), readErrors, false, 4096), rootEntry: read('root-entry.json'), childEntry: read('child-entry.json'),
     rootResult: read('root-result.json'), childResult: read('child-result.json'), childOutput: read('child-output.json'),
     rootDelayedSignal: existsSync(join(directory, 'root-delayed-signal.json')), childDelayedSignal: existsSync(join(directory, 'child-delayed-signal.json')), readErrors };
   const result = interpretNormal(input); save('normal-capture.json', result);

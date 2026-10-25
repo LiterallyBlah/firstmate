@@ -9,7 +9,8 @@ if ($config.scenario -cne 'normal' -or $config.directory -cne $outputPath -or $c
 $source = [System.IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'WindowsJobOwner.cs'))
 $sha = [System.Security.Cryptography.SHA256]::Create()
 try { $sourceHash = [BitConverter]::ToString($sha.ComputeHash($source)).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
-if ($sourceHash -ne '6d8042a92ef0b2800cff498fa3964d9f04b80b670fa70f4910ced1f2863ff2ef') { throw 'Normal native source differs from reviewed bytes' }
+if ($sourceHash -ne '946230771e71cf8b8ffdff4233d10c7636ecabc6cf4b57dd6f8a379504079fa5') { throw 'Normal native source differs from reviewed bytes' }
+if ($config.caseId -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' -or $config.nonce -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' -or $config.caseId -ceq $config.nonce) { throw 'Distinct fixed-length case identities required' }
 $reservation = [System.IO.File]::Open((Join-Path $outputPath 'native.reserved'), [System.IO.FileMode]::CreateNew)
 $reservation.Dispose()
 $nativeResult = $null; $invocationError = $null; $recordingError = $null
@@ -22,14 +23,36 @@ try {
 }
 $receipt = [ordered]@{ format = 'firstmate.owner-normal/1'; scenario = 'normal'; caseId = $config.caseId; nonce = $config.nonce; sourceSha256 = $sourceHash;
     nativeResult = $nativeResult; invocationError = $invocationError; recordingError = $null }
+$descriptor = [ordered]@{ name = 'normal-helper.json'; bytes = $null; sha256 = $null; complete = $false }
 try {
-    $bytes = [System.Text.Encoding]::UTF8.GetBytes(($receipt | ConvertTo-Json -Depth 24 -ErrorAction Stop))
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes(($receipt | ConvertTo-Json -Compress -Depth 24 -ErrorAction Stop))
+    if ($bytes.Length -gt 2097152) { throw 'Detailed receipt exceeds 2097152-byte file cap' }
+    $descriptor.bytes = $bytes.Length
+    $hash = [System.Security.Cryptography.SHA256]::Create()
+    try { $descriptor.sha256 = [BitConverter]::ToString($hash.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant() } finally { $hash.Dispose() }
     $file = [System.IO.File]::Open((Join-Path $outputPath 'normal-helper.json'), [System.IO.FileMode]::CreateNew)
     try { $file.Write($bytes, 0, $bytes.Length) } finally { $file.Dispose() }
+    $descriptor.complete = $true # only after successful file disposal
 } catch {
     $message = $_.Exception.GetType().Name + ': ' + $_.Exception.Message
     $recordingError = @{ message = $message.Substring(0, [Math]::Min(4096, $message.Length)); truncated = $message.Length -gt 4096 }
     $receipt.recordingError = $recordingError
 }
-Write-Output ($receipt | ConvertTo-Json -Depth 24)
+function FinalError($errorValue) {
+    if ($null -eq $errorValue) { return $null }
+    $message = [string]$errorValue.message
+    return @{ message = $message.Substring(0, [Math]::Min(256, $message.Length)); truncated = $errorValue.truncated -or $message.Length -gt 256 }
+}
+$original = @{ state = 'unavailable'; value = $null; truncated = $null }
+if ($null -ne $nativeResult) {
+    $original.value = $nativeResult['originalFailure']; $original.truncated = $nativeResult['originalFailureTruncated']
+    $original.state = if ($null -eq $original.value) { 'none-recorded' } else { 'recorded' }
+    if ($null -ne $original.value -and ([string]$original.value).Length -gt 4096) { $original.value = ([string]$original.value).Substring(0, 4096); $original.truncated = $true }
+}
+$frame = [ordered]@{ format = 'firstmate.owner-normal-final/1'; scenario = 'normal'; caseId = $config.caseId; nonce = $config.nonce; sourceSha256 = $sourceHash;
+    file = $descriptor; invocationError = (FinalError $invocationError); recordingError = (FinalError $recordingError); originalFailure = $original }
+$frameBytes = [System.Text.Encoding]::UTF8.GetBytes(($frame | ConvertTo-Json -Compress -Depth 8 -ErrorAction Stop) + "`n")
+if ($frameBytes.Length -gt 32768) { throw 'Final frame exceeds 32768-byte cap' }
+$stdout = [Console]::OpenStandardOutput()
+try { $stdout.Write($frameBytes, 0, $frameBytes.Length); $stdout.Flush() } finally { $stdout.Dispose() }
 if ($null -ne $invocationError -or $null -ne $recordingError -or $null -eq $nativeResult -or $null -ne $nativeResult['error']) { exit 2 }

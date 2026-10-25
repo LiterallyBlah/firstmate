@@ -73,15 +73,38 @@ source pin and is not silently repinned to this new source.
 After independent review and a separately accounted one-normal dispatch, the only proposed
 command is `node docs/scoped-supervision/owner-capability/qualify-normal.mjs` from the pinned
 worktree, with the pinned Node image and no extra arguments. It reserves a new
-`.local/owner-normal-qualification/normal-1` directory and native marker, fresh UUIDs, exact source
+`.local/owner-normal-qualification/normal-2` directory and native marker, fresh UUIDs, exact source
 snapshots, then calls only the fixed normal fixture. Never remove/reset either reservation.
 Native 5s/8s and outer 15s plus 3s grace bounds, 64KiB stream retention, explicit output loss and
 conservative missing/late-result refusal remain. The outer watchdog targets only its own spawned
 helper; any timeout, missing closure or uncertain identity refuses reuse and stops the one case.
 It is not a hard kernel-liveness guarantee. No normal success enables another case or workload.
 
-Final helper stdout, file JSON, exit and stdio close must agree; a successful intermediate file
-alone cannot pass. Original failure, exact membership mismatch, identities, termination/waits,
-stream snapshots and uncertain closure remain in `normal-capture.json`. Saved JSON reads are
-capped at 2MiB each. `normal-controls.mjs` and the existing admission/capture controls are finite
-offline checks only; compilation and synthetic positives are never runtime qualification.
+Normal-1 failed on three job members and lost part of the former full-JSON stdout envelope.
+It and historical C2 remain failed/unknown, with both reservations and every old byte retained.
+All further execution is held pending corrected-source review and a separate dispatch.
+
+The corrected transport keeps the detailed UTF-8 file within a producer-enforced 2MiB cap.
+After file disposal it emits only `firstmate.owner-normal-final/1`: case/nonce/source, exact raw
+file length/SHA256/disposal, final invocation/recording outcomes and bounded original failure.
+Serialized frame bytes including newline cap at 32KiB, below unchanged 64KiB stream retention.
+The original failure retains its 4096-character bound; final invocation/recording summaries cap
+at 256 characters each, with truncation explicit. Consumer admission requires lossless EOF,
+exit/close, identity, raw digest/length and all outcomes; a file alone never qualifies.
+
+Live job-local membership now attempts diagnostic acquisition of at most eight unique non-root
+members before the original guard, retaining query/acquisition/race uncertainty and acquired
+handles through at most eight terminal samples and disposal. These records never designate an
+expected child. The exact-two assertion and all original deadlines stay; there is no helper/image
+allowlist, saved-PID action, machine inventory or inferred closure. Query, sink, wait and close
+failures remain separate from the original error and refuse reuse.
+
+A root pre-spawn marker is written before its fixed child launch, capped at 4096 bytes on write
+and read, and shares the subsequent root instance ID. Admission correlates case/nonce, root/child
+entry/parent IDs, fixed script and actual live handle creation identities/membership. Missing
+markers establish no alternative origin. Additional observations may change timing; offline
+controls do not establish harmlessness or native success.
+
+Original failure, membership, identities, waits/streams and unknown closure remain in the capture.
+`normal-fix.controls.mjs`, normal controls and retained capture/admission controls are finite offline
+checks only. Strict compilation never loads its output and grants no runtime qualification.

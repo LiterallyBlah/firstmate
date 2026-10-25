@@ -64,6 +64,9 @@ public sealed class FirstMateJobCapability {
         "child", D("acquisition", "never-acquired", "disposition", "not-attempted"), "thread", D("acquisition", "never-acquired", "disposition", "not-attempted"),
         "job", D("acquisition", "never-acquired", "disposition", "not-attempted"), "stdin", D("acquisition", "never-acquired", "disposition", "not-attempted"));
     readonly List<Dictionary<string, object>> terminalSamples = new List<Dictionary<string, object>>();
+    readonly List<Dictionary<string, object>> diagnosticMembers = new List<Dictionary<string, object>>();
+    readonly Dictionary<long, IntPtr> diagnosticHandles = new Dictionary<long, IntPtr>();
+    int diagnosticOverflow;
     Dictionary<string, object> lastComplete, previousComplete, lastCompleteBeforeFailure, lastObservation, offending, terminalEvidence;
     int recordDropped, recordFailures; string memberSignature;
     IntPtr inheritedHandles, input; NativeOutput stdout, stderr;
@@ -122,6 +125,7 @@ public sealed class FirstMateJobCapability {
         lastObservation = result; if ((bool)result["complete"]) { previousComplete = lastComplete; lastComplete = result; }
         string signature = phase + ":" + String.Join(",", result.ContainsKey("pids") ? (List<long>)result["pids"] : new List<long>()) + ":" + result["complete"] + ":" + result["queryOk"] + ":" + result["accountingOk"];
         if (signature != memberSignature) { memberSignature = signature; Note("membership", result); }
+        Step("diagnostic membership capture", delegate { CaptureDiagnosticMembers(result); });
         return result;
     }
     Dictionary<string, object> Members(string phase) {
@@ -136,22 +140,67 @@ public sealed class FirstMateJobCapability {
     void Own(string role, IntPtr handle) { handleInventory[role] = D("acquisition", "acquired", "disposition", "not-attempted", "handle", H(handle)); }
     void AcquisitionFailed(string role, int error) { handleInventory[role] = D("acquisition", "failed", "disposition", "not-attempted", "win32Error", error); }
     Dictionary<string, object> ObserveProcess(string role, IntPtr process) {
-        var result = D("role", role, "identity", D(), "wait", D("ok", false), "exit", D("ok", false));
+        var queries = D("pid", D("ok", false), "creation", D("ok", false), "image", D("ok", false), "membership", D("ok", false));
+        var result = D("role", role, "identity", D(), "queries", queries, "wait", D("ok", false), "exit", D("ok", false));
         if (process == IntPtr.Zero) { result["state"] = "never-acquired"; return result; }
         result["state"] = "acquired"; var identity = (Dictionary<string, object>)result["identity"];
         Step(role + " identity", delegate {
-            uint pid = GetProcessId(process); if (pid != 0) identity["pid"] = pid; else ObservationError(role + " GetProcessId: " + Marshal.GetLastWin32Error());
+            uint pid = GetProcessId(process); int pidError = pid != 0 ? 0 : Marshal.GetLastWin32Error(); queries["pid"] = D("ok", pid != 0, "win32Error", pidError);
+            if (pid != 0) identity["pid"] = pid; else ObservationError(role + " GetProcessId: " + pidError);
             long creation, exit, kernel, user;
-            if (GetProcessTimes(process, out creation, out exit, out kernel, out user)) identity["creationFileTime"] = creation.ToString(); else ObservationError(role + " GetProcessTimes: " + Marshal.GetLastWin32Error());
+            bool timesOk = GetProcessTimes(process, out creation, out exit, out kernel, out user); int timesError = timesOk ? 0 : Marshal.GetLastWin32Error(); queries["creation"] = D("ok", timesOk, "win32Error", timesError);
+            if (timesOk) identity["creationFileTime"] = creation.ToString(); else ObservationError(role + " GetProcessTimes: " + timesError);
             var image = new StringBuilder(32768); uint length = (uint)image.Capacity;
-            if (QueryFullProcessImageNameW(process, 0, image, ref length)) identity["image"] = image.ToString(); else ObservationError(role + " QueryImage: " + Marshal.GetLastWin32Error());
-            bool member; if (IsProcessInJob(process, job, out member)) identity["member"] = member; else ObservationError(role + " IsProcessInJob: " + Marshal.GetLastWin32Error());
+            bool imageOk = QueryFullProcessImageNameW(process, 0, image, ref length); int imageError = imageOk ? 0 : Marshal.GetLastWin32Error(); queries["image"] = D("ok", imageOk, "win32Error", imageError);
+            if (imageOk) identity["image"] = image.ToString(); else ObservationError(role + " QueryImage: " + imageError);
+            bool member; bool memberOk = IsProcessInJob(process, job, out member); int memberError = memberOk ? 0 : Marshal.GetLastWin32Error(); queries["membership"] = D("ok", memberOk, "win32Error", memberError);
+            if (memberOk) identity["member"] = member; else ObservationError(role + " IsProcessInJob: " + memberError);
         });
         Step(role + " wait", delegate {
             uint wait = WaitForSingleObject(process, 0); result["wait"] = wait == UInt32.MaxValue ? D("ok", false, "win32Error", Marshal.GetLastWin32Error()) : D("ok", true, "result", wait);
             uint code; result["exit"] = GetExitCodeProcess(process, out code) ? D("ok", true, "code", code) : D("ok", false, "win32Error", Marshal.GetLastWin32Error());
         });
         ((Dictionary<string, object>)handleInventory[role])["observation"] = result; Note("handle-observation", result); return result;
+    }
+    void CaptureDiagnosticMembers(Dictionary<string, object> members) {
+        // Only IDs actually returned by this live job query. Never saved PIDs or machine inventory.
+        if (root.Process == IntPtr.Zero || members == null || !(bool)members["queryOk"] || !members.ContainsKey("pids")) return;
+        foreach (long pid in (List<long>)members["pids"]) {
+            if (pid == root.Pid || diagnosticHandles.ContainsKey(pid)) continue;
+            if (diagnosticMembers.Count >= 8) { diagnosticOverflow++; ObservationError("diagnostic member bound exceeded"); continue; }
+            string role = "diagnostic-" + (diagnosticMembers.Count + 1);
+            var row = D("pid", pid, "role", role, "acquisition", "never-acquired", "bindingComplete", false, "initial", null, "terminal", null);
+            diagnosticMembers.Add(row); diagnosticHandles.Add(pid, IntPtr.Zero);
+            Step("acquire " + role, delegate {
+                if (pid <= 0 || pid > UInt32.MaxValue) { row["acquisition"] = "failed"; row["reason"] = "invalid PID"; ObservationError("invalid diagnostic member PID"); return; }
+                IntPtr handle = OpenProcess(0x00100000 | 0x1000, false, (uint)pid);
+                if (handle == IntPtr.Zero) { int error = Marshal.GetLastWin32Error(); AcquisitionFailed(role, error); row["acquisition"] = "failed"; row["win32Error"] = error; ObservationError(role + " acquisition: " + error); return; }
+                diagnosticHandles[pid] = handle; Own(role, handle); row["acquisition"] = "acquired"; row["handle"] = H(handle);
+                var observed = ObserveProcess(role, handle); row["initial"] = observed;
+                var identity = (Dictionary<string, object>)observed["identity"]; var wait = (Dictionary<string, object>)observed["wait"];
+                bool bound = identity.ContainsKey("pid") && (uint)identity["pid"] == pid && identity.ContainsKey("creationFileTime") && identity.ContainsKey("image") &&
+                    identity.ContainsKey("member") && (bool)identity["member"] && (bool)wait["ok"] && (uint)wait["result"] == 258;
+                row["bindingComplete"] = bound; if (!bound) ObservationError(role + " identity, membership or live wait unbound");
+            });
+        }
+    }
+    List<Dictionary<string, object>> ObserveDiagnosticTerminal() {
+        var observed = new List<Dictionary<string, object>>();
+        foreach (var row in diagnosticMembers) {
+            long pid = (long)row["pid"]; IntPtr handle = diagnosticHandles[pid]; string role = (string)row["role"];
+            var result = handle == IntPtr.Zero ? D("role", role, "state", row["acquisition"], "identity", D(), "wait", D("ok", false), "exit", D("ok", false)) : ObserveProcess(role, handle);
+            row["terminal"] = result; observed.Add(D("pid", pid, "observation", result));
+        }
+        return observed;
+    }
+    bool CloseDiagnosticMembers() {
+        bool complete = diagnosticOverflow == 0;
+        foreach (var row in diagnosticMembers) {
+            IntPtr handle = diagnosticHandles[(long)row["pid"]]; bool closed = false;
+            Step("diagnostic disposal", delegate { closed = CloseTracked((string)row["role"], handle); });
+            complete = complete && closed;
+        }
+        return complete;
     }
     bool CloseTracked(string role, IntPtr handle) {
         if (handle == IntPtr.Zero) return false; // never acquired is not a successful close
@@ -164,9 +213,11 @@ public sealed class FirstMateJobCapability {
         // Bounded zero-time observations before owner disposal, even after an original failure.
         for (int attempt = 0; attempt < 8; attempt++) {
             var members = ProbeMembers("terminal"); var rootObservation = ObserveProcess("root", root.Process); var childObservation = ObserveProcess("child", child);
-            terminalEvidence = D("members", members, "root", rootObservation, "child", childObservation); terminalSamples.Add(terminalEvidence);
+            var diagnostics = ObserveDiagnosticTerminal();
+            terminalEvidence = D("members", members, "root", rootObservation, "child", childObservation, "diagnosticMembers", diagnostics); terminalSamples.Add(terminalEvidence);
             var rw = (Dictionary<string, object>)rootObservation["wait"]; var cw = (Dictionary<string, object>)childObservation["wait"];
-            if ((bool)members["complete"] && (uint)members["active"] == 0 && rw.ContainsKey("result") && cw.ContainsKey("result") && (uint)rw["result"] == 0 && (uint)cw["result"] == 0) break;
+            bool diagnosticsSettled = diagnostics.TrueForAll(value => { var observation = (Dictionary<string, object>)value["observation"]; var wait = (Dictionary<string, object>)observation["wait"]; return (bool)wait["ok"] && wait.ContainsKey("result") && (uint)wait["result"] == 0; });
+            if ((bool)members["complete"] && (uint)members["active"] == 0 && rw.ContainsKey("result") && cw.ContainsKey("result") && (uint)rw["result"] == 0 && (uint)cw["result"] == 0 && diagnosticsSettled) break;
             Thread.Sleep(10);
         }
     }
@@ -375,6 +426,7 @@ public sealed class FirstMateJobCapability {
             receipt["originalFailureTruncated"] = error.Length > 4096;
             receipt["error"] = error.Substring(0, Math.Min(error.Length, 4096));
             receipt["originalFailure"] = receipt["error"];
+            owner.Step("failure diagnostic capture", delegate { owner.CaptureDiagnosticMembers(owner.lastObservation); });
             if (owner.job != IntPtr.Zero && (bool)receipt["targetCreated"]) owner.Step("failed-prerequisite termination", delegate { owner.Terminate("failed-prerequisite-cleanup"); });
         } finally {
             if (timer != null) { timerDrained = false; owner.Step("timer disposal", delegate { using (var drained = new ManualResetEvent(false)) { timer.Dispose(drained); timerDrained = drained.WaitOne(1000); } }); }
@@ -388,14 +440,16 @@ public sealed class FirstMateJobCapability {
             bool threadClosed = owner.CloseTracked("thread", owner.root.Thread);
             bool childClosed = owner.CloseTracked("child", owner.child);
             bool rootClosed = owner.CloseTracked("root", owner.root.Process);
+            bool diagnosticsClosed = false; owner.Step("diagnostic handles disposal", delegate { diagnosticsClosed = owner.CloseDiagnosticMembers(); });
             bool jobClosed = timerDrained && owner.CloseTracked("job", owner.job);
             bool inputClosed = owner.CloseTracked("stdin", owner.input); receipt["stdinClosed"] = inputClosed;
-            receipt["cleanup"] = D("timerDrained", timerDrained, "threadHandleClosed", threadClosed, "childHandleClosed", childClosed, "rootHandleClosed", rootClosed, "jobHandleClosed", jobClosed);
+            receipt["cleanup"] = D("timerDrained", timerDrained, "threadHandleClosed", threadClosed, "childHandleClosed", childClosed, "rootHandleClosed", rootClosed, "jobHandleClosed", jobClosed, "diagnosticHandlesClosed", diagnosticsClosed);
         }
         receipt["deadlineFired"] = owner.deadlineFired; receipt["terminateRequested"] = owner.terminateRequested;
         receipt["terminateReturned"] = owner.terminateReturned; receipt["terminationError"] = owner.terminationError; receipt["terminationAtMs"] = owner.terminationAt;
         receipt["events"] = owner.events;
         receipt["captureVersion"] = 2; receipt["handleInventory"] = owner.handleInventory; receipt["terminalEvidence"] = owner.terminalEvidence;
+        receipt["diagnosticVersion"] = 1; receipt["diagnosticMembers"] = owner.diagnosticMembers; receipt["diagnosticOverflow"] = owner.diagnosticOverflow;
         receipt["membershipEvidence"] = D("lastComplete", owner.lastComplete, "lastCompleteBeforeFailure", owner.lastCompleteBeforeFailure, "lastObservation", owner.lastObservation, "offending", owner.offending, "terminalSamples", owner.terminalSamples);
         receipt["observation"] = D("dropped", owner.recordDropped, "failures", owner.recordFailures, "errors", owner.observationErrors);
         return receipt;

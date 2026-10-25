@@ -24,12 +24,28 @@ function positive() {
       data: kind === 'owner-acquired' ? { flags: 8192, members: empty(), helperPid: 10 } : {} })) };
   native.terminalEvidence = { members: members([]), ...Object.fromEntries(['root','child'].map(role => [role,
     { identity: { pid: native[role].pid, creationFileTime: native[role].creationFileTime }, wait: { ok: true, result: 0 }, exit: { ok: true, code: 0 } }])) };
+  const queries = Object.fromEntries(['pid','creation','image','membership'].map(key => [key, { ok: true }]));
+  native.diagnosticVersion = 1; native.diagnosticOverflow = 0;
+  native.cleanup.diagnosticHandlesClosed = true;
+  native.diagnosticMembers = [{ pid: 13, role: 'diagnostic-1', acquisition: 'acquired', handle: '0x40', bindingComplete: true,
+    initial: { identity: identity(13), queries, wait: { ok: true, result: 258 }, exit: { ok: true, code: 259 } },
+    terminal: { identity: identity(13), queries, wait: { ok: true, result: 0 }, exit: { ok: true, code: 0 } } }];
+  native.handleInventory['diagnostic-1'] = { acquisition: 'acquired', handle: '0x40', disposition: 'closed' };
   const envelope = { format: 'firstmate.owner-normal/1', scenario: 'normal', caseId: uuid, nonce, sourceSha256: NORMAL_PINS['WindowsJobOwner.cs'], nativeResult: native, invocationError: null, recordingError: null };
-  return { ...configuration, helperFile: envelope, outer: { helperPid: 10, error: null, closed: true, status: 0, signal: null, exitObserved: true, exitStatus: 0, exitSignal: null, deadlineFired: false,
+  const value = { ...configuration, childScriptPath: configuration.childEntry, rootPreSpawn: { ...entry(12), format: 'firstmate.root-pre-spawn/1', stage: 'before-child-spawn', childEntry: configuration.childEntry },
+    helperFile: envelope, outer: { helperPid: 10, error: null, closed: true, status: 0, signal: null, exitObserved: true, exitStatus: 0, exitSignal: null, deadlineFired: false,
     stdout: stream(JSON.stringify(envelope)), stderr: stream(), outputLoss: { stdout: 0, stderr: 0 }, outputErrors: { stdout: 0, stderr: 0 }, observation: { dropped: 0, failures: 0 } },
     rootEntry: entry(12), childEntry: entry(13), rootResult: { childCode: 0, childSignal: null }, childResult: { fulfilled: true }, childOutput: { stdout: stream(), stderr: stream() }, readErrors: [] };
+  refreshFinal(value); return value;
 }
-const refreshFinal = value => { value.outer.stdout = stream(JSON.stringify(value.helperFile)); };
+const refreshFinal = value => {
+  value.helperFileRaw = Buffer.from(JSON.stringify(value.helperFile));
+  const n = value.helperFile.nativeResult;
+  value.outer.stdout = stream(JSON.stringify({ format: 'firstmate.owner-normal-final/1', scenario: 'normal', caseId: value.caseId, nonce: value.nonce,
+    sourceSha256: value.helperFile.sourceSha256, file: { name: 'normal-helper.json', bytes: value.helperFileRaw.length,
+      sha256: createHash('sha256').update(value.helperFileRaw).digest('hex'), complete: true }, invocationError: value.helperFile.invocationError, recordingError: null,
+    originalFailure: { state: n ? n.originalFailure === null ? 'none-recorded' : 'recorded' : 'unavailable', value: n?.originalFailure ?? null, truncated: n?.originalFailureTruncated ?? null } }));
+};
 test('complete simulated normal passes only normal admission, never runtime or another case', () => {
   const result = interpretNormal(positive()); assert.equal(result.normalQualificationPassed, true); assert.equal(result.ownedSetClosureConfirmed, true);
   assert.equal(result.actualRuntimeQualified, false); assert.equal(result.anotherCaseAuthorized, false); assert.equal(result.historicalC2State, 'failed/unknown');
@@ -57,7 +73,7 @@ test('extra-member mismatch is retained without relaxing the original assertion'
   assert.deepEqual(state.offending.pids, [12, 13, 14]);
 });
 test('file-only original failure remains visible but cannot pass final-channel admission', () => {
-  const input = positive(); input.helperFile.nativeResult.error = input.helperFile.nativeResult.originalFailure = 'original failure'; input.outer.stdout = stream();
+  const input = positive(); input.helperFile.nativeResult.error = input.helperFile.nativeResult.originalFailure = 'original failure'; refreshFinal(input); input.outer.stdout = stream();
   const result = interpretNormal(input); assert.equal(result.native.originalFailure, 'original failure'); assert.equal(result.normalQualificationPassed, false);
 });
 test('missing native result is explicit unknown, never an invented no-error or closure', () => {
@@ -66,7 +82,7 @@ test('missing native result is explicit unknown, never an invented no-error or c
   assert.equal(result.membershipMismatch.state, 'unavailable'); assert.equal(result.closureState, 'unknown'); assert.equal(result.ownedSetClosureConfirmed, false);
 });
 test('post-write recording failure refuses despite the earlier successful file', () => {
-  const input = positive(), final = structuredClone(input.helperFile); final.recordingError = { message: 'post-write sink failed' }; input.outer.stdout = stream(JSON.stringify(final));
+  const input = positive(), final = JSON.parse(Buffer.from(input.outer.stdout.data, 'base64')); final.recordingError = { message: 'post-write sink failed' }; input.outer.stdout = stream(JSON.stringify(final));
   const result = interpretNormal(input); assert.equal(result.normalQualificationPassed, false); assert.equal(result.helperFinal.recordingError.message, 'post-write sink failed');
   assert.equal(result.helperFile.recordingError, null);
 });
@@ -93,5 +109,5 @@ test('new source boundary keeps legacy holds and capture/limits, normal call fix
   assert.equal((helper.match(/\[FirstMateJobCapability\]::QualifyNormal\(/g) ?? []).length, 1); assert.doesNotMatch(helper, /::Run\(|GetField|SetValue|BindingFlags/);
   for (const [file, expected] of Object.entries(NORMAL_PINS)) assert.equal(createHash('sha256').update(readFileSync(new URL(file, import.meta.url))).digest('hex'), expected);
   const base = new URL('../../../.local/qualification-recovery/baseline/', import.meta.url);
-  for (const file of ['run.mjs','invoke.ps1','root.mjs','child.mjs','capture.mjs','admission.mjs']) assert.deepEqual(readFileSync(new URL(file, import.meta.url)), readFileSync(new URL(file, base)));
+  for (const file of ['run.mjs','invoke.ps1','child.mjs','capture.mjs','admission.mjs']) assert.deepEqual(readFileSync(new URL(file, import.meta.url)), readFileSync(new URL(file, base)));
 });
