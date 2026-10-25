@@ -1,0 +1,861 @@
+{
+  "observations": [
+    {
+      "mode": "cold",
+      "iteration": 0,
+      "failure": null,
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 751.7999999970198,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 751.8999999910593,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 753.1999999880791,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 753.2999999970198,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 753.5999999940395,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 43.69999998807907,
+          "box": null
+        },
+        {
+          "at": 409.5,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        },
+        {
+          "at": 697.7999999970198,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nPirate voyage\nDrawn with WebGL · 12 on deck\n3\n3 need you ·\nAnswer the next\n6 waiting at the wheel\n6 working the rigging\n0 resting below deck\nSuggestions (1)\nPoint at a sailor to see who it is; click one to focus it and act on it.\nDeck\nDecisions\n1 of 3\n‹\n›\nAll\nwaiting just now · harbour · This machine\n⋯\nDecision a\nTHE FIRST MATE ASKS\nA long complete decision question with the current review. Which approach should we take?\nTO READ FIRST\nhttps://example.com/review\nTHE FIRST MATE SUGGESTS\nUse the cautious option\nSends: Choose cautious\nOR ANSWER IN YOUR OWN WORDS\nSend answer\nSnooze ▾\nDiscuss first\nI answered in chat\nStays in Needs you until you answer or snooze it."
+    },
+    {
+      "mode": "cold",
+      "iteration": 1,
+      "failure": null,
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 648.5,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 648.6000000089407,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 650.1000000089407,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 650.1000000089407,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 650.4000000059605,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 12.600000008940697,
+          "box": null
+        },
+        {
+          "at": 359.70000000298023,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        },
+        {
+          "at": 586.4000000059605,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nPirate voyage\nDrawn with WebGL · 12 on deck\n3\n3 need you ·\nAnswer the next\n6 waiting at the wheel\n6 working the rigging\n0 resting below deck\nSuggestions (1)\nPoint at a sailor to see who it is; click one to focus it and act on it.\nDeck\nDecisions\n1 of 3\n‹\n›\nAll\nwaiting just now · harbour · This machine\n⋯\nDecision a\nTHE FIRST MATE ASKS\nA long complete decision question with the current review. Which approach should we take?\nTO READ FIRST\nhttps://example.com/review\nTHE FIRST MATE SUGGESTS\nUse the cautious option\nSends: Choose cautious\nOR ANSWER IN YOUR OWN WORDS\nSend answer\nSnooze ▾\nDiscuss first\nI answered in chat\nStays in Needs you until you answer or snooze it."
+    },
+    {
+      "mode": "cold",
+      "iteration": 2,
+      "failure": null,
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 627,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 627,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 628.4000000059605,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 628.5,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 628.9000000059605,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 13.200000002980232,
+          "box": null
+        },
+        {
+          "at": 358.20000000298023,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        },
+        {
+          "at": 571.4000000059605,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nPirate voyage\nDrawn with WebGL · 12 on deck\n3\n3 need you ·\nAnswer the next\n6 waiting at the wheel\n6 working the rigging\n0 resting below deck\nSuggestions (1)\nPoint at a sailor to see who it is; click one to focus it and act on it.\nDeck\nDecisions\n1 of 3\n‹\n›\nAll\nwaiting just now · harbour · This machine\n⋯\nDecision a\nTHE FIRST MATE ASKS\nA long complete decision question with the current review. Which approach should we take?\nTO READ FIRST\nhttps://example.com/review\nTHE FIRST MATE SUGGESTS\nUse the cautious option\nSends: Choose cautious\nOR ANSWER IN YOUR OWN WORDS\nSend answer\nSnooze ▾\nDiscuss first\nI answered in chat\nStays in Needs you until you answer or snooze it."
+    },
+    {
+      "mode": "cold",
+      "iteration": 3,
+      "failure": null,
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 707.5,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 707.5,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 709.2000000029802,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 709.2999999970198,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 709.6000000089407,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 13.700000002980232,
+          "box": null
+        },
+        {
+          "at": 408.6000000089407,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        },
+        {
+          "at": 651.9000000059605,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nPirate voyage\nDrawn with WebGL · 12 on deck\n3\n3 need you ·\nAnswer the next\n6 waiting at the wheel\n6 working the rigging\n0 resting below deck\nSuggestions (1)\nPoint at a sailor to see who it is; click one to focus it and act on it.\nDeck\nDecisions\n1 of 3\n‹\n›\nAll\nwaiting just now · harbour · This machine\n⋯\nDecision a\nTHE FIRST MATE ASKS\nA long complete decision question with the current review. Which approach should we take?\nTO READ FIRST\nhttps://example.com/review\nTHE FIRST MATE SUGGESTS\nUse the cautious option\nSends: Choose cautious\nOR ANSWER IN YOUR OWN WORDS\nSend answer\nSnooze ▾\nDiscuss first\nI answered in chat\nStays in Needs you until you answer or snooze it."
+    },
+    {
+      "mode": "settled",
+      "iteration": 0,
+      "failure": null,
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 793.4000000059605,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 793.4000000059605,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 794.9000000059605,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 794.9000000059605,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 795.2000000029802,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 14.299999997019768,
+          "box": null
+        },
+        {
+          "at": 447.70000000298023,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        },
+        {
+          "at": 710,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nPirate voyage\nDrawn with WebGL · 12 on deck\n3\n3 need you ·\nAnswer the next\n6 waiting at the wheel\n6 working the rigging\n0 resting below deck\nSuggestions (1)\nPoint at a sailor to see who it is; click one to focus it and act on it.\nDeck\nDecisions\n1 of 3\n‹\n›\nAll\nwaiting just now · harbour · This machine\n⋯\nDecision a\nTHE FIRST MATE ASKS\nA long complete decision question with the current review. Which approach should we take?\nTO READ FIRST\nhttps://example.com/review\nTHE FIRST MATE SUGGESTS\nUse the cautious option\nSends: Choose cautious\nOR ANSWER IN YOUR OWN WORDS\nSend answer\nSnooze ▾\nDiscuss first\nI answered in chat\nStays in Needs you until you answer or snooze it."
+    },
+    {
+      "mode": "settled",
+      "iteration": 1,
+      "failure": null,
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 678.7999999970198,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 678.9000000059605,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 680.2999999970198,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 680.2999999970198,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 680.7000000029802,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 13.099999994039536,
+          "box": null
+        },
+        {
+          "at": 378.20000000298023,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        },
+        {
+          "at": 609.5,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nPirate voyage\nDrawn with WebGL · 12 on deck\n3\n3 need you ·\nAnswer the next\n6 waiting at the wheel\n6 working the rigging\n0 resting below deck\nSuggestions (1)\nPoint at a sailor to see who it is; click one to focus it and act on it.\nDeck\nDecisions\n1 of 3\n‹\n›\nAll\nwaiting just now · harbour · This machine\n⋯\nDecision a\nTHE FIRST MATE ASKS\nA long complete decision question with the current review. Which approach should we take?\nTO READ FIRST\nhttps://example.com/review\nTHE FIRST MATE SUGGESTS\nUse the cautious option\nSends: Choose cautious\nOR ANSWER IN YOUR OWN WORDS\nSend answer\nSnooze ▾\nDiscuss first\nI answered in chat\nStays in Needs you until you answer or snooze it."
+    },
+    {
+      "mode": "settled",
+      "iteration": 2,
+      "failure": null,
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 708.4000000059605,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 708.5,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 709.9000000059605,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 710,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 710.4000000059605,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 13,
+          "box": null
+        },
+        {
+          "at": 365.40000000596046,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        },
+        {
+          "at": 617.2999999970198,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nPirate voyage\nDrawn with WebGL · 12 on deck\n3\n3 need you ·\nAnswer the next\n6 waiting at the wheel\n6 working the rigging\n0 resting below deck\nSuggestions (1)\nPoint at a sailor to see who it is; click one to focus it and act on it.\nDeck\nDecisions\n1 of 3\n‹\n›\nAll\nwaiting just now · harbour · This machine\n⋯\nDecision a\nTHE FIRST MATE ASKS\nA long complete decision question with the current review. Which approach should we take?\nTO READ FIRST\nhttps://example.com/review\nTHE FIRST MATE SUGGESTS\nUse the cautious option\nSends: Choose cautious\nOR ANSWER IN YOUR OWN WORDS\nSend answer\nSnooze ▾\nDiscuss first\nI answered in chat\nStays in Needs you until you answer or snooze it."
+    },
+    {
+      "mode": "settled",
+      "iteration": 3,
+      "failure": null,
+      "events": [
+        {
+          "type": "pointerdown",
+          "at": 652.6000000089407,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mousedown",
+          "at": 652.6000000089407,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "pointerup",
+          "at": 654,
+          "x": 127.52999877929688,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "mouseup",
+          "at": 654,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        },
+        {
+          "type": "click",
+          "at": 654.4000000059605,
+          "x": 127,
+          "y": 815,
+          "target": "<div dir=\"auto\" class=\"css-text-146c3p1\" style=\"color: rgb(250, 250, 250); font-size: 12px;\">Answer the next</div>",
+          "legendTarget": true,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ],
+          "drawer": false
+        }
+      ],
+      "positions": [
+        {
+          "at": 14.100000008940697,
+          "box": null
+        },
+        {
+          "at": 377.70000000298023,
+          "box": [
+            84.984375,
+            836,
+            85.09375,
+            28
+          ]
+        },
+        {
+          "at": 591.1000000089407,
+          "box": [
+            84.984375,
+            801,
+            85.09375,
+            28
+          ]
+        }
+      ],
+      "body": "Deck\nScene: Pirate voyage\nFirstMate Home\nPirate voyage\nDrawn with WebGL · 12 on deck\n3\n3 need you ·\nAnswer the next\n6 waiting at the wheel\n6 working the rigging\n0 resting below deck\nSuggestions (1)\nPoint at a sailor to see who it is; click one to focus it and act on it.\nDeck\nDecisions\n1 of 3\n‹\n›\nAll\nwaiting just now · harbour · This machine\n⋯\nDecision a\nTHE FIRST MATE ASKS\nA long complete decision question with the current review. Which approach should we take?\nTO READ FIRST\nhttps://example.com/review\nTHE FIRST MATE SUGGESTS\nUse the cautious option\nSends: Choose cautious\nOR ANSWER IN YOUR OWN WORDS\nSend answer\nSnooze ▾\nDiscuss first\nI answered in chat\nStays in Needs you until you answer or snooze it."
+    }
+  ],
+  "errors": []
+}

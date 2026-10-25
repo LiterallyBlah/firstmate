@@ -11,6 +11,7 @@ import { checkPolish } from "./polish-checks.mjs";
 import { checkHeaders } from "./header-checks.mjs";
 import { checkAnswers } from "./answer-checks.mjs";
 import { checkRaised } from "./raised-checks.mjs";
+import { checkDeckStartup } from "./deck-startup-checks.mjs";
 const here = dirname(fileURLToPath(import.meta.url)),
   root = resolve(here, "../..");
 const harness = createRequire(join(root, "docs/board-list/package.json")),
@@ -87,13 +88,14 @@ const errors = [],
   output = join(root, ".local/needs-you-drawer");
 await mkdir(output, { recursive: true });
 const base = `http://127.0.0.1:${server.address().port}`;
-async function pageAt(query, width = 1440) {
+async function pageAt(query, width = 1440, prepare) {
   const page = await browser.newPage({
     viewport: { width, height: width < 638 ? 844 : 900 },
     reducedMotion: "reduce",
   });
   page.setDefaultTimeout(10000);
   page.on("pageerror", (error) => errors.push(String(error)));
+  if (prepare) await prepare(page);
   await page.goto(`${base}/?${query}`);
   if (new URLSearchParams(query).has("decision"))
     await page
@@ -108,6 +110,7 @@ async function pageAt(query, width = 1440) {
   return page;
 }
 try {
+  const startup = await checkDeckStartup(pageAt);
   const only = process.env.RAISED_ONLY;
   const raised = process.env.POLISH_ONLY ? [] : await checkRaised(pageAt, output);
   const headers = only ? [] : await checkHeaders(pageAt, output);
@@ -120,7 +123,7 @@ try {
   assert.deepEqual(errors, []);
   await writeFile(
     join(output, "results.json"),
-    JSON.stringify({ raised, headers, polish, answers, layouts, taskViews, errors }, null, 2),
+    JSON.stringify({ startup, raised, headers, polish, answers, layouts, taskViews, errors }, null, 2),
   );
   console.log(
     JSON.stringify({

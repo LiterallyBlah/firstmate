@@ -1,0 +1,203 @@
+{
+  "version": 1,
+  "base": "508eff9df937dce3adf95d9e03fd8ddc6d263b2b",
+  "createdAt": "2026-10-25T00:39:56.014Z",
+  "environment": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "node": "v24.18.0",
+    "workers": 2,
+    "playwright": "1.64.0",
+    "chromium": "156.0.8078.4",
+    "revision": "1248",
+    "CI": "1",
+    "browserPath": ".local/s02-render/browsers",
+    "fixtureOnly": true
+  },
+  "evidenceManifest": {
+    "path": "docs/scoped-supervision/s02-render-evidence/manifest.json",
+    "sha256": "a7dcfc6d1a7adad5672e15bb78d024589b7ef3aacee526aa021ab67e9d00b157"
+  },
+  "sources": {
+    "docs/needs-you/deck-startup-checks.mjs": "dc0086dc03ed93f269d29f9b069b9ae3c1fa4ec65e64dde22e0a4df617fb8739",
+    "docs/needs-you/panel-return-check.mjs": "79fb7d4ee809858d8f143f6f8f0f631122c063d24238531abff8674d96d96248",
+    "docs/needs-you/polish-checks.mjs": "9332de40700454c10e9cecaf6cd324ce86334e040345eaa0cc925fc2e1ca9342",
+    "docs/needs-you/render.mjs": "3f16dd5323c183e74206b064269030c1e885fc4a1a938366875c2c555d0192d0",
+    "docs/scoped-supervision/S02-render-correction.md": "a6d09b401c8f81685b8c8c94fde59c68cf91df95a5f5083540cfaa541e02072b",
+    "docs/scoped-supervision/s02-render-evidence/panel-return-before-fix.mjs": "5ec38aa8f7d4106e19d4bb9c0b22690b7b5824360d33aeb4846a5748ea8485b0",
+    "docs/scoped-supervision/s02-render-evidence/reproduce.mjs": "e092a4dc0e526204181d7f1175128814e689a9c780f06da68aaba350448239d1",
+    "docs/scoped-supervision/s02-render-evidence/startup-regression-before-fix.mjs": "dc0086dc03ed93f269d29f9b069b9ae3c1fa4ec65e64dde22e0a4df617fb8739"
+  },
+  "preservation": {
+    "existingFilesIdentical": 2112,
+    "onlyChangedExisting": [
+      "docs/needs-you/render.mjs",
+      "docs/needs-you/polish-checks.mjs"
+    ],
+    "acceptedIntegrationReceiptSha256": "b167c1e6d866289e6218b6f058c9ee185ee0cacd52383e480b51766f87411a70"
+  },
+  "commands": {
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exit": 0,
+      "path": ".local/s02-render/typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "full": {
+      "command": "FIRSTMATE_RECEIPT_JOURNAL=1 node node_modules/vitest/vitest.mjs run --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s02-render/full-tests.json",
+      "exit": 0,
+      "path": ".local/s02-render/full-tests.json",
+      "sha256": "39f667263306b80fc6a2af6b7630d4e28bc4bf6f448b04de6966446bad69d176",
+      "log": {
+        "path": ".local/s02-render/full-tests.log",
+        "sha256": "0df5900053ad7ce3512e7122d22d4fa4779f0a5fb193637db8bbd06a03b85fba"
+      },
+      "passed": 2551,
+      "failed": 0,
+      "skipped": 3,
+      "files": 172,
+      "targeted": {
+        "test/supervision-r02.test.ts": 13,
+        "server/supervision-inbox.test.ts": 12,
+        "server/supervision-commands.test.ts": 39,
+        "server/supervision-crash.test.ts": 17,
+        "server/workflow-close-review.test.ts": 10,
+        "test/workflow-close-context.test.ts": 2,
+        "server/supervision-integration.test.ts": 2
+      }
+    },
+    "render": {
+      "command": "CI=1 PLAYWRIGHT_BROWSERS_PATH=.local/s02-render/browsers node docs/needs-you/render.mjs",
+      "exit": 0,
+      "path": ".local/s02-render/full-render-windows-chromium/results.json",
+      "sha256": "596be2d6f73057f03087857833b9a03709903799a048bbc9f1986f049369d7e2",
+      "log": {
+        "path": ".local/s02-render/full-render-windows-chromium.log",
+        "sha256": "88cb258c6eaa7dfa23d2d03a0fb542ecc79d9e1946536456b3501788676cda40"
+      },
+      "counts": {
+        "startup": 2,
+        "raised": 4,
+        "headers": 40,
+        "polish": 4,
+        "answers": 4,
+        "layouts": 14,
+        "taskViews": 6,
+        "errors": 0
+      }
+    }
+  },
+  "retainedLocalEvidence": [
+    {
+      "path": ".local/s02-render/probe-1.log",
+      "sha256": "5a74738f9b7e2ecbf245a90fd369b91a4c897f39a08c8ecd6949f6dfafd3319f"
+    },
+    {
+      "path": ".local/s02-render/probe-1-browser.log",
+      "sha256": "34eb7f4c28454f7e6eaf6d15506dc3c0a3f96383d1f16047d9a3d38aec4e4f99"
+    },
+    {
+      "path": ".local/s02-render/probe-2.log",
+      "sha256": "c7377112b325274b74df4a1218734a1567dd082ba887d0e0f3de85769a8ac2fa"
+    },
+    {
+      "path": ".local/s02-render/dependencies.log",
+      "sha256": "8e7343030517a5727f316c4712acefe43518eed62fe7103653aa94269866abc7"
+    },
+    {
+      "path": ".local/s02-render/browser-qualification-setup.log",
+      "sha256": "a1a8469a5c63dfc5bb12f4b80a556a0d13b903811d8903170a1744083ac3c298"
+    },
+    {
+      "path": ".local/s02-render/make-probe.mjs",
+      "sha256": "0a00c4d5ef92f1a4387bb91755852b1e27c7962ab83694429b7534832742cd27"
+    },
+    {
+      "path": ".local/s02-render/probe.mjs",
+      "sha256": "66cffdd020bb61eb199159bc43cbc0b4ccff3121ce430f7b47b911eab841231f"
+    },
+    {
+      "path": ".local/s02-render/make-controlled-probe.mjs",
+      "sha256": "f757565f06af88e6ae09c609671181200b79f19d76a126c98d36bfa313709c31"
+    },
+    {
+      "path": ".local/s02-render/controlled-probe.mjs",
+      "sha256": "9f878a53e556507f1193915add8451412a8cc79cddfddfdc9a11a69004d39142"
+    },
+    {
+      "path": ".local/s02-render/make-startup-runner.mjs",
+      "sha256": "6360cd0203937486f689259605a5aaa9b6d680ae141dfeef179809c516276d66"
+    },
+    {
+      "path": ".local/s02-render/startup-only.mjs",
+      "sha256": "ab04d1b22dbb76c1d3d344cb6ce5f069f1a0669f80d7fe222bbf7654a4bb5ad0"
+    },
+    {
+      "path": ".local/s02-render/probe-1/cold-0.zip",
+      "sha256": "cf98ebb6a4f35caabca282b3a9756eabb4267dcc785a1384947bbca72e78783c"
+    },
+    {
+      "path": ".local/s02-render/probe-1/cold-1.zip",
+      "sha256": "86e0425e79cfa64ad451eaa89fd96eaa565632eb99e776d94a1b9ce031eacdb9"
+    },
+    {
+      "path": ".local/s02-render/probe-1/cold-2.zip",
+      "sha256": "9fdd4aba531cb8f0b89462a6e31c9ad378822816a5c259dcd79e32850bce05a9"
+    },
+    {
+      "path": ".local/s02-render/probe-1/cold-3.zip",
+      "sha256": "b06b82f5f79e1241a887f4a12943219b6af079ef4af8141f9cf4a0a70173a0b6"
+    },
+    {
+      "path": ".local/s02-render/probe-1/settled-0.zip",
+      "sha256": "33ac6520aff3daea48952d240ea80991153ee2e9b5d1bc0ece42436f362594c2"
+    },
+    {
+      "path": ".local/s02-render/probe-1/settled-1.zip",
+      "sha256": "9d8bab50afff86f1f03a76f7f5ed1a9e72a81d7cae3cf781df18317baa0c07d5"
+    },
+    {
+      "path": ".local/s02-render/probe-1/settled-2.zip",
+      "sha256": "f7a860f9812d36a2e65294911653da6e3f0a8dae11e15525724240be3fd9e72a"
+    },
+    {
+      "path": ".local/s02-render/probe-1/settled-3.zip",
+      "sha256": "a6468a3ccc4ad396ebcac271b9526d73df4d95ae4abcaaa91c7079a0ae3100af"
+    },
+    {
+      "path": ".local/s02-render/probe-2/cold-held-control.zip",
+      "sha256": "ffd70fbc431d00e05c0122592136f9b9c788cd26fce6c212c9ea8d7da4436798"
+    },
+    {
+      "path": ".local/s02-render/probe-2/locator-release-during-press.zip",
+      "sha256": "8b11c5b885292ce5cf95c4e11ac8d4b496dd8970a42be062f451bcc7aa77d7ca"
+    },
+    {
+      "path": ".local/s02-render/probe-2/release-during-press.zip",
+      "sha256": "f485f2b0f5991f8ac2c1f036a7b5060bbba310dac5304e19d304eca90a95ee91"
+    },
+    {
+      "path": ".local/s02-render/probe-2/settled-control.zip",
+      "sha256": "7edbd660c2c70fbb3d370f1224445ee7ad6b113d55f3af5ac5ff832da86cdf47"
+    },
+    {
+      "path": ".local/s02-render/packaging-failure.txt",
+      "sha256": "730e145f1b41fc203cce0f3e904d93d7fbd377ca20b6b20bdcc8e5d1328d0ebd"
+    },
+    {
+      "path": ".local/s02-render/prepare-evidence.mjs",
+      "sha256": "8a591728615550db3c3dff322175046ca969075871f6a63208ff1df03b5031cb"
+    },
+    {
+      "path": ".local/s02-render/collect-validation.mjs",
+      "sha256": "0dca5acdbb5c2f0c15be8106a4a5dc37f8d85cbed29061703589b4d5590c2ebc"
+    },
+    {
+      "path": ".local/s02-render/verify-delivery.mjs",
+      "sha256": "1764e120a8707fecd75b2984a93c7107111e429f683bdfd8bcb9e035bd9d3e6a"
+    }
+  ],
+  "reviewRequired": true,
+  "activation": false,
+  "CI": "Pending exact-head normal delivery; final CI observation is separate from this pre-push source/test receipt."
+}
