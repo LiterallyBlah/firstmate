@@ -1,0 +1,342 @@
+{
+  "name": "hold-resolution-sync",
+  "elapsed": 5014.9529999999995,
+  "gateTriggered": true,
+  "pending": [],
+  "spanCount": 578,
+  "groups": {
+    "exact-source-case": {
+      "count": 1,
+      "total": 5014.8019,
+      "max": 5014.8019,
+      "errors": [
+        "HELD"
+      ]
+    },
+    "store.initialize": {
+      "count": 1,
+      "total": 7.315200000000004,
+      "max": 7.315200000000004,
+      "errors": []
+    },
+    "fs.mkdir": {
+      "count": 4,
+      "total": 2.879199999999969,
+      "max": 1.905399999999986,
+      "errors": []
+    },
+    "fs.readdir": {
+      "count": 60,
+      "total": 7.549599999999828,
+      "max": 0.3611000000000786,
+      "errors": []
+    },
+    "store.publish(identity)": {
+      "count": 1,
+      "total": 3.7006999999999834,
+      "max": 3.7006999999999834,
+      "errors": []
+    },
+    "fs.open": {
+      "count": 18,
+      "total": 6.8340999999998076,
+      "max": 1.6160000000000991,
+      "errors": []
+    },
+    "fs.writeFile": {
+      "count": 18,
+      "total": 3.0879999999999654,
+      "max": 0.4481999999999289,
+      "errors": []
+    },
+    "fs.sync": {
+      "count": 18,
+      "total": 4797.6257000000005,
+      "max": 4782.0032,
+      "errors": [
+        "Error"
+      ]
+    },
+    "fs.close": {
+      "count": 18,
+      "total": 2.2538999999999305,
+      "max": 0.6630999999997584,
+      "errors": []
+    },
+    "fs.link": {
+      "count": 17,
+      "total": 5.787099999999782,
+      "max": 0.5199000000000069,
+      "errors": [
+        "EEXIST"
+      ]
+    },
+    "fs.unlink": {
+      "count": 17,
+      "total": 4.3568000000002485,
+      "max": 0.3386000000000422,
+      "errors": []
+    },
+    "store.acquireCoordinator": {
+      "count": 1,
+      "total": 5.427200000000084,
+      "max": 5.427200000000084,
+      "errors": []
+    },
+    "store.scan": {
+      "count": 13,
+      "total": 154.4661000000001,
+      "max": 19.794399999999996,
+      "errors": []
+    },
+    "fs.readFile": {
+      "count": 179,
+      "total": 98.90229999999872,
+      "max": 1.0326000000000022,
+      "errors": [
+        "ENOENT",
+        "ENOENT",
+        "ENOENT",
+        "ENOENT",
+        "ENOENT",
+        "ENOENT",
+        "ENOENT"
+      ]
+    },
+    "store.coordinators": {
+      "count": 20,
+      "total": 16.36310000000026,
+      "max": 1.5335000000000036,
+      "errors": []
+    },
+    "store.publish(coordinator)": {
+      "count": 1,
+      "total": 2.6318999999999733,
+      "max": 2.6318999999999733,
+      "errors": []
+    },
+    "store.transact": {
+      "count": 5,
+      "total": 4889.5736,
+      "max": 4807.0319,
+      "errors": [
+        "HELD"
+      ]
+    },
+    "store.commit": {
+      "count": 5,
+      "total": 4823.2694,
+      "max": 4787.0262,
+      "errors": [
+        "HELD"
+      ]
+    },
+    "store.assertCoordinator": {
+      "count": 7,
+      "total": 7.0593000000000075,
+      "max": 1.2923999999999296,
+      "errors": []
+    },
+    "store.apply": {
+      "count": 31,
+      "total": 7.26829999999984,
+      "max": 1.397199999999998,
+      "errors": []
+    },
+    "store.checkBlobs": {
+      "count": 31,
+      "total": 5.750800000000027,
+      "max": 0.7214999999999918,
+      "errors": []
+    },
+    "store.publish(tip)": {
+      "count": 5,
+      "total": 10.783500000000004,
+      "max": 2.4278000000000475,
+      "errors": []
+    },
+    "store.publish(event)": {
+      "count": 5,
+      "total": 4791.534700000001,
+      "max": 4783.173500000001,
+      "errors": [
+        "Error"
+      ]
+    },
+    "store.publish(publication)": {
+      "count": 4,
+      "total": 9.245099999999752,
+      "max": 3.6918999999999187,
+      "errors": []
+    },
+    "events.admit": {
+      "count": 2,
+      "total": 95.13619999999992,
+      "max": 49.6549,
+      "errors": []
+    },
+    "store.read": {
+      "count": 5,
+      "total": 74.87799999999993,
+      "max": 19.864199999999983,
+      "errors": []
+    },
+    "fs.stat": {
+      "count": 87,
+      "total": 10.861900000000446,
+      "max": 0.21199999999998909,
+      "errors": []
+    },
+    "store.putBlob": {
+      "count": 2,
+      "total": 28.65949999999998,
+      "max": 16.307199999999966,
+      "errors": []
+    },
+    "events.resolve": {
+      "count": 2,
+      "total": 4843.722,
+      "max": 4827.1087,
+      "errors": [
+        "UNKNOWN_OWNER",
+        "HELD"
+      ]
+    }
+  },
+  "top": [
+    {
+      "id": 576,
+      "parent": 573,
+      "name": "fs.sync",
+      "at": 232.1232,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000005.event.json.f888d147-1fcd-4258-9d7e-d063107ba880.tmp",
+      "duration": 4782.0032,
+      "error": {
+        "name": "Error",
+        "code": null,
+        "message": "Controlled sync gate stopped at unchanged test deadline"
+      },
+      "ancestors": [
+        "fs.sync",
+        "store.publish(event)",
+        "store.commit#5",
+        "store.transact#5",
+        "events.resolve#2",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 2,
+      "parent": 1,
+      "name": "fs.mkdir",
+      "at": 2.449200000000019,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 1.905399999999986,
+      "error": null,
+      "ancestors": [
+        "fs.mkdir",
+        "store.initialize#1",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 237,
+      "parent": 199,
+      "name": "fs.sync",
+      "at": 109.90749999999991,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.d720d3fb-1803-4b5a-827d-8e70b56172ec.tmp",
+      "duration": 1.6194000000000415,
+      "error": null,
+      "ancestors": [
+        "fs.sync",
+        "store.putBlob#2",
+        "events.admit#2",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 61,
+      "parent": 60,
+      "name": "fs.open",
+      "at": 34.30919999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json.051a439f-265f-4057-9cb6-3094667685f4.tmp",
+      "duration": 1.6160000000000991,
+      "error": null,
+      "ancestors": [
+        "fs.open",
+        "store.publish(publication)",
+        "store.commit#1",
+        "store.transact#1",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 10,
+      "parent": 7,
+      "name": "fs.sync",
+      "at": 6.948800000000006,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json.63b42b40-a55a-437b-9689-c0b4af1656f3.tmp",
+      "duration": 1.5336999999999534,
+      "error": null,
+      "ancestors": [
+        "fs.sync",
+        "store.publish(identity)",
+        "store.initialize#1",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 25,
+      "parent": 22,
+      "name": "fs.sync",
+      "at": 12.822499999999991,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json.cf14b21a-3a80-46e2-bbff-48bc929107a0.tmp",
+      "duration": 1.2773999999999432,
+      "error": null,
+      "ancestors": [
+        "fs.sync",
+        "store.publish(coordinator)",
+        "store.acquireCoordinator#1",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 113,
+      "parent": 87,
+      "name": "fs.sync",
+      "at": 60.97569999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.7aac48b8-6737-40f9-b368-7dcf31f84fb2.tmp",
+      "duration": 1.2309999999999945,
+      "error": null,
+      "ancestors": [
+        "fs.sync",
+        "store.putBlob#1",
+        "events.admit#1",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 136,
+      "parent": 118,
+      "name": "fs.readFile",
+      "at": 73.33089999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 1.0326000000000022,
+      "error": null,
+      "ancestors": [
+        "fs.readFile",
+        "store.scan#5",
+        "store.transact#2",
+        "events.admit#1",
+        "exact-source-case"
+      ]
+    }
+  ],
+  "gateEligible": [
+    {
+      "id": 576,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000005.event.json.f888d147-1fcd-4258-9d7e-d063107ba880.tmp",
+      "duration": 4782.0032
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+    const f = await inboxFixture(), input = observation({ agentId: "future-worker" });
+    const first = await f.events.admit(input);
+    await f.events.admit({ ...input, sourceKind: "catalog", sourceKey: "catalog-future", epoch: null });
+    await expect(f.events.resolve(first.resultIds[0]!)).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+    const s = await f.store.read(), task = s.tasks.find(t => t.id === second.task)!, attempt = s.attempts.find(a => a.id === second.attempt)!, effect = s.effects.find(e => e.id === second.effect)!;
+    const attemptId = randomUUID(), effectId = randomUUID();
+    const batch: SupervisionMutation[] = [{ kind: "attempt", value: { ...attempt, id: attemptId, ordinal: 2, launchEffectId: effectId, worker: { hostId: "local", agentId: "future-worker", workspaceId: "future-workspace" } } },
+      { kind: "effect", value: { ...effect, id: effectId, attemptId, logicalKey: "future-launch" } }, { kind: "task", value: { ...task, currentAttempt: attemptId, version: 2 } }];
+    await f.store.transact(batch.map(m => ({ ...expected([m])[0]!, version: m.kind === "task" ? 1 : 0 })), randomUUID(), batch);
+    await f.events.resolve(first.resultIds[0]!);
+    const current = await f.store.read();
+    expect(current.inbox.assignments[0]).toMatchObject({ scopeId: second.scope, attemptId, reason: "attempt-owner", state: "assigned", ordinal: 1 });
+    expect(current.inbox.assignments[1]).toMatchObject({ scopeId: null, state: "superseded", primaryEventId: first.resultIds[0] });
+    expect(supervisionInboxStatus(current, {}, now).counts).toMatchObject({ pending: 1, triage: 0 });
+    expect((await f.inbox.prepare(second.scope, 1, true)).resultIds).toHaveLength(1);
+  }

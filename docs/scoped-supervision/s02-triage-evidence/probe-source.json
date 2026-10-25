@@ -1,0 +1,16 @@
+{
+  "base": "5f236856dea1844c23c871d0a7af850fb506133e",
+  "path": "server/supervision-events.test.ts",
+  "title": "explicitly resolves unknown-owner triage once exact registry evidence exists, retaining prior provenance",
+  "sourceSha256": "677c0a062be6ea8df844b4619304b4572f8e5ae10d48b9797ee8a812fc6c6b06",
+  "exactBodySha256": "c20c1cff852619e52197e6c9df656fa6154c3bad7c85aeb2a413c6b29732e71c",
+  "probeSha256": "621f088a6717220959e1a6ecabb20e44d09f7e9e96e547579e755b3ff63d0f57",
+  "assertions": [
+    "    await expect(f.events.resolve(first.resultIds[0]!)).rejects.toMatchObject({ code: \"UNKNOWN_OWNER\" });",
+    "    expect(current.inbox.assignments[0]).toMatchObject({ scopeId: second.scope, attemptId, reason: \"attempt-owner\", state: \"assigned\", ordinal: 1 });",
+    "    expect(current.inbox.assignments[1]).toMatchObject({ scopeId: null, state: \"superseded\", primaryEventId: first.resultIds[0] });",
+    "    expect(supervisionInboxStatus(current, {}, now).counts).toMatchObject({ pending: 1, triage: 0 });",
+    "    expect((await f.inbox.prepare(second.scope, 1, true)).resultIds).toHaveLength(1);"
+  ],
+  "traceSha256": "aa6e0f0bef6a03fe3ec7ebb88217821c4e2dd00fae24ec96400e3c95793873e3"
+}

@@ -1,0 +1,2 @@
+import {defineConfig} from 'vitest/config';
+export default defineConfig({test:{include:['.local/s02-triage/triage-probe.test.ts'],exclude:[],setupFiles:['./test/setup.ts'],maxWorkers:1}});

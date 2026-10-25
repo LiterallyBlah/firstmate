@@ -1,0 +1,669 @@
+{
+  "observedAt": "2026-10-25T00:52:16.212Z",
+  "head": "5f236856dea1844c23c871d0a7af850fb506133e",
+  "allPassing": false,
+  "firstAttempts": true,
+  "reports": [
+    {
+      "event": "pull_request",
+      "os": "ubuntu",
+      "run": 40147584594,
+      "artifactId": 12581352944,
+      "artifactDigest": "sha256:a56a8d573ee3dff18242332617a7dcb0fa7a3a932d7d252c3fc1e29ca3677293",
+      "tests": {
+        "path": ".local/s02-render/ci-pr-ubuntu/s01/ci-tests.json",
+        "sha256": "1c19335f2b102189bd17dc20189eb5de6f9f89ebe65a2d39cc22530efc103224",
+        "passed": 2550,
+        "failed": 0,
+        "skipped": 4,
+        "files": 172,
+        "targeted": {
+          "test/supervision-r02.test.ts": 13,
+          "server/supervision-inbox.test.ts": 12,
+          "server/supervision-commands.test.ts": 39,
+          "server/supervision-crash.test.ts": 17,
+          "server/workflow-close-review.test.ts": 10,
+          "test/workflow-close-context.test.ts": 2,
+          "server/supervision-integration.test.ts": 2
+        },
+        "failures": []
+      },
+      "job": {
+        "id": 121032137278,
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-25T00:40:10Z",
+            "completed_at": "2026-10-25T00:40:11Z"
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-25T00:40:11Z",
+            "completed_at": "2026-10-25T00:40:13Z"
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-25T00:40:13Z",
+            "completed_at": "2026-10-25T00:40:16Z"
+          },
+          {
+            "name": "Run npm ci",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-25T00:40:16Z",
+            "completed_at": "2026-10-25T00:40:25Z"
+          },
+          {
+            "name": "Run npm run typecheck",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-25T00:40:25Z",
+            "completed_at": "2026-10-25T00:40:28Z"
+          },
+          {
+            "name": "Run npm test -- --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s01/ci-tests.json",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-25T00:40:28Z",
+            "completed_at": "2026-10-25T00:42:29Z"
+          },
+          {
+            "name": "Run npm ci --prefix docs/board-list",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-25T00:42:29Z",
+            "completed_at": "2026-10-25T00:42:33Z"
+          },
+          {
+            "name": "Run npx --prefix docs/board-list playwright install --with-deps chromium",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-25T00:42:33Z",
+            "completed_at": "2026-10-25T00:42:53Z"
+          },
+          {
+            "name": "Run node docs/needs-you/render.mjs",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-25T00:42:53Z",
+            "completed_at": "2026-10-25T00:46:21Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-25T00:46:21Z",
+            "completed_at": "2026-10-25T00:46:23Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-25T00:46:23Z",
+            "completed_at": "2026-10-25T00:46:23Z"
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20,
+            "started_at": "2026-10-25T00:46:23Z",
+            "completed_at": "2026-10-25T00:46:23Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21,
+            "started_at": "2026-10-25T00:46:23Z",
+            "completed_at": "2026-10-25T00:46:23Z"
+          }
+        ]
+      },
+      "render": {
+        "path": ".local/s02-render/ci-pr-ubuntu/needs-you-drawer/results.json",
+        "sha256": "fbe2150df173cfca44b302754371f70badfaccb46c84f428087cc393f8daf85b",
+        "startup": [
+          {
+            "delayed": true,
+            "presses": [
+              {
+                "drawing": true,
+                "y": 818
+              }
+            ],
+            "passed": true
+          },
+          {
+            "delayed": false,
+            "presses": [
+              {
+                "drawing": true,
+                "y": 818
+              }
+            ],
+            "passed": true
+          }
+        ],
+        "counts": {
+          "startup": 2,
+          "raised": 4,
+          "headers": 40,
+          "polish": 4,
+          "answers": 4,
+          "layouts": 14,
+          "taskViews": 6,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "event": "pull_request",
+      "os": "windows",
+      "run": 40147584594,
+      "artifactId": 12582200278,
+      "artifactDigest": "sha256:d2dcd407b96a17a014f1a7d6f2734db2eba4ecd8637f753f79fe8e1483da7e39",
+      "tests": {
+        "path": ".local/s02-render/ci-pr-windows/s01/ci-tests.json",
+        "sha256": "a52ec605062bdc2ec4b905b1becb9011ac0876b8a6d88c293883cd0e5a72a59c",
+        "passed": 2550,
+        "failed": 0,
+        "skipped": 4,
+        "files": 172,
+        "targeted": {
+          "test/supervision-r02.test.ts": 13,
+          "server/supervision-inbox.test.ts": 12,
+          "server/supervision-commands.test.ts": 39,
+          "server/supervision-crash.test.ts": 17,
+          "server/workflow-close-review.test.ts": 10,
+          "test/workflow-close-context.test.ts": 2,
+          "server/supervision-integration.test.ts": 2
+        },
+        "failures": []
+      },
+      "job": {
+        "id": 121032137293,
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-25T00:40:10Z",
+            "completed_at": "2026-10-25T00:40:11Z"
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-25T00:40:11Z",
+            "completed_at": "2026-10-25T00:40:17Z"
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-25T00:40:17Z",
+            "completed_at": "2026-10-25T00:40:26Z"
+          },
+          {
+            "name": "Run npm ci",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-25T00:40:26Z",
+            "completed_at": "2026-10-25T00:40:46Z"
+          },
+          {
+            "name": "Run npm run typecheck",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-25T00:40:46Z",
+            "completed_at": "2026-10-25T00:40:50Z"
+          },
+          {
+            "name": "Run npm test -- --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s01/ci-tests.json",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-25T00:40:50Z",
+            "completed_at": "2026-10-25T00:44:45Z"
+          },
+          {
+            "name": "Run npm ci --prefix docs/board-list",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-25T00:44:45Z",
+            "completed_at": "2026-10-25T00:44:53Z"
+          },
+          {
+            "name": "Run npx --prefix docs/board-list playwright install --with-deps chromium",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-25T00:44:53Z",
+            "completed_at": "2026-10-25T00:48:14Z"
+          },
+          {
+            "name": "Run node docs/needs-you/render.mjs",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-25T00:48:14Z",
+            "completed_at": "2026-10-25T00:51:46Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-25T00:51:46Z",
+            "completed_at": "2026-10-25T00:51:48Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-25T00:51:48Z",
+            "completed_at": "2026-10-25T00:51:49Z"
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20,
+            "started_at": "2026-10-25T00:51:49Z",
+            "completed_at": "2026-10-25T00:51:51Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21,
+            "started_at": "2026-10-25T00:51:51Z",
+            "completed_at": "2026-10-25T00:51:51Z"
+          }
+        ]
+      },
+      "render": {
+        "path": ".local/s02-render/ci-pr-windows/needs-you-drawer/results.json",
+        "sha256": "596be2d6f73057f03087857833b9a03709903799a048bbc9f1986f049369d7e2",
+        "startup": [
+          {
+            "delayed": true,
+            "presses": [
+              {
+                "drawing": true,
+                "y": 815
+              }
+            ],
+            "passed": true
+          },
+          {
+            "delayed": false,
+            "presses": [
+              {
+                "drawing": true,
+                "y": 815
+              }
+            ],
+            "passed": true
+          }
+        ],
+        "counts": {
+          "startup": 2,
+          "raised": 4,
+          "headers": 40,
+          "polish": 4,
+          "answers": 4,
+          "layouts": 14,
+          "taskViews": 6,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "event": "push",
+      "os": "windows",
+      "run": 40147581692,
+      "artifactId": 12581229232,
+      "artifactDigest": "sha256:9eeee27f05d3cd626e7ebc80cc7e2641efbaac33d11b52fe11f82541c9ba6190",
+      "tests": {
+        "path": ".local/s02-render/ci-push-windows/s01/ci-tests.json",
+        "sha256": "bffe058127b3f0bb12a56e51e6fd5d362e89cc96414e41f401d9eac9241a78fc",
+        "passed": 2549,
+        "failed": 1,
+        "skipped": 4,
+        "files": 172,
+        "targeted": {
+          "test/supervision-r02.test.ts": 13,
+          "server/supervision-inbox.test.ts": 12,
+          "server/supervision-commands.test.ts": 39,
+          "server/supervision-crash.test.ts": 17,
+          "server/workflow-close-review.test.ts": 10,
+          "test/workflow-close-context.test.ts": 2,
+          "server/supervision-integration.test.ts": 2
+        },
+        "failures": [
+          {
+            "file": "D:/a/firstmate/firstmate/server/supervision-events.test.ts",
+            "fullName": "S02 durable local ingress explicitly resolves unknown-owner triage once exact registry evidence exists, retaining prior provenance",
+            "duration": 5033.1591,
+            "messages": [
+              "Error: Test timed out in 5000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".\n    at task (file:///D:/a/firstmate/firstmate/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2681:43)\n    at Object.<anonymous> (file:///D:/a/firstmate/firstmate/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2698:16)\n    at Object.<anonymous> (file:///D:/a/firstmate/firstmate/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2471:28)\n    at chain (file:///D:/a/firstmate/firstmate/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:1859:14)\n    at D:/a/firstmate/firstmate/server/supervision-events.test.ts:101:3\n    at file:///D:/a/firstmate/firstmate/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2763:52\n    at runWithSuite (file:///D:/a/firstmate/firstmate/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:3250:8)\n    at Object.collect (file:///D:/a/firstmate/firstmate/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2763:22)\n    at Object.collect (file:///D:/a/firstmate/firstmate/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2768:51)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+            ]
+          }
+        ]
+      },
+      "job": {
+        "id": 121032128589,
+        "conclusion": "failure",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-25T00:40:07Z",
+            "completed_at": "2026-10-25T00:40:08Z"
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-25T00:40:08Z",
+            "completed_at": "2026-10-25T00:40:17Z"
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-25T00:40:17Z",
+            "completed_at": "2026-10-25T00:40:27Z"
+          },
+          {
+            "name": "Run npm ci",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-25T00:40:27Z",
+            "completed_at": "2026-10-25T00:40:47Z"
+          },
+          {
+            "name": "Run npm run typecheck",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-25T00:40:47Z",
+            "completed_at": "2026-10-25T00:40:52Z"
+          },
+          {
+            "name": "Run npm test -- --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s01/ci-tests.json",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 6,
+            "started_at": "2026-10-25T00:40:52Z",
+            "completed_at": "2026-10-25T00:45:03Z"
+          },
+          {
+            "name": "Run npm ci --prefix docs/board-list",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 7,
+            "started_at": "2026-10-25T00:45:03Z",
+            "completed_at": "2026-10-25T00:45:03Z"
+          },
+          {
+            "name": "Run npx --prefix docs/board-list playwright install --with-deps chromium",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 8,
+            "started_at": "2026-10-25T00:45:03Z",
+            "completed_at": "2026-10-25T00:45:03Z"
+          },
+          {
+            "name": "Run node docs/needs-you/render.mjs",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 9,
+            "started_at": "2026-10-25T00:45:03Z",
+            "completed_at": "2026-10-25T00:45:03Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-25T00:45:03Z",
+            "completed_at": "2026-10-25T00:45:04Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 19,
+            "started_at": "2026-10-25T00:45:04Z",
+            "completed_at": "2026-10-25T00:45:04Z"
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20,
+            "started_at": "2026-10-25T00:45:04Z",
+            "completed_at": "2026-10-25T00:45:06Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21,
+            "started_at": "2026-10-25T00:45:06Z",
+            "completed_at": "2026-10-25T00:45:06Z"
+          }
+        ]
+      },
+      "render": {
+        "skipped": true,
+        "reason": "Unit test job failed before render"
+      }
+    },
+    {
+      "event": "push",
+      "os": "ubuntu",
+      "run": 40147581692,
+      "artifactId": 12580629304,
+      "artifactDigest": "sha256:02911689c821c3d03473dd71b5515cac97904c15129abfeabe5a9ec5d84caadb",
+      "tests": {
+        "path": ".local/s02-render/ci-push-ubuntu/s01/ci-tests.json",
+        "sha256": "0f6b00c14d910d7d9c076f0cfe53ca7a2c914fd00d44393ba05f5481384e9810",
+        "passed": 2550,
+        "failed": 0,
+        "skipped": 4,
+        "files": 172,
+        "targeted": {
+          "test/supervision-r02.test.ts": 13,
+          "server/supervision-inbox.test.ts": 12,
+          "server/supervision-commands.test.ts": 39,
+          "server/supervision-crash.test.ts": 17,
+          "server/workflow-close-review.test.ts": 10,
+          "test/workflow-close-context.test.ts": 2,
+          "server/supervision-integration.test.ts": 2
+        },
+        "failures": []
+      },
+      "job": {
+        "id": 121032128913,
+        "conclusion": "cancelled",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-25T00:40:07Z",
+            "completed_at": "2026-10-25T00:40:08Z"
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-25T00:40:08Z",
+            "completed_at": "2026-10-25T00:40:09Z"
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-25T00:40:09Z",
+            "completed_at": "2026-10-25T00:40:13Z"
+          },
+          {
+            "name": "Run npm ci",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-25T00:40:13Z",
+            "completed_at": "2026-10-25T00:40:22Z"
+          },
+          {
+            "name": "Run npm run typecheck",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-25T00:40:22Z",
+            "completed_at": "2026-10-25T00:40:26Z"
+          },
+          {
+            "name": "Run npm test -- --maxWorkers=2 --reporter=default --reporter=json --outputFile=.local/s01/ci-tests.json",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-25T00:40:26Z",
+            "completed_at": "2026-10-25T00:42:30Z"
+          },
+          {
+            "name": "Run npm ci --prefix docs/board-list",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-25T00:42:30Z",
+            "completed_at": "2026-10-25T00:42:33Z"
+          },
+          {
+            "name": "Run npx --prefix docs/board-list playwright install --with-deps chromium",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-25T00:42:33Z",
+            "completed_at": "2026-10-25T00:43:02Z"
+          },
+          {
+            "name": "Run node docs/needs-you/render.mjs",
+            "status": "completed",
+            "conclusion": "cancelled",
+            "number": 9,
+            "started_at": "2026-10-25T00:43:02Z",
+            "completed_at": "2026-10-25T00:46:34Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-25T00:46:34Z",
+            "completed_at": "2026-10-25T00:46:36Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 19,
+            "started_at": "2026-10-25T00:46:36Z",
+            "completed_at": "2026-10-25T00:46:36Z"
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20,
+            "started_at": "2026-10-25T00:46:36Z",
+            "completed_at": "2026-10-25T00:46:36Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21,
+            "started_at": "2026-10-25T00:46:36Z",
+            "completed_at": "2026-10-25T00:46:36Z"
+          }
+        ]
+      },
+      "render": {
+        "path": ".local/s02-render/ci-push-ubuntu/needs-you-drawer/results.json",
+        "sha256": "fbe2150df173cfca44b302754371f70badfaccb46c84f428087cc393f8daf85b",
+        "startup": [
+          {
+            "delayed": true,
+            "presses": [
+              {
+                "drawing": true,
+                "y": 818
+              }
+            ],
+            "passed": true
+          },
+          {
+            "delayed": false,
+            "presses": [
+              {
+                "drawing": true,
+                "y": 818
+              }
+            ],
+            "passed": true
+          }
+        ],
+        "counts": {
+          "startup": 2,
+          "raised": 4,
+          "headers": 40,
+          "polish": 4,
+          "answers": 4,
+          "layouts": 14,
+          "taskViews": 6,
+          "errors": 0
+        }
+      }
+    }
+  ]
+}

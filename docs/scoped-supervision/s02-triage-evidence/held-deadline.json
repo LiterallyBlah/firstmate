@@ -1,0 +1,5141 @@
+{
+  "mode": "hold-resolution-sync",
+  "elapsed": 5012.8136,
+  "limitMs": 5000,
+  "gateTriggered": true,
+  "pending": [
+    {
+      "id": 0,
+      "name": "exact-source-case",
+      "ancestors": [
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 455,
+      "name": "events.resolve#2",
+      "ancestors": [
+        "events.resolve#2",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 507,
+      "name": "store.transact#5",
+      "ancestors": [
+        "store.transact#5",
+        "events.resolve#2",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 558,
+      "name": "store.commit#5",
+      "ancestors": [
+        "store.commit#5",
+        "store.transact#5",
+        "events.resolve#2",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 573,
+      "name": "store.publish(event)",
+      "ancestors": [
+        "store.publish(event)",
+        "store.commit#5",
+        "store.transact#5",
+        "events.resolve#2",
+        "exact-source-case"
+      ]
+    },
+    {
+      "id": 576,
+      "name": "fs.sync",
+      "ancestors": [
+        "fs.sync",
+        "store.publish(event)",
+        "store.commit#5",
+        "store.transact#5",
+        "events.resolve#2",
+        "exact-source-case"
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "id": 0,
+      "name": "exact-source-case",
+      "at": 0.11000000000001364
+    },
+    {
+      "id": 1,
+      "parent": 0,
+      "name": "store.initialize#1",
+      "at": 2.1929999999999836,
+      "duration": 7.315200000000004,
+      "error": null
+    },
+    {
+      "id": 2,
+      "parent": 1,
+      "name": "fs.mkdir",
+      "at": 2.449200000000019,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 1.905399999999986,
+      "error": null
+    },
+    {
+      "id": 3,
+      "parent": 1,
+      "name": "fs.readdir",
+      "at": 4.404999999999973,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.21220000000005257,
+      "error": null
+    },
+    {
+      "id": 4,
+      "parent": 1,
+      "name": "fs.mkdir",
+      "at": 4.677999999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.23329999999998563,
+      "error": null
+    },
+    {
+      "id": 5,
+      "parent": 1,
+      "name": "fs.mkdir",
+      "at": 4.949399999999969,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.2259000000000242,
+      "error": null
+    },
+    {
+      "id": 6,
+      "parent": 1,
+      "name": "fs.mkdir",
+      "at": 5.218200000000024,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.5145999999999731,
+      "error": null
+    },
+    {
+      "id": 7,
+      "parent": 1,
+      "name": "store.publish(identity)",
+      "at": 5.765599999999949,
+      "duration": 3.7006999999999834,
+      "error": null
+    },
+    {
+      "id": 8,
+      "parent": 7,
+      "name": "fs.open",
+      "at": 5.918000000000006,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json.63b42b40-a55a-437b-9689-c0b4af1656f3.tmp",
+      "duration": 0.4820999999999458,
+      "error": null
+    },
+    {
+      "id": 9,
+      "parent": 7,
+      "name": "fs.writeFile",
+      "at": 6.4529,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json.63b42b40-a55a-437b-9689-c0b4af1656f3.tmp",
+      "duration": 0.4481999999999289,
+      "error": null
+    },
+    {
+      "id": 10,
+      "parent": 7,
+      "name": "fs.sync",
+      "at": 6.948800000000006,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json.63b42b40-a55a-437b-9689-c0b4af1656f3.tmp",
+      "duration": 1.5336999999999534,
+      "error": null
+    },
+    {
+      "id": 11,
+      "parent": 7,
+      "name": "fs.close",
+      "at": 8.513100000000009,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json.63b42b40-a55a-437b-9689-c0b4af1656f3.tmp",
+      "duration": 0.19089999999994234,
+      "error": null
+    },
+    {
+      "id": 12,
+      "parent": 7,
+      "name": "fs.link",
+      "at": 8.732399999999984,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json.63b42b40-a55a-437b-9689-c0b4af1656f3.tmp",
+      "duration": 0.39179999999998927,
+      "error": null
+    },
+    {
+      "id": 13,
+      "parent": 7,
+      "name": "fs.unlink",
+      "at": 9.154899999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json.63b42b40-a55a-437b-9689-c0b4af1656f3.tmp",
+      "duration": 0.30589999999995143,
+      "error": null
+    },
+    {
+      "id": 14,
+      "parent": 0,
+      "name": "store.acquireCoordinator#1",
+      "at": 9.517999999999915,
+      "duration": 5.427200000000084,
+      "error": null
+    },
+    {
+      "id": 15,
+      "parent": 14,
+      "name": "store.scan#1",
+      "at": 9.655499999999961,
+      "duration": 2.5019999999999527,
+      "error": null
+    },
+    {
+      "id": 16,
+      "parent": 15,
+      "name": "fs.readdir",
+      "at": 9.89689999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.18290000000001783,
+      "error": null
+    },
+    {
+      "id": 17,
+      "parent": 15,
+      "name": "fs.readFile",
+      "at": 10.182399999999916,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.9451000000000249,
+      "error": null
+    },
+    {
+      "id": 18,
+      "parent": 15,
+      "name": "fs.readdir",
+      "at": 11.511899999999969,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.14850000000001273,
+      "error": null
+    },
+    {
+      "id": 19,
+      "parent": 15,
+      "name": "fs.readdir",
+      "at": 11.699399999999969,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.15620000000001255,
+      "error": null
+    },
+    {
+      "id": 20,
+      "parent": 15,
+      "name": "store.coordinators#1",
+      "at": 11.881700000000023,
+      "duration": 0.27169999999989614,
+      "error": null
+    },
+    {
+      "id": 21,
+      "parent": 20,
+      "name": "fs.readdir",
+      "at": 12.019199999999955,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.13030000000003383,
+      "error": null
+    },
+    {
+      "id": 22,
+      "parent": 14,
+      "name": "store.publish(coordinator)",
+      "at": 12.303899999999999,
+      "duration": 2.6318999999999733,
+      "error": null
+    },
+    {
+      "id": 23,
+      "parent": 22,
+      "name": "fs.open",
+      "at": 12.338300000000004,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json.cf14b21a-3a80-46e2-bbff-48bc929107a0.tmp",
+      "duration": 0.28369999999995343,
+      "error": null
+    },
+    {
+      "id": 24,
+      "parent": 22,
+      "name": "fs.writeFile",
+      "at": 12.645399999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json.cf14b21a-3a80-46e2-bbff-48bc929107a0.tmp",
+      "duration": 0.14769999999998618,
+      "error": null
+    },
+    {
+      "id": 25,
+      "parent": 22,
+      "name": "fs.sync",
+      "at": 12.822499999999991,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json.cf14b21a-3a80-46e2-bbff-48bc929107a0.tmp",
+      "duration": 1.2773999999999432,
+      "error": null
+    },
+    {
+      "id": 26,
+      "parent": 22,
+      "name": "fs.close",
+      "at": 14.159800000000018,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json.cf14b21a-3a80-46e2-bbff-48bc929107a0.tmp",
+      "duration": 0.1251999999999498,
+      "error": null
+    },
+    {
+      "id": 27,
+      "parent": 22,
+      "name": "fs.link",
+      "at": 14.301899999999932,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json.cf14b21a-3a80-46e2-bbff-48bc929107a0.tmp",
+      "duration": 0.3432999999999993,
+      "error": null
+    },
+    {
+      "id": 28,
+      "parent": 22,
+      "name": "fs.unlink",
+      "at": 14.664699999999925,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json.cf14b21a-3a80-46e2-bbff-48bc929107a0.tmp",
+      "duration": 0.2662000000000262,
+      "error": null
+    },
+    {
+      "id": 29,
+      "parent": 0,
+      "name": "store.transact#1",
+      "at": 16.314399999999978,
+      "duration": 21.63670000000002,
+      "error": null
+    },
+    {
+      "id": 30,
+      "parent": 29,
+      "name": "store.scan#2",
+      "at": 22.14319999999998,
+      "duration": 2.987600000000043,
+      "error": null
+    },
+    {
+      "id": 31,
+      "parent": 30,
+      "name": "fs.readdir",
+      "at": 22.186500000000024,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.16179999999997108,
+      "error": null
+    },
+    {
+      "id": 32,
+      "parent": 30,
+      "name": "fs.readFile",
+      "at": 22.38799999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.8691000000000031,
+      "error": null
+    },
+    {
+      "id": 33,
+      "parent": 30,
+      "name": "fs.readdir",
+      "at": 23.31989999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.10890000000006239,
+      "error": null
+    },
+    {
+      "id": 34,
+      "parent": 30,
+      "name": "fs.readdir",
+      "at": 23.468099999999936,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.10960000000000036,
+      "error": null
+    },
+    {
+      "id": 35,
+      "parent": 30,
+      "name": "store.coordinators#2",
+      "at": 23.5942,
+      "duration": 1.5335000000000036,
+      "error": null
+    },
+    {
+      "id": 36,
+      "parent": 35,
+      "name": "fs.readdir",
+      "at": 23.622799999999984,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.11199999999996635,
+      "error": null
+    },
+    {
+      "id": 37,
+      "parent": 35,
+      "name": "fs.readFile",
+      "at": 23.84489999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.8007999999999811,
+      "error": null
+    },
+    {
+      "id": 38,
+      "parent": 29,
+      "name": "store.commit#1",
+      "at": 25.136999999999944,
+      "duration": 12.810699999999997,
+      "error": null
+    },
+    {
+      "id": 39,
+      "parent": 38,
+      "name": "store.assertCoordinator#1",
+      "at": 25.233299999999986,
+      "duration": 1.2923999999999296,
+      "error": null
+    },
+    {
+      "id": 40,
+      "parent": 39,
+      "name": "store.coordinators#3",
+      "at": 25.2509,
+      "duration": 1.0289000000000215,
+      "error": null
+    },
+    {
+      "id": 41,
+      "parent": 40,
+      "name": "fs.readdir",
+      "at": 25.277499999999918,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.13990000000001146,
+      "error": null
+    },
+    {
+      "id": 42,
+      "parent": 40,
+      "name": "fs.readFile",
+      "at": 25.496800000000007,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.6808999999999514,
+      "error": null
+    },
+    {
+      "id": 43,
+      "parent": 39,
+      "name": "fs.readFile",
+      "at": 26.35050000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.release.json",
+      "duration": 0.16269999999997253,
+      "error": {
+        "name": "Error",
+        "code": "ENOENT",
+        "message": "ENOENT: no such file or directory, open 'C:\\Users\\micha\\AppData\\Local\\Temp\\firstmate-tests-lDnZeT\\2f4c11cd-f668-4833-88fb-d166865d92ae\\data\\supervision\\ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1\\coordinators\\000000000001.release.json'"
+      }
+    },
+    {
+      "id": 44,
+      "parent": 38,
+      "name": "store.apply#1",
+      "at": 26.530199999999923,
+      "duration": 1.397199999999998,
+      "error": null
+    },
+    {
+      "id": 45,
+      "parent": 38,
+      "name": "store.checkBlobs#1",
+      "at": 27.938800000000015,
+      "duration": 0.030399999999985994,
+      "error": null
+    },
+    {
+      "id": 46,
+      "parent": 38,
+      "name": "store.publish(tip)",
+      "at": 29.44679999999994,
+      "duration": 2.3214000000000397,
+      "error": null
+    },
+    {
+      "id": 47,
+      "parent": 46,
+      "name": "fs.open",
+      "at": 29.521099999999933,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json.625b9842-60f7-46ac-bdb3-be9ad26671a0.tmp",
+      "duration": 0.28950000000008913,
+      "error": null
+    },
+    {
+      "id": 48,
+      "parent": 46,
+      "name": "fs.writeFile",
+      "at": 29.832599999999957,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json.625b9842-60f7-46ac-bdb3-be9ad26671a0.tmp",
+      "duration": 0.15960000000006858,
+      "error": null
+    },
+    {
+      "id": 49,
+      "parent": 46,
+      "name": "fs.sync",
+      "at": 30.01279999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json.625b9842-60f7-46ac-bdb3-be9ad26671a0.tmp",
+      "duration": 0.9103999999999814,
+      "error": null
+    },
+    {
+      "id": 50,
+      "parent": 46,
+      "name": "fs.close",
+      "at": 30.95139999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json.625b9842-60f7-46ac-bdb3-be9ad26671a0.tmp",
+      "duration": 0.10869999999999891,
+      "error": null
+    },
+    {
+      "id": 51,
+      "parent": 46,
+      "name": "fs.link",
+      "at": 31.086000000000013,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json.625b9842-60f7-46ac-bdb3-be9ad26671a0.tmp",
+      "duration": 0.3290999999999258,
+      "error": null
+    },
+    {
+      "id": 52,
+      "parent": 46,
+      "name": "fs.unlink",
+      "at": 31.44909999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json.625b9842-60f7-46ac-bdb3-be9ad26671a0.tmp",
+      "duration": 0.3165000000000191,
+      "error": null
+    },
+    {
+      "id": 53,
+      "parent": 38,
+      "name": "store.publish(event)",
+      "at": 31.785300000000007,
+      "duration": 2.3967999999999847,
+      "error": null
+    },
+    {
+      "id": 54,
+      "parent": 53,
+      "name": "fs.open",
+      "at": 31.947299999999927,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json.015955e0-3095-4716-9d4d-ca0640f783e2.tmp",
+      "duration": 0.2744999999999891,
+      "error": null
+    },
+    {
+      "id": 55,
+      "parent": 53,
+      "name": "fs.writeFile",
+      "at": 32.24249999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json.015955e0-3095-4716-9d4d-ca0640f783e2.tmp",
+      "duration": 0.17039999999997235,
+      "error": null
+    },
+    {
+      "id": 56,
+      "parent": 53,
+      "name": "fs.sync",
+      "at": 32.44729999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json.015955e0-3095-4716-9d4d-ca0640f783e2.tmp",
+      "duration": 0.7873000000000729,
+      "error": null
+    },
+    {
+      "id": 57,
+      "parent": 53,
+      "name": "fs.close",
+      "at": 33.25849999999991,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json.015955e0-3095-4716-9d4d-ca0640f783e2.tmp",
+      "duration": 0.10340000000007876,
+      "error": null
+    },
+    {
+      "id": 58,
+      "parent": 53,
+      "name": "fs.link",
+      "at": 33.38189999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json.015955e0-3095-4716-9d4d-ca0640f783e2.tmp",
+      "duration": 0.5199000000000069,
+      "error": null
+    },
+    {
+      "id": 59,
+      "parent": 53,
+      "name": "fs.unlink",
+      "at": 33.92459999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json.015955e0-3095-4716-9d4d-ca0640f783e2.tmp",
+      "duration": 0.2538000000000693,
+      "error": null
+    },
+    {
+      "id": 60,
+      "parent": 38,
+      "name": "store.publish(publication)",
+      "at": 34.20330000000001,
+      "duration": 3.6918999999999187,
+      "error": null
+    },
+    {
+      "id": 61,
+      "parent": 60,
+      "name": "fs.open",
+      "at": 34.30919999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json.051a439f-265f-4057-9cb6-3094667685f4.tmp",
+      "duration": 1.6160000000000991,
+      "error": null
+    },
+    {
+      "id": 62,
+      "parent": 60,
+      "name": "fs.writeFile",
+      "at": 35.942499999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json.051a439f-265f-4057-9cb6-3094667685f4.tmp",
+      "duration": 0.19319999999993342,
+      "error": null
+    },
+    {
+      "id": 63,
+      "parent": 60,
+      "name": "fs.sync",
+      "at": 36.16070000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json.051a439f-265f-4057-9cb6-3094667685f4.tmp",
+      "duration": 0.7804999999999609,
+      "error": null
+    },
+    {
+      "id": 64,
+      "parent": 60,
+      "name": "fs.close",
+      "at": 36.96449999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json.051a439f-265f-4057-9cb6-3094667685f4.tmp",
+      "duration": 0.11760000000003856,
+      "error": null
+    },
+    {
+      "id": 65,
+      "parent": 60,
+      "name": "fs.link",
+      "at": 37.10289999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json.051a439f-265f-4057-9cb6-3094667685f4.tmp",
+      "duration": 0.4229000000000269,
+      "error": null
+    },
+    {
+      "id": 66,
+      "parent": 60,
+      "name": "fs.unlink",
+      "at": 37.55219999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json.051a439f-265f-4057-9cb6-3094667685f4.tmp",
+      "duration": 0.3386000000000422,
+      "error": null
+    },
+    {
+      "id": 67,
+      "parent": 0,
+      "name": "events.admit#1",
+      "at": 38.058400000000006,
+      "duration": 45.48129999999992,
+      "error": null
+    },
+    {
+      "id": 68,
+      "parent": 67,
+      "name": "store.read#1",
+      "at": 39.20859999999993,
+      "duration": 11.00240000000008,
+      "error": null
+    },
+    {
+      "id": 69,
+      "parent": 68,
+      "name": "store.scan#3",
+      "at": 39.23969999999997,
+      "duration": 10.754000000000019,
+      "error": null
+    },
+    {
+      "id": 70,
+      "parent": 69,
+      "name": "fs.readdir",
+      "at": 39.261300000000006,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.1615999999999076,
+      "error": null
+    },
+    {
+      "id": 71,
+      "parent": 69,
+      "name": "fs.readFile",
+      "at": 39.4538,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.780399999999986,
+      "error": null
+    },
+    {
+      "id": 72,
+      "parent": 69,
+      "name": "fs.readdir",
+      "at": 40.31959999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.13230000000010023,
+      "error": null
+    },
+    {
+      "id": 73,
+      "parent": 69,
+      "name": "fs.readdir",
+      "at": 40.479799999999955,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.12649999999996453,
+      "error": null
+    },
+    {
+      "id": 74,
+      "parent": 69,
+      "name": "fs.stat",
+      "at": 40.88109999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.21199999999998909,
+      "error": null
+    },
+    {
+      "id": 75,
+      "parent": 69,
+      "name": "fs.stat",
+      "at": 40.97269999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.13430000000005293,
+      "error": null
+    },
+    {
+      "id": 76,
+      "parent": 69,
+      "name": "fs.stat",
+      "at": 40.9991,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.11529999999993379,
+      "error": null
+    },
+    {
+      "id": 77,
+      "parent": 69,
+      "name": "fs.readFile",
+      "at": 41.24059999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.7485000000000355,
+      "error": null
+    },
+    {
+      "id": 78,
+      "parent": 69,
+      "name": "fs.readFile",
+      "at": 43.24720000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.6830999999999676,
+      "error": null
+    },
+    {
+      "id": 79,
+      "parent": 69,
+      "name": "store.coordinators#4",
+      "at": 44.27929999999992,
+      "duration": 1.0072000000000116,
+      "error": null
+    },
+    {
+      "id": 80,
+      "parent": 79,
+      "name": "fs.readdir",
+      "at": 44.325399999999945,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.12279999999998381,
+      "error": null
+    },
+    {
+      "id": 81,
+      "parent": 79,
+      "name": "fs.readFile",
+      "at": 44.48320000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.7392999999999574,
+      "error": null
+    },
+    {
+      "id": 82,
+      "parent": 69,
+      "name": "fs.readFile",
+      "at": 45.31079999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.6568999999999505,
+      "error": null
+    },
+    {
+      "id": 83,
+      "parent": 69,
+      "name": "fs.readFile",
+      "at": 46.42399999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.7189999999999372,
+      "error": null
+    },
+    {
+      "id": 84,
+      "parent": 69,
+      "name": "store.checkBlobs#2",
+      "at": 48.51069999999993,
+      "duration": 0.00980000000004111,
+      "error": null
+    },
+    {
+      "id": 85,
+      "parent": 69,
+      "name": "store.apply#2",
+      "at": 48.524400000000014,
+      "duration": 0.23089999999990596,
+      "error": null
+    },
+    {
+      "id": 86,
+      "parent": 69,
+      "name": "fs.readFile",
+      "at": 48.97429999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.7331000000000358,
+      "error": null
+    },
+    {
+      "id": 87,
+      "parent": 67,
+      "name": "store.putBlob#1",
+      "at": 50.622799999999984,
+      "duration": 12.352300000000014,
+      "error": null
+    },
+    {
+      "id": 88,
+      "parent": 87,
+      "name": "store.assertCoordinator#2",
+      "at": 50.7287,
+      "duration": 1.012200000000007,
+      "error": null
+    },
+    {
+      "id": 89,
+      "parent": 88,
+      "name": "store.coordinators#5",
+      "at": 50.732099999999946,
+      "duration": 0.8766000000000531,
+      "error": null
+    },
+    {
+      "id": 90,
+      "parent": 89,
+      "name": "fs.readdir",
+      "at": 50.7559,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.12189999999998236,
+      "error": null
+    },
+    {
+      "id": 91,
+      "parent": 89,
+      "name": "fs.readFile",
+      "at": 50.90779999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.6435000000000173,
+      "error": null
+    },
+    {
+      "id": 92,
+      "parent": 88,
+      "name": "fs.readFile",
+      "at": 51.63289999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.release.json",
+      "duration": 0.09969999999998436,
+      "error": {
+        "name": "Error",
+        "code": "ENOENT",
+        "message": "ENOENT: no such file or directory, open 'C:\\Users\\micha\\AppData\\Local\\Temp\\firstmate-tests-lDnZeT\\2f4c11cd-f668-4833-88fb-d166865d92ae\\data\\supervision\\ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1\\coordinators\\000000000001.release.json'"
+      }
+    },
+    {
+      "id": 93,
+      "parent": 87,
+      "name": "store.scan#4",
+      "at": 51.74389999999994,
+      "duration": 8.643300000000067,
+      "error": null
+    },
+    {
+      "id": 94,
+      "parent": 93,
+      "name": "fs.readdir",
+      "at": 51.7595,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.08349999999995816,
+      "error": null
+    },
+    {
+      "id": 95,
+      "parent": 93,
+      "name": "fs.readFile",
+      "at": 51.861299999999915,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.5296000000000731,
+      "error": null
+    },
+    {
+      "id": 96,
+      "parent": 93,
+      "name": "fs.readdir",
+      "at": 52.43380000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.10199999999997544,
+      "error": null
+    },
+    {
+      "id": 97,
+      "parent": 93,
+      "name": "fs.readdir",
+      "at": 52.55880000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.14259999999990214,
+      "error": null
+    },
+    {
+      "id": 98,
+      "parent": 93,
+      "name": "fs.stat",
+      "at": 52.74079999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.1997000000000071,
+      "error": null
+    },
+    {
+      "id": 99,
+      "parent": 93,
+      "name": "fs.stat",
+      "at": 52.787199999999984,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.16189999999994598,
+      "error": null
+    },
+    {
+      "id": 100,
+      "parent": 93,
+      "name": "fs.stat",
+      "at": 52.81309999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.14039999999999964,
+      "error": null
+    },
+    {
+      "id": 101,
+      "parent": 93,
+      "name": "fs.readFile",
+      "at": 52.986299999999915,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.6920000000000073,
+      "error": null
+    },
+    {
+      "id": 102,
+      "parent": 93,
+      "name": "fs.readFile",
+      "at": 53.91599999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.6662000000000035,
+      "error": null
+    },
+    {
+      "id": 103,
+      "parent": 93,
+      "name": "store.coordinators#6",
+      "at": 54.98709999999994,
+      "duration": 0.9776000000000522,
+      "error": null
+    },
+    {
+      "id": 104,
+      "parent": 103,
+      "name": "fs.readdir",
+      "at": 55.016599999999926,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.14629999999999654,
+      "error": null
+    },
+    {
+      "id": 105,
+      "parent": 103,
+      "name": "fs.readFile",
+      "at": 55.19830000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.702199999999948,
+      "error": null
+    },
+    {
+      "id": 106,
+      "parent": 93,
+      "name": "fs.readFile",
+      "at": 55.98950000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.6561999999998989,
+      "error": null
+    },
+    {
+      "id": 107,
+      "parent": 93,
+      "name": "fs.readFile",
+      "at": 56.96119999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.6674000000000433,
+      "error": null
+    },
+    {
+      "id": 108,
+      "parent": 93,
+      "name": "store.checkBlobs#3",
+      "at": 58.32589999999993,
+      "duration": 0.00830000000007658,
+      "error": null
+    },
+    {
+      "id": 109,
+      "parent": 93,
+      "name": "store.apply#3",
+      "at": 58.337800000000016,
+      "duration": 0.22519999999997253,
+      "error": null
+    },
+    {
+      "id": 110,
+      "parent": 93,
+      "name": "fs.readFile",
+      "at": 59.20870000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.8153999999999542,
+      "error": null
+    },
+    {
+      "id": 111,
+      "parent": 87,
+      "name": "fs.open",
+      "at": 60.44029999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.7aac48b8-6737-40f9-b368-7dcf31f84fb2.tmp",
+      "duration": 0.31399999999996453,
+      "error": null
+    },
+    {
+      "id": 112,
+      "parent": 87,
+      "name": "fs.writeFile",
+      "at": 60.76859999999999,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.7aac48b8-6737-40f9-b368-7dcf31f84fb2.tmp",
+      "duration": 0.13760000000002037,
+      "error": null
+    },
+    {
+      "id": 113,
+      "parent": 87,
+      "name": "fs.sync",
+      "at": 60.97569999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.7aac48b8-6737-40f9-b368-7dcf31f84fb2.tmp",
+      "duration": 1.2309999999999945,
+      "error": null
+    },
+    {
+      "id": 114,
+      "parent": 87,
+      "name": "fs.close",
+      "at": 62.23509999999999,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.7aac48b8-6737-40f9-b368-7dcf31f84fb2.tmp",
+      "duration": 0.0947999999999638,
+      "error": null
+    },
+    {
+      "id": 115,
+      "parent": 87,
+      "name": "fs.link",
+      "at": 62.36180000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.7aac48b8-6737-40f9-b368-7dcf31f84fb2.tmp",
+      "duration": 0.32999999999992724,
+      "error": null
+    },
+    {
+      "id": 116,
+      "parent": 87,
+      "name": "fs.unlink",
+      "at": 62.71339999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.7aac48b8-6737-40f9-b368-7dcf31f84fb2.tmp",
+      "duration": 0.245900000000006,
+      "error": null
+    },
+    {
+      "id": 117,
+      "parent": 67,
+      "name": "store.transact#2",
+      "at": 64.59499999999991,
+      "duration": 18.931100000000015,
+      "error": null
+    },
+    {
+      "id": 118,
+      "parent": 117,
+      "name": "store.scan#5",
+      "at": 66.79859999999996,
+      "duration": 7.873000000000047,
+      "error": null
+    },
+    {
+      "id": 119,
+      "parent": 118,
+      "name": "fs.readdir",
+      "at": 66.82560000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.12860000000000582,
+      "error": null
+    },
+    {
+      "id": 120,
+      "parent": 118,
+      "name": "fs.readFile",
+      "at": 66.99000000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.6428999999999405,
+      "error": null
+    },
+    {
+      "id": 121,
+      "parent": 118,
+      "name": "fs.readdir",
+      "at": 67.69999999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.1352000000000544,
+      "error": null
+    },
+    {
+      "id": 122,
+      "parent": 118,
+      "name": "fs.readdir",
+      "at": 67.85860000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.17219999999997526,
+      "error": null
+    },
+    {
+      "id": 123,
+      "parent": 118,
+      "name": "fs.stat",
+      "at": 68.12239999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.12319999999999709,
+      "error": null
+    },
+    {
+      "id": 124,
+      "parent": 118,
+      "name": "fs.stat",
+      "at": 68.16480000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.10559999999998126,
+      "error": null
+    },
+    {
+      "id": 125,
+      "parent": 118,
+      "name": "fs.stat",
+      "at": 68.18779999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.1147000000000844,
+      "error": null
+    },
+    {
+      "id": 126,
+      "parent": 118,
+      "name": "fs.stat",
+      "at": 68.35219999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.134900000000016,
+      "error": null
+    },
+    {
+      "id": 127,
+      "parent": 118,
+      "name": "fs.readFile",
+      "at": 68.53199999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.543700000000058,
+      "error": null
+    },
+    {
+      "id": 128,
+      "parent": 118,
+      "name": "fs.readFile",
+      "at": 69.3605,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.5326000000000022,
+      "error": null
+    },
+    {
+      "id": 129,
+      "parent": 118,
+      "name": "store.coordinators#7",
+      "at": 70.24079999999992,
+      "duration": 0.7892000000000507,
+      "error": null
+    },
+    {
+      "id": 130,
+      "parent": 129,
+      "name": "fs.readdir",
+      "at": 70.26379999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.116800000000012,
+      "error": null
+    },
+    {
+      "id": 131,
+      "parent": 129,
+      "name": "fs.readFile",
+      "at": 70.41049999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.5534999999999854,
+      "error": null
+    },
+    {
+      "id": 132,
+      "parent": 118,
+      "name": "fs.readFile",
+      "at": 71.05579999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.5336999999999534,
+      "error": null
+    },
+    {
+      "id": 133,
+      "parent": 118,
+      "name": "fs.readFile",
+      "at": 71.82639999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.5296000000000731,
+      "error": null
+    },
+    {
+      "id": 134,
+      "parent": 118,
+      "name": "store.checkBlobs#4",
+      "at": 72.90859999999998,
+      "duration": 0.005199999999945248,
+      "error": null
+    },
+    {
+      "id": 135,
+      "parent": 118,
+      "name": "store.apply#4",
+      "at": 72.91719999999998,
+      "duration": 0.1692000000000462,
+      "error": null
+    },
+    {
+      "id": 136,
+      "parent": 118,
+      "name": "fs.readFile",
+      "at": 73.33089999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 1.0326000000000022,
+      "error": null
+    },
+    {
+      "id": 137,
+      "parent": 117,
+      "name": "store.commit#2",
+      "at": 74.69579999999996,
+      "duration": 8.826000000000022,
+      "error": null
+    },
+    {
+      "id": 138,
+      "parent": 137,
+      "name": "store.assertCoordinator#3",
+      "at": 74.70339999999999,
+      "duration": 0.9633000000000038,
+      "error": null
+    },
+    {
+      "id": 139,
+      "parent": 138,
+      "name": "store.coordinators#8",
+      "at": 74.70639999999992,
+      "duration": 0.8303000000000793,
+      "error": null
+    },
+    {
+      "id": 140,
+      "parent": 139,
+      "name": "fs.readdir",
+      "at": 74.72739999999999,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.09550000000001546,
+      "error": null
+    },
+    {
+      "id": 141,
+      "parent": 139,
+      "name": "fs.readFile",
+      "at": 74.85590000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.6227999999999838,
+      "error": null
+    },
+    {
+      "id": 142,
+      "parent": 138,
+      "name": "fs.readFile",
+      "at": 75.56110000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.release.json",
+      "duration": 0.098700000000008,
+      "error": {
+        "name": "Error",
+        "code": "ENOENT",
+        "message": "ENOENT: no such file or directory, open 'C:\\Users\\micha\\AppData\\Local\\Temp\\firstmate-tests-lDnZeT\\2f4c11cd-f668-4833-88fb-d166865d92ae\\data\\supervision\\ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1\\coordinators\\000000000001.release.json'"
+      }
+    },
+    {
+      "id": 143,
+      "parent": 137,
+      "name": "store.apply#5",
+      "at": 75.6703,
+      "duration": 0.314200000000028,
+      "error": null
+    },
+    {
+      "id": 144,
+      "parent": 137,
+      "name": "store.checkBlobs#5",
+      "at": 76.00099999999998,
+      "duration": 0.584699999999998,
+      "error": null
+    },
+    {
+      "id": 145,
+      "parent": 144,
+      "name": "fs.readFile",
+      "at": 76.0276,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.5412000000000035,
+      "error": null
+    },
+    {
+      "id": 146,
+      "parent": 137,
+      "name": "store.publish(tip)",
+      "at": 77.03289999999993,
+      "duration": 2.4278000000000475,
+      "error": null
+    },
+    {
+      "id": 147,
+      "parent": 146,
+      "name": "fs.open",
+      "at": 77.12929999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json.51623096-0534-467a-8b68-5cc3fe66b6d2.tmp",
+      "duration": 0.3007000000000062,
+      "error": null
+    },
+    {
+      "id": 148,
+      "parent": 146,
+      "name": "fs.writeFile",
+      "at": 77.45690000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json.51623096-0534-467a-8b68-5cc3fe66b6d2.tmp",
+      "duration": 0.21330000000000382,
+      "error": null
+    },
+    {
+      "id": 149,
+      "parent": 146,
+      "name": "fs.sync",
+      "at": 77.69150000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json.51623096-0534-467a-8b68-5cc3fe66b6d2.tmp",
+      "duration": 0.9289999999999736,
+      "error": null
+    },
+    {
+      "id": 150,
+      "parent": 146,
+      "name": "fs.close",
+      "at": 78.64109999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json.51623096-0534-467a-8b68-5cc3fe66b6d2.tmp",
+      "duration": 0.08530000000007476,
+      "error": null
+    },
+    {
+      "id": 151,
+      "parent": 146,
+      "name": "fs.link",
+      "at": 78.74810000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json.51623096-0534-467a-8b68-5cc3fe66b6d2.tmp",
+      "duration": 0.39659999999992124,
+      "error": null
+    },
+    {
+      "id": 152,
+      "parent": 146,
+      "name": "fs.unlink",
+      "at": 79.173,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json.51623096-0534-467a-8b68-5cc3fe66b6d2.tmp",
+      "duration": 0.2826000000000022,
+      "error": null
+    },
+    {
+      "id": 153,
+      "parent": 137,
+      "name": "store.publish(event)",
+      "at": 79.48860000000002,
+      "duration": 1.9692000000000007,
+      "error": null
+    },
+    {
+      "id": 154,
+      "parent": 153,
+      "name": "fs.open",
+      "at": 79.58550000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json.770dd6e3-bacb-468a-83b9-d76cb8871a21.tmp",
+      "duration": 0.27309999999999945,
+      "error": null
+    },
+    {
+      "id": 155,
+      "parent": 153,
+      "name": "fs.writeFile",
+      "at": 79.87669999999991,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json.770dd6e3-bacb-468a-83b9-d76cb8871a21.tmp",
+      "duration": 0.15870000000006712,
+      "error": null
+    },
+    {
+      "id": 156,
+      "parent": 153,
+      "name": "fs.sync",
+      "at": 80.05509999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json.770dd6e3-bacb-468a-83b9-d76cb8871a21.tmp",
+      "duration": 0.7548000000000457,
+      "error": null
+    },
+    {
+      "id": 157,
+      "parent": 153,
+      "name": "fs.close",
+      "at": 80.8279,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json.770dd6e3-bacb-468a-83b9-d76cb8871a21.tmp",
+      "duration": 0.08299999999996999,
+      "error": null
+    },
+    {
+      "id": 158,
+      "parent": 153,
+      "name": "fs.link",
+      "at": 80.928,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json.770dd6e3-bacb-468a-83b9-d76cb8871a21.tmp",
+      "duration": 0.3170999999999822,
+      "error": null
+    },
+    {
+      "id": 159,
+      "parent": 153,
+      "name": "fs.unlink",
+      "at": 81.26509999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json.770dd6e3-bacb-468a-83b9-d76cb8871a21.tmp",
+      "duration": 0.1893999999999778,
+      "error": null
+    },
+    {
+      "id": 160,
+      "parent": 137,
+      "name": "store.publish(publication)",
+      "at": 81.47569999999996,
+      "duration": 2.036299999999983,
+      "error": null
+    },
+    {
+      "id": 161,
+      "parent": 160,
+      "name": "fs.open",
+      "at": 81.64800000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json.4fece1c9-63da-4d41-9e8f-50dd63987780.tmp",
+      "duration": 0.2742999999999256,
+      "error": null
+    },
+    {
+      "id": 162,
+      "parent": 160,
+      "name": "fs.writeFile",
+      "at": 81.93799999999999,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json.4fece1c9-63da-4d41-9e8f-50dd63987780.tmp",
+      "duration": 0.1550999999999476,
+      "error": null
+    },
+    {
+      "id": 163,
+      "parent": 160,
+      "name": "fs.sync",
+      "at": 82.10669999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json.4fece1c9-63da-4d41-9e8f-50dd63987780.tmp",
+      "duration": 0.6891000000000531,
+      "error": null
+    },
+    {
+      "id": 164,
+      "parent": 160,
+      "name": "fs.close",
+      "at": 82.81169999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json.4fece1c9-63da-4d41-9e8f-50dd63987780.tmp",
+      "duration": 0.070699999999988,
+      "error": null
+    },
+    {
+      "id": 165,
+      "parent": 160,
+      "name": "fs.link",
+      "at": 82.89850000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json.4fece1c9-63da-4d41-9e8f-50dd63987780.tmp",
+      "duration": 0.2826999999999771,
+      "error": null
+    },
+    {
+      "id": 166,
+      "parent": 160,
+      "name": "fs.unlink",
+      "at": 83.19669999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json.4fece1c9-63da-4d41-9e8f-50dd63987780.tmp",
+      "duration": 0.3062999999999647,
+      "error": null
+    },
+    {
+      "id": 167,
+      "parent": 0,
+      "name": "events.admit#2",
+      "at": 83.54989999999998,
+      "duration": 49.6549,
+      "error": null
+    },
+    {
+      "id": 168,
+      "parent": 167,
+      "name": "store.read#2",
+      "at": 83.69240000000002,
+      "duration": 12.9772999999999,
+      "error": null
+    },
+    {
+      "id": 169,
+      "parent": 168,
+      "name": "store.scan#6",
+      "at": 83.69470000000001,
+      "duration": 12.927299999999946,
+      "error": null
+    },
+    {
+      "id": 170,
+      "parent": 169,
+      "name": "fs.readdir",
+      "at": 83.71449999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.10829999999998563,
+      "error": null
+    },
+    {
+      "id": 171,
+      "parent": 169,
+      "name": "fs.readFile",
+      "at": 83.84679999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.5766000000000986,
+      "error": null
+    },
+    {
+      "id": 172,
+      "parent": 169,
+      "name": "fs.readdir",
+      "at": 84.47559999999999,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.10779999999999745,
+      "error": null
+    },
+    {
+      "id": 173,
+      "parent": 169,
+      "name": "fs.readdir",
+      "at": 84.60569999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.0905999999999949,
+      "error": null
+    },
+    {
+      "id": 174,
+      "parent": 169,
+      "name": "fs.stat",
+      "at": 84.76979999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.13380000000006476,
+      "error": null
+    },
+    {
+      "id": 175,
+      "parent": 169,
+      "name": "fs.stat",
+      "at": 84.80399999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.10329999999999018,
+      "error": null
+    },
+    {
+      "id": 176,
+      "parent": 169,
+      "name": "fs.stat",
+      "at": 84.82479999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.08579999999994925,
+      "error": null
+    },
+    {
+      "id": 177,
+      "parent": 169,
+      "name": "fs.stat",
+      "at": 84.84280000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.10669999999993252,
+      "error": null
+    },
+    {
+      "id": 178,
+      "parent": 169,
+      "name": "fs.stat",
+      "at": 84.86779999999999,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.08929999999998017,
+      "error": null
+    },
+    {
+      "id": 179,
+      "parent": 169,
+      "name": "fs.stat",
+      "at": 84.88439999999991,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.07550000000003365,
+      "error": null
+    },
+    {
+      "id": 180,
+      "parent": 169,
+      "name": "fs.stat",
+      "at": 84.98799999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.1650000000000773,
+      "error": null
+    },
+    {
+      "id": 181,
+      "parent": 169,
+      "name": "fs.readFile",
+      "at": 85.22769999999991,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.5167000000000144,
+      "error": null
+    },
+    {
+      "id": 182,
+      "parent": 169,
+      "name": "fs.readFile",
+      "at": 86.04390000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.5079999999999245,
+      "error": null
+    },
+    {
+      "id": 183,
+      "parent": 169,
+      "name": "fs.readFile",
+      "at": 86.94999999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.69500000000005,
+      "error": null
+    },
+    {
+      "id": 184,
+      "parent": 169,
+      "name": "fs.readFile",
+      "at": 87.94809999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.5855999999999995,
+      "error": null
+    },
+    {
+      "id": 185,
+      "parent": 169,
+      "name": "store.coordinators#9",
+      "at": 88.84019999999998,
+      "duration": 0.7003999999999451,
+      "error": null
+    },
+    {
+      "id": 186,
+      "parent": 185,
+      "name": "fs.readdir",
+      "at": 88.86039999999991,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.08130000000005566,
+      "error": null
+    },
+    {
+      "id": 187,
+      "parent": 185,
+      "name": "fs.readFile",
+      "at": 88.96669999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.5122000000000071,
+      "error": null
+    },
+    {
+      "id": 188,
+      "parent": 169,
+      "name": "fs.readFile",
+      "at": 89.56579999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.5490999999999531,
+      "error": null
+    },
+    {
+      "id": 189,
+      "parent": 169,
+      "name": "fs.readFile",
+      "at": 90.30219999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.572400000000016,
+      "error": null
+    },
+    {
+      "id": 190,
+      "parent": 169,
+      "name": "store.checkBlobs#6",
+      "at": 91.42469999999992,
+      "duration": 0.005100000000084037,
+      "error": null
+    },
+    {
+      "id": 191,
+      "parent": 169,
+      "name": "store.apply#6",
+      "at": 91.43309999999997,
+      "duration": 0.1490999999999758,
+      "error": null
+    },
+    {
+      "id": 192,
+      "parent": 169,
+      "name": "fs.readFile",
+      "at": 91.96859999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.5466000000000122,
+      "error": null
+    },
+    {
+      "id": 193,
+      "parent": 169,
+      "name": "fs.readFile",
+      "at": 92.80129999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.6005999999999858,
+      "error": null
+    },
+    {
+      "id": 194,
+      "parent": 169,
+      "name": "fs.readFile",
+      "at": 93.5652,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.5654999999999291,
+      "error": null
+    },
+    {
+      "id": 195,
+      "parent": 169,
+      "name": "store.checkBlobs#7",
+      "at": 94.56740000000002,
+      "duration": 0.6555999999999358,
+      "error": null
+    },
+    {
+      "id": 196,
+      "parent": 195,
+      "name": "fs.readFile",
+      "at": 94.59140000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.6176999999998998,
+      "error": null
+    },
+    {
+      "id": 197,
+      "parent": 169,
+      "name": "store.apply#7",
+      "at": 95.23019999999997,
+      "duration": 0.28120000000001255,
+      "error": null
+    },
+    {
+      "id": 198,
+      "parent": 169,
+      "name": "fs.readFile",
+      "at": 95.76999999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.5693999999999733,
+      "error": null
+    },
+    {
+      "id": 199,
+      "parent": 167,
+      "name": "store.putBlob#2",
+      "at": 96.81200000000001,
+      "duration": 16.307199999999966,
+      "error": null
+    },
+    {
+      "id": 200,
+      "parent": 199,
+      "name": "store.assertCoordinator#4",
+      "at": 96.83089999999993,
+      "duration": 0.9587000000000216,
+      "error": null
+    },
+    {
+      "id": 201,
+      "parent": 200,
+      "name": "store.coordinators#10",
+      "at": 96.83409999999992,
+      "duration": 0.800200000000018,
+      "error": null
+    },
+    {
+      "id": 202,
+      "parent": 201,
+      "name": "fs.readdir",
+      "at": 96.85500000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.11539999999990869,
+      "error": null
+    },
+    {
+      "id": 203,
+      "parent": 201,
+      "name": "fs.readFile",
+      "at": 96.99599999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.5701000000000249,
+      "error": null
+    },
+    {
+      "id": 204,
+      "parent": 200,
+      "name": "fs.readFile",
+      "at": 97.65980000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.release.json",
+      "duration": 0.12289999999995871,
+      "error": {
+        "name": "Error",
+        "code": "ENOENT",
+        "message": "ENOENT: no such file or directory, open 'C:\\Users\\micha\\AppData\\Local\\Temp\\firstmate-tests-lDnZeT\\2f4c11cd-f668-4833-88fb-d166865d92ae\\data\\supervision\\ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1\\coordinators\\000000000001.release.json'"
+      }
+    },
+    {
+      "id": 205,
+      "parent": 199,
+      "name": "store.scan#7",
+      "at": 97.7935,
+      "duration": 11.603799999999978,
+      "error": null
+    },
+    {
+      "id": 206,
+      "parent": 205,
+      "name": "fs.readdir",
+      "at": 97.80880000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.10849999999993543,
+      "error": null
+    },
+    {
+      "id": 207,
+      "parent": 205,
+      "name": "fs.readFile",
+      "at": 97.93589999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.5597000000000207,
+      "error": null
+    },
+    {
+      "id": 208,
+      "parent": 205,
+      "name": "fs.readdir",
+      "at": 98.54279999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.14999999999997726,
+      "error": null
+    },
+    {
+      "id": 209,
+      "parent": 205,
+      "name": "fs.readdir",
+      "at": 98.72169999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.14340000000004238,
+      "error": null
+    },
+    {
+      "id": 210,
+      "parent": 205,
+      "name": "fs.stat",
+      "at": 98.90269999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.14409999999998035,
+      "error": null
+    },
+    {
+      "id": 211,
+      "parent": 205,
+      "name": "fs.stat",
+      "at": 98.94349999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.10869999999999891,
+      "error": null
+    },
+    {
+      "id": 212,
+      "parent": 205,
+      "name": "fs.stat",
+      "at": 98.96609999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.19209999999998217,
+      "error": null
+    },
+    {
+      "id": 213,
+      "parent": 205,
+      "name": "fs.stat",
+      "at": 98.98789999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.13459999999997763,
+      "error": null
+    },
+    {
+      "id": 214,
+      "parent": 205,
+      "name": "fs.stat",
+      "at": 99.01019999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.1248000000000502,
+      "error": null
+    },
+    {
+      "id": 215,
+      "parent": 205,
+      "name": "fs.stat",
+      "at": 99.0276,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.10429999999996653,
+      "error": null
+    },
+    {
+      "id": 216,
+      "parent": 205,
+      "name": "fs.stat",
+      "at": 99.18499999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.10120000000006257,
+      "error": null
+    },
+    {
+      "id": 217,
+      "parent": 205,
+      "name": "fs.readFile",
+      "at": 99.31020000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.5482999999999265,
+      "error": null
+    },
+    {
+      "id": 218,
+      "parent": 205,
+      "name": "fs.readFile",
+      "at": 100.0462,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.5404999999999518,
+      "error": null
+    },
+    {
+      "id": 219,
+      "parent": 205,
+      "name": "fs.readFile",
+      "at": 100.83359999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.5466000000000122,
+      "error": null
+    },
+    {
+      "id": 220,
+      "parent": 205,
+      "name": "fs.readFile",
+      "at": 101.63589999999999,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.5769999999999982,
+      "error": null
+    },
+    {
+      "id": 221,
+      "parent": 205,
+      "name": "store.coordinators#11",
+      "at": 102.47230000000002,
+      "duration": 0.7694999999999936,
+      "error": null
+    },
+    {
+      "id": 222,
+      "parent": 221,
+      "name": "fs.readdir",
+      "at": 102.50459999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.11329999999998108,
+      "error": null
+    },
+    {
+      "id": 223,
+      "parent": 221,
+      "name": "fs.readFile",
+      "at": 102.64139999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.5285000000000082,
+      "error": null
+    },
+    {
+      "id": 224,
+      "parent": 205,
+      "name": "fs.readFile",
+      "at": 103.26229999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.5483000000000402,
+      "error": null
+    },
+    {
+      "id": 225,
+      "parent": 205,
+      "name": "fs.readFile",
+      "at": 103.9878,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.5399999999999636,
+      "error": null
+    },
+    {
+      "id": 226,
+      "parent": 205,
+      "name": "store.checkBlobs#8",
+      "at": 104.94499999999994,
+      "duration": 0.005100000000084037,
+      "error": null
+    },
+    {
+      "id": 227,
+      "parent": 205,
+      "name": "store.apply#8",
+      "at": 104.96319999999992,
+      "duration": 0.1207000000000562,
+      "error": null
+    },
+    {
+      "id": 228,
+      "parent": 205,
+      "name": "fs.readFile",
+      "at": 105.2482,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.5445999999999458,
+      "error": null
+    },
+    {
+      "id": 229,
+      "parent": 205,
+      "name": "fs.readFile",
+      "at": 106.01170000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.5195999999999685,
+      "error": null
+    },
+    {
+      "id": 230,
+      "parent": 205,
+      "name": "fs.readFile",
+      "at": 106.68859999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.5666999999999689,
+      "error": null
+    },
+    {
+      "id": 231,
+      "parent": 205,
+      "name": "store.checkBlobs#9",
+      "at": 107.6051,
+      "duration": 0.5735999999999422,
+      "error": null
+    },
+    {
+      "id": 232,
+      "parent": 231,
+      "name": "fs.readFile",
+      "at": 107.62599999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.5398000000000138,
+      "error": null
+    },
+    {
+      "id": 233,
+      "parent": 205,
+      "name": "store.apply#9",
+      "at": 108.18290000000002,
+      "duration": 0.23349999999993543,
+      "error": null
+    },
+    {
+      "id": 234,
+      "parent": 205,
+      "name": "fs.readFile",
+      "at": 108.61349999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.54200000000003,
+      "error": null
+    },
+    {
+      "id": 235,
+      "parent": 199,
+      "name": "fs.open",
+      "at": 109.4316,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.d720d3fb-1803-4b5a-827d-8e70b56172ec.tmp",
+      "duration": 0.3207999999999629,
+      "error": null
+    },
+    {
+      "id": 236,
+      "parent": 199,
+      "name": "fs.writeFile",
+      "at": 109.76879999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.d720d3fb-1803-4b5a-827d-8e70b56172ec.tmp",
+      "duration": 0.12120000000004438,
+      "error": null
+    },
+    {
+      "id": 237,
+      "parent": 199,
+      "name": "fs.sync",
+      "at": 109.90749999999991,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.d720d3fb-1803-4b5a-827d-8e70b56172ec.tmp",
+      "duration": 1.6194000000000415,
+      "error": null
+    },
+    {
+      "id": 238,
+      "parent": 199,
+      "name": "fs.close",
+      "at": 111.55349999999999,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.d720d3fb-1803-4b5a-827d-8e70b56172ec.tmp",
+      "duration": 0.0766999999999598,
+      "error": null
+    },
+    {
+      "id": 239,
+      "parent": 199,
+      "name": "fs.link",
+      "at": 111.64679999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.d720d3fb-1803-4b5a-827d-8e70b56172ec.tmp",
+      "duration": 0.35199999999997544,
+      "error": {
+        "name": "Error",
+        "code": "EEXIST",
+        "message": "EEXIST: file already exists, link 'C:\\Users\\micha\\AppData\\Local\\Temp\\firstmate-tests-lDnZeT\\2f4c11cd-f668-4833-88fb-d166865d92ae\\data\\supervision\\ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1\\blobs\\12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.d720d3fb-1803-4b5a"
+      }
+    },
+    {
+      "id": 240,
+      "parent": 199,
+      "name": "fs.unlink",
+      "at": 112.0394,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4.d720d3fb-1803-4b5a-827d-8e70b56172ec.tmp",
+      "duration": 0.32159999999998945,
+      "error": null
+    },
+    {
+      "id": 241,
+      "parent": 199,
+      "name": "fs.readFile",
+      "at": 112.3863,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.7105999999999995,
+      "error": null
+    },
+    {
+      "id": 242,
+      "parent": 167,
+      "name": "store.transact#3",
+      "at": 113.29669999999999,
+      "duration": 19.899900000000002,
+      "error": null
+    },
+    {
+      "id": 243,
+      "parent": 242,
+      "name": "store.scan#8",
+      "at": 113.57859999999994,
+      "duration": 12.15930000000003,
+      "error": null
+    },
+    {
+      "id": 244,
+      "parent": 243,
+      "name": "fs.readdir",
+      "at": 113.59199999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.11829999999997654,
+      "error": null
+    },
+    {
+      "id": 245,
+      "parent": 243,
+      "name": "fs.readFile",
+      "at": 113.73479999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.5982999999999947,
+      "error": null
+    },
+    {
+      "id": 246,
+      "parent": 243,
+      "name": "fs.readdir",
+      "at": 114.38959999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.15430000000003474,
+      "error": null
+    },
+    {
+      "id": 247,
+      "parent": 243,
+      "name": "fs.readdir",
+      "at": 114.56909999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.11599999999998545,
+      "error": null
+    },
+    {
+      "id": 248,
+      "parent": 243,
+      "name": "fs.stat",
+      "at": 114.71460000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.12000000000000455,
+      "error": null
+    },
+    {
+      "id": 249,
+      "parent": 243,
+      "name": "fs.stat",
+      "at": 114.74709999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.09030000000007021,
+      "error": null
+    },
+    {
+      "id": 250,
+      "parent": 243,
+      "name": "fs.stat",
+      "at": 114.76859999999999,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.11220000000002983,
+      "error": null
+    },
+    {
+      "id": 251,
+      "parent": 243,
+      "name": "fs.stat",
+      "at": 114.78719999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.14379999999994197,
+      "error": null
+    },
+    {
+      "id": 252,
+      "parent": 243,
+      "name": "fs.stat",
+      "at": 114.80419999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.08270000000004529,
+      "error": null
+    },
+    {
+      "id": 253,
+      "parent": 243,
+      "name": "fs.stat",
+      "at": 114.81729999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.11920000000009168,
+      "error": null
+    },
+    {
+      "id": 254,
+      "parent": 243,
+      "name": "fs.stat",
+      "at": 114.95989999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.10580000000004475,
+      "error": null
+    },
+    {
+      "id": 255,
+      "parent": 243,
+      "name": "fs.readFile",
+      "at": 115.09489999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.6125000000000682,
+      "error": null
+    },
+    {
+      "id": 256,
+      "parent": 243,
+      "name": "fs.readFile",
+      "at": 115.91239999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.6000000000000227,
+      "error": null
+    },
+    {
+      "id": 257,
+      "parent": 243,
+      "name": "fs.readFile",
+      "at": 116.85929999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.5430999999999813,
+      "error": null
+    },
+    {
+      "id": 258,
+      "parent": 243,
+      "name": "fs.readFile",
+      "at": 117.6753,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.6259999999999764,
+      "error": null
+    },
+    {
+      "id": 259,
+      "parent": 243,
+      "name": "store.coordinators#12",
+      "at": 118.59579999999994,
+      "duration": 0.7948000000000093,
+      "error": null
+    },
+    {
+      "id": 260,
+      "parent": 259,
+      "name": "fs.readdir",
+      "at": 118.61929999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.11360000000001946,
+      "error": null
+    },
+    {
+      "id": 261,
+      "parent": 259,
+      "name": "fs.readFile",
+      "at": 118.75709999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.5860000000000127,
+      "error": null
+    },
+    {
+      "id": 262,
+      "parent": 243,
+      "name": "fs.readFile",
+      "at": 119.41160000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.5156999999999243,
+      "error": null
+    },
+    {
+      "id": 263,
+      "parent": 243,
+      "name": "fs.readFile",
+      "at": 120.13829999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.629099999999994,
+      "error": null
+    },
+    {
+      "id": 264,
+      "parent": 243,
+      "name": "store.checkBlobs#10",
+      "at": 121.26689999999996,
+      "duration": 0.005300000000033833,
+      "error": null
+    },
+    {
+      "id": 265,
+      "parent": 243,
+      "name": "store.apply#10",
+      "at": 121.27449999999999,
+      "duration": 0.12209999999993215,
+      "error": null
+    },
+    {
+      "id": 266,
+      "parent": 243,
+      "name": "fs.readFile",
+      "at": 121.62779999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.5489999999999782,
+      "error": null
+    },
+    {
+      "id": 267,
+      "parent": 243,
+      "name": "fs.readFile",
+      "at": 122.49130000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.47919999999999163,
+      "error": null
+    },
+    {
+      "id": 268,
+      "parent": 243,
+      "name": "fs.readFile",
+      "at": 123.16329999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.5207000000000335,
+      "error": null
+    },
+    {
+      "id": 269,
+      "parent": 243,
+      "name": "store.checkBlobs#11",
+      "at": 124.02080000000001,
+      "duration": 0.6356999999999289,
+      "error": null
+    },
+    {
+      "id": 270,
+      "parent": 269,
+      "name": "fs.readFile",
+      "at": 124.04309999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.6005999999999858,
+      "error": null
+    },
+    {
+      "id": 271,
+      "parent": 243,
+      "name": "store.apply#11",
+      "at": 124.66089999999997,
+      "duration": 0.20119999999997162,
+      "error": null
+    },
+    {
+      "id": 272,
+      "parent": 243,
+      "name": "fs.readFile",
+      "at": 125.05859999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.4896999999999707,
+      "error": null
+    },
+    {
+      "id": 273,
+      "parent": 242,
+      "name": "store.commit#3",
+      "at": 125.745,
+      "duration": 7.446299999999951,
+      "error": null
+    },
+    {
+      "id": 274,
+      "parent": 273,
+      "name": "store.assertCoordinator#5",
+      "at": 125.75099999999998,
+      "duration": 0.802599999999984,
+      "error": null
+    },
+    {
+      "id": 275,
+      "parent": 274,
+      "name": "store.coordinators#13",
+      "at": 125.75349999999992,
+      "duration": 0.6768000000000711,
+      "error": null
+    },
+    {
+      "id": 276,
+      "parent": 275,
+      "name": "fs.readdir",
+      "at": 125.77149999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.09850000000005821,
+      "error": null
+    },
+    {
+      "id": 277,
+      "parent": 275,
+      "name": "fs.readFile",
+      "at": 125.89379999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.49689999999998236,
+      "error": null
+    },
+    {
+      "id": 278,
+      "parent": 274,
+      "name": "fs.readFile",
+      "at": 126.4529,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.release.json",
+      "duration": 0.09420000000000073,
+      "error": {
+        "name": "Error",
+        "code": "ENOENT",
+        "message": "ENOENT: no such file or directory, open 'C:\\Users\\micha\\AppData\\Local\\Temp\\firstmate-tests-lDnZeT\\2f4c11cd-f668-4833-88fb-d166865d92ae\\data\\supervision\\ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1\\coordinators\\000000000001.release.json'"
+      }
+    },
+    {
+      "id": 279,
+      "parent": 273,
+      "name": "store.apply#12",
+      "at": 126.55649999999991,
+      "duration": 0.20860000000004675,
+      "error": null
+    },
+    {
+      "id": 280,
+      "parent": 273,
+      "name": "store.checkBlobs#12",
+      "at": 126.81939999999997,
+      "duration": 0.0030000000000427463,
+      "error": null
+    },
+    {
+      "id": 281,
+      "parent": 273,
+      "name": "store.publish(tip)",
+      "at": 127.13940000000002,
+      "duration": 2.0136999999999716,
+      "error": null
+    },
+    {
+      "id": 282,
+      "parent": 281,
+      "name": "fs.open",
+      "at": 127.2056,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json.671af595-13a2-4569-9c4a-84c8b9c11d25.tmp",
+      "duration": 0.308400000000006,
+      "error": null
+    },
+    {
+      "id": 283,
+      "parent": 281,
+      "name": "fs.writeFile",
+      "at": 127.52999999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json.671af595-13a2-4569-9c4a-84c8b9c11d25.tmp",
+      "duration": 0.1591999999999416,
+      "error": null
+    },
+    {
+      "id": 284,
+      "parent": 281,
+      "name": "fs.sync",
+      "at": 127.70679999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json.671af595-13a2-4569-9c4a-84c8b9c11d25.tmp",
+      "duration": 0.7878000000000611,
+      "error": null
+    },
+    {
+      "id": 285,
+      "parent": 281,
+      "name": "fs.close",
+      "at": 128.51119999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json.671af595-13a2-4569-9c4a-84c8b9c11d25.tmp",
+      "duration": 0.06490000000007967,
+      "error": null
+    },
+    {
+      "id": 286,
+      "parent": 281,
+      "name": "fs.link",
+      "at": 128.59119999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json.671af595-13a2-4569-9c4a-84c8b9c11d25.tmp",
+      "duration": 0.2819000000000642,
+      "error": null
+    },
+    {
+      "id": 287,
+      "parent": 281,
+      "name": "fs.unlink",
+      "at": 128.88979999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json.671af595-13a2-4569-9c4a-84c8b9c11d25.tmp",
+      "duration": 0.2583000000000766,
+      "error": null
+    },
+    {
+      "id": 288,
+      "parent": 273,
+      "name": "store.publish(event)",
+      "at": 129.17110000000002,
+      "duration": 2.220299999999952,
+      "error": null
+    },
+    {
+      "id": 289,
+      "parent": 288,
+      "name": "fs.open",
+      "at": 129.27710000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json.14a4d8a7-5285-4da9-b2c2-506e7006cbe5.tmp",
+      "duration": 0.4837999999999738,
+      "error": null
+    },
+    {
+      "id": 290,
+      "parent": 288,
+      "name": "fs.writeFile",
+      "at": 129.7812,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json.14a4d8a7-5285-4da9-b2c2-506e7006cbe5.tmp",
+      "duration": 0.169399999999996,
+      "error": null
+    },
+    {
+      "id": 291,
+      "parent": 288,
+      "name": "fs.sync",
+      "at": 129.96759999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json.14a4d8a7-5285-4da9-b2c2-506e7006cbe5.tmp",
+      "duration": 0.7770000000000437,
+      "error": null
+    },
+    {
+      "id": 292,
+      "parent": 288,
+      "name": "fs.close",
+      "at": 130.7613,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json.14a4d8a7-5285-4da9-b2c2-506e7006cbe5.tmp",
+      "duration": 0.08999999999991815,
+      "error": null
+    },
+    {
+      "id": 293,
+      "parent": 288,
+      "name": "fs.link",
+      "at": 130.8696,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json.14a4d8a7-5285-4da9-b2c2-506e7006cbe5.tmp",
+      "duration": 0.3211000000000013,
+      "error": null
+    },
+    {
+      "id": 294,
+      "parent": 288,
+      "name": "fs.unlink",
+      "at": 131.20769999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json.14a4d8a7-5285-4da9-b2c2-506e7006cbe5.tmp",
+      "duration": 0.1774000000000342,
+      "error": null
+    },
+    {
+      "id": 295,
+      "parent": 273,
+      "name": "store.publish(publication)",
+      "at": 131.41160000000002,
+      "duration": 1.7697999999999183,
+      "error": null
+    },
+    {
+      "id": 296,
+      "parent": 295,
+      "name": "fs.open",
+      "at": 131.48219999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json.b56e331e-cb93-439e-9d72-93cb4b2c4f82.tmp",
+      "duration": 0.2579000000000633,
+      "error": null
+    },
+    {
+      "id": 297,
+      "parent": 295,
+      "name": "fs.writeFile",
+      "at": 131.75490000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json.b56e331e-cb93-439e-9d72-93cb4b2c4f82.tmp",
+      "duration": 0.129099999999994,
+      "error": null
+    },
+    {
+      "id": 298,
+      "parent": 295,
+      "name": "fs.sync",
+      "at": 131.90009999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json.b56e331e-cb93-439e-9d72-93cb4b2c4f82.tmp",
+      "duration": 0.6462000000000216,
+      "error": null
+    },
+    {
+      "id": 299,
+      "parent": 295,
+      "name": "fs.close",
+      "at": 132.56269999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json.b56e331e-cb93-439e-9d72-93cb4b2c4f82.tmp",
+      "duration": 0.0645000000000664,
+      "error": null
+    },
+    {
+      "id": 300,
+      "parent": 295,
+      "name": "fs.link",
+      "at": 132.64170000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json.b56e331e-cb93-439e-9d72-93cb4b2c4f82.tmp",
+      "duration": 0.27139999999997144,
+      "error": null
+    },
+    {
+      "id": 301,
+      "parent": 295,
+      "name": "fs.unlink",
+      "at": 132.9294,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json.b56e331e-cb93-439e-9d72-93cb4b2c4f82.tmp",
+      "duration": 0.2481999999999971,
+      "error": null
+    },
+    {
+      "id": 302,
+      "parent": 0,
+      "name": "events.resolve#1",
+      "at": 133.21309999999994,
+      "duration": 16.61329999999998,
+      "error": {
+        "name": "Error",
+        "code": "UNKNOWN_OWNER",
+        "message": "Triage still has no exact unambiguous scoped attempt."
+      }
+    },
+    {
+      "id": 303,
+      "parent": 302,
+      "name": "store.read#3",
+      "at": 133.74630000000002,
+      "duration": 15.876800000000003,
+      "error": null
+    },
+    {
+      "id": 304,
+      "parent": 303,
+      "name": "store.scan#9",
+      "at": 133.74979999999994,
+      "duration": 15.814100000000053,
+      "error": null
+    },
+    {
+      "id": 305,
+      "parent": 304,
+      "name": "fs.readdir",
+      "at": 133.76299999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.09990000000004784,
+      "error": null
+    },
+    {
+      "id": 306,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 133.8863,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.5312999999999874,
+      "error": null
+    },
+    {
+      "id": 307,
+      "parent": 304,
+      "name": "fs.readdir",
+      "at": 134.47179999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.13269999999999982,
+      "error": null
+    },
+    {
+      "id": 308,
+      "parent": 304,
+      "name": "fs.readdir",
+      "at": 134.6255,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.09169999999994616,
+      "error": null
+    },
+    {
+      "id": 309,
+      "parent": 304,
+      "name": "fs.stat",
+      "at": 134.74429999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.16880000000003292,
+      "error": null
+    },
+    {
+      "id": 310,
+      "parent": 304,
+      "name": "fs.stat",
+      "at": 134.77149999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.14440000000001874,
+      "error": null
+    },
+    {
+      "id": 311,
+      "parent": 304,
+      "name": "fs.stat",
+      "at": 134.78879999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.1290000000000191,
+      "error": null
+    },
+    {
+      "id": 312,
+      "parent": 304,
+      "name": "fs.stat",
+      "at": 134.80579999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.11379999999996926,
+      "error": null
+    },
+    {
+      "id": 313,
+      "parent": 304,
+      "name": "fs.stat",
+      "at": 134.8207,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.14629999999999654,
+      "error": null
+    },
+    {
+      "id": 314,
+      "parent": 304,
+      "name": "fs.stat",
+      "at": 134.83669999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.1412000000000262,
+      "error": null
+    },
+    {
+      "id": 315,
+      "parent": 304,
+      "name": "fs.stat",
+      "at": 134.85019999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json",
+      "duration": 0.09140000000002146,
+      "error": null
+    },
+    {
+      "id": 316,
+      "parent": 304,
+      "name": "fs.stat",
+      "at": 134.865,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.10719999999992069,
+      "error": null
+    },
+    {
+      "id": 317,
+      "parent": 304,
+      "name": "fs.stat",
+      "at": 134.89620000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.09699999999997999,
+      "error": null
+    },
+    {
+      "id": 318,
+      "parent": 304,
+      "name": "fs.stat",
+      "at": 135.01099999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.13580000000001746,
+      "error": null
+    },
+    {
+      "id": 319,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 135.1757,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.566599999999994,
+      "error": null
+    },
+    {
+      "id": 320,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 135.9529,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.5294000000000096,
+      "error": null
+    },
+    {
+      "id": 321,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 136.73719999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.5447000000000344,
+      "error": null
+    },
+    {
+      "id": 322,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 137.49889999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.5178000000000793,
+      "error": null
+    },
+    {
+      "id": 323,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 138.22749999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.5172999999999774,
+      "error": null
+    },
+    {
+      "id": 324,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 138.93989999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.5498999999999796,
+      "error": null
+    },
+    {
+      "id": 325,
+      "parent": 304,
+      "name": "store.coordinators#14",
+      "at": 139.6717,
+      "duration": 0.7195000000000391,
+      "error": null
+    },
+    {
+      "id": 326,
+      "parent": 325,
+      "name": "fs.readdir",
+      "at": 139.68970000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.10349999999993997,
+      "error": null
+    },
+    {
+      "id": 327,
+      "parent": 325,
+      "name": "fs.readFile",
+      "at": 139.81380000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.5276000000000067,
+      "error": null
+    },
+    {
+      "id": 328,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 140.41179999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.469600000000014,
+      "error": null
+    },
+    {
+      "id": 329,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 141.02819999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.48509999999998854,
+      "error": null
+    },
+    {
+      "id": 330,
+      "parent": 304,
+      "name": "store.checkBlobs#13",
+      "at": 141.995,
+      "duration": 0.0050999999999703505,
+      "error": null
+    },
+    {
+      "id": 331,
+      "parent": 304,
+      "name": "store.apply#13",
+      "at": 142.00249999999994,
+      "duration": 0.13269999999999982,
+      "error": null
+    },
+    {
+      "id": 332,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 142.41149999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.5265000000000555,
+      "error": null
+    },
+    {
+      "id": 333,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 143.24199999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.5063999999999851,
+      "error": null
+    },
+    {
+      "id": 334,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 143.90409999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.5176999999999907,
+      "error": null
+    },
+    {
+      "id": 335,
+      "parent": 304,
+      "name": "store.checkBlobs#14",
+      "at": 144.7274,
+      "duration": 0.7214999999999918,
+      "error": null
+    },
+    {
+      "id": 336,
+      "parent": 335,
+      "name": "fs.readFile",
+      "at": 144.74699999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.6847000000000207,
+      "error": null
+    },
+    {
+      "id": 337,
+      "parent": 304,
+      "name": "store.apply#14",
+      "at": 145.45489999999995,
+      "duration": 0.2376000000000431,
+      "error": null
+    },
+    {
+      "id": 338,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 145.8754,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.5731999999999289,
+      "error": null
+    },
+    {
+      "id": 339,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 146.67589999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.5453999999999724,
+      "error": null
+    },
+    {
+      "id": 340,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 147.3818,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json",
+      "duration": 0.5602999999999838,
+      "error": null
+    },
+    {
+      "id": 341,
+      "parent": 304,
+      "name": "store.checkBlobs#15",
+      "at": 148.25990000000002,
+      "duration": 0.004599999999982174,
+      "error": null
+    },
+    {
+      "id": 342,
+      "parent": 304,
+      "name": "store.apply#15",
+      "at": 148.2668,
+      "duration": 0.21259999999995216,
+      "error": null
+    },
+    {
+      "id": 343,
+      "parent": 304,
+      "name": "fs.readFile",
+      "at": 148.7274,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.5186999999999671,
+      "error": null
+    },
+    {
+      "id": 344,
+      "parent": 0,
+      "name": "store.read#4",
+      "at": 150.43740000000003,
+      "duration": 15.157299999999964,
+      "error": null
+    },
+    {
+      "id": 345,
+      "parent": 344,
+      "name": "store.scan#10",
+      "at": 150.44219999999996,
+      "duration": 15.10850000000005,
+      "error": null
+    },
+    {
+      "id": 346,
+      "parent": 345,
+      "name": "fs.readdir",
+      "at": 150.4556,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.12270000000000891,
+      "error": null
+    },
+    {
+      "id": 347,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 150.60129999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.5516000000000076,
+      "error": null
+    },
+    {
+      "id": 348,
+      "parent": 345,
+      "name": "fs.readdir",
+      "at": 151.20399999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.11149999999997817,
+      "error": null
+    },
+    {
+      "id": 349,
+      "parent": 345,
+      "name": "fs.readdir",
+      "at": 151.3306,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.09269999999992251,
+      "error": null
+    },
+    {
+      "id": 350,
+      "parent": 345,
+      "name": "fs.stat",
+      "at": 151.4506,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.155399999999986,
+      "error": null
+    },
+    {
+      "id": 351,
+      "parent": 345,
+      "name": "fs.stat",
+      "at": 151.48019999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.12840000000005602,
+      "error": null
+    },
+    {
+      "id": 352,
+      "parent": 345,
+      "name": "fs.stat",
+      "at": 151.4995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.11099999999999,
+      "error": null
+    },
+    {
+      "id": 353,
+      "parent": 345,
+      "name": "fs.stat",
+      "at": 151.51549999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.12779999999997926,
+      "error": null
+    },
+    {
+      "id": 354,
+      "parent": 345,
+      "name": "fs.stat",
+      "at": 151.53059999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.08170000000006894,
+      "error": null
+    },
+    {
+      "id": 355,
+      "parent": 345,
+      "name": "fs.stat",
+      "at": 151.54539999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.06870000000003529,
+      "error": null
+    },
+    {
+      "id": 356,
+      "parent": 345,
+      "name": "fs.stat",
+      "at": 151.56179999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json",
+      "duration": 0.0785000000000764,
+      "error": null
+    },
+    {
+      "id": 357,
+      "parent": 345,
+      "name": "fs.stat",
+      "at": 151.5743,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.06389999999998963,
+      "error": null
+    },
+    {
+      "id": 358,
+      "parent": 345,
+      "name": "fs.stat",
+      "at": 151.5883,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.05660000000000309,
+      "error": null
+    },
+    {
+      "id": 359,
+      "parent": 345,
+      "name": "fs.stat",
+      "at": 151.66109999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.07609999999999673,
+      "error": null
+    },
+    {
+      "id": 360,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 151.75799999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.4816000000000713,
+      "error": null
+    },
+    {
+      "id": 361,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 152.41129999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.5625,
+      "error": null
+    },
+    {
+      "id": 362,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 153.18139999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.5674999999999955,
+      "error": null
+    },
+    {
+      "id": 363,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 153.9706,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.6243999999999232,
+      "error": null
+    },
+    {
+      "id": 364,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 154.7876,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.5760000000000218,
+      "error": null
+    },
+    {
+      "id": 365,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 155.55829999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.5085000000000264,
+      "error": null
+    },
+    {
+      "id": 366,
+      "parent": 345,
+      "name": "store.coordinators#15",
+      "at": 156.25119999999993,
+      "duration": 0.6846000000000458,
+      "error": null
+    },
+    {
+      "id": 367,
+      "parent": 366,
+      "name": "fs.readdir",
+      "at": 156.27089999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.10190000000000055,
+      "error": null
+    },
+    {
+      "id": 368,
+      "parent": 366,
+      "name": "fs.readFile",
+      "at": 156.3972,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.5000999999999749,
+      "error": null
+    },
+    {
+      "id": 369,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 156.9543,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.48900000000003274,
+      "error": null
+    },
+    {
+      "id": 370,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 157.58460000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.5534999999999854,
+      "error": null
+    },
+    {
+      "id": 371,
+      "parent": 345,
+      "name": "store.checkBlobs#16",
+      "at": 158.4687,
+      "duration": 0.004599999999982174,
+      "error": null
+    },
+    {
+      "id": 372,
+      "parent": 345,
+      "name": "store.apply#16",
+      "at": 158.47569999999996,
+      "duration": 0.11760000000003856,
+      "error": null
+    },
+    {
+      "id": 373,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 158.75829999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.587099999999964,
+      "error": null
+    },
+    {
+      "id": 374,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 159.56909999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.5595000000000709,
+      "error": null
+    },
+    {
+      "id": 375,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 160.2799,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.6381000000000085,
+      "error": null
+    },
+    {
+      "id": 376,
+      "parent": 345,
+      "name": "store.checkBlobs#17",
+      "at": 161.2944,
+      "duration": 0.6472999999999729,
+      "error": null
+    },
+    {
+      "id": 377,
+      "parent": 376,
+      "name": "fs.readFile",
+      "at": 161.31449999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.6036000000000286,
+      "error": null
+    },
+    {
+      "id": 378,
+      "parent": 345,
+      "name": "store.apply#17",
+      "at": 161.9466,
+      "duration": 0.18259999999997945,
+      "error": null
+    },
+    {
+      "id": 379,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 162.2976,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.4774999999999636,
+      "error": null
+    },
+    {
+      "id": 380,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 162.97479999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.48440000000005057,
+      "error": null
+    },
+    {
+      "id": 381,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 163.60579999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json",
+      "duration": 0.4682999999999993,
+      "error": null
+    },
+    {
+      "id": 382,
+      "parent": 345,
+      "name": "store.checkBlobs#18",
+      "at": 164.38739999999996,
+      "duration": 0.004199999999968895,
+      "error": null
+    },
+    {
+      "id": 383,
+      "parent": 345,
+      "name": "store.apply#18",
+      "at": 164.39369999999997,
+      "duration": 0.16430000000002565,
+      "error": null
+    },
+    {
+      "id": 384,
+      "parent": 345,
+      "name": "fs.readFile",
+      "at": 164.75709999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.6088000000000875,
+      "error": null
+    },
+    {
+      "id": 385,
+      "parent": 0,
+      "name": "store.transact#4",
+      "at": 165.71699999999998,
+      "duration": 22.073999999999955,
+      "error": null
+    },
+    {
+      "id": 386,
+      "parent": 385,
+      "name": "store.scan#11",
+      "at": 165.86969999999997,
+      "duration": 14.749199999999973,
+      "error": null
+    },
+    {
+      "id": 387,
+      "parent": 386,
+      "name": "fs.readdir",
+      "at": 165.88209999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.12430000000006203,
+      "error": null
+    },
+    {
+      "id": 388,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 166.02819999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.5135000000000218,
+      "error": null
+    },
+    {
+      "id": 389,
+      "parent": 386,
+      "name": "fs.readdir",
+      "at": 166.5811,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.10640000000000782,
+      "error": null
+    },
+    {
+      "id": 390,
+      "parent": 386,
+      "name": "fs.readdir",
+      "at": 166.70389999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.08770000000004075,
+      "error": null
+    },
+    {
+      "id": 391,
+      "parent": 386,
+      "name": "fs.stat",
+      "at": 166.82039999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.15089999999997872,
+      "error": null
+    },
+    {
+      "id": 392,
+      "parent": 386,
+      "name": "fs.stat",
+      "at": 166.8514,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.12249999999994543,
+      "error": null
+    },
+    {
+      "id": 393,
+      "parent": 386,
+      "name": "fs.stat",
+      "at": 166.86969999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.19000000000005457,
+      "error": null
+    },
+    {
+      "id": 394,
+      "parent": 386,
+      "name": "fs.stat",
+      "at": 166.8868,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.08899999999994179,
+      "error": null
+    },
+    {
+      "id": 395,
+      "parent": 386,
+      "name": "fs.stat",
+      "at": 166.90459999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.10019999999997253,
+      "error": null
+    },
+    {
+      "id": 396,
+      "parent": 386,
+      "name": "fs.stat",
+      "at": 166.91869999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.0987999999999829,
+      "error": null
+    },
+    {
+      "id": 397,
+      "parent": 386,
+      "name": "fs.stat",
+      "at": 166.93129999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json",
+      "duration": 0.14409999999998035,
+      "error": null
+    },
+    {
+      "id": 398,
+      "parent": 386,
+      "name": "fs.stat",
+      "at": 166.94389999999999,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.14800000000002456,
+      "error": null
+    },
+    {
+      "id": 399,
+      "parent": 386,
+      "name": "fs.stat",
+      "at": 166.95589999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.12800000000004275,
+      "error": null
+    },
+    {
+      "id": 400,
+      "parent": 386,
+      "name": "fs.stat",
+      "at": 167.13400000000001,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.1775000000000091,
+      "error": null
+    },
+    {
+      "id": 401,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 167.34730000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.5482999999999265,
+      "error": null
+    },
+    {
+      "id": 402,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 168.04649999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.5212000000000216,
+      "error": null
+    },
+    {
+      "id": 403,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 168.7699,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.5213999999999714,
+      "error": null
+    },
+    {
+      "id": 404,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 169.48349999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.5350000000000819,
+      "error": null
+    },
+    {
+      "id": 405,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 170.21429999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.48519999999996344,
+      "error": null
+    },
+    {
+      "id": 406,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 170.8927,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.5495999999999412,
+      "error": null
+    },
+    {
+      "id": 407,
+      "parent": 386,
+      "name": "store.coordinators#16",
+      "at": 171.62400000000002,
+      "duration": 0.6917999999999438,
+      "error": null
+    },
+    {
+      "id": 408,
+      "parent": 407,
+      "name": "fs.readdir",
+      "at": 171.64350000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.11529999999993379,
+      "error": null
+    },
+    {
+      "id": 409,
+      "parent": 407,
+      "name": "fs.readFile",
+      "at": 171.78300000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.49339999999995143,
+      "error": null
+    },
+    {
+      "id": 410,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 172.3352,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.4720999999999549,
+      "error": null
+    },
+    {
+      "id": 411,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 172.9448,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.5009000000000015,
+      "error": null
+    },
+    {
+      "id": 412,
+      "parent": 386,
+      "name": "store.checkBlobs#19",
+      "at": 173.76620000000003,
+      "duration": 0.004299999999943793,
+      "error": null
+    },
+    {
+      "id": 413,
+      "parent": 386,
+      "name": "store.apply#19",
+      "at": 173.7726,
+      "duration": 0.09579999999994016,
+      "error": null
+    },
+    {
+      "id": 414,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 174.01599999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.6268999999999778,
+      "error": null
+    },
+    {
+      "id": 415,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 174.84159999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.48329999999998563,
+      "error": null
+    },
+    {
+      "id": 416,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 175.46820000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.5681999999999334,
+      "error": null
+    },
+    {
+      "id": 417,
+      "parent": 386,
+      "name": "store.checkBlobs#20",
+      "at": 176.39379999999994,
+      "duration": 0.6401000000000749,
+      "error": null
+    },
+    {
+      "id": 418,
+      "parent": 417,
+      "name": "fs.readFile",
+      "at": 176.41639999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.6000999999999976,
+      "error": null
+    },
+    {
+      "id": 419,
+      "parent": 386,
+      "name": "store.apply#20",
+      "at": 177.03819999999996,
+      "duration": 0.18840000000000146,
+      "error": null
+    },
+    {
+      "id": 420,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 177.4235,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.5055999999999585,
+      "error": null
+    },
+    {
+      "id": 421,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 178.1304,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.5253000000000156,
+      "error": null
+    },
+    {
+      "id": 422,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 178.78969999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json",
+      "duration": 0.49710000000004584,
+      "error": null
+    },
+    {
+      "id": 423,
+      "parent": 386,
+      "name": "store.checkBlobs#21",
+      "at": 179.52009999999996,
+      "duration": 0.00430000000005748,
+      "error": null
+    },
+    {
+      "id": 424,
+      "parent": 386,
+      "name": "store.apply#21",
+      "at": 179.52639999999997,
+      "duration": 0.16790000000003147,
+      "error": null
+    },
+    {
+      "id": 425,
+      "parent": 386,
+      "name": "fs.readFile",
+      "at": 179.8759,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.5040000000000191,
+      "error": null
+    },
+    {
+      "id": 426,
+      "parent": 385,
+      "name": "store.commit#4",
+      "at": 180.62649999999996,
+      "duration": 7.160200000000032,
+      "error": null
+    },
+    {
+      "id": 427,
+      "parent": 426,
+      "name": "store.assertCoordinator#6",
+      "at": 180.63239999999996,
+      "duration": 0.885599999999954,
+      "error": null
+    },
+    {
+      "id": 428,
+      "parent": 427,
+      "name": "store.coordinators#17",
+      "at": 180.63509999999997,
+      "duration": 0.7480000000000473,
+      "error": null
+    },
+    {
+      "id": 429,
+      "parent": 428,
+      "name": "fs.readdir",
+      "at": 180.6531,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.12459999999998672,
+      "error": null
+    },
+    {
+      "id": 430,
+      "parent": 428,
+      "name": "fs.readFile",
+      "at": 180.8025,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.5391999999999371,
+      "error": null
+    },
+    {
+      "id": 431,
+      "parent": 427,
+      "name": "fs.readFile",
+      "at": 181.40769999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.release.json",
+      "duration": 0.10310000000004038,
+      "error": {
+        "name": "Error",
+        "code": "ENOENT",
+        "message": "ENOENT: no such file or directory, open 'C:\\Users\\micha\\AppData\\Local\\Temp\\firstmate-tests-lDnZeT\\2f4c11cd-f668-4833-88fb-d166865d92ae\\data\\supervision\\ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1\\coordinators\\000000000001.release.json'"
+      }
+    },
+    {
+      "id": 432,
+      "parent": 426,
+      "name": "store.apply#22",
+      "at": 181.52139999999997,
+      "duration": 0.2758999999999787,
+      "error": null
+    },
+    {
+      "id": 433,
+      "parent": 426,
+      "name": "store.checkBlobs#22",
+      "at": 181.80939999999998,
+      "duration": 0.002499999999940883,
+      "error": null
+    },
+    {
+      "id": 434,
+      "parent": 426,
+      "name": "store.publish(tip)",
+      "at": 182.1363,
+      "duration": 2.086999999999989,
+      "error": null
+    },
+    {
+      "id": 435,
+      "parent": 434,
+      "name": "fs.open",
+      "at": 182.1861,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json.9d47146c-f638-4cb1-ba04-5c0dcc7ade8e.tmp",
+      "duration": 0.2919999999999163,
+      "error": null
+    },
+    {
+      "id": 436,
+      "parent": 434,
+      "name": "fs.writeFile",
+      "at": 182.49630000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json.9d47146c-f638-4cb1-ba04-5c0dcc7ade8e.tmp",
+      "duration": 0.1856999999999971,
+      "error": null
+    },
+    {
+      "id": 437,
+      "parent": 434,
+      "name": "fs.sync",
+      "at": 182.70049999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json.9d47146c-f638-4cb1-ba04-5c0dcc7ade8e.tmp",
+      "duration": 0.8470000000000937,
+      "error": null
+    },
+    {
+      "id": 438,
+      "parent": 434,
+      "name": "fs.close",
+      "at": 183.56459999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json.9d47146c-f638-4cb1-ba04-5c0dcc7ade8e.tmp",
+      "duration": 0.08070000000009259,
+      "error": null
+    },
+    {
+      "id": 439,
+      "parent": 434,
+      "name": "fs.link",
+      "at": 183.66019999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json.9d47146c-f638-4cb1-ba04-5c0dcc7ade8e.tmp",
+      "duration": 0.3626000000000431,
+      "error": null
+    },
+    {
+      "id": 440,
+      "parent": 434,
+      "name": "fs.unlink",
+      "at": 184.03879999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json.9d47146c-f638-4cb1-ba04-5c0dcc7ade8e.tmp",
+      "duration": 0.18050000000005184,
+      "error": null
+    },
+    {
+      "id": 441,
+      "parent": 426,
+      "name": "store.publish(event)",
+      "at": 184.2396,
+      "duration": 1.7749000000000024,
+      "error": null
+    },
+    {
+      "id": 442,
+      "parent": 441,
+      "name": "fs.open",
+      "at": 184.29089999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.event.json.b0a31999-106d-4647-ba2e-f13c3491a5b8.tmp",
+      "duration": 0.288599999999974,
+      "error": null
+    },
+    {
+      "id": 443,
+      "parent": 441,
+      "name": "fs.writeFile",
+      "at": 184.596,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.event.json.b0a31999-106d-4647-ba2e-f13c3491a5b8.tmp",
+      "duration": 0.14760000000001128,
+      "error": null
+    },
+    {
+      "id": 444,
+      "parent": 441,
+      "name": "fs.sync",
+      "at": 184.76319999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.event.json.b0a31999-106d-4647-ba2e-f13c3491a5b8.tmp",
+      "duration": 0.6499999999999773,
+      "error": null
+    },
+    {
+      "id": 445,
+      "parent": 441,
+      "name": "fs.close",
+      "at": 185.4303,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.event.json.b0a31999-106d-4647-ba2e-f13c3491a5b8.tmp",
+      "duration": 0.08150000000000546,
+      "error": null
+    },
+    {
+      "id": 446,
+      "parent": 441,
+      "name": "fs.link",
+      "at": 185.53019999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.event.json.b0a31999-106d-4647-ba2e-f13c3491a5b8.tmp",
+      "duration": 0.28309999999999036,
+      "error": null
+    },
+    {
+      "id": 447,
+      "parent": 441,
+      "name": "fs.unlink",
+      "at": 185.8288,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.event.json.b0a31999-106d-4647-ba2e-f13c3491a5b8.tmp",
+      "duration": 0.1834999999999809,
+      "error": null
+    },
+    {
+      "id": 448,
+      "parent": 426,
+      "name": "store.publish(publication)",
+      "at": 186.0294,
+      "duration": 1.7470999999999322,
+      "error": null
+    },
+    {
+      "id": 449,
+      "parent": 448,
+      "name": "fs.open",
+      "at": 186.0919,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json.588c21ec-5e87-49fe-b7e3-fd7fd767108a.tmp",
+      "duration": 0.23839999999995598,
+      "error": null
+    },
+    {
+      "id": 450,
+      "parent": 448,
+      "name": "fs.writeFile",
+      "at": 186.34429999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json.588c21ec-5e87-49fe-b7e3-fd7fd767108a.tmp",
+      "duration": 0.13409999999998945,
+      "error": null
+    },
+    {
+      "id": 451,
+      "parent": 448,
+      "name": "fs.sync",
+      "at": 186.49399999999991,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json.588c21ec-5e87-49fe-b7e3-fd7fd767108a.tmp",
+      "duration": 0.625,
+      "error": null
+    },
+    {
+      "id": 452,
+      "parent": 448,
+      "name": "fs.close",
+      "at": 187.13459999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json.588c21ec-5e87-49fe-b7e3-fd7fd767108a.tmp",
+      "duration": 0.08339999999998327,
+      "error": null
+    },
+    {
+      "id": 453,
+      "parent": 448,
+      "name": "fs.link",
+      "at": 187.22820000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json.588c21ec-5e87-49fe-b7e3-fd7fd767108a.tmp",
+      "duration": 0.278699999999958,
+      "error": null
+    },
+    {
+      "id": 454,
+      "parent": 448,
+      "name": "fs.unlink",
+      "at": 187.52189999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json.588c21ec-5e87-49fe-b7e3-fd7fd767108a.tmp",
+      "duration": 0.2520000000000664,
+      "error": null
+    },
+    {
+      "id": 455,
+      "parent": 0,
+      "name": "events.resolve#2",
+      "at": 187.79869999999994
+    },
+    {
+      "id": 456,
+      "parent": 455,
+      "name": "store.read#5",
+      "at": 187.8437,
+      "duration": 19.864199999999983,
+      "error": null
+    },
+    {
+      "id": 457,
+      "parent": 456,
+      "name": "store.scan#12",
+      "at": 187.846,
+      "duration": 19.794399999999996,
+      "error": null
+    },
+    {
+      "id": 458,
+      "parent": 457,
+      "name": "fs.readdir",
+      "at": 187.85789999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.12749999999994088,
+      "error": null
+    },
+    {
+      "id": 459,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 188.00829999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.5462999999999738,
+      "error": null
+    },
+    {
+      "id": 460,
+      "parent": 457,
+      "name": "fs.readdir",
+      "at": 188.5947,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.11000000000001364,
+      "error": null
+    },
+    {
+      "id": 461,
+      "parent": 457,
+      "name": "fs.readdir",
+      "at": 188.72469999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.1168999999999869,
+      "error": null
+    },
+    {
+      "id": 462,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 188.87299999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.20609999999999218,
+      "error": null
+    },
+    {
+      "id": 463,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 188.90679999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.17499999999995453,
+      "error": null
+    },
+    {
+      "id": 464,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 188.92669999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.1594000000000051,
+      "error": null
+    },
+    {
+      "id": 465,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 188.94529999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.1389000000000351,
+      "error": null
+    },
+    {
+      "id": 466,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 188.96349999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.16570000000001528,
+      "error": null
+    },
+    {
+      "id": 467,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 188.98309999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.1634999999999991,
+      "error": null
+    },
+    {
+      "id": 468,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 188.99649999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json",
+      "duration": 0.14480000000003201,
+      "error": null
+    },
+    {
+      "id": 469,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 189.00879999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.16589999999996508,
+      "error": null
+    },
+    {
+      "id": 470,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 189.02279999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.15750000000002728,
+      "error": null
+    },
+    {
+      "id": 471,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 189.03660000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.event.json",
+      "duration": 0.16009999999994307,
+      "error": null
+    },
+    {
+      "id": 472,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 189.0494,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json",
+      "duration": 0.18070000000000164,
+      "error": null
+    },
+    {
+      "id": 473,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 189.063,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json",
+      "duration": 0.1895999999999276,
+      "error": null
+    },
+    {
+      "id": 474,
+      "parent": 457,
+      "name": "fs.stat",
+      "at": 189.27949999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.10730000000000928,
+      "error": null
+    },
+    {
+      "id": 475,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 189.41189999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.5257000000000289,
+      "error": null
+    },
+    {
+      "id": 476,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 190.1381,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.6300999999999704,
+      "error": null
+    },
+    {
+      "id": 477,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 191.0516,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.593599999999924,
+      "error": null
+    },
+    {
+      "id": 478,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 191.92489999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.5078999999999496,
+      "error": null
+    },
+    {
+      "id": 479,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 192.65480000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.5636999999999261,
+      "error": null
+    },
+    {
+      "id": 480,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 193.4416,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.5250999999999522,
+      "error": null
+    },
+    {
+      "id": 481,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 194.17020000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json",
+      "duration": 0.4819999999999709,
+      "error": null
+    },
+    {
+      "id": 482,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 194.8963,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json",
+      "duration": 0.5443000000000211,
+      "error": null
+    },
+    {
+      "id": 483,
+      "parent": 457,
+      "name": "store.coordinators#18",
+      "at": 195.7342,
+      "duration": 0.7415999999999485,
+      "error": null
+    },
+    {
+      "id": 484,
+      "parent": 483,
+      "name": "fs.readdir",
+      "at": 195.7536,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.11479999999994561,
+      "error": null
+    },
+    {
+      "id": 485,
+      "parent": 483,
+      "name": "fs.readFile",
+      "at": 195.89469999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.5380999999999858,
+      "error": null
+    },
+    {
+      "id": 486,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 196.49540000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.47679999999991196,
+      "error": null
+    },
+    {
+      "id": 487,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 197.12879999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.6268999999999778,
+      "error": null
+    },
+    {
+      "id": 488,
+      "parent": 457,
+      "name": "store.checkBlobs#23",
+      "at": 198.0969,
+      "duration": 0.00479999999993197,
+      "error": null
+    },
+    {
+      "id": 489,
+      "parent": 457,
+      "name": "store.apply#23",
+      "at": 198.10449999999992,
+      "duration": 0.10640000000000782,
+      "error": null
+    },
+    {
+      "id": 490,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 198.36219999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.5052000000000589,
+      "error": null
+    },
+    {
+      "id": 491,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 199.11720000000003,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.5270999999999049,
+      "error": null
+    },
+    {
+      "id": 492,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 199.81150000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.549199999999928,
+      "error": null
+    },
+    {
+      "id": 493,
+      "parent": 457,
+      "name": "store.checkBlobs#24",
+      "at": 200.64009999999996,
+      "duration": 0.5936000000000377,
+      "error": null
+    },
+    {
+      "id": 494,
+      "parent": 493,
+      "name": "fs.readFile",
+      "at": 200.6594,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.563199999999938,
+      "error": null
+    },
+    {
+      "id": 495,
+      "parent": 457,
+      "name": "store.apply#24",
+      "at": 201.2378,
+      "duration": 0.25319999999999254,
+      "error": null
+    },
+    {
+      "id": 496,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 201.6603,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.5455999999999221,
+      "error": null
+    },
+    {
+      "id": 497,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 202.40369999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.5,
+      "error": null
+    },
+    {
+      "id": 498,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 203.04869999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json",
+      "duration": 0.5188000000000557,
+      "error": null
+    },
+    {
+      "id": 499,
+      "parent": 457,
+      "name": "store.checkBlobs#25",
+      "at": 203.79989999999998,
+      "duration": 0.004299999999943793,
+      "error": null
+    },
+    {
+      "id": 500,
+      "parent": 457,
+      "name": "store.apply#25",
+      "at": 203.80649999999991,
+      "duration": 0.18570000000011078,
+      "error": null
+    },
+    {
+      "id": 501,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 204.18089999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.5258999999999787,
+      "error": null
+    },
+    {
+      "id": 502,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 204.9203,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json",
+      "duration": 0.5164999999999509,
+      "error": null
+    },
+    {
+      "id": 503,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 205.6015,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.event.json",
+      "duration": 0.5884999999999536,
+      "error": null
+    },
+    {
+      "id": 504,
+      "parent": 457,
+      "name": "store.checkBlobs#26",
+      "at": 206.35579999999993,
+      "duration": 0.00430000000005748,
+      "error": null
+    },
+    {
+      "id": 505,
+      "parent": 457,
+      "name": "store.apply#26",
+      "at": 206.36289999999997,
+      "duration": 0.2522999999999911,
+      "error": null
+    },
+    {
+      "id": 506,
+      "parent": 457,
+      "name": "fs.readFile",
+      "at": 206.81920000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json",
+      "duration": 0.5992999999999711,
+      "error": null
+    },
+    {
+      "id": 507,
+      "parent": 455,
+      "name": "store.transact#5",
+      "at": 207.87079999999992
+    },
+    {
+      "id": 508,
+      "parent": 507,
+      "name": "store.scan#13",
+      "at": 208.30970000000002,
+      "duration": 19.54959999999994,
+      "error": null
+    },
+    {
+      "id": 509,
+      "parent": 508,
+      "name": "fs.readdir",
+      "at": 208.32359999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1",
+      "duration": 0.12810000000001764,
+      "error": null
+    },
+    {
+      "id": 510,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 208.49,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/identity.json",
+      "duration": 0.5835999999999331,
+      "error": null
+    },
+    {
+      "id": 511,
+      "parent": 508,
+      "name": "fs.readdir",
+      "at": 209.10829999999999,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions",
+      "duration": 0.0969000000000051,
+      "error": null
+    },
+    {
+      "id": 512,
+      "parent": 508,
+      "name": "fs.readdir",
+      "at": 209.21939999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs",
+      "duration": 0.08760000000006585,
+      "error": null
+    },
+    {
+      "id": 513,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.3297,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.16609999999991487,
+      "error": null
+    },
+    {
+      "id": 514,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.351,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.1532999999999447,
+      "error": null
+    },
+    {
+      "id": 515,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.3655,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.1331000000000131,
+      "error": null
+    },
+    {
+      "id": 516,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.38,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.12249999999994543,
+      "error": null
+    },
+    {
+      "id": 517,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.39389999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.1067000000000462,
+      "error": null
+    },
+    {
+      "id": 518,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.40699999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.10530000000005657,
+      "error": null
+    },
+    {
+      "id": 519,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.41969999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json",
+      "duration": 0.08900000000005548,
+      "error": null
+    },
+    {
+      "id": 520,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.4321,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.07380000000000564,
+      "error": null
+    },
+    {
+      "id": 521,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.44539999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.06500000000005457,
+      "error": null
+    },
+    {
+      "id": 522,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.45870000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.event.json",
+      "duration": 0.06939999999997326,
+      "error": null
+    },
+    {
+      "id": 523,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.47050000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json",
+      "duration": 0.06110000000001037,
+      "error": null
+    },
+    {
+      "id": 524,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.48219999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json",
+      "duration": 0.06130000000007385,
+      "error": null
+    },
+    {
+      "id": 525,
+      "parent": 508,
+      "name": "fs.stat",
+      "at": 209.55859999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.08360000000004675,
+      "error": null
+    },
+    {
+      "id": 526,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 209.67419999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.6030000000000655,
+      "error": null
+    },
+    {
+      "id": 527,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 210.43599999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.575800000000072,
+      "error": null
+    },
+    {
+      "id": 528,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 211.19189999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.5234000000000378,
+      "error": null
+    },
+    {
+      "id": 529,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 211.91239999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.5138000000000602,
+      "error": null
+    },
+    {
+      "id": 530,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 212.62400000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.5306999999999107,
+      "error": null
+    },
+    {
+      "id": 531,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 213.34219999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.4835000000000491,
+      "error": null
+    },
+    {
+      "id": 532,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 214.0145,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json",
+      "duration": 0.4692999999999756,
+      "error": null
+    },
+    {
+      "id": 533,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 214.70299999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json",
+      "duration": 0.47950000000003,
+      "error": null
+    },
+    {
+      "id": 534,
+      "parent": 508,
+      "name": "store.coordinators#19",
+      "at": 215.4511,
+      "duration": 0.7239999999999327,
+      "error": null
+    },
+    {
+      "id": 535,
+      "parent": 534,
+      "name": "fs.readdir",
+      "at": 215.4696,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.12239999999997053,
+      "error": null
+    },
+    {
+      "id": 536,
+      "parent": 534,
+      "name": "fs.readFile",
+      "at": 215.61939999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.515700000000038,
+      "error": null
+    },
+    {
+      "id": 537,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 216.2228,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.tip.json",
+      "duration": 0.47690000000000055,
+      "error": null
+    },
+    {
+      "id": 538,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 216.8741,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.event.json",
+      "duration": 0.6141999999999825,
+      "error": null
+    },
+    {
+      "id": 539,
+      "parent": 508,
+      "name": "store.checkBlobs#27",
+      "at": 217.94909999999993,
+      "duration": 0.004600000000095861,
+      "error": null
+    },
+    {
+      "id": 540,
+      "parent": 508,
+      "name": "store.apply#27",
+      "at": 217.95709999999997,
+      "duration": 0.10919999999998709,
+      "error": null
+    },
+    {
+      "id": 541,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 218.21719999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000001.publication.json",
+      "duration": 0.5538000000000238,
+      "error": null
+    },
+    {
+      "id": 542,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 219.02789999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.tip.json",
+      "duration": 0.568300000000022,
+      "error": null
+    },
+    {
+      "id": 543,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 219.75509999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.event.json",
+      "duration": 0.5193000000000438,
+      "error": null
+    },
+    {
+      "id": 544,
+      "parent": 508,
+      "name": "store.checkBlobs#28",
+      "at": 220.5593,
+      "duration": 0.5685999999999467,
+      "error": null
+    },
+    {
+      "id": 545,
+      "parent": 544,
+      "name": "fs.readFile",
+      "at": 220.57889999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/blobs/12be39fdea3651a12e0975c46c3d4981ae2def5381bc7b330109e36221bb43c4",
+      "duration": 0.5372999999999593,
+      "error": null
+    },
+    {
+      "id": 546,
+      "parent": 508,
+      "name": "store.apply#28",
+      "at": 221.13170000000002,
+      "duration": 0.17210000000000036,
+      "error": null
+    },
+    {
+      "id": 547,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 221.47529999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000002.publication.json",
+      "duration": 0.6578000000000657,
+      "error": null
+    },
+    {
+      "id": 548,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 222.38879999999995,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.tip.json",
+      "duration": 0.5061000000000604,
+      "error": null
+    },
+    {
+      "id": 549,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 223.03480000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.event.json",
+      "duration": 0.5373999999999342,
+      "error": null
+    },
+    {
+      "id": 550,
+      "parent": 508,
+      "name": "store.checkBlobs#29",
+      "at": 223.8075,
+      "duration": 0.0036999999999807187,
+      "error": null
+    },
+    {
+      "id": 551,
+      "parent": 508,
+      "name": "store.apply#29",
+      "at": 223.81319999999994,
+      "duration": 0.17219999999997526,
+      "error": null
+    },
+    {
+      "id": 552,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 224.2527,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000003.publication.json",
+      "duration": 0.6527999999999565,
+      "error": null
+    },
+    {
+      "id": 553,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 225.10789999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.tip.json",
+      "duration": 0.5353000000000065,
+      "error": null
+    },
+    {
+      "id": 554,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 225.8198,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.event.json",
+      "duration": 0.5278999999999314,
+      "error": null
+    },
+    {
+      "id": 555,
+      "parent": 508,
+      "name": "store.checkBlobs#30",
+      "at": 226.50839999999994,
+      "duration": 0.0039000000000442014,
+      "error": null
+    },
+    {
+      "id": 556,
+      "parent": 508,
+      "name": "store.apply#30",
+      "at": 226.51459999999997,
+      "duration": 0.20519999999999072,
+      "error": null
+    },
+    {
+      "id": 557,
+      "parent": 508,
+      "name": "fs.readFile",
+      "at": 226.96839999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000004.publication.json",
+      "duration": 0.6716000000000122,
+      "error": null
+    },
+    {
+      "id": 558,
+      "parent": 507,
+      "name": "store.commit#5",
+      "at": 227.87099999999998
+    },
+    {
+      "id": 559,
+      "parent": 558,
+      "name": "store.assertCoordinator#7",
+      "at": 227.87759999999992,
+      "duration": 1.1445000000001073,
+      "error": null
+    },
+    {
+      "id": 560,
+      "parent": 559,
+      "name": "store.coordinators#20",
+      "at": 227.88029999999992,
+      "duration": 0.996900000000096,
+      "error": null
+    },
+    {
+      "id": 561,
+      "parent": 560,
+      "name": "fs.readdir",
+      "at": 227.89749999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators",
+      "duration": 0.3611000000000786,
+      "error": null
+    },
+    {
+      "id": 562,
+      "parent": 560,
+      "name": "fs.readFile",
+      "at": 228.27959999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.json",
+      "duration": 0.5588999999999942,
+      "error": null
+    },
+    {
+      "id": 563,
+      "parent": 559,
+      "name": "fs.readFile",
+      "at": 228.89969999999994,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/coordinators/000000000001.release.json",
+      "duration": 0.1150000000000091,
+      "error": {
+        "name": "Error",
+        "code": "ENOENT",
+        "message": "ENOENT: no such file or directory, open 'C:\\Users\\micha\\AppData\\Local\\Temp\\firstmate-tests-lDnZeT\\2f4c11cd-f668-4833-88fb-d166865d92ae\\data\\supervision\\ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1\\coordinators\\000000000001.release.json'"
+      }
+    },
+    {
+      "id": 564,
+      "parent": 558,
+      "name": "store.apply#31",
+      "at": 229.02530000000002,
+      "duration": 0.3834999999999127,
+      "error": null
+    },
+    {
+      "id": 565,
+      "parent": 558,
+      "name": "store.checkBlobs#31",
+      "at": 229.41930000000002,
+      "duration": 0.0027000000000043656,
+      "error": null
+    },
+    {
+      "id": 566,
+      "parent": 558,
+      "name": "store.publish(tip)",
+      "at": 229.73969999999997,
+      "duration": 1.9335999999999558,
+      "error": null
+    },
+    {
+      "id": 567,
+      "parent": 566,
+      "name": "fs.open",
+      "at": 229.78719999999998,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000005.tip.json.148c7822-90de-405b-adcc-292aa413b065.tmp",
+      "duration": 0.2866999999999962,
+      "error": null
+    },
+    {
+      "id": 568,
+      "parent": 566,
+      "name": "fs.writeFile",
+      "at": 230.08819999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000005.tip.json.148c7822-90de-405b-adcc-292aa413b065.tmp",
+      "duration": 0.14380000000005566,
+      "error": null
+    },
+    {
+      "id": 569,
+      "parent": 566,
+      "name": "fs.sync",
+      "at": 230.24709999999993,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000005.tip.json.148c7822-90de-405b-adcc-292aa413b065.tmp",
+      "duration": 0.7769000000000688,
+      "error": null
+    },
+    {
+      "id": 570,
+      "parent": 566,
+      "name": "fs.close",
+      "at": 231.03909999999996,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000005.tip.json.148c7822-90de-405b-adcc-292aa413b065.tmp",
+      "duration": 0.06950000000006185,
+      "error": null
+    },
+    {
+      "id": 571,
+      "parent": 566,
+      "name": "fs.link",
+      "at": 231.12259999999992,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000005.tip.json.148c7822-90de-405b-adcc-292aa413b065.tmp",
+      "duration": 0.3029000000000224,
+      "error": null
+    },
+    {
+      "id": 572,
+      "parent": 566,
+      "name": "fs.unlink",
+      "at": 231.44060000000002,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000005.tip.json.148c7822-90de-405b-adcc-292aa413b065.tmp",
+      "duration": 0.2300999999999931,
+      "error": null
+    },
+    {
+      "id": 573,
+      "parent": 558,
+      "name": "store.publish(event)",
+      "at": 231.68679999999995
+    },
+    {
+      "id": 574,
+      "parent": 573,
+      "name": "fs.open",
+      "at": 231.73199999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000005.event.json.f888d147-1fcd-4258-9d7e-d063107ba880.tmp",
+      "duration": 0.24959999999998672,
+      "error": null
+    },
+    {
+      "id": 575,
+      "parent": 573,
+      "name": "fs.writeFile",
+      "at": 231.99469999999997,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000005.event.json.f888d147-1fcd-4258-9d7e-d063107ba880.tmp",
+      "duration": 0.11410000000000764,
+      "error": null
+    },
+    {
+      "id": 576,
+      "parent": 573,
+      "name": "fs.sync",
+      "at": 232.1232,
+      "path": "2f4c11cd-f668-4833-88fb-d166865d92ae/data/supervision/ae3f866f26a0cbcfd77f2097d5de449cfc4f0a044b7b9b9bf6380c0ce4c780f1/transactions/000000000005.event.json.f888d147-1fcd-4258-9d7e-d063107ba880.tmp"
+    }
+  ]
+}

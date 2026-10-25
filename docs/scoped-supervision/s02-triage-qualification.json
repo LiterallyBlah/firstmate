@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "base": "5f236856dea1844c23c871d0a7af850fb506133e",
+  "createdAt": "2026-10-25T01:16:54.432Z",
+  "workflow": "fm-supervision-architecture/fm-ss-s02-triage",
+  "attempt": "956fcddf-e282-43cd-b93e-d7953f7c877a",
+  "historicalCauseEstablished": false,
+  "productionCorrection": false,
+  "scope": "Bounded diagnosis, attribution controls and concrete recommendation only; historical failed gate remains retained.",
+  "environment": {
+    "node": "v24.18.0",
+    "platform": "win32",
+    "release": "10.0.26200",
+    "vitest": "5.0.3",
+    "workers": 1,
+    "caseLimitMs": 5000,
+    "fixtureOnly": true
+  },
+  "inputs": {
+    "review": {
+      "path": "C:/Users/micha/.paseo/plugin-data/firstmate/home/data/fm-ss-r02-render/report.md",
+      "sha256": "5fadabdf634545ebec6ca33d760284ea1b8ccfd609c13176dfbe8cb771685095"
+    },
+    "acceptedRenderReceiptSha256": "0b79b23b3eb8c497196a72a71142b375af83d6a9c93ae524e14d04e2d9a0fbaa",
+    "historicalJob": 121032128589,
+    "historicalRun": 40147581692,
+    "historicalLogSha256": "898ecb3688305c62b5ca68cd6308c05b480f84713f00ad3c7520a8572b98e4be"
+  },
+  "preservation": {
+    "acceptedFiles": 2130,
+    "modifiedAcceptedFiles": 0,
+    "priorHandoffManifest": {
+      "path": ".local/s02-render/handoff-artifacts.json",
+      "sha256": "2f64d8a45bf552b196b0227643e14899d7d1b29077db9b53c94b074e5daec1fa"
+    },
+    "priorArtifactHashes": {
+      ".local/s02-render/handoff.md": "b1585a3f2fedce80cbdac6d7e44f6fa6b5ce2a0994fcb7a85b05aaf60d835466",
+      ".local/s02-render/final-verification.json": "76e9c25dfae03d547fb9925f6aecfe2e61b8f893e9351a9838fcdf79d78d597b",
+      ".local/s02-render/ci-verification.json": "5e0967e9a07f73aa60971a98bb0542cdc71d1d2610e7e96c37ef7ba9fe4723ce",
+      ".local/s02-render/github-latest.json": "e04678946a372da8f6be2791a2f9af87ca7f96d9588fbd6543f8df5cbd3cb0ba",
+      ".local/s02-render/ci-push-windows-job-raw.log": "898ecb3688305c62b5ca68cd6308c05b480f84713f00ad3c7520a8572b98e4be",
+      "docs/scoped-supervision/S02-render-correction.md": "a6d09b401c8f81685b8c8c94fde59c68cf91df95a5f5083540cfaa541e02072b",
+      "docs/scoped-supervision/s02-render-validation.json": "0b79b23b3eb8c497196a72a71142b375af83d6a9c93ae524e14d04e2d9a0fbaa",
+      ".local/s02-render/ci-pr-ubuntu/s01/ci-tests.json": "1c19335f2b102189bd17dc20189eb5de6f9f89ebe65a2d39cc22530efc103224",
+      ".local/s02-render/ci-pr-ubuntu/needs-you-drawer/results.json": "fbe2150df173cfca44b302754371f70badfaccb46c84f428087cc393f8daf85b",
+      ".local/s02-render/ci-pr-windows/s01/ci-tests.json": "a52ec605062bdc2ec4b905b1becb9011ac0876b8a6d88c293883cd0e5a72a59c",
+      ".local/s02-render/ci-pr-windows/needs-you-drawer/results.json": "596be2d6f73057f03087857833b9a03709903799a048bbc9f1986f049369d7e2",
+      ".local/s02-render/ci-push-windows/s01/ci-tests.json": "bffe058127b3f0bb12a56e51e6fd5d362e89cc96414e41f401d9eac9241a78fc",
+      ".local/s02-render/ci-push-ubuntu/s01/ci-tests.json": "0f6b00c14d910d7d9c076f0cfe53ca7a2c914fd00d44393ba05f5481384e9810",
+      ".local/s02-render/ci-push-ubuntu/needs-you-drawer/results.json": "fbe2150df173cfca44b302754371f70badfaccb46c84f428087cc393f8daf85b",
+      ".local/s02-render/ingress-failure-controls.json": "8fc48d5414ad69c6959a024be358766c6c925f1a1f3fa32588c7d265c91c4c99"
+    }
+  },
+  "sources": {
+    "docs/scoped-supervision/S02-triage-qualification.md": "b1648469f71694d1785a8409b32be088acb999b2e2e97c5cbfff7dc6fbf89faf",
+    "docs/scoped-supervision/s02-triage-evidence/.gitattributes": "5f26ede8a29d2475072e0101d086f5bee67a9e622d4b355bd1db43cab2fa282c",
+    "docs/scoped-supervision/s02-triage-evidence/analyze.mjs": "7100ab8a4d5ae0ebd31702423b7772d926e0743ce907ff46706ad6a1c83d54ef",
+    "docs/scoped-supervision/s02-triage-evidence/executed-generator.mjs": "0c76f9fb2dcfa6647dbc628295df982e6a241f40cd601952d36bf13f8e002ba9",
+    "docs/scoped-supervision/s02-triage-evidence/manifest.json": "f61bdd737f52c593108b37657125bbf20064635806526416fabd504a04be87fd",
+    "docs/scoped-supervision/s02-triage-evidence/prepare-probe.mjs": "d8989d3e03a51dfdf0bdeaa76ddee17e855ccfcf884638da109dc054263b8d93",
+    "docs/scoped-supervision/s02-triage-evidence/trace.mjs": "aa6e0f0bef6a03fe3ec7ebb88217821c4e2dd00fae24ec96400e3c95793873e3",
+    "docs/scoped-supervision/s02-triage-evidence/verify.mjs": "04a26a7343d9a4677cfc4116f9422b20c70f25b54e0bffe2b898af5611aec613"
+  },
+  "exactCase": {
+    "base": "5f236856dea1844c23c871d0a7af850fb506133e",
+    "path": "server/supervision-events.test.ts",
+    "title": "explicitly resolves unknown-owner triage once exact registry evidence exists, retaining prior provenance",
+    "sourceSha256": "677c0a062be6ea8df844b4619304b4572f8e5ae10d48b9797ee8a812fc6c6b06",
+    "exactBodySha256": "c20c1cff852619e52197e6c9df656fa6154c3bad7c85aeb2a413c6b29732e71c",
+    "probeSha256": "621f088a6717220959e1a6ecabb20e44d09f7e9e96e547579e755b3ff63d0f57",
+    "assertions": [
+      "    await expect(f.events.resolve(first.resultIds[0]!)).rejects.toMatchObject({ code: \"UNKNOWN_OWNER\" });",
+      "    expect(current.inbox.assignments[0]).toMatchObject({ scopeId: second.scope, attemptId, reason: \"attempt-owner\", state: \"assigned\", ordinal: 1 });",
+      "    expect(current.inbox.assignments[1]).toMatchObject({ scopeId: null, state: \"superseded\", primaryEventId: first.resultIds[0] });",
+      "    expect(supervisionInboxStatus(current, {}, now).counts).toMatchObject({ pending: 1, triage: 0 });",
+      "    expect((await f.inbox.prepare(second.scope, 1, true)).resultIds).toHaveLength(1);"
+    ],
+    "traceSha256": "aa6e0f0bef6a03fe3ec7ebb88217821c4e2dd00fae24ec96400e3c95793873e3"
+  },
+  "experiments": [
+    {
+      "mode": "native",
+      "command": "S02_TRIAGE_MODE=native node node_modules/vitest/vitest.mjs run --config .local/s02-triage/vitest.config.mjs --reporter=default --reporter=json --outputFile=.local/s02-triage/native-tests.json",
+      "expectedExit": 0,
+      "actualExit": 0,
+      "tests": "docs/scoped-supervision/s02-triage-evidence/native-tests.json",
+      "trace": "docs/scoped-supervision/s02-triage-evidence/native-trace.json"
+    },
+    {
+      "mode": "hold-resolution-sync",
+      "command": "S02_TRIAGE_MODE=hold-resolution-sync node node_modules/vitest/vitest.mjs run --config .local/s02-triage/vitest.config.mjs --reporter=default --reporter=json --outputFile=.local/s02-triage/hold-resolution-sync-tests.json",
+      "expectedExit": 1,
+      "actualExit": 1,
+      "tests": "docs/scoped-supervision/s02-triage-evidence/held-tests.json",
+      "deadline": "docs/scoped-supervision/s02-triage-evidence/held-deadline.json",
+      "finished": "docs/scoped-supervision/s02-triage-evidence/held-finished.json",
+      "injection": "Gate before actual native sync during resolve#2 event publication; not evidence of a historical OS sync stall."
+    }
+  ],
+  "typecheck": {
+    "command": "node node_modules/typescript/bin/tsc --noEmit",
+    "exit": 0,
+    "path": ".local/s02-triage/typecheck.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "retainedNewLocalEvidence": [
+    {
+      "path": ".local/s02-triage/vitest.config.mjs",
+      "sha256": "28ed12749a7361748e21990763647ca0eac09084a9d7ddb1a9945b03966e7e4d"
+    },
+    {
+      "path": ".local/s02-triage/packaging-notes.txt",
+      "sha256": "7d81a7ad0f16b22ff1575582a705ce59315b58d7f4b85a7d854f8fe8f27cb7d3"
+    },
+    {
+      "path": ".local/s02-triage/probe-setup-failure.log",
+      "sha256": "67ada3bcc223924129b2f8e98a8ed2924eb5521b9ba60d9e03fa7173bd80aa33"
+    },
+    {
+      "path": ".local/s02-triage/diff-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "qualificationRecommendation": "Separately reviewed test-only phase capture on the actual Windows case with the original assertions/5000ms limit and existing two-worker budget; no unchanged CI retry or speculative product fix.",
+  "deliveryCI": "Automatic exact-head CI from evidence publication is separate, cannot establish historical cause or erase old failure; no manual rerun requested."
+}

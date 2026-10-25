@@ -1,0 +1,40 @@
+// @ts-nocheck -- isolated diagnostic adapter, not a shipped or default-suite fixture.
+import { it, expect, vi } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import { SupervisionStore } from '../../server/supervision-store';
+import { SupervisionEvents } from '../../server/supervision-events';
+import { SupervisionInbox } from '../../server/supervision-inbox';
+import { supervisionInboxStatus } from '../../server/supervision-status';
+import { inboxFixture, observation, ids, second, now } from '../../test/supervision-inbox-fixture';
+import { expected } from '../../test/supervision-fixture';
+import type { SupervisionMutation } from '../../server/supervision-store';
+const { trace } = await vi.hoisted(async()=>await import('./trace.mjs'));
+vi.mock('node:fs/promises',async importOriginal=>trace.wrapFS(await importOriginal()));
+trace.wrapMethods(SupervisionStore.prototype,'store',['initialize','acquireCoordinator','coordinators','assertCoordinator','publish','scan','apply','checkBlobs','commit','transact','read','putBlob']);
+trace.wrapMethods(SupervisionEvents.prototype,'events',['admit','resolve']);
+trace.wrapMethods(SupervisionInbox.prototype,'inbox',['prepare']);
+const exactCase=async()=>{
+    const f = await inboxFixture(), input = observation({ agentId: "future-worker" });
+    const first = await f.events.admit(input);
+    await f.events.admit({ ...input, sourceKind: "catalog", sourceKey: "catalog-future", epoch: null });
+    await expect(f.events.resolve(first.resultIds[0]!)).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
+    const s = await f.store.read(), task = s.tasks.find(t => t.id === second.task)!, attempt = s.attempts.find(a => a.id === second.attempt)!, effect = s.effects.find(e => e.id === second.effect)!;
+    const attemptId = randomUUID(), effectId = randomUUID();
+    const batch: SupervisionMutation[] = [{ kind: "attempt", value: { ...attempt, id: attemptId, ordinal: 2, launchEffectId: effectId, worker: { hostId: "local", agentId: "future-worker", workspaceId: "future-workspace" } } },
+      { kind: "effect", value: { ...effect, id: effectId, attemptId, logicalKey: "future-launch" } }, { kind: "task", value: { ...task, currentAttempt: attemptId, version: 2 } }];
+    await f.store.transact(batch.map(m => ({ ...expected([m])[0]!, version: m.kind === "task" ? 1 : 0 })), randomUUID(), batch);
+    await f.events.resolve(first.resultIds[0]!);
+    const current = await f.store.read();
+    expect(current.inbox.assignments[0]).toMatchObject({ scopeId: second.scope, attemptId, reason: "attempt-owner", state: "assigned", ordinal: 1 });
+    expect(current.inbox.assignments[1]).toMatchObject({ scopeId: null, state: "superseded", primaryEventId: first.resultIds[0] });
+    expect(supervisionInboxStatus(current, {}, now).counts).toMatchObject({ pending: 1, triage: 0 });
+    expect((await f.inbox.prepare(second.scope, 1, true)).resultIds).toHaveLength(1);
+  };
+it("explicitly resolves unknown-owner triage once exact registry evidence exists, retaining prior provenance",async context=>{
+ trace.begin(context.signal);
+ const work=trace.run(exactCase);
+ work.catch(()=>{});
+ context.onTestFailed(()=>trace.snapshot('failure'));
+ context.onTestFinished(async()=>{await work.catch(()=>{});trace.snapshot('finished');});
+ await work;
+});
