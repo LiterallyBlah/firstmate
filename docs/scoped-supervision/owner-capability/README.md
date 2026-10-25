@@ -58,7 +58,30 @@ capture. A blocked root may never report child drain; that absence refuses reuse
 filled from root output. This limitation is not a qualified external descendant stream owner.
 
 Future capture cannot resolve the previous unnamed, disposed job's missing terminal evidence.
-**All fresh targets remain held until prior C2 uncertainty is explicitly resolved, the preparation
-is independently accepted and a fresh bounded assignment is recorded.** A new budget alone is
-insufficient. No root lookup, guessed PID, process-name cleanup or inferred descendant identity
-can replace that missing evidence.
+Historical C2 remains **failed/unknown** permanently. FirstMate's explicit technical disposition
+permits preparing a distinct fresh attempt without reconstructing that irrecoverable history;
+it does not authorize a target run or reclassify the old result. No root lookup, guessed PID,
+process-name cleanup or inferred descendant identity can replace the missing evidence.
+
+The distinct fresh-normal boundary is `QualifyNormal` plus `normal-only.ps1` and
+`qualify-normal.mjs`. The old `Run`, `run.mjs` and `invoke.ps1` remain held. The private owned-case
+implementation now refuses non-normal scenarios, checks a fresh empty owner before creating
+anything, and retains the accepted capture/deadlines. Blocked execution remains unsupported;
+its child-drain inadequacy is not waived. The prior preflight command retains its historical
+source pin and is not silently repinned to this new source.
+
+After independent review and a separately accounted one-normal dispatch, the only proposed
+command is `node docs/scoped-supervision/owner-capability/qualify-normal.mjs` from the pinned
+worktree, with the pinned Node image and no extra arguments. It reserves a new
+`.local/owner-normal-qualification/normal-1` directory and native marker, fresh UUIDs, exact source
+snapshots, then calls only the fixed normal fixture. Never remove/reset either reservation.
+Native 5s/8s and outer 15s plus 3s grace bounds, 64KiB stream retention, explicit output loss and
+conservative missing/late-result refusal remain. The outer watchdog targets only its own spawned
+helper; any timeout, missing closure or uncertain identity refuses reuse and stops the one case.
+It is not a hard kernel-liveness guarantee. No normal success enables another case or workload.
+
+Final helper stdout, file JSON, exit and stdio close must agree; a successful intermediate file
+alone cannot pass. Original failure, exact membership mismatch, identities, termination/waits,
+stream snapshots and uncertain closure remain in `normal-capture.json`. Saved JSON reads are
+capped at 2MiB each. `normal-controls.mjs` and the existing admission/capture controls are finite
+offline checks only; compilation and synthetic positives are never runtime qualification.

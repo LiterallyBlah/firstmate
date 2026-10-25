@@ -296,11 +296,21 @@ public sealed class FirstMateJobCapability {
     }
     public static Dictionary<string, object> Run(string node, string entry, string config, string directory, string scenario) {
         if (!CaptureReviewAccepted) throw new InvalidOperationException("OWNER_CAPTURE_REVIEW_HOLD");
-        if (scenario != "normal" && scenario != "blocked") throw new ArgumentException("Only the two named synthetic cases are permitted");
-        var owner = new FirstMateJobCapability(); var receipt = D("scenario", scenario, "error", null, "originalFailure", null, "targetCreated", false, "targetResumed", false);
+        return RunOwned(node, entry, config, directory, scenario);
+    }
+    public static Dictionary<string, object> QualifyNormal(string node, string entry, string config, string directory) {
+        if (!NormalQualificationPrepared) throw new InvalidOperationException("NORMAL_QUALIFICATION_HOLD");
+        return RunOwned(node, entry, config, directory, "normal");
+    }
+    static Dictionary<string, object> RunOwned(string node, string entry, string config, string directory, string scenario) {
+        if (scenario != "normal") throw new ArgumentException("Fresh normal qualification only; blocked remains unsupported");
+        var owner = new FirstMateJobCapability(); var receipt = D("scenario", scenario, "error", null, "originalFailure", null, "originalFailureTruncated", false, "targetCreated", false, "targetResumed", false);
         Timer timer = null; bool timerDrained = true; IntPtr environment = IntPtr.Zero;
         try {
             owner.Acquire(); // includes successful creation-time job attribute before CreateProcess
+            var empty = owner.lastComplete; receipt["freshOwner"] = empty;
+            if (empty == null || (uint)empty["active"] != 0 || (uint)empty["listed"] != 0 || (uint)empty["total"] != 0)
+                { if (empty != null) owner.Offending(empty); throw new InvalidOperationException("Fresh owner is not empty before target creation"); }
             var startup = new StartupEx(); startup.Basic.Size = (uint)Marshal.SizeOf(typeof(StartupEx)); startup.Attributes = owner.attributes;
             receipt["standardWiring"] = owner.PrepareStandardHandles(ref startup);
             string systemRoot = Environment.GetEnvironmentVariable("SystemRoot");
@@ -361,7 +371,9 @@ public sealed class FirstMateJobCapability {
             }
             if (!receipt.ContainsKey("finalMembers")) throw new TimeoutException("Owned-set closure not confirmed");
         } catch (Exception ex) {
-            receipt["error"] = ex.GetType().Name + ": " + ex.Message;
+            string error = ex.GetType().Name + ": " + ex.Message;
+            receipt["originalFailureTruncated"] = error.Length > 4096;
+            receipt["error"] = error.Substring(0, Math.Min(error.Length, 4096));
             receipt["originalFailure"] = receipt["error"];
             if (owner.job != IntPtr.Zero && (bool)receipt["targetCreated"]) owner.Step("failed-prerequisite termination", delegate { owner.Terminate("failed-prerequisite-cleanup"); });
         } finally {
@@ -389,5 +401,6 @@ public sealed class FirstMateJobCapability {
         return receipt;
     }
     static readonly bool PreflightSetupAllowed = true; // setup/disposal only; Run remains independently held
+    static readonly bool NormalQualificationPrepared = true; // distinct test-only normal entry; execution requires its own reviewed assignment
     static readonly bool CaptureReviewAccepted = false; // no override; source review, prior C2 resolution and fresh dispatch are prerequisites
 }
