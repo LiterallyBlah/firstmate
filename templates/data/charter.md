@@ -327,6 +327,8 @@ counts, not spending or effect permission. Avoid ceremonial probe or review stag
 uncertainty or independent evidence need. Keep captain-only decisions, release, installation,
 discard, access, holds and external effects with the Captain. Use the existing heartbeat as a
 backstop; a wake does not guarantee runtime execution and needs no second timer.
+An investigation delegated as `scout@1` does not authorize a `task@1` ship run. Keep every
+Captain-gate dependency on the work it protects, including an added run in that scope.
 For Captain-owned plans, two or more runs or any decision wait for approval by default; otherwise
 the plan sails. An explicitly delegated plan advances through routine stages with FirstMate. The
 plan-posture standing order in `data/captain.md` can change this; `data/workflows.md` gives its format.

@@ -60,24 +60,60 @@ export function checkNewCaptainAction(command: WorkflowCommand, previous: Workfl
     if (unavailable || !node || !planDecisionReady(previous, node, plans, unavailableDependencies)) throw new Error("Decision is not ready. Approve the plan and complete its required evidence before answering.");
   }
 }
-function assertDelegatedRevision(previous: WorkflowPlan, definition: PlanDefinition): void {
+const delegatedRunScope = (node: Extract<PlanNode, { kind: "run" }>) => digest({
+  project: node.launch.project, host: node.launch.host, baseBranch: node.launch.baseBranch,
+  mode: node.launch.mode, backlog: node.launch.backlog.existing, workflow: node.workflow, kind: node.launch.kind,
+});
+function assertDelegatedRevision(previous: WorkflowPlan, definition: PlanDefinition, plans: WorkflowPlan[]): void {
   if (digest(definition.request) !== digest(previous.definition.request) || digest(definition.ownership ?? null) !== digest(previous.definition.ownership ?? null)) throw new Error("Delegated revision cannot rewrite the request or ownership evidence.");
+  const protectedNodes = new Set(plans.flatMap(plan => plan.definition.nodes.filter(node =>
+    node.kind === "decision" && decisionOwner(plan, node) === "captain" || node.kind === "run" && !!node.launch.captainAuthority).map(node => node.id)));
+  // Keep every old route to a Captain gate, including an indirect route through a routine decision.
+  for (let added = true; added;) {
+    added = false;
+    for (const node of previous.definition.nodes) if (!protectedNodes.has(node.id) && node.after.some(edge => protectedNodes.has(edge.node))) {
+      protectedNodes.add(node.id); added = true;
+    }
+  }
   for (const old of previous.definition.nodes) {
     if (old.kind === "decision" && decisionOwner(previous, old) === "captain" || old.kind === "run" && !!old.launch.captainAuthority) {
       if (digest(definition.nodes.find(node => node.id === old.id) ?? null) !== digest(old)) throw new Error("A captain-owned decision or authority gate cannot be changed through delegated revision.");
     }
+    const current = definition.nodes.find(node => node.id === old.id);
+    if (current) for (const edge of old.after.filter(edge => protectedNodes.has(edge.node))) {
+      if (!current.after.some(next => digest(next) === digest(edge))) throw new Error("A captain gate dependency cannot be removed through delegated revision.");
+    }
+    if (old.kind === "run" && current?.kind === "run" && (old.workflow !== current.workflow || old.launch.kind !== current.launch.kind))
+      throw new Error("Delegated revision changes scout or ship scope; ask the captain.");
   }
   const scopes = new Set(previous.definition.nodes.filter((n): n is Extract<PlanNode, { kind: "run" }> => n.kind === "run" && !n.launch.captainAuthority)
-    .map(n => digest({ project: n.launch.project, host: n.launch.host, baseBranch: n.launch.baseBranch, mode: n.launch.mode, backlog: n.launch.backlog.existing })));
+    .map(delegatedRunScope));
   for (const node of definition.nodes) {
     if (node.kind !== "run") continue;
     const old = previous.definition.nodes.find(n => n.id === node.id);
     if (old?.kind === "run" && digest(node.launch.captainAuthority ?? null) !== digest(old.launch.captainAuthority ?? null)) throw new Error("A captain authority gate cannot be changed through delegated revision.");
     if (node.launch.captainAuthority && digest(node) !== digest(old ?? null)) throw new Error("A captain authority gate cannot be changed through delegated revision.");
     if (!old || old.kind !== "run" || digest(node.launch) !== digest(old.launch)) {
-      const scope = digest({ project: node.launch.project, host: node.launch.host, baseBranch: node.launch.baseBranch, mode: node.launch.mode, backlog: node.launch.backlog.existing });
-      if (!scopes.has(scope)) throw new Error("Delegated revision changes project, host, branch, delivery mode or authority scope; ask the captain.");
+      const scope = delegatedRunScope(node);
+      if (!scopes.has(scope)) throw new Error("Delegated revision changes project, host, branch, delivery mode, scout/ship kind or authority scope; ask the captain.");
+      if (!old) for (const source of previous.definition.nodes.filter((n): n is Extract<PlanNode, { kind: "run" }> => n.kind === "run" && delegatedRunScope(n) === scope)) {
+        for (const edge of source.after.filter(edge => protectedNodes.has(edge.node))) {
+          if (!node.after.some(next => digest(next) === digest(edge))) throw new Error("A new run in a protected scope must retain its captain gate dependency.");
+        }
+      }
     }
+  }
+}
+/** Append admission shared by the legacy request handler and the disabled S03 command seam. */
+export function checkNewWorkflowAction(command: WorkflowCommand, previous: WorkflowPlan | null, plans: WorkflowPlan[], unavailableDependencies = new Set<string>(), unavailable = false): void {
+  checkNewCaptainAction(command, previous, plans, unavailableDependencies, unavailable);
+  if (!previous) return;
+  if (command.op === "revise" && planOwner(previous) === "firstmate") assertDelegatedRevision(previous, command.definition, plans);
+  if (command.op === "start" && planOwner(previous) === "firstmate") {
+    const node = previous.definition.nodes.find(n => n.id === command.node);
+    if (node?.kind === "run" && node.launch.captainAuthority && !node.after.some(edge => edge.on === "answered" &&
+      plans.some(plan => plan.definition.nodes.some(gate => gate.id === edge.node && gate.kind === "decision" && decisionOwner(plan, gate) === "captain" && !!plan.nodes[gate.id]?.answer))))
+      throw new Error("This run has a captain authority gate; record an answered captain-only prerequisite before starting.");
   }
 }
 function answerDecision(plan: WorkflowPlan, nodeId: string | undefined, option: string | undefined, evidence: string, at: string): void {
@@ -151,7 +187,6 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
   if (c.op === "revise") {
     if (c.expected !== previous?.hash || c.definition.id !== next.definition.id) throw new Error("Stale plan revision.");
     if (digest(c.definition.ownership ?? null) !== digest(next.definition.ownership ?? null)) throw new Error("Transfer ownership through a recorded captain action, not a revision.");
-    if (planOwner(next) === "firstmate") assertDelegatedRevision(next, c.definition);
     for (const old of next.definition.nodes) {
       if (next.nodes[old.id]?.state !== "planned" && digest(c.definition.nodes.find(n => n.id === old.id)) !== digest(old)) throw new Error(`Started node ${old.id} is pinned; preserve it and replan separately.`);
       if (old.kind === "decision" && next.nodes[old.id]?.answer && digest(c.definition.nodes.find(n => n.id === old.id)) !== digest(old)) throw new Error("Answered decisions are immutable; add a replacement decision and hold affected work.");
@@ -503,9 +538,9 @@ export class WorkflowPlanStore {
       const postureSource = postureDefinition ? await readPlanPosture(this.home, postureDefinition) : undefined;
       const { plans, quarantined, unavailable } = await this.read();
       const unavailableDependencies = quarantinedDependencyIds(quarantined);
-      // New answers only. Keep the reducer and request-id replay compatible with
-      // committed early answers from older versions of the append-only ledger.
-      checkNewCaptainAction(command, previous, plans, unavailableDependencies, unavailable);
+      // Apply current admission once, after request-id replay. Historical events
+      // retain their committed meaning when the ledger is rebuilt.
+      checkNewWorkflowAction(command, previous, plans, unavailableDependencies, unavailable);
       const ownsWork = ["draft", "revise", "implicit", "start", "claim", "replace"].includes(command.op);
       const candidates = command.op === "draft" || command.op === "revise" ? command.definition.nodes.map(ownershipScope) : command.op === "implicit" ? [{ node: command.launch.id, host: command.launch.host.trim().toLowerCase() }] :
         ownsWork ? previous?.definition.nodes.filter(n => "node" in command && n.id === command.node).map(ownershipScope) ?? [] : [];
@@ -551,10 +586,6 @@ export class WorkflowPlanStore {
       if (command.op === "start") {
         const node = previous?.definition.nodes.find(n => n.id === command.node);
         if (!node || !dependenciesMet(node, plans, unavailableDependencies)) throw new Error("Run dependencies are not satisfied.");
-        if (previous && planOwner(previous) === "firstmate" && node.kind === "run" && node.launch.captainAuthority && !node.after.some(edge => edge.on === "answered" &&
-          plans.some(p => p.definition.nodes.some(n => n.id === edge.node && n.kind === "decision" && decisionOwner(p, n) === "captain" && !!p.nodes[n.id]?.answer)))) {
-          throw new Error("This run has a captain authority gate; record an answered captain-only prerequisite before starting.");
-        }
         briefHash = (await this.brief(node)).hash;
         if (node.kind === "run") {
           launch = structuredClone(node.launch);

@@ -165,6 +165,9 @@ plan before each command; changed ownership, decisions and revisions refuse stal
 Routine in-scope revisions and `replace --kind relaunch` may raise the cumulative worker/turn count
 without the 1.5x review stop; actual spent attempts still count and the declared cap remains binding.
 The plan cannot silently widen project, host, branch, delivery mode or captain authority scope.
+Changing a scout into a ship run, adding ship work to a scout-only scope, or removing a Captain
+gate from protected work requires a separate Captain scope decision. Added runs in a gated scope
+keep the recorded Captain prerequisite.
 An internal worker/turn estimate grants no money, access, external effect or resource expansion.
 Routine decisions follow the current plan owner, including after an explicit transfer. Mark
 `"authority":"captain"` to keep a decision with the Captain under delegation; `"authority":"owner"`

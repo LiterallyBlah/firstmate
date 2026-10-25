@@ -48,6 +48,7 @@ beforeEach(async () => {
 async function input(command: WorkflowCommand): Promise<ScopedPlanCommand> {
   const s = await store.read(), p = s.plans.find(p => p.plan.definition.id === "scheduler")?.plan;
   const operation = command.op === "captain" ? command.action === "answer" ? "decision.answer" : ["hold", "decline"].includes(command.action) ? "plan.stop" : "plan.review" :
+    command.op === "progress" && command.action === "answer" ? "decision.answer" :
     ["start", "claim", "implicit"].includes(command.op) ? "plan.start" : ["record", "invalidate", "validate", "close", "ack"].includes(command.op) ? "plan.record" : "plan.review";
   const target = { scopeId: ids.scope, planId: "scheduler", projectIds: [ids.project], hostId: "local", operation } as const;
   const node = "node" in command ? p?.definition.nodes.find(n => n.id === command.node) : undefined;
@@ -154,6 +155,85 @@ it("two devices commit one revision/subject-bound answer and one durable outbox"
   expect(await answerScopedDecision(commands, a, captain)).toEqual((results[0] as PromiseFulfilledResult<unknown>).value);
   expect((await commands.pending()).find(o => o.entry.kind === "decision.answer")?.binding?.agentId).toBe(mate.id);
 });
+it("refuses an S03 delegated start behind an unanswered explicit Captain authority gate", async () => {
+  const definition = workflowFixture();
+  definition.ownership = { owner: "firstmate", evidence: "Captain delegates routine investigation, but access needs my choice" };
+  definition.nodes = [definition.nodes[0]!]; definition.budget = { agents: 1, turns: 1 };
+  const trial = definition.nodes[0]; if (!trial || trial.kind !== "run") throw new Error("fixture");
+  trial.launch.captainAuthority = { hold: "Captain access required", authority: "Captain must grant access before dispatch" };
+  await run({ op: "draft", definition });
+  const before = await files();
+  await expect(run({ op: "start", plan: "scheduler", node: "trial" })).rejects.toThrow("captain authority gate");
+  expect(await files()).toEqual(before);
+  expect((await store.read()).plans[0]!.plan.nodes.trial?.attempt).toBeUndefined();
+});
+it("keeps an S03 delegated scout scope from becoming ship work through revision", async () => {
+  const definition = workflowFixture();
+  definition.ownership = { owner: "firstmate", evidence: "Captain delegates an investigation only" };
+  definition.request.text = "Investigate and report; implementation needs a separate decision.";
+  definition.nodes = [definition.nodes[0]!]; definition.budget = { agents: 1, turns: 1 };
+  await run({ op: "draft", definition });
+  const before = (await store.read()).plans[0]!.plan, filesBefore = await files(), ship = structuredClone(before.definition);
+  const trial = ship.nodes[0]; if (!trial || trial.kind !== "run") throw new Error("fixture");
+  trial.workflow = "task@1"; trial.launch.kind = "ship";
+  await expect(run({ op: "revise", definition: ship, expected: before.hash, reason: "Promote investigation" })).rejects.toThrow("scope");
+  expect(await files()).toEqual(filesBefore);
+  const routine = structuredClone(before.definition), next = structuredClone(routine.nodes[0]!);
+  if (next.kind !== "run") throw new Error("fixture");
+  next.id = "build"; next.launch.id = "build"; next.launch.brief.file = "data/build/brief.md";
+  routine.nodes.push(next); routine.budget = { agents: 2, turns: 2 };
+  await run({ op: "revise", definition: routine, expected: before.hash, reason: "Add a second in-scope scout" });
+  expect((await store.read()).plans[0]!.plan.status).toBe("active");
+}, 15000);
+it("keeps S03 Captain decision routes on both delegated consumers", async () => {
+  const definition = workflowFixture();
+  definition.ownership = { owner: "firstmate", evidence: "Captain delegates only after my gate" };
+  const trial = definition.nodes.find(n => n.id === "trial")!, gate = definition.nodes.find(n => n.id === "database")!;
+  if (trial.kind !== "run" || gate.kind !== "decision") throw new Error("fixture");
+  gate.authority = "captain"; gate.after = [];
+  trial.after = [{ node: "database", reason: "decision", on: "answered" }];
+  await run({ op: "draft", definition });
+  const before = (await store.read()).plans[0]!.plan, filesBefore = await files(), changed = structuredClone(before.definition);
+  changed.nodes.find(n => n.id === "build")!.after = [];
+  await expect(run({ op: "revise", definition: changed, expected: before.hash, reason: "Remove a gate edge" })).rejects.toThrow("captain gate");
+  expect(await files()).toEqual(filesBefore);
+  const routine = structuredClone(before.definition); routine.nodes.find(n => n.id === "build")!.title = "Build after Captain gate";
+  await run({ op: "revise", definition: routine, expected: before.hash, reason: "Clarify gated work" });
+  expect((await store.read()).plans[0]!.plan.definition.nodes.find(n => n.id === "build")?.after).toEqual(before.definition.nodes.find(n => n.id === "build")?.after);
+}, 15000);
+it("admits an S03 delegated gated start after its explicit Captain decision is answered", async () => {
+  const definition = workflowFixture();
+  definition.ownership = { owner: "firstmate", evidence: "Captain delegates routine work after my access decision" };
+  const trial = definition.nodes.find(n => n.id === "trial")!, gate = definition.nodes.find(n => n.id === "database")!;
+  if (trial.kind !== "run" || gate.kind !== "decision") throw new Error("fixture");
+  gate.authority = "captain"; gate.after = [];
+  trial.after = [{ node: "database", reason: "decision", on: "answered" }];
+  trial.launch.captainAuthority = { hold: "Captain access required", authority: "Captain must grant access before dispatch" };
+  definition.nodes = [gate, trial]; definition.budget = { agents: 1, turns: 1 };
+  await run({ op: "draft", definition });
+  const p = (await store.read()).plans[0]!.plan;
+  await run({ op: "captain", plan: "scheduler", revision: p.revision, subjectHash: planSubjectHash(p), action: "answer", node: "database", option: "sqlite", text: "Grant bounded access" }, captain);
+  await run({ op: "start", plan: "scheduler", node: "trial" });
+  expect((await store.read()).plans[0]!.plan.nodes.trial?.state).toBe("starting");
+});
+it("routes an S03 delegated answer to its owner and commits matching decision provenance and outbox", async () => {
+  const definition = workflowFixture();
+  definition.ownership = { owner: "firstmate", evidence: "Captain delegates the routine storage choice" };
+  const gate = definition.nodes.find(n => n.id === "database")!; gate.after = [];
+  await run({ op: "draft", definition });
+  const base = { ...needsYouSnapshot(null, { status: "fresh", checkedAt: Date.now(), asOf: Date.now(), problems: [] }), homeId: store.homeId, actionCount: 0, pendingAnswerCount: 0 };
+  expect(withScopedNeedsYou(base, await store.read()).actionCount).toBe(0);
+  const p = (await store.read()).plans[0]!.plan;
+  const answer = await input({ op: "progress", plan: "scheduler", revision: p.revision, subjectHash: planSubjectHash(p), action: "answer", node: "database", option: "sqlite", evidence: "Trial evidence supports SQLite" });
+  const accepted = await commands.planCommand(answer, mate);
+  const status = await store.read(), durable = status.decisions.find(d => d.nodeId === "database")!;
+  expect(status.plans[0]!.plan.nodes.database?.answer).toBe("sqlite");
+  expect(durable).toMatchObject({ state: "answered", answer: { submissionId: answer.requestId, option: "sqlite", text: "Trial evidence supports SQLite", provenance: mate, outboxId: answer.requestId } });
+  expect(status.outbox.find(o => o.id === answer.requestId)).toMatchObject({ kind: "decision.answer", decisionId: durable.id });
+  expect(withScopedNeedsYou(base, status).actionCount).toBe(0);
+  expect(withScopedNeedsYou(base, status).pendingAnswerCount).toBe(1);
+  expect(await commands.planCommand(answer, mate)).toEqual(accepted);
+}, 15000);
 it("an answer commits during transfer, survives lost delivery and is consumed only at the new epoch", async () => {
   await decisionReady(); const a = await answerInput(), s = await store.read();
   const hold: SupervisionMutation[] = [{ kind: "scope", value: { ...s.scopes[0]!, state: "transferring", version: 2 } },

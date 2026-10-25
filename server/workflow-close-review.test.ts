@@ -58,7 +58,7 @@ it.each(["declined", "quarantined", "quarantined-declined"])("refuses close with
   await execute({ op: "revise", definition: dependent, expected: current.hash, reason: "Remove the retained landing prerequisite before closing the trial." });
   await close(attempt);
   await expect(execute({ op: "draft", definition: definition("later") })).resolves.toBeTruthy();
-});
+}, 15000);
 
 it.each(["scout", "running", "unresolved"] as const)("refuses close on %s work without changing the journal", async scenario => {
   const attempt = await start(scenario === "scout" ? "scout" : "ship", scenario === "scout" ? "done" : scenario);

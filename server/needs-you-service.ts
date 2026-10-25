@@ -23,22 +23,24 @@ import { resolveHome } from "./config";
 import { dataPath } from "./data-dir";
 import { withDecisionOptions } from "./decision-options";
 import type { SupervisionStatus } from "../shared/supervision";
+import { decisionOwner } from "../shared/workflow-plans";
 import { planDecisionReady } from "../shared/plan-readiness";
 
 /** Read-only opt-in composition seam for S05/S06. No polling/wake/send or legacy mutation. */
 export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: SupervisionStatus): NeedsYouSnapshot {
   if (snapshot.homeId !== null && snapshot.homeId !== status.homeId) throw new Error("Scoped and legacy decision homes differ.");
   const plans = status.plans.map(p => p.plan), problems = [...status.problems];
-  const rows = status.decisions.filter(d => d.state !== "superseded").map(decision => {
+  const rows = status.decisions.filter(d => d.state !== "superseded").flatMap(decision => {
     const plan = status.plans.find(p => p.scopeId === decision.ownerScopeId && p.plan.definition.id === decision.planId)?.plan;
     const node = plan?.definition.nodes.find(n => n.id === decision.nodeId);
+    if (plan && node && decisionOwner(plan, node) === "firstmate") return [];
     const owner = status.scopes.find(s => s.id === decision.ownerScopeId), binding = status.bindings.find(b => b.scopeId === decision.ownerScopeId);
     const backend = status.backends.find(b => b.planId === decision.planId);
     const held = status.operationHolds.some(h => h.scopeId === decision.ownerScopeId && h.planId === decision.planId && h.state === "held" && h.operations.includes("decision.answer"));
     const ready = status.freshness === "current" && backend?.backend === "scoped" && backend.state === "active" && owner?.kind === "plan" && owner.mode === "scoped" && ["active", "held", "transferring"].includes(owner.state) &&
       !held && !!plan && !!node && decision.state === "pending" && planDecisionReady(plan, node, plans);
-    return { decision, ready, waitingFor: decision.state === "answered" ? null : ready ? null : "Waiting for current plan evidence or ownership reconciliation.",
-      ownerEpoch: binding?.state === "active" ? binding.epoch : null };
+    return [{ decision, ready, waitingFor: decision.state === "answered" ? null : ready ? null : "Waiting for current plan evidence or ownership reconciliation.",
+      ownerEpoch: binding?.state === "active" ? binding.epoch : null }];
   });
   const holds = status.operationHolds.filter(h => h.state === "held");
   const holdPlans = new Set(holds.map(h => h.planId));
