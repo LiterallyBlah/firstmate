@@ -87,13 +87,36 @@ export function createCase({ capsule, home, send, sink = () => {}, maxRecords = 
 export function createWitness({ capsule, homeRoot, expectedPid }) {
   const events = [], problems = [];
   const lossFields = ['observerErrors', 'dropped', 'fieldTruncations', 'pendingEntriesDropped', 'ancestryTruncations', 'channelErrors'];
-  let offset = 0, partial = Buffer.alloc(0), seq = 0, caseId, worker, home, final, outcome, entry = false, sealed = false, problemsTotal = 0;
+  const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  const workerIdentity = (value, sessionId) => value && Number.isSafeInteger(value.pid) && value.pid > 0 &&
+    Number.isSafeInteger(value.threadId) && value.threadId >= 0 && typeof value.isMainThread === 'boolean' &&
+    value.isMainThread === (value.threadId === 0) && uuid(value.instance) &&
+    typeof value.node === 'string' && value.node.length <= 128 && /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(value.node) &&
+    typeof sessionId === 'string' && sessionId.startsWith(`${value.pid}:`) && uuid(sessionId.slice(String(value.pid).length + 1));
+  const resourceIdentity = value => value && uuid(value.id) && typeof value.kind === 'string' && value.kind.length > 0 && value.kind.length <= 160 &&
+    typeof value.closed === 'boolean' && (!Object.hasOwn(value, 'pid') || value.pid === null || (Number.isSafeInteger(value.pid) && value.pid > 0));
+  const sameResource = (a, b) => a.id === b.id && a.kind === b.kind && Object.hasOwn(a, 'pid') === Object.hasOwn(b, 'pid') && a.pid === b.pid;
+  const resources = new Map();
+  let offset = 0, partial = Buffer.alloc(0), seq = 0, caseId, worker, sessionWorkerId, home, final, outcome, entry = false, sealed = false, problemsTotal = 0, resourceProblems = false;
   const fail = message => { problemsTotal++; if (problems.length < 32) problems.push(message); };
+  const resourceFail = message => { resourceProblems = true; fail(message); };
+  function reconcileInventory(inventory) {
+    const seen = new Set();
+    for (const resource of inventory) {
+      if (!resourceIdentity(resource)) { resourceFail('malformed-final-resource'); continue; }
+      if (seen.has(resource.id)) resourceFail('duplicate-final-resource');
+      seen.add(resource.id);
+      const known = resources.get(resource.id);
+      if (!known || !sameResource(known, resource) || known.closed !== resource.closed) resourceFail('resource-inventory-mismatch');
+    }
+    if (seen.size !== resources.size || [...resources.keys()].some(id => !seen.has(id))) resourceFail('resource-inventory-missing');
+  }
   function receive(frame) {
     try {
     if (sealed) return;
     frame = structuredClone(frame);
     if (events.length >= 256) { fail('parent-record-overflow'); return; }
+    if (!workerIdentity(frame.actualWorker, frame.sessionWorkerId)) { fail('malformed-worker-identity'); return; }
     if (frame.protocol !== 1 || frame.slotId !== capsule.slotId || frame.capsuleHash !== digest(capsule) ||
       frame.actualWorker?.pid !== expectedPid() || typeof frame.home !== 'string' || !within(homeRoot, frame.home) || !Number.isFinite(frame.childAtMs) ||
       typeof frame.caseId !== 'string' || !frame.caseId || !Number.isSafeInteger(frame.seq)) { fail('correlation-mismatch'); return; }
@@ -102,12 +125,25 @@ export function createWitness({ capsule, homeRoot, expectedPid }) {
       lossFields.some(key => !Number.isSafeInteger(frame.data.observer[key]) || frame.data.observer[key] < 0) ||
       !Array.isArray(frame.data.observer.errors) || frame.data.observer.errors.length > 8 ||
       !Array.isArray(frame.data.observer.resources) || frame.data.observer.resources.length > 32 ||
-      frame.data.observer.resources.some(resource => typeof resource.closed !== 'boolean') ||
       !['fulfilled', 'rejected', 'pending'].includes(frame.data.outcome?.state))) { fail('malformed-final-status'); return; }
     if (frame.seq !== seq + 1) fail('source-sequence-gap'); seq = frame.seq;
-    if (caseId && (frame.caseId !== caseId || frame.home !== home || digest(frame.actualWorker) !== digest(worker))) { fail('worker-case-or-home-changed'); return; }
-    caseId ??= frame.caseId; worker ??= frame.actualWorker; home ??= frame.home;
+    if (caseId && (frame.caseId !== caseId || frame.home !== home || digest(frame.actualWorker) !== digest(worker) ||
+      frame.sessionWorkerId !== sessionWorkerId)) { fail('worker-case-or-home-changed'); return; }
+    caseId ??= frame.caseId; worker ??= frame.actualWorker; sessionWorkerId ??= frame.sessionWorkerId; home ??= frame.home;
     events.push({ ...frame, parentAtMs: performance.now() });
+    if (frame.kind === 'resource-entry' || frame.kind === 'resource-close') {
+      const resource = frame.data;
+      if (final) resourceFail('resource-after-final');
+      else if (!resourceIdentity(resource)) resourceFail('malformed-resource-lifecycle');
+      else if (frame.kind === 'resource-entry') {
+        if (resource.closed || resources.has(resource.id) || resources.size >= 32) resourceFail('invalid-or-duplicate-resource-entry');
+        else resources.set(resource.id, { ...resource });
+      } else {
+        const known = resources.get(resource.id);
+        if (!known || known.closed || !resource.closed || !sameResource(known, resource)) resourceFail('invalid-or-duplicate-resource-close');
+        else known.closed = true;
+      }
+    }
     if (frame.kind === 'case-entry') {
       if (entry || digest(frame.data.capsule) !== digest(capsule)) fail('invalid-or-duplicate-entry');
       entry = true;
@@ -116,7 +152,7 @@ export function createWitness({ capsule, homeRoot, expectedPid }) {
       if (outcome || !['fulfilled', 'rejected'].includes(frame.data?.state)) fail('invalid-or-duplicate-result');
       outcome = frame.data;
     }
-    if (frame.kind === 'case-final') { if (final) fail('duplicate-final'); final = frame.data; }
+    if (frame.kind === 'case-final') { if (final) fail('duplicate-final'); reconcileInventory(frame.data.observer.resources); final = frame.data; }
     } catch { fail('malformed-external-frame'); }
   }
   return {
@@ -143,11 +179,12 @@ export function createWitness({ capsule, homeRoot, expectedPid }) {
       const observerComplete = Boolean(final && final.observer.disposed && !final.observer.incomplete &&
         lossFields.every(key => final.observer[key] === 0) && final.observer.errors.length === 0);
       const workDrained = Boolean(final && final.observer.pendingCount === 0 && final.outcome.state !== 'pending');
-      const knownResourcesClosed = Boolean(final && final.observer.resources.every(resource => resource.closed));
+      // Reconcile only recorded resources; this does not prove runtime membership or descendant closure.
+      const knownResourcesClosed = Boolean(final && !resourceProblems && [...resources.values()].every(resource => resource.closed));
       const supported = runtime === 'fixed-synthetic-node';
       const runtimeClosed = supported && directClosed; // no general descendant claim
       const captureAdmissible = problems.length === 0 && observerComplete;
-      return structuredClone({ capsule, caseId, worker, events, problems, problemRecordsDropped: Math.max(0, problemsTotal - problems.length), outcome: outcome ?? { state: 'missing' }, final: final ?? null,
+      return structuredClone({ capsule, caseId, worker, sessionWorkerId, events, problems, problemRecordsDropped: Math.max(0, problemsTotal - problems.length), outcome: outcome ?? { state: 'missing' }, final: final ?? null,
         observerComplete, workDrained, knownResourcesClosed, captureAdmissible, supported, directClosed, runtimeClosed,
         terminationRequested, closureEvidence, retainFixture: true,
         safeForReuse: captureAdmissible && workDrained && knownResourcesClosed && runtimeClosed });
