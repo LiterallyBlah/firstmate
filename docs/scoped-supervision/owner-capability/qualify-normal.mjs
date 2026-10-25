@@ -11,14 +11,14 @@ import { normalTransport } from './normal-frame.mjs';
 import { diagnosticAssessment } from './diagnostic-capture.mjs';
 
 export const NORMAL_PINS = Object.freeze({
-  'WindowsJobOwner.cs': '946230771e71cf8b8ffdff4233d10c7636ecabc6cf4b57dd6f8a379504079fa5',
-  'normal-only.ps1': 'a637e84f461c7b994e06b925c360c2a624fa9d035a56ddda8837878e30a98f64',
+  'WindowsJobOwner.cs': '5bd7b5045b7c6b2bd7ecd5bd3b0491a7291b989459c73af8114ed7d4ac8d6e24',
+  'normal-only.ps1': '4d703d9ff7f86e81eeef0be3666fd1f47ba983dec48debef01719c3e400d53be',
   'root.mjs': '9fc52a21eeee7f311cda8a55214cfe08c494532a4b703da9fbf844df7f3ba727',
   'child.mjs': '1d5201bb4fb63e88f83c9831e46e6bc131a8fff38d11fd37f5e90e846189a6e3',
   'capture.mjs': '875933e8b1235230305e8f25162ec94b1f5dc0d85bed9fa4b16cf02f919cfa99',
   'admission.mjs': '0ac15bb42dafb34f430973d0c334156f8a2af38d0f59416fea3dd918d9f8e105',
   'normal-frame.mjs': 'a81ef06a96623ea12b722f43ec64fa124cbbd37289b046adb13dd59cd358fca3',
-  'diagnostic-capture.mjs': '6729b41fb7c91f1c279894edec88b738960b34416a7d1bf09113d9ad0cdb9c79',
+  'diagnostic-capture.mjs': '875e1718ff3bd1ec074193804988e61200bf2646a6460a1f434ea50da2595a1e',
 });
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const uuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);

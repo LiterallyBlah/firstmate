@@ -22,8 +22,25 @@ export function diagnosticAssessment(input, native) {
       inventory?.acquisition === 'acquired' && inventory.handle === row.handle && inventory.disposition === 'closed';
     require(settled, 'diagnostic-terminal-or-disposal-unknown'); closed = closed && settled;
   }
-  const known = new Set(Number.isSafeInteger(native?.child?.pid) ? [native.child.pid] : []);
+  // A later success or zero cumulative counter cannot erase any retained required-query failure.
+  // Successful zero-time wait258 is ordinary pending evidence, not an API failure.
   const evidence = native?.membershipEvidence;
+  const observations = [];
+  const keep = value => { if (value) observations.push(value); };
+  for (const row of valid ? rows : []) { keep(row.initial); keep(row.terminal); }
+  for (const sample of [native?.terminalEvidence, ...(evidence?.terminalSamples ?? [])]) {
+    if (!sample) continue;
+    keep(sample.root); keep(sample.child);
+    for (const row of sample.diagnosticMembers ?? []) keep(row.observation);
+  }
+  for (const event of native?.events ?? []) if (event.kind === 'handle-observation') keep(event.data);
+  for (const entry of Object.values(native?.handleInventory ?? {})) keep(entry.observation);
+  const queriesComplete = observations.every(value => value.wait?.ok === true && [0, 258].includes(value.wait.result) &&
+    (value.wait.win32Error ?? 0) === 0 && value.exit?.ok === true && Number.isSafeInteger(value.exit.code) &&
+    value.exit.code >= 0 && value.exit.code <= 0xffffffff && (value.exit.win32Error ?? 0) === 0 &&
+    (!value.queries || ['pid','creation','image','membership'].every(key => value.queries[key]?.ok === true && (value.queries[key].win32Error ?? 0) === 0)));
+  require(queriesComplete, 'diagnostic-recorded-required-query-failure'); closed = closed && queriesComplete;
+  const known = new Set(Number.isSafeInteger(native?.child?.pid) ? [native.child.pid] : []);
   const inventories = [native?.beforeResume, native?.liveMembers, evidence?.lastCompleteBeforeFailure, evidence?.lastObservation, evidence?.offending,
     ...(evidence?.terminalSamples ?? []).map(sample => sample.members), ...(native?.events ?? []).filter(event => event.kind === 'membership').map(event => event.data)];
   let inventoryComplete = true;

@@ -99,6 +99,12 @@ expected child. The exact-two assertion and all original deadlines stay; there i
 allowlist, saved-PID action, machine inventory or inferred closure. Query, sink, wait and close
 failures remain separate from the original error and refuse reuse.
 
+Returned `WAIT_FAILED` and failed `GetExitCodeProcess` now enter the same bounded observation-error
+accounting as thrown query errors, while preserving their raw results and the original fixture
+exception. Admission checks initial observations, every retained terminal sample, handle events
+and inventory observations directly; a later success or zero cumulative count cannot hide a
+recorded required-query failure. Successful pending wait 258 remains valid until eventual closure.
+
 A root pre-spawn marker is written before its fixed child launch, capped at 4096 bytes on write
 and read, and shares the subsequent root instance ID. Admission correlates case/nonce, root/child
 entry/parent IDs, fixed script and actual live handle creation identities/membership. Missing

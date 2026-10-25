@@ -157,8 +157,12 @@ public sealed class FirstMateJobCapability {
             if (memberOk) identity["member"] = member; else ObservationError(role + " IsProcessInJob: " + memberError);
         });
         Step(role + " wait", delegate {
-            uint wait = WaitForSingleObject(process, 0); result["wait"] = wait == UInt32.MaxValue ? D("ok", false, "win32Error", Marshal.GetLastWin32Error()) : D("ok", true, "result", wait);
-            uint code; result["exit"] = GetExitCodeProcess(process, out code) ? D("ok", true, "code", code) : D("ok", false, "win32Error", Marshal.GetLastWin32Error());
+            uint wait = WaitForSingleObject(process, 0); int waitError = wait == UInt32.MaxValue ? Marshal.GetLastWin32Error() : 0;
+            result["wait"] = wait == UInt32.MaxValue ? D("ok", false, "win32Error", waitError) : D("ok", true, "result", wait);
+            if (wait == UInt32.MaxValue) ObservationError(role + " WaitForSingleObject: " + waitError);
+            uint code; bool exitOk = GetExitCodeProcess(process, out code); int exitError = exitOk ? 0 : Marshal.GetLastWin32Error();
+            result["exit"] = exitOk ? D("ok", true, "code", code) : D("ok", false, "win32Error", exitError);
+            if (!exitOk) ObservationError(role + " GetExitCodeProcess: " + exitError);
         });
         ((Dictionary<string, object>)handleInventory[role])["observation"] = result; Note("handle-observation", result); return result;
     }

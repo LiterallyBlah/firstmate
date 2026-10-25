@@ -9,7 +9,7 @@ if ($config.scenario -cne 'normal' -or $config.directory -cne $outputPath -or $c
 $source = [System.IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'WindowsJobOwner.cs'))
 $sha = [System.Security.Cryptography.SHA256]::Create()
 try { $sourceHash = [BitConverter]::ToString($sha.ComputeHash($source)).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
-if ($sourceHash -ne '946230771e71cf8b8ffdff4233d10c7636ecabc6cf4b57dd6f8a379504079fa5') { throw 'Normal native source differs from reviewed bytes' }
+if ($sourceHash -ne '5bd7b5045b7c6b2bd7ecd5bd3b0491a7291b989459c73af8114ed7d4ac8d6e24') { throw 'Normal native source differs from reviewed bytes' }
 if ($config.caseId -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' -or $config.nonce -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' -or $config.caseId -ceq $config.nonce) { throw 'Distinct fixed-length case identities required' }
 $reservation = [System.IO.File]::Open((Join-Path $outputPath 'native.reserved'), [System.IO.FileMode]::CreateNew)
 $reservation.Dispose()

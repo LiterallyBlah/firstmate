@@ -73,7 +73,7 @@ function diagnostics() {
   const identity = pid => ({ pid, creationFileTime: '134374311535571990', image: 'C:/node.exe', member: true });
   const query = () => ({ queries: Object.fromEntries(['pid','creation','image','membership'].map(key => [key, { ok: true }])) });
   const row = pid => ({ pid, role: `diagnostic-${pid}`, handle: `0x${pid}`, acquisition: 'acquired', bindingComplete: true,
-    initial: { ...query(), identity: identity(pid), wait: { ok: true, result: 258 } }, terminal: { ...query(), identity: identity(pid), wait: { ok: true, result: 0 }, exit: { ok: true, code: 0 } } });
+    initial: { ...query(), identity: identity(pid), wait: { ok: true, result: 258 }, exit: { ok: true, code: 259 } }, terminal: { ...query(), identity: identity(pid), wait: { ok: true, result: 0 }, exit: { ok: true, code: 0 } } });
   const n = { diagnosticVersion: 1, diagnosticOverflow: 0, root: identity(1), child: identity(2), diagnosticMembers: [row(2)],
     handleInventory: { 'diagnostic-2': { acquisition: 'acquired', handle: '0x2', disposition: 'closed' } },
     observation: { dropped: 0, failures: 0 }, cleanup: { diagnosticHandlesClosed: true }, events: [{ kind: 'owner-acquired', data: { helperPid: 10 } }] };
