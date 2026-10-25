@@ -18,7 +18,7 @@ export const NORMAL_PINS = Object.freeze({
   'capture.mjs': '875933e8b1235230305e8f25162ec94b1f5dc0d85bed9fa4b16cf02f919cfa99',
   'admission.mjs': '0ac15bb42dafb34f430973d0c334156f8a2af38d0f59416fea3dd918d9f8e105',
   'normal-frame.mjs': 'a81ef06a96623ea12b722f43ec64fa124cbbd37289b046adb13dd59cd358fca3',
-  'diagnostic-capture.mjs': '9647d8323b4fd26ef81936f10ed39ee16ba9e772c7c725de95fc550ee8ff74d1',
+  'diagnostic-capture.mjs': '6729b41fb7c91f1c279894edec88b738960b34416a7d1bf09113d9ad0cdb9c79',
 });
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const uuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);

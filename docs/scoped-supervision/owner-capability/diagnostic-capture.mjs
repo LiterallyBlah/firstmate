@@ -22,6 +22,17 @@ export function diagnosticAssessment(input, native) {
       inventory?.acquisition === 'acquired' && inventory.handle === row.handle && inventory.disposition === 'closed';
     require(settled, 'diagnostic-terminal-or-disposal-unknown'); closed = closed && settled;
   }
+  const known = new Set(Number.isSafeInteger(native?.child?.pid) ? [native.child.pid] : []);
+  const evidence = native?.membershipEvidence;
+  const inventories = [native?.beforeResume, native?.liveMembers, evidence?.lastCompleteBeforeFailure, evidence?.lastObservation, evidence?.offending,
+    ...(evidence?.terminalSamples ?? []).map(sample => sample.members), ...(native?.events ?? []).filter(event => event.kind === 'membership').map(event => event.data)];
+  let inventoryComplete = true;
+  for (const inventory of inventories.filter(Boolean)) {
+    if (inventory.queryOk !== true || inventory.complete !== true || !Array.isArray(inventory.pids) || inventory.pids.length > 8) { inventoryComplete = false; continue; }
+    for (const pid of inventory.pids) if (pid !== native?.root?.pid) known.add(pid);
+  }
+  const covered = inventoryComplete && [...known].every(pid => pids.has(pid));
+  require(covered, 'diagnostic-known-member-omission-or-query-unknown'); closed = closed && covered;
   const root = native?.root, child = native?.child, marker = input.rootPreSpawn, entry = input.rootEntry, childEntry = input.childEntry;
   const owner = native?.events?.find(event => event.kind === 'owner-acquired')?.data;
   const provenance = value => value?.caseId === input.caseId && value.nonce === input.nonce && value.scenario === 'normal' && value.node === input.nodeVersion && value.threadId === 0 && value.isMainThread === true;

@@ -86,9 +86,18 @@ function diagnostics() {
 test('N2 complete simulated pair requires stable diagnostic handles and pre/post-spawn correlation', () => {
   const { input, n } = diagnostics(); assert.deepEqual(diagnosticAssessment(input, n), { complete: true, membersClosed: true, reasons: [], origin: 'correlated-fixed-fixture' });
 });
+test('N2 omitted expected-child diagnostic row cannot claim diagnostic closure', () => {
+  const { input, n } = diagnostics(); n.diagnosticMembers = [];
+  assert.equal(diagnosticAssessment(input, n).membersClosed, false);
+});
+test('N2 omitted offending member cannot claim diagnostic closure or origin', () => {
+  const { input, n } = diagnostics(); n.membershipEvidence = { offending: { queryOk: true, pids: [1, 2, 3] } };
+  assert.equal(diagnosticAssessment(input, n).membersClosed, false); assert.equal(diagnosticAssessment(input, n).complete, false);
+});
 for (const [name, change] of [
   ['acquisition failed', (i,n) => { n.diagnosticMembers[0].acquisition = 'failed'; }],
   ['query failed', (i,n) => { n.diagnosticMembers[0].initial.queries.image = { ok: false, win32Error: 5 }; }],
+  ['job membership query failed', (i,n) => { n.membershipEvidence = { offending: { queryOk: false, complete: false, pids: [] } }; }],
   ['raced PID', (i,n) => { n.diagnosticMembers[0].initial.identity.pid = 3; }],
   ['nonmember', (i,n) => { n.diagnosticMembers[0].initial.identity.member = false; }],
   ['already exited', (i,n) => { n.diagnosticMembers[0].initial.wait.result = 0; }],
