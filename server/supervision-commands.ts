@@ -5,7 +5,7 @@ import { z } from "zod";
 import { SupervisionActorSchema, SupervisionHash, SupervisionUuid, SupervisionVersionRefSchema, type SupervisionActor, type SupervisionExpected, type SupervisionStatus } from "../shared/supervision";
 import { PolicyApprovalSchema, ScopedDecisionSchema, type ScopedCommandResult, type PilotOperation, type PolicyOperationTarget } from "../shared/supervision-policy";
 import { PlanDefinitionSchema, PlanId, WorkflowCommandSchema, planProblems, type WorkflowCommand, type WorkflowPlan, type PlanLaunch } from "../shared/workflow-plans";
-import { checkNewCaptainAction, dependenciesMet, planSubjectHash, WorkflowEventSchema, type WorkflowEvent } from "./workflow-plans";
+import { checkNewWorkflowAction, dependenciesMet, planSubjectHash, WorkflowEventSchema, type WorkflowEvent } from "./workflow-plans";
 import { SupervisionError, type SupervisionMutation, type SupervisionStore } from "./supervision-store";
 import { applicableRules, checkPolicy } from "./supervision-policy";
 import { digest } from "./submissions";
@@ -44,6 +44,7 @@ function refs(status: SupervisionStatus, mutations: SupervisionMutation[]): Supe
 }
 function operation(command: WorkflowCommand): PilotOperation {
   if (command.op === "captain") return command.action === "answer" ? "decision.answer" : ["hold", "decline"].includes(command.action) ? "plan.stop" : "plan.review";
+  if (command.op === "progress" && command.action === "answer") return "decision.answer";
   if (["start", "implicit", "claim"].includes(command.op)) return "plan.start";
   return ["record", "invalidate", "validate", "close", "ack"].includes(command.op) ? "plan.record" : "plan.review";
 }
@@ -133,8 +134,8 @@ export class SupervisionCommands {
     const checkDependencies = (edges: { node: string; on: string }[]) => {
       if (edges.length !== input.dependencyBindings.length || edges.some(e => input.dependencyBindings.filter(d => d.nodeId === e.node && d.outcome === e.on && (previous?.nodes[e.node] ? d.planId === planId : true)).length !== 1)) fail("HELD", "Every prerequisite needs one exact outcome binding.");
     };
-    if (["start", "claim"].includes(c.op) || (c.op === "captain" && c.action === "answer")) checkDependencies(node?.after ?? []);
-    checkNewCaptainAction(c, previous, plans);
+    if (["start", "claim"].includes(c.op) || ((c.op === "captain" || c.op === "progress") && c.action === "answer")) checkDependencies(node?.after ?? []);
+    checkNewWorkflowAction(c, previous, c.op === "revise" ? status.plans.map(p => p.plan) : plans);
     if ((c.op === "start" || c.op === "claim") && (!node || !dependenciesMet(node, plans))) fail("HELD", "Run dependencies are not satisfied.");
     if (c.op === "close" && status.plans.some(p => p.plan.definition.nodes.some(n => !["done", "landed", "failed", "cancelled"].includes(p.plan.nodes[n.id]?.state ?? "planned") && n.after.some(e => e.node === c.node && e.on === "landed")))) fail("HELD", "A retained plan still needs this run to land.");
     const definition = c.op === "draft" || c.op === "revise" ? c.definition : c.op === "implicit" ? PlanDefinitionSchema.parse({
@@ -184,7 +185,7 @@ export class SupervisionCommands {
     const mutations: SupervisionMutation[] = [{ kind: "workflow", scopeId: scope.id, event }];
     // Bookkeeping acknowledgements never generate another notification to acknowledge.
     const outboxId = c.op === "ack" ? null : input.requestId;
-    const answerNode = c.op === "captain" && c.action === "answer" ? c.node : null;
+    const answerNode = (c.op === "captain" || c.op === "progress") && c.action === "answer" ? c.node : null;
     let decisionId: string | null = null;
     for (const n of next.definition.nodes.filter(n => n.kind === "decision")) {
       if (n.kind !== "decision") continue;
@@ -195,7 +196,7 @@ export class SupervisionCommands {
         revision: n.id === answerNode ? input.revision : next.revision, subjectHash: n.id === answerNode ? input.subjectHash : planSubjectHash(next),
         state: n.id === answerNode ? "answered" : "pending", title: n.title, question: n.summary, options: n.options.map(({ id, label }) => ({ id, label })),
         sourceVector: [{ kind: "workflow", id: planId, version: version(status, "workflow", planId) + 1, digest: next.hash }, ...input.policyVector, ...input.evidenceVector],
-        answer: n.id === answerNode && c.op === "captain" ? { submissionId: input.requestId, option: c.option, text: c.text, at, provenance: actor, outboxId } : null });
+        answer: n.id === answerNode && (c.op === "captain" || c.op === "progress") ? { submissionId: input.requestId, option: c.option, text: c.op === "captain" ? c.text : c.evidence, at, provenance: actor, outboxId } : null });
       mutations.push({ kind: "decision", value });
     }
     for (const old of status.decisions.filter(d => d.planId === planId && d.ownerScopeId === scope.id && d.state === "pending" && !next.definition.nodes.some(n => n.id === d.nodeId)))

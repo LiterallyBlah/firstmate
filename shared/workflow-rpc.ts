@@ -7,6 +7,7 @@ const NodeStateSchema: z.ZodType<PlanNodeState> = z.lazy(() => z.object({ state:
   readyAt: z.object({ done: z.string().optional(), landed: z.string().optional(), answered: z.string().optional() }).optional(),
   closedWithoutLanding: z.object({ at: z.string(), by: z.string(), evidence: z.string() }).optional() }));
 export const WorkflowPlanSchema = z.object({ definition: PlanDefinitionSchema, revision: z.number(), sequence: z.number(), hash: z.string(), posture: z.enum(["review", "sail"]),
+  owner: z.enum(["captain", "firstmate"]).optional(), ownerEvents: z.array(z.object({ at: z.string(), by: z.string(), from: z.enum(["captain", "firstmate"]), to: z.enum(["captain", "firstmate"]), evidence: z.string() })).optional(),
   status: z.enum(["review", "active", "held", "abandoned"]), approvedBudget: z.object({ agents: z.number(), turns: z.number() }), nodes: z.record(z.string(), NodeStateSchema), told: z.array(z.string()), handled: z.array(z.string()),
   history: z.array(z.object({ revision: z.number(), at: z.string(), by: z.string(), reason: z.string() })),
   removed: z.array(z.object({ node: PlanNodeSchema, state: NodeStateSchema })).optional(), postureSource: PlanPostureSourceSchema.optional(),
