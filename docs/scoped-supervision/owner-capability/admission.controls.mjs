@@ -19,6 +19,15 @@ function positive(scenario = 'normal') {
       events: ['owner-acquired', 'creation-owner-configured', 'deadline-armed', 'suspended-root-owned', 'root-resumed', 'root-and-descendant-bound',
         scenario === 'normal' ? 'normal-release' : 'termination', 'owned-set-closed'].map((kind, atMs) => ({ kind, atMs,
           data: kind === 'owner-acquired' ? { flags: 8192, helperPid: 10, members: members([], 0) } : kind === 'termination' ? { reason: 'independent-parent-deadline' } : {} })) } };
+  // New capture requirements are explicit simulated facts, not a native ownership qualification.
+  input.native.captureVersion = 2; input.native.observation = { dropped: 0, failures: 0, errors: [] };
+  input.native.handleInventory = Object.fromEntries(['root', 'child', 'thread', 'job'].map(role => [role, { acquisition: 'acquired', disposition: 'closed' }]));
+  const terminalProcess = role => ({ identity: { pid: input.native[role].pid, creationFileTime: input.native[role].creationFileTime }, wait: { ok: true, result: 0 }, exit: { ok: true, code: input.native[role + 'Exit'] } });
+  input.native.terminalEvidence = { members: { ...members([]), queryOk: true, accountingOk: true }, root: terminalProcess('root'), child: terminalProcess('child') };
+  const emptyOutput = () => ({ bytes: 0, retained: 0, dropped: 0, errors: 0, drained: true, closed: true });
+  input.native.rootOutput = { stdout: emptyOutput(), stderr: emptyOutput() }; input.childOutput = { stdout: emptyOutput(), stderr: emptyOutput() };
+  input.native.standardWiring = { useStdHandles: true, inheritHandles: true, jobInherited: false, readHandlesInherited: false, jobHandle: '0x100', handleList: ['0x101', '0x102', '0x103'] }; input.native.stdinClosed = true;
+  input.outer.observation = { dropped: 0, failures: 0 }; input.outer.outputLoss = { stdout: 0, stderr: 0 }; input.outer.outputErrors = { stdout: 0, stderr: 0 };
   return input;
 }
 test('complete simulated normal and deadline-terminated sets pass only capability admission', () => {
@@ -37,6 +46,19 @@ for (const [name, mutate] of [
   ['unconfirmed child wait', value => { value.native.childWait = 258; }],
   ['unconfirmed helper close', value => { value.outer.closed = false; }],
   ['undrained timer', value => { value.native.cleanup.timerDrained = false; }],
+  ['failed handle close', value => { value.native.handleInventory.child.disposition = 'close-failed'; }],
+  ['never acquired handle is not closed', value => { value.native.handleInventory.child = { acquisition: 'never-acquired', disposition: 'not-attempted' }; }],
+  ['recording overflow', value => { value.native.observation.dropped = 1; }],
+  ['recording error', value => { value.native.observation.failures = 1; }],
+  ['root output lost', value => { value.native.rootOutput.stderr.dropped = 1; }],
+  ['child drain unknown', value => { delete value.childOutput; }],
+  ['failed stream read', value => { value.childOutput.stdout.errors = 1; }],
+  ['standard handles inconsistent', value => { value.native.standardWiring.inheritHandles = false; }],
+  ['stdin close failed', value => { value.native.stdinClosed = false; }],
+  ['outer recorder lost events', value => { value.outer.observation.dropped = 1; }],
+  ['outer recorder failed', value => { value.outer.observation.failures = 1; }],
+  ['outer output truncated', value => { value.outer.outputLoss.stderr = 1; }],
+  ['outer output read failed', value => { value.outer.outputErrors.stdout = 1; }],
 ]) test(`in-memory refusal: ${name}`, () => {
   const value = positive('blocked'); mutate(value); const receipt = sealOwnerCapture(value);
   assert.equal(receipt.safeForReuse, false); assert.ok(receipt.problems.length > 0);

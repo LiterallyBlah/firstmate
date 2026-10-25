@@ -7,7 +7,9 @@ import { createHash, randomUUID } from 'node:crypto';
 import { release } from 'node:os';
 import assert from 'node:assert/strict';
 import { sealOwnerCapture } from './admission.mjs';
+import { recorder } from './capture.mjs';
 const mode = process.argv[2], root = resolve('.local/owner-capability');
+throw Object.assign(Error('OWNER_CAPTURE_REVIEW_HOLD: static preparation only; previous closure unresolved'), { code: 'OWNER_CAPTURE_REVIEW_HOLD' });
 assert.ok(['preflight', 'normal', 'blocked'].includes(mode), 'Select only preflight, normal or blocked');
 assert.equal(process.platform, 'win32'); assert.equal(process.arch, 'x64');
 assert.equal(createHash('sha256').update(readFileSync('docs/scoped-supervision/observer-wiring/protocol.mjs')).digest('hex'),
@@ -39,14 +41,16 @@ const configPath = join(directory, 'configuration.json'); save('configuration.js
 const command = ['-NoProfile', '-NonInteractive', '-File', join(sourceDirectory, 'invoke.ps1'), '-Mode', mode,
   '-OutputDirectory', directory, '-NodePath', process.execPath, '-Configuration', configPath];
 const helper = spawn('C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe', command, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
-const observed = [], buffers = { stdout: '', stderr: '' }, losses = { stdout: 0, stderr: 0 };
+const journal = recorder(), buffers = { stdout: '', stderr: '' }, losses = { stdout: 0, stderr: 0 };
+const outputErrors = { stdout: 0, stderr: 0 };
 const started = performance.now(); let deadlineFired = false, closed = false, status = null, signal = null, error = null;
-const note = (kind, data) => observed.push({ kind, atMs: performance.now() - started, data });
+const note = (kind, data) => journal.note(kind, { atMs: performance.now() - started, ...data });
 note('helper-created', { pid: helper.pid });
 for (const key of ['stdout', 'stderr']) helper[key].on('data', value => {
   const text = value.toString('utf8'), room = Math.max(0, 65536 - buffers[key].length);
   buffers[key] += text.slice(0, room); losses[key] += Math.max(0, text.length - room);
 });
+for (const key of ['stdout', 'stderr']) helper[key].on('error', caught => { outputErrors[key]++; note('helper-output-error', { stream: key, error: String(caught.message).slice(0, 300) }); });
 await new Promise(resolveDone => {
   let grace;
   const timer = setTimeout(() => {
@@ -58,7 +62,7 @@ await new Promise(resolveDone => {
   helper.once('close', (code, why) => { closed = true; status = code; signal = why; note('helper-closed', { code, signal: why }); clearTimeout(timer); clearTimeout(grace); resolveDone(); });
 });
 save('stdout', buffers.stdout); save('stderr', buffers.stderr);
-const outer = { closed, status, signal, error, deadlineFired, outputLoss: losses, events: observed };
+const outer = { closed, status, signal, error, deadlineFired, outputLoss: losses, outputErrors, observation: journal.snapshot() };
 save('command.json', { command, sourceHashes, node: process.version, nodeBinarySha256: sha(readFileSync(process.execPath)), platform: process.platform,
   architecture: process.arch, windowsRelease: release(), status, signal, error, ...outer });
 const nativePath = join(directory, 'native-receipt.json');
@@ -69,6 +73,7 @@ if (mode === 'preflight') {
   const optional = file => existsSync(join(directory, file)) ? load(join(directory, file)) : null;
   const capture = sealOwnerCapture({ ...configuration, sourceHashes, outer, native: existsSync(nativePath) ? load(nativePath) : null,
     rootEntry: optional('root-entry.json'), childEntry: optional('child-entry.json'), rootResult: optional('root-result.json'), childResult: optional('child-result.json'),
+    childOutput: optional('child-output.json'),
     rootDelayedSignal: existsSync(join(directory, 'root-delayed-signal.json')), childDelayedSignal: existsSync(join(directory, 'child-delayed-signal.json')) });
   if (Object.values(losses).some(value => value > 0)) { capture.problems.push('outer-output-truncated'); capture.safeForReuse = false; }
   save('capture.json', capture);

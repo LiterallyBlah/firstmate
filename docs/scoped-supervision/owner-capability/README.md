@@ -28,3 +28,27 @@ exact-source preflight/normal prerequisites. It is not a generic diagnostic runn
 mechanism. The normal failure lacks the observed failing member list, target stderr and process
 exit state; those must be prepared and independently reviewed before any separately authorized
 target retry. Parent timer/supervisor observations are not hard-real-time or kernel-liveness proof.
+
+The C1/C3 follow-up is **static preparation only**. `run.mjs`, `invoke.ps1` and the native entry
+points carry an explicit review hold with no override. Native changes have not been compiled,
+preflighted or executed. Tiny controls exercise only `capture.mjs`/admission with in-memory
+facts and retained JSON; they do not execute or qualify the C# implementation.
+
+Future capture retains the last complete and exact offending membership, validated partial/query
+failures, available handle identity/wait/exit observations and separate acquisition/disposal states.
+Recording overflow/errors cannot throw through cleanup. Termination and up to eight terminal
+snapshots precede disposal on both paths; unbound descendants remain unknown. Original errors
+remain separate. Missing closure emits explicit false/unknown/reasons.
+
+Prepared root streams use anonymous pipes, noninherited parent reads/job handle, an exact inherited
+standard-handle list, `STARTF_USESTDHANDLES` and `bInheritHandles=true` before creation. Readers retain
+at most 65,536 bytes per stream, continue draining/counting loss, and report EOF/read/close state.
+They do not close under pending `ReadFile`. Child stdout/stderr use separate Node pipes and bounded
+capture. A blocked root may never report child drain; that absence refuses reuse and cannot be
+filled from root output. This limitation is not a qualified external descendant stream owner.
+
+Future capture cannot resolve the previous unnamed, disposed job's missing terminal evidence.
+**All fresh targets remain held until prior C2 uncertainty is explicitly resolved, the preparation
+is independently accepted and a fresh bounded assignment is recorded.** A new budget alone is
+insufficient. No root lookup, guessed PID, process-name cleanup or inferred descendant identity
+can replace that missing evidence.
