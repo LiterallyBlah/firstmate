@@ -20,20 +20,33 @@ export async function linuxSupervisionProcessIdentity(pid: number,
     return fields[0] === "Z" ? { state: "dead" } : { state: "alive", start: `${boot.trim()}:${ticks}` };
   } catch { return { state: "unknown" }; } // Missing boot identity is NOT evidence of process death.
 }
+/** The Windows probe's command. It calls .NET directly rather than the Get-Process cmdlet, so a cold PowerShell skips
+ * command discovery and module autoload; the StartTime expression, and so the recorded start, is the one the cmdlet
+ * read. A missing process (ArgumentException) is dead; access denied or any other failure stays unknown. */
+export function windowsIdentityCommand(pid: number): { file: string; args: string[] } {
+  const script = `try { $s = [System.Diagnostics.Process]::GetProcessById(${pid}).StartTime; if ($null -eq $s) { 'unknown' } else { 'alive:' + $s.ToUniversalTime().Ticks.ToString() } } catch [System.ArgumentException] { 'dead' } catch { 'unknown' }`;
+  return { file: join(process.env.SystemRoot ?? "C:/Windows", "System32/WindowsPowerShell/v1.0/powershell.exe"),
+    args: ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script] };
+}
+export const WINDOWS_IDENTITY_TIMEOUT_MS = 5000;
+type Run = (file: string, args: string[], options: { windowsHide: boolean; timeout: number; maxBuffer: number }) => Promise<{ stdout: string }>;
+/** One bounded probe, never retried: a probe that misses its deadline is unknown, not dead. */
+export async function windowsSupervisionProcessIdentity(pid: number, run: Run = exec): Promise<ProcessIdentity> {
+  if (!Number.isSafeInteger(pid) || pid < 1) return { state: "unknown" };
+  try {
+    const { file, args } = windowsIdentityCommand(pid);
+    const value = (await run(file, args, { windowsHide: true, timeout: WINDOWS_IDENTITY_TIMEOUT_MS, maxBuffer: 4096 })).stdout.trim();
+    if (/^alive:[0-9]+$/.test(value)) return { state: "alive", start: value.slice(6) };
+    return { state: value === "dead" ? "dead" : "unknown" };
+  } catch { return { state: "unknown" }; }
+}
 export async function supervisionProcessIdentity(pid: number): Promise<ProcessIdentity> {
   if (!Number.isSafeInteger(pid) || pid < 1) return { state: "unknown" };
   try {
     if (process.platform === "linux") {
       return linuxSupervisionProcessIdentity(pid);
     }
-    if (process.platform === "win32") {
-      const script = `try { $p = Get-Process -Id ${pid} -ErrorAction Stop; $s = $p.StartTime; if ($null -eq $s) { 'unknown' } else { 'alive:' + $s.ToUniversalTime().Ticks.ToString() } } catch { if ($_.CategoryInfo.Category -eq 'ObjectNotFound') { 'dead' } else { 'unknown' } }`;
-      const { stdout } = await exec(join(process.env.SystemRoot ?? "C:/Windows", "System32/WindowsPowerShell/v1.0/powershell.exe"),
-        ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script], { windowsHide: true, timeout: 5000, maxBuffer: 4096 });
-      const value = stdout.trim();
-      if (/^alive:[0-9]+$/.test(value)) return { state: "alive", start: value.slice(6) };
-      return { state: value === "dead" ? "dead" : "unknown" };
-    }
+    if (process.platform === "win32") return windowsSupervisionProcessIdentity(pid);
   } catch { /* Unsupported/failed OS probes remain unknown. */ }
   return { state: "unknown" };
 }

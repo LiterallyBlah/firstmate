@@ -8,10 +8,23 @@ async function main() {
   const config = JSON.parse(await readFile(process.argv[2]!, "utf8")) as {
     dataRoot: string; home: string; mode: "crash" | "hold" | "claim" | "publish"; crash?: string;
     mutations?: SupervisionMutation[]; expected?: SupervisionExpected[]; requestId?: string; path?: string;
+    unknownProcessIdentity?: boolean;
   };
   if (config.mode === "publish") { await publish(config.path!, { pid: process.pid }); return; }
-  const store = new SupervisionStore(config.dataRoot, config.home, { writable: true, boundary: async name => {
-    if (name === config.crash) process.kill(process.pid, "SIGKILL");
+  const store = new SupervisionStore(config.dataRoot, config.home, { writable: true,
+    ...(config.unknownProcessIdentity ? { processIdentity: async () => ({ state: "unknown" as const }) } : {}), boundary: async name => {
+    if (name === config.crash) {
+      // The parent must observe the exact target before a nonzero exit can qualify a crash.
+      await new Promise<void>((resolve, reject) => {
+        process.once("message", ack => {
+          if ((ack as { crashAck?: string }).crashAck === name) resolve();
+          else reject(new Error("Unexpected crash acknowledgement"));
+        });
+        if (!process.send) reject(new Error("Crash fixture requires IPC"));
+        else process.send({ crashBoundary: name }, error => { if (error) reject(error); });
+      });
+      process.kill(process.pid, "SIGKILL");
+    }
   } });
   await store.acquireCoordinator();
   if (config.mode === "hold") {

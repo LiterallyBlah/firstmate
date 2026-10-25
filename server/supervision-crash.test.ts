@@ -8,6 +8,8 @@ import { SupervisionStore } from "./supervision-store";
 import { supervisionProcessIdentity } from "./supervision-process";
 import { expected, hash, ids, scope, seed } from "../test/supervision-fixture";
 import type { SupervisionMutation } from "./supervision-store";
+import { capture, captureLedger, observed } from "../test/ci-diagnostics";
+import { WARMUP_TIMEOUT_MS, warmWindowsIdentityProbe } from "../test/supervision-warmup";
 
 let bundle: string;
 const children = new Set<ChildProcess>();
@@ -17,18 +19,35 @@ beforeAll(async () => {
   const build = await rolldown({ input: resolve("test/supervision-child.ts"), platform: "node" });
   try { await build.write({ file: bundle, format: "cjs" }); } finally { await build.close(); }
 });
+// Windows: the first PowerShell start on a cold runner took 3.3–5.3 s, past the probe's 5 s deadline, in whichever
+// child ran first. Pay it here, under the warm-up's own bound, so every child's probe runs warm; assertions are unchanged.
+beforeAll(async () => {
+  if (process.platform === "win32") capture("crash-probe-warmup", { result: await observed("crash-probe-warmup-run", {}, warmWindowsIdentityProbe()) });
+}, WARMUP_TIMEOUT_MS + 10000);
 afterAll(() => { for (const child of children) child.kill("SIGKILL"); });
+afterAll(() => captureLedger("crash"));
 async function launch(config: object) {
   const path = join(process.env.PASEO_HOME!, `${randomUUID()}.json`); await writeFile(path, JSON.stringify(config));
   const child = spawn(process.execPath, [bundle, path], { windowsHide: true, stdio: ["ignore", "pipe", "pipe", "ipc"], env: { ...process.env } });
-  children.add(child); let stdout = "", stderr = "";
+  children.add(child); let stdout = "", stderr = "", crashBoundary: string | null = null;
   child.stdout!.on("data", bytes => { stdout += String(bytes); }); child.stderr!.on("data", bytes => { stderr += String(bytes); });
-  const done = new Promise<{ code: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string }>((resolve, reject) => {
+  child.on("message", message => {
+    if (typeof message === "object" && message && "crashBoundary" in message && typeof message.crashBoundary === "string") {
+      crashBoundary = message.crashBoundary;
+      child.send({ crashAck: crashBoundary });
+    }
+  });
+  const done = new Promise<{ code: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string; crashBoundary: string | null }>((resolve, reject) => {
     const timeout = setTimeout(() => { child.kill("SIGKILL"); reject(new Error(`Fixture child timed out: ${stdout} ${stderr}`)); }, 20000);
     child.once("error", error => { clearTimeout(timeout); reject(error); });
-    child.once("close", (code, signal) => { clearTimeout(timeout); children.delete(child); resolve({ code, signal, stdout, stderr }); });
+    child.once("close", (code, signal) => { clearTimeout(timeout); children.delete(child); resolve({ code, signal, stdout, stderr, crashBoundary }); });
   });
   return { child, done, output: () => stdout };
+}
+function expectTargetCrash(result: Awaited<Awaited<ReturnType<typeof launch>>["done"]>, point: string) {
+  expect(result.crashBoundary, `Child did not reach ${point}: ${JSON.stringify(result)}`).toBe(point);
+  expect(result.stderr).toBe("");
+  expect(result.code === 0).toBe(false);
 }
 async function fixture() {
   const directory = join(process.env.PASEO_HOME!, randomUUID()), home = join(directory, "home"), dataRoot = join(directory, "data");
@@ -40,8 +59,18 @@ describe("actual child-process / filesystem publication", () => {
   for (const point of points) it(`SIGKILL at ${point}: no partial exposure, duplicate reservation or budget reset`, async () => {
     const { store, home, dataRoot } = await fixture(), mutations = seed(store.homeId), requestId = randomUUID();
     if (point === "publication:linked") for (const mutation of mutations) if (mutation.kind === "effect") mutation.value.state = "dispatching";
+    const childStart = performance.now();
     const worker = await launch({ home, dataRoot, mode: "crash", crash: point, mutations, expected: expected(mutations), requestId });
     const result = await worker.done;
+    // CI diagnostics only (inert locally): bounded child result and duration for this crash point.
+    capture("crash-child", { point, code: result.code, signal: result.signal, stdoutBytes: result.stdout.length, stderr: result.stderr.slice(0, 4096), ms: performance.now() - childStart });
+    // A child killed at its crash point writes nothing to stderr. A pre-claim refusal (for example a timed-out
+    // Windows process-identity probe, UNSUPPORTED) writes its error there; fail on that cause, not later on generation.
+    if (result.stderr !== "") { // Gather coordinator context only for the failure; successful crash cases do no extra work.
+      const coordinators = await readdir(join(store.root, "coordinators")).catch((error: unknown) => [String(error)]);
+      expect(result.stderr, `child exit ${result.code}, signal ${result.signal}, coordinators [${coordinators.join(", ")}]`).toBe("");
+    }
+    expectTargetCrash(result, point);
     expect(result.stdout).toBe(""); expect(result.code === 0).toBe(false);
     const status = await store.read();
     const exposed = point === "publication:linked", beforeTip = ["tip:written", "tip:synced"].includes(point);
@@ -55,7 +84,7 @@ describe("actual child-process / filesystem publication", () => {
       expect((await store.read()).attempts[0]?.spentAgents).toBe(1);
       expect(status.uncertainEffectIds).toEqual([ids.effect]); // Coordinator death never proves external termination.
     } else if (beforeTip || recoverable) {
-      expect(await store.acquireCoordinator()).toBe(2); // Confirmed OS process death, never TTL.
+      expect(await observed("crash-parent-acquire", { point }, store.acquireCoordinator())).toBe(2); // Confirmed OS process death, never TTL.
       if (recoverable) {
         const receipt = await store.recoverPublication();
         expect(receipt?.requestId).toBe(requestId);
@@ -99,10 +128,23 @@ describe("actual child-process / filesystem publication", () => {
     const barrier: SupervisionMutation[] = [{ kind: "scope", value: { ...scope(store.homeId), mode: "legacy", state: "transferring", version: 2 } },
       { kind: "backend", value: { planId: "legacy", ownerScopeId: ids.scope, backend: "legacy", state: "prepared", sourceHash: hash, version: 2 } }];
     const worker = await launch({ home, dataRoot, mode: "crash", crash: point, mutations: barrier, expected: expected(barrier, 1), requestId: randomUUID() });
-    expect((await worker.done).code === 0).toBe(false);
+    expectTargetCrash(await worker.done, point);
     const routing = await store.backend("legacy"); expect(routing).toMatchObject({ backend: "legacy", held: true });
     expect((await store.read()).sequence).toBe(point === "publication:linked" ? 2 : 1);
     // This is the journal barrier only. S07 owns source/delivery inventory and actual backend switching.
+  }, 30000);
+  it("distinguishes a refused process identity before claim from the requested publication crash", async () => {
+    const { store, home, dataRoot } = await fixture(), mutations = seed(store.homeId);
+    const worker = await launch({ home, dataRoot, mode: "crash", crash: "tip:written", unknownProcessIdentity: true,
+      mutations, expected: expected(mutations), requestId: randomUUID() });
+    const result = await worker.done;
+    expect(result).toMatchObject({ code: 2, crashBoundary: null, stdout: "" });
+    expect(JSON.parse(result.stderr)).toMatchObject({ code: "UNSUPPORTED" });
+    expect(() => expectTargetCrash(result, "tip:written")).toThrow("Child did not reach tip:written");
+    expect(await readdir(join(store.root, "coordinators"))).toEqual([]);
+    // First acquisition is generation 1: this is not a recovery of the requested killed writer.
+    expect(await store.acquireCoordinator()).toBe(1);
+    await store.releaseCoordinator();
   }, 30000);
   it("refuses a live overlapping installation, then permits only explicit released handoff", async () => {
     const { store, home, dataRoot } = await fixture();

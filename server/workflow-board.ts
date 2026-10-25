@@ -4,7 +4,7 @@ import type { NeedsYouSnapshot } from "../shared/needs-you";
 import type { PlanNeed, WorkflowSnapshot } from "../shared/workflow-rpc";
 import type { Fleet, FleetCard } from "../shared/fleet";
 import { RemoteSnapshot } from "../shared/remotes";
-import { planFinished, type WorkflowPlan } from "../shared/workflow-plans";
+import { captainReviewRequired, decisionOwner, planOwner, planFinished, type WorkflowPlan } from "../shared/workflow-plans";
 import { compactWorkflowBearings } from "../shared/workflow-plan-summary";
 import { workflowNodeOwnsCard } from "../shared/workflow-identity";
 import { dependenciesMet, planSubjectHash, planBacklogLine, backlogSection, samePlanItem } from "./workflow-plans";
@@ -38,7 +38,7 @@ export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> 
   const unavailableDependencies = quarantinedDependencyIds(read.quarantined ?? []);
   for (const plan of plans) {
     if (plan.status === "abandoned" || planFinished(plan)) continue;
-    if (plan.status === "review") now.push({ plan: plan.definition.id, title: plan.definition.title, question: "Review the plan", waits: [], neededBy: [], recommendation: "Review the runs, dependencies and budget.", review: { revision: plan.revision, at: plan.history.at(-1)?.at ?? plan.definition.request.at } });
+    if (plan.status === "review" && (planOwner(plan) === "captain" || captainReviewRequired(plan))) now.push({ plan: plan.definition.id, title: plan.definition.title, question: "Review the plan", waits: [], neededBy: [], recommendation: "Review the runs, dependencies and budget.", review: { revision: plan.revision, at: plan.history.at(-1)?.at ?? plan.definition.request.at } });
     for (const node of plan.definition.nodes) {
       if (node.kind !== "decision" || plan.nodes[node.id]?.answer) continue;
       const need = { plan: plan.definition.id, node: node.id, title: plan.definition.title, question: node.title,
@@ -47,7 +47,7 @@ export async function workflowSnapshot(home: string): Promise<WorkflowSnapshot> 
         recommendation: `${node.options.find(o => o.id === node.recommendation)?.label ?? "None yet"} — ${node.rationale}`,
         waitingFor: plan.status === "review" ? "after plan approval and required evidence" : plan.status === "held" || plan.nodes[node.id]?.held ? "after the hold is lifted and required evidence is ready" : node.after.some(d => d.on === "landed") ? "after earlier changes are landed" : node.after.some(d => d.on === "answered") ? "after an earlier decision is answered" : node.after.some(d => d.reason === "needs-evidence") ? "after the earlier review is complete" : "after earlier work is finished",
         decision: { homeId: workflowHomeId(home), revision: plan.revision, subjectHash: planSubjectHash(plan), ask: node.summary, options: node.options, at: decisionDueAt(plan, node, allPlans), held: !!plan.nodes[node.id]?.held, ready: planDecisionReady(plan, node, allPlans, unavailableDependencies) } };
-      (planDecisionReady(plan, node, allPlans, unavailableDependencies) ? now : comingUp).push(need);
+      if (decisionOwner(plan, node) === "captain") (planDecisionReady(plan, node, allPlans, unavailableDependencies) ? now : comingUp).push(need);
     }
   }
   return { homeId: workflowHomeId(home), version: digest({ plans: allPlans.map(p => p.hash), problems: read.problems, warnings: read.warnings ?? [], unavailableDependencies: [...unavailableDependencies].sort() }), plans,
@@ -58,13 +58,13 @@ async function catalog(home: string) {
   try { return RemoteSnapshot.parse(JSON.parse(await readFile((await resolveInHome(home, "data/remote-hosts.json")).absolute, "utf8"))); } catch { return null; }
 }
 
-/** Deduplicate only the exact local, project-less decision projection this plan owns. */
+/** A row explicitly tagged with this plan is the decision's backlog projection, even if annotated with a project. */
 export async function withWorkflowNeeds(snapshot: NeedsYouSnapshot, home: string, workflow?: WorkflowSnapshot): Promise<NeedsYouSnapshot> {
   const view = workflow ?? await workflowSnapshot(home), problems = [...(view.problems ?? [])];
   let items: Awaited<ReturnType<typeof backlog>> = [];
   try { items = await backlog(home); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") problems.push("Plan backlog projections could not be matched; legacy decisions are retained."); }
-  const ids = new Set(view.plans.flatMap(p => p.definition.nodes.filter(n => n.kind === "decision" && items.some(i => samePlanItem(i, p, n))).map(n => n.id)));
-  const owned = (source: { taskId: string; hostId: string; project: string | null }) => ids.has(source.taskId) && source.hostId === "local" && !source.project;
+  const ownedRows = items.filter(i => view.plans.some(p => p.definition.nodes.some(n => n.kind === "decision" && n.id === i.id && i.plan === p.definition.id)));
+  const owned = (source: { taskId: string; hostId: string; project: string | null }) => ownedRows.some(i => i.id === source.taskId && (i.host ?? "local").toLowerCase() === source.hostId.toLowerCase() && (i.project ?? null) === source.project);
   const removed = snapshot.requests.filter(r => owned(r.source));
   const candidates = view.now.flatMap(n => {
     const request = planDecisionRequest(n);

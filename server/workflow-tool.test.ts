@@ -43,6 +43,26 @@ it("transports plans, an implicit start, records, read-only agenda and idempoten
   expect(await run(["start", "--file", "data/task/request.json"], "guest")).toMatchObject({ ok: false, error: expect.stringContaining("current first mate") });
   expect(await run(["start", "--file", "../outside.json"])).toMatchObject({ ok: false });
 });
+it("transports explicit delegation, a routine decision and revocation through the existing request handler", async () => {
+  const launch = { id: "task", title: "Task", agentTitle: "Task", project: "project", host: "local", baseBranch: "main", kind: "ship", mode: "reviewed-PR", brief: { file: "data/task/brief.md" }, agent: { provider: "codex/model", modeId: "full-access" }, backlog: { existing: "none" } };
+  const definition = { format: "firstmate.plan/1", id: "outcome", title: "Ship outcome", request: { text: "Choose and ship", at: "2026-10-20T12:00:00Z" },
+    ownership: { owner: "firstmate", evidence: "Captain delegated this outcome" }, budget: { agents: 1, turns: 1 }, nodes: [
+      { id: "choice", kind: "decision", authority: "owner", title: "Choose route", summary: "Select the implementation route", options: [{ id: "simple", label: "Simple", consequence: "Use the simple approach" }, { id: "complex", label: "Complex", consequence: "Use the complex approach" }], recommendation: "simple", rationale: "Current scope is bounded" },
+      { id: "task", kind: "run", title: "Task", summary: "Ship the selected route", workflow: "task@1", launch, after: [{ node: "choice", reason: "decision", on: "answered" }] },
+    ] };
+  await writeFile(join(home, "data/task/plan.json"), JSON.stringify(definition));
+  expect(await run(["plan", "draft", "--file", "data/task/plan.json"])).toMatchObject({ ok: true, result: { plan: { owner: "firstmate", status: "active" } } });
+  const shown = (await run(["plan", "outcome"])).result;
+  const answer = { op: "progress", plan: "outcome", revision: shown.revision, subjectHash: shown.subjectHash, action: "answer", node: "choice", option: "simple", evidence: "Current brief supports the simple route" };
+  await writeFile(join(home, "data/task/progress.json"), JSON.stringify(answer));
+  expect(await run(["plan", "progress", "--file", "data/task/progress.json"])).toMatchObject({ ok: true, result: { plan: { nodes: { choice: { answer: "simple" } } } } });
+  expect((await run(["start", "--plan", "outcome", "--node", "task"])).result.launch.workflow.attempt).toBeTruthy();
+  const after = (await run(["plan", "outcome"])).result;
+  const transfer = { op: "captain", plan: "outcome", revision: after.revision, subjectHash: after.subjectHash, action: "transfer", owner: "captain", text: "Captain takes back routine decisions" };
+  await writeFile(join(home, "data/task/transfer.json"), JSON.stringify(transfer));
+  expect(await run(["plan", "action", "--file", "data/task/transfer.json"])).toMatchObject({ ok: true, result: { plan: { owner: "captain", ownerEvents: [{ to: "captain" }] } } });
+  expect(await run(["plan", "progress", "--file", "data/task/progress.json"])).toMatchObject({ ok: false });
+});
 it("retires a quarantined plan through the first-mate tool while retaining files, attempts and scoped reservations", async () => {
   const launch = { id: "task", title: "Task", agentTitle: "Task", project: "project", host: "local", baseBranch: "main", kind: "ship", mode: "direct-PR", brief: { file: "data/task/brief.md" }, agent: { provider: "codex/model", modeId: "full-access" }, backlog: { existing: "none" } };
   await writeFile(join(home, "data/task/request.json"), JSON.stringify(launch));

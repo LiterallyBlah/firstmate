@@ -166,6 +166,11 @@ the captain's call; take the hold off once they have answered.
 
 **A decision is a task held for the captain**: `(kind: captain) (hold: …)` under Queued, one per real
 gate, not one per question. Close it only with the captain's recorded answer.
+For a decision already owned by a workflow plan, use its plan node and projected backlog row only.
+Do not create an independent legacy hold for that same gate. The plan names whether its routine
+choices belong to the Captain or FirstMate; an explicit captain-only node still goes to the Captain.
+Routine decisions follow the current plan owner, including after an explicit transfer. Mark
+`authority: captain` for an exception that must stay with the Captain.
 Write `data/<id>/decision.md` for each decision, with Background, Options and Recommendation sections
 (Markdown headings or bold section labels). Give enough background to decide without rereading the
 conversation, and explain each option's trade-offs. Use numbered options with bold labels so the drawer
@@ -310,9 +315,22 @@ Plan before dispatching. Check `node tools/workflow.mjs plans` first: a follow-u
 plan, never a second plan. Questions, Bearings, steers and answers need no plan. One deliverable that
 fits one task or scout run plans itself through `launch.mjs`, with no approval message or extra call.
 For larger work, draft strict JSON with `workflow.mjs plan draft --file …`: the runs, each dependency
-and its reason (builds-on, needs-evidence, decision or shared-state), and each decision the captain
-will face, with options and a recommendation. File the backlog lines from the plan and agenda.
-By default, two or more runs or any decision wait for approval; otherwise the plan sails. The
+and its reason (builds-on, needs-evidence, decision or shared-state), and each decision with
+options and a recommendation. File the backlog lines from the plan and agenda.
+Default every new plan to Captain ownership. Set `ownership.owner` to `firstmate` only when the
+Captain explicitly delegates the outcome, and retain the quoted delegation in `ownership.evidence`.
+Use the supported transfer action for adoption or revocation; never rewrite a revision to change
+ownership. Under FirstMate ownership, take initiative on ready actions, run independent work in
+parallel, resolve routine failure feedback, and record in-scope stage and technical decisions through
+the workflow command. Raise worker/turn caps only as actual attempts require; they are internal
+counts, not spending or effect permission. Avoid ceremonial probe or review stages without a real
+uncertainty or independent evidence need. Keep captain-only decisions, release, installation,
+discard, access, holds and external effects with the Captain. Use the existing heartbeat as a
+backstop; a wake does not guarantee runtime execution and needs no second timer.
+An investigation delegated as `scout@1` does not authorize a `task@1` ship run. Keep every
+Captain-gate dependency on the work it protects, including an added run in that scope.
+For Captain-owned plans, two or more runs or any decision wait for approval by default; otherwise
+the plan sails. An explicitly delegated plan advances through routine stages with FirstMate. The
 plan-posture standing order in `data/captain.md` can change this; `data/workflows.md` gives its format.
 The captain's own words on this request override the order and default. Approval authorizes the work and resolves no merge,
 deploy, discard or publish gate. Never infer approval from displaying or dismissing a plan.

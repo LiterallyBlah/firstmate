@@ -1,5 +1,5 @@
 import type { WorkflowSnapshot } from "./workflow-rpc";
-import { planFinished, type PlanNode, type PlanNodeState, type WorkflowPlan } from "./workflow-plans";
+import { decisionOwner, planFinished, planOwner, type PlanNode, type PlanNodeState, type WorkflowPlan } from "./workflow-plans";
 
 export const PLAN_PAGE_SIZE = 10;
 export const planClosed = (plan: WorkflowPlan) => plan.status === "abandoned" || planFinished(plan);
@@ -98,7 +98,7 @@ export function stepState(plan: WorkflowPlan, node: PlanNode, plans: readonly Wo
   if (plan.status === "abandoned") return "declined";
   if (plan.status === "held") return "on hold";
   if (plan.status === "review") return "awaiting plan approval";
-  return node.kind === "decision" ? "waiting for your decision" : "ready";
+  return node.kind === "decision" ? decisionOwner(plan, node) === "firstmate" ? "FirstMate to decide" : "waiting for your decision" : "ready";
 }
 
 export function reviewLabel(node: RunNode, state?: PlanNodeState): string {
@@ -190,7 +190,7 @@ export function compactWorkflowBearings(snapshot: WorkflowSnapshot): string {
   const line = (text: string, max = 180) => { const textLine = text.replace(/\s+/g, " ").trim(); return textLine.length > max ? textLine.slice(0, max - 1) + "…" : textLine; };
   const overview = plans.map(plan => {
     const summary = planSummary(plan, snapshot.plans, true);
-    return `- ${plan.definition.id} — ${line(plan.definition.title)}: ${summary.progress}; running: ${line(summary.running)}${summary.attention ? `; attention: ${line(summary.attention, 220)}` : ""}; next: ${line(summary.next, 220)}.`;
+    return `- ${plan.definition.id} — ${line(plan.definition.title)}: owner ${planOwner(plan) === "firstmate" ? "FirstMate" : "Captain"}; ${summary.progress}; running: ${line(summary.running)}${summary.attention ? `; attention: ${line(summary.attention, 220)}` : ""}; next: ${line(summary.next, 220)}.`;
   });
   const decisions = (needs: WorkflowSnapshot["now"]) => needs.filter(n => plans.some(p => p.definition.id === n.plan)).map(n =>
     `- ${n.plan}${n.node ? `/${n.node}` : ""}: ${line(n.question)}${n.waits.length ? `; waits: ${line(n.waits.join(", "))}` : ""}${n.recommendation ? `; recommended: ${line(n.recommendation, 160)}` : ""}`);

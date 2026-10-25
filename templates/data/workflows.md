@@ -38,6 +38,11 @@ For approval recorded from chat in this slice, use `plan approve --plan <id> --e
 --quote <captain's words>`. This records the first mate as its author; approval grants no merge authority.
 Each one-step run costs at most one worker and one initial worker turn. Reviews/relaunches require a
 recorded revision and additional budget; a revision never erases used runs or their evidence.
+`budget.agents` and `budget.turns` are positive finite safe integers counting cumulative attempts,
+including replacements. They may exceed 100; the separate graph limit remains 100 nodes.
+Removed spending and prior attempts remain accounted once. These counts grant no money, access,
+external effect or resource expansion. Continue the existing task and history; resetting, splitting
+or renaming a continuation to obtain fresh capacity is not supported.
 
 `plan revise --file data/plans/<id>/revision-2.json --expected <current plan hash> --reason <why>`
 submits a whole new definition. Started runs and answered decisions stay pinned. Changed assumptions
@@ -137,9 +142,19 @@ applicability. The original result, invalidation and renewal all remain in the e
 deliberate manual replacement or scout promotion. First inspect and stop/archive a wedged worker;
 promotion requires its verified scout report and the captain's authority. Preserve the workspace.
 The transition retains prior attempts, advances the revision and reserves additional cumulative budget.
-Increases over 1.5 times the approved worst case require approval. Start the new intent, make the
+New replacements must declare enough for all spent attempts, the replacement and every other pending
+run. For example, 100 spent plus five pending needs 106 after one accounted worker is replaced;
+101 and 105 are refused. A refusal appends nothing. Earlier committed underdeclared replacements
+remain readable with their original counts and evidence; they receive no refund or automatic repair.
+For Captain-owned plans, increases over 1.5 times the approved worst case require approval.
+Explicitly delegated routine relaunches follow the ownership rules below. Start the new intent, make the
 same-workspace calls from charter §7/§8 manually, then record the actual identities against its new
 attempt. The launch helper deliberately remains limited to new worktree creation.
+
+Qualify a compatible reader and writer before committing a live count above 100. Older readers
+reject such events. After that first event, rollback must retain a capacity-aware reader; deleting
+or rewriting events, truncating the journal or resetting counts to fit an older reader is unsupported.
+The disabled S03 command path still refuses replacement; this capacity correction does not activate it.
 
 `node data/backlog-lint.js` uses the daemon's exact strict backlog observer through `workflow.mjs lint`.
 It accepts opaque legacy blocker prose; only recognized ID lists acquire dependency semantics.
@@ -147,6 +162,37 @@ An unavailable daemon is a lint failure, never a clean result. No separate parse
 
 
 ## Plans on the board
+
+Plans have a decision owner. Drafts without `ownership` belong to the Captain, including existing
+plans. To start a delegated plan, add `"ownership":{"owner":"firstmate","evidence":"<captain's explicit delegation>"}`
+to the draft JSON. `ownership` is the initial policy; revisions preserve it. The Plans dialog shows
+the current owner and lets the Captain delegate or take ownership back. From a recorded chat request,
+use `plan action --file <json>` with `action:"transfer"`, `owner:"firstmate"|"captain"`, the
+current revision and subject hash, and the Captain's quoted words in `text`. This appends an auditable
+transfer without changing prior answers, workers or spent budget. A mate must never infer transfer
+from a task assignment, a worker session or a standing preference.
+
+For a FirstMate-owned plan, `plan progress --file <json>` accepts
+`{ "op":"progress", "plan":"<id>", "revision":<current>, "subjectHash":"<current>",
+  "action":"answer", "node":"<decision-id>", "option":"<option-id>", "evidence":"<reason>" }`.
+Use `action:"stage"` without node/option only for a pending routine stage review. Read the latest
+plan before each command; changed ownership, decisions and revisions refuse stale submissions.
+Routine in-scope revisions and `replace --kind relaunch` may raise the cumulative worker/turn count
+without the 1.5x review stop; actual spent attempts still count and the declared cap remains binding.
+The plan cannot silently widen project, host, branch, delivery mode or captain authority scope.
+Changing a scout into a ship run, adding ship work to a scout-only scope, or removing a Captain
+gate from protected work requires a separate Captain scope decision. Added runs in a gated scope
+keep the recorded Captain prerequisite.
+An internal worker/turn estimate grants no money, access, external effect or resource expansion.
+Routine decisions follow the current plan owner, including after an explicit transfer. Mark
+`"authority":"captain"` to keep a decision with the Captain under delegation; `"authority":"owner"`
+states the default explicitly. Release, installation,
+discard, access, user holds and effect approvals stay with the Captain regardless of owner.
+Do not create a second backlog hold for a decision already in a plan. File only the plan's projected
+task row, with its plan id and exact scope; put the question, options and rationale in that node.
+The optional `data/<task>/decision.md` adds context to the same gate. A scheduled wake is only an
+opportunity to inspect ready work, not a guarantee that a runtime turn will execute. Use the existing
+heartbeat; do not create another timer for delegated plans.
 
 Larger plans have a chip and a Plans filter. The dialog shows the runs, models, dependencies, worker
 and turn bounds, decision options and revision history. Approve authorizes work only. Approve with

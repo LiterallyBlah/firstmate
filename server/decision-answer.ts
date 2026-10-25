@@ -13,6 +13,13 @@ import {
 import { withDecisionOptions } from "./decision-options";
 import { message, TEMPLATES } from "./templates";
 import { serialized } from "./serialize";
+import type { SupervisionActor } from "../shared/supervision";
+import type { ScopedAnswer, SupervisionCommands } from "./supervision-commands";
+
+/** Distinct opt-in backend: commit the answer fact/outbox; no askMate transport or automatic resend. */
+export function answerScopedDecision(commands: SupervisionCommands, input: ScopedAnswer, actor: SupervisionActor) {
+  return commands.answer(input, actor);
+}
 
 export async function answerDecision(
   paseo: PaseoApi,

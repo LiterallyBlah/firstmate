@@ -1,0 +1,8 @@
+{
+  "path": "server/workflow-close-review.test.ts",
+  "sha256": "f47a07be638c53d7043c139f38fc6ee33a8c26170c30ae88e8b02affb44154bd",
+  "extraction": "let home through beforeEach; identical definition/execute/start/close functions, differing only store binding in control",
+  "digestEncoding": "SHA-256 of the working-copy source bytes read before fixture edits",
+  "acceptedHead": "2ac5979ccbe1a171d2e0ae51b506404328ac5f14",
+  "acceptedGitBlobSha256": "5b66de9b5d3b336326c95f10979a6ee34df5241f81ae6ca9f78ea50919b217ff"
+}

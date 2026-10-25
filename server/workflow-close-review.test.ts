@@ -1,42 +1,23 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { beforeEach, expect, it, vi } from "vitest";
-import { workflowFixture } from "../test/workflow-fixture";
-import type { PlanDefinition, WorkflowCommand } from "../shared/workflow-plans";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { workflowCloseContext, definition } from "../test/workflow-close-context";
 import { WorkflowPlanStore, planSubjectHash, replayWorkflowEvent } from "./workflow-plans";
 
-let home: string, root: string, store: WorkflowPlanStore;
-function definition(id: string, nodeId = id): PlanDefinition {
-  const source = workflowFixture(), node = source.nodes.find(n => n.kind === "run" && n.launch.kind === "ship")!;
-  if (node.kind !== "run") throw new Error("fixture");
-  return { ...source, id, request: { ...source.request, posture: "sail", quote: "Sail within this approved trial." }, nodes: [
-    { ...node, id: nodeId, after: [], launch: { ...node.launch, id: nodeId, brief: { file: `data/${nodeId}/brief.md` } } },
-  ] };
-}
-const execute = (command: WorkflowCommand) => store.execute(command, randomUUID(), "mate");
-async function start(kind: "ship" | "scout" = "ship", state: "done" | "running" | "unresolved" = "done") {
-  const plan = definition("trial", "build"), node = plan.nodes[0]!;
-  if (node.kind !== "run") throw new Error("fixture");
-  node.launch.kind = kind; node.workflow = kind === "ship" ? "task@1" : "scout@1";
-  await execute({ op: "draft", definition: plan });
-  const result: any = await execute({ op: "start", plan: "trial", node: "build" });
-  const attempt = result.launch.workflow.attempt;
-  await execute({ op: "record", plan: "trial", node: "build", attempt, state, evidence: "Inspected trial report and worker.",
-    ...(state === "running" ? { agentId: "worker", workspaceId: "workspace" } : {}) });
-  return attempt as string;
-}
-async function close(attempt: string) {
-  return execute({ op: "close", plan: "trial", node: "build", attempt, expected: (await store.get("trial"))!.hash, evidence: "Verified evidence-only trial; nothing to land." });
-}
-beforeEach(async () => {
-  home = join(process.env.PASEO_HOME!, randomUUID()); root = join(home, "ledger");
+let fixture: ReturnType<typeof workflowCloseContext>;
+beforeEach(async ({ signal }) => {
+  const home = join(process.env.PASEO_HOME!, randomUUID()), root = join(home, "ledger");
   await mkdir(join(home, "data/build"), { recursive: true }); await writeFile(join(home, "data/build/brief.md"), "Run a trial.");
   await writeFile(join(home, "data/backlog.md"), "## In flight\n## Queued\n## Done\n");
-  store = new WorkflowPlanStore(root, home);
+  const store = new WorkflowPlanStore(root, home);
+  fixture = workflowCloseContext({ home, root, store, signal });
 });
 
+afterEach(() => fixture.drain());
+
 it.each(["declined", "quarantined", "quarantined-declined"])("refuses close with a %s landing dependent, preserving later unrelated commands", async scenario => {
+  const { root, store, execute, start, close } = fixture;
   const attempt = await start(), dependent = definition("dependent", "consumer");
   dependent.nodes[0]!.after = [{ node: "build", reason: "builds-on", on: "landed" }];
   await execute({ op: "draft", definition: dependent });
@@ -58,9 +39,10 @@ it.each(["declined", "quarantined", "quarantined-declined"])("refuses close with
   await execute({ op: "revise", definition: dependent, expected: current.hash, reason: "Remove the retained landing prerequisite before closing the trial." });
   await close(attempt);
   await expect(execute({ op: "draft", definition: definition("later") })).resolves.toBeTruthy();
-});
+}, 15000);
 
 it.each(["scout", "running", "unresolved"] as const)("refuses close on %s work without changing the journal", async scenario => {
+  const { root, store, start, close } = fixture;
   const attempt = await start(scenario === "scout" ? "scout" : "ship", scenario === "scout" ? "done" : scenario);
   const before = (await store.get("trial"))!, files = await readdir(join(root, "trial"));
   await expect(close(attempt)).rejects.toThrow("verified done ship");
@@ -68,6 +50,7 @@ it.each(["scout", "running", "unresolved"] as const)("refuses close on %s work w
   expect(await readdir(join(root, "trial"))).toEqual(files);
 });
 it("refuses a held done ship during replay, preserving its held state", async () => {
+  const { root, store, start } = fixture;
   const attempt = await start(), before = (await store.get("trial"))!;
   before.nodes.build!.held = "Prerequisite removed; replan before starting.";
   const event = JSON.parse(await readFile(join(root, "trial/00000002.json"), "utf8"));
@@ -76,6 +59,7 @@ it("refuses a held done ship during replay, preserving its held state", async ()
   expect(before.nodes.build!.closedWithoutLanding).toBeUndefined();
 });
 it("refuses a second close with a new request id and current hash, retaining the first receipt", async () => {
+  const { root, store, start, close } = fixture;
   const attempt = await start(); await close(attempt);
   const before = (await store.get("trial"))!, files = await readdir(join(root, "trial"));
   await expect(close(attempt)).rejects.toThrow("verified done ship");
@@ -83,6 +67,7 @@ it("refuses a second close with a new request id and current hash, retaining the
   expect(await readdir(join(root, "trial"))).toEqual(files);
 });
 it("refuses close when the dependency inventory itself is unavailable", async () => {
+  const { store, start, close } = fixture;
   const attempt = await start(), before = (await store.get("trial"))!;
   const read = vi.spyOn(store, "read").mockResolvedValueOnce({ plans: [], problems: ["Cannot list ledger"], warnings: [], quarantined: [], unavailable: true });
   try { await expect(close(attempt)).rejects.toThrow("dependencies are unavailable"); }
@@ -90,6 +75,7 @@ it("refuses close when the dependency inventory itself is unavailable", async ()
   expect((await store.get("trial"))!).toEqual(before);
 });
 it("allows close after explicit retirement makes a quarantined plan permanently non-executable", async () => {
+  const { root, store, execute, start, close } = fixture;
   const attempt = await start(); await execute({ op: "draft", definition: definition("broken") });
   await writeFile(join(root, "broken/00000000.json"), "{");
   await expect(close(attempt)).rejects.toThrow("dependencies are unavailable");

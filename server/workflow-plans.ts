@@ -4,7 +4,7 @@ import type { Dirent } from "node:fs";
 import { mkdir, readFile, readdir, rename, writeFile, stat, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, planAwaitingReview, planFinished, planPosture, planProblems, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
+import { PlanId, PlanLaunchSchema, PlanDefinitionSchema, PlanPostureSourceSchema, WorkflowCommandSchema, captainReviewRequired, decisionOwner, planOwner, planAwaitingReview, planFinished, planPosture, planProblems, planSpent, planWorstCase, type AgendaItem, type PlanDefinition, type WorkflowCommand, type WorkflowPlan, type PlanNode } from "../shared/workflow-plans";
 import { readPlanPosture } from "./workflow-posture";
 import { digest, publish } from "./submissions";
 import { serialized } from "./serialize";
@@ -27,11 +27,113 @@ const RecoverySchema = z.object({ version: z.literal(1), home: z.string(), plan:
   orphanHash: z.string().length(64), previous: z.string().length(64).nullable(), revision: z.number().int().positive(), at: z.iso.datetime(), hash: z.string().length(64) }).strict();
 const checksum = ({ hash: _hash, ...event }: Event) => digest(event);
 const terminal = (state: string) => ["done", "landed", "failed", "cancelled"].includes(state);
-export const planSubjectHash = (plan: WorkflowPlan) => digest({ definition: plan.definition, revision: plan.revision, status: plan.status, nodes: plan.nodes, captainActions: plan.captainEvents?.map(e => e.id) ?? [] });
+export const planSubjectHash = (plan: WorkflowPlan) => digest({ definition: plan.definition, revision: plan.revision, status: plan.status, nodes: plan.nodes, owner: planOwner(plan), ownerEvents: plan.ownerEvents, captainActions: plan.captainEvents?.map(e => e.id) ?? [] });
 export const backlogSection = (node: PlanNode, state: string, closedWithoutLanding = false) => terminal(state) && !(node.kind === "run" && node.launch.kind === "ship" && state === "done" && !closedWithoutLanding) ? "done" : state === "planned" ? "queued" : "in-flight";
 export const samePlanItem = (item: ReturnType<typeof parseBacklog>[number], plan: WorkflowPlan, node: PlanNode) =>
-  item.id === node.id && (node.kind === "decision" ? !item.project && !item.host : item.project === node.launch.project && (item.host ?? "local").toLowerCase() === node.launch.host.toLowerCase()) &&
+  item.id === node.id && (node.kind === "decision" ? true : item.project === node.launch.project && (item.host ?? "local").toLowerCase() === node.launch.host.toLowerCase()) &&
   (plan.definition.implicit || item.plan === plan.definition.id);
+/** Append admission only. Replayers deliberately do not call this helper. */
+export function checkNewCaptainAction(command: WorkflowCommand, previous: WorkflowPlan | null, plans: WorkflowPlan[], unavailableDependencies = new Set<string>(), unavailable = false): void {
+  if (command.op !== "captain" && command.op !== "progress") return;
+  if (!previous || command.revision !== previous.revision || command.subjectHash !== planSubjectHash(previous)) throw new Error("This plan changed since you opened it. Refresh and review it again.");
+  if (command.op === "progress") {
+    if (planOwner(previous) !== "firstmate") throw new Error("The captain owns this plan. Transfer it explicitly before delegated progression.");
+    if (command.action === "stage" && (previous.status !== "active" && !planAwaitingReview(previous) || captainReviewRequired(previous) || planFinished(previous))) throw new Error("This stage is held, finished or requires captain review.");
+    if (command.action === "answer") {
+      const node = previous.definition.nodes.find(n => n.id === command.node);
+      if (!node || decisionOwner(previous, node) !== "firstmate") throw new Error("This decision belongs to the captain.");
+      if (previous.nodes[command.node ?? ""]?.answer || unavailable || !planDecisionReady(previous, node, plans, unavailableDependencies)) throw new Error("Decision is already answered or not ready.");
+    }
+    return;
+  }
+  if (command.action === "transfer") {
+    if (!command.owner || command.owner === planOwner(previous) || !command.text.trim()) throw new Error("A different owner and the captain's explicit delegation or revocation are required.");
+    return;
+  }
+  if (command.action === "resume" && previous.status !== "held") throw new Error("Only a held plan can be resumed by the captain.");
+  if (["approve", "edit"].includes(command.action) && planOwner(previous) !== "captain" && !captainReviewRequired(previous)) throw new Error("Routine plan review belongs to FirstMate. Transfer ownership before captain approval.");
+  if (["approve", "edit", "changes"].includes(command.action) && !planAwaitingReview(previous)) throw new Error("This plan is not awaiting review. The first mate must submit a revised plan before another review.");
+  if (command.action === "answer") {
+    const node = previous.definition.nodes.find(n => n.id === command.node);
+    if (node && decisionOwner(previous, node) !== "captain") throw new Error("This routine decision belongs to FirstMate.");
+    if (previous.nodes[command.node ?? ""]?.answer) throw new Error("Decision is already answered.");
+    if (unavailable || !node || !planDecisionReady(previous, node, plans, unavailableDependencies)) throw new Error("Decision is not ready. Approve the plan and complete its required evidence before answering.");
+  }
+}
+const delegatedRunScope = (node: Extract<PlanNode, { kind: "run" }>) => digest({
+  project: node.launch.project, host: node.launch.host, baseBranch: node.launch.baseBranch,
+  mode: node.launch.mode, backlog: node.launch.backlog.existing, workflow: node.workflow, kind: node.launch.kind,
+});
+function assertDelegatedRevision(previous: WorkflowPlan, definition: PlanDefinition, plans: WorkflowPlan[]): void {
+  if (digest(definition.request) !== digest(previous.definition.request) || digest(definition.ownership ?? null) !== digest(previous.definition.ownership ?? null)) throw new Error("Delegated revision cannot rewrite the request or ownership evidence.");
+  const protectedNodes = new Set(plans.flatMap(plan => plan.definition.nodes.filter(node =>
+    node.kind === "decision" && decisionOwner(plan, node) === "captain" || node.kind === "run" && !!node.launch.captainAuthority).map(node => node.id)));
+  // Keep every old route to a Captain gate, including an indirect route through a routine decision.
+  for (let added = true; added;) {
+    added = false;
+    for (const node of previous.definition.nodes) if (!protectedNodes.has(node.id) && node.after.some(edge => protectedNodes.has(edge.node))) {
+      protectedNodes.add(node.id); added = true;
+    }
+  }
+  for (const old of previous.definition.nodes) {
+    if (old.kind === "decision" && decisionOwner(previous, old) === "captain" || old.kind === "run" && !!old.launch.captainAuthority) {
+      if (digest(definition.nodes.find(node => node.id === old.id) ?? null) !== digest(old)) throw new Error("A captain-owned decision or authority gate cannot be changed through delegated revision.");
+    }
+    const current = definition.nodes.find(node => node.id === old.id);
+    if (current) for (const edge of old.after.filter(edge => protectedNodes.has(edge.node))) {
+      if (!current.after.some(next => digest(next) === digest(edge))) throw new Error("A captain gate dependency cannot be removed through delegated revision.");
+    }
+    if (old.kind === "run" && current?.kind === "run" && (old.workflow !== current.workflow || old.launch.kind !== current.launch.kind))
+      throw new Error("Delegated revision changes scout or ship scope; ask the captain.");
+  }
+  const scopes = new Set(previous.definition.nodes.filter((n): n is Extract<PlanNode, { kind: "run" }> => n.kind === "run" && !n.launch.captainAuthority)
+    .map(delegatedRunScope));
+  for (const node of definition.nodes) {
+    if (node.kind !== "run") continue;
+    const old = previous.definition.nodes.find(n => n.id === node.id);
+    if (old?.kind === "run" && digest(node.launch.captainAuthority ?? null) !== digest(old.launch.captainAuthority ?? null)) throw new Error("A captain authority gate cannot be changed through delegated revision.");
+    if (node.launch.captainAuthority && digest(node) !== digest(old ?? null)) throw new Error("A captain authority gate cannot be changed through delegated revision.");
+    if (!old || old.kind !== "run" || digest(node.launch) !== digest(old.launch)) {
+      const scope = delegatedRunScope(node);
+      if (!scopes.has(scope)) throw new Error("Delegated revision changes project, host, branch, delivery mode, scout/ship kind or authority scope; ask the captain.");
+      if (old?.kind !== "run") for (const source of previous.definition.nodes.filter((n): n is Extract<PlanNode, { kind: "run" }> => n.kind === "run" && delegatedRunScope(n) === scope)) {
+        for (const edge of source.after.filter(edge => protectedNodes.has(edge.node))) {
+          if (!node.after.some(next => digest(next) === digest(edge))) throw new Error("A new run in a protected scope must retain its captain gate dependency.");
+        }
+      }
+    }
+  }
+}
+/** Append admission shared by the legacy request handler and the disabled S03 command seam. */
+export function checkNewWorkflowAction(command: WorkflowCommand, previous: WorkflowPlan | null, plans: WorkflowPlan[], unavailableDependencies = new Set<string>(), unavailable = false): void {
+  checkNewCaptainAction(command, previous, plans, unavailableDependencies, unavailable);
+  if (!previous) return;
+  if (command.op === "replace") {
+    const state = previous.nodes[command.node];
+    if (state?.attempt) {
+      // Match the replacement's pending state without refunding earlier attempts.
+      // New admission only: historical underdeclared replacements still replay.
+      const nodes = { ...previous.nodes, [command.node]: { state: "planned" as const, spent: state.spent ?? 1 } };
+      const worst = planWorstCase(previous.definition, nodes, previous.removed);
+      if (command.budget.agents < worst.agents || command.budget.turns < worst.turns)
+        throw new Error(`Replacement needs at least ${worst.agents} cumulative agents / ${worst.turns} turns, including ${planSpent(previous.nodes, previous.removed)} spent attempts and all pending runs.`);
+    }
+  }
+  if (command.op === "revise" && planOwner(previous) === "firstmate") assertDelegatedRevision(previous, command.definition, plans);
+  if (command.op === "start" && planOwner(previous) === "firstmate") {
+    const node = previous.definition.nodes.find(n => n.id === command.node);
+    if (node?.kind === "run" && node.launch.captainAuthority && !node.after.some(edge => edge.on === "answered" &&
+      plans.some(plan => plan.definition.nodes.some(gate => gate.id === edge.node && gate.kind === "decision" && decisionOwner(plan, gate) === "captain" && !!plan.nodes[gate.id]?.answer))))
+      throw new Error("This run has a captain authority gate; record an answered captain-only prerequisite before starting.");
+  }
+}
+function answerDecision(plan: WorkflowPlan, nodeId: string | undefined, option: string | undefined, evidence: string, at: string): void {
+  const node = plan.definition.nodes.find(n => n.id === nodeId), state = nodeId ? plan.nodes[nodeId] : undefined;
+  if (node?.kind !== "decision" || !state || state.answer || !node.options.some(o => o.id === option)) throw new Error("Decision is already answered or the option changed.");
+  if (state.held) throw new Error("Review this held decision's dependencies before answering.");
+  state.answer = option!; state.state = "done"; state.evidence = evidence || node.options.find(o => o.id === option)!.label;
+  state.readyAt = { done: at, answered: at };
+}
 function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
   const c = event.command;
   let next = previous ? structuredClone(previous) : null;
@@ -43,7 +145,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
         workflow: c.launch.kind === "scout" ? "scout@1" : "task@1", launch: c.launch, after: [] }],
     };
     const posture = event.postureSource?.posture ?? planPosture(definition);
-    next = { definition, revision: 1, sequence: 0, hash: "", posture, status: posture === "review" ? "review" : "active",
+    next = { definition, revision: 1, sequence: 0, hash: "", posture, owner: definition.ownership?.owner ?? "captain", status: definition.ownership?.owner === "firstmate" && !event.postureSource?.warning && definition.request.posture !== "review" ? "active" : posture === "review" ? "review" : "active",
       approvedBudget: planWorstCase(definition), nodes: Object.fromEntries(definition.nodes.map(n => [n.id, { state: "planned" as const, ...(n.kind === "decision" ? { introducedAt: event.at } : {}) }])), told: [], handled: [],
       history: [{ revision: 1, at: event.at, by: event.by, reason: "draft" }], ...(event.postureSource ? { postureSource: event.postureSource } : {}) };
   }
@@ -52,12 +154,13 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     // Revision/subject are checked once at append. Historical actions trust their committed chain.
     if (next.status === "abandoned") throw new Error("This plan was declined.");
     if (c.action === "changes" && !c.text.trim()) throw new Error("Describe the requested changes.");
-    if (c.action === "answer") {
-      const node = next.definition.nodes.find(n => n.id === c.node), state = c.node ? next.nodes[c.node] : undefined;
-      if (node?.kind !== "decision" || !state || state.answer || !node.options.some(o => o.id === c.option)) throw new Error("Decision is already answered or the option changed.");
-      if (state.held) throw new Error("Review this held decision's dependencies before answering.");
-      state.answer = c.option!; state.state = "done"; state.evidence = c.text || node.options.find(o => o.id === c.option)!.label;
-      state.readyAt = { done: event.at, answered: event.at };
+    if (c.action === "answer") answerDecision(next, c.node, c.option, c.text, event.at);
+    if (c.action === "transfer") {
+      const from = planOwner(next), to = c.owner!;
+      next.owner = to;
+      next.ownerEvents ??= []; next.ownerEvents.push({ at: event.at, by: event.by, from, to, evidence: c.text });
+      if (next.status === "review" && to === "firstmate" && !captainReviewRequired(next)) next.status = "active";
+      else if (next.status === "active" && to === "captain" && !planFinished(next)) next.status = "review";
     }
     if (c.action === "edit") {
       if (!c.edits?.length) throw new Error("Choose an edit before approving.");
@@ -78,16 +181,23 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
       next.definition = PlanDefinitionSchema.parse({ ...next.definition, implicit: false }); next.revision++;
       next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: c.text || "Approved with structured edits" });
     }
-    if (c.action === "approve" || c.action === "edit") { next.status = "active"; next.approvedBudget = planWorstCase(next.definition, next.nodes); }
+    if (c.action === "approve" || c.action === "edit") { next.status = "active"; next.approvedBudget = planWorstCase(next.definition, next.nodes, next.removed); }
     if (c.action === "hold" || c.action === "changes") next.status = "held";
+    if (c.action === "resume") next.status = planOwner(next) === "firstmate" && !captainReviewRequired(next) ? "active" : "review";
     if (c.action === "decline") {
       if (next.definition.nodes.some(n => n.kind === "run" && next!.nodes[n.id]?.state !== "planned")) throw new Error("A started plan cannot be declined. Hold it and preserve its work.");
       next.status = "abandoned";
     }
     next.captainEvents ??= []; next.captainEvents.push({ id: event.requestId, action: c.action, text: c.text, ...(c.node ? { node: c.node } : {}), at: event.at, by: event.by });
   }
+  if (c.op === "progress") {
+    if (c.action === "stage") next.status = "active";
+    else answerDecision(next, c.node, c.option, c.evidence, event.at);
+    next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: `Delegated ${c.action}: ${c.evidence}` });
+  }
   if (c.op === "revise") {
     if (c.expected !== previous?.hash || c.definition.id !== next.definition.id) throw new Error("Stale plan revision.");
+    if (digest(c.definition.ownership ?? null) !== digest(next.definition.ownership ?? null)) throw new Error("Transfer ownership through a recorded captain action, not a revision.");
     for (const old of next.definition.nodes) {
       if (next.nodes[old.id]?.state !== "planned" && digest(c.definition.nodes.find(n => n.id === old.id)) !== digest(old)) throw new Error(`Started node ${old.id} is pinned; preserve it and replan separately.`);
       if (old.kind === "decision" && next.nodes[old.id]?.answer && digest(c.definition.nodes.find(n => n.id === old.id)) !== digest(old)) throw new Error("Answered decisions are immutable; add a replacement decision and hold affected work.");
@@ -102,17 +212,17 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
       if (node.after.some(e => next!.removed?.some(r => r.node.id === e.node))) next.nodes[node.id]!.held = "Prerequisite removed; replan before starting.";
       else if (next.nodes[node.id]!.held === "Prerequisite removed; replan before starting.") delete next.nodes[node.id]!.held;
     }
-    const worst = planWorstCase(c.definition, next.nodes);
+    const worst = planWorstCase(c.definition, next.nodes, next.removed);
     if (worst.agents > c.definition.budget.agents || worst.turns > c.definition.budget.turns) throw new Error("Revision exceeds cumulative spent and remaining budget.");
     // Scope and changed choices require review; counts never reset by revision.
     next.posture = event.postureSource?.posture ?? planPosture(c.definition);
     if (event.postureSource) next.postureSource = event.postureSource;
-    next.status = next.posture === "review" || worst.agents > next.approvedBudget.agents * 1.5 || worst.turns > next.approvedBudget.turns * 1.5 ? "review" : next.status === "held" || next.status === "abandoned" ? next.status : "active";
+    next.status = next.status === "held" || next.status === "abandoned" ? next.status : planOwner(next) === "firstmate" ? captainReviewRequired(next) ? "review" : "active" : next.posture === "review" || worst.agents > next.approvedBudget.agents * 1.5 || worst.turns > next.approvedBudget.turns * 1.5 ? "review" : "active";
     next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: c.reason });
   }
   if (c.op === "approve") {
     if (c.expected !== previous?.hash || next.status === "abandoned") throw new Error("Stale plan approval.");
-    next.status = "active"; next.approvedBudget = planWorstCase(next.definition, next.nodes);
+    next.status = "active"; next.approvedBudget = planWorstCase(next.definition, next.nodes, next.removed);
     next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: `Recorded from chat: ${c.quote}` });
     next.captainEvents ??= []; next.captainEvents.push({ id: event.requestId, action: "approve", text: c.quote, at: event.at, by: event.by });
   }
@@ -121,7 +231,7 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
     if (next.status !== "active" || next.nodes[id]?.state !== "planned" || !event.attempt || !event.briefHash) throw new Error("Run is held, already started or has no pinned brief.");
     const state = next.nodes[id]!;
     const launch = next.definition.nodes.find(n => n.id === id);
-    const spent = Object.values(next.nodes).reduce((n, s) => n + (s.spent ?? (s.attempt ? 1 : 0)), 0) + (state.attempt ? 0 : 1);
+    const spent = planSpent(next.nodes, next.removed) + (state.attempt ? 0 : 1);
     if (state.held || spent > next.definition.budget.agents || spent > next.definition.budget.turns) throw new Error("Run is held or cumulative budget is exhausted.");
     next.nodes[id] = { ...state, state: "starting", attempt: event.attempt, briefHash: event.briefHash, claimed: c.op === "implicit",
       spent: (state.spent ?? 0) + (state.attempt ? 0 : 1), ...(launch?.kind === "run" ? { launch: event.launch ?? launch.launch } : {}) };
@@ -145,13 +255,13 @@ function reduce(previous: WorkflowPlan | null, event: Event): WorkflowPlan {
       next.nodes[c.node] = { ...valid, evidence: c.evidence, availableAt: event.at };
     } else {
       if (c.expected !== previous?.hash || !state.agentId || !state.workspaceId || state.invalidated || (c.kind === "promote" && (node.launch.kind !== "scout" || state.state !== "done"))) throw new Error("Replacement requires the current accounted worker and verified promotion/relaunch evidence.");
-      const spent = Object.values(next.nodes).reduce((n, s) => n + (s.spent ?? (s.attempt ? 1 : 0)), 0);
+      const spent = planSpent(next.nodes, next.removed);
       if (c.budget.agents < spent + 1 || c.budget.turns < spent + 1) throw new Error("Replacement needs additional cumulative budget.");
       next.definition.budget = c.budget;
       if (c.kind === "promote") { node.launch.kind = "ship"; node.workflow = "task@1"; }
       const { priorAttempts, ...prior } = state;
       next.nodes[c.node] = { state: "planned", spent: state.spent ?? 1, priorAttempts: [...(priorAttempts ?? []), prior], evidence: c.evidence };
-      next.revision++; next.status = spent + 1 > next.approvedBudget.agents * 1.5 || spent + 1 > next.approvedBudget.turns * 1.5 ? "review" : next.status;
+      next.revision++; next.status = planOwner(next) === "firstmate" ? next.status : spent + 1 > next.approvedBudget.agents * 1.5 || spent + 1 > next.approvedBudget.turns * 1.5 ? "review" : next.status;
       next.history.push({ revision: next.revision, at: event.at, by: event.by, reason: `${c.kind}: ${c.evidence}` });
     }
   }
@@ -430,11 +540,8 @@ export class WorkflowPlanStore {
       const events = await this.events(id), previous = events.reduce<WorkflowPlan | null>(reduce, null);
       const replay = events.find(e => e.requestId === requestId);
       if (replay) { if (replay.requestHash !== digest(command)) throw new Error("Request ID has different content."); return this.renderedResult(previous!, replay); }
-      if (command.op === "captain") {
-        if (!previous || command.revision !== previous.revision || command.subjectHash !== planSubjectHash(previous)) throw new Error("This plan changed since you opened it. Refresh and review it again.");
-        // Check new presses only; committed history and accepted request retries still replay.
-        if (["approve", "edit", "changes"].includes(command.action) && !planAwaitingReview(previous)) throw new Error("This plan is not awaiting review. The first mate must submit a revised plan before another review.");
-      }
+      if (command.op === "approve" && previous && planOwner(previous) !== "captain" && !captainReviewRequired(previous)) throw new Error("Routine review belongs to FirstMate; use delegated progression.");
+      if (command.op === "replace" && previous && planOwner(previous) === "firstmate" && command.kind === "promote") throw new Error("Promotion changes the deliverable scope; ask the captain.");
       const postureDefinition = command.op === "draft" || command.op === "revise" ? command.definition : command.op === "implicit" ? PlanDefinitionSchema.parse({
         format: "firstmate.plan/1", id, title: command.launch.title, request: { text: command.launch.title, at: new Date().toISOString() }, implicit: true,
         budget: { agents: 1, turns: 1 }, nodes: [{ id, title: command.launch.title, summary: command.launch.title, kind: "run", workflow: command.launch.kind === "scout" ? "scout@1" : "task@1", launch: command.launch }],
@@ -442,14 +549,9 @@ export class WorkflowPlanStore {
       const postureSource = postureDefinition ? await readPlanPosture(this.home, postureDefinition) : undefined;
       const { plans, quarantined, unavailable } = await this.read();
       const unavailableDependencies = quarantinedDependencyIds(quarantined);
-      // New answers only. Keep the reducer and request-id replay compatible with
-      // committed early answers from older versions of the append-only ledger.
-      if (command.op === "captain" && command.action === "answer") {
-        const node = previous?.definition.nodes.find(n => n.id === command.node);
-        if (previous?.nodes[command.node ?? ""]?.answer) throw new Error("Decision is already answered.");
-        if (unavailable || !previous || !node || !planDecisionReady(previous, node, plans, unavailableDependencies))
-          throw new Error("Decision is not ready. Approve the plan and complete its required evidence before answering.");
-      }
+      // Apply current admission once, after request-id replay. Historical events
+      // retain their committed meaning when the ledger is rebuilt.
+      checkNewWorkflowAction(command, previous, plans, unavailableDependencies, unavailable);
       const ownsWork = ["draft", "revise", "implicit", "start", "claim", "replace"].includes(command.op);
       const candidates = command.op === "draft" || command.op === "revise" ? command.definition.nodes.map(ownershipScope) : command.op === "implicit" ? [{ node: command.launch.id, host: command.launch.host.trim().toLowerCase() }] :
         ownsWork ? previous?.definition.nodes.filter(n => "node" in command && n.id === command.node).map(ownershipScope) ?? [] : [];
@@ -547,7 +649,7 @@ export class WorkflowPlanStore {
     let items: ReturnType<typeof parseBacklog> = [];
     try { items = parseBacklog(await readFile((await resolveInHome(this.home, "data/backlog.md")).absolute, "utf8")); }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") projectionProblem = "Plan committed; backlog is unreadable. Reconcile it before applying any projection."; }
-    return { plan, worstCase: planWorstCase(plan.definition, plan.nodes), ...(projectionProblem ? { projectionProblem } : {}), backlog: projectionProblem ? [] : plan.definition.nodes.map(n => ({ node: n.id, section: backlogSection(n, plan.nodes[n.id]!.state, !!plan.nodes[n.id]!.closedWithoutLanding), line: planBacklogLine(plan, n, items.find(i => samePlanItem(i, plan, n))) })),
+    return { plan, worstCase: planWorstCase(plan.definition, plan.nodes, plan.removed), ...(projectionProblem ? { projectionProblem } : {}), backlog: projectionProblem ? [] : plan.definition.nodes.map(n => ({ node: n.id, section: backlogSection(n, plan.nodes[n.id]!.state, !!plan.nodes[n.id]!.closedWithoutLanding), line: planBacklogLine(plan, n, items.find(i => samePlanItem(i, plan, n))) })),
       comingUp: plan.definition.nodes.filter(n => n.kind === "decision" && !plan.nodes[n.id]?.answer),
       ...(definition?.kind === "run" && node && plan.nodes[node]?.attempt ? { launch: { ...(plan.nodes[node]!.launch ?? definition.launch), workflow: { plan: plan.definition.id, node, attempt: plan.nodes[node]!.attempt, briefHash: plan.nodes[node]!.briefHash } } } : {}) };
   }
@@ -565,10 +667,13 @@ export class WorkflowPlanStore {
     })));
     const content = fill(await readTemplate(TEMPLATES.workflowPlan), {
       title: plan.definition.title, request: plan.definition.request.text, revision: String(plan.revision), posture: plan.posture, state: planFinished(plan) ? "finished" : plan.status,
-      budget: JSON.stringify(planWorstCase(plan.definition, plan.nodes)),
+      budget: JSON.stringify(planWorstCase(plan.definition, plan.nodes, plan.removed)),
+      owner: planOwner(plan) === "firstmate" ? "FirstMate (routine plan progression)" : "Captain",
+      delegation: plan.ownerEvents?.at(-1)?.evidence ?? plan.definition.ownership?.evidence ?? "No delegation recorded",
       postureSource: plan.postureSource ? `${plan.postureSource.source}: ${plan.postureSource.detail}${plan.postureSource.warning ? ` ${plan.postureSource.warning}` : ""}` : "D2 default",
       nodes: nodes.join("\n\n"),
       history: plan.history.map(h => `- ${h.revision} · ${h.at} · ${h.by} · ${h.reason}`).join("\n"),
+      ownerHistory: plan.ownerEvents?.map(event => `- ${event.at} · ${event.by}: ${event.from} → ${event.to} · ${event.evidence}`).join("\n") || "—",
       actions: (plan.captainEvents ?? []).map(a => `- ${a.at} · ${a.by === "board:captain" ? "Captain pressed" : "Recorded by the first mate from chat"}: ${a.action}${a.text ? ` · ${a.text}` : ""}`).join("\n"),
     });
     const temporary = `${path.absolute}.${randomUUID()}.tmp`;
@@ -608,7 +713,7 @@ export class WorkflowPlanStore {
         continue;
       }
       if (planFinished(plan)) add("tell", 5, `plan-finished:${plan.revision}`, `${plan.definition.title}: all planned nodes have reached an end. Check the recorded outcomes.`, undefined);
-      if (plan.status === "review" && !planFinished(plan)) add("tell", 5, `approval:${plan.revision}`, `Present ${plan.definition.title} for approval.`);
+      if (plan.status === "review" && !planFinished(plan)) add(planOwner(plan) === "firstmate" && !captainReviewRequired(plan) ? "replan" : "tell", planOwner(plan) === "firstmate" && !captainReviewRequired(plan) ? 3 : 5, `approval:${plan.revision}`, planOwner(plan) === "firstmate" && !captainReviewRequired(plan) ? `Review and record the next stage for ${plan.definition.title}.` : `Present ${plan.definition.title} for approval.`);
       for (const node of plan.definition.nodes) {
         const state = plan.nodes[node.id]!;
         if (state.held) add("replan", 3, `held:${node.id}:${plan.revision}`, `${node.title}: ${state.held}`, node.id);
@@ -620,7 +725,7 @@ export class WorkflowPlanStore {
           try { await this.brief(node); add("start", 4, `start:${node.id}:${plan.revision}`, `Start ${node.title}.`, node.id); }
           catch { add("replan", 3, `brief:${node.id}:${plan.revision}`, `Supply the missing or unreadable brief for ${node.title}.`, node.id); }
         }
-        if (node.kind === "decision" && !state.answer && ready) add("tell", 5, `decision:${node.id}:${plan.revision}`, `Decision due: ${node.title}.`, node.id);
+        if (node.kind === "decision" && !state.answer && ready) add(decisionOwner(plan, node) === "firstmate" ? "replan" : "tell", decisionOwner(plan, node) === "firstmate" ? 3 : 5, `decision:${node.id}:${plan.revision}`, decisionOwner(plan, node) === "firstmate" ? `Delegated decision due: ${node.title}.` : `Decision due: ${node.title}.`, node.id);
         if (terminal(state.state)) add("tell", 5, `finished:${node.id}:${state.state}`, `${node.title}: ${state.state}. ${state.evidence ?? ""}`, node.id);
         // Until slice 4, live facts must be checked by the mate. A worker's status never completes a run.
         if (["running", "starting"].includes(state.state)) add("replan", 3, `observe:${node.id}:${state.attempt}`, `Verify ${node.title} against Paseo and its delivery evidence; outcome is unobserved.`, node.id);

@@ -12,6 +12,13 @@ import { WorkflowPlanStore } from "./workflow-plans";
 import { isHomeReady } from "./home";
 import { message, TEMPLATES } from "./templates";
 import { randomUUID } from "node:crypto";
+import type { ScopedPlanCommand, SupervisionCommands } from "./supervision-commands";
+import type { SupervisionActor } from "../shared/supervision";
+
+/** Separate, disabled-by-default cooperative command class. Legacy file requests stay legacy. */
+export function executeScopedWorkflow(commands: SupervisionCommands, input: ScopedPlanCommand, actor: SupervisionActor) {
+  return commands.planCommand(input, actor);
+}
 
 export const WorkflowRequestSchema = z.object({ id: z.uuid(), actor: z.string().min(1), command: WorkflowCommandSchema }).strict();
 export function workflowStore(home: string) { return new WorkflowPlanStore(join(pluginDir(), "workflow-plans", digest(process.platform === "win32" ? resolve(home).toLowerCase() : resolve(home))), home); }

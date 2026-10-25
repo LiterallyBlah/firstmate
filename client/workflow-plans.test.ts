@@ -47,6 +47,25 @@ it("renders without acting and binds approval to the displayed revision and subj
   await act(async () => button("Approve").props.onPress());
   expect(onAct).toHaveBeenCalledWith(expect.objectContaining({ action: "approve", revision: 1, subjectHash: "b".repeat(64) }));
 });
+it("shows delegation and exceptions, requires a recorded transfer and routes routine choices away from captain controls", async () => {
+  const p = plan(), onAct = vi.fn().mockResolvedValue(undefined);
+  const props = { theme, plan: p, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct, onRefresh() {} };
+  await act(async () => { renderer = create(createElement(PlanDialog, props)); });
+  expect(visibleText(renderer!.toJSON())).toContain("Plan owner: Captain");
+  await act(async () => button("Delegate to FirstMate").props.onPress());
+  expect(button("Confirm delegation").props.disabled).toBe(true);
+  await act(async () => renderer!.root.find(n => n.type === ("TextInput" as any) && n.props.accessibilityLabel === "Reason for owner transfer").props.onChangeText("Take the scheduler outcome and routine stages"));
+  await act(async () => button("Confirm delegation").props.onPress());
+  expect(onAct).toHaveBeenCalledWith(expect.objectContaining({ action: "transfer", owner: "firstmate", text: "Take the scheduler outcome and routine stages", subjectHash: "b".repeat(64) }));
+  const decision = p.definition.nodes.find(n => n.id === "database"); if (decision?.kind === "decision") decision.authority = "owner";
+  p.owner = "firstmate"; p.status = "active"; p.nodes.trial = { state: "done", evidence: "Verified trial" };
+  await act(async () => renderer!.update(createElement(PlanDialog, props)));
+  const text = visibleText(renderer!.toJSON());
+  expect(text).toContain("Plan owner: FirstMate"); expect(text).toContain("Captain-only decisions");
+  expect(button("SQLite").props.disabled).toBe(true);
+  expect(renderer!.root.findAll(n => n.type === ("Pressable" as any) && n.props.accessibilityLabel === "Approve")).toEqual([]);
+  expect(button("Take ownership")).toBeTruthy();
+});
 it("keeps future choices read-only, then enables only approved evidence-ready decisions", async () => {
   const p = plan(), onAct = vi.fn(), props = { theme, plan: p, subjectHash: "b".repeat(64), homeId: "home", stale: false, busy: false, error: null, onAct, onRefresh() {} };
   await act(async () => { renderer = create(createElement(PlanDialog, props)); });
