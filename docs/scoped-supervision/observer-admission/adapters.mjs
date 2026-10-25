@@ -47,8 +47,8 @@ export function observeExistingExec(session, exec) {
   return function (file, args, options) {
     const observe = work => { try { work(); } catch (error) { session.observerError(error); } };
     const output = (stdout, stderr) => {
-      session.note('identity.exec.stdout', String(stdout ?? '').slice(0, 1024));
-      session.note('identity.exec.stderr', String(stderr ?? '').slice(0, 1024));
+      session.note('identity.exec.stdout', String(stdout ?? ''));
+      session.note('identity.exec.stderr', String(stderr ?? ''));
       session.note('identity.exec.output-lengths', JSON.stringify({ stdout: String(stdout ?? '').length, stderr: String(stderr ?? '').length,
         truncated: String(stdout ?? '').length > 1024 || String(stderr ?? '').length > 1024 }));
     };
