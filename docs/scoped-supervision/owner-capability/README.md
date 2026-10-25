@@ -29,10 +29,20 @@ mechanism. The normal failure lacks the observed failing member list, target std
 exit state; those must be prepared and independently reviewed before any separately authorized
 target retry. Parent timer/supervisor observations are not hard-real-time or kernel-liveness proof.
 
-The C1/C3 follow-up is **static preparation only**. `run.mjs`, `invoke.ps1` and the native entry
-points carry an explicit review hold with no override. Native changes have not been compiled,
-preflighted or executed. Tiny controls exercise only `capture.mjs`/admission with in-memory
+The C1/C3 follow-up remains test-only. `run.mjs`, `invoke.ps1` and the process-creating native
+`Run` carry an explicit review hold with no override. The accepted capture
+source was compiled separately; no revised owner/preflight or fixture was executed. Tiny controls
+exercise only `capture.mjs`/admission with in-memory
 facts and retained JSON; they do not execute or qualify the C# implementation.
+
+`Preflight()` now has a separate setup-only permission. It acquires only an empty job and creation
+attributes, then attempts attribute and job disposal independently, preserving bounded original
+failure, cleanup status and observation errors. It never creates or resumes a target. Run and the
+old wrappers remain held unchanged. `preflight-only.ps1` is a prepared, source-pinned single-call
+command with no normal/blocked mode; it refuses an existing output directory. Independent review
+and a separate native-execution assignment are required before running it. Do not substitute the
+old general wrapper or mutate guard fields. `preflight.controls.ps1` parses the new command and
+exercises only its pure receipt callback boundary; it does not load C# or call native APIs.
 
 Future capture retains the last complete and exact offending membership, validated partial/query
 failures, available handle identity/wait/exit observations and separate acquisition/disposal states.

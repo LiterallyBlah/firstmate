@@ -267,11 +267,22 @@ public sealed class FirstMateJobCapability {
         if (inheritedHandles != IntPtr.Zero) { Marshal.FreeHGlobal(inheritedHandles); inheritedHandles = IntPtr.Zero; }
     }
     public static Dictionary<string, object> Preflight() {
-        if (!CaptureReviewAccepted) throw new InvalidOperationException("OWNER_CAPTURE_REVIEW_HOLD");
-        var owner = new FirstMateJobCapability(); string error = null;
-        try { owner.Acquire(); } catch (Exception ex) { error = ex.GetType().Name + ": " + ex.Message; }
-        owner.FreeAttributes(); bool closed = owner.job == IntPtr.Zero || CloseHandle(owner.job);
-        return D("available", error == null && closed, "targetCreated", false, "error", error, "jobClosed", closed, "events", owner.events);
+        if (!PreflightSetupAllowed) throw new InvalidOperationException("PREFLIGHT_SETUP_HOLD");
+        var owner = new FirstMateJobCapability(); string error = null; bool errorTruncated = false, attributesReleased = false, jobClosed = false;
+        try {
+            owner.Acquire(); var empty = owner.lastComplete;
+            if (empty == null || (uint)empty["active"] != 0 || (uint)empty["listed"] != 0 || (uint)empty["total"] != 0)
+                throw new InvalidOperationException("Preflight job is not empty");
+        }
+        catch (Exception ex) { error = ex.GetType().Name + ": " + ex.Message; errorTruncated = error.Length > 4096; if (errorTruncated) error = error.Substring(0, 4096); }
+        finally {
+            owner.Step("preflight attributes", delegate { owner.FreeAttributes(); attributesReleased = !owner.attributesInitialized && owner.attributes == IntPtr.Zero && owner.jobValue == IntPtr.Zero && owner.inheritedHandles == IntPtr.Zero; });
+            owner.Step("preflight job close", delegate { jobClosed = owner.CloseTracked("job", owner.job); });
+        }
+        return D("available", error == null && attributesReleased && jobClosed && owner.recordFailures == 0 && owner.recordDropped == 0,
+            "targetCreated", false, "error", error, "originalFailure", error, "originalFailureTruncated", errorTruncated, "jobClosed", jobClosed,
+            "cleanup", D("attributesReleased", attributesReleased, "jobClosed", jobClosed), "handleInventory", owner.handleInventory, "events", owner.events,
+            "observation", D("dropped", owner.recordDropped, "failures", owner.recordFailures, "errors", owner.observationErrors));
     }
     static string Quote(string value) {
         if (value.IndexOf('"') >= 0 || value.IndexOf('\0') >= 0 || value.EndsWith("\\")) throw new ArgumentException("Unsupported fixture argument");
@@ -377,5 +388,6 @@ public sealed class FirstMateJobCapability {
         receipt["observation"] = D("dropped", owner.recordDropped, "failures", owner.recordFailures, "errors", owner.observationErrors);
         return receipt;
     }
+    static readonly bool PreflightSetupAllowed = true; // setup/disposal only; Run remains independently held
     static readonly bool CaptureReviewAccepted = false; // no override; source review, prior C2 resolution and fresh dispatch are prerequisites
 }
