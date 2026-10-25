@@ -52,7 +52,7 @@ try {
     $state = @{ calls = 0 }
     $result = Invoke-PreflightReceipt -Call { $state.calls++; throw ('invoke-' + ('x' * 5000)) } -WriteReceipt { throw ('sink-' + ('y' * 5000)) }
     Assert-PreflightControl ($state.calls -eq 1 -and -not $result.available -and $null -eq $result.targetCreated -and $null -eq $result.nativeResult -and $result.invocationError.truncated -and $result.invocationError.message.Length -eq 4096 -and $result.recordingError.truncated -and $result.recordingError.message.Length -eq 4096) 'invocation and recording errors remain separate and bounded, with unknown target status'
-    foreach ($simulated in @($null, 'not a native receipt', @{ available = $true }, @{ available = $true; targetCreated = $true })) {
+    foreach ($simulated in @($null, 'not a native receipt', @{ available = $true }, @{ available = $true; targetCreated = $true }, @{ available = 'true'; targetCreated = 'false' }, @{ available = 1; targetCreated = 0 })) {
         $result = Invoke-PreflightReceipt -Call { return $simulated } -WriteReceipt { }
         Assert-PreflightControl (-not $result.available) ('malformed or target-creating result refuses admission: ' + [string]$simulated)
     }

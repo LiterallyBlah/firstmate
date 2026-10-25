@@ -9,7 +9,7 @@ function Invoke-PreflightReceipt {
     }
     $receipt = [ordered]@{
         format = 'firstmate.owner-preflight/1'
-        available = $null -eq $invocationError -and $nativeResult -is [System.Collections.IDictionary] -and $nativeResult['available'] -eq $true -and $nativeResult['targetCreated'] -eq $false
+        available = $null -eq $invocationError -and $nativeResult -is [System.Collections.IDictionary] -and $nativeResult['available'] -is [bool] -and $nativeResult['available'] -eq $true -and $nativeResult['targetCreated'] -is [bool] -and $nativeResult['targetCreated'] -eq $false
         targetCreated = $(if ($nativeResult -is [System.Collections.IDictionary] -and $nativeResult['targetCreated'] -is [bool]) { $nativeResult['targetCreated'] } else { $null })
         nativeResult = $nativeResult
         invocationError = $invocationError
