@@ -51,14 +51,31 @@ export function interpretRootGate(input,sourceSha256) {
     marker.isMainThread===true && marker.childEntry===input.childScriptPath && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(marker.instance) &&
     Buffer.isBuffer(input.markerRaw) && input.markerRaw.length<=4096);
   const snapshot=membershipSnapshot(n?.gateSnapshot);
+  const markerEvents=n?.events?.map((e,index)=>({e,index})).filter(v=>v.e.kind==='gate-marker-observed')??[];
+  const readbackEvents=n?.events?.map((e,index)=>({e,index})).filter(v=>v.e.kind==='membership' && v.e.data?.phase==='gate-post-marker')??[];
+  const readback=n?.markerReadback;
+  const postMarkerReadbackConfirmed=Boolean(n?.markerObservedBeforeStop===true && n?.targetResumed===true &&
+    readback?.order==='marker-observation-before-membership' && readback.marker==='root-pre-spawn.json' &&
+    n?.gateSnapshot?.phase==='gate-post-marker' && equal(readback.members,n.gateSnapshot) &&
+    markerEvents.length===1 && readbackEvents.length===1 && markerEvents[0].e.data?.marker==='root-pre-spawn.json' &&
+    event('root-resumed')>=0 && markerEvents[0].index>event('root-resumed') && readbackEvents[0].index>markerEvents[0].index && equal(readbackEvents[0].e.data,n.gateSnapshot));
+  require(n?.markerObservedBeforeStop===true ? postMarkerReadbackConfirmed :
+    n?.markerObservedBeforeStop===false && readback===null && markerEvents.length===0 && readbackEvents.length===0,'gate-post-marker-readback-unassociated');
   const sourceRootBound=transport.integrityComplete && phase.rootBound===true && root?.image?.toLowerCase()===input.nodePath?.toLowerCase() &&
     owner?.helperPid===input.outer?.helperPid && owner?.flags===8192 && fresh.complete && fresh.total===0 && fresh.active===0 &&
     n?.targetCreated===true && n?.childSpawnReachable===false && n?.scenario==='root-gate';
   const extraObserved=sourceRootBound && phase.extraMemberBound && snapshot.complete && snapshot.pids.some(pid=>pid!==root?.pid && phase.boundPids.includes(pid));
-  const gateReached=sourceRootBound && markerValid && n?.markerObservedBeforeStop===true && n?.stopReason==='marker' && n?.targetResumed===true &&
+  const gateReached=sourceRootBound && markerValid && postMarkerReadbackConfirmed && n?.stopReason==='marker' && n?.targetResumed===true &&
     before.total===1 && before.active===1 && snapshot.complete && snapshot.total===1 && snapshot.active===1 && snapshot.pids[0]===root?.pid;
   const refusedExtra=extraObserved && ((n?.stopReason==='unexpected-member' && n.targetResumed===true) ||
     (n?.stopReason==='unexpected-before-resume' && n.targetResumed===false && before.pids.some(pid=>pid!==root?.pid && phase.boundPids.includes(pid))));
+  const terminalExtraObserved=sourceRootBound && phase.extraMemberBound && (n?.terminalSamples??[]).some(s=>{
+    const m=membershipSnapshot(s?.members);return m.complete && m.pids.some(pid=>pid!==root?.pid && phase.boundPids.includes(pid));
+  });
+  // Phase names describe when the owner observed the member, never its presence at marker commitment.
+  const extraMemberObservationPhase=extraObserved ? (postMarkerReadbackConfirmed ? 'post-marker-readback' :
+    n?.gateSnapshot?.phase==='before-resume' ? 'before-resume' : n?.markerObservedBeforeStop===false && n?.gateSnapshot?.phase==='gate-live' ?
+      'marker-not-yet-observed' : 'unassociated-gate-snapshot') : terminalExtraObserved ? 'terminal-only' : 'not-observed';
   require(gateReached || refusedExtra,'gate-marker-or-captured-refusal-missing');
   require(n?.error===null && n?.originalFailure===null && n?.originalFailureTruncated===false && n?.deadlineFired===false,'gate-original-failure-or-deadline');
   require(n?.terminateRequested===true && n.terminateReturned===true && n.terminationError===0,'gate-owned-stop-unconfirmed');
@@ -77,7 +94,7 @@ export function interpretRootGate(input,sourceSha256) {
   const {helperFileRaw,markerRaw,...retained}=input;
   return {...retained,format:'firstmate.root-gate-capture/1',native:n??null,helperFinal:transport.frame,helperFile:transport.file,
     transport:{complete:transport.complete,reasons:transport.reasons},phase,reasons:[...reasons],captureComplete:reasons.size===0,
-    gateReached,gateVerdict:gateReached?'marker-reached':refusedExtra?'refused-extra-member':'inconclusive',
+    gateReached,postMarkerReadbackConfirmed,extraMemberObservationPhase,gateVerdict:gateReached?'marker-reached':refusedExtra?'refused-extra-member':'inconclusive',
     discrimination:extraObserved?'extra-member-observed-without-child-call':'inconclusive',
     ownedSetClosureConfirmed:closure,closureState:closure?'confirmed':'unknown',safeForReuse:false,
     normalQualificationPassed:false,actualRuntimeQualified:false,anotherCaseAuthorized:false,

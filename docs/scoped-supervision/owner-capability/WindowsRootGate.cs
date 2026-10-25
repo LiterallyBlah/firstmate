@@ -124,7 +124,7 @@ public sealed partial class FirstMateJobCapability {
         if (Path.GetFileName(entry) != "root-gate.mjs") throw new ArgumentException("Distinct fixed root gate entry required");
         var owner = new FirstMateJobCapability(); owner.rootGate = true;
         var receipt = D("scenario", "root-gate", "captureVersion", 3, "diagnosticVersion", 2, "error", null, "originalFailure", null, "originalFailureTruncated", false,
-            "targetCreated", false, "targetResumed", false, "childSpawnReachable", false, "expectedChild", "not-part-of-root-gate", "stopReason", "unavailable", "markerObservedBeforeStop", false);
+            "targetCreated", false, "targetResumed", false, "childSpawnReachable", false, "expectedChild", "not-part-of-root-gate", "stopReason", "unavailable", "markerObservedBeforeStop", false, "markerReadback", null);
         Timer timer = null; bool timerDrained = true; IntPtr environment = IntPtr.Zero;
         try {
             owner.Acquire(); receipt["freshOwner"] = owner.lastComplete;
@@ -146,9 +146,15 @@ public sealed partial class FirstMateJobCapability {
                 uint previous = ResumeThread(created.Thread); Require(previous != UInt32.MaxValue, "Resume root gate"); if (previous != 1) throw new InvalidOperationException("Unexpected suspend count");
                 receipt["targetResumed"] = true; owner.Note("root-resumed", D("previousSuspendCount", previous)); owner.FreeAttributes();
                 while (!owner.deadlineFired) {
-                    var members = owner.Members("gate-live"); receipt["gateSnapshot"] = members; var pids = (List<long>)members["pids"];
+                    // The existing iteration query follows marker observation; an earlier query cannot establish this checkpoint.
+                    bool markerObserved = File.Exists(Path.Combine(directory, "root-pre-spawn.json"));
+                    if (markerObserved) { receipt["markerObservedBeforeStop"] = true; owner.Note("gate-marker-observed", D("marker", "root-pre-spawn.json")); }
+                    var members = owner.ProbeMembers(markerObserved ? "gate-post-marker" : "gate-live"); receipt["gateSnapshot"] = members;
+                    if (markerObserved) receipt["markerReadback"] = D("order", "marker-observation-before-membership", "marker", "root-pre-spawn.json", "members", members);
+                    if (!(bool)members["complete"]) { owner.Offending(members); throw new InvalidOperationException("Incomplete job membership"); }
+                    var pids = (List<long>)members["pids"];
                     if (pids.Count != 1 || !pids.Contains(created.Pid) || (uint)members["total"] != 1) { receipt["stopReason"] = "unexpected-member"; break; }
-                    if (File.Exists(Path.Combine(directory, "root-pre-spawn.json"))) { receipt["markerObservedBeforeStop"] = true; receipt["stopReason"] = "marker"; break; }
+                    if (markerObserved) { receipt["stopReason"] = "marker"; break; }
                     Thread.Sleep(10);
                 }
                 if (owner.deadlineFired) throw new TimeoutException("Root-gate marker deadline");
