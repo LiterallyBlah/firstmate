@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
-public sealed class FirstMateJobCapability {
+public sealed partial class FirstMateJobCapability {
     [StructLayout(LayoutKind.Sequential)] struct BasicLimits {
         public long ProcessTime, JobTime; public uint Flags; public UIntPtr MinWorking, MaxWorking;
         public uint ActiveLimit; public UIntPtr Affinity; public uint Priority, Scheduling;
@@ -124,8 +124,9 @@ public sealed class FirstMateJobCapability {
         finally { Marshal.FreeHGlobal(buffer); }
         lastObservation = result; if ((bool)result["complete"]) { previousComplete = lastComplete; lastComplete = result; }
         string signature = phase + ":" + String.Join(",", result.ContainsKey("pids") ? (List<long>)result["pids"] : new List<long>()) + ":" + result["complete"] + ":" + result["queryOk"] + ":" + result["accountingOk"];
+        if (rootGate) signature += ":" + (result.ContainsKey("total") ? result["total"].ToString() : "unknown");
         if (signature != memberSignature) { memberSignature = signature; Note("membership", result); }
-        Step("diagnostic membership capture", delegate { CaptureDiagnosticMembers(result); });
+        Step("diagnostic membership capture", delegate { if (rootGate) GateCaptureMembers(result); else CaptureDiagnosticMembers(result); });
         return result;
     }
     Dictionary<string, object> Members(string phase) {
