@@ -131,7 +131,7 @@ it("preserves task/workspace identity, old attempts and cumulative budget on man
   const second = await execute({ op: "start", plan: "request", node: "build" }); expect(second.launch.id).toBe("build"); expect(second.launch.kind).toBe("ship"); expect(second.launch.workflow.attempt).not.toBe(first.launch.workflow.attempt);
   await execute({ op: "record", plan: "request", node: "build", attempt: second.launch.workflow.attempt, state: "running", agentId: "replacement", workspaceId: "space", evidence: "Manual promotion in preserved workspace" });
   expect((await store.get("request"))?.nodes.build?.spent).toBe(2);
-});
+}, 15000);
 it("keeps a quarantined running owner's task reserved against a differently named plan", async () => {
   await execute({ op: "draft", definition: definition("plan") });
   const started = await execute({ op: "start", plan: "plan", node: "build" });

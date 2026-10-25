@@ -11,6 +11,7 @@ import { useWorkflowPlans } from "./workflow-plans";
 import { PLAN_PAGE_SIZE, planBudgetUsed, planGroups, planStatus, planSteps, planSummary, reviewLabel, reviewStatus, stepState } from "./workflow-plan-list";
 import { updatePlanBrowse, usePlanBrowse, type PlanBrowseState } from "./workflow-plan-state";
 import { WorkflowTaskActions } from "./workflow-task-actions";
+import { planOwner } from "../shared/workflow-plans";
 
 export function WorkflowPlansView({ theme, showHeading = true, compact = false }: { theme: PluginTheme; showHeading?: boolean; compact?: boolean }) {
   const { snapshot, loading, error, refresh, open, scope } = useWorkflowPlans();
@@ -95,14 +96,15 @@ function PlanGroup({ plans, allPlans, theme, onOpen, automatic, searching, view,
 
 function PlanRow({ plan, plans, theme, onOpen, view, onList, sessionKey, browse }: { plan: WorkflowPlan; plans: readonly WorkflowPlan[]; theme: PluginTheme; onOpen(id: string): void } & StepView) {
   const expanded = browse.expanded[plan.definition.id] ?? false;
-  const colors = theme.colors, used = planBudgetUsed(plan);
+  const colors = theme.colors, used = planBudgetUsed(plan), delegated = planOwner(plan) === "firstmate";
+  const budgetLabel = delegated ? "Budget used / cumulative cap: " : "Budget used / approved: ";
   const summary = planSummary(plan, plans);
   const meta = { color: colors.foregroundMuted, fontSize: 12 };
   return <View testID={`workflow-plan-${plan.definition.id}`} style={{ gap: 6, padding: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.surface1 }}>
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Open plan: ${plan.definition.title}`} onPress={() => onOpen(plan.definition.id)} style={{ flex: 1, gap: 3, paddingVertical: 3 }}>
         <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>{plan.definition.title} ›</Text>
-        <Text style={meta}>{planStatus(plan)} · {summary.progress}</Text>
+        <Text style={meta}>{planStatus(plan)} · {summary.progress} · Owner: {planOwner(plan) === "firstmate" ? "FirstMate" : "Captain"}</Text>
       </Pressable>
       <IconButton theme={theme} icon={expanded ? "ChevronUp" : "ChevronDown"} label={`${expanded ? "Collapse" : "Expand"} plan: ${plan.definition.title}`}
         onPress={() => updatePlanBrowse(sessionKey, state => ({ expanded: { ...state.expanded, [plan.definition.id]: !expanded } }))} />
@@ -128,7 +130,7 @@ function PlanRow({ plan, plans, theme, onOpen, view, onList, sessionKey, browse 
       </View>)}
       <Text style={meta}>Running: {summary.running}</Text>
       <Text style={meta}>Next: {summary.next}</Text>
-      <Text style={meta}>Posture: {plan.posture === "review" ? "Review before starting" : "Sail within approved work"} · Budget used / approved: {used.agents} / {plan.approvedBudget.agents} workers · {used.turns} / {plan.approvedBudget.turns} turns</Text>
+      <Text style={meta}>Posture: {plan.posture === "review" ? "Review before starting" : delegated ? "Sail within delegated work" : "Sail within approved work"} · {budgetLabel}{used.agents} / {delegated ? plan.definition.budget.agents : plan.approvedBudget.agents} workers · {used.turns} / {delegated ? plan.definition.budget.turns : plan.approvedBudget.turns} turns</Text>
     </> : null}
   </View>;
 }

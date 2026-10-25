@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { actOnWorkflowPlan, readWorkflowPlans, WorkflowSnapshotSchema, type WorkflowSnapshot } from "../shared/workflow-rpc";
-import { planAwaitingReview, planFinished, planWorstCase, type PlanCaptainCommand, type WorkflowPlan } from "../shared/workflow-plans";
+import { captainReviewRequired, decisionOwner, planOwner, planAwaitingReview, planFinished, planWorstCase, type PlanCaptainCommand, type WorkflowPlan } from "../shared/workflow-plans";
 import { migrationTargets, type FleetCard, type Fleet } from "../shared/fleet";
 import { readRemotes } from "../shared/remotes";
 import { OptionPicker } from "./option-picker";
@@ -104,30 +104,34 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
   hosts?: readonly { serverId: string; label: string }[];
   plans?: readonly WorkflowPlan[];
 }) {
-  const [mode, setMode] = useState<"changes" | "edit" | null>(null), [text, setText] = useState("");
+  const [mode, setMode] = useState<"changes" | "edit" | "transfer" | null>(null), [text, setText] = useState("");
   const [edits, setEdits] = useState<NonNullable<PlanCaptainCommand["edits"]>>([]);
-  const colors = theme.colors, worst = planWorstCase(plan.definition, plan.nodes), disabled = busy || stale;
+  const colors = theme.colors, worst = planWorstCase(plan.definition, plan.nodes, plan.removed), disabled = busy || stale;
   const awaitingReview = planAwaitingReview(plan);
   const missingMode = edits.some(e => e.kind === "model" && !models.find(m => m.provider === e.agent.provider)?.modes.some(m => m.id === e.agent.modeId));
   const send = (action: PlanCaptainCommand["action"], extra: Partial<PlanCaptainCommand> = {}) => onAct({ op: "captain", plan: plan.definition.id, revision: plan.revision, subjectHash, action, text, ...extra });
   return <View testID="workflow-plan-dialog" style={{ gap: 16 }}>
-    <Text style={{ color: colors.foregroundMuted }}>Revision {plan.revision} · {planFinished(plan) ? "Completed" : plan.status === "review" ? "Awaiting approval" : plan.status === "active" ? (plan.posture === "sail" ? "Sailing" : "Approved") : plan.status === "held" ? "On hold" : "Declined"}</Text>
+    <Text style={{ color: colors.foregroundMuted }}>Revision {plan.revision} · {planFinished(plan) ? "Completed" : plan.status === "review" ? "Awaiting approval" : plan.status === "active" ? planOwner(plan) === "firstmate" ? "Delegated work" : (plan.posture === "sail" ? "Sailing" : "Approved") : plan.status === "held" ? "On hold" : "Declined"}</Text>
+    <Text style={{ color: colors.foreground, fontWeight: "600" }}>Plan owner: {planOwner(plan) === "firstmate" ? "FirstMate" : "Captain"}</Text>
+    <Text style={{ color: colors.foregroundMuted }}>{planOwner(plan) === "firstmate" ? "FirstMate can make routine stage and technical choices within this plan." : "You decide routine plan stages and choices."} Captain-only decisions, holds, release, installation, discard, access and external effects still need your decision.</Text>
+    {plan.ownerEvents?.at(-1) ? <Text selectable style={{ color: colors.foregroundMuted }}>Latest transfer: {plan.ownerEvents.at(-1)!.evidence}</Text> : plan.definition.ownership?.evidence ? <Text selectable style={{ color: colors.foregroundMuted }}>Delegation: {plan.definition.ownership.evidence}</Text> : null}
     <Text selectable style={{ color: colors.foreground }}>{plan.definition.request.text}</Text>
     <Text style={{ color: colors.foregroundMuted }}>{new Date(plan.definition.request.at).toLocaleString()} · Worst case: {worst.agents} workers, {worst.turns} worker turns</Text>
-    <Text style={{ color: colors.foregroundMuted }}>Approval permits this work. Merge and deployment still need their own approval.</Text>
+    <Text style={{ color: colors.foregroundMuted }}>Workers and turns: {worst.agents}/{plan.definition.budget.agents} workers, {worst.turns}/{plan.definition.budget.turns} turns in the current cumulative cap. Plan progression grants no merge or deployment authority.</Text>
     {plan.postureSource ? <Text style={{ color: colors.foregroundMuted }}>Posture from {plan.postureSource.source}: {plan.postureSource.detail}{plan.postureSource.warning ? ` ${plan.postureSource.warning}` : ""}</Text> : null}
     {stale ? <View style={{ gap: 6 }}><Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>This plan changed or could not be refreshed. Review the latest version before acting.</Text><Button theme={theme} label="Review latest plan" disabled={busy} onPress={onRefresh} /></View> : null}
     {plan.definition.nodes.map(node => <View key={node.id} style={{ gap: 6, padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 8 }}>
       <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>{node.title} · {plan.nodes[node.id]?.closedWithoutLanding ? "Closed without landing" : plan.nodes[node.id]?.answer ? "Answered" : plan.nodes[node.id]?.held ? "Held" : plan.nodes[node.id]?.state === "planned" ? "Queued" : plan.nodes[node.id]?.state}</Text>
       <Text style={{ color: colors.foreground }}>{node.summary}</Text>
       {node.after.length ? <Text style={{ color: colors.foregroundMuted }}>After {node.after.map(d => `${plan.definition.nodes.find(n => n.id === d.node)?.title ?? d.node} (${d.reason === "needs-evidence" ? "needs its evidence" : d.reason === "decision" ? "needs your answer" : d.reason === "shared-state" ? "shares mutable state" : "needs its code"}${d.on === "landed" ? ", after landing" : ""})`).join(", ")}</Text> : null}
-      {node.kind === "run" ? <Text style={{ color: colors.foregroundMuted }}>{node.workflow === "scout@1" ? "Investigation" : "Task"} · {node.launch.agent.provider} · {node.launch.agent.thinkingOptionId ?? "default thinking"} · {node.launch.host === "local" ? "This machine" : node.launch.host} · one worker turn</Text> : <>
+      {node.kind === "run" ? <Text style={{ color: colors.foregroundMuted }}>{node.workflow === "scout@1" ? "Investigation" : "Task"} · {node.launch.agent.provider} · {node.launch.agent.thinkingOptionId ?? "default thinking"} · {node.launch.host === "local" ? "This machine" : node.launch.host} · one worker turn{node.launch.captainAuthority ? " · captain authority required" : ""}</Text> : <>
+        <Text style={{ color: colors.foregroundMuted }}>Decision owner: {decisionOwner(plan, node) === "firstmate" ? "FirstMate" : "Captain"}</Text>
         <Text style={{ color: colors.foregroundMuted }}>Recommended: {node.options.find(o => o.id === node.recommendation)?.label ?? "none yet"}. {node.rationale}</Text>
         {!plan.nodes[node.id]?.answer && !planDecisionReady(plan, node, plans) ? <Text style={{ color: colors.foregroundMuted }}>
-          Options are read-only until the plan is approved, holds are lifted and required evidence is ready{node.after.length ? `: ${node.after.map(d => plans.flatMap(p => p.definition.nodes).find(n => n.id === d.node)?.title ?? d.node).join(", ")}` : ""}.
+          Options are read-only until the plan is active, holds are lifted and required evidence is ready{node.after.length ? `: ${node.after.map(d => plans.flatMap(p => p.definition.nodes).find(n => n.id === d.node)?.title ?? d.node).join(", ")}` : ""}.
         </Text> : null}
         {node.options.map(option => <View key={option.id} style={{ gap: 3 }}><Text style={{ color: colors.foregroundMuted }}>{option.consequence}</Text>
-          <Button theme={theme} label={plan.nodes[node.id]?.answer === option.id ? `Chosen: ${option.label}` : option.label} disabled={disabled || !planDecisionReady(plan, node, plans)} onPress={() => { if (!disabled && planDecisionReady(plan, node, plans)) void send("answer", { node: node.id, option: option.id }); }} />
+          <Button theme={theme} label={plan.nodes[node.id]?.answer === option.id ? `Chosen: ${option.label}` : option.label} disabled={disabled || decisionOwner(plan, node) !== "captain" || !planDecisionReady(plan, node, plans)} onPress={() => { if (!disabled && decisionOwner(plan, node) === "captain" && planDecisionReady(plan, node, plans)) void send("answer", { node: node.id, option: option.id }); }} />
         </View>)}
       </>}
       <WorkflowTaskActions plan={plan} node={node} theme={theme} disabled={busy} />
@@ -136,24 +140,30 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
     </View>)}
     {plan.history.length ? <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Revision history</Text> : null}
     {plan.history.map((h, i) => <Text key={`${h.revision}:${i}`} style={{ color: colors.foregroundMuted }}>{h.revision} · {h.by === "board:captain" ? "You" : "First mate"} · {h.reason}</Text>)}
+    {plan.ownerEvents?.length ? <>
+      <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Owner transfers</Text>
+      {plan.ownerEvents.map((event, index) => <Text key={`${event.at}:${index}`} selectable style={{ color: colors.foregroundMuted }}>{new Date(event.at).toLocaleString()} · {event.by === "board:captain" ? "You" : "FirstMate recorded your words"} · {event.from === "firstmate" ? "FirstMate" : "Captain"} → {event.to === "firstmate" ? "FirstMate" : "Captain"}: {event.evidence}</Text>)}
+    </> : null}
     {plan.captainEvents?.length ? <>
       <Text accessibilityRole="header" style={{ color: colors.foreground, fontWeight: "600" }}>Plan actions</Text>
-      {plan.captainEvents.map(a => <Text key={a.id} selectable style={{ color: colors.foregroundMuted }}>{new Date(a.at).toLocaleString()} · {a.by === "board:captain" ? "Captain pressed" : "Recorded by the first mate from chat"}: {({ approve: "Approved", edit: "Approved with edits", changes: "Changes requested", hold: "Held", decline: "Declined", answer: "Decision answered" } as Record<string, string>)[a.action] ?? "Updated"}{a.text ? ` · ${a.text}` : ""}</Text>)}
+      {plan.captainEvents.map(a => <Text key={a.id} selectable style={{ color: colors.foregroundMuted }}>{new Date(a.at).toLocaleString()} · {a.by === "board:captain" ? "Captain pressed" : "Recorded by the first mate from chat"}: {({ approve: "Approved", edit: "Approved with edits", changes: "Changes requested", hold: "Held", resume: "Resumed", decline: "Declined", answer: "Decision answered", transfer: "Owner transferred" } as Record<string, string>)[a.action] ?? "Updated"}{a.text ? ` · ${a.text}` : ""}</Text>)}
     </> : null}
     {plan.status !== "abandoned" && !planFinished(plan) ? <>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-        {awaitingReview ? <>
+        {awaitingReview && (planOwner(plan) === "captain" || captainReviewRequired(plan)) ? <>
           <Button theme={theme} label="Approve" primary disabled={disabled} onPress={() => void send("approve")} />
           <Button theme={theme} label="Approve with edits" disabled={disabled} onPress={() => setMode("edit")} />
           <Button theme={theme} label="Ask for changes" disabled={disabled} onPress={() => setMode("changes")} />
         </> : null}
         <Button theme={theme} label="Hold" disabled={disabled} onPress={() => void send("hold")} />
+        {plan.status === "held" ? <Button theme={theme} label="Resume plan" disabled={disabled} onPress={() => void send("resume")} /> : null}
+        <Button theme={theme} label={planOwner(plan) === "captain" ? "Delegate to FirstMate" : "Take ownership"} disabled={disabled} onPress={() => { setMode("transfer"); setText(""); }} />
       </View>
       <View style={{ borderTopWidth: 1, borderColor: colors.border, paddingTop: 12, alignItems: "flex-start" }}>
         <Button theme={theme} label="Decline" disabled={disabled || plan.definition.nodes.some(n => n.kind === "run" && plan.nodes[n.id]?.state !== "planned")} onPress={() => void send("decline")} />
       </View>
-      {awaitingReview && mode ? <View style={{ gap: 8 }}>
-        <TextInput accessibilityLabel="Requested plan changes" placeholder="Describe the changes" value={text} onChangeText={setText} multiline style={{ minHeight: 80 }} />
+      {mode && (awaitingReview || mode === "transfer") ? <View style={{ gap: 8 }}>
+        <TextInput accessibilityLabel={mode === "transfer" ? "Reason for owner transfer" : "Requested plan changes"} placeholder={mode === "transfer" ? "Record the delegation or revocation" : "Describe the changes"} value={text} onChangeText={setText} multiline style={{ minHeight: 80, color: colors.foreground }} />
         {mode === "edit" ? <>
           <Text style={{ color: colors.foregroundMuted }}>Edits apply to unstarted work. Scope or acceptance changes go to the first mate.</Text>
           <OptionPicker theme={theme} compact label="Plan posture" title="Plan posture" value={edits.find(e => e.kind === "posture")?.kind === "posture" ? (edits.find(e => e.kind === "posture") as { posture: string }).posture : plan.posture} disabled={disabled}
@@ -188,8 +198,8 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
           <Text style={{ color: colors.foregroundMuted }}>{edits.length} edits selected. Required dependencies and started work are checked again before approval.</Text>
           {missingMode ? <Text accessibilityRole="alert" style={{ color: colors.statusWarning }}>Choose an access mode for the selected model before approving.</Text> : null}
         </> : null}
-        <Button theme={theme} label={mode === "edit" ? "Apply edits and approve" : "Send changes to first mate"} disabled={disabled || (mode === "changes" ? !text.trim() : !edits.length || missingMode)}
-          onPress={() => { if (mode === "edit") void send("edit", { edits }); else void send("changes"); }} />
+        <Button theme={theme} label={mode === "transfer" ? planOwner(plan) === "captain" ? "Confirm delegation" : "Confirm ownership" : mode === "edit" ? "Apply edits and approve" : "Send changes to first mate"} disabled={disabled || (mode === "edit" ? !edits.length || missingMode : !text.trim())}
+          onPress={() => { if (mode === "edit") void send("edit", { edits }); else if (mode === "transfer") void send("transfer", { owner: planOwner(plan) === "captain" ? "firstmate" : "captain" }); else void send("changes"); }} />
       </View> : null}
     </> : null}
     {error ? <Text accessibilityRole="alert" style={{ color: colors.statusDanger }}>{error}</Text> : null}

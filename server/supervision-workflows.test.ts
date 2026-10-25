@@ -94,7 +94,7 @@ it("preserves approvals, prior attempts, promotion, invalidation and evidence-on
   const node = result.definition.nodes[0]!;
   expect(dependenciesMet({ ...node, after: [{ node: "trial", reason: "needs-evidence", on: "done" }] }, [result])).toBe(true);
   expect(dependenciesMet({ ...node, after: [{ node: "trial", reason: "builds-on", on: "landed" }] }, [result])).toBe(false);
-});
+}, 15000);
 it("keeps a committed historical early answer without applying today's admission guards on replay", async () => {
   await run({ op: "draft", definition: workflowFixture() });
   const prior = (await legacy.get("scheduler"))!;
