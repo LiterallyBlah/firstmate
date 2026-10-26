@@ -267,7 +267,10 @@ export class SupervisionStore {
         if (mutation.kind === "binding" && old) {
           const binding = mutation.value;
           if (binding.epoch < Number(old.epoch) || binding.epoch > Number(old.epoch) + 1 || binding.acknowledgedSeq < Number(old.acknowledgedSeq) ||
-            (binding.epoch === old.epoch && ["hostId", "agentId", "workspaceId", "profileDigest"].some(p => old[p] !== binding[p as keyof typeof binding]))) fail("STALE", "Binding identity change requires the next epoch; acknowledgement cannot regress.");
+            (binding.epoch === old.epoch && ["hostId", "agentId", "profileDigest", "workspaceIntent"].some(p => old[p] !== binding[p as keyof typeof binding]))) fail("STALE", "Binding identity change requires the next epoch; acknowledgement cannot regress.");
+          // The verified workspace is set once, by prepared -> active; it never changes within an epoch.
+          if (binding.epoch === old.epoch && old.workspaceId !== binding.workspaceId &&
+            !(old.workspaceId === null && old.state === "prepared" && binding.state === "active")) fail("STALE", "A verified workspace identity is set once on activation and is otherwise immutable within its epoch.");
           if (binding.epoch !== old.epoch && (binding.state !== "prepared" || !["retired", "suspect"].includes(String(old.state)))) fail("HELD", "Replacement must be explicitly prepared from a retired/suspect binding.");
           if (old.state === "retired" && binding.epoch === old.epoch && binding.state !== "retired") fail("HELD", "A retired binding cannot reactivate its old epoch.");
         }
@@ -297,9 +300,13 @@ export class SupervisionStore {
         if (mutation.kind === "blob" && prior) fail("CONFLICT", "Evidence references are immutable.");
         if (["command", "approval"].includes(mutation.kind) && prior) fail("CONFLICT", "Accepted commands and approvals are immutable.");
         if (mutation.kind === "continuation" && old) {
-          // Logical obligations survive owner transfer; evidenced completion reopens only for a revised objective.
+          // Obligations survive owner transfer. Accepted completions are history: a later assessment may
+          // supersede one (for example after its evidence is invalidated), but must retain it verbatim.
+          const history = (old.superseded as Continuation["superseded"]), next = mutation.value.superseded;
           if (old.scopeId !== mutation.value.scopeId || old.planId !== mutation.value.planId || Number(old.epoch) > mutation.value.epoch ||
-            (old.completion && old.objectiveHash === mutation.value.objectiveHash && digest(old.completion) !== digest(mutation.value.completion))) fail("HELD", "Continuation identity, epoch order and accepted completion must be retained.");
+            next.length < history.length || history.some((h, i) => digest(h) !== digest(next[i])) ||
+            (old.completion && digest(old.completion) !== digest(mutation.value.completion) &&
+              !next.slice(history.length).some(h => digest(h.completion) === digest(old.completion)))) fail("HELD", "Continuation identity, epoch order and completion history must be retained.");
         }
         if (mutation.kind === "decision" && old) {
           if (["ownerScopeId", "planId", "nodeId"].some(p => old[p] !== mutation.value[p as keyof typeof mutation.value]) ||
@@ -355,6 +362,14 @@ export class SupervisionStore {
       if (scopeId && !get("scope", String(scopeId))) fail("UNKNOWN_OWNER", "A row has no registered scope owner.");
       if (frame.kind === "binding") {
         const binding = SupervisionBindingSchema.parse(value);
+        if (binding.workspaceId !== null && binding.workspaceIntent !== undefined) {
+          const intent = [...frames.values()].find(f => f.kind === "effect" && (f.value as z.infer<typeof SupervisionEffectSchema>).scopeId === binding.scopeId &&
+            (f.value as z.infer<typeof SupervisionEffectSchema>).epoch === binding.epoch && (f.value as z.infer<typeof SupervisionEffectSchema>).operation === "workspace.open" &&
+            (f.value as z.infer<typeof SupervisionEffectSchema>).receiverKey === binding.workspaceIntent)?.value as z.infer<typeof SupervisionEffectSchema> | undefined;
+          let receipt: unknown = null;
+          try { receipt = intent?.state === "succeeded" && intent.receiptRef ? JSON.parse(intent.receiptRef) : null; } catch { receipt = null; }
+          if ((receipt as { workspaceId?: unknown } | null)?.workspaceId !== binding.workspaceId) fail("CONFLICT", "A verified binding workspace must equal its own intent's succeeded receipt.");
+        }
         if (binding.state !== "retired") {
           const k = key(binding.hostId.trim().toLowerCase(), binding.agentId);
           if (workers.has(k)) fail("CONFLICT", "An agent is bound to two scopes."); workers.add(k);
@@ -402,6 +417,14 @@ export class SupervisionStore {
       if (frame.kind === "workflow") {
         const row = frame.value as WorkflowRow, backend = get("backend", row.plan.definition.id) as z.infer<typeof SupervisionBackendSchema> | undefined;
         if (!backend || backend.ownerScopeId !== row.scopeId) fail("UNKNOWN_OWNER", "Workflow and backend ownership must agree atomically.");
+        // A recorded worker identity must be the gateway-verified worker of that exact attempt.
+        for (const node of Object.values(row.plan.nodes)) {
+          if (!node.attempt || (node.agentId === undefined && node.workspaceId === undefined)) continue;
+          const attempt = get("attempt", node.attempt) as z.infer<typeof SupervisionAttemptSchema> | undefined;
+          if (!attempt) continue; // Not a gateway reservation; nothing to cross-check.
+          if (!attempt.worker) fail("HELD", "Verify the reserved worker before recording its running identity.");
+          if (node.agentId !== attempt.worker.agentId || node.workspaceId !== attempt.worker.workspaceId) fail("CONFLICT", "Recorded worker identity differs from the verified attempt worker.");
+        }
       }
       if (frame.kind === "continuation") {
         const row = value as Continuation, backend = get("backend", row.planId) as z.infer<typeof SupervisionBackendSchema> | undefined;

@@ -26,11 +26,17 @@ export const SupervisionScopeSchema = z.object({
   projectIds: unique(SupervisionUuid, 64), sponsorId: SupervisionUuid.nullable(), version: positive,
   mode: z.enum(["legacy", "scoped"]), state: z.enum(["dormant", "active", "held", "transferring", "retired"]),
 }).strict();
+/** S04 v1 extension (explicit, additive): `workspaceIntent` names a reserved workspace request;
+ * `workspaceId` is only ever the verified Paseo workspace ID. It is null solely while a reserved
+ * binding is unverified, and becomes non-null once, with prepared -> active, in the same epoch.
+ */
 export const SupervisionBindingSchema = z.object({
-  scopeId: SupervisionUuid, epoch: positive, hostId: text(), agentId: text(), workspaceId: text(),
+  scopeId: SupervisionUuid, epoch: positive, hostId: text(), agentId: text(), workspaceId: text().nullable(),
+  workspaceIntent: text().optional(),
   profileDigest: SupervisionHash, state: z.enum(["prepared", "active", "suspect", "retired"]),
   checkpointHash: SupervisionHash, acknowledgedSeq: count, heartbeatDue: SupervisionUtc.nullable(),
-}).strict();
+}).strict().refine(b => b.workspaceId !== null || (b.workspaceIntent !== undefined && b.state !== "active"),
+  "An unverified binding needs a workspace intent and cannot be active.");
 export const SupervisionEffectSchema = z.object({
   id: SupervisionUuid, logicalKey: text(1024), requestId: SupervisionUuid, requestHash: SupervisionHash,
   scopeId: SupervisionUuid, epoch: positive, attemptId: SupervisionUuid.nullable(), operation: text(),
@@ -39,6 +45,8 @@ export const SupervisionEffectSchema = z.object({
   approvalId: SupervisionUuid.nullable(), resourceIds: unique(text(), 256),
   state: z.enum(["reserved", "dispatching", "accepted", "uncertain", "succeeded", "failed", "cancelled"]),
   receiverKey: text(1024).nullable(), receiptRef: text(1024).nullable(), version: positive,
+  /** S04 v1 extension: immutable content-addressed bytes a send delivers. Never authority evidence. */
+  payloadDigest: SupervisionHash.optional(),
 }).strict();
 export const SupervisionEventSchema = z.object({
   version: z.literal(1), eventId: SupervisionUuid,

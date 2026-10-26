@@ -25,7 +25,7 @@ describe("S04 effect gateway (synthetic receiver)", { timeout: 60000 }, () => {
     await expect(new SupervisorSessions(fx.store, off, fx.receiver, { limits: { supervisorSessions: 1, supervisorTurns: 1 }, globalMateId: async () => null })
       .prepare({ requestId: randomUUID(), scopeId: scope.id, scopeVersion: 1, profile: { provider: "x/y", modeId: "" }, opening: "o" }, captain)).rejects.toMatchObject({ code: "UNSUPPORTED" });
     await expect(recordContinuation(fx.store, { requestId: randomUUID(), scopeId: scope.id, planId: scope.planId, epoch: 1, inputVersion: "0".repeat(64),
-      disposition: "needs-planning", reason: "r", waits: [], completion: null }, scope.owner)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+      disposition: "blocked", reason: "r", waits: [], completion: null }, scope.owner)).rejects.toMatchObject({ code: "UNSUPPORTED" });
     expect(await fx.files()).toEqual(before); expect(fx.receiver.calls).toEqual([]);
   });
 

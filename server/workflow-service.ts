@@ -67,7 +67,7 @@ export async function processWorkflowRequests(home: string, store: WorkflowPlanS
         const request = WorkflowRequestSchema.parse(JSON.parse(await readFile(path, "utf8")));
         if (`${request.id}.json` !== name) throw new Error("Request identity mismatch.");
         if (!["plans", "show", "agenda", "lint"].includes(request.command.op)) await authorize(request.actor);
-        await route?.(request.command);
+        if (route) await route(request.command); // No guard: no added await on the live legacy path.
         result = { ok: true, result: await store.execute(request.command, request.id, request.actor) };
       } catch (error) { result = { ok: false, error: error instanceof Error ? error.message : String(error) }; }
       await publish(reply, result);

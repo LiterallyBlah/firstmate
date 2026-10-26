@@ -24,14 +24,14 @@ describe("S04 supervisor lifecycle (synthetic receiver)", { timeout: 60000 }, ()
   it("reserved/unprompted -> verified -> active -> send, with the opening last", async () => {
     const fx = await s04Fixture(), scope = await dormant(fx), { binding, effects } = await reserve(fx, scope);
     let s = await fx.store.read();
-    expect(binding).toMatchObject({ epoch: 1, state: "prepared", workspaceId: expect.stringMatching(/^workspace-intent:/) });
+    expect(binding).toMatchObject({ epoch: 1, state: "prepared", workspaceId: null, workspaceIntent: `ws-${effects.workspace!.id}` });
     expect(s.scopes.find(x => x.id === scope.id)!.state).toBe("transferring");
     await fx.gateway.dispatch(effects.workspace!.id); await fx.gateway.dispatch(effects.create!.id);
     await expect(fx.gateway.dispatch(effects.send!.id)).rejects.toMatchObject({ code: "HELD" }); // No opening before activation.
     const created = fx.receiver.agents.get(binding.agentId)!;
     expect(created.labels).toMatchObject({ "firstmate.role": "plan-supervisor", "firstmate.scope": scope.id, "firstmate.epoch": "1" });
     expect(created.labels["paseo.parent-agent-id"]).toBeUndefined();
-    expect(await fx.sessions.verify(scope.id, 1)).toMatchObject({ state: "active", agentId: binding.agentId });
+    expect(await fx.sessions.verify(scope.id, 1)).toMatchObject({ state: "active", agentId: binding.agentId, workspaceId: created.workspaceId, workspaceIntent: binding.workspaceIntent });
     s = await fx.store.read();
     expect(s.scopes.find(x => x.id === scope.id)!.state).toBe("active");
     await fx.gateway.dispatch(effects.send!.id);
@@ -104,7 +104,7 @@ describe("S04 supervisor lifecycle (synthetic receiver)", { timeout: 60000 }, ()
     await expect(fx.commands.planCommand(oldStart, old)).rejects.toMatchObject({ code: "STALE" });
     await expect(fx.gateway.startWorker({ ...oldStart, requestId: randomUUID() }, old)).rejects.toMatchObject({ code: "STALE" });
     await expect(recordContinuation(fx.store, { requestId: randomUUID(), scopeId: scope.id, planId: scope.planId, epoch: 1, inputVersion: before.inputVersion,
-      disposition: "needs-planning", reason: "stale", waits: [], completion: null }, old, true)).rejects.toMatchObject({ code: "STALE" });
+      disposition: "blocked", reason: "stale", waits: [{ kind: "prerequisite", id: "x", detail: "x", until: new Date(Date.now() + 3600_000).toISOString() }], completion: null }, old, true)).rejects.toMatchObject({ code: "STALE" });
     const effects = activationEffects(s, scope.id, 2);
     await fx.gateway.dispatch(effects.workspace!.id); await fx.gateway.dispatch(effects.create!.id); await fx.sessions.verify(scope.id, 2);
     await expect(fx.run(scope, { op: "start", plan: scope.planId, node: "n1-trial" }, old)).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });

@@ -5,11 +5,12 @@ import { continuationAgenda, deriveContinuation, goalStatus, livenessScan, recor
 import { planSubjectHash } from "./workflow-plans";
 import { captain, s04Fixture, type NodeSpec, type S04Fixture, type ScopeHandle } from "../test/supervision-s04-fixture";
 
+const until = new Date(Date.now() + 3600_000).toISOString();
 const derive = async (fx: S04Fixture, scope: ScopeHandle) => deriveContinuation(await fx.store.read(), scope.id, scope.planId);
 async function record(fx: S04Fixture, scope: ScopeHandle, change: Partial<ContinuationRecord>, actor: SupervisionActor = scope.owner) {
   const d = await derive(fx, scope);
   return recordContinuation(fx.store, { requestId: randomUUID(), scopeId: scope.id, planId: scope.planId, epoch: 1, inputVersion: d.inputVersion,
-    disposition: "needs-planning", reason: "Owner assessed.", waits: [], completion: null, ...change }, actor, true);
+    disposition: "blocked", reason: "Owner assessed.", waits: [], completion: null, ...change }, actor, true);
 }
 async function plan(fx: S04Fixture, n: number, nodes: NodeSpec[], delegated = false) {
   const scope = await fx.addScope(n, `goal-${n}`, nodes.map(x => x.id));
@@ -48,8 +49,9 @@ describe("S04 unfinished-goal continuation", { timeout: 60000 }, () => {
     expect(d).toMatchObject({ derived: "ready-action", nextNodes: ["tidy"] });
     expect(d.waits).toContainEqual(expect.objectContaining({ kind: "decision", id: "pick" }));
     await expect(record(fx, scope, { disposition: "captain-decision", waits: [{ kind: "decision", id: "tidy", detail: "x" }] })).rejects.toThrow(/stays with its owner/);
-    await record(fx, scope, { disposition: "captain-decision", reason: "Awaiting the captain's pick.", waits: [{ kind: "decision", id: "pick", detail: "Captain pick" }] });
-    expect(await derive(fx, scope)).toMatchObject({ disposition: "captain-decision", derived: "ready-action", nextNodes: ["tidy"], due: false });
+    // The captain's pending pick does not excuse the owner's own ready answer.
+    await expect(record(fx, scope, { disposition: "captain-decision", reason: "Awaiting the captain's pick.", waits: [{ kind: "decision", id: "pick", detail: "Captain pick" }] })).rejects.toThrow(/Ready work stays due/);
+    expect(await derive(fx, scope)).toMatchObject({ derived: "ready-action", nextNodes: ["tidy"], due: true });
   });
 
   it("recording an assessment cannot retrigger itself; an unchanged retry is refused; new facts make work due again", async () => {
@@ -57,10 +59,10 @@ describe("S04 unfinished-goal continuation", { timeout: 60000 }, () => {
     const scope = await plan(fx, 1, [{ id: "solo" }, { id: "after", after: [{ node: "solo", on: "done" }] }]);
     const first = await derive(fx, scope);
     expect(first).toMatchObject({ derived: "ready-action", due: true });
-    await record(fx, scope, { disposition: "waiting", reason: "Provider capacity unavailable; bounded backoff.", waits: [{ kind: "capacity", id: "codex", detail: "quota" }] });
+    await record(fx, scope, { disposition: "waiting", reason: "Provider capacity unavailable; bounded backoff.", waits: [{ kind: "capacity", id: "codex", detail: "quota", until }] });
     const second = await derive(fx, scope);
     expect(second).toMatchObject({ inputVersion: first.inputVersion, disposition: "waiting", derived: "ready-action", nextNodes: ["solo"], due: false });
-    await expect(record(fx, scope, { disposition: "waiting", reason: "again", waits: [{ kind: "capacity", id: "codex", detail: "quota" }] })).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(record(fx, scope, { disposition: "waiting", reason: "again", waits: [{ kind: "capacity", id: "codex", detail: "quota", until }] })).rejects.toMatchObject({ code: "CONFLICT" });
     expect((await derive(fx, scope)).inputVersion).toBe(first.inputVersion); // Heartbeat/restart re-derivation: still quiet.
     // A bookkeeping acknowledgement changes the plan hash, not the semantic input.
     await fx.run(scope, { op: "ack", plan: scope.planId, kind: "told", ids: ["start:solo"] });
@@ -74,7 +76,7 @@ describe("S04 unfinished-goal continuation", { timeout: 60000 }, () => {
     const d = await derive(fx, scope);
     await fx.launch(scope, "one");
     await expect(recordContinuation(fx.store, { requestId: randomUUID(), scopeId: scope.id, planId: scope.planId, epoch: 1, inputVersion: d.inputVersion,
-      disposition: "needs-planning", reason: "old view", waits: [], completion: null }, scope.owner, true)).rejects.toMatchObject({ code: "STALE" });
+      disposition: "blocked", reason: "old view", waits: [{ kind: "prerequisite", id: "x", detail: "x", until }], completion: null }, scope.owner, true)).rejects.toMatchObject({ code: "STALE" });
     await expect(record(fx, scope, {}, { kind: "mate-chat", id: "general-first-mate", source: "chat" })).rejects.toMatchObject({ code: "UNKNOWN_OWNER" });
     await expect(record(fx, scope, { disposition: "ready-action" as never })).rejects.toMatchObject({ code: "UNSUPPORTED" });
   });
@@ -110,7 +112,7 @@ describe("S04 unfinished-goal continuation", { timeout: 60000 }, () => {
     expect(await derive(fx, scope)).toMatchObject({ derived: "completed", due: false });
     const s = await fx.store.read(), row = s.continuations[0]!;
     await expect(fx.store.transact([{ kind: "continuation", id: row.id, version: row.version }], randomUUID(),
-      [{ kind: "continuation", value: { ...row, version: row.version + 1, disposition: "needs-planning", completion: null } }])).rejects.toMatchObject({ code: "HELD" });
+      [{ kind: "continuation", value: { ...row, version: row.version + 1, disposition: "blocked", completion: null } }])).rejects.toMatchObject({ code: "HELD" });
   });
 
   it("a capacity failure at launch keeps spend and stays visible as an obligation, without fallback", async () => {
