@@ -161,6 +161,11 @@ reader/writer compatibility is claimed.
   (`planDecisionReady`). An external dependency wait counts only while that prerequisite is advancing
   (live attempt or answerable decision); otherwise only a bounded prerequisite wait can account for it.
   A persisted wait whose fact no longer holds never quiets derivation.
+  **C3-R1:** "advancing" uses the same failed-launch rule as own-plan derivation (`launchEnded`): a started
+  upstream node whose attempt has any failed or cancelled effect is not progress, at admission and on every
+  readback. Pending or uncertain launches stay live, with reservations and spend untouched; nothing is
+  retried. The downstream semantic inputs carry each external prerequisite's coarse liveness, so a
+  definitive upstream failure is a new generation with a fresh wake key, without churn on ordinary progress.
 - **Final-admission audit (revision/subject/approval).** With real commands: a revision returns the plan
   to review, so queued work is `HELD` until re-approved; the landed reducer pins started nodes (removing
   one is refused, currently with a `TypeError` message from `digest(undefined)` — a pre-existing reducer

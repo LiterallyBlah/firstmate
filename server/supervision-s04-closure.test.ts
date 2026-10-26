@@ -127,6 +127,63 @@ describe("S04 correction closure: C1, C2, C3 and final-admission audit", { timeo
     expect(await derive(fx, scope)).toMatchObject({ derived: "ready-action", due: true, nextNodes: ["after-pick"] });
   });
 
+  it("C3-R1/A01: a definitively failed upstream launch ends a saved dependency wait with a fresh wake, keeping spend and history", async () => {
+    const fx = await s04Fixture(), up = await plan(fx, 1, "upstream", [{ id: "build", kind: "ship" }]);
+    const down = await plan(fx, 2, "downstream", [{ id: "after", after: [{ node: "build", on: "landed" }] }]);
+    const started = await fx.start(up, "build"), wait = { kind: "dependency" as const, id: "build", detail: "Await the upstream landing." };
+    await assess(fx, down, { waits: [wait] });
+    const before = await derive(fx, down);
+    expect(before).toMatchObject({ disposition: "waiting", due: false });
+    await fx.gateway.dispatch(started.effects!.workspace);
+    // Ordinary upstream progress is not a new downstream generation (no wake churn).
+    expect((await derive(fx, down)).inputVersion).toBe(before.inputVersion);
+    fx.receiver.faults.createAgent = ["capacity"];
+    expect((await fx.gateway.dispatch(started.effects!.create)).state).toBe("failed");
+    const after = await derive(fx, down), status = await fx.store.read(), calls = fx.receiver.calls.length;
+    expect(after).toMatchObject({ derived: "needs-planning", due: true });
+    expect(after.inputVersion).not.toBe(before.inputVersion); expect(after.wakeKey).not.toBe(before.wakeKey);
+    expect((await result(assess(fx, down, { waits: [wait] }))).code).toBe("HELD");
+    // Nothing is refunded, retried or rewritten: the failed attempt keeps its spend and effect history.
+    expect(status.attempts.find(a => a.id === started.attemptId)).toMatchObject({ spentAgents: 1, spentTurns: 1 });
+    expect(status.effects.filter(e => e.attemptId === started.attemptId).map(e => e.state)).toEqual(["succeeded", "failed", "cancelled"]);
+    expect(status.plans.find(p => p.plan.definition.id === up.planId)!.plan.nodes.build).toMatchObject({ state: "starting", spent: 1 });
+    expect(fx.receiver.calls.length).toBe(calls);
+  });
+
+  it("C3-R1/A06: a fresh dependency wait on a rejected launch is refused; a bounded prerequisite remains the explicit alternative", async () => {
+    const fx = await s04Fixture(), up = await plan(fx, 1, "failed-upstream", [{ id: "build", kind: "ship" }]);
+    const down = await plan(fx, 2, "fresh-consumer", [{ id: "after", after: [{ node: "build", on: "landed" }] }]);
+    const started = await fx.start(up, "build"); await fx.gateway.dispatch(started.effects!.workspace);
+    fx.receiver.faults.createAgent = ["reject"]; await fx.gateway.dispatch(started.effects!.create);
+    expect((await result(assess(fx, down, { waits: [{ kind: "dependency", id: "build", detail: "No worker is advancing it." }] }))).code).toBe("HELD");
+    expect(await derive(fx, down)).toMatchObject({ due: true });
+    const until = new Date(Date.now() + 60_000).toISOString();
+    await assess(fx, down, { disposition: "blocked", waits: [{ kind: "prerequisite", id: "recovery", detail: "Bounded deliberate recovery.", until }] });
+    const bounded = await derive(fx, down), expired = deriveContinuation(await fx.store.read(), down.id, down.planId, Date.parse(until) + 1);
+    expect(bounded.due).toBe(false); expect(expired.due).toBe(true); expect(expired.wakeKey).not.toBe(bounded.wakeKey);
+  });
+
+  it("C3-R1 positive boundary: an uncertain (lost-reply) upstream launch is still pending, so its dependency wait stays valid", async () => {
+    const fx = await s04Fixture(), up = await plan(fx, 1, "pending-upstream", [{ id: "build", kind: "ship" }]);
+    const down = await plan(fx, 2, "pending-consumer", [{ id: "after", after: [{ node: "build", on: "landed" }] }]);
+    const started = await fx.start(up, "build"); await fx.gateway.dispatch(started.effects!.workspace);
+    fx.receiver.faults.createAgent = ["lose"];
+    expect((await fx.gateway.dispatch(started.effects!.create)).state).toBe("uncertain");
+    await assess(fx, down, { waits: [{ kind: "dependency", id: "build", detail: "Upstream launch outcome is pending reconciliation." }] });
+    expect(await derive(fx, down)).toMatchObject({ disposition: "waiting", due: false });
+    expect((await fx.store.read()).effects.find(e => e.id === started.effects!.send)!.state).toBe("reserved"); // Reservation retained.
+  });
+
+  it("C3-R1: a captain stop that cancels an upstream reservation ends its dependency wait", async () => {
+    const fx = await s04Fixture(), up = await plan(fx, 1, "stopped-upstream", [{ id: "build", kind: "ship" }]);
+    const down = await plan(fx, 2, "stopped-consumer", [{ id: "after", after: [{ node: "build", on: "landed" }] }]);
+    await fx.start(up, "build");
+    await assess(fx, down, { waits: [{ kind: "dependency", id: "build", detail: "Await the upstream landing." }] });
+    const p = (await fx.store.read()).plans.find(x => x.plan.definition.id === up.planId)!.plan;
+    await fx.run(up, { op: "captain", plan: up.planId, revision: p.revision, subjectHash: planSubjectHash(p), action: "hold", text: "Stop upstream admissions." }, captain);
+    expect(await derive(fx, down)).toMatchObject({ derived: "needs-planning", due: true });
+  });
+
   it("C3 (same class): an external dependency wait needs live upstream progress", async () => {
     const fx = await s04Fixture(), up = await plan(fx, 1, "upstream-goal", [{ id: "u-build", kind: "ship" }]);
     const down = await plan(fx, 2, "downstream-goal", [{ id: "d-after", after: [{ node: "u-build", on: "landed" }] }]);

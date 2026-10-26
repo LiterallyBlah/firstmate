@@ -36,6 +36,22 @@ export function outcomeHash(status: SupervisionStatus, plan: WorkflowPlan): stri
     external: [...new Set(plan.definition.nodes.flatMap(n => n.after.map(e => e.node)).filter(id => !plan.nodes[id]))].sort().map(id => nodeTuple(id, plans)) });
 }
 
+/** A launch is definitively over once any of its attempt's effects failed or was cancelled (the gateway
+ * cancels never-dispatched siblings on a definite launch refusal). Pending or uncertain effects stay live;
+ * nothing here releases a reservation, refunds spend or relaunches.
+ */
+export const launchEnded = (status: SupervisionStatus, attemptId: string | undefined) =>
+  !!attemptId && status.effects.some(e => e.attemptId === attemptId && ["failed", "cancelled"].includes(e.state));
+/** Whether an external prerequisite is being advanced right now: a live (not definitively ended) started
+ * attempt, or a captain decision the answer handler would accept. Same rule at admission and readback.
+ */
+function externalAdvancing(status: SupervisionStatus, nodeId: string): boolean {
+  const plans = status.plans.map(p => p.plan), owner = plans.find(p => p.nodes[nodeId]), state = owner?.nodes[nodeId];
+  const node = owner?.definition.nodes.find(n => n.id === nodeId);
+  if (!owner || !state || state.held || state.invalidated) return false;
+  if (LIVE_NODE.includes(state.state)) return !launchEnded(status, state.attempt);
+  return node?.kind === "decision" && planDecisionReady(owner, node, plans);
+}
 /** Only facts that change what the owner must do. */
 export function semanticInputs(status: SupervisionStatus, scopeId: string, planId: string) {
   const plan = status.plans.find(p => p.scopeId === scopeId && p.plan.definition.id === planId)?.plan ?? null;
@@ -50,6 +66,10 @@ export function semanticInputs(status: SupervisionStatus, scopeId: string, planI
     effects: status.effects.filter(e => e.scopeId === scopeId && e.attemptId !== null).map(e => [e.id, effectClass(e.state)]),
     owner: binding ? [binding.epoch, binding.state] : null, scope: scope?.state ?? null,
     backend: status.backends.find(b => b.planId === planId)?.state ?? null,
+    // Coarse liveness of external prerequisites: a definitive upstream launch failure is a new generation
+    // (fresh wake key), while ordinary upstream effect progress does not churn this goal.
+    externalLiveness: plan ? [...new Set(plan.definition.nodes.flatMap(n => n.after.map(e => e.node)).filter(id => !plan.nodes[id]))].sort()
+      .map(id => [id, externalAdvancing(status, id)]) : [],
   };
 }
 export const continuationInputVersion = (status: SupervisionStatus, scopeId: string, planId: string) => digest(semanticInputs(status, scopeId, planId));
@@ -75,7 +95,7 @@ export function deriveContinuation(status: SupervisionStatus, scopeId: string, p
   const assessed = status.continuations.find(c => c.scopeId === scopeId && c.planId === planId) ?? null;
   const plans = status.plans.map(p => p.plan), waits: ContinuationWait[] = [], nextNodes: string[] = [];
   const effects = status.effects.filter(e => e.scopeId === scopeId), workerEffects = effects.filter(e => e.attemptId !== null);
-  const failedLaunch = (attempt: string | undefined) => !!attempt && workerEffects.some(e => e.attemptId === attempt && ["failed", "cancelled"].includes(e.state));
+  const failedLaunch = (attempt: string | undefined) => launchEnded(status, attempt);
   let activeWorkers = 0;
   for (const node of plan?.definition.nodes ?? []) {
     const state = plan!.nodes[node.id];
@@ -184,10 +204,8 @@ function waitProblem(status: SupervisionStatus, scopeId: string, derivedWaits: r
   if (w.kind === "dependency") {
     // An external prerequisite accounts for the wait only while something is advancing it.
     const edge = plan.definition.nodes.some(n => !plan.nodes[w.id] && n.after.some(e => e.node === w.id && !dependenciesMet({ ...n, after: [e] }, plans)));
-    const owner = plans.find(p => p.nodes[w.id]), state = owner?.nodes[w.id], node = owner?.definition.nodes.find(n => n.id === w.id);
-    const advancing = !!state && !state.held && !state.invalidated && (["starting", "running"].includes(state.state) ||
-      (node?.kind === "decision" && planDecisionReady(owner!, node, plans)));
-    return edge && advancing ? null : `Dependency ${w.id} is unmet without live progress; plan around it or name a bounded prerequisite wait.`;
+    return edge && externalAdvancing(status, w.id) ? null :
+      `Dependency ${w.id} is unmet without live progress (a definitively failed or cancelled launch is not progress); plan around it or name a bounded prerequisite wait.`;
   }
   return null;
 }
