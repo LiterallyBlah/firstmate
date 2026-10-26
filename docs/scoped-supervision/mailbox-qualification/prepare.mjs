@@ -8,10 +8,12 @@ import {literalCallback} from '../observer-admission/adapters.mjs';
 import {retainSetup} from '../observer-wiring/selected.mjs';
 import {BASE,SELECTION,sha,fixedConfiguration} from './contract.mjs';
 import {saveNew} from './io.mjs';
+// Imports emitted as code need the same freeze as ordinary module imports.
+export const EMITTED_RUNTIME_IMPORTS=Object.freeze({client:'docs/scoped-supervision/mailbox-qualification/worker.mjs',adapters:'docs/scoped-supervision/observer-admission/adapters.mjs',retention:'docs/scoped-supervision/observer-wiring/client.mjs'});
 export function renderMailbox(config,sources,pins){
  fixedConfiguration(config);const root=config.repositoryRoot,directory=config.directory;
  const url=path=>pathToFileURL(resolve(root,path)).href;
- const modules={client:url('docs/scoped-supervision/mailbox-qualification/worker.mjs'),adapters:url('docs/scoped-supervision/observer-admission/adapters.mjs')};
+ const modules=Object.fromEntries(Object.entries(EMITTED_RUNTIME_IMPORTS).map(([name,path])=>[name,url(path)]));
  const generated={},files=[],slots=[];
  for(const target of SELECTION){
   const source=sources[target.path];assert.equal(sha(Buffer.from(source)),target.sourceSha256);
@@ -48,7 +50,7 @@ prepareWorkerSetup(selected);await import(${JSON.stringify(pathToFileURL(retaine
  // bundler transform must not be able to miss and register its original destructive cleanup.
  const retained=retainSetup(sources['test/setup.ts']),line=retained.indexOf('\n');
  assert.match(retained.slice(0,line),/^import \{ retainDiagnosticHome \} from /);
- generated[retainedSetup]=`import {retainDiagnosticHome} from ${JSON.stringify(url('docs/scoped-supervision/observer-wiring/client.mjs'))};\n`+retained.slice(line+1);
+ generated[retainedSetup]=`import {retainDiagnosticHome} from ${JSON.stringify(modules.retention)};\n`+retained.slice(line+1);
  generated[configPath]=`import {defineConfig} from 'vitest/config';
 export default defineConfig({test:{include:${JSON.stringify(files.map(f=>f.path))},exclude:[],setupFiles:[${JSON.stringify(setup)}],maxWorkers:2,isolate:true,watch:false,pool:'forks',fileParallelism:true,testTimeout:5000,retry:0,passWithNoTests:false,allowOnly:false,environment:'node',coverage:{enabled:false}}});\n`;
  const artifacts=Object.entries(generated).filter(([path])=>!path.endsWith('.jsonl')).map(([path,text])=>({path,sha256:sha(Buffer.from(text))}));

@@ -4,6 +4,8 @@ import {resolve,join} from 'node:path';
 import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 export const BASE='aa8db567714b38542ee6ef18a2f9f31e8cbcc5b0';
+export const NODE_VERSION='v24.18.0';
+export const NODE_PATH='C:\\Program Files\\nodejs\\node.exe';
 export const CASE='b807adc9-87fb-46a2-8c1a-c88208531ec3', NONCE='4ddd694a-f73f-4f03-8b02-2fb839eedde5';
 export const NATIVE_SHA='a61098b3bb597af66232592bf0e2e2caa1db25c0a42f5aee66529e8983ce339b';
 export const NODE_SHA='9a4eb5f1c29c6a2e93852ead46b999e284a6a5ca8bab4d4e241d587d025a52de';
@@ -22,7 +24,7 @@ export function fixedConfiguration(config,repo=REPO){
  const p=locations(repo);
  assert.equal(config.format,'firstmate.s02-mailbox-runtime/1');assert.equal(config.caseId,CASE);assert.equal(config.nonce,NONCE);
  assert.equal(config.scenario,'normal');assert.equal(resolve(config.directory),p.directory);assert.equal(resolve(config.repositoryRoot),resolve(repo));
- assert.equal(config.nodeVersion,'v24.18.0');assert.equal(config.nodePath,'C:\\Program Files\\nodejs\\node.exe');
+ assert.equal(config.nodeVersion,NODE_VERSION);assert.equal(config.nodePath,NODE_PATH);
  assert.equal(resolve(config.rootEntry),resolve(repo,'docs/scoped-supervision/mailbox-qualification/root.mjs'));
  assert.equal(resolve(config.childEntry),resolve(repo,'docs/scoped-supervision/mailbox-qualification/child.mjs'));
  assert.match(config.pinsSha256,/^[a-f0-9]{64}$/);assert.match(config.controllerSha256,/^[a-f0-9]{64}$/);

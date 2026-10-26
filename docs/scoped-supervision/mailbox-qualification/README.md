@@ -26,6 +26,12 @@ the inactive dispatch pins the controller. The helper repeats those checks and
 reserves `native.reserved` exclusively before invoking the accepted native entry.
 Local files and UUIDs are typed-source/behavioral guards, not authenticated IPC.
 
+The freeze includes imports emitted by preparation and their repository dependency
+closure, including the actual retention client and its unsupported-runtime module.
+`review-pins.json` separately binds control-only data factories and byte comparisons
+so the small exported source packet can replay the offline controls without
+supplementing it from another checkout. It grants no runtime support.
+
 `WindowsJobOwner.cs`, `WindowsRootGate.cs`, `WindowsMemberNormal.cs` and all old
 contracts/readers are unchanged. `root.mjs` and its relative `capture.mjs` here are
 byte-identical copies of the accepted launcher/dependency. The separate fixed
@@ -62,6 +68,10 @@ queries and disposal. PID/instance/home/body mismatches, missing/lossy status,
 pending work, incomplete detailed snapshots or missing post-disposal return
 refuse. Recording failures do not suppress the original callback. A missing
 final cannot report itself through a failed sink and is refused externally.
+The two callbacks must select different immutable native lifetime bindings and
+PIDs. Every stable callback worker record must use pinned Node v24.18.0, thread0
+and main-thread identity; a fresh per-case instance UUID cannot substitute for
+a different native lifetime. Root and runner records obey the same fixed identity.
 Existing heartbeat frames additionally retain the latest bounded pending ancestor
 chain, completed/pending counts and explicit observer loss. This keeps phase
 evidence outside the worker before the independent owner may stop it, without

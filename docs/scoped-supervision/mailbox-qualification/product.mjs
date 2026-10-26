@@ -3,7 +3,7 @@ import {isDeepStrictEqual as equal} from 'node:util';
 import {resolve,join} from 'node:path';
 import {createWitness} from '../observer-wiring/protocol.mjs';
 import {interpretMemberNormal} from '../owner-capability/member-capture.mjs';
-import {CASE,NONCE,SELECTION,sha} from './contract.mjs';
+import {CASE,NONCE,NODE_VERSION,NODE_PATH,SELECTION,sha} from './contract.mjs';
 import {errorValue} from './io.mjs';
 const pathId=value=>typeof value==='string'?resolve(value).replaceAll('\\','/').toLowerCase():null;
 export function jsonLines(bytes,limit=2097152){
@@ -52,6 +52,8 @@ export function assessProduct(member,input,product,expectedPlan){
  need(member.normalQualificationPassed===true,'native-normal-workload-not-complete');
  need(member.ownedSetClosureConfirmed===true,'native-physical-closure-not-confirmed');
  const native=member.native,lives=native?.lifetimes??[],root=input.rootEntry,runner=input.childEntry;
+ need(input.nodePath===NODE_PATH,'fixed-node-image-path-mismatch');
+ need(input.nodeVersion===NODE_VERSION&&[root,runner].every(e=>e?.node===NODE_VERSION&&e.threadId===0&&e.isMainThread===true),'fixed-root-or-runner-identity-mismatch');
  const nativeEvents=native?.events??[],armed=nativeEvents.find(e=>e.kind==='deadline-armed'),completed=nativeEvents.filter(e=>e.kind==='normal-owned-set-empty');
  need(Array.isArray(nativeEvents)&&nativeEvents.every((e,i)=>Number.isFinite(e.atMs)&&e.atMs>=0&&(!i||e.atMs>=nativeEvents[i-1].atMs))&&armed?.data?.durationMs===5000&&completed.length===1&&
   completed[0].atMs>=armed.atMs&&completed[0].atMs-armed.atMs<=5000,'observed-native-budget-not-met');
@@ -65,6 +67,7 @@ export function assessProduct(member,input,product,expectedPlan){
   const owner={format:'firstmate.s02-mailbox-worker-owner/1',caseId:CASE,nonce:NONCE,pinsSha256:input.pinsSha256,rootPid:root?.pid,rootInstance:root?.instance,
    runnerPid:runner?.pid,runnerInstance:runner?.instance,workerPid:pid,workerPpid:runner?.pid};
   need(frames.every((f,i)=>equal(f.mailboxOwner,owner)&&(!i||f.childAtMs>=frames[i-1].childAtMs)),'callback-owner-parent-or-clock-mismatch');
+  need(frames.every(f=>f.actualWorker?.node===NODE_VERSION&&f.actualWorker.threadId===0&&f.actualWorker.isMainThread===true),'callback-fixed-forks-identity-mismatch');
   let previousProgress=-1;
   need(frames.filter(f=>f.kind==='heartbeat').every(f=>{const p=f.data?.progress,monotone=Number.isFinite(p?.elapsedMs)&&p.elapsedMs>=previousProgress;if(monotone)previousProgress=p.elapsedMs;return !f.data?.progressError&&p?.kind==='bounded-latest-pending-chain/1'&&monotone&&p.elapsedMs>=0&&
    Number.isSafeInteger(p.retainedRows)&&p.retainedRows>=0&&p.retainedRows<=8000&&Number.isSafeInteger(p.pendingCount)&&p.pendingCount>=0&&p.pendingCount<=p.retainedRows&&
@@ -88,6 +91,7 @@ export function assessProduct(member,input,product,expectedPlan){
    witnessRuntimeSupported:proof.supported,outcome:proof.outcome,final:proof.final});
  }catch(error){need(false,'callback-receipt-invalid:'+target.name);}}
  need(slots.length===2&&['caseId','sessionWorkerId'].every(key=>new Set(slots.map(s=>s[key])).size===2)&&new Set(slots.map(s=>s.worker?.instance)).size===2,'callback-identities-not-fresh');
+ need(slots.length===2&&slots[0].worker?.pid!==slots[1].worker?.pid&&!equal(slots[0].memberBinding,slots[1].memberBinding),'callback-native-lifetimes-not-distinct');
  return{normalProductSuccess:reasons.size===0,reasons:[...reasons],slots};
 }
 export function interpretMailbox(input,product,plan,nativeSha){
