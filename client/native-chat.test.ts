@@ -2,7 +2,7 @@ import type { PluginClientContext, PluginTimelineItemProps } from "@getpaseo/plu
 import { act, createElement } from "react";
 import { create } from "react-test-renderer";
 import { beforeAll, expect, it, vi } from "vitest";
-import { board, watch } from "../docs/native-chat-format/fixtures";
+import { board, planTransfer, planTransferId, watch } from "../docs/native-chat-format/fixtures";
 
 vi.mock("react-native", () => ({ Pressable: "Pressable", Text: "Text", View: "View" }));
 import { MachineNote, machineNoteSchema, registerNativeChat } from "./native-chat";
@@ -81,6 +81,24 @@ it.each([watch, board])(
     }
   },
 );
+
+it("draws a generated plan transfer note collapsed like a watch, revealing and hiding the exact original", () => {
+  const output = nativeChatTransformer.transform({ item: { type: "user_message", text: planTransfer, clientMessageId: `firstmate-plan-${planTransferId}` }, phase: "complete" })!;
+  const data = machineNoteSchema.parse(output.items[0]!.data);
+  const props = { item: { data }, theme: { colors: { foreground: "#fff", foregroundMuted: "#aaa", surface1: "#111", surface2: "#222" } } } as PluginTimelineItemProps<{ summary: string; original: string; visible?: string }>;
+  let rendered!: ReturnType<typeof create>;
+  act(() => { rendered = create(createElement(MachineNote, props)); });
+  try {
+    const texts = () => rendered.root.findAll(n => (n.type as unknown) === "Text").map(n => n.props.children);
+    const button = rendered.root.find(n => (n.type as unknown) === "Pressable");
+    expect(texts()).toEqual(["Plan owner transferred · ariadne-character-dialogue-scout", "Show original"]);
+    expect(button.props.accessibilityLabel).toBe("Show original: Plan owner transferred · ariadne-character-dialogue-scout");
+    act(() => button.props.onPress());
+    expect(texts()).toEqual(["Plan owner transferred · ariadne-character-dialogue-scout", "Hide original", planTransfer]);
+    act(() => button.props.onPress());
+    expect(texts()).not.toContain(planTransfer);
+  } finally { act(() => rendered.unmount()); }
+});
 
 it("registers the matching schema and component and disposes both contributions", () => {
   const removals: string[] = [];
