@@ -82,6 +82,9 @@ export function injectedSummary(text: string, clientMessageId?: string): string 
   return null;
 }
 
+/** Every captain action a plan records (`PlanCaptainCommandSchema`); a newer one reads "Plan updated". */
+const PLAN_ACTIONS = new Map(Object.entries({ approve: "Plan approved", edit: "Plan approved with edits", changes: "Plan changes requested", hold: "Plan held", resume: "Plan resumed", decline: "Plan declined", answer: "Plan decision answered", transfer: "Plan owner transferred" }));
+
 /** Only an owned, complete plan-action envelope can fold; pasted examples remain the captain's words. */
 export function planNoteSummary(text: string, clientMessageId?: string): string | null {
   if (!/^firstmate-plan-[0-9a-f-]{36}$/.test(clientMessageId ?? "")) return null;
@@ -89,8 +92,10 @@ export function planNoteSummary(text: string, clientMessageId?: string): string 
   if (!body || /<\/?firstmate-plan>/.test(body)) return null;
   try {
     const action: unknown = JSON.parse(body.trim().split(/\r?\n/).at(-1)!);
-    if (!action || typeof action !== "object" || !("action" in action)) return null;
-    return ({ approve: "Plan approved", edit: "Plan approved with edits", changes: "Plan changes requested", hold: "Plan held", decline: "Plan declined", answer: "Plan decision answered" } as Record<string, string>)[String(action.action)] ?? null;
+    if (!action || typeof action !== "object" || !("action" in action) || typeof action.action !== "string") return null;
+    const head = PLAN_ACTIONS.get(action.action) ?? "Plan updated";
+    const plan = "plan" in action && typeof action.plan === "string" && /^[a-z0-9][a-z0-9-]{0,63}$/.test(action.plan) ? action.plan : null;
+    return plan === null ? head : `${head} · ${plan}`;
   } catch { return null; }
 }
 

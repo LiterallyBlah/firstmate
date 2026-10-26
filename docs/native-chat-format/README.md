@@ -10,6 +10,9 @@ The transformer selects only `user_message`. It requires a complete envelope at
 character zero, rejects trailing ordinary prose and incomplete or nested
 envelopes, and reuses `watchSummary` / `injectedSummary` from
 `client/transcript-rows.ts`. Watches retain failed-run and dropped-run indicators.
+Plan action notes (`templates/messages/workflow-note.md`) fold only with their own
+`firstmate-plan-<event id>` client message id, as "Plan owner transferred ·
+<plan id>" and the like, through `planNoteSummary`.
 There is no fleet lookup, clock, selected-agent state or side effect in the
 transform; renderer disclosure state is local to the mounted row. Source identity
 and projection caching remain Paseo's responsibility.
