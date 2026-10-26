@@ -27,12 +27,17 @@ export const PlanNodeSchema = z.discriminatedUnion("kind", [
     recommendation: PlanId.nullable(), rationale: z.string().min(1).max(5000) }).strict(),
 ]);
 export type PlanNode = z.infer<typeof PlanNodeSchema>;
+/** Cumulative attempt counts, independent of the bounded plan graph. */
+export const CumulativePlanBudgetSchema = z.object({
+  agents: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  turns: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+}).strict();
 export const PlanDefinitionSchema = z.object({
   format: z.literal("firstmate.plan/1"), id: PlanId, title: line.max(120),
   ownership: z.object({ owner: z.enum(["captain", "firstmate"]), evidence: z.string().trim().min(1).max(5000).optional() }).strict().optional(),
   request: z.object({ text: z.string().min(1).max(20000), at: z.iso.datetime(),
     posture: z.enum(["review", "sail"]).optional(), quote: z.string().min(1).max(5000).optional() }).strict(),
-  implicit: z.boolean().default(false), budget: z.object({ agents: z.number().int().min(1).max(100), turns: z.number().int().min(1).max(100) }).strict(),
+  implicit: z.boolean().default(false), budget: CumulativePlanBudgetSchema,
   nodes: z.array(PlanNodeSchema).min(1).max(100),
 }).strict();
 export type PlanDefinition = z.infer<typeof PlanDefinitionSchema>;
@@ -94,7 +99,7 @@ export const WorkflowCommandSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("close"), plan: PlanId, node: PlanId, attempt: z.uuid(), expected: z.string().length(64), evidence: z.string().trim().min(1).max(10000) }).strict(),
   z.object({ op: z.literal("validate"), plan: PlanId, node: PlanId, attempt: z.uuid(), expected: z.string().length(64), evidence: z.string().min(1).max(10000) }).strict(),
   z.object({ op: z.literal("replace"), plan: PlanId, node: PlanId, attempt: z.uuid(), expected: z.string().length(64),
-    kind: z.enum(["relaunch", "promote"]), evidence: z.string().min(1).max(10000), budget: z.object({ agents: z.number().int().min(1).max(100), turns: z.number().int().min(1).max(100) }).strict() }).strict(),
+    kind: z.enum(["relaunch", "promote"]), evidence: z.string().min(1).max(10000), budget: CumulativePlanBudgetSchema }).strict(),
   z.object({ op: z.literal("claim"), plan: PlanId, node: PlanId, attempt: z.uuid(), briefHash: z.string().length(64), launch: PlanLaunchSchema }).strict(),
   z.object({ op: z.literal("record"), plan: PlanId, node: PlanId, state: z.enum(["running", "done", "landed", "failed", "cancelled", "unresolved"]),
     attempt: z.string().uuid(), evidence: z.string().min(1).max(10000), agentId: line.optional(), workspaceId: line.optional() }).strict(),

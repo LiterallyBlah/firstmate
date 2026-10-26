@@ -396,6 +396,9 @@ it("release operations are outside the pilot command and approval vocabulary", a
   await expect(commands.planCommand({ ...i, command: { op: "deploy" } as any }, mate)).rejects.toThrow();
   await expect(commands.planCommand({ ...i, command: { op: "release", plan: "scheduler", node: "trial", attempt: randomUUID(), evidence: "No lifecycle adapter qualified." } }, mate)).rejects.toMatchObject({ code: "UNSUPPORTED" });
   await expect(commands.approve({ ...i, command: { op: "release", plan: "scheduler", node: "trial", attempt: randomUUID(), evidence: "No lifecycle adapter qualified." } }, captain)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  const replacement = { op: "replace" as const, plan: "scheduler", node: "trial", attempt: randomUUID(), expected: "a".repeat(64), kind: "relaunch" as const, budget: { agents: 106, turns: 106 }, evidence: "Capacity correction does not enable the lifecycle adapter." };
+  await expect(commands.planCommand({ ...i, command: replacement }, mate)).rejects.toMatchObject({ code: "UNSUPPORTED" });
+  await expect(commands.approve({ ...i, command: replacement }, captain)).rejects.toMatchObject({ code: "UNSUPPORTED" });
 });
 it("a publication interruption exposes neither half of an answer and exact recovery spends nothing twice", async () => {
   await decisionReady(); const a = await answerInput(); await store.releaseCoordinator();

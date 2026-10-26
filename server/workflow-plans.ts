@@ -108,6 +108,17 @@ function assertDelegatedRevision(previous: WorkflowPlan, definition: PlanDefinit
 export function checkNewWorkflowAction(command: WorkflowCommand, previous: WorkflowPlan | null, plans: WorkflowPlan[], unavailableDependencies = new Set<string>(), unavailable = false): void {
   checkNewCaptainAction(command, previous, plans, unavailableDependencies, unavailable);
   if (!previous) return;
+  if (command.op === "replace") {
+    const state = previous.nodes[command.node];
+    if (state?.attempt) {
+      // Match the replacement's pending state without refunding earlier attempts.
+      // New admission only: historical underdeclared replacements still replay.
+      const nodes = { ...previous.nodes, [command.node]: { state: "planned" as const, spent: state.spent ?? 1 } };
+      const worst = planWorstCase(previous.definition, nodes, previous.removed);
+      if (command.budget.agents < worst.agents || command.budget.turns < worst.turns)
+        throw new Error(`Replacement needs at least ${worst.agents} cumulative agents / ${worst.turns} turns, including ${planSpent(previous.nodes, previous.removed)} spent attempts and all pending runs.`);
+    }
+  }
   if (command.op === "revise" && planOwner(previous) === "firstmate") assertDelegatedRevision(previous, command.definition, plans);
   if (command.op === "start" && planOwner(previous) === "firstmate") {
     const node = previous.definition.nodes.find(n => n.id === command.node);
