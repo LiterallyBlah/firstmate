@@ -1,0 +1,8 @@
+{
+  "format": "firstmate.s02-mailbox-dispatch/1",
+  "executeOneMailbox": true,
+  "caseId": "0734c8fe-f6fd-4747-a64e-e8b1191213ea",
+  "nonce": "98a01146-13e8-466d-aa94-860d189e0271",
+  "pinsSha256": "3b081e6dfa824077748f77f4866a18ca841ac4e8ea7c3d3a0d8dff66850e9d89",
+  "controllerSha256": "dd90397fb5ab71d7f3d32bb2d127baf47ab981951f0df2e902e95e81612f9aaa"
+}
