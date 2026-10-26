@@ -14,23 +14,9 @@ import { readPlanPosture } from "./workflow-posture";
 import { replaySupervisionWorkflow } from "./supervision-workflows";
 import { workflowHomeIdentity } from "./workflow-ownership";
 
-const count = z.number().int().nonnegative();
-export const ScopedDependencySchema = z.object({ homeId: z.string().min(1), planId: PlanId, nodeId: PlanId,
-  outcome: z.enum(["done", "landed", "answered"]), planHash: SupervisionHash, revision: count.min(1), attemptId: z.string().uuid().nullable() }).strict();
-export const ScopedPlanCommandSchema = z.object({
-  requestId: SupervisionUuid, homeId: z.string().min(1), scopeId: SupervisionUuid, epoch: count.min(1), scopeVersion: count.min(1),
-  expectedPlanHash: SupervisionHash.nullable(), revision: count, subjectHash: SupervisionHash.nullable(),
-  command: WorkflowCommandSchema, dependencyBindings: z.array(ScopedDependencySchema).max(100),
-  policyVector: z.array(SupervisionVersionRefSchema).max(256), modelPolicyVector: z.array(SupervisionVersionRefSchema).max(256),
-  evidenceVector: z.array(SupervisionVersionRefSchema).max(256), approvalId: SupervisionUuid.nullable(),
-  head: z.string().regex(/^[0-9a-f]{40,64}$/).nullable(), artifactHash: SupervisionHash.nullable(),
-  briefHash: SupervisionHash.nullable(),
-}).strict();
-export type ScopedPlanCommand = z.infer<typeof ScopedPlanCommandSchema>;
-export const ScopedAnswerSchema = ScopedPlanCommandSchema.omit({ command: true, requestId: true }).extend({
-  submissionId: SupervisionUuid, decisionId: SupervisionUuid, option: PlanId, text: z.string().max(10000),
-}).strict();
-export type ScopedAnswer = z.infer<typeof ScopedAnswerSchema>;
+export { ScopedDependencySchema, ScopedPlanCommandSchema, ScopedAnswerSchema } from "../shared/scoped-commands";
+export type { ScopedPlanCommand, ScopedAnswer } from "../shared/scoped-commands";
+import { ScopedPlanCommandSchema, ScopedAnswerSchema, type ScopedPlanCommand, type ScopedAnswer } from "../shared/scoped-commands";
 const emptyResult = (): ScopedCommandResult => ({ planId: null, planHash: null, decisionId: null, outboxId: null });
 function fail(code: "STALE" | "HELD" | "UNKNOWN_OWNER" | "UNSUPPORTED" | "CONFLICT", message: string): never { throw new SupervisionError(code, message); }
 export function scopedDecisionId(scope: string, plan: string, node: string): string {
@@ -75,6 +61,7 @@ export class SupervisionCommands {
     if (!this.options.enabled) fail("UNSUPPORTED", "Pilot scoped commands are disabled.");
     if (status.homeId !== input.homeId || status.homeId !== this.store.homeId || workflowHomeIdentity(this.home) !== status.homeId) fail("STALE", "Home identity changed.");
     const scope = status.scopes.find(s => s.id === input.scopeId), binding = status.bindings.find(b => b.scopeId === input.scopeId);
+    if (op === "plan.start" && binding?.purpose === "discussion") fail("HELD", "This session is discussion only. Work activation requires its own checked authority; discussion grants no dispatch.");
     if (!scope || scope.mode !== "scoped" || scope.kind !== "plan") fail("UNKNOWN_OWNER", "Exact scoped plan owner required.");
     // A captain answer addresses a logical decision, independently of session replacement. Its
     // revision/subject/policy still bind below. Only the current owner can consume its outbox.

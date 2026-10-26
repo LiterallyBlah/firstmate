@@ -52,6 +52,7 @@ export const TEMPLATES = {
   updateRequest: "messages/update-request.md",
   decisionAnswer: "messages/decision-answer.md",
   itemDiscuss: "messages/item-discuss.md",
+  scopeDiscuss: "messages/scope-discuss.md",
   itemGraduate: "messages/item-graduate.md",
   itemWorkDiscussion: "messages/item-work-discussion.md",
   relaunch: "messages/relaunch.md",

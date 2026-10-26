@@ -35,6 +35,10 @@ export const SupervisionBindingSchema = z.object({
   workspaceIntent: text().optional(),
   profileDigest: SupervisionHash, state: z.enum(["prepared", "active", "suspect", "retired"]),
   checkpointHash: SupervisionHash, acknowledgedSeq: count, heartbeatDue: SupervisionUtc.nullable(),
+  /** Exact owner observation, never inferred from send acceptance. Optional for old ledgers. */
+  observation: z.object({ state: z.enum(["awake", "dormant", "unknown"]), at: SupervisionUtc }).strict().optional(),
+  /** S05 discussion activation grants no work authority. Absent on historical S04 bindings. */
+  purpose: z.enum(["discussion", "work"]).optional(),
 }).strict().refine(b => b.workspaceId !== null || (b.workspaceIntent !== undefined && b.state !== "active"),
   "An unverified binding needs a workspace intent and cannot be active.");
 export const SupervisionEffectSchema = z.object({

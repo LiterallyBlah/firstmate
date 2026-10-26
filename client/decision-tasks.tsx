@@ -25,11 +25,13 @@ export function DecisionTask({
   onAnswer,
   reveal,
   review: isReview = false,
+  waitingLabel,
 }: {
   presentation?: "row" | "card";
   onAnswer?: (() => void) | undefined;
   reveal?: object | undefined;
   review?: boolean;
+  waitingLabel?: string;
   request: NeedsYouRequest;
   snapshot: Pick<NeedsYouSnapshot, "homeId" | "planNow">;
   cards?: readonly FleetCard[];
@@ -52,7 +54,7 @@ export function DecisionTask({
   const openAnswer = onAnswer ?? (need ? () => plans.open(need.plan) : () => open({ homeId: snapshot.homeId!, requestId: request.id, recordRevision: request.revision }, id));
   const metadata = <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
     {request.source.project ? <Tag theme={theme} text={request.source.project} /> : null}
-    <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>{review && !request.detectedAt ? "waiting for review" : `waiting ${waiting}`}</Text>
+    <Text style={{ color: colors.foregroundMuted, fontSize: 11 }}>{waitingLabel ?? (review && !request.detectedAt ? "waiting for review" : `waiting ${waiting}`)}</Text>
   </View>;
   const answer = <Pressable nativeID={id} accessibilityRole="button" accessibilityLabel={review ? `Review plan: ${request.source.title}` : `Answer: ${title}. ${request.source.ask}`}
     onPress={openAnswer} style={{ minHeight: compact ? 44 : 28, flexDirection: "row", alignItems: "center", justifyContent: "center",

@@ -247,6 +247,7 @@ export class SupervisionGateway {
     if (!scope || !binding || binding.epoch !== effect.epoch || ["retired", "suspect"].includes(binding.state)) refuse("STALE", "The effect's owner epoch is no longer current.");
     if (binding.hostId.trim().toLowerCase() !== "local") refuse("UNSUPPORTED", "S04 has no remote receiver adapter.");
     const supervisor = effect.attemptId === null, stopping = operation === "agent.interrupt" || operation === "agent.archive";
+    if (!supervisor && binding.purpose === "discussion") refuse("HELD", "Discussion-only sessions cannot dispatch worker effects.");
     const activation = supervisor && (operation === "workspace.open" || operation === "agent.create");
     if (activation ? scope.state !== "transferring" || binding.state !== "prepared" : scope.state !== "active" || binding.state !== "active")
       refuse("HELD", "Owner is not admitted for this external effect.");
@@ -287,7 +288,7 @@ export class SupervisionGateway {
         if (!fresh.capabilities.selectedAgentIds) refuse("UNSUPPORTED", "Receiver no longer supports caller-selected IDs; the reservation stays as it is.");
         const workspace = workspaceReceipt(sibling("workspace.open"));
         if (!workspace) refuse("HELD", "The workspace effect has not succeeded; creation waits for it.");
-        const create = supervisor ? supervisorCreate(effect, workspace, await this.profile(binding.profileDigest)) : workerCreate(status, effect, workspace);
+        const create = supervisor ? supervisorCreate(effect, workspace, await this.profile(binding.profileDigest), scope.kind) : workerCreate(status, effect, workspace);
         return { run: async () => {
           const created = await this.receiver.createAgent(create);
           if (created.agentId !== create.agentId) throw new Error("Receiver returned a different identity; treated as uncertain.");
@@ -559,9 +560,9 @@ function workerCreate(status: SupervisionStatus, effect: SupervisionEffect, work
   return { agentId: effect.receiverKey!, workspaceId: workspace.workspaceId, cwd: workspace.directory, profile: launch.agent,
     title: (launch.agentTitle || launch.title).slice(0, 120), labels: workerLabels(effect.scopeId, task, attempt.id, launch) };
 }
-function supervisorCreate(effect: SupervisionEffect, workspace: WorkspaceReceipt, profile: AgentProfile) {
+function supervisorCreate(effect: SupervisionEffect, workspace: WorkspaceReceipt, profile: AgentProfile, kind: string) {
   return { agentId: effect.receiverKey!, workspaceId: workspace.workspaceId, cwd: workspace.directory, profile,
-    title: `Plan supervisor ${effect.scopeId.slice(0, 8)}`, labels: supervisorLabels(effect.scopeId, effect.epoch) };
+    title: `${kind === "project" ? "Project discussion" : "Plan supervisor"} ${effect.scopeId.slice(0, 8)}`, labels: supervisorLabels(effect.scopeId, effect.epoch) };
 }
 export function supervisorLabels(scopeId: string, epoch: number): Record<string, string> {
   return { [CREW_LABELS.role]: SUPERVISOR_ROLE, [SCOPE_LABELS.scope]: scopeId, [SCOPE_LABELS.epoch]: String(epoch) };

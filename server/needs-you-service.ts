@@ -25,6 +25,7 @@ import { withDecisionOptions } from "./decision-options";
 import type { SupervisionStatus } from "../shared/supervision";
 import { decisionOwner } from "../shared/workflow-plans";
 import { planDecisionReady } from "../shared/plan-readiness";
+import { scopeAnswerContext } from "./scope-answer-context";
 
 /** Read-only opt-in composition seam for S05/S06. No polling/wake/send or legacy mutation. */
 export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: SupervisionStatus): NeedsYouSnapshot {
@@ -39,8 +40,9 @@ export function withScopedNeedsYou(snapshot: NeedsYouSnapshot, status: Supervisi
     const held = status.operationHolds.some(h => h.scopeId === decision.ownerScopeId && h.planId === decision.planId && h.state === "held" && h.operations.includes("decision.answer"));
     const ready = status.freshness === "current" && backend?.backend === "scoped" && backend.state === "active" && owner?.kind === "plan" && owner.mode === "scoped" && ["active", "held", "transferring"].includes(owner.state) &&
       !held && !!plan && !!node && decision.state === "pending" && planDecisionReady(plan, node, plans);
+    const answerContext = scopeAnswerContext(status, decision);
     return [{ decision, ready, waitingFor: decision.state === "answered" ? null : ready ? null : "Waiting for current plan evidence or ownership reconciliation.",
-      ownerEpoch: binding?.state === "active" ? binding.epoch : null }];
+      ownerEpoch: binding?.state === "active" ? binding.epoch : null, ...(answerContext ? { answerContext } : {}) }];
   });
   const holds = status.operationHolds.filter(h => h.state === "held");
   const holdPlans = new Set(holds.map(h => h.planId));

@@ -49,3 +49,8 @@ export function createDraftStore(root: object): DraftStore {
 }
 
 export const drafts = createDraftStore(globalThis);
+
+/** Restore scoped-mode intent independently of component/query-cache lifetimes. */
+export const scopeUiKey = (hostId: string, homeId: string) => JSON.stringify(["firstmate.scope-ui/1", hostId, homeId]);
+
+export { scopeDraftKey } from "../shared/scope-discussion";
