@@ -81,6 +81,16 @@ export function interpretMemberNormal(input,sourceSha256) {
     event('normal-owned-set-empty')>event('normal-release')&&equal(boundEvent?.data?.bindings,bindings)&&equal(boundEvent?.data?.members,n?.liveMembers)&&
     boundEvent?.data?.members?.pids?.includes(rootId?.pid)&&boundEvent?.data?.members?.pids?.includes(childId?.pid)&&
     equal(releaseEvent?.data?.workloadBindings,bindings),'member-workload-release-order-or-binding');
+  // The producer claims normal completion once, on this empty query, before terminal capture.
+  // Later empty terminal evidence proves closure; it cannot supply a missing normal outcome.
+  const completions=n?.events?.filter(e=>e.kind==='normal-owned-set-empty')??[];
+  const emptyNormal=raw=>{
+    const m=membershipSnapshot(raw);
+    return raw?.phase==='success-terminal'&&raw.complete===true&&raw.queryError===0&&raw.accountingError===0&&
+      m.complete&&m.active===0&&m.assigned===0&&m.listed===0&&m.pids.length===0;
+  };
+  requireNormal(n?.normalExited===true&&completions.length===1&&emptyNormal(n?.lastNormalMembers)&&
+    completions.every(e=>emptyNormal(e.data)&&equal(e.data,n?.lastNormalMembers)),'member-normal-completion-missing-nonempty-or-inconsistent');
   requireNormal(n?.error===null&&n?.originalFailure===null&&n?.originalFailureTruncated===false&&n?.deadlineFired===false&&
     n?.terminateRequested===false&&n?.normalExited===true&&root?.terminal?.exit?.code===0&&childLife?.terminal?.exit?.code===0,'member-normal-outcome-or-deadline');
   requireNormal(input.rootResult?.childCode===0&&input.rootResult.childSignal===null&&input.childResult?.fulfilled===true,'member-original-results-incomplete');
