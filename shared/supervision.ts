@@ -47,6 +47,10 @@ export const SupervisionEffectSchema = z.object({
   receiverKey: text(1024).nullable(), receiptRef: text(1024).nullable(), version: positive,
   /** S04 v1 extension: immutable content-addressed bytes a send delivers. Never authority evidence. */
   payloadDigest: SupervisionHash.optional(),
+  /** S04 v1 extension: the exact prerequisite outcomes admitted at reservation (S03 dependency
+   * bindings, without the plan hash/revision snapshot), re-resolved at final dispatch admission. */
+  dependencyBindings: z.array(z.object({ planId: PlanId, nodeId: PlanId, outcome: z.enum(["done", "landed", "answered"]),
+    attemptId: SupervisionUuid.nullable() }).strict()).max(100).optional(),
 }).strict();
 export const SupervisionEventSchema = z.object({
   version: z.literal(1), eventId: SupervisionUuid,

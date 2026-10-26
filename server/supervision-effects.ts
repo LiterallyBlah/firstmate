@@ -12,7 +12,6 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { CREW_LABELS } from "../shared/fleet";
-import { dependenciesMet } from "../shared/plan-readiness";
 import type { SupervisionActor, SupervisionAttempt, SupervisionEffect, SupervisionExpected, SupervisionScope, SupervisionStatus, SupervisionTask } from "../shared/supervision";
 import type { PlanLaunch, WorkflowPlan } from "../shared/workflow-plans";
 import type { VersionRef } from "../shared/supervision-policy";
@@ -24,7 +23,7 @@ import {
 import { resolveInHome } from "./files";
 import { digest } from "./submissions";
 import { SupervisionError, type SupervisionMutation, type SupervisionStore } from "./supervision-store";
-import type { ScopedPlanCommand, SupervisionCommands } from "./supervision-commands";
+import { checkDependencyRoute, type ScopedPlanCommand, type SupervisionCommands } from "./supervision-commands";
 import { applicableRules, checkPolicySource, currentPolicyVector, policyRef, sameVector, type PolicyTarget } from "./supervision-policy";
 
 /** Thrown by a receiver only when it definitely refused before admitting the request (server-only: no class in shared code). */
@@ -162,7 +161,8 @@ export class SupervisionGateway {
       // The admission read set is pinned: start and model-use policy refs, admission evidence and approval.
       const base = { requestId: input.requestId, requestHash: digest(input), scopeId, epoch: binding.epoch, attemptId,
         planRevision: input.revision || null, subjectHash: input.subjectHash ?? digest(command), policyVector: unionVectors(input.policyVector, input.modelPolicyVector),
-        evidenceVector: input.evidenceVector, approvalId: input.approvalId, state: "reserved" as const, receiptRef: null, version: 1 };
+        evidenceVector: input.evidenceVector, approvalId: input.approvalId, state: "reserved" as const, receiptRef: null, version: 1,
+        dependencyBindings: input.dependencyBindings.map(d => ({ planId: d.planId, nodeId: d.nodeId, outcome: d.outcome, attemptId: d.attemptId })) };
       const intent = workerWorkspaceIntent(task, ordinal, launch, ids.workspace);
       const effects: SupervisionEffect[] = [
         { ...base, id: ids.workspace, logicalKey: key("workspace.open"), operation: "workspace.open", resourceIds: [`workspace-intent:${intent.key}`], receiverKey: intent.key },
@@ -265,9 +265,11 @@ export class SupervisionGateway {
       else if (!stopping) {
         if (plan.status !== "active" || !["starting", "running"].includes(node.state) || node.held || node.invalidated)
           refuse("HELD", "The node is no longer an admitted, live start.");
-        if (!dependenciesMet(definition, status.plans.map(p => p.plan))) refuse("STALE", "A prerequisite no longer satisfies this node.");
+        checkDependencies(status, effect, definition.after, scope.id);
         launch = launchFor(status, task);
-        await this.recheckPolicy(status, effect, scope, task, launch);
+        // A send's model policy is evaluated on the freshly observed recipient, validated against its verified reservation.
+        const profile = operation === "agent.send" ? await this.validatedRecipient(status, effect, fresh.observed) : launch.agent;
+        await this.recheckPolicy(status, effect, scope, task, profile);
       }
     }
     const sibling = (op: GatewayOperation) => status.effects.find(e => e.scopeId === effect.scopeId && e.operation === op &&
@@ -292,10 +294,8 @@ export class SupervisionGateway {
         const target = supervisor ? binding.agentId : attempt?.worker?.agentId;
         const workspaceId = supervisor ? binding.workspaceId : attempt?.worker?.workspaceId;
         if (!target || !workspaceId || (!supervisor && attempt?.state !== "active")) refuse("HELD", "Send waits for verified, active identity.");
-        // Final idle recheck (S02 beginSend leaves it to S04): busy, permission or identity divergence refuses.
-        const observed = exactTarget(fresh.observed, target);
-        if (observed.workspaceId !== workspaceId || observed.status !== "idle" || observed.pendingPermissions > 0)
-          refuse("HELD", "The recipient is busy, awaiting a permission or outside its verified workspace; nothing was sent.");
+        // Final recipient recheck (S02 beginSend leaves idle to S04); workers were validated above with their policy.
+        if (supervisor) await this.validatedRecipient(status, effect, fresh.observed);
         return { run: async () => { await this.receiver.send(target, fresh.text!, effect.receiverKey!); return `message:${effect.receiverKey}`; },
           after: s => supervisor ? [] : promoteAttempt(s, effect.attemptId!, "prompted") };
       }
@@ -313,7 +313,30 @@ export class SupervisionGateway {
     }
   }
   /** Same rules S03 applies at start, against the pinned read set, plus on-disk source re-hash. */
-  private async recheckPolicy(status: SupervisionStatus, effect: SupervisionEffect, scope: SupervisionScope, task: SupervisionTask, launch: PlanLaunch) {
+  /** The fresh observation must still be the verified reservation: exact identity, profile, workspace and
+   * directory, labels, no native parent, idle with no pending permission. Returns that validated profile.
+   * This detects divergence already observed before admission; it does not fence later native changes (U1).
+   */
+  private async validatedRecipient(status: SupervisionStatus, effect: SupervisionEffect, observed: AgentObservation | null): Promise<AgentProfile> {
+    let expected: { agentId: string; workspaceId: string | null; workspace: WorkspaceReceipt | null; profile: AgentProfile; labels: Record<string, string> };
+    if (effect.attemptId === null) {
+      const binding = status.bindings.find(b => b.scopeId === effect.scopeId)!;
+      const intent = status.effects.find(e => e.scopeId === binding.scopeId && e.epoch === binding.epoch && e.attemptId === null &&
+        e.operation === "workspace.open" && e.receiverKey !== null && e.receiverKey === binding.workspaceIntent);
+      expected = { agentId: binding.agentId, workspaceId: binding.workspaceId, workspace: workspaceReceipt(intent),
+        profile: await this.profile(binding.profileDigest), labels: supervisorLabels(binding.scopeId, binding.epoch) };
+    } else {
+      const attempt = status.attempts.find(a => a.id === effect.attemptId)!, task = status.tasks.find(t => t.id === attempt.taskId)!, launch = launchFor(status, task);
+      const ids = effectsFor(status, attempt.id);
+      expected = { agentId: attempt.worker?.agentId ?? "", workspaceId: attempt.worker?.workspaceId ?? null,
+        workspace: workspaceReceipt(status.effects.find(e => e.id === ids?.workspace)), profile: launch.agent, labels: workerLabels(effect.scopeId, task, attempt.id, launch) };
+    }
+    if (!expected.workspace || expected.workspace.workspaceId !== expected.workspaceId) refuse("HELD", "The recipient's verified workspace cannot be re-established; nothing was sent.");
+    const problem = verifyObservation(observed, { agentId: expected.agentId, workspace: expected.workspace, profile: expected.profile, labels: expected.labels });
+    if (problem) refuse("HELD", `${problem} Nothing was sent.`);
+    return { provider: observed!.provider, modeId: observed!.modeId ?? "", ...(observed!.thinkingOptionId ? { thinkingOptionId: observed!.thinkingOptionId } : {}) };
+  }
+  private async recheckPolicy(status: SupervisionStatus, effect: SupervisionEffect, scope: SupervisionScope, task: SupervisionTask, profile: AgentProfile) {
     const base = { scopeId: scope.id, planId: task.planId, projectIds: scope.projectIds, hostId: task.hostId };
     const targets: PolicyTarget[] = [{ ...base, operation: "plan.start" }, { ...base, operation: "model.use" }];
     if (!sameVector(effect.policyVector, unionVectors(...targets.map(t => currentPolicyVector(status, t))))) refuse("STALE", "Policy changed since reservation; the queued effect is not admitted.");
@@ -324,8 +347,8 @@ export class SupervisionGateway {
       for (const rule of rules) {
         if (rule.effect === "deny") refuse("HELD", "Conflicting or denying policy holds this effect.");
         if (rule.expiresAt && Date.parse(rule.expiresAt) <= now) refuse("STALE", "Policy grant expired.");
-        if (target.operation === "model.use" && ((rule.constraints.models.length && !rule.constraints.models.includes(launch.agent.provider)) ||
-          (rule.constraints.profileDigests.length && !rule.constraints.profileDigests.includes(digest(launch.agent))))) refuse("HELD", "The worker profile no longer satisfies model policy.");
+        if (target.operation === "model.use" && ((rule.constraints.models.length && !rule.constraints.models.includes(profile.provider)) ||
+          (rule.constraints.profileDigests.length && !rule.constraints.profileDigests.includes(digest(profile))))) refuse("HELD", "The worker profile no longer satisfies model policy.");
       }
     }
     for (const ref of effect.policyVector.filter(r => r.kind === "policy-source")) {
@@ -465,6 +488,27 @@ export class SupervisionGateway {
   }
 }
 
+/** C1: re-resolve each admitted prerequisite outcome under the writer boundary with the S03 route rule. */
+function checkDependencies(status: SupervisionStatus, effect: SupervisionEffect, after: readonly { node: string; on: string }[], scopeId: string) {
+  const bindings = effect.dependencyBindings;
+  if (!bindings) {
+    if (after.length) refuse("HELD", "This reservation has no retained dependency binding (superseded synthetic format); replan it.");
+    return;
+  }
+  if (after.length !== bindings.length || after.some(e => bindings.filter(b => b.nodeId === e.node && b.outcome === e.on).length !== 1))
+    refuse("STALE", "The node's prerequisites differ from the admitted bindings.");
+  const plans = status.plans.map(p => p.plan);
+  for (const binding of bindings) {
+    const owners = plans.filter(p => p.nodes[binding.nodeId]);
+    if (owners.length !== 1 || owners[0]!.definition.id !== binding.planId || !owners[0]!.definition.nodes.some(n => n.id === binding.nodeId))
+      refuse("STALE", "A prerequisite's owning plan changed, was removed or is ambiguous.");
+    checkDependencyRoute(status, binding.planId, scopeId, "plan.start");
+    const state = owners[0]!.nodes[binding.nodeId]!;
+    if ((state.attempt ?? null) !== binding.attemptId) refuse("STALE", "The prerequisite's satisfying attempt changed.");
+    const met = binding.outcome === "answered" ? !!state.answer : binding.outcome === "landed" ? state.state === "landed" : state.state === "done" || state.state === "landed";
+    if (!met || state.held || state.invalidated) refuse("STALE", "A prerequisite no longer satisfies this node.");
+  }
+}
 function targetOf(status: SupervisionStatus, effect: SupervisionEffect, operation: GatewayOperation): string | null {
   if (operation === "workspace.open" || operation === "agent.create") return null;
   if (effect.attemptId === null) return operation === "agent.send" ? status.bindings.find(b => b.scopeId === effect.scopeId)?.agentId ?? null : null;

@@ -80,7 +80,7 @@ neither can be recorded. `goalStatus` gives goal and project rows (owner, next a
 evidence time) without writing. `livenessScan` reads exact workers after restart/lost callbacks; it
 never creates, prompts, rearms or retargets.
 
-## Shared schema agreement (explicit, additive v1 extension)
+## Shared schema agreement (explicit synthetic S04 format)
 
 - **Binding.** `workspaceIntent` (optional) names the reserved workspace request; `workspaceId` is only
   ever the verified Paseo workspace ID and is `null` solely while a reserved binding is unverified
@@ -91,7 +91,8 @@ never creates, prompts, rearms or retargets.
 - **Effect.** `payloadDigest` (optional) is the immutable content-addressed bytes a send delivers
   (brief, opening, offer text). `evidenceVector` keeps only S03 `policy-evidence` refs, so final
   admission can recheck it with S03 semantics. `policyVector` of a worker effect is the de-duplicated
-  union of the start and model-use policy read sets.
+  union of the start and model-use policy read sets. `dependencyBindings` (optional) retains the exact
+  prerequisite outcomes admitted by S03 at reservation (plan, node, outcome, satisfying attempt).
 - Prepared-before-verified binding, constructor-supplied supervisor caps and retained previous-epoch
   reservations remain the bounded seams accepted in principle by the review; caps still need a
   durable policy source and one budget decision.
@@ -129,6 +130,45 @@ never creates, prompts, rearms or retargets.
   quiet only behind a capacity, hold or prerequisite wait.
 - The unguarded legacy path no longer awaits an absent route guard.
 
+## Format compatibility (unactivated synthetic format, replaced not migrated)
+
+These formats were never activated, installed or written outside fixtures. Each correction **replaces**
+the synthetic S04 format; nothing migrates or rewrites saved evidence, and no mixed-version
+reader/writer compatibility is claimed.
+
+- Older S00/S01/S03-shaped bindings (real workspace ID, no intent) and effects without the new optional
+  fields still parse. Readers older than the S04 corrections cannot read `workspaceIntent`, a null
+  `workspaceId`, `payloadDigest` or `dependencyBindings` (strict schemas refuse unknown fields).
+- `e99ca022` continuation rows do **not** parse: they lack `superseded` and `completion.outcomeHash`,
+  and their recorded `needs-planning`/`ready-action` dispositions are no longer storable.
+- `0a6fc23b` worker effects lack `dependencyBindings`; final dispatch refuses such an effect when its node
+  has prerequisites (`HELD`, replan), and keeps its reservation and spend.
+- Retained review evidence stays under its original source identity; a store written by an older head
+  must be read by that head. Before any persistence integration, version this boundary explicitly.
+
+## Correction-review closure (C1–C3, after `0a6fc23b`)
+
+- **C1 (R1).** Reservations retain S03's validated dependency bindings. Final dispatch re-resolves each
+  under the writer boundary: unique owning plan and node still present, the shared S03 route rule
+  (`checkDependencyRoute`: active scoped backend, available owner scope), same satisfying attempt, outcome
+  still met, not held or invalidated. Refusal keeps the reservation and spend and calls no receiver.
+- **C2 (R1).** Before a send claim, the fresh observation must equal the verified reservation (exact
+  identity, profile, workspace and directory, labels, no native parent, idle, no pending permission), for
+  workers and supervisors. Model policy is then evaluated on that validated observed profile. Detected
+  divergence only: later native changes are not fenced (U1).
+- **C3 (R9).** One applicability rule is used when recording and on every quiet derivation. A decision
+  wait counts only for a captain-authority decision the answer handler would accept now
+  (`planDecisionReady`). An external dependency wait counts only while that prerequisite is advancing
+  (live attempt or answerable decision); otherwise only a bounded prerequisite wait can account for it.
+  A persisted wait whose fact no longer holds never quiets derivation.
+- **Final-admission audit (revision/subject/approval).** With real commands: a revision returns the plan
+  to review, so queued work is `HELD` until re-approved; the landed reducer pins started nodes (removing
+  one is refused, currently with a `TypeError` message from `digest(undefined)` — a pre-existing reducer
+  defect outside this slice; no write occurs). Approval rows are immutable and their policy/evidence
+  vectors are pinned in the effect; a policy change holds, and after the reviewed release the stale pinned
+  vector still refuses (`STALE`). Approval expiry cannot be produced through the real approve path
+  (`expiresAt` is always null) and remains source-checked only.
+
 ## Remaining S02 integration seams
 
 - Ingress/assignment: S02 events for worker finish/permission/error must resolve to the attempts and
@@ -151,7 +191,8 @@ never creates, prompts, rearms or retargets.
 
 `server/supervision-effects.test.ts`, `server/supervisor-sessions.test.ts`,
 `server/supervision-continuation.test.ts`, `server/scope-requests.test.ts`,
-`server/supervision-s04-review.test.ts` (every review counterexample and positive control), with
+`server/supervision-s04-review.test.ts` (every review counterexample and positive control),
+`server/supervision-s04-closure.test.ts` (C1–C3 and the final-admission audit), with
 `test/synthetic-receiver.ts` (deterministic fault injection: lost reply, hidden/late creation,
 capacity/definite rejection, tampered settings/ancestry, incomplete inventory, slow reply) and
 `test/supervision-s04-fixture.ts`. They cover A01-C02/C04/C05, A03-C04, A05, A08, A10, A14, A18-C01/

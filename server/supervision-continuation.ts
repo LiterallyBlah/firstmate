@@ -112,7 +112,8 @@ export function deriveContinuation(status: SupervisionStatus, scopeId: string, p
   const actionable = derived === "ready-action" || derived === "needs-planning";
   const expired = (assessed?.waits ?? []).some(w => w.until && Date.parse(w.until) <= now);
   // A current, validated quiet assessment explains an obligation; it never erases it, and a bounded wait expires.
-  const quiet = actionable && assessed?.inputVersion === inputVersion && assessed.epoch === binding?.epoch && assessed.disposition !== "completed" && !expired;
+  const applies = !!plan && !!assessed && assessed.waits.every(w => !waitProblem(status, scopeId, waits, plan, w, now, false)) && readyWorkBlocked(nextNodes, assessed.waits);
+  const quiet = actionable && assessed?.inputVersion === inputVersion && assessed.epoch === binding?.epoch && assessed.disposition !== "completed" && !expired && applies;
   const disposition = quiet ? assessed!.disposition : derived;
   const reason = quiet ? assessed!.reason : !plan ? "No plan is recorded for this scope." : reasonFor(derived, nextNodes, waits);
   const deliverable = scope?.state === "active" && binding?.state === "active";
@@ -159,27 +160,48 @@ export interface ContinuationRecord {
   requestId: string; scopeId: string; planId: string; epoch: number; inputVersion: string;
   disposition: RecordedDisposition; reason: string; waits: ContinuationWait[]; completion: { evidence: string } | null;
 }
+/** Whether one wait still names a current, unresolved fact that accounts for the obligation. Used when
+ * recording and again on every quiet derivation, so a persisted wait cannot outlive its supporting fact.
+ */
+function waitProblem(status: SupervisionStatus, scopeId: string, derivedWaits: readonly ContinuationWait[], plan: WorkflowPlan,
+  w: ContinuationWait, now: number, recording: boolean): string | null {
+  const plans = status.plans.map(p => p.plan);
+  if (BOUNDED.includes(w.kind)) {
+    const until = w.until ? Date.parse(w.until) : NaN;
+    if (!(until > now) || (recording && until - now > MAX_BACKOFF_MS)) return `A ${w.kind} wait needs a bounded backoff (until, at most seven days ahead).`;
+    return null;
+  }
+  if (w.until) return `Only capacity and prerequisite waits are time-bounded.`;
+  if (w.kind === "attempt") return derivedWaits.some(d => d.kind === "attempt" && d.id === w.id) ? null : `Attempt ${w.id} is not live in this goal.`;
+  if (w.kind === "effect") return status.effects.some(e => e.id === w.id && e.scopeId === scopeId && e.attemptId !== null && LIVE_EFFECT.includes(e.state)) ? null : `Effect ${w.id} is not live in this goal.`;
+  if (w.kind === "hold") return derivedWaits.some(d => d.kind === "hold" && d.id === w.id) ? null : `Hold ${w.id} is not held.`;
+  if (w.kind === "decision") {
+    // Only a captain-authority decision the answer handler would accept now (prerequisites met, unanswered).
+    const node = plan.definition.nodes.find(n => n.id === w.id);
+    return node?.kind === "decision" && decisionOwner(plan, node) === "captain" && planDecisionReady(plan, node, plans) ? null :
+      `A routine continuation stays with its owner; ${w.id} is not a currently answerable captain-authority decision.`;
+  }
+  if (w.kind === "dependency") {
+    // An external prerequisite accounts for the wait only while something is advancing it.
+    const edge = plan.definition.nodes.some(n => !plan.nodes[w.id] && n.after.some(e => e.node === w.id && !dependenciesMet({ ...n, after: [e] }, plans)));
+    const owner = plans.find(p => p.nodes[w.id]), state = owner?.nodes[w.id], node = owner?.definition.nodes.find(n => n.id === w.id);
+    const advancing = !!state && !state.held && !state.invalidated && (["starting", "running"].includes(state.state) ||
+      (node?.kind === "decision" && planDecisionReady(owner!, node, plans)));
+    return edge && advancing ? null : `Dependency ${w.id} is unmet without live progress; plan around it or name a bounded prerequisite wait.`;
+  }
+  return null;
+}
 /** Each recorded wait must name something real that accounts for the obligation. */
 function validateWaits(status: SupervisionStatus, derived: DerivedContinuation, plan: WorkflowPlan, waits: ContinuationWait[], now: number) {
   for (const w of waits) {
-    if (BOUNDED.includes(w.kind)) {
-      const until = w.until ? Date.parse(w.until) : NaN;
-      if (!(until > now && until - now <= MAX_BACKOFF_MS)) refuse("HELD", `A ${w.kind} wait needs a bounded backoff (until, at most seven days ahead).`);
-    }
-    const ok = w.kind === "attempt" ? derived.waits.some(d => d.kind === "attempt" && d.id === w.id) :
-      w.kind === "effect" ? status.effects.some(e => e.id === w.id && e.scopeId === derived.scopeId && e.attemptId !== null && LIVE_EFFECT.includes(e.state)) :
-      w.kind === "hold" ? derived.waits.some(d => d.kind === "hold" && d.id === w.id) :
-      w.kind === "decision" ? plan.definition.nodes.some(n => n.id === w.id && n.kind === "decision" && decisionOwner(plan, n) === "captain" && !plan.nodes[n.id]?.answer) :
-      w.kind === "dependency" ? plan.definition.nodes.some(n => !plan.nodes[w.id] && n.after.some(e => e.node === w.id &&
-        !dependenciesMet({ ...n, after: [e] }, status.plans.map(p => p.plan)))) : true;
-    if (!ok) refuse("HELD", w.kind === "decision" ? `A routine continuation stays with its owner; ${w.id} is not an open captain-authority decision.` :
-      `The ${w.kind} wait ${w.id} does not name a current, unresolved fact of this goal.`);
+    const problem = waitProblem(status, derived.scopeId, derived.waits, plan, w, now, true);
+    if (problem) refuse("HELD", problem);
   }
-  // Ready work must actually be blocked. Live work elsewhere or another (captain) decision does not
-  // block a step whose prerequisites are already met.
-  if (derived.nextNodes.length && !waits.some(w => ["capacity", "hold", "prerequisite"].includes(w.kind)))
-    refuse("HELD", "Ready work stays due unless a capacity, hold or prerequisite wait blocks it.");
+  if (!readyWorkBlocked(derived.nextNodes, waits)) refuse("HELD", "Ready work stays due unless a capacity, hold or prerequisite wait blocks it.");
 }
+/** Ready work must actually be blocked. Live work elsewhere or a captain decision does not block a step whose prerequisites are met. */
+const readyWorkBlocked = (nextNodes: readonly string[], waits: readonly ContinuationWait[]) =>
+  !nextNodes.length || waits.some(w => ["capacity", "hold", "prerequisite"].includes(w.kind));
 /** The owner's durable result for one input generation. Planning and ready work are discharged only by
  * committing them; a recorded wait/block must be concrete and bounded; completion must be evidenced.
  */
