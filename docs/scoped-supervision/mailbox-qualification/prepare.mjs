@@ -4,12 +4,16 @@ import {join,resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import assert from 'node:assert/strict';
+import {convertPathToPattern} from 'tinyglobby';
 import {literalCallback} from '../observer-admission/adapters.mjs';
 import {retainSetup} from '../observer-wiring/selected.mjs';
 import {BASE,SELECTION,sha,fixedConfiguration} from './contract.mjs';
 import {saveNew} from './io.mjs';
 // Imports emitted as code need the same freeze as ordinary module imports.
 export const EMITTED_RUNTIME_IMPORTS=Object.freeze({client:'docs/scoped-supervision/mailbox-qualification/worker.mjs',adapters:'docs/scoped-supervision/observer-admission/adapters.mjs',retention:'docs/scoped-supervision/observer-wiring/client.mjs'});
+// Pure config emitter permits discovery-only fixtures without creating a runtime case.
+export function renderMailboxConfiguration(files,setup){return `import {defineConfig} from 'vitest/config';
+export default defineConfig({test:{include:${JSON.stringify(files.map(f=>convertPathToPattern(f.path)))},exclude:[],setupFiles:[${JSON.stringify(setup)}],maxWorkers:2,isolate:true,watch:false,pool:'forks',fileParallelism:true,testTimeout:5000,retry:0,passWithNoTests:false,allowOnly:false,environment:'node',coverage:{enabled:false}}});\n`;}
 export function renderMailbox(config,sources,pins){
  fixedConfiguration(config);const root=config.repositoryRoot,directory=config.directory;
  const url=path=>pathToFileURL(resolve(root,path)).href;
@@ -51,8 +55,7 @@ prepareWorkerSetup(selected);await import(${JSON.stringify(pathToFileURL(retaine
  const retained=retainSetup(sources['test/setup.ts']),line=retained.indexOf('\n');
  assert.match(retained.slice(0,line),/^import \{ retainDiagnosticHome \} from /);
  generated[retainedSetup]=`import {retainDiagnosticHome} from ${JSON.stringify(modules.retention)};\n`+retained.slice(line+1);
- generated[configPath]=`import {defineConfig} from 'vitest/config';
-export default defineConfig({test:{include:${JSON.stringify(files.map(f=>f.path))},exclude:[],setupFiles:[${JSON.stringify(setup)}],maxWorkers:2,isolate:true,watch:false,pool:'forks',fileParallelism:true,testTimeout:5000,retry:0,passWithNoTests:false,allowOnly:false,environment:'node',coverage:{enabled:false}}});\n`;
+ generated[configPath]=renderMailboxConfiguration(files,setup);
  const artifacts=Object.entries(generated).filter(([path])=>!path.endsWith('.jsonl')).map(([path,text])=>({path,sha256:sha(Buffer.from(text))}));
  return{format:'firstmate.s02-mailbox-selection/1',caseId:config.caseId,nonce:config.nonce,pinsSha256:config.pinsSha256,files,slots,artifacts,config:configPath,report:join(directory,'vitest-results.json'),generated};
 }

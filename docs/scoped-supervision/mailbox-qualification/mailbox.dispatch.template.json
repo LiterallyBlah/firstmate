@@ -3,6 +3,6 @@
   "executeOneMailbox": true,
   "caseId": "b807adc9-87fb-46a2-8c1a-c88208531ec3",
   "nonce": "4ddd694a-f73f-4f03-8b02-2fb839eedde5",
-  "pinsSha256": "43a124694efe22dc2e0146c0eb863fbbb74f4505c6954dd275b44fc1d7ec729d",
-  "controllerSha256": "3f9077a940b1cbf5f4d905baea34d99b96575c8a366436ffe9c98d28ce67a167"
+  "pinsSha256": "3b8fc323e9cbf25162154caa6d95aeb2ca01317f773279c7300c0dc52c6de3c3",
+  "controllerSha256": "9f71ead040b74b9970629459e3a609013d738e8855e344da6ce484f307073c87"
 }

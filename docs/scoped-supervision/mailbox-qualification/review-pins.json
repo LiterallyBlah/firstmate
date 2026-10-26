@@ -1,12 +1,13 @@
 {
   "format": "firstmate.s02-mailbox-review-sources/1",
-  "runtimePinsSha256": "43a124694efe22dc2e0146c0eb863fbbb74f4505c6954dd275b44fc1d7ec729d",
+  "runtimePinsSha256": "3b8fc323e9cbf25162154caa6d95aeb2ca01317f773279c7300c0dc52c6de3c3",
   "comparisonFiles": [
     "docs/scoped-supervision/owner-capability/root.mjs",
     "docs/scoped-supervision/owner-capability/capture.mjs"
   ],
   "files": {
     "docs/scoped-supervision/mailbox-qualification/adapter.controls.mjs": "45033692733b98c4834f75988bbbba108bf97b52bcdc6caf3ddc733fe37c80df",
+    "docs/scoped-supervision/mailbox-qualification/discovery.controls.mjs": "c84609d3f044d18d817e7406c1f8a1d87c3ae0e2aacd12cf33a30f91d0839acd",
     "docs/scoped-supervision/owner-capability/member-input.mjs": "d390443907f312491b4e186aa150064bd80c2e2d20d7f73fd794afe20e019c3b",
     "docs/scoped-supervision/owner-capability/root-gate-input.mjs": "8eae1e94f23619133789613cf9bb3c3a362a195af62303a1afd8818f18f53c5f",
     "docs/scoped-supervision/owner-capability/root.mjs": "9fc52a21eeee7f311cda8a55214cfe08c494532a4b703da9fbf844df7f3ba727"

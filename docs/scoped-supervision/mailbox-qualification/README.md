@@ -3,25 +3,31 @@
 Source-only assignment `fm-supervision-architecture/fm-ss-s02-triage`, attempt
 `8f9b966c-f01d-4564-92d7-624bbd5037be`, based on accepted
 `aa8db567714b38542ee6ef18a2f9f31e8cbcc5b0`. This implements the four joins in
-`data/fm-ss-s02-triage/post-member-report.md`. It has not run a qualification.
+`data/fm-ss-s02-triage/post-member-report.md`. The first actual execution at
+`4e98fe785a10a07ee2563b940c071d073f4dc878` found zero tests and entered neither
+callback. Its failed receipt and four-member physical closure are retained;
+full product qualification remains false.
 
-The one new case is `mailbox-actual-1`, proposed case
+The consumed case is `mailbox-actual-1`, case
 `b807adc9-87fb-46a2-8c1a-c88208531ec3`, nonce
-`4ddd694a-f73f-4f03-8b02-2fb839eedde5`. The active dispatch and case directory
-remain absent. Independent exact-source review and a separately admitted single
-execution must precede the command below. Source acceptance does not consume it.
+`4ddd694a-f73f-4f03-8b02-2fb839eedde5`. Its active dispatch, reservation and case
+directory remain unchanged. The command below identifies that historical fixed
+entry; it is **held and cannot be invoked again for this consumed case**.
 
 ```powershell
 & 'C:\Program Files\nodejs\node.exe' 'C:\Users\micha\.paseo\worktrees\23z5sbxl\fm-ss-s02\docs\scoped-supervision\mailbox-qualification\controller.mjs'
 ```
 
-No arguments, overrides, retries, reset or second case are supported. Activation
-would exclusively copy `mailbox.dispatch.template.json` to
-`.local/s02-product-qualification/mailbox-actual-1.dispatch.json` only after fresh
-source/image/absence checks and a named dispatch. Do not do this during source review.
+No arguments, overrides, retries, reset or second case are supported. Do not copy
+the refreshed inactive `mailbox.dispatch.template.json` over the consumed
+`.local/s02-product-qualification/mailbox-actual-1.dispatch.json`. This source
+correction creates no new case, dispatch, reservation or execution authority.
+Another execution requires separately prepared/reviewed source and a newly named,
+accounted admission; the existing identifiers must never be reused.
 The controller reads that exact object before creating the case or any target.
 `source-pins.json` binds runtime modules, original test/fixture imports, setup,
-lockfile and installed Vitest 5.0.3 sources. The controller pins its exact digest;
+lockfile, installed Vitest 5.0.3 sources and the actually resolved tinyglobby,
+fdir and picomatch bytes. The controller pins its exact digest;
 the inactive dispatch pins the controller. The helper repeats those checks and
 reserves `native.reserved` exclusively before invoking the accepted native entry.
 Local files and UUIDs are typed-source/behavioral guards, not authenticated IPC.
@@ -31,6 +37,19 @@ closure, including the actual retention client and its unsupported-runtime modul
 `review-pins.json` separately binds control-only data factories and byte comparisons
 so the small exported source packet can replay the offline controls without
 supplementing it from another checkout. It grants no runtime support.
+
+R02-MD1 changes only emitted `test.include` to
+`files.map(f => convertPathToPattern(f.path))` before JSON serialization, using
+tinyglobby's public converter. Filesystem/capsule paths, callback bodies and all
+other config values are unchanged. `glob-runtime-pins.json` records the actual
+resolver routes and 14 package/code files. The offline discovery control parses
+the emitted include and uses that pinned glob implementation/options, without
+evaluating any config or test. It proves parent 0 / corrected exactly 2 for
+plain paths and the independently reviewed directory
+`discovery-fixture [literal] (round) {braces}`, with decoys excluded. A separate
+retained control found the converter does not support a directory basename
+starting with `[` in this Windows input form; no general path-support claim or
+separator workaround is made. The fixed consumed path has no metacharacters.
 
 `WindowsJobOwner.cs`, `WindowsRootGate.cs`, `WindowsMemberNormal.cs` and all old
 contracts/readers are unchanged. `root.mjs` and its relative `capture.mjs` here are
@@ -108,12 +127,17 @@ Finite offline controls (no real Vitest, helper, child, controller or native run
 
 ```powershell
 node docs/scoped-supervision/mailbox-qualification/adapter.controls.mjs .local/mailbox-adapter-8f9b966c/offline.json
+node docs/scoped-supervision/mailbox-qualification/discovery.controls.mjs <fresh-offline-artifact-directory>
 ```
 
 The optional third control argument can locate an immutable copy of the accepted
 saved member case; its exact raw helper hash is checked. Controls label fabricated
 data as in-memory, replay the actual accepted receipt without changing it, mock
 the public lifecycle and test refusal/error paths. These are not qualification.
+The adapter controls require the actual case/dispatch to be absent in their
+source root. Since that case is now consumed here, replay them in the sealed
+small source export, passing its copied accepted member case as the third argument.
+Neither control invokes the displayed historical controller command.
 Syntax-only Node checks and PowerShell AST parsing may inspect the source without
 invoking entries. No new native compilation is needed: its bytes are unchanged.
 

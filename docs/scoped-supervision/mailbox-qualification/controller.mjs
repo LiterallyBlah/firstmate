@@ -10,7 +10,7 @@ import {CASE,NONCE,BASE,REPO,SOURCE,NATIVE_SHA,NODE_SHA,PS_SHA,CAPS,sha,location
 import {readBounded,decode,saveNew,errorValue} from './io.mjs';
 import {materializeMailbox} from './prepare.mjs';
 import {interpretMailbox} from './product.mjs';
-const PINS_SHA='43a124694efe22dc2e0146c0eb863fbbb74f4505c6954dd275b44fc1d7ec729d'; // frozen source manifest; populated before source review
+const PINS_SHA='3b8fc323e9cbf25162154caa6d95aeb2ca01317f773279c7300c0dc52c6de3c3'; // frozen source manifest; populated before source review
 async function main(){
  assert.equal(process.argv.length,2,'No overrides or second case');assert.equal(process.platform,'win32');assert.equal(process.arch,'x64');assert.equal(process.version,'v24.18.0');
  assert.equal(resolve('.'),resolve(REPO));const powershell='C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe';
