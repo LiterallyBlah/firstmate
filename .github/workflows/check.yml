@@ -42,7 +42,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - run: npm test -- --reporter=default --reporter=json --outputFile=.local/s01/ci-tests.json
+      # Hosted Windows runners pause for ~10–14 s at random (file-level excess in runs 40336737222, 40363434701), so
+      # a test that normally takes 0.2–4 s hits Vitest's 5 s default: 9 of 101 Windows test steps, Ubuntu 0. On
+      # Windows only, the default becomes 20 s (slowest default-timeout test ~4 s + the largest pause). Explicit
+      # per-test/per-file timeouts and every assertion are unchanged; Ubuntu keeps the 5 s default.
+      - run: npm test -- --reporter=default --reporter=json --outputFile=.local/s01/ci-tests.json ${{ matrix.os == 'windows-latest' && '--testTimeout=20000' || '' }}
         env:
           # Test setup must override an enabled journal on developer machines.
           FIRSTMATE_RECEIPT_JOURNAL: "1"
