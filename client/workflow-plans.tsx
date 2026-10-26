@@ -23,6 +23,7 @@ import { planSummary } from "./workflow-plan-list";
 import { planDecisionReady } from "../shared/plan-readiness";
 import { planReviewRequest } from "../shared/plan-decisions";
 import { DecisionTask } from "./decision-tasks";
+import { useScopeSnapshot } from "./scope-query";
 
 export const WORKFLOW_QUERY_KEY = ["firstmate", "workflow-plans"] as const;
 export function workflowRequestId() {
@@ -34,6 +35,7 @@ type PlansContext = {
   planFilter?: string | null; setPlanFilter?(id: string | null): void;
   taskRequest?: WorkflowTaskRequest | null; navigationNotice?: string | null;
   navigate?(request: WorkflowTaskRequest): void; finishNavigation?(problem?: string): void;
+  discussPlan?(id: string): void; canDiscussPlan?(id: string): boolean;
 };
 const Plans = createContext<PlansContext>({ loading: true, error: null, refresh() {}, open() {} });
 export function useWorkflowPlans() { return useContext(Plans); }
@@ -53,6 +55,13 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
   const gate = useRef(false), pending = useRef<{ id: string; serialized: string } | null>(null);
   const snapshot = query.data, plan = snapshot?.plans.find(p => p.definition.id === selected?.id);
   const fleet = useFleet(5, !!hostId), data = fleet.isPlaceholderData ? undefined : fleet.data;
+  const scopeRead = useScopeSnapshot(hostId ?? "local", data?.home ?? "");
+  const discussionScope = (id: string) => {
+    if (!scopeRead.data?.uiEnabled || !shell?.openScope) return undefined;
+    const matching = scopeRead.data.scopes.filter(s => s.kind === "plan" && s.planId === id);
+    return matching.length === 1 ? matching[0] : undefined;
+  };
+  const discussPlan = (id: string) => { const target = discussionScope(id); if (target && scopeRead.data) { setSelected(null); shell?.openScope?.(target.id, scopeRead.data.homeId); } };
   const scope = planSessionKey(hostId, data?.home, data?.mate?.id, snapshot?.homeId);
   const planFilter = usePlanBrowse(scope, state => state.filter);
   const [taskRequest, setTaskRequest] = useState(() => routeWorkflowTask(params));
@@ -77,6 +86,7 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
   }
   return <Plans.Provider value={{ ...(snapshot ? { snapshot } : {}), loading: query.isPending, error: query.error ? errorText(query.error) : null, refresh: () => { void query.refetch(); }, open,
     scope, fleet: data, fleetOffline: !!fleet.error, canNavigate: !!scope && (!view || !!shell?.openTask), planFilter,
+    discussPlan, canDiscussPlan: id => !!discussionScope(id),
     setPlanFilter: filter => updatePlanBrowse(scope, { filter }), taskRequest, navigationNotice: navigationNotice?.scope === scope ? navigationNotice.text : null,
     finishNavigation: problem => { setTaskRequest(null); setNavigationNotice(problem ? { scope, text: problem } : null); },
     navigate: request => {
@@ -90,19 +100,20 @@ export function WorkflowSurface({ theme, children, hostId, view, shell, params =
       <Modal.Content>
         {snapshot && plan && selected ? <PlanDialog key={selected.hash} theme={theme} plan={plan} subjectHash={selected.hash} homeId={snapshot.homeId}
           stale={!!query.error || snapshot.subjects[selected.id] !== selected.hash} onRefresh={() => open(selected.id)} busy={busy} error={error} onAct={submit}
-          plans={snapshot.plans} models={models.data?.targets ?? []} hosts={hosts.data?.hosts ?? []} /> :
+          plans={snapshot.plans} models={models.data?.targets ?? []} hosts={hosts.data?.hosts ?? []} onDiscuss={discussionScope(plan.definition.id) ? () => discussPlan(plan.definition.id) : undefined} /> :
           <Text style={{ color: theme.colors.foregroundMuted }}>This plan could not be refreshed. No action has been recorded.</Text>}
       </Modal.Content>
     </Modal>
   </Plans.Provider>;
 }
 
-export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct, onRefresh, models = [], hosts = [], plans = [plan] }: {
+export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct, onRefresh, models = [], hosts = [], plans = [plan], onDiscuss }: {
   theme: PluginTheme; plan: WorkflowPlan; subjectHash: string; homeId: string; stale: boolean; busy: boolean; error: string | null;
   onAct(command: PlanCaptainCommand): Promise<void>; onRefresh(): void;
   models?: readonly { provider: string; label: string; modes: readonly { id: string; label: string }[]; thinking: readonly { id: string; label: string }[] }[];
   hosts?: readonly { serverId: string; label: string }[];
   plans?: readonly WorkflowPlan[];
+  onDiscuss?: (() => void) | undefined;
 }) {
   const [mode, setMode] = useState<"changes" | "edit" | "transfer" | null>(null), [text, setText] = useState("");
   const [edits, setEdits] = useState<NonNullable<PlanCaptainCommand["edits"]>>([]);
@@ -111,6 +122,7 @@ export function PlanDialog({ theme, plan, subjectHash, stale, busy, error, onAct
   const missingMode = edits.some(e => e.kind === "model" && !models.find(m => m.provider === e.agent.provider)?.modes.some(m => m.id === e.agent.modeId));
   const send = (action: PlanCaptainCommand["action"], extra: Partial<PlanCaptainCommand> = {}) => onAct({ op: "captain", plan: plan.definition.id, revision: plan.revision, subjectHash, action, text, ...extra });
   return <View testID="workflow-plan-dialog" style={{ gap: 16 }}>
+    {onDiscuss ? <Button theme={theme} label="Discuss with this plan's owner" onPress={onDiscuss} /> : null}
     <Text style={{ color: colors.foregroundMuted }}>Revision {plan.revision} · {planFinished(plan) ? "Completed" : plan.status === "review" ? "Awaiting approval" : plan.status === "active" ? planOwner(plan) === "firstmate" ? "Delegated work" : (plan.posture === "sail" ? "Sailing" : "Approved") : plan.status === "held" ? "On hold" : "Declined"}</Text>
     <Text style={{ color: colors.foreground, fontWeight: "600" }}>Plan owner: {planOwner(plan) === "firstmate" ? "FirstMate" : "Captain"}</Text>
     <Text style={{ color: colors.foregroundMuted }}>{planOwner(plan) === "firstmate" ? "FirstMate can make routine stage and technical choices within this plan." : "You decide routine plan stages and choices."} Captain-only decisions, holds, release, installation, discard, access and external effects still need your decision.</Text>

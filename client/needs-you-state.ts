@@ -49,8 +49,10 @@ export function indicatorState(
       ? null
       : (snapshot?.actionCount ?? null);
   const partialPlans = recordedCount === null && (snapshot?.planNow?.length ?? 0) > 0;
-  const unavailablePlans = !!snapshot?.planProblems?.length;
-  const count = partialPlans ? snapshot!.planNow!.length : unavailablePlans && recordedCount === 0 ? null : recordedCount;
+  const partialScoped = recordedCount === null ? (snapshot?.scopedDecisions?.filter(r => r.ready).length ?? 0) + new Set(snapshot?.scopedHolds?.map(h => h.planId)).size : 0;
+  const partialCount = partialPlans || partialScoped > 0;
+  const unavailablePlans = !!snapshot?.planProblems?.length || snapshot?.scopedComplete === false;
+  const count = partialCount ? (partialPlans ? snapshot!.planNow!.length : 0) + partialScoped : unavailablePlans && recordedCount === 0 ? null : recordedCount;
   const fresh = !offline && snapshot?.freshness.status === "fresh" && !unavailablePlans;
   const newCount = snapshot?.newCount ?? 0;
   const status = offline ? "stale" : (snapshot?.freshness.status ?? "unknown");
@@ -94,10 +96,10 @@ export function indicatorState(
         ? "Can't read decisions"
         : count === 0 && fresh
           ? "Nothing needs you"
-          : `Needs you · ${count}${unavailablePlans ? "+ · some plans unavailable" : partialPlans ? "+ · plans only" : ""}${!fresh && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}`,
-    badge: count === null ? "!" : `${count}${partialPlans || unavailablePlans ? "+" : ""}`,
+          : `Needs you · ${count}${unavailablePlans ? "+ · some plans unavailable" : partialScoped ? "+ · known actions only" : partialPlans ? "+ · plans only" : ""}${!fresh && snapshot?.freshness.asOf != null ? ` · as of ${decisionClock(snapshot.freshness.asOf)}` : ""}`,
+    badge: count === null ? "!" : `${count}${partialCount || unavailablePlans ? "+" : ""}`,
     extra,
-    accessibilityLabel: `Needs you, ${count === null ? "count unavailable" : unavailablePlans ? `at least ${count} items; some plans unavailable` : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} items`}${extra ? `, ${extra}` : ""}${!fresh && count !== null && snapshot?.freshness.asOf != null ? `, as of ${decisionClock(snapshot.freshness.asOf)}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
+    accessibilityLabel: `Needs you, ${count === null ? "count unavailable" : unavailablePlans ? `at least ${count} items; some plans unavailable` : partialScoped ? `at least ${count} known actions; other decisions unavailable` : partialPlans ? `at least ${count} plan actions; other decisions unavailable` : `${count} items`}${extra ? `, ${extra}` : ""}${!fresh && count !== null && snapshot?.freshness.asOf != null ? `, as of ${decisionClock(snapshot.freshness.asOf)}` : ""}. ${explanation}${explanation ? " " : ""}Open decisions`,
   };
 }
 
@@ -108,6 +110,7 @@ export function decisionProblems(
   return [
     ...new Set([
       ...(snapshot?.planProblems ?? []),
+      ...(snapshot?.scopedProblems ?? []),
       ...(offline
         ? ["Could not refresh decision data. Check the host connection."]
         : []),
@@ -186,10 +189,20 @@ export function mergeDecisionSnapshot(
   next: NeedsYouSnapshot,
 ): NeedsYouSnapshot {
   if (!previous) return next;
-  if (next.freshness.checkedAt < previous.freshness.checkedAt) return previous;
-  if (next.homeId === previous.homeId && next.version < previous.version)
-    return { ...previous, freshness: next.freshness };
-  return next;
+  const base = next.freshness.checkedAt < previous.freshness.checkedAt ? previous :
+    next.homeId === previous.homeId && next.version < previous.version ? { ...previous, freshness: next.freshness } : next;
+  if (next.homeId !== previous.homeId || (previous.scopedSequence === undefined && next.scopedSequence === undefined)) return base;
+  // The two journals have independent versions. A slower backlog read cannot regress an
+  // already observed scoped answer, and a newer scope read cannot resurrect old backlog rows.
+  const scoped = (next.scopedSequence ?? -1) >= (previous.scopedSequence ?? -1) ? next : previous;
+  const contribution = (s: NeedsYouSnapshot) => (s.scopedDecisions?.filter(r => r.ready).length ?? 0) + new Set(s.scopedHolds?.map(h => h.planId)).size;
+  const complete = scoped.scopedComplete === true && next.scopedComplete !== false;
+  return { ...base, scopedDecisions: scoped.scopedDecisions, scopedSequence: scoped.scopedSequence, scopedHolds: scoped.scopedHolds,
+    scopedComplete: complete, scopedAnswersEnabled: scoped.scopedAnswersEnabled === true && next.scopedAnswersEnabled !== false,
+    scopedProblems: complete ? scoped.scopedProblems : [...new Set([...(scoped.scopedProblems ?? []), ...(next.scopedProblems ?? []), "Scoped decisions could not be confirmed; counts are a lower bound."])],
+    scopedPendingAnswerCount: scoped.scopedPendingAnswerCount,
+    actionCount: base.actionCount === null ? null : base.actionCount - contribution(base) + contribution(scoped),
+    pendingAnswerCount: base.pendingAnswerCount === null ? null : base.pendingAnswerCount - (base.scopedPendingAnswerCount ?? 0) + (scoped.scopedPendingAnswerCount ?? 0) };
 }
 export function tomorrowNine(now: number) {
   const date = new Date(now);

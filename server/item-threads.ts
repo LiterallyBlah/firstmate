@@ -4,7 +4,7 @@ import type { z } from "zod";
 import type { FleetCard } from "../shared/fleet";
 import { MAX_EDITABLE_BYTES } from "../shared/files";
 import { itemTagKey } from "../shared/item-tags";
-import { ItemThreadSchema, type ItemThread, type sendItemThread } from "../shared/item-threads";
+import { ItemThreadSchema, type ItemThread, type ThreadMessage, type sendItemThread } from "../shared/item-threads";
 import { readTextFile, replaceTextIfUnchanged, writeTextFile } from "./files";
 import { serialized } from "./serialize";
 import { message, TEMPLATES } from "./templates";
@@ -39,6 +39,46 @@ async function replies(home: string, thread: ItemThread): Promise<ItemThread> {
 /** Opening is read-only: no model turn, record, worktree or dispatch until Send. */
 export async function readThread(home: string, key: string): Promise<ItemThread> {
   return replies(home, (await load(home, key)).thread);
+}
+
+/** The same confined, versioned thread transport for scope discussions. The message is retained
+ * before a native call, and a missing RPC/send reply never authorizes another delivery. */
+export async function sendRecordedDiscussion(home: string, key: string, title: string,
+  entry: Pick<ThreadMessage, "id" | "text" | "route" | "requestHash">, deliver: (beforeSend: (agentId: string) => Promise<void>) => Promise<void>): Promise<ItemThread> {
+  return serialized(`${home}:${threadPath(key)}:send`, async () => {
+    let { text: previous, thread } = await load(home, key);
+    const existing = thread.messages.find(m => m.id === entry.id);
+    if (existing) {
+      if (existing.text !== entry.text || existing.requestHash !== entry.requestHash || JSON.stringify(existing.route) !== JSON.stringify(entry.route)) throw new Error("This discussion message id was already used with another target or body.");
+      return replies(home, thread);
+    }
+    if (thread.messages.length >= 200) throw new Error("This discussion is full. Open its existing conversation.");
+    const visible = await replies(home, thread);
+    if (visible.messages.some(m => m.delivery === "uncertain" && m.reply === null)) throw new Error("Reconcile the uncertain message before sending another to this conversation.");
+    if (entry.route?.replyTo && !thread.messages.some(m => m.id === entry.route!.replyTo)) throw new Error("The reply reference is not in this recipient's conversation.");
+    async function save() {
+      const content = `${JSON.stringify(thread, null, 2)}\n`;
+      if (Buffer.byteLength(content) > MAX_EDITABLE_BYTES) throw new Error("This discussion is full. Open its existing conversation.");
+      if (previous === null) await writeTextFile(home, { path: threadPath(key), content, expectedModifiedMs: null, force: false });
+      else await replaceTextIfUnchanged(home, threadPath(key), previous, content);
+      previous = content;
+    }
+    let reserved = false;
+    try {
+      await deliver(async agentId => {
+        if (reserved) throw new Error("A discussion message has one captured recipient.");
+        thread = { ...thread, title, messages: [...thread.messages, { ...entry, kind: "discuss", agentId, createdAt: new Date().toISOString(), delivery: "uncertain", reply: null }] };
+        await save(); reserved = true;
+      });
+    } catch (error) {
+      if (!reserved) throw error;
+      return replies(home, thread);
+    }
+    if (!reserved) throw new Error("The sender did not reserve its captured recipient.");
+    thread.messages.at(-1)!.delivery = "sent";
+    await save();
+    return replies(home, thread);
+  });
 }
 
 type Deliver = (text: string, messageId: string, beforeSend: (agentId: string) => Promise<void>) => Promise<unknown>;

@@ -51,7 +51,7 @@ export class SupervisorSessions {
   }
 
   /** Reserve one supervisor for a dormant scope: a prepared binding with a selected, unprompted identity. */
-  prepare(input: { requestId: string; scopeId: string; scopeVersion: number; profile: AgentProfile; opening: string }, actor: SupervisionActor) {
+  prepare(input: { requestId: string; scopeId: string; scopeVersion: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work" }, actor: SupervisionActor) {
     return this.reserve(input, actor, "activate", null);
   }
   /** Manual replacement only after the exact old supervisor is shown stopped; a lease or timeout proves nothing. */
@@ -67,7 +67,7 @@ export class SupervisorSessions {
     if (old?.id !== binding.agentId || (!old.archivedAt && old.status !== "closed")) refuse("HELD", "The previous full-access supervisor is not shown stopped under its exact identity; no automatic takeover.");
     return this.reserve(input, actor, "replace", binding);
   }
-  private async reserve(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch?: number; profile: AgentProfile; opening: string },
+  private async reserve(input: { requestId: string; scopeId: string; scopeVersion: number; expectedEpoch?: number; profile: AgentProfile; opening: string; purpose?: "discussion" | "work" },
     actor: SupervisionActor, mode: "activate" | "replace", checked: SupervisionBinding | null) {
     this.enabled();
     const inputHash = digest({ supervisor: mode, input });
@@ -80,7 +80,7 @@ export class SupervisorSessions {
     if (profileBlob.id !== digest(profile)) refuse("CONFLICT", "Profile encoding mismatch.");
     return this.store.transactCommand(input.requestId, inputHash, actor, async status => {
       const scope = status.scopes.find(s => s.id === input.scopeId), old = status.bindings.find(b => b.scopeId === input.scopeId);
-      if (!scope || scope.kind !== "plan" || scope.mode !== "scoped") refuse("UNKNOWN_OWNER", "Exact scoped plan owner required.");
+      if (!scope || !["plan", "project"].includes(scope.kind) || scope.mode !== "scoped") refuse("UNKNOWN_OWNER", "Exact scoped plan or project discussion owner required.");
       if (scope.version !== input.scopeVersion) refuse("STALE", "Scope version changed.");
       if (mode === "activate" ? scope.state !== "dormant" || old : scope.state !== "transferring" || !old || old.epoch !== input.expectedEpoch || !["suspect", "retired"].includes(old.state))
         refuse("HELD", mode === "activate" ? "Only a dormant scope without a binding is activated here." : "Replacement needs the held previous epoch.");
@@ -96,7 +96,8 @@ export class SupervisorSessions {
       const agentId = stableId("agent", ids.create), intent = supervisorWorkspaceIntent(scope.id, epoch, ids.workspace);
       // Explicit intent; the verified workspace ID is unknown (null) until its own effect succeeds and verify binds it.
       const binding: SupervisionBinding = { scopeId: scope.id, epoch, hostId: "local", agentId, workspaceId: null, workspaceIntent: intent.key,
-        profileDigest: profileBlob.id, state: "prepared", checkpointHash: opening.id, acknowledgedSeq: old?.acknowledgedSeq ?? 0, heartbeatDue: null };
+        profileDigest: profileBlob.id, state: "prepared", checkpointHash: opening.id, acknowledgedSeq: old?.acknowledgedSeq ?? 0, heartbeatDue: null,
+        purpose: old?.purpose === "discussion" || input.purpose === "discussion" ? "discussion" : "work" };
       const base = { requestId: input.requestId, requestHash: digest(input), scopeId: scope.id, epoch, attemptId: null, planRevision: null,
         subjectHash: digest({ scope: scope.id, epoch }), policyVector: [], evidenceVector: [], approvalId: null, state: "reserved" as const, receiptRef: null, version: 1 };
       const effects: SupervisionEffect[] = [
@@ -177,7 +178,8 @@ export class SupervisorSessions {
           attemptId: null, operation: "agent.send", planRevision: null, subjectHash: digest({ turn: input.causation }), policyVector: [],
           evidenceVector: [], approvalId: null, resourceIds: [`turn:${binding.agentId}`], state: "reserved", receiverKey: sendMessageId(id), receiptRef: null, version: 1,
           payloadDigest: blob.id };
-        const mutations: SupervisionMutation[] = [...(extend?.(status) ?? []), { kind: "effect", value: effect },
+        const mutations: SupervisionMutation[] = [...(extend?.(status) ?? []),
+          { kind: "binding", value: { ...binding, observation: { state: "unknown", at: new Date().toISOString() } } }, { kind: "effect", value: effect },
           ...(status.versions.some(v => v.kind === "blob" && v.id === blob.id) ? [] : [{ kind: "blob" as const, value: blob }])];
         return { expectedVersions: expectedFor(status, mutations), mutations, result: NO_RESULT };
       });

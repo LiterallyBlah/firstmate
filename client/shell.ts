@@ -18,6 +18,7 @@ export type FleetShell = {
   openHome(): void;
   openDecision(destination?: DecisionDestination, intent?: DecisionIntent): void;
   openTask?(request: WorkflowTaskRequest): void;
+  openScope?(scopeId: string, homeId: string): void;
 };
 
 /** An adopted agent outside the home must never lend its workspace to the launcher. */

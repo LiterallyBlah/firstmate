@@ -3,10 +3,11 @@
  * General and project conversations are never consulted or sent a routine result.
  */
 import type { PluginLifecycleRegistration } from "@getpaseo/plugin/server";
+import { randomUUID } from "node:crypto";
 import type { SupervisionActor, SupervisionEffect, SupervisionStatus } from "../shared/supervision";
 import type { InboxOffer } from "../shared/supervision-inbox";
 import { continuationAgenda, continuationInputVersion, deriveContinuation, livenessScan } from "./supervision-continuation";
-import { effectLogicalKey, refuse, stableId, type SupervisionGateway } from "./supervision-effects";
+import { effectLogicalKey, expectedFor, refuse, stableId, type SupervisionGateway } from "./supervision-effects";
 import type { SupervisionEvents } from "./supervision-events";
 import type { SupervisionInbox } from "./supervision-inbox";
 import { pendingPriorOffers } from "./supervision-inbox";
@@ -45,9 +46,14 @@ export class SupervisionLifecycle {
         ({ scopeId, state, reason, effectId, offerId });
       const scope = s.scopes.find(v => v.id === scopeId), binding = s.bindings.find(v => v.scopeId === scopeId);
       const backend = s.backends.find(b => b.ownerScopeId === scopeId && b.backend === "scoped");
-      if (s.freshness !== "current" || !backend || backend.state !== "active" || scope?.state !== "active" || binding?.state !== "active")
+      if (s.freshness !== "current" || !scope || !["plan", "project"].includes(scope.kind) ||
+        (scope.kind === "plan" && (!backend || backend.state !== "active")) || scope.state !== "active" || binding?.state !== "active")
         return result("held", "Owner/backend is unavailable or paused; obligations and reservations remain.");
-      const goal = deriveContinuation(s, scopeId, backend.planId);
+      // Project conversations consume only their own relevant mailbox/outbox. No portfolio scan,
+      // implicit plan, or model summary of routine plan outcomes is introduced here.
+      const planGoal = scope.kind === "plan" ? deriveContinuation(s, scopeId, backend!.planId) : null;
+      const goal = planGoal ? { ...planGoal, due: planGoal.due && binding.purpose !== "discussion" } :
+        { disposition: "waiting", due: false, reason: "No changed project mailbox input.", planId: "", inputVersion: "", nextNodes: [], wakeKey: "" };
       const outboxes = s.outbox.filter(o => o.ownerScopeId === scopeId && o.state === "pending" &&
         s.commands.some(c => c.id === o.causationId && c.actor.kind !== "agent"));
       // Wakes carry bounded identity hints. All pending outboxes remain pageable through scope read;
@@ -85,6 +91,20 @@ export class SupervisionLifecycle {
       let observed;
       try { observed = await observeWithin(this.gateway.receiver, `agent:${binding.agentId}`, () => this.gateway.receiver.findAgent(binding.agentId), this.options.observationTimeoutMs); }
       catch { return result("held", "This owner's observation is unavailable; identity and obligations remain unknown, not absent."); }
+      // Optional projection metadata, excluded from the continuation's semantic inputs. A status
+      // read never performs this lookup and this bookkeeping cannot wake itself.
+      if (observed?.id === binding.agentId) {
+        const observedState = observed.archivedAt ? "unknown" as const : observed.status === "idle" ? "dormant" as const : observed.status === "running" || observed.status === "initializing" ? "awake" as const : "unknown" as const;
+        const projectionState = await this.store.read(), current = projectionState.bindings.find(b => b.scopeId === scopeId);
+        if (current?.epoch === binding.epoch && current.state === binding.state &&
+          (!current.observation || Date.now() - Date.parse(current.observation.at) >= 60000 ||
+            current.observation.state !== observedState)) {
+          const mutations = [{ kind: "binding" as const, value: { ...current, observation: {
+            state: observedState,
+            at: new Date().toISOString() } } }];
+          await this.store.transact(expectedFor(projectionState, mutations), randomUUID(), mutations);
+        }
+      }
       if (observed?.id !== binding.agentId || observed.archivedAt || observed.status !== "idle" || observed.pendingPermissions)
         return result("held", "Wait for this exact owner to be idle; General's turn is irrelevant.");
       if (!offer && s.inbox.assignments.some(a => a.scopeId === scopeId && a.state === "assigned")) {
@@ -106,9 +126,10 @@ export class SupervisionLifecycle {
         return this.deliver(effectId, page.id);
       }
       if (!goal.due && !outboxes.length) return result("idle", goal.reason);
+      if (!planGoal) return result("held", "Project plan-command outboxes have no qualified handler yet; retain the input without a model summary or General fallback.");
       const cause = `continuation:${goal.wakeKey}`, prior = sends.find(e => e.logicalKey === turnKey(scopeId, binding.epoch, cause));
       if (prior) return result("awaiting-owner", "This semantic generation was already offered; an unchanged retry is not progress. The unfinished obligation remains due.", prior.id);
-      const text = await message(TEMPLATES.scopeContinuation, { contextJson: JSON.stringify({ kind: "unfinished-goal", scopeId, epoch: binding.epoch,
+      const text = await message(binding.purpose === "discussion" ? TEMPLATES.scopeFacts : TEMPLATES.scopeContinuation, { contextJson: JSON.stringify({ kind: binding.purpose === "discussion" ? "discussion-outbox" : "unfinished-goal", scopeId, epoch: binding.epoch,
         planId: goal.planId, inputVersion: goal.inputVersion, nextNodes: goal.nextNodes, disposition: goal.disposition, reason: goal.reason, ...outboxContext }).replace(/</g, "\\u003c") });
       if (Buffer.byteLength(text) > INBOX_LIMITS.pageBytes) refuse("HELD", "Owner context exceeds its bounded page; the obligation remains due.");
       const effectId = await this.sessions.reserveTurnWith({ requestId: stableId("continuation-turn", cause), scopeId, epoch: binding.epoch, causation: cause, text }, ACTOR, current => {
@@ -142,7 +163,9 @@ export class SupervisionLifecycle {
     this.enabled();
     const before = await this.store.read();
     const selected = before.effects.filter(e => ["dispatching", "uncertain"].includes(e.state)).slice(0, 32);
-    const scopeIds = [...new Set([...continuationAgenda(before).map(c => c.scopeId), ...selected.map(e => e.scopeId)])];
+    const projects = before.scopes.filter(s => s.kind === "project" && s.state === "active" &&
+      (before.inbox.assignments.some(a => a.scopeId === s.id && !terminal(a)) || before.outbox.some(o => o.ownerScopeId === s.id && o.state === "pending"))).map(s => s.id);
+    const scopeIds = [...new Set([...continuationAgenda(before).map(c => c.scopeId), ...selected.map(e => e.scopeId), ...projects])];
     const scopes = await Promise.all(scopeIds.map(async scopeId => {
       let effects: PromiseSettledResult<SupervisionEffect>[] = [], observations: Awaited<ReturnType<typeof livenessScan>> = [];
       let wake: PromiseSettledResult<ScopeWake>;

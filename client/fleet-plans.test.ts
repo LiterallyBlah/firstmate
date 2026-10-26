@@ -24,6 +24,7 @@ vi.mock("@getpaseo/plugin/client", () => ({
     if (contract.name === "firstmate.workflow.read") return state.snapshot;
     if (contract.name === "firstmate.mate.targets") return { targets: [] };
     if (contract.name === "firstmate.remotes.read") return { hosts: [] };
+    if (contract.name === "firstmate.scope.read") return { uiEnabled: false, executionEnabled: false, scopes: [], projects: [], homeId: "sample-home", sequence: 0, freshness: "uninitialized", asOf: "2026-10-26T12:00:00Z", problems: [] };
     throw new Error(`Unexpected daemon action: ${contract.name}`);
   },
 }));
@@ -251,7 +252,7 @@ it.each([[390, "Show task"], [1440, "Show task"], [390, "Converse"], [1440, "Con
       expectUsable(renderer.root.findByType("TaskList" as never));
     }
     expect(state.fleet!.needsYou).toEqual(decisions); preserved();
-    expect(state.rpc.mock.calls.flat().every(name => ["firstmate.workflow.read", "firstmate.mate.targets", "firstmate.remotes.read"].includes(name))).toBe(true);
+    expect(state.rpc.mock.calls.flat().every(name => ["firstmate.workflow.read", "firstmate.mate.targets", "firstmate.remotes.read", "firstmate.scope.read"].includes(name))).toBe(true);
   },
 );
 

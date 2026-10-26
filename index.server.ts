@@ -30,6 +30,8 @@ import { ReportCache, loadFleet, readAgentTools } from "./server/fleet";
 import { SupervisionStore } from "./server/supervision-store";
 import { supervisionInboxStatus, hasScopedWorker } from "./server/supervision-status";
 import { readSupervisionInbox } from "./shared/supervision-rpc";
+import { registerScopeRpcs } from "./server/scope-rpc";
+import { withScopedNeedsYou } from "./server/needs-you-service";
 import { listDeckSettings, readDeckEngine, readDeckSetting } from "./server/deck-settings";
 import { listDeckSettings as listDeckSettingsRpc, loadDeckEngine, loadDeckSetting } from "./shared/deck-rpc";
 import { findFiles, listDirectory, readTextFile, requireHome, writeTextFile } from "./server/files";
@@ -133,7 +135,23 @@ export default function contribute(server: PluginServerContext) {
     home: readConfiguredDecisionHome,
     catalog: () => remotes.read(),
   });
-  registerNeedsYouRpc(server, decisions, async snapshot => withWorkflowNeeds(snapshot, resolveHome(await readFirstmateConfig())));
+  const readCombinedNeeds = async (given?: Awaited<ReturnType<typeof decisions.read>>) => {
+    const snapshot = given ?? await decisions.read();
+    const config = await readFirstmateConfig(), home = resolveHome(config);
+    const base = await withWorkflowNeeds(snapshot, home);
+    try {
+      const status = await new SupervisionStore(pluginDir(), home).read();
+      return status.scopes.length || status.problems.length ? withScopedNeedsYou(base, status) : base;
+    } catch {
+      return { ...base, scopedComplete: false, scopedProblems: ["Scoped decisions unavailable. Existing decisions remain available; the total is incomplete."] };
+    }
+  };
+  registerNeedsYouRpc(server, decisions, readCombinedNeeds);
+  // UI and execution stay separately disabled. Activation requires separately reviewed wiring.
+  registerScopeRpcs(server, { read: async () => {
+    const config = await readFirstmateConfig(), home = resolveHome(config);
+    return { home, generalId: config.mateAgentId || null, status: await new SupervisionStore(pluginDir(), home).read() };
+  }, readNeeds: () => readCombinedNeeds(), uiEnabled: false, executionEnabled: false });
   server.handle(readWorkflowPlans, async () => workflowSnapshot(resolveHome(await readFirstmateConfig())));
   server.handle(actOnWorkflowPlan, async ({ homeId, requestId, command }, { paseo }) => {
     await oneAtATime(async () => {

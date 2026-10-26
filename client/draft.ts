@@ -49,3 +49,5 @@ export function createDraftStore(root: object): DraftStore {
 }
 
 export const drafts = createDraftStore(globalThis);
+
+export { scopeDraftKey } from "../shared/scope-discussion";

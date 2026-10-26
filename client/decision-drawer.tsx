@@ -59,6 +59,7 @@ import { useKeyboardOverlap } from "./keyboard";
 import { errorText } from "./format";
 import { PlanNeeds, useWorkflowPlans, WORKFLOW_QUERY_KEY, workflowRequestId } from "./workflow-plans";
 import { DecisionTask } from "./decision-tasks";
+import { ScopedNeeds } from "./scoped-needs";
 
 const readableContent = { width: "100%" as const, maxWidth: 760, alignSelf: "center" as const };
 
@@ -549,6 +550,7 @@ export function DecisionDrawer({
           )}
           {!failure ? chrome : null}
           <PlanNeeds theme={theme} snapshot={snapshot} showReviews={false} />
+          {sameHome ? <ScopedNeeds snapshot={snapshot} theme={theme} compact={compact} offline={offline} /> : null}
           {group(
             "Answered · waiting for the first mate",
             snapshot?.requests.filter(
@@ -622,9 +624,10 @@ export function DecisionDrawer({
         <ScrollView contentContainerStyle={{ ...readableContent, padding: 16, gap: 16 }}>
           {chrome}
           <PlanNeeds theme={theme} snapshot={snapshot} showReviews={false} />
+          {sameHome ? <ScopedNeeds snapshot={snapshot} theme={theme} compact={compact} offline={offline} /> : null}
           {sameHome && snapshot?.freshness.status === "fresh" && !offline &&
             (destination.requestId === "next" || destination.requestId === "empty") &&
-            (!!snapshot.planNow?.length || !!snapshot.comingUp?.length) ? null :
+              (!!snapshot.planNow?.length || !!snapshot.comingUp?.length || !!snapshot.scopedDecisions?.length || !!snapshot.scopedHolds?.length) ? null :
           <Text style={{ color: colors.foreground }}>
             {!sameHome
               ? "This decision belongs to another FirstMate home. Open its original host and home."

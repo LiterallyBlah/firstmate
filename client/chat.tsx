@@ -50,6 +50,8 @@ import { ATTACHMENTS_ONLY, transcriptRows, type TranscriptRow } from "./transcri
 import { IconButton, JumpToEnd, MONOSPACE, Spinner, errorText } from "./ui";
 import { useKeyboardOverlap } from "./keyboard";
 import { useAgentTimeline } from "./use-timeline";
+import { ScopeDiscussion } from "./scope-discussion";
+import { useScopeSnapshot } from "./scope-query";
 import { useWorkspaceFileLink } from "./workspace-file-link";
 import { cacheSentImages, canAttachFiles, pickFiles, receiveFiles, type OfferedFile } from "./web";
 
@@ -104,7 +106,23 @@ function useHomeFileLinks(rows: readonly TranscriptRow[]) {
   return useMemo(() => lookupIn(answer ?? {}), [answer]);
 }
 
-export function MateChat({
+/** The new UI is advertised by a separate read-only gate. A retained enabled surface never
+ * falls back to a General composer when its scope read fails. */
+export function MateChat(props: Parameters<typeof GeneralMateChat>[0]) {
+  const scopes = useScopeSnapshot(props.imageContext?.serverId ?? "local", props.imageContext?.home ?? "");
+  const enabled = useRef(false);
+  if (scopes.data?.uiEnabled) enabled.current = true;
+  if (enabled.current || props.scopeRequest) {
+    if (!scopes.data) return <Text style={{ color: props.theme.colors.statusDanger }}>Scopes unavailable. Refresh before sending.</Text>;
+    if (props.scopeRequest && props.scopeRequest.homeId !== scopes.data.homeId) return <Text style={{ color: props.theme.colors.statusDanger }}>This discussion belongs to a different home. Open its original host and home.</Text>;
+    if (!scopes.data.uiEnabled) return <Text style={{ color: props.theme.colors.foregroundMuted }}>Scoped discussion controls are disabled pending activation.</Text>;
+    return <ScopeDiscussion key={`${props.imageContext?.serverId}:${scopes.data.homeId}`} snapshot={scopes.data} offline={!!scopes.error}
+      hostId={props.imageContext?.serverId ?? "local"} theme={props.theme} compact={props.compact} navigation={props.navigation} initialScope={props.scopeRequest?.scopeId} refresh={() => { void scopes.refetch(); }} />;
+  }
+  return <GeneralMateChat {...props} />;
+}
+
+function GeneralMateChat({
   mate,
   mateSince = null,
   theme,
@@ -131,6 +149,7 @@ export function MateChat({
   discussion?: DecisionDiscussion | null;
   onReturnDecision?: () => void;
   onDismissDiscussion?: () => void;
+  scopeRequest?: { scopeId: string; homeId: string } | undefined;
 }) {
   const toast = useToast();
   const [toolbarWidth, setToolbarWidth] = useState(0);

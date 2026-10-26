@@ -1,0 +1,882 @@
+{
+  "format": "firstmate.s05-verification/1",
+  "integrationBase": "ea613a576e639de4498d92abac474a28ccba75ca",
+  "sourceDigest": "48799f3a81165c44d97f66155ff13ba019d7d49de3b57f1d8503738727798fe2",
+  "source": [
+    {
+      "path": ".github/workflows/check.yml",
+      "bytes": 2944,
+      "workingSHA256": "fc07d32b65ad42c6862e4a9e0f4b4f880be8a5de73faa1de359b46480c589a8d",
+      "committedSHA256": "aef2c03cd5c0b193b27506ba6b6a3e07a75535ac12f716db633df6e0e41942f6",
+      "gitBlob": "f5a222ade1d9b96877d7d07889fe90c24fb7ed9a"
+    },
+    {
+      "path": "client/chat.tsx",
+      "bytes": 33419,
+      "workingSHA256": "af6b6af0bfd13d67936c4e6ee0c0417362761a1966309706dddad4ea1cb140d4",
+      "committedSHA256": "1262f6d957ca1c721a633b0ed6bf9f9fc82d35dfd7d514b72a8067a126af66d4",
+      "gitBlob": "c1ee84fbdc54e1eaaa0733dcd32974e19dd88c34"
+    },
+    {
+      "path": "client/decision-drawer.tsx",
+      "bytes": 51174,
+      "workingSHA256": "8a6a360dd7a3bec463120d75c22510303d5f099d8bb26ebebac33614ced7e65b",
+      "committedSHA256": "d84a377e3deb3e72a26eb5c4fa12c145eeb7224ccadd640b270c253c5144ea54",
+      "gitBlob": "3741034d141722dbd55485370a0705b4cd32c415"
+    },
+    {
+      "path": "client/decision-tasks.tsx",
+      "bytes": 7991,
+      "workingSHA256": "105ac94cc8c8a817fa76182a9ef7a0bcefd59665c0db0d7b2b96d5ee0dc299ff",
+      "committedSHA256": "cfd451a3a830cb20ababbc0ae5f17719e916d6ec345389dfd0ee1423a7f7b34c",
+      "gitBlob": "e8f796c0888f26baccda8ba8fd638ec607e10643"
+    },
+    {
+      "path": "client/deck-popover.test.ts",
+      "bytes": 5764,
+      "workingSHA256": "f07cd783bdd711165fd2e3c1641ab3865c23b9d08f4a7df015446ef4c8f658a0",
+      "committedSHA256": "1471591b5f4160027fc7653e11213fce5fd46403fea302561be0e99409466dad",
+      "gitBlob": "0dd164e9748628ebc3e5d58942fead1c692a41bd"
+    },
+    {
+      "path": "client/draft.ts",
+      "bytes": 2076,
+      "workingSHA256": "c7151fb2ec7fda3e585f44faa2105a3b701e7d77e3198a939577289b79f4e401",
+      "committedSHA256": "21ceb739a861c0d84447172b59231296e304175ff62af34236bca6bcbe543d81",
+      "gitBlob": "fb8fee99ca7bf51fd56a1f91070a921663f18e24"
+    },
+    {
+      "path": "client/fleet-plans.test.ts",
+      "bytes": 21377,
+      "workingSHA256": "ca5e68dabfddcc5a19a1e827873cfcec230b03467a0d13aa3870efad1fd02b82",
+      "committedSHA256": "cb16786dc04165052c5e0b8a85f7893d28acbd252ab17d1c1dae748231c8b3ce",
+      "gitBlob": "8f901068137647ac7abe4f74f33074ac726e5773"
+    },
+    {
+      "path": "client/fleet.tsx",
+      "bytes": 52697,
+      "workingSHA256": "c968a212c21a04b3a96ef54da0ea56202baacb4bcc7584fe86d1cda9eb27d523",
+      "committedSHA256": "9a18cc9f57b22a058b7acee3c7fca27bfd1b795103dff20cf1920c52cca773ce",
+      "gitBlob": "3a3470fa0e7fea8cb15d2f7bdac03a3a52d9332d"
+    },
+    {
+      "path": "client/needs-you-state.test.ts",
+      "bytes": 9499,
+      "workingSHA256": "a71fdc2b669377bc72f06811968b5f7254665024e42a959d2f6c36867c5a30b1",
+      "committedSHA256": "287477fed75acb704b9d171ea6e06ace4b8311a313ae06676331fe9a17869420",
+      "gitBlob": "f16cb5354aceae54132f29ac30f7090c47689931"
+    },
+    {
+      "path": "client/needs-you-state.ts",
+      "bytes": 11776,
+      "workingSHA256": "db2e511ae4ad06f3807008c768594831c76b3edf88611dcbd41ca87434c3a8c8",
+      "committedSHA256": "b486b8a9bdf2cc3155c937972422a64f431d24f466ef674790d9db2d266d4c4c",
+      "gitBlob": "b1edf66585cbe895512666c8d5ae3c16c7c5a0cf"
+    },
+    {
+      "path": "client/scope-discussion.tsx",
+      "bytes": 15564,
+      "workingSHA256": "3d23ec22db9286ad23946481c89fd09559e68d83dff9620d2307236d5c4499ee",
+      "committedSHA256": "3d23ec22db9286ad23946481c89fd09559e68d83dff9620d2307236d5c4499ee",
+      "gitBlob": "8d9091fefd5f5415700e07b34eb36e8d0b010f51"
+    },
+    {
+      "path": "client/scope-query.ts",
+      "bytes": 515,
+      "workingSHA256": "685f98d473fe438e4be1108b80c8fd1c1510de2a1b33993db070f1ac2076f039",
+      "committedSHA256": "685f98d473fe438e4be1108b80c8fd1c1510de2a1b33993db070f1ac2076f039",
+      "gitBlob": "e35ec15b22c671b138535f76ca4c46fc956069c3"
+    },
+    {
+      "path": "client/scope-send.test.ts",
+      "bytes": 4533,
+      "workingSHA256": "c770f5c200c8c69ca23c3a8e7649c5328fd8fa1f2dae608e91b90116d7440a56",
+      "committedSHA256": "c770f5c200c8c69ca23c3a8e7649c5328fd8fa1f2dae608e91b90116d7440a56",
+      "gitBlob": "2905660429a65077847e3ed82b5c95eec6c25bd7"
+    },
+    {
+      "path": "client/scope-send.ts",
+      "bytes": 4995,
+      "workingSHA256": "c9f6940d02e123d82ad0b143f337aa10ce3235cd2b15b24b3b3fa0bb3cdc2c74",
+      "committedSHA256": "c9f6940d02e123d82ad0b143f337aa10ce3235cd2b15b24b3b3fa0bb3cdc2c74",
+      "gitBlob": "9046545c507836b6bdf2ce2a7e1c586669f7a61c"
+    },
+    {
+      "path": "client/scoped-needs.tsx",
+      "bytes": 7579,
+      "workingSHA256": "1f98c8851ff8aaf6decf1f0ae19721ddabdc68c3dc94fd2a6bb40972d064fa90",
+      "committedSHA256": "1f98c8851ff8aaf6decf1f0ae19721ddabdc68c3dc94fd2a6bb40972d064fa90",
+      "gitBlob": "7627fee97064388019f46916603af772653af6db"
+    },
+    {
+      "path": "client/shell.ts",
+      "bytes": 1532,
+      "workingSHA256": "91b9bddc16e0d755eb395ad45ec6ac8d9f38945db71177535dc6c6b59c848c0d",
+      "committedSHA256": "7f135558ccec0111f5922ea4527bae56625482656878a3f3a6ecd73f6e8f708d",
+      "gitBlob": "093b648c67eb5ccffdb240ad9217fb07a21750d7"
+    },
+    {
+      "path": "client/workflow-plans.tsx",
+      "bytes": 30504,
+      "workingSHA256": "9f9ea1a1c50bbb1993e25799a58bfb57ddb3afaf8d61079141fba0fbeecac642",
+      "committedSHA256": "b0661841ad2985780b6391db636479688b65734f0217e230fadcd72fd47c2aac",
+      "gitBlob": "3f18eaf8c1ca5caf6e81ab61151c08aa1584b80b"
+    },
+    {
+      "path": "client/workspace-panels.tsx",
+      "bytes": 2225,
+      "workingSHA256": "2b2faae852c6af1681b7fa2be97ad7869a5b61edf48f58e8505949c7b98252d2",
+      "committedSHA256": "d863f3fa3d98e177a1545d473753a550c0f61cc5ca0fc230b30db16a8ed956c4",
+      "gitBlob": "fe72590f0d4cf8979a19094942d1620fc6d50418"
+    },
+    {
+      "path": "docs/scoped-supervision/S05.md",
+      "bytes": 11060,
+      "workingSHA256": "1704146a1f0c81a87c3b357b361a9fb6c3589a09608d8ce3ca00c64920bf8441",
+      "committedSHA256": "1704146a1f0c81a87c3b357b361a9fb6c3589a09608d8ce3ca00c64920bf8441",
+      "gitBlob": "0bc546329f6f81aeddfb430bb70a4a73b4b29f63"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-compile.cjs",
+      "bytes": 3019,
+      "workingSHA256": "09aaa6e329843e950297daebc26c7ea8828c53bcfc059122d3337bc1d29b5400",
+      "committedSHA256": "09aaa6e329843e950297daebc26c7ea8828c53bcfc059122d3337bc1d29b5400",
+      "gitBlob": "d32a42ec1cf62f97c1cba0f0e0f1e0750a6a78cc"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/fixtures.js",
+      "bytes": 4205,
+      "workingSHA256": "a0f84ee4df5e6249598a28b86081d6ee523e96fd1595e961753963351466506c",
+      "committedSHA256": "a0f84ee4df5e6249598a28b86081d6ee523e96fd1595e961753963351466506c",
+      "gitBlob": "c1e7d9c37dfdcb7301f339b9def88d1ad8feae54"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/panel.jsx",
+      "bytes": 2739,
+      "workingSHA256": "962eabdd8eb376a53bee4ab6302166e9faadaf674a57301471d9b784af6bc44d",
+      "committedSHA256": "962eabdd8eb376a53bee4ab6302166e9faadaf674a57301471d9b784af6bc44d",
+      "gitBlob": "3f81da7ca495fed85012a9514c704aa853901db5"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/render.mjs",
+      "bytes": 9022,
+      "workingSHA256": "c865218b6536e2f8aa2bae1b4e5382a3d3531ce29a305d99259714a8d0df16fd",
+      "committedSHA256": "c865218b6536e2f8aa2bae1b4e5382a3d3531ce29a305d99259714a8d0df16fd",
+      "gitBlob": "fe92d02ac72b0c55a8c950c4b8b70eec4989ec34"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/stubs.jsx",
+      "bytes": 2851,
+      "workingSHA256": "4809c96df4a2f8f654386c2962b3537cf2d10d6c4e5a74f4a93a555707a940d0",
+      "committedSHA256": "4809c96df4a2f8f654386c2962b3537cf2d10d6c4e5a74f4a93a555707a940d0",
+      "gitBlob": "12cb56293699735f0ebc2f78c91a8ca55d4e318a"
+    },
+    {
+      "path": "index.server.ts",
+      "bytes": 21282,
+      "workingSHA256": "2316ed0b087c9122a85def948410fd2fecbd7e2410ac57aef9028200ffbc48e5",
+      "committedSHA256": "aa97596dc80ec133135c91794e1a7506ad168dfdb6e21a170bbbb3b6e8f5472b",
+      "gitBlob": "2aa6d6cbb3d55154d161dd4a7eb338fb613bebcd"
+    },
+    {
+      "path": "server/item-threads.ts",
+      "bytes": 8155,
+      "workingSHA256": "afecca8ea9e0a26bb64b24f8efbe06588230ea4b676fb873fd6acfe5e46b7bb6",
+      "committedSHA256": "7ebc0e9682989f446396fb2f7f73e3437cfc00ec6e501a1e77a18fd9d41eed01",
+      "gitBlob": "36cfb4b10eae0f17f08d7a43ffbe1e0d60e35bf7"
+    },
+    {
+      "path": "server/needs-you-service.ts",
+      "bytes": 17694,
+      "workingSHA256": "cfcd2ec5414da11b147e126b7108f1a2c5daed3fc68846ebca54fb86768e8f5a",
+      "committedSHA256": "ff9a990be90d00957749fa053de2917031c2cfa005e3f3ad140289b69b14b452",
+      "gitBlob": "a82a3b246ecfbabe939ab54a4b088a8bf7da219c"
+    },
+    {
+      "path": "server/scope-answer-context.ts",
+      "bytes": 2139,
+      "workingSHA256": "6797e3121fdbfcebddf58616fae89859bdd4671e24852527d56777224558a91c",
+      "committedSHA256": "6797e3121fdbfcebddf58616fae89859bdd4671e24852527d56777224558a91c",
+      "gitBlob": "ccc4db55b112be1b110174cf73e6dcb36906145c"
+    },
+    {
+      "path": "server/scope-discussion.test.ts",
+      "bytes": 17569,
+      "workingSHA256": "090d0c1cdb2da45e735d9f44f1dcb75bbc5ad499d692d657f6f1e53dbd064d8c",
+      "committedSHA256": "090d0c1cdb2da45e735d9f44f1dcb75bbc5ad499d692d657f6f1e53dbd064d8c",
+      "gitBlob": "2c8a1e6943e4801d23b506371f131b2127e0008a"
+    },
+    {
+      "path": "server/scope-discussion.ts",
+      "bytes": 9284,
+      "workingSHA256": "8ce68a99e62a530586166750abdabe278e7c6a8522ff726ddb85fd2c16861fa1",
+      "committedSHA256": "8ce68a99e62a530586166750abdabe278e7c6a8522ff726ddb85fd2c16861fa1",
+      "gitBlob": "fc22a7e750a886480c7fa0170896460abf432ac5"
+    },
+    {
+      "path": "server/scope-projection.test.ts",
+      "bytes": 3610,
+      "workingSHA256": "02700e05b52258373e0d6f4d9a86fcf29cb12d08e2be037f87c7df8ba739ff3e",
+      "committedSHA256": "02700e05b52258373e0d6f4d9a86fcf29cb12d08e2be037f87c7df8ba739ff3e",
+      "gitBlob": "8abae3ad47a2e70d1875c31fed1a27bcc549f5f4"
+    },
+    {
+      "path": "server/scope-projection.ts",
+      "bytes": 5101,
+      "workingSHA256": "0dfb3afc95a530c4bafc38b68470c827cf39f11b7eee177c8c1b253827f6c21e",
+      "committedSHA256": "0dfb3afc95a530c4bafc38b68470c827cf39f11b7eee177c8c1b253827f6c21e",
+      "gitBlob": "6989c195ba41d139bcceeb32d3d9123bf86af21a"
+    },
+    {
+      "path": "server/scope-rpc.ts",
+      "bytes": 3449,
+      "workingSHA256": "044d78298efffb670bc11249cd6d39d957346a87baa412344c133cd0fc280f5a",
+      "committedSHA256": "044d78298efffb670bc11249cd6d39d957346a87baa412344c133cd0fc280f5a",
+      "gitBlob": "05513de7e0efa7a4a91b980230b2e4b70caf6880"
+    },
+    {
+      "path": "server/supervision-commands.ts",
+      "bytes": 29026,
+      "workingSHA256": "b7881f739121ae43ed94319fb7b7690be7104a9d6c4b0a97ad572f5eee0e1277",
+      "committedSHA256": "dd5f75c1bca113b83a5dfcc0810c35e8eafca919328913da67838b9f739bde25",
+      "gitBlob": "ad95b51f239b21bebe04afb52a6983d77aafe959"
+    },
+    {
+      "path": "server/supervision-effects.ts",
+      "bytes": 49336,
+      "workingSHA256": "f0a3157bb6e798ec3f862650d2f40adb4c0670da3a3a81b917f81d55eff3563c",
+      "committedSHA256": "f60ec1df5d9f3143c8495d816f4a2ceeb737664443ade0177b540db9f1e40140",
+      "gitBlob": "e84be502c7f289140c02723f4a3d012c71563415"
+    },
+    {
+      "path": "server/supervision-lifecycle.ts",
+      "bytes": 18883,
+      "workingSHA256": "b5b0ba2517b7634c85086066aa045e51ebf68b9ce0f1beeff68874a691811e27",
+      "committedSHA256": "5bb5b0035d64dff68c5b84d493cbc8b832aaaf37de86cb46e8fae1e367e362d3",
+      "gitBlob": "553de79e3a80ea46545226968497801218ef26cd"
+    },
+    {
+      "path": "server/supervisor-sessions.ts",
+      "bytes": 17669,
+      "workingSHA256": "c19071605d3933e2b14ed8e5fd56e183af9beecdbcd54550c6d966c6899f7fcc",
+      "committedSHA256": "750b0827ccd43a3fd65e2ac751adf26434780de9408745a86068137bf3d5b21f",
+      "gitBlob": "f0049a1f1321b04bbc5f5dbf5a8cd2e9b9046e60"
+    },
+    {
+      "path": "server/templates.ts",
+      "bytes": 7131,
+      "workingSHA256": "856066769e07c18df3a9549b030050ca1ad37ed8fcfad1263537631dbee73ad1",
+      "committedSHA256": "c8362c3c8163cd540c7a5bb4a8a4192e09f4f441f90edb05dc185a840caf7359",
+      "gitBlob": "eaa84ac73567cbcd20e44b55dcefbd7b31934edf"
+    },
+    {
+      "path": "shared/item-threads.ts",
+      "bytes": 1708,
+      "workingSHA256": "0cd7adb75f992843cbc29a49c3d94e8a8542c4c8fde742b2963aa09151624580",
+      "committedSHA256": "f8b604ad1d81e072d8febdc2e69bcc78f3d31c073a2af88c63b3c36ee8240f21",
+      "gitBlob": "f639171aefdd2e69914544f5efddf2ee88915f6f"
+    },
+    {
+      "path": "shared/needs-you.ts",
+      "bytes": 8790,
+      "workingSHA256": "207116810ba0114105e0d2236bdc96776ab3020ff88a3d654392831b545b81c0",
+      "committedSHA256": "63ce98f79507ab4c2ee2868074414ace4892b9c540b1d2ee16f9dec15add0d9c",
+      "gitBlob": "2cfe4cc4bc4944c553973cd4e1001463a4e18336"
+    },
+    {
+      "path": "shared/scope-discussion.test.ts",
+      "bytes": 3278,
+      "workingSHA256": "d81ac6b7adb5dafdf3f917afef1a1ded41b0233dc204f3b3b91c1106d44ea21c",
+      "committedSHA256": "d81ac6b7adb5dafdf3f917afef1a1ded41b0233dc204f3b3b91c1106d44ea21c",
+      "gitBlob": "f0edfc583ac5914632ab231649fa5b8401014c4f"
+    },
+    {
+      "path": "shared/scope-discussion.ts",
+      "bytes": 3339,
+      "workingSHA256": "2cf08fe1578a7b1e8ef553ea2aa556ba912858a8634d2d2720e5fdbf913da0cd",
+      "committedSHA256": "2cf08fe1578a7b1e8ef553ea2aa556ba912858a8634d2d2720e5fdbf913da0cd",
+      "gitBlob": "ff67836b7f2789ec339f296904f495bd1a54edad"
+    },
+    {
+      "path": "shared/scoped-commands.ts",
+      "bytes": 1791,
+      "workingSHA256": "2bec4646b6135bcc35b5942b5fba9d51e16da5c1d522ba3506af39ec20626052",
+      "committedSHA256": "2bec4646b6135bcc35b5942b5fba9d51e16da5c1d522ba3506af39ec20626052",
+      "gitBlob": "75dffa23296584ae116997f7d964fc7dcaff2d05"
+    },
+    {
+      "path": "shared/supervision-rpc.ts",
+      "bytes": 5838,
+      "workingSHA256": "adee65d6c8d465bdc8c1fe688d0f6c22320603bfa10682495b07b7bfe60c1f7d",
+      "committedSHA256": "41cb1e7f64c70e779072bd88cc69aa5ccd5a9d614e3da92495939cd97dfa02e2",
+      "gitBlob": "013f8e96f78359fbdaa5af1bb50012e051289cbf"
+    },
+    {
+      "path": "shared/supervision.ts",
+      "bytes": 12154,
+      "workingSHA256": "6a4e8022fd0be1aedb5c57d9ef614635522252065cecf3509abc2b318d0adceb",
+      "committedSHA256": "14e1016e0c2b676e6193de85a1c4fab9213ed37df1954d1bbe4b90cd1f99bc85",
+      "gitBlob": "e619e07148b8a57b02874896800c41b1f37adb85"
+    },
+    {
+      "path": "templates/messages/scope-discuss.md",
+      "bytes": 1049,
+      "workingSHA256": "4b433750b3bfd0682b15291fb467c1020dc1290cc2e147d7fee4b46ca05ec5e6",
+      "committedSHA256": "4b433750b3bfd0682b15291fb467c1020dc1290cc2e147d7fee4b46ca05ec5e6",
+      "gitBlob": "ef060a66e17b211a4afab836224d13e5730f966a"
+    }
+  ],
+  "normalization": "Working SHA256 pins Windows checkout bytes. committedSHA256 and gitBlob use LF normalization; verify against the delivered commit. This manifest excludes itself.",
+  "runtime": {
+    "node": "v24.14.0",
+    "executableSHA256": "63c259c81e5d472b5f11c8d506070130cb04a1ecf84b80377a34ed6ec9048088",
+    "platform": "win32",
+    "developmentSdk": "0.11.0"
+  },
+  "gates": {
+    "uiEnabled": false,
+    "executionEnabled": false,
+    "liveAdapterInstalled": false,
+    "modelProviderCalls": 0,
+    "pluginInstallReload": false,
+    "liveScopeActivation": false,
+    "watchChanges": false,
+    "historyMigration": false
+  },
+  "local": {
+    "typecheck": {
+      "path": ".local/s05/typecheck-delivery.log",
+      "SHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exit": 0
+    },
+    "fullSuite": {
+      "path": ".local/s05/full-final-tests.json",
+      "SHA256": "5c45e0290f81d6312275aab029234bcb7bb5a90d552ace735a988bbf5dda320d",
+      "suites": 524,
+      "passed": 2713,
+      "skipped": 3,
+      "sourceDigest": "9d718e1602faec0515fcf4da9e6cc246a98d5094fe510afd0fa33c5f15df585a",
+      "command": "node node_modules/vitest/vitest.mjs run --maxWorkers=2 --testTimeout=20000 --reporter=default --reporter=json --outputFile=.local/s05/full-final-tests.json"
+    },
+    "finalDelta": {
+      "path": ".local/s05/delivery-tests.json",
+      "SHA256": "8ebf2410877bda5c97913f0e1e10bf725e7ef678e2ac53f32009d68c84f91b41",
+      "suites": 10,
+      "passed": 65,
+      "skipped": 0,
+      "description": "After the full-suite freeze, normalize body whitespace, validate composer inputs locally and explicitly refuse remote bindings before receiver lookup; final source tests and four-theme/width fixtures cover this delta."
+    },
+    "finalGuards": {
+      "path": ".local/s05/final-guards-tests.json",
+      "SHA256": "300daf6d857e7f9fe9288266999fd56f321e9f7426787bafcc3d59d7cd2a988a",
+      "suites": 6,
+      "passed": 35,
+      "skipped": 0
+    },
+    "visual": {
+      "path": ".local/s05-ui/results.json",
+      "SHA256": "1812032f5f230d55e2c16c924ae1b144a8c6195ad85bc39617f18a623879874e",
+      "passed": true,
+      "results": [
+        {
+          "theme": "light",
+          "device": "wide",
+          "width": 1440,
+          "height": 1000,
+          "capturedScope": "00000000-0000-4000-8000-000000000201",
+          "resourceCallsOnRead": 0,
+          "scopedAnswers": 1,
+          "errors": []
+        },
+        {
+          "theme": "light",
+          "device": "phone",
+          "width": 390,
+          "height": 844,
+          "capturedScope": "00000000-0000-4000-8000-000000000201",
+          "resourceCallsOnRead": 0,
+          "scopedAnswers": 1,
+          "errors": []
+        },
+        {
+          "theme": "dark",
+          "device": "wide",
+          "width": 1440,
+          "height": 1000,
+          "capturedScope": "00000000-0000-4000-8000-000000000201",
+          "resourceCallsOnRead": 0,
+          "scopedAnswers": 1,
+          "errors": []
+        },
+        {
+          "theme": "dark",
+          "device": "phone",
+          "width": 390,
+          "height": 844,
+          "capturedScope": "00000000-0000-4000-8000-000000000201",
+          "resourceCallsOnRead": 0,
+          "scopedAnswers": 1,
+          "errors": []
+        }
+      ],
+      "description": "Actual components, synthetic host APIs. Phone-browser layouts, not installed native-device qualification."
+    },
+    "compile": {
+      "path": ".local/s05/compile/results.json",
+      "SHA256": "01b23bb585a0eec88542bde128196b4afc4fbf1de417829e1c3e5ef0a55c595a",
+      "base": "ea613a576e639de4498d92abac474a28ccba75ca",
+      "runtime": "v24.20.0",
+      "compiler": "C:\\Users\\micha\\AppData\\Local\\Programs\\Paseo\\resources\\app.asar\\node_modules\\@getpaseo\\server\\dist\\server\\server\\plugins\\compiler.js",
+      "compilerSHA256": "67a77e0b80c0c7507b699e1992ab20bc6ed83b144dc5a999b9d9ea3a108fa3a4",
+      "hermescSHA256": "e27ed700e2b4025497eb802a604c41a96f0979f5300275c3a6fdbfdff15c6521",
+      "results": [
+        {
+          "name": "branch",
+          "clientBytes": 1118877,
+          "serverBytes": 737173,
+          "clientSHA256": "75091c9b01a7d4199899da8d01262c4611a5b878fb7ab398edf77df749f1b483",
+          "serverSHA256": "b61f2f62b30d5f9cef2c9972d93ee37d048ebc2303057c9b078ea4c1b56339c6",
+          "durationMs": 12096,
+          "hermes": "passed"
+        },
+        {
+          "name": "baseline",
+          "clientBytes": 1073352,
+          "serverBytes": 705756,
+          "clientSHA256": "fcefec3f5a3d1c45687d7e21fffd073566526175fbb4fb2ae69e4129f75fb068",
+          "serverSHA256": "5d01aabe8d572a7b164ef08242515b81f7f7d665f9607a78247159bebfadbb6b",
+          "durationMs": 16286,
+          "hermes": "passed"
+        }
+      ],
+      "liveResources": 0
+    },
+    "priorFailure": {
+      "path": ".local/s05/full-tests.json",
+      "SHA256": "829856fda26dcbf4e696848de7095fe9456b0b7772fb1013842689c332ef3a0a",
+      "passed": 2703,
+      "failed": 5,
+      "skipped": 3,
+      "disposition": "Two UI fixtures had read-only RPC allowlists without firstmate.scope.read; mocks/allowlists corrected, assertions retained and full rerun passed."
+    }
+  },
+  "fullSuiteSource": [
+    {
+      "path": ".github/workflows/check.yml",
+      "bytes": 2944,
+      "workingSHA256": "fc07d32b65ad42c6862e4a9e0f4b4f880be8a5de73faa1de359b46480c589a8d",
+      "committedSHA256": "aef2c03cd5c0b193b27506ba6b6a3e07a75535ac12f716db633df6e0e41942f6",
+      "gitBlob": "f5a222ade1d9b96877d7d07889fe90c24fb7ed9a"
+    },
+    {
+      "path": "client/chat.tsx",
+      "bytes": 33419,
+      "workingSHA256": "af6b6af0bfd13d67936c4e6ee0c0417362761a1966309706dddad4ea1cb140d4",
+      "committedSHA256": "1262f6d957ca1c721a633b0ed6bf9f9fc82d35dfd7d514b72a8067a126af66d4",
+      "gitBlob": "c1ee84fbdc54e1eaaa0733dcd32974e19dd88c34"
+    },
+    {
+      "path": "client/decision-drawer.tsx",
+      "bytes": 51174,
+      "workingSHA256": "8a6a360dd7a3bec463120d75c22510303d5f099d8bb26ebebac33614ced7e65b",
+      "committedSHA256": "d84a377e3deb3e72a26eb5c4fa12c145eeb7224ccadd640b270c253c5144ea54",
+      "gitBlob": "3741034d141722dbd55485370a0705b4cd32c415"
+    },
+    {
+      "path": "client/decision-tasks.tsx",
+      "bytes": 7991,
+      "workingSHA256": "105ac94cc8c8a817fa76182a9ef7a0bcefd59665c0db0d7b2b96d5ee0dc299ff",
+      "committedSHA256": "cfd451a3a830cb20ababbc0ae5f17719e916d6ec345389dfd0ee1423a7f7b34c",
+      "gitBlob": "e8f796c0888f26baccda8ba8fd638ec607e10643"
+    },
+    {
+      "path": "client/deck-popover.test.ts",
+      "bytes": 5764,
+      "workingSHA256": "f07cd783bdd711165fd2e3c1641ab3865c23b9d08f4a7df015446ef4c8f658a0",
+      "committedSHA256": "1471591b5f4160027fc7653e11213fce5fd46403fea302561be0e99409466dad",
+      "gitBlob": "0dd164e9748628ebc3e5d58942fead1c692a41bd"
+    },
+    {
+      "path": "client/draft.ts",
+      "bytes": 2076,
+      "workingSHA256": "c7151fb2ec7fda3e585f44faa2105a3b701e7d77e3198a939577289b79f4e401",
+      "committedSHA256": "21ceb739a861c0d84447172b59231296e304175ff62af34236bca6bcbe543d81",
+      "gitBlob": "fb8fee99ca7bf51fd56a1f91070a921663f18e24"
+    },
+    {
+      "path": "client/fleet-plans.test.ts",
+      "bytes": 21377,
+      "workingSHA256": "ca5e68dabfddcc5a19a1e827873cfcec230b03467a0d13aa3870efad1fd02b82",
+      "committedSHA256": "cb16786dc04165052c5e0b8a85f7893d28acbd252ab17d1c1dae748231c8b3ce",
+      "gitBlob": "8f901068137647ac7abe4f74f33074ac726e5773"
+    },
+    {
+      "path": "client/fleet.tsx",
+      "bytes": 52697,
+      "workingSHA256": "c968a212c21a04b3a96ef54da0ea56202baacb4bcc7584fe86d1cda9eb27d523",
+      "committedSHA256": "9a18cc9f57b22a058b7acee3c7fca27bfd1b795103dff20cf1920c52cca773ce",
+      "gitBlob": "3a3470fa0e7fea8cb15d2f7bdac03a3a52d9332d"
+    },
+    {
+      "path": "client/needs-you-state.test.ts",
+      "bytes": 9499,
+      "workingSHA256": "a71fdc2b669377bc72f06811968b5f7254665024e42a959d2f6c36867c5a30b1",
+      "committedSHA256": "287477fed75acb704b9d171ea6e06ace4b8311a313ae06676331fe9a17869420",
+      "gitBlob": "f16cb5354aceae54132f29ac30f7090c47689931"
+    },
+    {
+      "path": "client/needs-you-state.ts",
+      "bytes": 11776,
+      "workingSHA256": "db2e511ae4ad06f3807008c768594831c76b3edf88611dcbd41ca87434c3a8c8",
+      "committedSHA256": "b486b8a9bdf2cc3155c937972422a64f431d24f466ef674790d9db2d266d4c4c",
+      "gitBlob": "b1edf66585cbe895512666c8d5ae3c16c7c5a0cf"
+    },
+    {
+      "path": "client/scope-discussion.tsx",
+      "bytes": 14839,
+      "workingSHA256": "e560d6a4cc7ea95d52c27b79cf9496939efbbd61ea9acba4c6aced33163d4fa6",
+      "committedSHA256": "e560d6a4cc7ea95d52c27b79cf9496939efbbd61ea9acba4c6aced33163d4fa6",
+      "gitBlob": "29b79ba18325ee8e1510659d5202e62b3532c8b9"
+    },
+    {
+      "path": "client/scope-query.ts",
+      "bytes": 515,
+      "workingSHA256": "685f98d473fe438e4be1108b80c8fd1c1510de2a1b33993db070f1ac2076f039",
+      "committedSHA256": "685f98d473fe438e4be1108b80c8fd1c1510de2a1b33993db070f1ac2076f039",
+      "gitBlob": "e35ec15b22c671b138535f76ca4c46fc956069c3"
+    },
+    {
+      "path": "client/scope-send.test.ts",
+      "bytes": 4533,
+      "workingSHA256": "c770f5c200c8c69ca23c3a8e7649c5328fd8fa1f2dae608e91b90116d7440a56",
+      "committedSHA256": "c770f5c200c8c69ca23c3a8e7649c5328fd8fa1f2dae608e91b90116d7440a56",
+      "gitBlob": "2905660429a65077847e3ed82b5c95eec6c25bd7"
+    },
+    {
+      "path": "client/scope-send.ts",
+      "bytes": 4995,
+      "workingSHA256": "c9f6940d02e123d82ad0b143f337aa10ce3235cd2b15b24b3b3fa0bb3cdc2c74",
+      "committedSHA256": "c9f6940d02e123d82ad0b143f337aa10ce3235cd2b15b24b3b3fa0bb3cdc2c74",
+      "gitBlob": "9046545c507836b6bdf2ce2a7e1c586669f7a61c"
+    },
+    {
+      "path": "client/scoped-needs.tsx",
+      "bytes": 7579,
+      "workingSHA256": "1f98c8851ff8aaf6decf1f0ae19721ddabdc68c3dc94fd2a6bb40972d064fa90",
+      "committedSHA256": "1f98c8851ff8aaf6decf1f0ae19721ddabdc68c3dc94fd2a6bb40972d064fa90",
+      "gitBlob": "7627fee97064388019f46916603af772653af6db"
+    },
+    {
+      "path": "client/shell.ts",
+      "bytes": 1532,
+      "workingSHA256": "91b9bddc16e0d755eb395ad45ec6ac8d9f38945db71177535dc6c6b59c848c0d",
+      "committedSHA256": "7f135558ccec0111f5922ea4527bae56625482656878a3f3a6ecd73f6e8f708d",
+      "gitBlob": "093b648c67eb5ccffdb240ad9217fb07a21750d7"
+    },
+    {
+      "path": "client/workflow-plans.tsx",
+      "bytes": 30504,
+      "workingSHA256": "9f9ea1a1c50bbb1993e25799a58bfb57ddb3afaf8d61079141fba0fbeecac642",
+      "committedSHA256": "b0661841ad2985780b6391db636479688b65734f0217e230fadcd72fd47c2aac",
+      "gitBlob": "3f18eaf8c1ca5caf6e81ab61151c08aa1584b80b"
+    },
+    {
+      "path": "client/workspace-panels.tsx",
+      "bytes": 2225,
+      "workingSHA256": "2b2faae852c6af1681b7fa2be97ad7869a5b61edf48f58e8505949c7b98252d2",
+      "committedSHA256": "d863f3fa3d98e177a1545d473753a550c0f61cc5ca0fc230b30db16a8ed956c4",
+      "gitBlob": "fe72590f0d4cf8979a19094942d1620fc6d50418"
+    },
+    {
+      "path": "docs/scoped-supervision/S05.md",
+      "bytes": 10666,
+      "workingSHA256": "187628b6463722cdeb360cba335cb9ec0d84bfebfba104c683a035d44d22a403",
+      "committedSHA256": "187628b6463722cdeb360cba335cb9ec0d84bfebfba104c683a035d44d22a403",
+      "gitBlob": "2c892d4e240946e9770c98f96db29b845fc35035"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-compile.cjs",
+      "bytes": 3019,
+      "workingSHA256": "09aaa6e329843e950297daebc26c7ea8828c53bcfc059122d3337bc1d29b5400",
+      "committedSHA256": "09aaa6e329843e950297daebc26c7ea8828c53bcfc059122d3337bc1d29b5400",
+      "gitBlob": "d32a42ec1cf62f97c1cba0f0e0f1e0750a6a78cc"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/fixtures.js",
+      "bytes": 4188,
+      "workingSHA256": "fe0a162eea52318d0a8758c0b501ec60714f8555c0f155690ed46b9812aa8d3e",
+      "committedSHA256": "fe0a162eea52318d0a8758c0b501ec60714f8555c0f155690ed46b9812aa8d3e",
+      "gitBlob": "9feb57f2de46670aa9fc2d4aa5c6fcbc1689e844"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/panel.jsx",
+      "bytes": 2739,
+      "workingSHA256": "962eabdd8eb376a53bee4ab6302166e9faadaf674a57301471d9b784af6bc44d",
+      "committedSHA256": "962eabdd8eb376a53bee4ab6302166e9faadaf674a57301471d9b784af6bc44d",
+      "gitBlob": "3f81da7ca495fed85012a9514c704aa853901db5"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/render.mjs",
+      "bytes": 8569,
+      "workingSHA256": "21e21604240f4e461e3dd933e12845473c30b13ddacdc701f85d0016ee52a2d0",
+      "committedSHA256": "21e21604240f4e461e3dd933e12845473c30b13ddacdc701f85d0016ee52a2d0",
+      "gitBlob": "c41dec2ec5e7ce45bb0a95cbbe37fd83fecb4e1c"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/stubs.jsx",
+      "bytes": 2851,
+      "workingSHA256": "4809c96df4a2f8f654386c2962b3537cf2d10d6c4e5a74f4a93a555707a940d0",
+      "committedSHA256": "4809c96df4a2f8f654386c2962b3537cf2d10d6c4e5a74f4a93a555707a940d0",
+      "gitBlob": "12cb56293699735f0ebc2f78c91a8ca55d4e318a"
+    },
+    {
+      "path": "index.server.ts",
+      "bytes": 21282,
+      "workingSHA256": "2316ed0b087c9122a85def948410fd2fecbd7e2410ac57aef9028200ffbc48e5",
+      "committedSHA256": "aa97596dc80ec133135c91794e1a7506ad168dfdb6e21a170bbbb3b6e8f5472b",
+      "gitBlob": "2aa6d6cbb3d55154d161dd4a7eb338fb613bebcd"
+    },
+    {
+      "path": "server/item-threads.ts",
+      "bytes": 8155,
+      "workingSHA256": "afecca8ea9e0a26bb64b24f8efbe06588230ea4b676fb873fd6acfe5e46b7bb6",
+      "committedSHA256": "7ebc0e9682989f446396fb2f7f73e3437cfc00ec6e501a1e77a18fd9d41eed01",
+      "gitBlob": "36cfb4b10eae0f17f08d7a43ffbe1e0d60e35bf7"
+    },
+    {
+      "path": "server/needs-you-service.ts",
+      "bytes": 17694,
+      "workingSHA256": "cfcd2ec5414da11b147e126b7108f1a2c5daed3fc68846ebca54fb86768e8f5a",
+      "committedSHA256": "ff9a990be90d00957749fa053de2917031c2cfa005e3f3ad140289b69b14b452",
+      "gitBlob": "a82a3b246ecfbabe939ab54a4b088a8bf7da219c"
+    },
+    {
+      "path": "server/scope-answer-context.ts",
+      "bytes": 2139,
+      "workingSHA256": "6797e3121fdbfcebddf58616fae89859bdd4671e24852527d56777224558a91c",
+      "committedSHA256": "6797e3121fdbfcebddf58616fae89859bdd4671e24852527d56777224558a91c",
+      "gitBlob": "ccc4db55b112be1b110174cf73e6dcb36906145c"
+    },
+    {
+      "path": "server/scope-discussion.test.ts",
+      "bytes": 16575,
+      "workingSHA256": "3c0b6312a68c75c982fbc25480a251679972331d0e3aca595a4522bc04219e2d",
+      "committedSHA256": "3c0b6312a68c75c982fbc25480a251679972331d0e3aca595a4522bc04219e2d",
+      "gitBlob": "487a0f4dd49dc1fb4fff6cb758fc45cbacd051a0"
+    },
+    {
+      "path": "server/scope-discussion.ts",
+      "bytes": 9008,
+      "workingSHA256": "76a3cfac6229043d2d6cb74f7d3f1af12da4218b8a8a0c492abb19bba7259d5c",
+      "committedSHA256": "76a3cfac6229043d2d6cb74f7d3f1af12da4218b8a8a0c492abb19bba7259d5c",
+      "gitBlob": "b8e57b3cd020fd1b54c753b7a8c7662ffb7602f1"
+    },
+    {
+      "path": "server/scope-projection.test.ts",
+      "bytes": 3610,
+      "workingSHA256": "02700e05b52258373e0d6f4d9a86fcf29cb12d08e2be037f87c7df8ba739ff3e",
+      "committedSHA256": "02700e05b52258373e0d6f4d9a86fcf29cb12d08e2be037f87c7df8ba739ff3e",
+      "gitBlob": "8abae3ad47a2e70d1875c31fed1a27bcc549f5f4"
+    },
+    {
+      "path": "server/scope-projection.ts",
+      "bytes": 5051,
+      "workingSHA256": "59cfa1ccc5c1a7b110fc4f78d023be44ca1b0ccbf79830c4f13efe583d7e325e",
+      "committedSHA256": "59cfa1ccc5c1a7b110fc4f78d023be44ca1b0ccbf79830c4f13efe583d7e325e",
+      "gitBlob": "a17094a4e96ac78840d5f16dbe455ddc07195a39"
+    },
+    {
+      "path": "server/scope-rpc.ts",
+      "bytes": 3449,
+      "workingSHA256": "044d78298efffb670bc11249cd6d39d957346a87baa412344c133cd0fc280f5a",
+      "committedSHA256": "044d78298efffb670bc11249cd6d39d957346a87baa412344c133cd0fc280f5a",
+      "gitBlob": "05513de7e0efa7a4a91b980230b2e4b70caf6880"
+    },
+    {
+      "path": "server/supervision-commands.ts",
+      "bytes": 29026,
+      "workingSHA256": "b7881f739121ae43ed94319fb7b7690be7104a9d6c4b0a97ad572f5eee0e1277",
+      "committedSHA256": "dd5f75c1bca113b83a5dfcc0810c35e8eafca919328913da67838b9f739bde25",
+      "gitBlob": "ad95b51f239b21bebe04afb52a6983d77aafe959"
+    },
+    {
+      "path": "server/supervision-effects.ts",
+      "bytes": 49349,
+      "workingSHA256": "e35a923b35ac976fdd788b5b577fd22d3251576e9472a3567e91a6ecb8e92d01",
+      "committedSHA256": "26c0725c1c2d265462cb890a56069afd71fe3d2eb01bca6f52f3a9f8edb278a7",
+      "gitBlob": "de080de4876d70deec1fc920a7e1592708ef4a6b"
+    },
+    {
+      "path": "server/supervision-lifecycle.ts",
+      "bytes": 18883,
+      "workingSHA256": "b5b0ba2517b7634c85086066aa045e51ebf68b9ce0f1beeff68874a691811e27",
+      "committedSHA256": "5bb5b0035d64dff68c5b84d493cbc8b832aaaf37de86cb46e8fae1e367e362d3",
+      "gitBlob": "553de79e3a80ea46545226968497801218ef26cd"
+    },
+    {
+      "path": "server/supervisor-sessions.ts",
+      "bytes": 17669,
+      "workingSHA256": "c19071605d3933e2b14ed8e5fd56e183af9beecdbcd54550c6d966c6899f7fcc",
+      "committedSHA256": "750b0827ccd43a3fd65e2ac751adf26434780de9408745a86068137bf3d5b21f",
+      "gitBlob": "f0049a1f1321b04bbc5f5dbf5a8cd2e9b9046e60"
+    },
+    {
+      "path": "server/templates.ts",
+      "bytes": 7131,
+      "workingSHA256": "856066769e07c18df3a9549b030050ca1ad37ed8fcfad1263537631dbee73ad1",
+      "committedSHA256": "c8362c3c8163cd540c7a5bb4a8a4192e09f4f441f90edb05dc185a840caf7359",
+      "gitBlob": "eaa84ac73567cbcd20e44b55dcefbd7b31934edf"
+    },
+    {
+      "path": "shared/item-threads.ts",
+      "bytes": 1708,
+      "workingSHA256": "0cd7adb75f992843cbc29a49c3d94e8a8542c4c8fde742b2963aa09151624580",
+      "committedSHA256": "f8b604ad1d81e072d8febdc2e69bcc78f3d31c073a2af88c63b3c36ee8240f21",
+      "gitBlob": "f639171aefdd2e69914544f5efddf2ee88915f6f"
+    },
+    {
+      "path": "shared/needs-you.ts",
+      "bytes": 8790,
+      "workingSHA256": "207116810ba0114105e0d2236bdc96776ab3020ff88a3d654392831b545b81c0",
+      "committedSHA256": "63ce98f79507ab4c2ee2868074414ace4892b9c540b1d2ee16f9dec15add0d9c",
+      "gitBlob": "2cfe4cc4bc4944c553973cd4e1001463a4e18336"
+    },
+    {
+      "path": "shared/scope-discussion.test.ts",
+      "bytes": 2989,
+      "workingSHA256": "24522258651c116bcfbf45f4c06f1f80102d051cc7f92b3a453232620cb6b582",
+      "committedSHA256": "24522258651c116bcfbf45f4c06f1f80102d051cc7f92b3a453232620cb6b582",
+      "gitBlob": "ee4e14d03a7328138206be645dcfa48c262eb4e0"
+    },
+    {
+      "path": "shared/scope-discussion.ts",
+      "bytes": 3332,
+      "workingSHA256": "d638f0c439fc6a731b9daec5049355d0a7e422037762337ac03aebab475c2361",
+      "committedSHA256": "d638f0c439fc6a731b9daec5049355d0a7e422037762337ac03aebab475c2361",
+      "gitBlob": "f56ef2618eb330a1027e36224fe32bf35c66444a"
+    },
+    {
+      "path": "shared/scoped-commands.ts",
+      "bytes": 1791,
+      "workingSHA256": "2bec4646b6135bcc35b5942b5fba9d51e16da5c1d522ba3506af39ec20626052",
+      "committedSHA256": "2bec4646b6135bcc35b5942b5fba9d51e16da5c1d522ba3506af39ec20626052",
+      "gitBlob": "75dffa23296584ae116997f7d964fc7dcaff2d05"
+    },
+    {
+      "path": "shared/supervision-rpc.ts",
+      "bytes": 5807,
+      "workingSHA256": "821d5525e2c54d8acd42ffc39344149531e6de758c36894b8fda7e6886022d13",
+      "committedSHA256": "b47a34f9e2f4c643f044ea75b8d76d3bc623d8c466442df1aee2857f75d5785d",
+      "gitBlob": "527c60067895a2605aeace76a6e4d32f75b97ef9"
+    },
+    {
+      "path": "shared/supervision.ts",
+      "bytes": 12154,
+      "workingSHA256": "6a4e8022fd0be1aedb5c57d9ef614635522252065cecf3509abc2b318d0adceb",
+      "committedSHA256": "14e1016e0c2b676e6193de85a1c4fab9213ed37df1954d1bbe4b90cd1f99bc85",
+      "gitBlob": "e619e07148b8a57b02874896800c41b1f37adb85"
+    },
+    {
+      "path": "templates/messages/scope-discuss.md",
+      "bytes": 1049,
+      "workingSHA256": "4b433750b3bfd0682b15291fb467c1020dc1290cc2e147d7fee4b46ca05ec5e6",
+      "committedSHA256": "4b433750b3bfd0682b15291fb467c1020dc1290cc2e147d7fee4b46ca05ec5e6",
+      "gitBlob": "ef060a66e17b211a4afab836224d13e5730f966a"
+    }
+  ],
+  "unchangedVerificationInputs": [
+    {
+      "path": "server/supervision-continuation.test.ts",
+      "SHA256": "2f91528839b10b272c84f0564b9f8e37ae4ee59b3f7fb189281c9676004a3873",
+      "gitBlob": "96aabb39186e509b3da8ebcae51450913426e508"
+    },
+    {
+      "path": "server/supervision-lifecycle.test.ts",
+      "SHA256": "2b2b4bd5a4623f8e31706df4e620c86d013d9ef7ea6e674ac5df4c6b995bbbaf",
+      "gitBlob": "59876aa9bf591fee53bb83240c3746480921e1fe"
+    },
+    {
+      "path": "server/supervision-effects.test.ts",
+      "SHA256": "0c80a7e749883585a799d13b81ce3ddac49ae8a1d90ad8abed79bc00ded53b52",
+      "gitBlob": "6544f9d3711ce3ba40f24f557f4548b0ab067eda"
+    },
+    {
+      "path": "server/supervisor-sessions.test.ts",
+      "SHA256": "f57cec77d2a9b7e7074d6b68509b25bfb547552741d17e7432ac5379f0e9c0a8",
+      "gitBlob": "df043fbd4aa20add53f3386d4fdf2b3318c030e1"
+    },
+    {
+      "path": "server/supervision-commands.test.ts",
+      "SHA256": "82cee5818841a857c47cbb66a8f9ac7279aaca4dd0d787a79ace33dfa63beb9d",
+      "gitBlob": "67d9e0f8c7ba131801d6532d27790ae7fc5df378"
+    },
+    {
+      "path": "server/supervision-s04-review.test.ts",
+      "SHA256": "bc8b1b107e2e5150fc4ae38a5ef2c1767fb7a04f65a767edcfcbbc941c7c261f",
+      "gitBlob": "27b70dfbf65d7f6e4866ee607f7ec05aef493548"
+    },
+    {
+      "path": "server/supervision-s04-closure.test.ts",
+      "SHA256": "60af12bfe1a80b5460b2b61ccc0682027adee4c08389bfc1ab7057b440bdbe1c",
+      "gitBlob": "2bb00b88f8326421002720476a352622f5deda97"
+    },
+    {
+      "path": "server/supervision-r04.test.ts",
+      "SHA256": "60003adff53f4f9b9ab1afe432eb0a30a52dc19b775461f872aa3c1bc8e91555",
+      "gitBlob": "836876e8aab3dfaaee77d67ac980b1e7762ab9d4"
+    },
+    {
+      "path": "test/setup.ts",
+      "SHA256": "eda69b16b38b7c792fd8ea731548c92388aa74df7c0e7571b95b6eaf403bc713",
+      "gitBlob": "41092b687ad7723130d626ce3ed5e11eb904a9da"
+    },
+    {
+      "path": "test/supervision-s04-fixture.ts",
+      "SHA256": "7fd7e794037d42fce56cbf6f7c9cddcae52571b75264961b3009eef94ff13c72",
+      "gitBlob": "60bd052ae4b60d6c832291da1dc7c5b6472e3f76"
+    },
+    {
+      "path": "test/synthetic-receiver.ts",
+      "SHA256": "8e15b4bf7db33e6eff9194383f2d06299468dd8ec0c2875b2b31fa7494d97080",
+      "gitBlob": "463fcf25717ec376bd34f4b450c41d57950764a5"
+    },
+    {
+      "path": "package-lock.json",
+      "SHA256": "9009f0d899bd8b24bec3041e3ab828f2492d83817aa51a2e43780b2133446f7b",
+      "gitBlob": "159930d3fc4b9cf0d3dca00099e9f83cfdb7da89"
+    }
+  ],
+  "acceptance": {
+    "A07_scoped": [
+      "server/scope-discussion.test.ts: displayed source-bound answer, owner transfer, accepted replay and combined snapshot",
+      "server/supervision-commands.test.ts: changed subject/source, old epoch result refusal"
+    ],
+    "A09": [
+      "server/scope-projection.test.ts: nested workers, intermediate success, evidence age and capacity holds",
+      "server/scope-discussion.test.ts: no resources/lookups on views and cross-scope independence",
+      "docs/scoped-supervision/s05-ui/render.mjs: absent General, both themes/widths"
+    ],
+    "A11": [
+      "shared/scope-discussion.test.ts: recipient vs project context, no broadcast",
+      "server/scope-discussion.test.ts: strict command class, discussion-only no start/effects",
+      "Existing S03 source-vector/policy checks unchanged"
+    ],
+    "A16": [
+      "client/scope-send.test.ts: captured target, double send, unknown results and remount visibility",
+      "docs/scoped-supervision/s05-ui/render.mjs: switch during send, isolated drafts, activation, native continuity, answer read failure"
+    ],
+    "initiative": [
+      "Existing S04 continuation/lifecycle controls reused: intermediate success, two ready tasks, callback loss, capacity failure, stale transfer, unchanged retry, pause",
+      "server/scope-projection.test.ts: stored goal/project truth without model calls"
+    ]
+  },
+  "selfReview": [
+    "Reviewed the complete diff and added discussion purpose checks at S03 start and S04 effect admission.",
+    "Pinned observation CAS to the actual read; excluded observations from semantic inputs.",
+    "Retained unknown send IDs across remount/scope switch; definite refusals preserve drafts.",
+    "Preserved independent scoped/backlog snapshot versions and existing shared decision identities.",
+    "Native composer interception, project plan-command outbox handling and unqualified remote ingress remain explicitly unsupported; no fallback."
+  ],
+  "ci": "Require successful GitHub check runs on the exact delivered PR head. This local manifest is not independent R05 acceptance or rollout authority."
+}

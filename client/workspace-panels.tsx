@@ -9,6 +9,9 @@ import { workflowTaskRoute } from "./workflow-task-navigation";
 export function registerFleetViews(client: PluginClientContext): FleetShell {
   let handoff = 0;
   const shell: FleetShell = {
+    openScope(scopeId, homeId) {
+      client.openScreen({ screenId: FLEET_SCREEN_ID, params: { chat: "show", discussionScope: scopeId, discussionHome: homeId, discussionHandoff: String(++handoff) } });
+    },
     openTask(request) {
       const route = workflowTaskRoute(request);
       client.openScreen({ ...route, params: { ...route.params, taskHandoff: String(++handoff) } });

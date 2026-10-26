@@ -1,8 +1,9 @@
-/** Lightweight item discussions use the existing first mate, never another agent. */
+/** Existing item discussions plus scope-qualified records. Session activation lives in S04. */
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import type { FleetCard } from "./fleet";
 import { itemTagKey } from "./item-tags";
+import { DiscussionRouteSchema } from "./scope-discussion";
 
 export const threadKey = (card: FleetCard): string => `thread:${encodeURIComponent(itemTagKey(card))}`;
 
@@ -14,6 +15,9 @@ export const ThreadMessageSchema = z.object({
   agentId: z.string(),
   delivery: z.enum(["uncertain", "sent"]),
   reply: z.string().nullable(),
+  /** Scoped discussion attribution; absent on historical item discussions. */
+  route: DiscussionRouteSchema.optional(),
+  requestHash: z.string().length(64).optional(),
 });
 export const ItemThreadSchema = z.object({
   key: z.string(),
