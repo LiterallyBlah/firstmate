@@ -28,10 +28,81 @@ async function choose(page, label) {
   await page.getByRole("button", { name: /^Discussion scope:/ }).click();
   await page.getByRole("dialog", { name: "Choose a discussion" }).getByRole("button", { name: new RegExp(`^${label},`) }).click();
 }
+// R05 reproductions use the real components; remove query state, not durable draft/selection state.
+async function restoredScope(page, theme, device) {
+  await page.goto(`${origin}/?restored&theme=${theme}`); await page.getByTestId("scope-discussion").waitFor();
+  await choose(page, "Reader pass");
+  const composer = page.getByRole("textbox", { name: "Message recipient" });
+  await composer.fill("@reader-pass Please explain this plan");
+  await page.evaluate(() => { window.failScopeRead = true; window.dropScopeCache(); });
+  await page.getByText("Scopes unavailable. Refresh before sending.", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("textbox", { name: "Message the first mate" }).count(), 0);
+  assert.equal(await page.evaluate(() => window.fixtureCalls.filter(c => c.name === "firstmate.mate.ask").length), 0);
+  assert.equal(await page.evaluate(() => window.scopeActions.filter(a => /discuss|answer|activate/.test(a.name)).length), 0);
+  await page.screenshot({ path: resolve(out, `${theme}-${device}-restored-unavailable.png`) });
+  await page.evaluate(() => { window.failScopeRead = false; });
+  await page.getByRole("button", { name: "Refresh discussion scopes", exact: true }).click();
+  await composer.waitFor(); assert.equal(await composer.inputValue(), "@reader-pass Please explain this plan");
+  await page.getByText("To Reader pass", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await page.waitForFunction(() => window.scopeActions.some(a => a.name === "firstmate.scope.discuss"));
+  const sent = await page.evaluate(() => window.scopeActions.find(a => a.name === "firstmate.scope.discuss").input);
+  assert.equal(sent.route.target.scopeId, "00000000-0000-4000-8000-000000000101");
+  assert.equal(await page.evaluate(() => window.fixtureCalls.filter(c => c.name === "firstmate.mate.ask").length), 0);
+  return { heldWithoutGeneral: true, draftRetained: true, scopeId: sent.route.target.scopeId };
+}
+async function rejectedAnswer(page, theme, device) {
+  await page.goto(`${origin}/?decisions&theme=${theme}`); await page.getByTestId("scoped-needs").waitFor();
+  await page.getByRole("button", { name: /^Answer: Choose the follow-up/ }).last().click();
+  await page.getByRole("button", { name: "Both layouts", exact: true }).click();
+  const notes = page.getByRole("textbox", { name: "Answer notes: Choose the follow-up" });
+  await notes.fill("Retain these answer notes");
+  await page.evaluate(() => { window.refuseAnswer = true; });
+  await page.getByRole("button", { name: "Submit scoped answer", exact: true }).click();
+  await page.getByText("STALE: Policy vector changed; reread the scoped rules.", { exact: true }).waitFor();
+  await page.evaluate(() => { window.refuseAnswer = false; window.scopeNeeds.scopedSequence++; window.scopeNeeds.scopedDecisions[0].answerContext.policyVector = [{ kind: "policy-rule", id: "00000000-0000-4000-8000-000000000501", version: 2 }]; });
+  await page.getByRole("button", { name: "Refresh scoped decisions", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "Submit scoped answer", exact: true }).isEnabled(), true);
+  assert.equal(await notes.inputValue(), "Retain these answer notes");
+  assert.equal(await page.getByRole("button", { name: "Selected: Both layouts", exact: true }).isEnabled(), true);
+  assert.equal(await page.evaluate(() => window.scopeActions.filter(a => a.name === "firstmate.scope.answer").length), 1);
+  await page.screenshot({ path: resolve(out, `${theme}-${device}-refused-answer-recovered.png`) });
+  await page.evaluate(() => window.remountScope());
+  await page.getByRole("button", { name: /^Answer: Choose the follow-up/ }).last().click();
+  assert.equal(await notes.inputValue(), "Retain these answer notes");
+  await page.getByRole("button", { name: "Submit scoped answer", exact: true }).click();
+  await page.getByRole("button", { name: "Answer committed", exact: true }).waitFor();
+  const attempts = await page.evaluate(() => window.scopeActions.filter(a => a.name === "firstmate.scope.answer").map(a => a.input));
+  assert.equal(attempts.length, 2); assert.notEqual(attempts[0].submissionId, attempts[1].submissionId);
+  assert.deepEqual(attempts[1].policyVector, [{ kind: "policy-rule", id: "00000000-0000-4000-8000-000000000501", version: 2 }]);
+  assert.equal(attempts[1].option, attempts[0].option); assert.equal(attempts[1].text, attempts[0].text);
+  return { refusalReleasesComposer: true, retainedOptionAndNotes: true, explicitFreshAttempt: true };
+}
+async function uncertainAnswer(page, theme) {
+  await page.goto(`${origin}/?decisions&theme=${theme}`); await page.getByTestId("scoped-needs").waitFor();
+  await page.getByRole("button", { name: /^Answer: Choose the follow-up/ }).last().click();
+  await page.getByRole("button", { name: "Both layouts", exact: true }).click();
+  await page.getByRole("textbox", { name: "Answer notes: Choose the follow-up" }).fill("Keep this uncertain submission");
+  await page.evaluate(() => { window.loseAnswerReply = true; });
+  await page.getByRole("button", { name: "Submit scoped answer", exact: true }).click();
+  await page.getByText("Answer response unavailable (recovery fixture)", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Refresh scoped decisions", exact: true }).click();
+  await page.evaluate(() => window.remountScope());
+  await page.getByRole("button", { name: /^Answer: Choose the follow-up/ }).last().click();
+  assert.equal(await page.getByRole("button", { name: "Answer unconfirmed · original submission retained", exact: true }).isDisabled(), true);
+  assert.equal(await page.getByRole("textbox", { name: "Answer notes: Choose the follow-up" }).inputValue(), "Keep this uncertain submission");
+  const attempts = await page.evaluate(() => window.scopeActions.filter(a => a.name === "firstmate.scope.answer"));
+  assert.equal(attempts.length, 1);
+  return { originalSubmissionRetained: true, pendingReadDoesNotProveRefusal: true, noRetry: true };
+}
 try {
   for (const theme of ["light", "dark"]) for (const [device, width, height] of [["wide", 1440, 1000], ["phone", 390, 844]]) {
     const page = await browser.newPage({ viewport: { width, height } }), errors = [];
     page.setDefaultTimeout(15000); page.on("pageerror", e => errors.push(e.message));
+    if (process.env.S05_RECOVERY_ONLY) {
+      const result = process.env.S05_RECOVERY_ONLY === "f1" ? await restoredScope(page, theme, device) : await rejectedAnswer(page, theme, device);
+      results.push({ theme, device, recovery: result, errors }); await page.close(); continue;
+    }
     await page.goto(`${origin}/?before&theme=${theme}`); await page.getByRole("textbox", { name: "Message the first mate" }).waitFor();
     await page.screenshot({ path: resolve(out, `${theme}-${device}-before.png`) });
     await page.goto(`${origin}/?theme=${theme}`); await page.getByTestId("scope-discussion").waitFor();
@@ -87,7 +158,8 @@ try {
     assert.equal(await page.evaluate(() => window.scopeActions.filter(a => a.name === "firstmate.scope.answer").length), 1);
     await page.evaluate(() => { window.holdRead = false; }); await page.getByRole("button", { name: "Refresh scoped decisions", exact: true }).click();
     await page.getByRole("button", { name: "Answer committed", exact: true }).waitFor();
-    assert.deepEqual(errors, []); results.push({ theme, device, width, height, capturedScope: delivered.route.target.scopeId, resourceCallsOnRead: 0, scopedAnswers: 1, errors }); await page.close();
+    const restoration = await restoredScope(page, theme, device), refusal = await rejectedAnswer(page, theme, device), uncertainty = await uncertainAnswer(page, theme);
+    assert.deepEqual(errors, []); results.push({ theme, device, width, height, capturedScope: delivered.route.target.scopeId, resourceCallsOnRead: 0, scopedAnswers: 1, restoration, refusal, uncertainty, errors }); await page.close();
   }
   await writeFile(resolve(out, "results.json"), JSON.stringify({ passed: true, results }, null, 2));
   console.log(JSON.stringify({ passed: true, cases: results.length, output: out }));

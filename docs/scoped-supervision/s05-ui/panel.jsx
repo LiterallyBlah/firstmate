@@ -17,13 +17,14 @@ const client = new QueryClient({ defaultOptions: { queries: { retry: false, refe
 function App() {
   const [generation, remount] = useState(0), read = useRpc(readScopeNeeds);
   window.remountScope = () => remount(v => v + 1);
+  window.dropScopeCache = () => { client.removeQueries({ queryKey: ["firstmate", "scope-read"] }); remount(v => v + 1); };
   const decisions = useQuery({ queryKey: NEEDS_YOU_QUERY_KEY, queryFn: () => read({}) });
   const navigation = { openAgent: input => window.scopeActions.push({ name: "navigation.openAgent", input }) };
   const chat = params.has("absent") ? <ScopeDiscussion key={generation} snapshot={{ ...snapshot, scopes: snapshot.scopes.map(s => s.id === "general" ? { ...s, target: { ...s.target, agentId: null }, session: "not-created" } : s) }}
     hostId="local" theme={theme} compact={phone} refresh={() => {}} navigation={navigation} /> :
-    <MateChat key={generation} mate={fleet.mate} theme={theme} compact={phone} onChanged={() => {}} onOpenFile={() => {}} imageContext={{ serverId: "local", home: homeId }} navigation={navigation} />;
+    <MateChat key={generation} mate={fleet.mate} theme={theme} compact={phone} onChanged={() => {}} onOpenFile={() => {}} imageContext={{ serverId: "local", home: params.has("restored") ? homeId.toUpperCase() : homeId }} navigation={navigation} />;
   return <div style={{ height: "100vh", width: "100%", display: "flex", background: theme.colors.surface0, color: theme.colors.foreground }}>
-    {params.has("decisions") ? <div style={{ width: "100%", maxWidth: 760, margin: "auto", padding: 16, overflow: "auto", maxHeight: "100vh" }}><ScopedNeeds snapshot={decisions.data} theme={theme} compact={phone} /></div> :
+    {params.has("decisions") ? <div style={{ width: "100%", maxWidth: 760, margin: "auto", padding: 16, overflow: "auto", maxHeight: "100vh" }}><ScopedNeeds key={generation} snapshot={decisions.data} theme={theme} compact={phone} /></div> :
       <div style={{ display: "flex", flex: 1, maxWidth: phone ? "100%" : 960, margin: "0 auto", minWidth: 0 }}>{chat}</div>}
   </div>;
 }

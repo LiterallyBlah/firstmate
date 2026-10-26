@@ -1,0 +1,512 @@
+{
+  "format": "firstmate.s05-r05-correction-verification/1",
+  "reviewedHead": "03992e3fc1ae2108d260e63b0ef38cc5fc6fc377",
+  "integrationBase": "ea613a576e639de4498d92abac474a28ccba75ca",
+  "attempt": "0a3223b8-90f5-4728-9cb7-a676c1b2bf6e",
+  "sourceDigest": "f5c7db53a5bba6e9c03ad93e396228107f2c19d8b62502a4b2308462d40e5b32",
+  "source": [
+    {
+      "path": ".github/workflows/check.yml",
+      "workingSHA256": "fc07d32b65ad42c6862e4a9e0f4b4f880be8a5de73faa1de359b46480c589a8d",
+      "committedSHA256": "aef2c03cd5c0b193b27506ba6b6a3e07a75535ac12f716db633df6e0e41942f6",
+      "gitBlob": "f5a222ade1d9b96877d7d07889fe90c24fb7ed9a"
+    },
+    {
+      "path": "client/chat.tsx",
+      "workingSHA256": "53039c8e1b1ecee7c92c81a2ac1d8873a68e984e841acfed17247fe15792b5e1",
+      "committedSHA256": "9b1811838a5c01a013674d43c940a73a61db4745e04f39173d6aa6241d67e3ab",
+      "gitBlob": "020028fe894e9f4ec3e52e1c8f664bd08e34807e"
+    },
+    {
+      "path": "client/decision-drawer.tsx",
+      "workingSHA256": "8a6a360dd7a3bec463120d75c22510303d5f099d8bb26ebebac33614ced7e65b",
+      "committedSHA256": "d84a377e3deb3e72a26eb5c4fa12c145eeb7224ccadd640b270c253c5144ea54",
+      "gitBlob": "3741034d141722dbd55485370a0705b4cd32c415"
+    },
+    {
+      "path": "client/decision-tasks.tsx",
+      "workingSHA256": "105ac94cc8c8a817fa76182a9ef7a0bcefd59665c0db0d7b2b96d5ee0dc299ff",
+      "committedSHA256": "cfd451a3a830cb20ababbc0ae5f17719e916d6ec345389dfd0ee1423a7f7b34c",
+      "gitBlob": "e8f796c0888f26baccda8ba8fd638ec607e10643"
+    },
+    {
+      "path": "client/deck-popover.test.ts",
+      "workingSHA256": "f07cd783bdd711165fd2e3c1641ab3865c23b9d08f4a7df015446ef4c8f658a0",
+      "committedSHA256": "1471591b5f4160027fc7653e11213fce5fd46403fea302561be0e99409466dad",
+      "gitBlob": "0dd164e9748628ebc3e5d58942fead1c692a41bd"
+    },
+    {
+      "path": "client/draft.ts",
+      "workingSHA256": "29bc4a92bfff2d0cf5611c00aaaabb71ea9159a063da52ccee54f608f44074b2",
+      "committedSHA256": "94a876ca0df7fda1478f2127cf160baa2053e7da65609154e36dce339aa56a20",
+      "gitBlob": "da9b04e1d9bf2ef456b54e09619f94e9a132fa45"
+    },
+    {
+      "path": "client/fleet-plans.test.ts",
+      "workingSHA256": "ca5e68dabfddcc5a19a1e827873cfcec230b03467a0d13aa3870efad1fd02b82",
+      "committedSHA256": "cb16786dc04165052c5e0b8a85f7893d28acbd252ab17d1c1dae748231c8b3ce",
+      "gitBlob": "8f901068137647ac7abe4f74f33074ac726e5773"
+    },
+    {
+      "path": "client/fleet.tsx",
+      "workingSHA256": "c968a212c21a04b3a96ef54da0ea56202baacb4bcc7584fe86d1cda9eb27d523",
+      "committedSHA256": "9a18cc9f57b22a058b7acee3c7fca27bfd1b795103dff20cf1920c52cca773ce",
+      "gitBlob": "3a3470fa0e7fea8cb15d2f7bdac03a3a52d9332d"
+    },
+    {
+      "path": "client/needs-you-state.test.ts",
+      "workingSHA256": "a71fdc2b669377bc72f06811968b5f7254665024e42a959d2f6c36867c5a30b1",
+      "committedSHA256": "287477fed75acb704b9d171ea6e06ace4b8311a313ae06676331fe9a17869420",
+      "gitBlob": "f16cb5354aceae54132f29ac30f7090c47689931"
+    },
+    {
+      "path": "client/needs-you-state.ts",
+      "workingSHA256": "db2e511ae4ad06f3807008c768594831c76b3edf88611dcbd41ca87434c3a8c8",
+      "committedSHA256": "b486b8a9bdf2cc3155c937972422a64f431d24f466ef674790d9db2d266d4c4c",
+      "gitBlob": "b1edf66585cbe895512666c8d5ae3c16c7c5a0cf"
+    },
+    {
+      "path": "client/scope-discussion.tsx",
+      "workingSHA256": "3d23ec22db9286ad23946481c89fd09559e68d83dff9620d2307236d5c4499ee",
+      "committedSHA256": "3d23ec22db9286ad23946481c89fd09559e68d83dff9620d2307236d5c4499ee",
+      "gitBlob": "8d9091fefd5f5415700e07b34eb36e8d0b010f51"
+    },
+    {
+      "path": "client/scope-query.ts",
+      "workingSHA256": "f00517fc32079ecdc1588d7e95f3a8486733d8cdbbdfb695dad74d736c12783a",
+      "committedSHA256": "f00517fc32079ecdc1588d7e95f3a8486733d8cdbbdfb695dad74d736c12783a",
+      "gitBlob": "bb81ea8f29f06a9c9837c87b61bb2573bd521d73"
+    },
+    {
+      "path": "client/scope-send.test.ts",
+      "workingSHA256": "c770f5c200c8c69ca23c3a8e7649c5328fd8fa1f2dae608e91b90116d7440a56",
+      "committedSHA256": "c770f5c200c8c69ca23c3a8e7649c5328fd8fa1f2dae608e91b90116d7440a56",
+      "gitBlob": "2905660429a65077847e3ed82b5c95eec6c25bd7"
+    },
+    {
+      "path": "client/scope-send.ts",
+      "workingSHA256": "c9f6940d02e123d82ad0b143f337aa10ce3235cd2b15b24b3b3fa0bb3cdc2c74",
+      "committedSHA256": "c9f6940d02e123d82ad0b143f337aa10ce3235cd2b15b24b3b3fa0bb3cdc2c74",
+      "gitBlob": "9046545c507836b6bdf2ce2a7e1c586669f7a61c"
+    },
+    {
+      "path": "client/scoped-needs.tsx",
+      "workingSHA256": "827339ff2ae9297f17ef8deedcb965c29a75a7f52cb545cc9d29dd07a156402c",
+      "committedSHA256": "827339ff2ae9297f17ef8deedcb965c29a75a7f52cb545cc9d29dd07a156402c",
+      "gitBlob": "def8e7aa55abd540e0ae1ad8da70a0dcce981390"
+    },
+    {
+      "path": "client/shell.ts",
+      "workingSHA256": "91b9bddc16e0d755eb395ad45ec6ac8d9f38945db71177535dc6c6b59c848c0d",
+      "committedSHA256": "7f135558ccec0111f5922ea4527bae56625482656878a3f3a6ecd73f6e8f708d",
+      "gitBlob": "093b648c67eb5ccffdb240ad9217fb07a21750d7"
+    },
+    {
+      "path": "client/workflow-plans.tsx",
+      "workingSHA256": "ae193648a0f34a44829974848136062b5e211d6326492a3e7adbe75ed8981a1a",
+      "committedSHA256": "f87dea947fc566495e70e4de18b0840ff13f736caba4893a0342b97250c9c739",
+      "gitBlob": "3bfac724832c5bc542b692f34ec079e63ff25775"
+    },
+    {
+      "path": "client/workspace-panels.tsx",
+      "workingSHA256": "2b2faae852c6af1681b7fa2be97ad7869a5b61edf48f58e8505949c7b98252d2",
+      "committedSHA256": "d863f3fa3d98e177a1545d473753a550c0f61cc5ca0fc230b30db16a8ed956c4",
+      "gitBlob": "fe72590f0d4cf8979a19094942d1620fc6d50418"
+    },
+    {
+      "path": "docs/scoped-supervision/S05.md",
+      "workingSHA256": "0ffb610a133a3bedf01677742f081560b26420ae02f18747acdba2fcf724c090",
+      "committedSHA256": "0ffb610a133a3bedf01677742f081560b26420ae02f18747acdba2fcf724c090",
+      "gitBlob": "48479a1b654798eb4cc7943d455df0da68860d97"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-compile.cjs",
+      "workingSHA256": "09aaa6e329843e950297daebc26c7ea8828c53bcfc059122d3337bc1d29b5400",
+      "committedSHA256": "09aaa6e329843e950297daebc26c7ea8828c53bcfc059122d3337bc1d29b5400",
+      "gitBlob": "d32a42ec1cf62f97c1cba0f0e0f1e0750a6a78cc"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/fixtures.js",
+      "workingSHA256": "58f0325cf46840621cbb75493d8bf16551c59cdea6ccabbb75f7d53a455e81f9",
+      "committedSHA256": "58f0325cf46840621cbb75493d8bf16551c59cdea6ccabbb75f7d53a455e81f9",
+      "gitBlob": "352f1f0743cfbff7307ef312c085b7705f296877"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/panel.jsx",
+      "workingSHA256": "9759b2f1eba3eac4c6377464f9c388701566dec43c82933b0634dcdf94dfd480",
+      "committedSHA256": "9759b2f1eba3eac4c6377464f9c388701566dec43c82933b0634dcdf94dfd480",
+      "gitBlob": "3697853a06272a7b7db03c54065eab350ecf83a4"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/render.mjs",
+      "workingSHA256": "67c94fcf5874ce636121dbe66dd1b4773e64cd0f180a385fc2fe85fe856da6a6",
+      "committedSHA256": "67c94fcf5874ce636121dbe66dd1b4773e64cd0f180a385fc2fe85fe856da6a6",
+      "gitBlob": "09119b598ba82aa4fe3e1b2903b06cb50a429d9b"
+    },
+    {
+      "path": "docs/scoped-supervision/s05-ui/stubs.jsx",
+      "workingSHA256": "6749d3e6bc63bbf726c422b1111be7d94e119f4e013b3abcc98b7b3e1bc71407",
+      "committedSHA256": "6749d3e6bc63bbf726c422b1111be7d94e119f4e013b3abcc98b7b3e1bc71407",
+      "gitBlob": "ca2d976b372a3e1edd752d3f1bec43b2bb7c939d"
+    },
+    {
+      "path": "index.server.ts",
+      "workingSHA256": "2316ed0b087c9122a85def948410fd2fecbd7e2410ac57aef9028200ffbc48e5",
+      "committedSHA256": "aa97596dc80ec133135c91794e1a7506ad168dfdb6e21a170bbbb3b6e8f5472b",
+      "gitBlob": "2aa6d6cbb3d55154d161dd4a7eb338fb613bebcd"
+    },
+    {
+      "path": "server/item-threads.ts",
+      "workingSHA256": "afecca8ea9e0a26bb64b24f8efbe06588230ea4b676fb873fd6acfe5e46b7bb6",
+      "committedSHA256": "7ebc0e9682989f446396fb2f7f73e3437cfc00ec6e501a1e77a18fd9d41eed01",
+      "gitBlob": "36cfb4b10eae0f17f08d7a43ffbe1e0d60e35bf7"
+    },
+    {
+      "path": "server/needs-you-service.ts",
+      "workingSHA256": "cfcd2ec5414da11b147e126b7108f1a2c5daed3fc68846ebca54fb86768e8f5a",
+      "committedSHA256": "ff9a990be90d00957749fa053de2917031c2cfa005e3f3ad140289b69b14b452",
+      "gitBlob": "a82a3b246ecfbabe939ab54a4b088a8bf7da219c"
+    },
+    {
+      "path": "server/scope-answer-context.ts",
+      "workingSHA256": "6797e3121fdbfcebddf58616fae89859bdd4671e24852527d56777224558a91c",
+      "committedSHA256": "6797e3121fdbfcebddf58616fae89859bdd4671e24852527d56777224558a91c",
+      "gitBlob": "ccc4db55b112be1b110174cf73e6dcb36906145c"
+    },
+    {
+      "path": "server/scope-discussion.test.ts",
+      "workingSHA256": "7c971ad4f6b0881719552b071ae7f62fda04087b9ba7e5c652c09b572cabaa61",
+      "committedSHA256": "7c971ad4f6b0881719552b071ae7f62fda04087b9ba7e5c652c09b572cabaa61",
+      "gitBlob": "2404c78f384956ce2bb06ae18f9380b7f8218bac"
+    },
+    {
+      "path": "server/scope-discussion.ts",
+      "workingSHA256": "8ce68a99e62a530586166750abdabe278e7c6a8522ff726ddb85fd2c16861fa1",
+      "committedSHA256": "8ce68a99e62a530586166750abdabe278e7c6a8522ff726ddb85fd2c16861fa1",
+      "gitBlob": "fc22a7e750a886480c7fa0170896460abf432ac5"
+    },
+    {
+      "path": "server/scope-projection.test.ts",
+      "workingSHA256": "02700e05b52258373e0d6f4d9a86fcf29cb12d08e2be037f87c7df8ba739ff3e",
+      "committedSHA256": "02700e05b52258373e0d6f4d9a86fcf29cb12d08e2be037f87c7df8ba739ff3e",
+      "gitBlob": "8abae3ad47a2e70d1875c31fed1a27bcc549f5f4"
+    },
+    {
+      "path": "server/scope-projection.ts",
+      "workingSHA256": "0dfb3afc95a530c4bafc38b68470c827cf39f11b7eee177c8c1b253827f6c21e",
+      "committedSHA256": "0dfb3afc95a530c4bafc38b68470c827cf39f11b7eee177c8c1b253827f6c21e",
+      "gitBlob": "6989c195ba41d139bcceeb32d3d9123bf86af21a"
+    },
+    {
+      "path": "server/scope-rpc.ts",
+      "workingSHA256": "a1b547e9a75887c7ab373d98005e30eaf322971de5ebd040672e805883747268",
+      "committedSHA256": "a1b547e9a75887c7ab373d98005e30eaf322971de5ebd040672e805883747268",
+      "gitBlob": "f6002a4bbb537ad2c1d34307db7af821269024c6"
+    },
+    {
+      "path": "server/supervision-commands.ts",
+      "workingSHA256": "b7881f739121ae43ed94319fb7b7690be7104a9d6c4b0a97ad572f5eee0e1277",
+      "committedSHA256": "dd5f75c1bca113b83a5dfcc0810c35e8eafca919328913da67838b9f739bde25",
+      "gitBlob": "ad95b51f239b21bebe04afb52a6983d77aafe959"
+    },
+    {
+      "path": "server/supervision-effects.ts",
+      "workingSHA256": "f0a3157bb6e798ec3f862650d2f40adb4c0670da3a3a81b917f81d55eff3563c",
+      "committedSHA256": "f60ec1df5d9f3143c8495d816f4a2ceeb737664443ade0177b540db9f1e40140",
+      "gitBlob": "e84be502c7f289140c02723f4a3d012c71563415"
+    },
+    {
+      "path": "server/supervision-lifecycle.ts",
+      "workingSHA256": "b5b0ba2517b7634c85086066aa045e51ebf68b9ce0f1beeff68874a691811e27",
+      "committedSHA256": "5bb5b0035d64dff68c5b84d493cbc8b832aaaf37de86cb46e8fae1e367e362d3",
+      "gitBlob": "553de79e3a80ea46545226968497801218ef26cd"
+    },
+    {
+      "path": "server/supervisor-sessions.ts",
+      "workingSHA256": "c19071605d3933e2b14ed8e5fd56e183af9beecdbcd54550c6d966c6899f7fcc",
+      "committedSHA256": "750b0827ccd43a3fd65e2ac751adf26434780de9408745a86068137bf3d5b21f",
+      "gitBlob": "f0049a1f1321b04bbc5f5dbf5a8cd2e9b9046e60"
+    },
+    {
+      "path": "server/templates.ts",
+      "workingSHA256": "856066769e07c18df3a9549b030050ca1ad37ed8fcfad1263537631dbee73ad1",
+      "committedSHA256": "c8362c3c8163cd540c7a5bb4a8a4192e09f4f441f90edb05dc185a840caf7359",
+      "gitBlob": "eaa84ac73567cbcd20e44b55dcefbd7b31934edf"
+    },
+    {
+      "path": "shared/item-threads.ts",
+      "workingSHA256": "0cd7adb75f992843cbc29a49c3d94e8a8542c4c8fde742b2963aa09151624580",
+      "committedSHA256": "f8b604ad1d81e072d8febdc2e69bcc78f3d31c073a2af88c63b3c36ee8240f21",
+      "gitBlob": "f639171aefdd2e69914544f5efddf2ee88915f6f"
+    },
+    {
+      "path": "shared/needs-you.ts",
+      "workingSHA256": "207116810ba0114105e0d2236bdc96776ab3020ff88a3d654392831b545b81c0",
+      "committedSHA256": "63ce98f79507ab4c2ee2868074414ace4892b9c540b1d2ee16f9dec15add0d9c",
+      "gitBlob": "2cfe4cc4bc4944c553973cd4e1001463a4e18336"
+    },
+    {
+      "path": "shared/scope-discussion.test.ts",
+      "workingSHA256": "d34e54da3ad77b830a1512376571c8166b14eeb1f6c502f744e1730262e61c18",
+      "committedSHA256": "d34e54da3ad77b830a1512376571c8166b14eeb1f6c502f744e1730262e61c18",
+      "gitBlob": "edce81f3a43bf8b85b5cc7581537581ce1a73d3f"
+    },
+    {
+      "path": "shared/scope-discussion.ts",
+      "workingSHA256": "dd647407d90d77a104084c2c4032ab36d98305b5fbf183bada33e5b7c430867d",
+      "committedSHA256": "dd647407d90d77a104084c2c4032ab36d98305b5fbf183bada33e5b7c430867d",
+      "gitBlob": "69f8fa821b4ed0bfc2f7ad61c4293b6aa6deb062"
+    },
+    {
+      "path": "shared/scoped-commands.ts",
+      "workingSHA256": "2bec4646b6135bcc35b5942b5fba9d51e16da5c1d522ba3506af39ec20626052",
+      "committedSHA256": "2bec4646b6135bcc35b5942b5fba9d51e16da5c1d522ba3506af39ec20626052",
+      "gitBlob": "75dffa23296584ae116997f7d964fc7dcaff2d05"
+    },
+    {
+      "path": "shared/supervision-rpc.ts",
+      "workingSHA256": "70bf1c55a5a7fac8ec2d812cdd0769ba114c978ed7a39ff37c36aadbaae013d2",
+      "committedSHA256": "274b23afec39fb699bf103b2bb4901d7e45c4cab0f144cd1b530bf500f792bdc",
+      "gitBlob": "795f3b24f3de6c15ef729bd38ffdeb22f4af041e"
+    },
+    {
+      "path": "shared/supervision.ts",
+      "workingSHA256": "6a4e8022fd0be1aedb5c57d9ef614635522252065cecf3509abc2b318d0adceb",
+      "committedSHA256": "14e1016e0c2b676e6193de85a1c4fab9213ed37df1954d1bbe4b90cd1f99bc85",
+      "gitBlob": "e619e07148b8a57b02874896800c41b1f37adb85"
+    },
+    {
+      "path": "templates/messages/scope-discuss.md",
+      "workingSHA256": "4b433750b3bfd0682b15291fb467c1020dc1290cc2e147d7fee4b46ca05ec5e6",
+      "committedSHA256": "4b433750b3bfd0682b15291fb467c1020dc1290cc2e147d7fee4b46ca05ec5e6",
+      "gitBlob": "ef060a66e17b211a4afab836224d13e5730f966a"
+    }
+  ],
+  "normalization": "Working SHA256 pins Windows checkout bytes; committedSHA256 and gitBlob pin LF-normalized committed source. Both verification manifests are excluded from source; the original remains historical.",
+  "historicalManifest": {
+    "path": "docs/scoped-supervision/S05-verification.json",
+    "SHA256": "37c6fa5cebff78c08e08de6465c3ba620cbb111fb11d4f9276a347a1e2b1f71a",
+    "atHead": "03992e3fc1ae2108d260e63b0ef38cc5fc6fc377"
+  },
+  "findings": {
+    "R05-F1": {
+      "fix": [
+        "client/chat.tsx",
+        "client/draft.ts",
+        "client/scope-query.ts"
+      ],
+      "regression": "docs/scoped-supervision/s05-ui/render.mjs: restoredScope",
+      "controls": [
+        "Query cache removed and component remounted with global drafts/selection retained",
+        "Unavailable scope read holds without General composer or native/scoped send",
+        "Explicit read-only refresh restores addressed draft and exact original plan recipient",
+        "Source-home spelling differs from canonical home; both themes and widths"
+      ]
+    },
+    "R05-F2": {
+      "fix": [
+        "shared/supervision-rpc.ts",
+        "server/scope-rpc.ts",
+        "client/scoped-needs.tsx"
+      ],
+      "regressions": [
+        "server/scope-discussion.test.ts: R05-F2 real stale-policy non-acceptance and explicit fresh-context answer",
+        "server/scope-discussion.test.ts: R05-F2 interrupted publication and exact-request reconciliation",
+        "docs/scoped-supervision/s05-ui/render.mjs: rejectedAnswer and uncertainAnswer"
+      ],
+      "controls": [
+        "Definite refusal requires healthy same-home state and no accepted command for exact ID",
+        "Notes/option retained; combined refresh permits a new explicit submission with fresh policy vector",
+        "Transport-uncertain submission remains held through pending read and remount",
+        "Accepted answer with failed combined read and partial publication never become retryable refusals",
+        "One answer outbox; zero receiver calls"
+      ]
+    }
+  },
+  "local": {
+    "typecheck": {
+      "path": ".local/s05-r05/typecheck-final.log",
+      "SHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    "focused": {
+      "path": ".local/s05-r05/focused.json",
+      "SHA256": "afadb6b4165fbb8452c006cdefe9616d31931669dd92f31808cf4efb792993f0",
+      "files": 13,
+      "passed": 175,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": "All original 173 R05 targeted tests, the reviewer real-policy reproduction integrated as a product regression, and one additional publication-uncertainty control."
+    },
+    "visual": {
+      "path": ".local/s05-ui/results.json",
+      "SHA256": "0674c1dce28be8d46599897dd303b28868818fc885f8748fabcd7207ca9af6fa",
+      "passed": true,
+      "results": [
+        {
+          "theme": "light",
+          "device": "wide",
+          "width": 1440,
+          "height": 1000,
+          "capturedScope": "00000000-0000-4000-8000-000000000201",
+          "resourceCallsOnRead": 0,
+          "scopedAnswers": 1,
+          "restoration": {
+            "heldWithoutGeneral": true,
+            "draftRetained": true,
+            "scopeId": "00000000-0000-4000-8000-000000000101"
+          },
+          "refusal": {
+            "refusalReleasesComposer": true,
+            "retainedOptionAndNotes": true,
+            "explicitFreshAttempt": true
+          },
+          "uncertainty": {
+            "originalSubmissionRetained": true,
+            "pendingReadDoesNotProveRefusal": true,
+            "noRetry": true
+          },
+          "errors": []
+        },
+        {
+          "theme": "light",
+          "device": "phone",
+          "width": 390,
+          "height": 844,
+          "capturedScope": "00000000-0000-4000-8000-000000000201",
+          "resourceCallsOnRead": 0,
+          "scopedAnswers": 1,
+          "restoration": {
+            "heldWithoutGeneral": true,
+            "draftRetained": true,
+            "scopeId": "00000000-0000-4000-8000-000000000101"
+          },
+          "refusal": {
+            "refusalReleasesComposer": true,
+            "retainedOptionAndNotes": true,
+            "explicitFreshAttempt": true
+          },
+          "uncertainty": {
+            "originalSubmissionRetained": true,
+            "pendingReadDoesNotProveRefusal": true,
+            "noRetry": true
+          },
+          "errors": []
+        },
+        {
+          "theme": "dark",
+          "device": "wide",
+          "width": 1440,
+          "height": 1000,
+          "capturedScope": "00000000-0000-4000-8000-000000000201",
+          "resourceCallsOnRead": 0,
+          "scopedAnswers": 1,
+          "restoration": {
+            "heldWithoutGeneral": true,
+            "draftRetained": true,
+            "scopeId": "00000000-0000-4000-8000-000000000101"
+          },
+          "refusal": {
+            "refusalReleasesComposer": true,
+            "retainedOptionAndNotes": true,
+            "explicitFreshAttempt": true
+          },
+          "uncertainty": {
+            "originalSubmissionRetained": true,
+            "pendingReadDoesNotProveRefusal": true,
+            "noRetry": true
+          },
+          "errors": []
+        },
+        {
+          "theme": "dark",
+          "device": "phone",
+          "width": 390,
+          "height": 844,
+          "capturedScope": "00000000-0000-4000-8000-000000000201",
+          "resourceCallsOnRead": 0,
+          "scopedAnswers": 1,
+          "restoration": {
+            "heldWithoutGeneral": true,
+            "draftRetained": true,
+            "scopeId": "00000000-0000-4000-8000-000000000101"
+          },
+          "refusal": {
+            "refusalReleasesComposer": true,
+            "retainedOptionAndNotes": true,
+            "explicitFreshAttempt": true
+          },
+          "uncertainty": {
+            "originalSubmissionRetained": true,
+            "pendingReadDoesNotProveRefusal": true,
+            "noRetry": true
+          },
+          "errors": []
+        }
+      ]
+    },
+    "compile": {
+      "path": ".local/s05/compile/results.json",
+      "SHA256": "0ede9c4467acacc5da3035729681e1599aaed609786390247be0a34bfbbc81d9",
+      "base": "ea613a576e639de4498d92abac474a28ccba75ca",
+      "runtime": "v24.20.0",
+      "compiler": "C:\\Users\\micha\\AppData\\Local\\Programs\\Paseo\\resources\\app.asar\\node_modules\\@getpaseo\\server\\dist\\server\\server\\plugins\\compiler.js",
+      "compilerSHA256": "67a77e0b80c0c7507b699e1992ab20bc6ed83b144dc5a999b9d9ea3a108fa3a4",
+      "hermescSHA256": "e27ed700e2b4025497eb802a604c41a96f0979f5300275c3a6fdbfdff15c6521",
+      "results": [
+        {
+          "name": "branch",
+          "clientBytes": 1120806,
+          "serverBytes": 738031,
+          "clientSHA256": "e0588f465a1e34cf0ffb4ae85f4ba22f4f301cbc9c48a09127902ba6f26c5aef",
+          "serverSHA256": "f1276702e154799552cdfecbd417242b5aba1284eb54a5ffcbc185c7bca391f9",
+          "durationMs": 11657,
+          "hermes": "passed"
+        },
+        {
+          "name": "baseline",
+          "clientBytes": 1073352,
+          "serverBytes": 705756,
+          "clientSHA256": "87f7bce650f0682a1b2cde9dc3d1cd5ce25406964f91bdcfe8dcefe84e6d5e04",
+          "serverSHA256": "a12cfd7b75819923984fcc51597886fad899fdf4b96d9f98325f5e13d77190c3",
+          "durationMs": 15119,
+          "hermes": "passed"
+        }
+      ],
+      "liveResources": 0
+    },
+    "red": {
+      "restoredScope": {
+        "path": ".local/s05-r05/f1-red.log",
+        "SHA256": "25f33139a93141432bf138e4ab6b412027a568e268f1ac4577b779597571f55f"
+      },
+      "refusedAnswerUi": {
+        "path": ".local/s05-r05/f2-red.log",
+        "SHA256": "c6c75cbfd8a9a719b757524dd0ccc06563d281ec16f2e0287110da15c4b8aea9"
+      },
+      "realPolicyRefusal": {
+        "path": ".local/s05-r05/f2-server-red.log",
+        "SHA256": "d9a4c1a2d4793a7188e9c40eb9590d07fc459efbc3b8cf0f4157ba4cb38df9d4"
+      },
+      "expected": "Each regression failed against the pre-fix product behavior before the relevant correction."
+    },
+    "retainedSetupFailure": {
+      "path": ".local/s05-r05/focused-first.json",
+      "SHA256": "430377a0b9631aeea970993af875722ebfc870a88fd76a20468702a68ad1a3fb",
+      "passed": 174,
+      "failed": 1,
+      "disposition": "Additional publication-control fixture initially had a decision without a dependent run. Corrected fixture only; existing reducer guard unchanged."
+    }
+  },
+  "boundaries": {
+    "uiEnabled": false,
+    "executionEnabled": false,
+    "liveScopeActivation": false,
+    "pluginInstallReload": false,
+    "modelProviderCalls": 0,
+    "automaticAnswerRetry": false,
+    "manualCiReruns": false,
+    "merge": false
+  },
+  "ci": "Require all automatic GitHub Checks on the exact delivered head; no manual rerun. Independent renewed review remains required before landing."
+}

@@ -9,7 +9,9 @@ export function useRpc(contract) {
   if (!methods.has(contract.name)) methods.set(contract.name, async input => {
     window.scopeActions.push({ name: contract.name, input: clone(input) });
     switch (contract.name) {
-      case "firstmate.scope.read": return { ...clone(window.scopeSnapshot), uiEnabled: !location.search.includes("before") };
+      case "firstmate.scope.read":
+        if (window.failScopeRead) throw new Error("Scope read unavailable (recovery fixture)");
+        return { ...clone(window.scopeSnapshot), uiEnabled: !location.search.includes("before") };
       case "firstmate.scope.conversation": return clone(threads.get(input.scopeId) ?? { key: "unknown", title: "Unknown", messages: [] });
       case "firstmate.scope.discuss": {
         if (window.refuseNext) { window.refuseNext = false; return { outcome: "refused", code: "STALE", message: "The captured binding changed. Preserve this draft and refresh." }; }
@@ -24,6 +26,8 @@ export function useRpc(contract) {
         if (window.holdRead) throw new Error("Combined decision read unavailable");
         return clone(window.scopeNeeds);
       case "firstmate.scope.answer": {
+        if (window.refuseAnswer) return { outcome: "refused", code: "STALE", message: "Policy vector changed; reread the scoped rules." };
+        if (window.loseAnswerReply) throw new Error("Answer response unavailable (recovery fixture)");
         const row = window.scopeNeeds.scopedDecisions[0];
         row.ready = false; row.decision.state = "answered"; row.decision.answer = { submissionId: input.submissionId, option: input.option, text: input.text,
           at: new Date().toISOString(), provenance: { kind: "captain-ui", id: "fixture", source: "fixture" }, outboxId: "00000000-0000-4000-8000-000000000401" };

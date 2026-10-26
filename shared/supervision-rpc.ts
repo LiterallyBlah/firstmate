@@ -54,4 +54,9 @@ export const activateScope = defineRpc({ name: "firstmate.scope.activate", input
   purpose: z.literal("discussion") }).strict(), output: z.object({ state: z.literal("unsupported"), reason: z.string() }).strict() });
 /** Same shared Needs-you projection, including the existing scoped decision identities; never a new ledger. */
 export const readScopeNeeds = defineRpc({ name: "firstmate.scope.needs", input: z.object({}).strict(), output: NeedsYouSnapshotSchema });
-export const answerScopeDecision = defineRpc({ name: "firstmate.scope.answer", input: ScopedAnswerSchema, output: NeedsYouSnapshotSchema });
+/** A thrown/uncertain response is never evidence of non-acceptance. Only a checked refusal releases retry. */
+export const ScopedAnswerResultSchema = z.union([NeedsYouSnapshotSchema,
+  z.object({ outcome: z.literal("refused"), code: z.string(), message: z.string() }).strict(),
+  z.object({ outcome: z.literal("uncertain"), message: z.string() }).strict(),
+]);
+export const answerScopeDecision = defineRpc({ name: "firstmate.scope.answer", input: ScopedAnswerSchema, output: ScopedAnswerResultSchema });

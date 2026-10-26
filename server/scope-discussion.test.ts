@@ -15,6 +15,7 @@ import { continuationInputVersion } from "./supervision-continuation";
 import { SupervisionLifecycle } from "./supervision-lifecycle";
 import { SupervisionEvents } from "./supervision-events";
 import { SupervisionInbox } from "./supervision-inbox";
+import { acceptPolicyInventory } from "./supervision-policy";
 
 const profile = { provider: "codex/gpt-6.1-sol", modeId: "full-access", thinkingOptionId: "high" };
 function service(f: S04Fixture, enabled = true) {
@@ -155,10 +156,61 @@ describe("S05 actual S01/S03/S04 composition, isolated receivers", { timeout: 60
     const request = { ...row.answerContext!, submissionId: randomUUID(), option: "yes", text: "Within the existing grant." };
     expect(() => answerScopeDecision.input.parse({ ...request, actor: { kind: "system" } })).toThrow();
     const answer = answerScopeDecision.output.parse(await handlers.get(answerScopeDecision.name)!(request as never));
+    if ("outcome" in answer) throw new Error(`Unexpected answer outcome: ${answer.outcome}`);
     expect(answer.scopedDecisions?.[0]?.decision.answer?.submissionId).toBe(request.submissionId); expect(answer.scopedPendingAnswerCount).toBe(1);
     await handlers.get(answerScopeDecision.name)!(request as never);
     expect((await f.store.read()).outbox.filter(o => o.kind === "decision.answer")).toHaveLength(1);
     expect(f.receiver.calls).toEqual([]); expect(generalSend).not.toHaveBeenCalled();
+  });
+  it("R05-F2: proves stale policy non-acceptance, keeps the same decision ready and accepts an explicit refreshed answer", async () => {
+    const f = await s04Fixture(), scope = await f.addScope(1, "answer-recovery", ["choose", "build"]);
+    await f.draft(scope, [{ id: "choose", decision: "captain" }, { id: "build", after: [{ node: "choose", on: "answered" }] }]);
+    let failCombined = false;
+    const handlers = new Map<string, (input: never) => Promise<unknown>>();
+    registerScopeRpcs({ handle(contract: { name: string }, handler: (input: never) => Promise<unknown>) { handlers.set(contract.name, handler); } } as never,
+      { read: async () => ({ home: f.home, generalId: f.state.globalMate, status: await f.store.read() }),
+        readNeeds: async () => { if (failCombined) throw new Error("Combined read lost after answer"); return base(f); },
+        uiEnabled: true, executionEnabled: true, commands: f.commands });
+    const before = withScopedNeedsYou(base(f), await f.store.read()).scopedDecisions![0]!;
+    const input = { ...before.answerContext!, submissionId: randomUUID(), option: "yes", text: "Preserve my answer" };
+    const rule = (await f.store.read()).policyRules[0]!;
+    await acceptPolicyInventory(f.store, f.home, randomUUID(), captain, { sources: [], rules: [{ ...rule, version: rule.version + 1 }] }, true);
+    await acceptPolicyInventory(f.store, f.home, randomUUID(), captain, { sources: [], rules: [],
+      reviewedHolds: (await f.store.read()).operationHolds.filter(h => h.state === "held").map(({ id, version }) => ({ id, version })) }, true);
+    // The reviewer's actual S03 refusal remains the source of the recoverable UI response.
+    await expect(f.commands.answer(input, captain)).rejects.toMatchObject({ code: "STALE", message: "Policy vector changed; reread the scoped rules." });
+    expect(await handlers.get(answerScopeDecision.name)!(input as never)).toEqual({ outcome: "refused", code: "STALE", message: "Policy vector changed; reread the scoped rules." });
+    const after = withScopedNeedsYou(base(f), await f.store.read()).scopedDecisions![0]!;
+    expect(after.ready).toBe(true); expect(after.decision.state).toBe("pending");
+    expect([after.decision.id, after.decision.revision, after.decision.subjectHash]).toEqual([before.decision.id, before.decision.revision, before.decision.subjectHash]);
+    expect(after.answerContext!.policyVector).not.toEqual(before.answerContext!.policyVector);
+    expect((await f.store.read()).commands.some(c => c.id === input.submissionId)).toBe(false);
+    const fresh = { ...after.answerContext!, submissionId: randomUUID(), option: input.option, text: input.text };
+    failCombined = true;
+    expect(await handlers.get(answerScopeDecision.name)!(fresh as never)).toMatchObject({ outcome: "uncertain", message: "Combined read lost after answer" });
+    expect((await f.store.read()).commands.some(c => c.id === fresh.submissionId)).toBe(true);
+    failCombined = false;
+    expect(await handlers.get(answerScopeDecision.name)!(fresh as never)).toMatchObject({ scopedDecisions: [{ decision: { state: "answered" } }] });
+    expect((await f.store.read()).outbox.filter(o => o.kind === "decision.answer")).toHaveLength(1);
+    expect(f.receiver.calls).toEqual([]);
+  });
+  it("R05-F2: interrupted answer publication remains uncertain until exact-request reconciliation", async () => {
+    const f = await s04Fixture(), scope = await f.addScope(1, "answer-publication", ["choose", "build"]);
+    await f.draft(scope, [{ id: "choose", decision: "captain" }, { id: "build", after: [{ node: "choose", on: "answered" }] }]);
+    const row = withScopedNeedsYou(base(f), await f.store.read()).scopedDecisions![0]!;
+    const input = { ...row.answerContext!, submissionId: randomUUID(), option: "yes", text: "Retain this exact request" };
+    const handlers = new Map<string, (input: never) => Promise<unknown>>();
+    registerScopeRpcs({ handle(contract: { name: string }, handler: (input: never) => Promise<unknown>) { handlers.set(contract.name, handler); } } as never,
+      { read: async () => ({ home: f.home, generalId: f.state.globalMate, status: await f.store.read() }),
+        readNeeds: async () => base(f), uiEnabled: true, executionEnabled: true, commands: f.commands });
+    f.hooks.boundary = async name => { if (name === "event:linked") throw new Error("Lost publication acknowledgement"); };
+    expect(await handlers.get(answerScopeDecision.name)!(input as never)).toMatchObject({ outcome: "uncertain" });
+    expect((await f.store.read()).freshness).toBe("held");
+    f.hooks.boundary = null;
+    await f.store.recoverPublication();
+    expect(await handlers.get(answerScopeDecision.name)!(input as never)).toMatchObject({ scopedDecisions: [{ decision: { state: "answered" } }] });
+    expect((await f.store.read()).outbox.filter(o => o.kind === "decision.answer")).toHaveLength(1);
+    expect(f.receiver.calls).toEqual([]);
   });
   it("offers a committed answer to a discussion-only plan session once without granting a worker start", async () => {
     const f = await s04Fixture(), scope = await f.addScope(1, "goal-1", ["choose", "build"], false), { discussions } = service(f);

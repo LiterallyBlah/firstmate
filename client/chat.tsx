@@ -33,7 +33,7 @@ import {
   restoreFailed,
   type PendingAttachment,
 } from "./attachments";
-import { drafts } from "./draft";
+import { drafts, scopeUiKey } from "./draft";
 import { discussionRequest, type DecisionDiscussion } from "./decision-discussion";
 import { lookupIn, recentCandidates } from "./file-links";
 import { useFollowEnd } from "./follow-end";
@@ -106,14 +106,17 @@ function useHomeFileLinks(rows: readonly TranscriptRow[]) {
   return useMemo(() => lookupIn(answer ?? {}), [answer]);
 }
 
-/** The new UI is advertised by a separate read-only gate. A retained enabled surface never
- * falls back to a General composer when its scope read fails. */
+/** The separate read-only gate enables this UI. Restoration retains scoped intent even
+ * when both the component and query cache were lost; an unavailable target cannot become General. */
 export function MateChat(props: Parameters<typeof GeneralMateChat>[0]) {
-  const scopes = useScopeSnapshot(props.imageContext?.serverId ?? "local", props.imageContext?.home ?? "");
-  const enabled = useRef(false);
-  if (scopes.data?.uiEnabled) enabled.current = true;
-  if (enabled.current || props.scopeRequest) {
-    if (!scopes.data) return <Text style={{ color: props.theme.colors.statusDanger }}>Scopes unavailable. Refresh before sending.</Text>;
+  const hostId = props.imageContext?.serverId ?? "local", homeId = props.imageContext?.home ?? props.scopeRequest?.homeId ?? "";
+  const scopes = useScopeSnapshot(hostId, homeId);
+  const enabled = useSyncExternalStore(drafts.subscribe, () => drafts.get(scopeUiKey(hostId, homeId)));
+  if (scopes.data?.uiEnabled || enabled || props.scopeRequest) {
+    if (!scopes.data) return <View style={{ padding: 16, gap: 12 }}>
+      <Text style={{ color: props.theme.colors.statusDanger }}>Scopes unavailable. Refresh before sending.</Text>
+      <IconButton icon="RefreshCw" label="Refresh discussion scopes" showLabel theme={props.theme} disabled={scopes.isFetching} onPress={() => { void scopes.refetch(); }} />
+    </View>;
     if (props.scopeRequest && props.scopeRequest.homeId !== scopes.data.homeId) return <Text style={{ color: props.theme.colors.statusDanger }}>This discussion belongs to a different home. Open its original host and home.</Text>;
     if (!scopes.data.uiEnabled) return <Text style={{ color: props.theme.colors.foregroundMuted }}>Scoped discussion controls are disabled pending activation.</Text>;
     return <ScopeDiscussion key={`${props.imageContext?.serverId}:${scopes.data.homeId}`} snapshot={scopes.data} offline={!!scopes.error}

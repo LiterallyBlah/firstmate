@@ -38,9 +38,21 @@ export function registerScopeRpcs(server: Pick<PluginServerContext, "handle">, d
   server.handle(readScopeNeeds, combined);
   server.handle(answerScopeDecision, async input => {
     if (!deps.executionEnabled || !deps.commands) throw new SupervisionError("UNSUPPORTED", "Scoped answer execution is disabled; no legacy answer substitution.");
-    const { status } = await deps.read();
-    if (status.homeId !== input.homeId || deps.commands.store.homeId !== input.homeId) throw new SupervisionError("STALE", "Home changed. Preserve this decision draft and refresh.");
-    await deps.commands.answer(input, { kind: "captain-ui", id: "scope-decision", source: "firstmate.scope.answer" });
-    return combined();
+    try {
+      const { status } = await deps.read();
+      if (status.homeId !== input.homeId || deps.commands.store.homeId !== input.homeId) throw new SupervisionError("STALE", "Home changed. Preserve this decision draft and refresh.");
+      await deps.commands.answer(input, { kind: "captain-ui", id: "scope-decision", source: "firstmate.scope.answer" });
+      return await combined();
+    } catch (error) {
+      // Reuse S03's accepted-command index. A publication hold, read failure or accepted
+      // request cannot prove absence; in those cases the exact original submission stays held.
+      try {
+        const status = await deps.commands.store.read();
+        if (error instanceof SupervisionError && status.homeId === input.homeId && status.freshness === "current" &&
+          !status.commands.some(c => c.id === input.submissionId))
+          return { outcome: "refused" as const, code: error.code, message: error.message };
+      } catch { /* Unknown storage cannot release a submission. */ }
+      return { outcome: "uncertain" as const, message: error instanceof Error ? error.message : String(error) };
+    }
   });
 }

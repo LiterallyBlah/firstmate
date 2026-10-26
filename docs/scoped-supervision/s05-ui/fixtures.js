@@ -6,8 +6,8 @@ const target = (scopeId, agentId, epoch = 1) => ({ homeId, scopeId, agentId, epo
 const goal = { scopeId: planId, planId: "reader-pass", title: "Reader pass", state: "needs-planning", owner: "plan-session", ownerEpoch: 1,
   responsible: "scope-owner", next: "Review accepted; the outcome still needs a follow-up task.", due: true, activeWorkers: 0, activeEffects: 0, uncertainEffects: 0,
   offers: { pending: 0, uncertain: 0 }, evidenceAt: at, evidenceAgeMs: 180000, projectIds: [projectId], lastSupervisorFailure: null };
-const summary = (id, title, kind, agentId, session, goals = []) => ({ id, title, kind, aliases: [id === "general" ? "firstmate" : kind === "plan" ? "reader-pass" : "reader"],
-  planId: kind === "plan" ? "reader-pass" : null, discussionOnly: kind === "project", target: target(id, agentId, agentId ? 1 : 0),
+const summary = (id, title, kind, agentId, session, goals = []) => ({ id, title, kind, aliases: [id === "general" ? "firstmate" : kind === "plan" ? id === planId ? "reader-pass" : "new-trial" : "reader"],
+  planId: kind === "plan" ? id === planId ? "reader-pass" : "new-trial" : null, discussionOnly: kind === "project", target: target(id, agentId, agentId ? 1 : 0),
   hostId: "local", workspaceId: agentId ? `${agentId}-ws` : null, state: agentId ? "active" : "dormant", coverage: "unknown", session, observedAt: agentId ? at : null,
   goals, activeWorkers: 0, activeEffects: 0, uncertainEffects: 0, lastEffectFailure: null });
 export const snapshot = ScopeSnapshotSchema.parse({ homeId, sequence: 23, freshness: "current", asOf: at, uiEnabled: true, executionEnabled: true, problems: [],

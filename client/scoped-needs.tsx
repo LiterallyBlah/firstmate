@@ -41,6 +41,7 @@ function ScopedDecisionRow({ row, snapshot, theme, compact, offline }: { row: Ro
   const text = useSyncExternalStore(drafts.subscribe, () => drafts.get(key));
   const option = useSyncExternalStore(drafts.subscribe, () => drafts.get(`${key}:option`));
   const pending = useSyncExternalStore(drafts.subscribe, () => drafts.get(`${key}:pending`));
+  const rejected = useSyncExternalStore(drafts.subscribe, () => drafts.get(`${key}:rejected`));
   const errorKey = JSON.stringify(["firstmate.scope-answer-error/1", snapshot.homeId, d.id]);
   const error = useSyncExternalStore(drafts.subscribe, () => drafts.get(errorKey));
   const answered = d.state === "answered", disabled = busy || !!pending || answered || offline || !row.ready || !row.answerContext || !snapshot.scopedAnswersEnabled || snapshot.scopedComplete !== true;
@@ -48,14 +49,24 @@ function ScopedDecisionRow({ row, snapshot, theme, compact, offline }: { row: Ro
     const next = await read({});
     if (next.homeId !== snapshot.homeId) throw new Error("The decision home changed. Preserve the draft and reopen its original host.");
     cache.setQueryData<NeedsYouSnapshot>(NEEDS_YOU_QUERY_KEY, old => mergeDecisionSnapshot(old, next));
+    if (next.scopedComplete === true && (next.scopedSequence ?? -1) >= (snapshot.scopedSequence ?? 0)) drafts.set(`${key}:rejected`, "");
   }
   async function submit() {
-    if (disabled || !option || !row.answerContext || gate.current || drafts.get(`${key}:pending`)) return;
+    if (disabled || rejected || !option || !row.answerContext || gate.current || drafts.get(`${key}:pending`)) return;
     gate.current = true; setBusy(true); drafts.set(errorKey, "");
     const input: ScopedAnswer = { ...row.answerContext, submissionId: workflowRequestId(), option, text };
     drafts.set(`${key}:pending`, JSON.stringify(input));
     try {
-      await answer(input);
+      const result = await answer(input);
+      if ("outcome" in result) {
+        if (result.outcome !== "refused") throw new Error(result.message);
+        drafts.set(`${key}:rejected`, JSON.stringify(input));
+        drafts.set(`${key}:pending`, "");
+        drafts.set(errorKey, `${result.code}: ${result.message}`);
+        // No automatic resend: a complete refreshed context permits a new explicit submission.
+        await refresh();
+        return;
+      }
       // Keep the confirmed answer disabled if the combined read fails; never advance on a ledger-only result.
       await refresh();
     } catch (e) { drafts.set(errorKey, errorText(e)); }
@@ -75,7 +86,7 @@ function ScopedDecisionRow({ row, snapshot, theme, compact, offline }: { row: Ro
         style={{ color: theme.colors.foreground, backgroundColor: theme.colors.surface0, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 7, minHeight: 44, padding: 10 }} />
       {!snapshot.scopedAnswersEnabled ? <Text style={{ color: theme.colors.foregroundMuted }}>Scoped answers are disabled pending activation.</Text> : null}
       {error ? <Text accessibilityRole="alert" style={{ color: theme.colors.statusDanger }}>{error}</Text> : null}
-      {button(answered ? "Answer committed" : pending ? "Answer unconfirmed · original submission retained" : "Submit scoped answer", () => { void submit(); }, disabled || !option)}
+      {button(answered ? "Answer committed" : pending ? "Answer unconfirmed · original submission retained" : rejected ? "Refresh before reconsidering answer" : "Submit scoped answer", () => { void submit(); }, disabled || !!rejected || !option)}
       {button("Refresh scoped decisions", () => { void refresh().catch(e => drafts.set(errorKey, errorText(e))); }, busy)}
       <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>Evidence: {d.sourceVector.map(v => `${v.kind}/${v.id}@${v.version}`).join(", ")}</Text>
     </View> : null}
